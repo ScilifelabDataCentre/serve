@@ -1,0 +1,69 @@
+{% extends base_template %}
+{% load static %}
+{% block content %}
+<div class="container-fluid p-0">
+
+
+  <div class="row">
+    <div class="card flex-fill">
+      <div class="card-header">
+        <div class="d-flex justify-content-center">
+          <h1 class="h1" style="font-weight: 800;">About SciLifeLab Serve</h1>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <div class="row" style="font-size: medium;">
+          <article class="markdown-section" id="main" style="font-size: 14px;">
+            <p>While we do not currently offer cloud-based JupyterLab Notebooks and RStudio to regular users of SciLifeLab Serve as of now, these can be requested for teaching purposes. In other words, course and workshop leaders are welcome to request these to be used in their courses. Each student would then be able to run their own instance of either JupyterLab notebook or RStudio by simply opening a URL. This saves time spent on ensuring every students' machine has the required software and dependencies installed or addressing issues occuring with single students during the course. Python modules and R packages can be installed as usually, and a terminal window will also be available.</p>
+            <p>This service is provided free of charge like <a href="{% url 'home' %}">the other resources of SciLifeLab Serve</a>. Note that while SciLifeLab Serve has already been used for teaching on multiple occasions (with 30 students) the service is still running in <b>beta testing phase</b>. Therefore, issues might arise but we will do our best to help you if that happens.</p>
+            <h3>How can I request to use SciLifeLab Serve for teaching?</h3>
+            <p>We would like to make sure that this functionality of SciLifeLab Serve is used only for teaching purposes and that there is only one course running at any time and that. To ensure this, we have a separate <a href="#application">application form below</a> where you will be asked to tell us about yourself and your planned course. Once your application is approved, your SciLifeLab Serve account will receive special privileges allowing you to create multiple instances of either JupyterLab notebook or RStudio. Each of these will have a unique URL which you can distribute to your students or workshop attendees.</p>
+            <h3>Who is eligible to apply?</h3>
+            <p>SciLifeLab Serve's assignment is to help the academic life science research community in Sweden. We accept applications for courses, workshops, webinars offered at the doctoral or similar level and higher organized by Swedish universities or research infrastructures.</p>
+            <h3>What kind of compute and storage do we get? Is there a limit to a number of participants?</h3>
+            <p>When it comes to available resources, we will discuss the estimated number of required CPUs and memory with you individually. We expect to be able to cover the needs of most courses. For reference, SciLifeLab Serve was previously already used for courses with 30 students.</p>
+            <h3>What kind of support will you provide?</h3>
+            <p>Once your application is processed and approved, you will need to create the necessary instances of JupyterLab notebooks and RStudio within SciLifeLab Serve and distribute the URLs among your students yourself. We will be available to answer your questions about SciLifeLab Serve interface and features before the course. During the course, we will do our best to answer your questions rapidly. We will monitor our servers throughout the course duration. In case there is a technical issue on our servers, we will do our best to sort it out as soon as possible. In case we are not able to solve it, you will need to have an alternative plan.</p>
+            <h3>How do you fund SciLifeLab Serve?</h3>
+            <p>SciLifeLab Serve is supported by a grant from the Knut and Alice Wallenberg Foundation to SciLifeLab for research in Datadriven Life Science. The service is available free of charge to researchers in Sweden, both with and without an affiliation SciLifeLab, as well as to SciLifeLab platforms. Read <a href="{% url 'about' %}">more about us here</a>.</p>
+            <h2 id="application">Application form</h2>
+            <div class="container">
+              <div class="row justify-content-center">
+                <div class="col-6 border rounded p-4">
+                  <div class="mb-3">
+                    <label for="name" class="form-label">Your name:</label>
+                    <input type="text" class="form-control" id="name">
+                  </div>
+                  <div class="mb-3">
+                    <label for="email" class="form-label">Your email address(connected to your SciLifeLab Serve account):</label>
+                    <input type="email" class="form-control" id="email">
+                  </div>
+                  <div class="mb-3">
+                    <label for="course_title" class="form-label">Course/workshop/webinar title:</label>
+                    <input type="text" class="form-control" id="course_title">
+                  </div>
+                  <div class="mb-3">
+                    <label for="course_dates" class="form-label">Course/workshop/webinar dates and times:</label>
+                    <input type="text" class="form-control" id="course_dates">
+                  </div>
+                  <div class="mb-3">
+                    <label for="course_description" class="form-label">Course description:</label>
+                    <textarea class="form-control" id="course_description" rows="4"></textarea>
+                  </div>
+                  <div class="mb-3">
+                    <button class="btn btn-primary" type="submit">Submit application</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
