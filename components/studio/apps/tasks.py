@@ -463,7 +463,9 @@ def get_resource_usage():
     kubeconfig = os.path.join(volume_root, 'app/chartcontroller/config/config')
 
     timestamp = time.time()
-
+    #DEV
+    # args = ['kubectl', '--kubeconfig', kubeconfig, 'get', '--raw', 'https://rancher-server.dckube.scilifelab.se/k8s/clusters/c-skq8h/apis/metrics.k8s.io/v1beta1/pods']
+    #PROD
     args = ['kubectl', '--kubeconfig', kubeconfig, 'get', '--raw', 'https://rancher-server.dckube.scilifelab.se/k8s/clusters/c-mr7ql/apis/metrics.k8s.io/v1beta1/pods']
     results = subprocess.run(args, capture_output=True)
     res_json = json.loads(results.stdout.decode('utf-8'))

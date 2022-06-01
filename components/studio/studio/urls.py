@@ -22,9 +22,13 @@ from . import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('account/',views.account, name='account'),
+    path('auth_fail/',views.auth_fail, name='auth_fail'),
+    path('auth_fail_redirect/',views.auth_fail_redirect, name='auth_fail_redirect'),
     path('privacy/',views.privacy, name='privacy'),
     path('about/',views.about, name='about'),
     path('user_guide', views.guide, name='guide'),
+    path('shiny_docker', views.shiny_docker, name='shiny_docker'),
+    path('dash_docker', views.dash_docker, name='dash_docker'),
     path('requestaccount/',views.request_account, name='requestaccount'),
     path('',views.home, name='home'),
     path('oidc/', include('mozilla_django_oidc.urls')),

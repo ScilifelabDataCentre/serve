@@ -34,22 +34,14 @@
                                                 </ul>
                                           </ul>
                                           <h2 id="projects"><span>Projects</span></h2>
-                                          <p>Projects are spaces where users are able to create apps and models. Every app and model has to be located within some project. Created projects can be
-                                              found under the
-                                              tab <span style="font-weight: 500;color: #041c39c7;">Projects</span> in the sidebar. This
-                                              tab contains all
-                                              projects that you have created or have been granted access to.</p>
+                                          <p>Users are able to host apps and models. Every app and model has to be located within a project. Projects that you have created/been granted access to can be found under the <span style="font-weight: 500;color: #041c39c7;">Projects</span> tab in the sidebar. </p>
                                           <h4 id="create-a-project"><span>Creating a project</span></h4>
-                                          <p>To be able to create a project, users need to be logged in. Users can create a new Project by
-                                              following the
-                                              steps below:</p>
+                                          <p>Users need to be logged in to create a project. Users can create a new Project by following the steps below:</p>
                                           <ol>
                                               <li>Click on the <span style="font-weight: 500;color: #041c39c7;">Projects</span> tab shown
-                                                  on the sidebar (only shown if user is logged in).</li>
-                                              <li>Click the <span style="font-weight: 500;color: #041c39c7;">New Project</span> button in
-                                                  the top right
-                                                  corner.</li>
-                                              <li>Select the project template you want to use (currently there is only one template
+                                                  on the sidebar (only visible if you are logged in).</li>
+                                              <li>Click the <span style="font-weight: 500;color: #041c39c7;">New Project</span> button in the top right corner of the window.</li>
+                                              <li>Select the project template that you want to use (currently there is only one template
                                                   available).</li>
                                               <li>Enter project name (mandatory) and description (optional).</li>
                                               <li>Click the <span style="font-weight: 500;color: #041c39c7;">Create Project</span> button
@@ -58,25 +50,22 @@
                                           </ol>
                                           <!-- <p><img style="width: 90%;" src="/static/dist/img/gifs/projects-page.gif" alt="screen-gif"></p> -->
                                           <!-- <p><img src="/stackn/images/project-overview.gif" data-origin="images/project-overview.gif" alt="screen-gif"> -->
-                                          <p>This will take you to the project Dashboard. Here users will be able to see an overview of
-                                              the whole project.
-                                              New tabs will be available on the sidebar as well. The categories for these tabs are
-                                              explained below.</p>
-                                          <h4 id="project-components"><span>Project components</span></h4>
+                                          <p>This will take you to the project Dashboard. Here, users will be able to see an overview of
+                                              the whole project. Different project component options will now appear as tabs in the sidebar. A description of what each project component is can be found below:</p>
                                           <ul>
+                                            <li><strong><em>Dashboard</em>:</strong> Overview of the project.</li>
                                               <li><strong><em>Objects</em>:</strong> Model objects created in the current project.</li>
-                                              <li><strong><em>Compute</em>:</strong> Pre-configured data science environments for
+                                              <li><strong><em>Compute</em>:</strong> A list of pre-configured data science environments for
                                                   experimentation and
-                                                  training ML models. (Currently, this tab will only have a pre installed Jupyter lab
+                                                  training ML models. (Currently, this tab will only have a pre-installed JupyterLab
                                                   instance available
-                                                  for the user. Using this instance, users can e.g., can run experiments and also create
+                                                  for the user. Using this instance, users can e.g. can run experiments and also create
                                                   model objects
                                                   mentioned above. The tutorials below will elaborate on this.)</li>
-                                              <li><strong><em>Serve</em>:</strong> The most common serving applications used for deploying
-                                                  ML models as
-                                                  well as apps such as R Shiny and Dash (custom applications can be added to this list if
-                                                  requested).</li>
-                                              <li><strong><em>Settings</em>:</strong> User can access and change the current project
+                                              <li><strong><em>Serve</em>:</strong> A list of the most common applications used for deploying
+                                                  Machine Learning models, as well as options to create R Shiny and Dash apps. All options are available as ‘cards’, and you can use the ‘Create’ button to use these applications. Custom applications can be added to this list, if
+                                                  requested.</li>
+                                              <li><strong><em>Settings</em>:</strong> Users can access and change the current project
                                                   settings. Here one can, for example, add other project members.</li>
                                           </ul>
                                           <!-- <h2 id="settings"><span>Settings</span></h2>
@@ -90,7 +79,7 @@
                                               <li>Permanently delete the project.</li>
                                           </ul> -->
                                           <h2 id="apps-resources"><span>Hosting apps and resources</span></h2>
-                                          <p> You can create resources by going into the Serve tab. Here you have the following options:
+                                          <p> Users can create resources by going into the Serve tab. Here, the following options are available:
                                           </p>
                                           <ul>
                                               <!-- <li><strong><em>Compute</em>:</strong> a series of components to be used for experimentation and training models with pre-configured data science environments.</li> -->
@@ -101,20 +90,18 @@
                                               <li><strong>Python Model Serve (Using FastApi)</strong></li>
                                           </ul>
                                           <h3 id="shiny">R Shiny</h3>
-                                          <p>This is a service to deploy R Shiny apps. Currently, only apps that have been packaged as a docker container and are available on <a href="https://hub.docker.com/">DockerHub</a> are supported. If you are not sure how to do it, the SciLifeLab Serve team can assist you with this, please get in touch with us by e-mail.</p>
-                                          <p>To deploy a Shiny App click the Create button on the Shiny App card in the Serve
+                                          <p>This is a resource to deploy R Shiny apps. Currently, only apps that have been packaged as a Docker container and made available on <a href="https://hub.docker.com/">DockerHub</a> are supported. </p>
+                                          <p>To deploy a R Shiny App click the Create button on the R Shiny App card in the Serve
                                               Tab. Then enter
                                               the following information in the form:</p>
                                           <ul>
-                                              <li><strong>Name: </strong>User specified name for the app (e.g., 'Shiny Example')
-                                              </li>
+                                              <li><strong>Name: </strong>Name of the app, specified by the user (e.g., 'Shiny Example')</li>
+                                              <li><strong>Description: </strong>Provide a brief description of the app.</li>
                                               <li><strong>Subdomain:</strong> This is the subdomain that the deployed app will be
-                                                  available at. By default a random subdomain is generated if no
-                                                  option is chosen here (e.g., r46b61563 meaning that the app would be available at r46b61563.serve.scilifelab.se). By clicking on <b>Add new</b> you can add a custom subdomain name of your own choice (given that it is not
+                                                  available at (e.g., a subdomain of r46b61563 would mean that the app would be available at r46b61563.serve.scilifelab.se).  If no subdomain name is entered, a random name will be genrated by default. By clicking on <b>New</b> you can specify the custom subdomain name of your choice (provided that it is not
                                                   already taken).
-                                                  Then, this subdomain will appear in the Subdomain options and the final domain will be
-                                                  user-created-subdomain.serve.scilifelab.se.</li>
-                                              <li><strong>Permissions:</strong> Permissions for the project. There are 3 levels of
+                                                  This subdomain will then appear in the Subdomain options and the subdomain will appear in the format 'name-you-chose.serve.scilifelab.se'.</li>
+                                              <li><strong>Permissions:</strong> The permissions for the project. There are 3 levels of
                                                   permissions for an app:
                                                   <ul>
                                                       <li><strong>Private:</strong> The app can only be accessed by the user that created
@@ -123,7 +110,7 @@
                                                       <li><strong>Project:</strong> All members of the project will be able to access the
                                                           app. (Sign In
                                                           required)</li>
-                                                      <li><strong>Public:</strong> Anyone that has access to the URL can access the app.
+                                                      <li><strong>Public:</strong> Anyone with the URL can access the app.
                                                       </li>
                                                   </ul>
                                               </li>
@@ -133,34 +120,35 @@
                                               <li><strong>App Port:</strong> The port that the Shiny server runs on (usually 3838).</li>
                                               <li><strong>DockerHub Image:</strong> Name of the image on DockerHub.</li>
                                           </ul>
-                                          <p>To update a Shiny App after a new image has been published on DockerHub, click the pencil icon next to the app and press on the <b>Update</b> button on the bottom of the form.</p>
+                                          <p>When you deploy your app, you'll be taken to the serve page again, and should see your app in a list on the top of the screen. The state will initially show as 'Pending' (shown in an orange label), but should change to 'Running' (shown in a green label)</p>
+
+                                          <p>To update a Shiny App after a new image has been published on DockerHub, click the pencil icon next to the app and press on the <b>Update</b> button on the bottom of the form. To delete the app, press the bin icon beside the pencil icon.</p>
+
                                           <h3 id="dash">Dash</h3>
-                                          <p>This is a service to deploy Dash apps. Currently, only apps that have been packaged as a docker container and are available on <a href="https://hub.docker.com/">DockerHub</a> are supported. If you are not sure how to do it, the SciLifeLab Serve team can assist you with this, please get in touch with us by e-mail.
+                                          <p>This is a resource to deploy Dash apps. Currently, only apps that have been packaged as a Docker container and made available on <a href="https://hub.docker.com/">DockerHub</a> are supported. </p>
 
                                           <p>To deploy a Dash App click the Create button on the Dash App
                                               card in the Serve Tab. Then Enter the following information in the form:</p>
                                           <ul>
-                                              <li><strong>Name: </strong>User specified name for the app (e.g., 'Dash Example')
-                                              </li>
-                                              <li><strong>Subdomain:</strong> This is the subdomain that the deployed app will be
-                                                  available at. By default a random subdomain is generated if no
-                                                  option is chosen here (e.g., r46b61563 meaning that the app would be available at r46b61563.serve.scilifelab.se). By clicking on <b>Add new</b> you can add a custom subdomain name of your own choice (given that it is not
-                                                  already taken).
-                                                  Then, this subdomain will appear in the Subdomain options and the final domain will be
-                                                  user-created-subdomain.serve.scilifelab.se.</li>
-                                              <li><strong>Permissions:</strong> Permissions for the project. There are 3 levels of
-                                                  permissions for an app:
-                                                  <ul>
-                                                      <li><strong>Private:</strong> The app can only be accessed by the user that created
-                                                          the app. (Sign
-                                                          In required)</li>
-                                                      <li><strong>Project:</strong> All members of the project will be able to access the
-                                                          app. (Sign In
-                                                          required)</li>
-                                                      <li><strong>Public:</strong> Anyone that has access to the URL can access the app.
-                                                      </li>
-                                                  </ul>
-                                              </li>
+                                            <li><strong>Name: </strong>Name of the app, specified by the user (e.g., 'Dash Example')</li>
+                                            <li><strong>Description: </strong>Provide a brief description of the app.</li>
+                                            <li><strong>Subdomain:</strong> This is the subdomain that the deployed app will be
+                                                available at (e.g., a subdomain of r46b61563 would mean that the app would be available at r46b61563.serve.scilifelab.se).  If no subdomain name is entered, a random name will be genrated by default. By clicking on <b>New</b> you can specify the custom subdomain name of your choice (provided that it is not
+                                                already taken).
+                                                This subdomain will then appear in the Subdomain options and the subdomain will appear in the format 'name-you-chose.serve.scilifelab.se'.</li>
+                                            <li><strong>Permissions:</strong> The permissions for the project. There are 3 levels of
+                                                permissions for an app:
+                                                <ul>
+                                                    <li><strong>Private:</strong> The app can only be accessed by the user that created
+                                                        the app. (Sign
+                                                        In required)</li>
+                                                    <li><strong>Project:</strong> All members of the project will be able to access the
+                                                        app. (Sign In
+                                                        required)</li>
+                                                    <li><strong>Public:</strong> Anyone with the URL can access the app.
+                                                    </li>
+                                                </ul>
+                                            </li>
                                               <!-- <li><strong>Persistent Volume:</strong> The volume that needs to be attached to the instance.</li> -->
                                               <li><strong>Path to folder:</strong>This is the path to the folder (inside the docker
                                                   container) in which
@@ -168,7 +156,9 @@
                                               <li><strong>App Port:</strong> The port that the Dash app runs on (usually 8050).</li>
                                               <li><strong>DockerHub Image:</strong> Name of the image on DockerHub.</li>
                                           </ul>
-                                          <p>To update a Dash App after a new image has been published on DockerHub, click the pencil icon next to the app and press on the <b>Update</b> button on the bottom of the form.</p>
+                                          <p>When you deploy your app, you'll be taken to the serve page again, and should see your app in a list on the top of the screen. The state will initially show as 'Pending' (shown in an orange label), but should change to 'Running' (shown in a green label)</p>
+
+                                          <p>To update a Dash App after a new image has been published on DockerHub, click the pencil icon next to the app and press on the <b>Update</b> button on the bottom of the form. To delete the app, press the bin icon beside the pencil icon.</p>
 
                                           <h2 id="tutorials">Tutorials for serving machine learning models</h2>
                                           <p>These tutorials are intended as quick examples to get started with working on ML model
