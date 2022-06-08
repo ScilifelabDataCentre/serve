@@ -20,6 +20,8 @@ class OIDCbackend(OIDCAuthenticationBackend):
         print("Country: ", claims.get('country', []), " CLAIMS: ",claims )
         if claims.get('country', []):
             is_swedish = 'SE' in claims.get('country', [])
+        elif claims.get('schac_home_organization', []):
+            is_swedish = False
         else:
             is_swedish = True
         return verified and is_swedish
