@@ -44,7 +44,7 @@ django-cryptography
 gunicorn
 django_plotly_dash
 dash
-channels
+channels==3.0.2
 daphne
 django-redis
 channels-redis
@@ -57,3 +57,4 @@ django-tagulous
 libcst
 social-auth-core[all]
 social-auth-app-django
+werkzeug==2.0.3
