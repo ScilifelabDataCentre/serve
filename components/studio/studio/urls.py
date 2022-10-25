@@ -26,6 +26,7 @@ urlpatterns = [
     path('auth_fail_redirect/',views.auth_fail_redirect, name='auth_fail_redirect'),
     path('privacy/',views.privacy, name='privacy'),
     path('about/',views.about, name='about'),
+    path('teaching/',views.teaching, name='teaching'),
     path('user_guide', views.guide, name='guide'),
     path('shiny_docker', views.shiny_docker, name='shiny_docker'),
     path('dash_docker', views.dash_docker, name='dash_docker'),

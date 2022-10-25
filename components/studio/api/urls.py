@@ -4,7 +4,7 @@ import rest_framework.routers as drfrouters
 from .views import ModelList, ModelLogList, MetadataList, ProjectList, MembersList, ObjectTypeList
 from .views import AppInstanceList, FlavorsList, EnvironmentList, S3List, MLflowList, ResourceList
 from .views import ReleaseNameList, AppList, ProjectTemplateList
-from .public_views import get_studio_settings
+from .public_views import get_studio_settings, list_apps
 from rest_framework.authtoken.views import obtain_auth_token
 from rest_framework_nested import routers
 
@@ -41,5 +41,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('', include(models_router.urls)),
     path('api-token-auth', obtain_auth_token, name='api_token_auth'),
-    path('settings', get_studio_settings)
+    path('settings', get_studio_settings),
+    path('list-apps', list_apps)
 ]

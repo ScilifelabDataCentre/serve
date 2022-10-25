@@ -23,7 +23,8 @@ def handle_500(request):
 
 def auth_fail(request):
     template = 'auth_fail.html'
-    log_url = keycloak_logout(request,"http://serve-dev.scilifelab.se/auth_fail_redirect")
+    log_url = keycloak_logout(request,"http://serve.scilifelab.se/auth_fail_redirect")
+    #log_url = keycloak_logout(request,"http://serve-dev.scilifelab.se/auth_fail_redirect")
     print("REQUEST: ", log_url)
     # return render(request, template, locals())
     return HttpResponseRedirect(log_url)
@@ -37,7 +38,6 @@ def home(request):
     menu['home'] = 'active'
     base_template = 'base.html'
     if 'project' in request.session:
-        print("HEREEEEE")
         project_slug = request.session['project']
         is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
         if is_authorized:
@@ -59,7 +59,6 @@ def request_account(request):
     # previous = model.get_access_display()
     base_template = 'base.html'
     if 'project' in request.session:
-        print("HEREEEEE")
         project_slug = request.session['project']
         is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
         if is_authorized:
@@ -186,3 +185,21 @@ def about(request):
             if not project:
                 base_template = 'base.html'
     return render(request, 'about.html', locals())
+
+def teaching(request):
+    menu = dict()
+    menu['teaching'] = 'active'
+    base_template = 'base.html'
+    if 'project' in request.session:
+        project_slug = request.session['project']
+        is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
+        if is_authorized:
+            try:
+                project = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status='active', slug=project_slug).first()
+                base_template = 'baseproject.html'
+            except Exception as err:
+                project = []
+                print(err)
+            if not project:
+                base_template = 'base.html'
+    return render(request, 'teaching.html', locals())

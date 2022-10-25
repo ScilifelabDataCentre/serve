@@ -31,18 +31,20 @@
 
                                         RUN Rscript -e 'install.packages(c("shiny","tidyverse"))'
 
-                                        COPY /app/ /app/
+                                        COPY /app/ /srv/shiny-server/app
 
-                                        RUN cd /app/ && \
-                                            sudo chown -R shiny:shiny /app/
-
+                                        RUN cd /srv/shiny-server/ && \
+                                            sudo chown -R shiny:shiny /srv/shiny-server/app
+                                        
+                                        COPY shiny-customized.config /etc/shiny-server/shiny-server.conf
+                                        
                                         EXPOSE 3838
 
                                         CMD ["R", "-e", "shiny::runApp('/app/', host = '0.0.0.0', port = 3838)"]
 
                                         </code></pre>
                                         <p>Let us look at how you can customize it for your own app. In this example two packages were installed: <i>shiny</i> and <i>tidyverse</i>. This was done in the line <code>RUN Rscript -e 'install.packages(c("shiny","tidyverse"))'</code>. Add your own packages here as needed by your app.</p>
-                                        <p>In this example the actual Shiny app code (the file <i>app.R</i>) as well as all dependencies are located in the folder called <i>'app'</i>. This folder as a whole is copied into the image in the line <code>COPY /app/ /app/</code>. Change the folder names in this line and lines below if you have your own folder name. NB: This Dockerfile is expected to be placed in the parent folder of your app folder (so you should have <i>'app'</i> folder and this Dockerfile in the same folder).</p>
+                                        <p>In this example the actual Shiny app code (the file <i>app.R</i>) as well as all dependencies are located in the folder called <i>'app'</i>. This folder as a whole is copied into the image in the line <code>COPY /app/ /srv/shiny-server/app</code>. Change the folder names in this line and lines below if you have your own folder name. NB: This Dockerfile is expected to be placed in the parent folder of your app folder (so you should have <i>'app'</i> folder and this Dockerfile in the same folder).</p>
                                         <h2>Step two: build an image</h2>
                                         <p>Ensure that Docker Desktop is running. Open the Terminal (or Windows Terminal) on your computer and navigate to the folder where your app folder and Dockerfile are located. To build an image you will need to run the following command: <code>docker build -t &lt;your-user-name&gt;/&lt;your-app-name&gt; .</code> (NB: do not forget the dot at the end of the command). Before you run it, replace <i>&lt;your-user-name&gt;/&lt;your-app-name&gt;</i> with your DockerHub username and the name of the app. Building the image may take a while. Once the process is completed, you should be able to see the image among your images in the Docker Desktop app.</p>
                                         <h2>Step three: upload the Docker image into DockerHub</h2>

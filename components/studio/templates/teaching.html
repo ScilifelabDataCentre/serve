@@ -8,7 +8,7 @@
     <div class="card flex-fill">
       <div class="card-header">
         <div class="d-flex justify-content-center">
-          <h1 class="h1" style="font-weight: 800;">About SciLifeLab Serve</h1>
+          <h1 class="h1" style="font-weight: 800;">Teaching through SciLifeLab Serve</h1>
         </div>
       </div>
       <div class="card-body">
@@ -57,34 +57,40 @@
                 href="{% url 'about' %}">'about' page</a> for more information.</p>
             <h2 id="application">Application form</h2>
             <div class="container">
+              <form class="needs-validation" action="https://forms.dckube.scilifelab.se/api/v1/form/noRF3FO03F_2F8pL/incoming" method="POST" accept-charset="utf-8">
+              <input type='hidden' name='csrfmiddlewaretoken' value='{{ csrf_token }}' />
               <div class="row justify-content-center">
                 <div class="col-6 border rounded p-4">
                   <div class="mb-3">
                     <label for="name" class="form-label">Your name:</label>
-                    <input type="text" class="form-control" id="name">
+                    <input type="text" class="form-control" name="name" id="name">
                   </div>
                   <div class="mb-3">
                     <label for="email" class="form-label">Your email address(that connected to your SciLifeLab Serve
                       account):</label>
-                    <input type="email" class="form-control" id="email">
+                    <input type="email" class="form-control" name="email" id="email">
                   </div>
                   <div class="mb-3">
                     <label for="course_title" class="form-label">Title of course/workshop/webinar:</label>
-                    <input type="text" class="form-control" id="course_title">
+                    <input type="text" class="form-control" name="course_title" id="course_title">
                   </div>
                   <div class="mb-3">
                     <label for="course_dates" class="form-label">Date(s) and time(s) of couse/workshop/webinar:</label>
-                    <input type="text" class="form-control" id="course_dates">
+                    <input type="text" class="form-control" name="course_dates" id="course_dates">
                   </div>
                   <div class="mb-3">
                     <label for="course_description" class="form-label">Description of couse/workshop/webinar:</label>
-                    <textarea class="form-control" id="course_description" rows="4"></textarea>
+                    <textarea class="form-control" name="course_description" id="course_description" rows="4"></textarea>
                   </div>
                   <div class="mb-3">
                     <button class="btn btn-primary" type="submit">Submit application</button>
                   </div>
+                  <div class="mb-3">
+                    <div class="g-recaptcha" data-sitekey="6LfX3uggAAAAAFOoQPUE-iPY8wR9dPYp7bIBTc9W"></div>
+                  </div>
                 </div>
               </div>
+            </form>
             </div>
 
           </article>
