@@ -268,25 +268,28 @@ def set_mlflow(request, user, project_slug, mlflow=[]):
 def grant_access_to_project(request, user, project_slug):
 
     project = Project.objects.get(slug=project_slug)
-
+    platform_users = list(User.objects.filter(~Q(pk=project.owner.pk)).values_list('email', flat=True))
     if request.method == 'POST':
 
-        selected_users = request.POST.getlist('selected_users')
+        selected_users_name = request.POST.getlist('selected_users')
+        selected_users = list(User.objects.filter(email=selected_users_name[0]).values_list('pk', flat=True))
+        selected_users = list(map(str,selected_users))
+        # print(selected_users)
+        if selected_users_name[0] in platform_users:
+            l = ProjectLog(project=project, module='PR', headline='New members',
+                           description='{number} new members have been added to the Project'.format(
+                               number=len(selected_users)))
+            l.save()
 
-        l = ProjectLog(project=project, module='PR', headline='New members',
-                       description='{number} new members have been added to the Project'.format(
-                           number=len(selected_users)))
-        l.save()
+            if len(selected_users) == 1:
+                selected_users = list(selected_users)
 
-        if len(selected_users) == 1:
-            selected_users = list(selected_users)
-
-        for selected_user in selected_users:
-            user_tmp = User.objects.get(pk=selected_user)
-            project.authorized.add(user_tmp)
-            username_tmp = user_tmp.username
-            logger.info('Trying to add user {} to project.'.format(username_tmp))
-            kc.keycloak_add_role_to_user(project.slug, username_tmp, 'member')
+            for selected_user in selected_users:
+                user_tmp = User.objects.get(pk=selected_user)
+                project.authorized.add(user_tmp)
+                username_tmp = user_tmp.username
+                logger.info('Trying to add user {} to project.'.format(username_tmp))
+                kc.keycloak_add_role_to_user(project.slug, username_tmp, 'member')
 
     return HttpResponseRedirect(
         reverse('projects:settings', kwargs={'user': user, 'project_slug': project.slug}))
