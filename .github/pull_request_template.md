@@ -23,7 +23,7 @@ What types of changes does your code introduce to STACKn?
 _If you're unsure about any of the items below, don't hesitate to ask. We're here to help! 
 This is simply a reminder of what we are going to look for before merging your code._
 
-- [ ] This pull request is against **develop** branch (not applicable for hotfixes)
+- [ ] This pull request is against **serve-0.6** branch (not applicable for hotfixes)
 - [ ] I have included a link to the issue on GitHub or JIRA (if any)
 - [ ] I have included migration files (if there are changes to the model classes)
 - [ ] I have read the [CONTRIBUTING](https://github.com/scaleoutsystems/stackn/blob/master/CONTRIBUTING.md) doc
