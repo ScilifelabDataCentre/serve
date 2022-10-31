@@ -90,7 +90,7 @@ def request_account(request):
             'New User Registeration Request (SciLifeLab Serve)',
             email_body,
             'SciLifeLab Serve',
-            ['hamza.saeed@scilifelab.uu.se'],
+            ['serve@scilifelab.se'],
             fail_silently=False,
         )
     return render(request, 'home.html', locals())
