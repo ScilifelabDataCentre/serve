@@ -2,7 +2,7 @@ minio
 certifi
 chardet
 
-django>=2.2.24
+django==3.2.12
 django-appconf
 django-compressor
 django-cors-middleware
@@ -44,7 +44,7 @@ django-cryptography
 gunicorn
 django_plotly_dash
 dash
-channels==3.0.2
+channels==3.0.3
 daphne
 django-redis
 channels-redis
