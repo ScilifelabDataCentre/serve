@@ -3,12 +3,13 @@ name: Build studio and ingress
 on:
   push:
     branches:
-      - serve-0.6
+      - '*'
     paths:
     - 'components/studio/**'
   pull_request:
     branches:
       - serve-0.6
+      - dc-develop
     paths:
     - 'components/studio/**'
   release:
