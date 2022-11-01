@@ -50,7 +50,7 @@ jobs:
         with:
           context: components/studio/
           push: "${{ github.event_name != 'pull_request' }}"
-          tags: ghcr.io/scilifelabdatacentre/${{ steps.wf-vars.outputs.IMAGE_NAME }}:${{ steps.wf-vars.outputs.IMAGE_TAG }}
+          tags: ghcr.io/${{ github.repository }}/${{ steps.wf-vars.outputs.IMAGE_NAME }}:${{ steps.wf-vars.outputs.IMAGE_TAG }}
           file: components/studio/Dockerfile
         
       - name: docker build ingress
@@ -58,5 +58,5 @@ jobs:
         with:
           context: components/studio/
           push: "${{ github.event_name != 'pull_request' }}"
-          tags: ghcr.io/scilifelabdatacentre/ingress:${{ steps.wf-vars.outputs.IMAGE_TAG }}
+          tags: ghcr.io/${{ github.repository }}/ingress:${{ steps.wf-vars.outputs.IMAGE_TAG }}
           file: components/studio/Dockerfile.nginx
