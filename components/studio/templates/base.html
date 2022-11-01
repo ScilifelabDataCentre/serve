@@ -43,6 +43,64 @@
                             <span class="align-middle">Models</span>
                         </a>
                     </li>
+                    <li class="sidebar-item {{ menu.about }}">
+                        <a class="sidebar-link" href="{% url 'about' %}">
+                            <i class="align-middle" data-feather="info"></i>
+                            <span class="align-middle">About</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item {{ menu.teaching }}">
+                        <a class="sidebar-link" href="{% url 'teaching' %}">
+                            <i class="align-middle" data-feather="book"></i>
+                            <span class="align-middle">Teaching</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item {{ menu.guide }} {% if menu.guide %}{% else %}collapsed{% endif %}"
+                        data-bs-toggle="collapse" href="#submenu1">
+                        <a class="sidebar-link">
+                            <i class="align-middle" data-feather="file-text"></i>
+                            <span class="align-middle">User Guide</span>
+                        </a>
+                    </li>
+                    <ul class="{% if menu.guide == 'active' %}collapse show{% else %}collapse{% endif %}"
+                        style="list-style-type: none;" id="submenu1">
+                        <li class="sidebar-item ">
+                            <a class="sidebar-link" href="{% url 'guide' %}#getaccount">
+                                <i class="align-middle" data-feather="chevron-right"></i>
+                                <span class="align-middle">Get an account</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link" href="{% url 'guide' %}#projects">
+                                <i class="align-middle" data-feather="chevron-right"></i>
+                                <span class="align-middle">Projects</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item ">
+                            <a class="sidebar-link" href="{% url 'guide' %}#apps-resources">
+                                <i class="align-middle" data-feather="chevron-right"></i>
+                                <span class="align-middle">Hosting apps</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link" href="{% url 'guide' %}#tutorials">
+                                <i class="align-middle" data-feather="chevron-right"></i>
+                                <span class="align-middle">Model serving</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link" href="{% url 'shiny_docker' %}">
+                                <i class="align-middle" data-feather="chevron-right"></i>
+                                <span class="align-middle">Shiny App Docker</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link" href="{% url 'dash_docker' %}">
+                                <i class="align-middle" data-feather="chevron-right"></i>
+                                <span class="align-middle">Dash App Docker</span>
+                            </a>
+                        </li>
+                    </ul>
                     {% if request.user.is_authenticated %}
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{% url 'projects:index' %}">
@@ -51,6 +109,15 @@
                         </a>
                     </li>
                     {% endif %}
+{#                    {% if request.user.is_superuser %}#}
+{#                    <li class="sidebar-item {{ menu.admin }}">#}
+{#                        <a class="sidebar-link" href="{% url 'studio_admin:index' %}">#}
+{#                            <i class="align-middle" data-feather="settings"></i>#}
+{#                            <span class="align-middle">Admin</span>#}
+{#                        </a>#}
+{#                    </li>#}
+{#                    {% endif %}#}
+
                     {% block extra_sidebar_items %} {% endblock %}
                 </ul>
             </div>

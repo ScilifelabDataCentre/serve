@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from rest_framework.authentication import (BasicAuthentication,
                                            SessionAuthentication,
@@ -21,6 +22,123 @@ def set_new_user_inactive(sender, instance, **kwargs):
         instance.is_active = False
     else:
         print("Updating User Record")
+
+def home(request):
+    menu = dict()
+    menu['home'] = 'active'
+    base_template = 'base.html'
+    if 'project' in request.session:
+        project_slug = request.session['project']
+        is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
+        if is_authorized:
+            try:
+                project = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status='active', slug=project_slug).first()
+                base_template = 'baseproject.html'
+            except Exception as err:
+                project = []
+                print(err)
+            if not project:
+                base_template = 'base.html'
+    template = 'home.html'
+    return render(request, template, locals())
+
+
+def about(request):
+    menu = dict()
+    menu['about'] = 'active'
+    base_template = 'base.html'
+    if 'project' in request.session:
+        project_slug = request.session['project']
+        is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
+        if is_authorized:
+            try:
+                project = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status='active', slug=project_slug).first()
+                base_template = 'baseproject.html'
+            except Exception as err:
+                project = []
+                print(err)
+            if not project:
+                base_template = 'base.html'
+    return render(request, 'about.html', locals())
+
+
+def teaching(request):
+    menu = dict()
+    menu['teaching'] = 'active'
+    base_template = 'base.html'
+    if 'project' in request.session:
+        project_slug = request.session['project']
+        is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
+        if is_authorized:
+            try:
+                project = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status='active', slug=project_slug).first()
+                base_template = 'baseproject.html'
+            except Exception as err:
+                project = []
+                print(err)
+            if not project:
+                base_template = 'base.html'
+    return render(request, 'teaching.html', locals())
+
+
+def guide(request):
+    menu = dict()
+    menu['guide'] = 'active'
+    base_template = 'base.html'
+    if 'project' in request.session:
+        project_slug = request.session['project']
+        is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
+        if is_authorized:
+            try:
+                project = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status='active', slug=project_slug).first()
+                base_template = 'baseproject.html'
+            except Exception as err:
+                project = []
+                print(err)
+            if not project:
+                base_template = 'base.html'
+    template = 'user_guide.html'
+    return render(request, template , locals())
+
+
+def dash_docker(request):
+    menu = dict()
+    menu['guide'] = 'active'
+    base_template = 'base.html'
+    if 'project' in request.session:
+        project_slug = request.session['project']
+        is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
+        if is_authorized:
+            try:
+                project = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status='active', slug=project_slug).first()
+                base_template = 'baseproject.html'
+            except Exception as err:
+                project = []
+                print(err)
+            if not project:
+                base_template = 'base.html'
+    template = 'guide_dash_docker.html'
+    return render(request, template , locals())
+
+
+def shiny_docker(request):
+    menu = dict()
+    menu['guide'] = 'active'
+    base_template = 'base.html'
+    if 'project' in request.session:
+        project_slug = request.session['project']
+        is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
+        if is_authorized:
+            try:
+                project = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status='active', slug=project_slug).first()
+                base_template = 'baseproject.html'
+            except Exception as err:
+                project = []
+                print(err)
+            if not project:
+                base_template = 'base.html'
+    template = 'guide_shiny_docker.html'
+    return render(request, template , locals())
 
 # Since this is a production feature, it will only work if DEBUG is set to False
 
