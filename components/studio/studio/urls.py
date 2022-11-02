@@ -21,6 +21,7 @@ from django.urls import include, path
 
 from . import views
 
+
 urlpatterns = [
     path('about/',views.about, name='about'),
     path('teaching/',views.teaching, name='teaching'),
