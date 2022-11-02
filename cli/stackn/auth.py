@@ -14,6 +14,7 @@ import stackn.error_msg
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+
 STACKN_CONFIG_PATH = '~/.scaleout'
 STACKN_CONFIG_FILE = 'stackn.json'
 
