@@ -21,7 +21,14 @@ from django.urls import include, path
 
 from . import views
 
+
 urlpatterns = [
+    path('about/',views.about, name='about'),
+    path('teaching/',views.teaching, name='teaching'),
+    path('', views.home, name='home'),
+    path('user_guide/', views.guide, name='guide'),
+    path('shiny_docker', views.shiny_docker, name='shiny_docker'),
+    path('dash_docker', views.dash_docker, name='dash_docker'),
     path('', include('common.urls', namespace='common')),
     path('', include('models.urls', namespace='models')),
     path('', include('portal.urls', namespace='portal')),
