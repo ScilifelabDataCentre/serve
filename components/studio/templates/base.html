@@ -225,7 +225,6 @@
                     {% block content %}{% endblock %}
                 </div>
             </main>
-           <footer class="footer">
                 <div class="container-fluid">
                     <div class="row text-muted">
                         <div class="col-md-10">
@@ -236,7 +235,7 @@
                                 Please email datacentre@scilifelab.se with any questions that you might have.</p>
                             <p>This work was supported by a grant from the Knut and Alice Wallenberg Foundation to
                                 SciLifeLab for the purposes of research into Data Driven Life Science.</p>
-                            <p><a href="https://serve.scilifelab.se/privacy/">Privacy policy</a></p>
+                            <p><a href="{% url 'privacy' %}">Privacy policy</a></p>
                         </div>
                         <div class="col-4 col-md-2">
                             <img class="img-fluid" src="{% static 'dist/scilifelab_kaw_logo.png' %}"
