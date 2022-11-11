@@ -1,0 +1,45 @@
+{% extends base_template %}
+{% load static %}
+{% block content %}
+  <section>
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form action="https://forms.dckube.scilifelab.se/api/v1/form/cUyui2NE59M5xs9U/incoming" method="POST" accept-charset="utf-8">
+            <div class="modal-body">
+              <div class="">
+                <p>The SciLifeLab Serve is developed and maintained by the SciLifeLab Data Centre and Scaleout. We welcome suggestions, contributions, and questions related to the content of this site. This could include, for example, a suggestion for a feature that is not currently implemented. Alternatively, you can request an update or correction to particular pages.</p>
+                <p>If you've faced any bugs please, send us details on what happened, so that we could reproduce your results.</p>
+                <p>You can fill in the below form to get in touch with us. If you prefer though, you can instead email us at <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a>.</p>
+              </div>
+                <div class="mb-3">
+                    <label for="submitter_name" class="form-label fw-bold">Your name:</label>
+                    <input type="text" class="form-control" id="submitter_name" name="submitter_name">
+                </div>
+                <div class="mb-3">
+                    <label for="submitter_email" class="form-label fw-bold">Your contact email:</label>
+                    <input type="email" class="form-control" id="submitter_email" name="submitter_email">
+                </div>
+                <div class="mb-3">
+                  <label for="event_type" class="form-label fw-bold">Type of query:</label>
+                  <select class="form-select" id="event_type" name="event_type">
+                    <option selected>---</option>
+                    <option value="request-support">Request support</option>
+                    <option value="feature-suggestion">Feature suggestion</option>
+                    <option value="bug-report">Bug report</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="event_description" class="form-label fw-bold">Message:</label>
+                  <textarea class="form-control" id="event_description" name="event_description" rows="5"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-success d-sm-inline-block">Submit</button>
+            </div>
+          </form>
+          </div>
+        </div>
+  </section>
+
+{% endblock %}

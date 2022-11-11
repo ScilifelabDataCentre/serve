@@ -119,6 +119,12 @@
 {#                    {% endif %}#}
 
                     {% block extra_sidebar_items %} {% endblock %}
+                <li class="sidebar-item {{ menu.contact }}">
+                    <a class="sidebar-link" href="{% url 'contact' %}">
+                        <i class="align-middle" data-feather="mail"></i>
+                        <span class="align-middle">Contact us</span>
+                    </a>
+                </li>
                 </ul>
             </div>
         </nav>
