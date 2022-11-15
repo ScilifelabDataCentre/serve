@@ -49,8 +49,56 @@
                             possible to use your
                             Swedish university credentials with this service).
                             If it is not possible for you to gain appropriate access credentials through LS-login, but
-                            you believe that you should have access to SciLifeLab Serve, you can <a
-                                href="https://serve.scilifelab.se/account/">request an account</a>.</p>
+                            you believe that you should have access to SciLifeLab Serve, you can
+                                request an account using the form bellow or write an email on
+                            <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a>.</p>
+                        <section>
+                             <div class="modal-dialog">
+                               <div class="modal-content">
+                                 <form action="https://forms.dckube.scilifelab.se/api/v1/form/cUyui2NE59M5xs9U/incoming" method="POST" accept-charset="utf-8">
+                                 <div class="modal-body">
+                                    <h2 class="text-uppercase text-center mb-5">Request an account</h2>
+                                   <div class="">
+                                   </div>
+                                     <div class="row">
+                                         <div class="col-md-6 mb-4">
+                                             <input type="text" class="form-control" id="submitter_name" name="submitter_name">
+                                             <label for="submitter_name" class="form-label">First name</label>
+                                         </div>
+                                          <div class="col-md-6 mb-4">
+                                             <input type="text" class="form-control" id="submitter_name" name="submitter_name">
+                                             <label for="submitter_name" class="form-label">Last name</label>
+                                         </div>
+                                     </div>
+
+                                     <div class="mb-3">
+                                         <input type="email" class="form-control" id="submitter_email" name="submitter_email">
+                                         <label for="submitter_email" class="form-label">Email</label>
+                                     </div>
+                                     <div class="mb-3">
+                                         <input type="text" class="form-control" id="submitter_org" name="submitter_org">
+                                         <label for="submitter_org" class="form-label">Affiliation/Organisation</label>
+                                     </div>
+                                     <div class="mb-3">
+                                       <textarea class="form-control" id="usage_description" name="usage_description" rows="5"></textarea>
+                                         <label for="usage_description" class="form-label">What do you want to use the platform for?</label>
+                                     </div>
+                                     <div class="mb-3">
+                                       <textarea class="form-control" id="is_deployed_already_description" name="is_deployed_already_description" rows="5"></textarea>
+                                         <label for="is_deployed_already_description" class="form-label">If you want to deploy a model/service, has it been deployed somewhere else?</label>
+                                     </div>
+                                     <div class="mb-3">
+                                       <textarea class="form-control" id="requirements_description" name="requirements_description" rows="5"></textarea>
+                                         <label for="requirements_description" class="form-label">Requirements for the deployment - CPU, Memory and other resources</label>
+                                     </div>
+                                 </div>
+                                 <div class="modal-footer">
+                                   <button type="submit" class="btn btn-success d-sm-inline-block">Submit</button>
+                                 </div>
+                               </form>
+                               </div>
+                             </div>
+                       </section>
                         <p>In the following subsection, we describe the steps that users should take to log in to
                             SciLifeLab Serve using an LS-login.</p>
                         <h4 id="stepslogin"><span>Step-by-step guide</span></h4>
