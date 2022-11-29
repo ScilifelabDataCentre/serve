@@ -1,0 +1,118 @@
+{% extends 'guide_template.html' %}
+{% block heading %}
+  Hosting apps and resources
+{% endblock %}
+
+{% block guide-content %}
+  <p> Users can create resources by going into the Serve tab. Here, the following options are
+    available:
+  </p>
+  <ul>
+    <!-- <li><strong><em>Compute</em>:</strong> a series of components to be used for experimentation and training models with pre-configured data science environments.</li> -->
+    <li><strong>R Shiny App</strong></li>
+    <li><strong>Dash App</strong></li>
+    <li><strong>Tensorflow Serve</strong></li>
+    <li><strong>PyTorch Serve</strong></li>
+    <li><strong>Python Model Serve (Using FastApi)</strong></li>
+  </ul>
+  <h3 id="shiny">R Shiny</h3>
+  <p>This is a resource to deploy R Shiny apps. Currently, only apps that have been packaged as a
+    Docker container and made available on <a href="https://hub.docker.com/">DockerHub</a> are
+    supported. </p>
+  <p>To deploy a R Shiny App click the Create button on the R Shiny App card in the Serve
+    Tab. Then enter
+    the following information in the form:</p>
+  <ul>
+    <li><strong>Name: </strong>Name of the app, specified by the user (e.g., 'Shiny Example')
+    </li>
+    <li><strong>Description: </strong>Provide a brief description of the app.</li>
+    <li><strong>Subdomain:</strong> This is the subdomain that the deployed app will be
+      available at (e.g., a subdomain of r46b61563 would mean that the app would be available
+      at r46b61563.serve.scilifelab.se). If no subdomain name is entered, a random name will
+      be genrated by default. By clicking on <b>New</b> you can specify the custom subdomain
+      name of your choice (provided that it is not
+      already taken).
+      This subdomain will then appear in the Subdomain options and the subdomain will appear
+      in the format 'name-you-chose.serve.scilifelab.se'.
+    </li>
+    <li><strong>Permissions:</strong> The permissions for the project. There are 3 levels of
+      permissions for an app:
+      <ul>
+        <li><strong>Private:</strong> The app can only be accessed by the user that created
+          the app. (Sign
+          In required)
+        </li>
+        <li><strong>Project:</strong> All members of the project will be able to access the
+          app. (Sign In
+          required)
+        </li>
+        <li><strong>Public:</strong> Anyone with the URL can access the app.
+        </li>
+      </ul>
+    </li>
+    <li><strong>Path to folder:</strong>This is the path to the folder (inside the docker
+      container) in which
+      the main Shiny application file is located (usually app.R).
+    </li>
+    <li><strong>App Port:</strong> The port that the Shiny server runs on (usually 3838).</li>
+    <li><strong>DockerHub Image:</strong> Name of the image on DockerHub.</li>
+  </ul>
+  <p>When you deploy your app, you'll be taken to the serve page again, and should see your app in
+    a list on the top of the screen. The state will initially show as 'Pending' (shown in an
+    orange label), but should change to 'Running' (shown in a green label)</p>
+
+  <p>To update a Shiny App after a new image has been published on DockerHub, click the pencil
+    icon next to the app and press on the <b>Update</b> button on the bottom of the form. To
+    delete the app, press the bin icon beside the pencil icon.</p>
+
+  <h3 id="dash">Dash</h3>
+  <p>This is a resource to deploy Dash apps. Currently, only apps that have been packaged as a
+    Docker container and made available on <a href="https://hub.docker.com/">DockerHub</a> are
+    supported. </p>
+
+  <p>To deploy a Dash App click the Create button on the Dash App
+    card in the Serve Tab. Then Enter the following information in the form:</p>
+  <ul>
+    <li><strong>Name: </strong>Name of the app, specified by the user (e.g., 'Dash Example')
+    </li>
+    <li><strong>Description: </strong>Provide a brief description of the app.</li>
+    <li><strong>Subdomain:</strong> This is the subdomain that the deployed app will be
+      available at (e.g., a subdomain of r46b61563 would mean that the app would be available
+      at r46b61563.serve.scilifelab.se). If no subdomain name is entered, a random name will
+      be genrated by default. By clicking on <b>New</b> you can specify the custom subdomain
+      name of your choice (provided that it is not
+      already taken).
+      This subdomain will then appear in the Subdomain options and the subdomain will appear
+      in the format 'name-you-chose.serve.scilifelab.se'.
+    </li>
+    <li><strong>Permissions:</strong> The permissions for the project. There are 3 levels of
+      permissions for an app:
+      <ul>
+        <li><strong>Private:</strong> The app can only be accessed by the user that created
+          the app. (Sign
+          In required)
+        </li>
+        <li><strong>Project:</strong> All members of the project will be able to access the
+          app. (Sign In
+          required)
+        </li>
+        <li><strong>Public:</strong> Anyone with the URL can access the app.
+        </li>
+      </ul>
+    </li>
+    <!-- <li><strong>Persistent Volume:</strong> The volume that needs to be attached to the instance.</li> -->
+    <li><strong>Path to folder:</strong>This is the path to the folder (inside the docker
+      container) in which
+      the main Dash application file is located (usually app.py).
+    </li>
+    <li><strong>App Port:</strong> The port that the Dash app runs on (usually 8050).</li>
+    <li><strong>DockerHub Image:</strong> Name of the image on DockerHub.</li>
+  </ul>
+  <p>When you deploy your app, you'll be taken to the serve page again, and should see your app in
+    a list on the top of the screen. The state will initially show as 'Pending' (shown in an
+    orange label), but should change to 'Running' (shown in a green label)</p>
+
+  <p>To update a Dash App after a new image has been published on DockerHub, click the pencil icon
+    next to the app and press on the <b>Update</b> button on the bottom of the form. To delete
+    the app, press the bin icon beside the pencil icon.</p>
+{% endblock %}

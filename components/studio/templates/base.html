@@ -65,25 +65,25 @@
                     <ul class="{% if menu.guide == 'active' %}collapse show{% else %}collapse{% endif %}"
                         style="list-style-type: none;" id="submenu1">
                         <li class="sidebar-item ">
-                            <a class="sidebar-link" href="{% url 'guide' %}#getaccount">
+                            <a class="sidebar-link" href="{% url 'guide_get_account' %}">
                                 <i class="align-middle" data-feather="chevron-right"></i>
                                 <span class="align-middle">Get an account</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link" href="{% url 'guide' %}#projects">
+                            <a class="sidebar-link" href="{% url 'guide_projects' %}">
                                 <i class="align-middle" data-feather="chevron-right"></i>
                                 <span class="align-middle">Projects</span>
                             </a>
                         </li>
                         <li class="sidebar-item ">
-                            <a class="sidebar-link" href="{% url 'guide' %}#apps-resources">
+                            <a class="sidebar-link" href="{% url 'guide_hosting' %}">
                                 <i class="align-middle" data-feather="chevron-right"></i>
                                 <span class="align-middle">Hosting apps</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link" href="{% url 'guide' %}#tutorials">
+                            <a class="sidebar-link" href="{% url 'guide_model_serving' %}">
                                 <i class="align-middle" data-feather="chevron-right"></i>
                                 <span class="align-middle">Model serving</span>
                             </a>
@@ -206,8 +206,8 @@
                                     </a>
                                 </div>
                             </li>
-                        </ul>  
-                        {% else %}  
+                        </ul>
+                        {% else %}
                       <div class="btn">
                         <a class="btn btn-info  d-sm-inline-block" href="{% url 'common:signup' %}">
                             Sign up
@@ -217,7 +217,7 @@
                             Sign in  <i class="align-middle" data-feather="log-in"></i>
                         </a>
                     </div>
-                    {% endif %}        
+                    {% endif %}
                 </div>
             </nav>
             <main class="content">
@@ -248,7 +248,7 @@
     </div>
 
     <!-- JS library and custom script -->
-    
+
     <!-- Bootstrap core JavaScript-->
     <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
     <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
@@ -280,7 +280,7 @@
                     setTimeout(() => { console.log("Showing result for 1 sec..."); location.href = self.attr('href')}, 800);
                 }
             });
-        })    
+        })
     </script>
 
     <!-- Custom timeout scripts for all sorts of alerts -->
@@ -297,10 +297,10 @@
             $('.search-select-tag').select2({
                 placeholder: "Select Tag ..."
             }).prop('required', true).trigger('change');
-            
+
         });
     </script>
-    
+
     {% block extra_scripts %} {% endblock %}
 </body>
 

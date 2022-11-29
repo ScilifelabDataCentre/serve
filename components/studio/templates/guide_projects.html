@@ -1,0 +1,67 @@
+{% extends 'guide_template.html' %}
+{% block heading %}
+  Projects
+{% endblock %}
+
+{% block guide-content %}
+  <p>Users are able to host apps and models. Every app and model has to be located within a
+    project. Projects that you have created/been granted access to can be found under the <span
+      style="font-weight: 500;color: #041c39c7;">Projects</span> tab in the sidebar. </p>
+  <h4 id="create-a-project"><span>Creating a project</span></h4>
+  <p>Users need to be logged in to create a project. Users can create a new Project by following
+    the steps below:</p>
+  <ol>
+    <li>Click on the <span style="font-weight: 500;color: #041c39c7;">Projects</span> tab shown
+      on the sidebar (only visible if you are logged in).
+    </li>
+    <li>Click the <span style="font-weight: 500;color: #041c39c7;">New Project</span> button in
+      the top right corner of the window.
+    </li>
+    <li>Select the project template that you want to use (currently there is only one template
+      available).
+    </li>
+    <li>Enter project name (mandatory) and description (optional).</li>
+    <li>Click the <span style="font-weight: 500;color: #041c39c7;">Create Project</span> button
+      to create the
+      new project.
+    </li>
+  </ol>
+  <!-- <p><img style="width: 90%;" src="/static/dist/img/gifs/projects-page.gif" alt="screen-gif"></p> -->
+  <!-- <p><img src="/stackn/images/project-overview.gif" data-origin="images/project-overview.gif" alt="screen-gif"> -->
+  <p>This will take you to the project Dashboard. Here, users will be able to see an overview of
+    the whole project. Different project component options will now appear as tabs in the
+    sidebar. A description of what each project component is can be found below:</p>
+  <ul>
+    <li><strong><em>Dashboard</em>:</strong> Overview of the project.</li>
+    <li><strong><em>Objects</em>:</strong> Model objects created in the current project.</li>
+    <li><strong><em>Compute</em>:</strong> A list of pre-configured data science environments
+      for
+      experimentation and
+      training ML models. (Currently, this tab will only have a pre-installed JupyterLab
+      instance available
+      for the user. Using this instance, users can e.g. can run experiments and also create
+      model objects
+      mentioned above. The tutorials below will elaborate on this.)
+    </li>
+    <li><strong><em>Serve</em>:</strong> A list of the most common applications used for
+      deploying
+      Machine Learning models, as well as options to create R Shiny and Dash apps. All options
+      are available as ‘cards’, and you can use the ‘Create’ button to use these applications.
+      Custom applications can be added to this list, if
+      requested.
+    </li>
+    <li><strong><em>Settings</em>:</strong> Users can access and change the current project
+      settings. Here one can, for example, add other project members.
+    </li>
+  </ul>
+  <!-- <h2 id="settings"><span>Settings</span></h2>
+                    <p>The <span style="font-weight: 500;color: #041c39c7;">Settings</span> page contains all the
+                        information about
+                        your Project and its components. Some of the things you can do there are:</p>
+                    <ul>
+                        <li>Change the Project's description</li>
+                        <li>Grant access to the project to registered users.</li>
+                        <li>Transfer ownership of the project to another user.</li>
+                        <li>Permanently delete the project.</li>
+                    </ul> -->
+{% endblock %}
