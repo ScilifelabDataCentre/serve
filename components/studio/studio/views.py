@@ -57,7 +57,7 @@ def about(request):
 def teaching(request):
     args_for_render = {"menu": {"teaching": "active"}}
     render_for_project(request, args_for_render)
-    return render(request, 'teaching.html', locals())
+    return render(request, 'teaching.html', args_for_render)
 
 
 def privacy(request):
