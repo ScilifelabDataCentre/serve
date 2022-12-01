@@ -16,4 +16,14 @@ describe("test load of UI elements", () => {
             expect($lis).to.have.length(6)
         })
     })
+    it ("Test load teaching page via ui", () => {
+        cy.get(".sidebar-link").get("a[href*='/teaching/']").click();
+        cy.url().should("include", "teaching");
+	cy.get('.h1').should("have.text", "Teaching through SciLifeLab Serve");
+    })
+    it ("Test load about page via ui", () => {
+        cy.get(".sidebar-link").get("a[href*='/about/']").contains("About").click();
+        cy.url().should("include", "about");
+	cy.get('.h1').should("have.text", "About SciLifeLab Serve");
+    })
 })
