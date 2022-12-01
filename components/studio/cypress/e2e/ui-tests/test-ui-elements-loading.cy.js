@@ -1,6 +1,6 @@
 describe("test load of UI elements", () => {
     beforeEach(() => {
-        cy.visit("https://nikita.serve-dev.scilifelab.se")
+        cy.visit("http://studio.127.0.0.1.nip.io:8080")
     })
 
     it ("Test main page load", () => {
