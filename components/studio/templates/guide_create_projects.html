@@ -1,16 +1,13 @@
 {% extends 'guide_template.html' %}
 {% block heading %}
-  Projects
+  Create projects
 {% endblock %}
 
 {% block guide-content %}
-  <p>Users are able to host apps and models. Every app and model has to be located within a
-    project. Projects that you have created/been granted access to can be found under the <span
-      style="font-weight: 500;color: #041c39c7;">Projects</span> tab in the sidebar. </p>
-  <h4 id="create-a-project"><span>Creating a project</span></h4>
-  <p>Users need to be logged in to create a project. Users can create a new Project by following
-    the steps below:</p>
+
+  <h4>Step-by-step guide</h4>
   <ol>
+    <li>Make sure that you are logged in to your account. See <a href="{% url 'guide_get_account' %}">this guide</a> if you do not have an account.</li>
     <li>Click on the <span style="font-weight: 500;color: #041c39c7;">Projects</span> tab shown
       on the sidebar (only visible if you are logged in).
     </li>
@@ -22,15 +19,13 @@
     </li>
     <li>Enter project name (mandatory) and description (optional).</li>
     <li>Click the <span style="font-weight: 500;color: #041c39c7;">Create Project</span> button
-      to create the
-      new project.
+      to create the new project. This will take you to the project <span style="font-weight: 500;color: #041c39c7;">Dashboard</span>
     </li>
   </ol>
   <!-- <p><img style="width: 90%;" src="/static/dist/img/gifs/projects-page.gif" alt="screen-gif"></p> -->
   <!-- <p><img src="/stackn/images/project-overview.gif" data-origin="images/project-overview.gif" alt="screen-gif"> -->
-  <p>This will take you to the project Dashboard. Here, users will be able to see an overview of
-    the whole project. Different project component options will now appear as tabs in the
-    sidebar. A description of what each project component is can be found below:</p>
+
+  <h4>Components</h4>
   <ul>
     <li><strong><em>Dashboard</em>:</strong> Overview of the project.</li>
     <li><strong><em>Objects</em>:</strong> Model objects created in the current project.</li>
