@@ -24,40 +24,45 @@
     <li>Clone the tutorials repository <a href="https://github.com/ScilifelabDataCentre/serve-tutorials">serve-tutorials</a>. 
       <ul>
         <li>Make sure you have git installed.</li>
-          <li>Run <code>git clone https://github.com/ScilifelabDataCentre/serve-tutorials</code> in the terminal.</li>
+          <li>Run the following command in the terminal:
+            <code>$ git clone https://github.com/ScilifelabDataCentre/serve-tutorials</code></li>
       </ul>
     </li>
     <li> This creates a folder called <code>serve-tutorials</code> which contains necessary files for the remaining tutorial.</li>
-    <li> Continue to either <a href="#tensorflow">Tensorflow serving</a>, <a href="#pytorch">PyTorch Serve.</a> or <a href="#pytorch">Python Model Serve.</a></li>
+    <li> Continue to either <a href="#tensorflow">Tensorflow serving</a>, <a href="#pytorch">PyTorch Serve.</a> or <a href="#python-deploy">Python Model Serve.</a></li>
   </ol>
 
   <h4 id="tensorflow">Tensorflow</h4>
-  <p>Go to <code>serve-tutorials/Tensorflow/AML</code> folder. Open the <code>aml.ipynb</code>
-    notebook file. This notebook contains the code to create a ML Model and save it as an object
-    on Scilifelab Serve. Run all the cells in the notebook. This may take some time (around 20
-    mins) as the model is trained.</p>
 
-  <p>After running this file, go to the Serve tab on the portal and create a Tensorflow Serve App
-    with the follwing entries:</p>
-  <ul>
-    <li><strong><em>Name</em>:</strong> AML Tensorflow</li>
-    <li><strong><em>Subdomain</em>:</strong> This is automatically generated. A custom subdomain can be
-      created by filling out the form below ("Add Subdomain"), this domain will then show up
-      as an option.
+  <ol start="6">
+    <li>Go to <code>serve-tutorials/Tensorflow/AML</code> folder.</li>
+    <li>Open the <code>aml.ipynb</code> notebook file that contains the code to create a ML model and save it as an object
+      on Scilifelab Serve.</li>
+    <li>Run all the cells in the notebook. This may take some time (around 20
+      mins) as the model is trained.</li>
+    <li>When complete, go to the Serve tab on the portal and create a Tensorflow Serve App
+      with the follwing entries:
+      <p><ul>
+        <li><strong><em>Name</em>:</strong> AML Tensorflow</li>
+        <li><strong><em>Subdomain</em>:</strong> This is automatically generated. A custom subdomain can be
+          created by filling out the form below ("Add Subdomain"), this domain will then show up
+          as an option.
+        </li>
+        <li><strong><em>Permissions</em>:</strong> Set the permission to project.</li>
+        <!-- <li><strong>Persistent Volume:</strong> The volume that needs to be attached to the instance.</li> -->
+        <li><strong><em>Model</em>:</strong> Select the model, in this case the model is named aml.</li>
+        <li><strong><em>Flavor</em>:</strong> This indicates the resources given to the app. Currently on
+          the Medium option is availble on the platform.
+        </li>
+      </ul></p>
+      <p>This should create the app and it will be visible in the Serve Tab.</p>
     </li>
-    <li><strong><em>Permissions</em>:</strong> Set the permission to project.</li>
-    <!-- <li><strong>Persistent Volume:</strong> The volume that needs to be attached to the instance.</li> -->
-    <li><strong><em>Model</em>:</strong> Select the model, in this case the model is named aml.</li>
-    <li><strong><em>Flavor</em>:</strong> This indicates the resources given to the app. Currently on
-      the Medium option is availble on the platform.
-    </li>
-  </ul>
-
-  <p>This should create the app and it will be visible in the Serve Tab. Copy the link for the
-    service (you can do this by right clicking Open and selecting copy link address). Then, go
-    back to the JupyterLab instance and open the <code>predict.ipynb</code> notebook. Replace
-    the endpoint with the URL that you copied. Run the cells in the notebook. If you see a
-    prediction, this means that the service is running successfully.</p>
+    <li>Copy the link for the service by right clicking <span style="font-weight: 500;color: #041c39c7;">Open</span> and selecting copy link address</li>
+    <li>Go back to the JupyterLab instance and open the <code>predict.ipynb</code> notebook.</li>
+    <li>Replace the endpoint with the URL that you copied and run the cells in the notebook. If you see a
+      prediction, this means that the service is running successfully.</li>
+    
+  </ol>
 
   <h4 id="pytorch">PyTorch Serve</h4>
   <p>To serve a PyTorch model, we will use a pytorch model archive (VGG11) already prepared. You
@@ -109,10 +114,10 @@
     you copied earlier). You should get a JSON response if the deployment is working properly.
   </p>
 
-  <h3 id="python-deploy">Python Model Deployment</h3>
+  <h4 id="python-deploy">Python Model Deployment</h4>
   <p>Launch a new terminal from within your JupyterLab instance and go to the Python-Model-Deployment
     folder:</p>
-  <p><code>cd serve-tutorials/Python-Model-Deployment folder</code></p>
+  <p><pre><code>cd serve-tutorials/Python-Model-Deployment folder</code></pre></p>
   <p>Install the required packages:</p>
   <p><code>pip install -r requirements.txt</code></p>
   <p>Go to <code>serve-tutorials/Python-Model-Deployment</code> folder. Open the
