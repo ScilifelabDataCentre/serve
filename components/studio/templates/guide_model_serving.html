@@ -60,59 +60,53 @@
     <li>Copy the link for the service by right clicking <span style="font-weight: 500;color: #041c39c7;">Open</span> and selecting copy link address</li>
     <li>Go back to the JupyterLab instance and open the <code>predict.ipynb</code> notebook.</li>
     <li>Replace the endpoint with the URL that you copied and run the cells in the notebook. If you see a
-      prediction, this means that the service is running successfully.</li>
+      prediction, the service is running successfully.</li>
     
   </ol>
 
   <h4 id="pytorch">PyTorch Serve</h4>
   <p>To serve a PyTorch model, we will use a pytorch model archive (VGG11) already prepared. You
-    can read more about the model <a
-      href="https://serve-dev.scilifelab.se/https://arxiv.org/abs/1409.1556">here</a>.</p>
-
-  <p>Go to the <code>project-vol</code> folder inside the JupyterLab. Right-click to create a new
-    folder and give it a name (e.g., pytorch-deployment). Go to the terminal (you can also
-    launch
-    a new terminal through <code>File > New > Terminal</code>). Change directory to the newly
-    created folder, so in this case by <code>cd project-vol/pytorch-deployment/</code>. Once
-    inside this folder run the command
-    <code>curl -O -J https://nextcloud.dckube.scilifelab.se/s/TSNxFJCYrpJZAnz/download</code>.
-    This will download the <code>vgg11_scripted.mar</code> archive to this folder. Now that we
-    have the model archive, we need to launch the Pytorch Serve App. On the Scilifelab Serve
-    portal, go to the Serve tab. Then create the Pytorch Serve App with the following values:
-  </p>
-  <ul>
-    <li><strong><em>Name</em>:</strong> VGG11 Serve</li>
-    <li><strong><em>Subdomain</em></strong> This is automatically generated, if not selected. You can
-      create a subdomain to choose using the Add Subdomain form located at the bottom.
-    </li>
-    <li><strong><em>Permissions</em>:</strong> Set the permission to public. (Currently, public
-      permissions are required to access the serve URL for pytorch apps).
-    </li>
-    <li><strong><em>Flavor</em>:</strong> This indicates the resources given to the app. Currently on
-      the Medium option is availble on the platform.
-    </li>
-    <li><strong><em>Persistent Volume</em>:</strong> The volume that needs to be attached to the
-      instance. In this case it is important to select project-vol as that is where we
-      dowloaded the vgg11_scripted.mar file.
-    </li>
-    <li><strong><em>Path to Model Store</em>:</strong> This is the path to the folder where the model is
-      located (relative to the mounted volume). As the model was downloaded in the
-      pytorch-deployment folder inside the project-vol, the value for this will be
-      pytorch-deployment.
-    </li>
-    <li><strong><em>Comma-separeted list of models (model1,model2,model3)</em>:</strong> This can be
-      left empty. Here, model names from the model archive can be listed to deploy only those
-      models.
-    </li>
-  </ul>
-
-  <p>Create the app and wait for the status to turn to <code>Running</code>. Right click on Open
-    and copy the link address for the app. To check if it is working properly you can go to the
-    JupyterLab instance and open the terminal. Go to the <code>serve-tutorials/PyTorch/</code>
-    folder using <code>cd serve-tutorials/PyTorch/</code> and run the command
-    <code>curl copied-url/vgg11_scripted -T kitten.jpg</code> (inplace of copied-url add the URL
-    you copied earlier). You should get a JSON response if the deployment is working properly.
-  </p>
+    can read more about the model <a href="https://serve-dev.scilifelab.se/https://arxiv.org/abs/1409.1556">here</a>.</p>
+  
+  <ol start="6">
+    <li>Go to the <code>project-vol</code> folder inside the JupyterLab. Right-click to create a new
+      folder called pytorch-deployment.</li>
+    <li>Inside the terminal, change to the new directory by running <code>cd project-vol/pytorch-deployment/</code></li>
+    <li>Run the command <code>curl -O -J https://nextcloud.dckube.scilifelab.se/s/TSNxFJCYrpJZAnz/download</code> to download the model archive</li>
+    <li> Go to the Serve tab on the portal and create a PyTorch Serving App with the follwing entries:
+      <p><ul>
+        <li><strong><em>Name</em>:</strong> VGG11 Serve</li>
+        <li><strong><em>Subdomain</em></strong> This is automatically generated, if not selected. You can
+          create a subdomain to choose using the Add Subdomain form located at the bottom.
+        </li>
+        <li><strong><em>Permissions</em>:</strong> Set the permission to public. (Currently, public
+          permissions are required to access the serve URL for pytorch apps).
+        </li>
+        <li><strong><em>Flavor</em>:</strong> This indicates the resources given to the app. Currently on
+          the Medium option is availble on the platform.
+        </li>
+        <li><strong><em>Persistent Volume</em>:</strong> The volume that needs to be attached to the
+          instance. In this case it is important to select project-vol as that is where we
+          dowloaded the vgg11_scripted.mar file.
+        </li>
+        <li><strong><em>Path to Model Store</em>:</strong> This is the path to the folder where the model is
+          located (relative to the mounted volume). As the model was downloaded in the
+          pytorch-deployment folder inside the project-vol, the value for this will be
+          pytorch-deployment.
+        </li>
+        <li><strong><em>Comma-separeted list of models (model1,model2,model3)</em>:</strong> This can be
+          left empty. Here, model names from the model archive can be listed to deploy only those
+          models.
+        </li>
+      </ul>
+    </li><p>
+    <p>This should create the app and it will be visible in the Serve Tab.</p>
+    
+    <li>Copy the link for the service by right clicking <span style="font-weight: 500;color: #041c39c7;">Open</span> and selecting copy link address</li>
+    <li>Go to the terminal and change to <code>PyTorch</code> folder by running <code>cd serve-tutorials/PyTorch/</code> 
+    <li> Run <code>curl &#60;copied-url&#62;/vgg11_scripted -T kitten.jpg</code> (Replace <code>&#60;copied-url&#62;</code> with the URL
+    you copied earlier). If you should get a JSON response, the service is running successfully.
+  </ol>
 
   <h4 id="python-deploy">Python Model Deployment</h4>
   <p>Launch a new terminal from within your JupyterLab instance and go to the Python-Model-Deployment
