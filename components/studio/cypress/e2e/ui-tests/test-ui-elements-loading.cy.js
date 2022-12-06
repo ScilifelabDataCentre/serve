@@ -33,10 +33,11 @@ describe('test load of about page ui elements', () => {
     cy.visit("http://studio.127.0.0.1.nip.io:8080/about/")
   })
   it('Test load first scilife image', () => {
-    cy.get("img[class=w-50]")
-      .should("be.visible")
+    cy.get("img").each((item, index, list) => {
+      cy.wrap(item).should("be.visible")
       .and(($img) => {
         expect($img[0].naturalWidth).to.be.greaterThan(0)
       })
+    })
   })
 })
