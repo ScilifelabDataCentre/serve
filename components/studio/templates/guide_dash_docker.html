@@ -24,12 +24,14 @@
                 about Docker images in the <a href="https://docs.docker.com/">official Docker documentation</a>.</p>
               <p>You can find <a href="https://github.com/ScilifelabDataCentre/dash-covid-in-sweden">the example Dash
                 app used in this tutorial on GitHub</a>.</p>
-              <h2>Preparation: install Docker and create an account on DockerHub</h2>
-              <p>In order to build an image you need to <a href="https://docs.docker.com/get-docker/">make sure you have
-                Docker installed</a>. In addition, to publish this image you will need to create an account on <a
-                href="https://hub.docker.com/">DockerHub</a>. You can log in to Docker Deskhop using these credentials
-                and you will use the username when building the image.</p>
-              <h2>Step one: create a Dockerfile</h2>
+              
+              
+                <h3>Prerequisites:</h3>
+                <ol>
+                  <li><a href="https://docs.docker.com/get-docker/">Docker</a> installed on your machine</li>
+                  <li>An account to <a href="https://hub.docker.com/">DockerHub</a></li>
+                </ol>
+              <h3>Step 1: Create a Dockerfile</h3>
               <p>Docker images are built from sets of instructions given in a so-called <a
                 href="https://docs.docker.com/engine/reference/builder/">Dockerfile</a>. The name of the file should be
                 exactly 'Dockerfile' and it should not have any file extension. We created an example Dockerfile to make
@@ -68,7 +70,7 @@
                 the required packages are installed in the line <code>RUN pip3 install -r /requirements.txt</code>.
                 Subsequently, the <i>app.py</i> is copied, <i>/code/assests</i> folder is created and the content of our
                 <i>assets</i> folder is copied there.</p>
-              <h2>Step two: build an image</h2>
+              <h3>Step 2: Build an image</h3>
               <p>Ensure that Docker Desktop is running. Open the Terminal (or Windows Terminal) on your computer and
                 navigate to the folder where the app files and folders as well as the Dockerfile are located. To build
                 an image you will need to run the following command: <code>docker build -t &lt;your-user-name&gt;/&lt;your-app-name&gt;
@@ -76,13 +78,13 @@
                 with your DockerHub username and the name of the app. Building the image may take a while. Once the
                 process is completed, you should be able to see the image among your images in the Docker Desktop app.
               </p>
-              <h2>Step three: upload the Docker image into DockerHub</h2>
+              <h3>Step 3: Upload the Docker image into DockerHub</h3>
               <p>The easiest way to publish an image on DockerHub is to sign in to your account with Docker Desktop and
                 then pick "Push to Hub" among the options for your app image. This will publish your image on <i>https://hub.docker.com/r/&lt;your-user-name&gt;/&lt;your-app-name&gt;</i>.
                 For example, our example app is available on <a
                   href="https://hub.docker.com/r/scilifelabdatacentre/dash-covid-in-sweden">https://hub.docker.com/r/scilifelabdatacentre/dash-covid-in-sweden</a>.
               </p>
-              <h2>Step four: publish your app on SciLifeLab Serve</h2>
+              <h3>Step 4: Publish your app on SciLifeLab Serve</h3>
               <p>Now that you built an image and made it available through DockerHub, you can <a
                 href="{% url 'guide_hosting' %}">follow our general instructions for publishing your Dash app on
                 SciLifeLab Serve</a> to make it available for others to see and interact with. When creating your app on
