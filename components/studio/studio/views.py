@@ -43,6 +43,25 @@ def home(request):
     return render(request, template, locals())
 
 
+def contact(request):
+    menu = dict()
+    menu['contact'] = 'active'
+    base_template = 'base.html'
+    if 'project' in request.session:
+        project_slug = request.session['project']
+        is_authorized = kc.keycloak_verify_user_role(request, project_slug, ['member'])
+        if is_authorized:
+            try:
+                project = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status='active', slug=project_slug).first()
+                base_template = 'baseproject.html'
+            except Exception as err:
+                project = []
+                print(err)
+            if not project:
+                base_template = 'base.html'
+    return render(request, 'contact.html', locals())
+
+
 def about(request):
     menu = dict()
     menu['about'] = 'active'
