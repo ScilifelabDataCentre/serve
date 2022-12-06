@@ -27,3 +27,16 @@ describe("test load of UI elements", () => {
 	cy.get('.h1').should("have.text", "About SciLifeLab Serve");
     })
 })
+
+describe('test load of about page ui elements', () => {
+  beforeEach(() => {
+    cy.visit("http://studio.127.0.0.1.nip.io:8080/about/")
+  })
+  it('Test load first scilife image', () => {
+    cy.get("img[class=w-50]")
+      .should("be.visible")
+      .and(($img) => {
+        expect($img[0].naturalWidth).to.be.greaterThan(0)
+      })
+  })
+})
