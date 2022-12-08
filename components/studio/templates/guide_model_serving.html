@@ -1,6 +1,6 @@
 {% extends 'guide_template.html' %}
 {% block heading %}
-  Model serving
+Model serving
 {% endblock %}
 
 {% block guide-content %}
@@ -9,135 +9,193 @@
 
 <h4>Available resources</h4>
 <ul>
-<li>Tensorflow Serve</li>
-<li>PyTorch Serve</li>
-<li>Python Model Serve (Using FastApi)</li>
+  <li>Tensorflow Serve</li>
+  <li>PyTorch Serve</li>
+  <li>Python Model Serve (Using FastApi)</li>
 </ul>
 
+<style>
+  a {
+    color: #045C64
+  }
+  a:hover {
+    color: #045C64
+  }
+  
+  code {
+    background-color: #e5e5e5;
+    padding: 0.4em;
+    margin-left: 0.2m;
+    margin-right: 0.2em;
+    margin-bottom: 0.5em;
+    color: black;
+    font-size: 0.8em;
+    font-weight: 700;
+  }
+
+  pre code {
+    display: block;
+    white-space: pre;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: scroll;
+    max-width: 100%;
+    min-width: 100px;
+    background-color: #e5e5e5;
+    color: black;
+    border-radius: .375rem;
+    font-size: 1.1em;
+    font-weight: 700;
+    margin-top: 0.4em;
+    padding: .8571429em 1.1428571em;
+  }
+</style>
+
 <h4>Getting started</h4>
-  
-  <p>When a project is created, users also get a JupyterLab instance. This can be found in the
-    Compute tab on the Sidebar (visible when you open a project). </p>
-  <ol>
-    <li> Click on <span style="font-weight: 500;color: #041c39c7;">'Open'</span> to go to the JupyterLab instance. </li>
-    <li>On the home screen, click on <span style="font-weight: 500;color: #041c39c7;">'Terminal'</span> to open a terminal tab. </li> 
-    <li>Clone the tutorials repository <a href="https://github.com/ScilifelabDataCentre/serve-tutorials">serve-tutorials</a>. 
-      <ul>
-        <li>Make sure you have git installed.</li>
-          <li>Run the following command in the terminal:
-            <code>git clone https://github.com/ScilifelabDataCentre/serve-tutorials</code></li>
-      </ul>
-    </li>
-    <li> This creates a folder called <code>serve-tutorials</code> which contains necessary files for the remaining tutorial.</li>
-    <li> Continue to step 6 with <a href="#tensorflow">Tensorflow serving</a>, <a href="#pytorch">PyTorch Serve.</a> or <a href="#python-deploy">Python Model Serve.</a></li>
-  </ol>
 
-  <h4 id="tensorflow">Tensorflow</h4>
+<p>When a project is created, users also get a JupyterLab instance. This can be found in the
+  Compute tab on the Sidebar (visible when you open a project). </p>
+<ol>
+  <li> Click on <span style="font-weight: 500;color: #041c39c7;">'Open'</span> to go to the JupyterLab instance. </li>
+  <li>On the home screen, click on <span style="font-weight: 500;color: #041c39c7;">'Terminal'</span> to open a terminal
+    tab. </li>
+  <li>Clone the tutorials repository <a
+      href="https://github.com/ScilifelabDataCentre/serve-tutorials">serve-tutorials</a>.
+    <ul>
+      <li>Make sure you have git installed.</li>
+      <li>Open a terminal, change path to a desired folder and run the following command:</li>
+    </ul>
+    <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work$</span> git clone https://github.com/ScilifelabDataCentre/serve-tutorials</code></pre>
 
-  <ol start="6">
-    <li>Go to <code>serve-tutorials/Tensorflow/AML</code> folder.</li>
-    <li>Open the <code>aml.ipynb</code> notebook file that contains the code to create a ML model and save it as an object
-      on Scilifelab Serve.</li>
-    <li>Run all the cells in the notebook. This may take some time (around 20
-      mins) as the model is trained.</li>
-    <li>When complete, go to the Serve tab on the portal and create a Tensorflow Serve App
-      with the follwing entries:
-      <p><ul>
-        <li><strong><em>Name</em>:</strong> AML Tensorflow</li>
-        <li><strong><em>Subdomain</em>:</strong> This is automatically generated. A custom subdomain can be
-          created by filling out the form below ("Add Subdomain"), this domain will then show up
-          as an option.
-        </li>
-        <li><strong><em>Permissions</em>:</strong> Set the permission to project.</li>
-        <!-- <li><strong>Persistent Volume:</strong> The volume that needs to be attached to the instance.</li> -->
-        <li><strong><em>Model</em>:</strong> Select the model, in this case the model is named aml.</li>
-        <li><strong><em>Flavor</em>:</strong> This indicates the resources given to the app. Currently, only
-          the Medium option is availble on the platform.
-        </li>
-      </ul></p>
-      <p>This should create the app and it will be visible in the Serve Tab.</p>
-    </li>
-    <li>Copy the link for the service by right clicking <span style="font-weight: 500;color: #041c39c7;">Open</span> and selecting copy link address</li>
-    <li>Go back to the JupyterLab instance and open the <code>predict.ipynb</code> notebook.</li>
-    <li>Replace the endpoint with the URL that you copied and run the cells in the notebook. If you see a
-      prediction, the service is running successfully.</li>
-    
-  </ol>
+  </li>
+  <li> This creates a new folder called <code>serve-tutorials</code> which
+    contains necessary files for the remaining tutorial.</li>
+  <li> Continue to step 6 with <a href="#tensorflow">Tensorflow serving</a>, <a href="#pytorch">PyTorch Serve.</a> or <a
+      href="#python-deploy">Python Model Serve.</a></li>
+</ol>
 
-  <h4 id="pytorch">PyTorch Serve</h4>
-  <p>To serve a PyTorch model, we will use a pytorch model archive (VGG11) already prepared. You
-    can read more about the model <a href="https://serve-dev.scilifelab.se/https://arxiv.org/abs/1409.1556">here</a>.</p>
-  
-  <ol start="6">
-    <li>Go to the <code>project-vol</code> folder inside the JupyterLab. Right-click to create a new
-      folder called pytorch-deployment.</li>
-    <li>Inside the terminal, change to the new directory by running <code>cd project-vol/pytorch-deployment/</code></li>
-    <li>Run the command <code>curl -O -J https://nextcloud.dckube.scilifelab.se/s/TSNxFJCYrpJZAnz/download</code> to download the model archive</li>
-    <li> Go to the Serve tab on the portal and create a PyTorch Serving App with the follwing entries:
-      <p><ul>
-        <li><strong><em>Name</em>:</strong> VGG11 Serve</li>
-        <li><strong><em>Subdomain</em></strong> This is automatically generated, if not selected. You can
-          create a subdomain to choose using the Add Subdomain form located at the bottom.
-        </li>
-        <li><strong><em>Permissions</em>:</strong> Set the permission to public. (Currently, public
-          permissions are required to access the serve URL for pytorch apps).
-        </li>
-        <li><strong><em>Flavor</em>:</strong> This indicates the resources given to the app. Currently only
-          the Medium option is availble on the platform.
-        </li>
-        <li><strong><em>Persistent Volume</em>:</strong> The volume that needs to be attached to the
-          instance. In this case it is important to select project-vol as that is where we
-          dowloaded the vgg11_scripted.mar file.
-        </li>
-        <li><strong><em>Path to Model Store</em>:</strong> This is the path to the folder where the model is
-          located (relative to the mounted volume). As the model was downloaded in the
-          pytorch-deployment folder inside the project-vol, the value for this will be
-          pytorch-deployment.
-        </li>
-        <li><strong><em>Comma-separeted list of models (model1,model2,model3)</em>:</strong> This can be
-          left empty. Here, model names from the model archive can be listed to deploy only those
-          models.
-        </li>
-      </ul>
-    </li><p>
-    <p>This should create the app and it will be visible in the Serve Tab.</p>
-    
-    <li>Copy the link for the service by right clicking <span style="font-weight: 500;color: #041c39c7;">Open</span> and selecting copy link address</li>
-    <li>Go to the terminal and change to <code>PyTorch</code> folder by running <code>cd serve-tutorials/PyTorch/</code> 
-    <li> Run <code>curl &#60;copied-url&#62;/vgg11_scripted -T kitten.jpg</code> (Replace <code>&#60;copied-url&#62;</code> with the URL
-    you copied earlier). If you should get a JSON response, the service is running successfully.
-  </ol>
+<h4 id="tensorflow">Tensorflow</h4>
 
-  <h4 id="python-deploy">Python Model Deployment</h4>
-
-  <ol start="6">
-    <li>Go to the <code>Python-Model-Deployment</code> folder by running <code>cd serve-tutorials/Python-Model-Deployment folder</code> in the terminal</li>
-    <li>Install the required packages by running <code>pip install -r requirements.txt</code></li>
-    <li>Open the <code> getting_started_with_swebert.ipynb</code> notebook file and run all cells.</li>
-    <li>Inside the terminal, execute the following</li>
-      <ul>
-        <li><code>stackn create object afbert -r minor</code></li>
-        <li><code>stackn get objects</code></li>
-      </ul>
-    <li>Check that the model is listed; you should be able to see the newly created model object in
-      your Scilifelab Serve UI, under the "<em>Objects</em>" tab</li>
-      <li> Go to the Serve tab on the portal and create a Python Model Deployment with the follwing entries:
-        <p><ul>
-          <li><strong><em>Name</em>:</strong> SweBert</li>
-          <li><strong><em>Model</em>:</strong> afbert:v0.1.0</li>
-          Leave the rest as defaults
-          </ul></p>
-          <p><strong>Note:</strong> It could take some time for this model to initialize, so keep
-            checking the logs until it is available and wait until it is running successfully.</p>
+<ol start="6">
+  <li>Change directory to the AML folder located at <code>serve-tutorials/tensorflow/AML</code></li>
+  <li>Open the <code>aml.ipynb</code> notebook file that contains the code to create a ML model and save it as an object
+    on Scilifelab Serve.</li>
+  <li>Run all the cells in the notebook. This may take some time (around 20
+    mins) as the model is trained.</li>
+  <li>When complete, go to the Serve tab on the portal and create a Tensorflow Serve App
+    with the follwing entries:
+    <p>
+    <ul>
+      <li><strong><em>Name</em>:</strong> AML Tensorflow</li>
+      <li><strong><em>Subdomain</em>:</strong> This is automatically generated. A custom subdomain can be
+        created by filling out the form below ("Add Subdomain"), this domain will then show up
+        as an option.
       </li>
-      <li>Copy the link for the service by right clicking <span style="font-weight: 500;color: #041c39c7;">Open</span> and selecting copy link address</li>
-      <li>Replace the endpoint with the URL that you copied and run the cells in the notebook. If you see a
-        prediction, the service is running successfully.</li>
-  </ol>
-  <p>You can play around by changing the values of the <code>example</code> and
-    <code>msk_ind</code> variables. The latter will mask (or "hide") one of the words in the
-    example sentence; then the prediction will shown the possible candidates for such "missing"
-    word.</p>
+      <li><strong><em>Permissions</em>:</strong> Set the permission to project.</li>
+      <!-- <li><strong>Persistent Volume:</strong> The volume that needs to be attached to the instance.</li> -->
+      <li><strong><em>Model</em>:</strong> Select the model, in this case the model is named aml.</li>
+      <li><strong><em>Flavor</em>:</strong> This indicates the resources given to the app. Currently, only
+        the Medium option is availble on the platform.
+      </li>
+    </ul>
+    </p>
+    <p>This should create the app and it will be visible in the Serve Tab.</p>
+  </li>
+  <li>Copy the link for the service by right clicking <span style="font-weight: 500;color: #041c39c7;">Open</span> and
+    selecting copy link address</li>
+  <li>Go back to the JupyterLab instance and open the <code>predict.ipynb</code> notebook.</li>
+  <li>Replace the endpoint with the URL that you copied and run the cells in the notebook. If you see a
+    prediction, the service is running successfully.</li>
 
-  
+</ol>
+
+<h4 id="pytorch">PyTorch Serve</h4>
+<p>To serve a PyTorch model, we will use a pytorch model archive (VGG11) already prepared. You
+  can read more about the model <a href="https://serve-dev.scilifelab.se/https://arxiv.org/abs/1409.1556">here</a>.</p>
+
+<ol start="6">
+  <li>Go to the <code>project-vol</code> folder and create a new folder called pytorch-deployment.</li>
+  <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work$</span> cd project-vol<br><span style="color:#045C64">jovyan@1b6fs2:~/work/project-vol$</span> mkdir pytorch-deployment</code></pre>
+  <li>Go to the new directory by running
+    <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/project-vol$</span> cd pytorch-deployment</code></pre>
+  <li>Download the model archive by run the following command:
+    <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/project-vol/pytorch-deployment$</span> curl -O -J https://nextcloud.dckube.scilifelab.se/s/TSNxFJCYrpJZAnz/download</code></pre>
+  </li>
+  <li> Go to the Serve tab on the portal and create a PyTorch Serving App with the follwing entries:
+    <p>
+    <ul>
+      <li><strong><em>Name</em>:</strong> VGG11 Serve</li>
+      <li><strong><em>Subdomain</em></strong> This is automatically generated, if not selected. You can
+        create a subdomain to choose using the Add Subdomain form located at the bottom.
+      </li>
+      <li><strong><em>Permissions</em>:</strong> Set the permission to public. (Currently, public
+        permissions are required to access the serve URL for pytorch apps).
+      </li>
+      <li><strong><em>Flavor</em>:</strong> This indicates the resources given to the app. Currently only
+        the Medium option is availble on the platform.
+      </li>
+      <li><strong><em>Persistent Volume</em>:</strong> The volume that needs to be attached to the
+        instance. In this case it is important to select project-vol as that is where we
+        dowloaded the vgg11_scripted.mar file.
+      </li>
+      <li><strong><em>Path to Model Store</em>:</strong> This is the path to the folder where the model is
+        located (relative to the mounted volume). As the model was downloaded in the
+        pytorch-deployment folder inside the project-vol, the value for this will be
+        pytorch-deployment.
+      </li>
+      <li><strong><em>Comma-separeted list of models (model1,model2,model3)</em>:</strong> This can be
+        left empty. Here, model names from the model archive can be listed to deploy only those
+        models.
+      </li>
+    </ul>
+  </li>
+  <p>
+  <p>This should create the app and it will be visible in the Serve Tab.</p>
+
+  <li>Copy the link for the service by right clicking <span style="font-weight: 500;color: #041c39c7;">Open</span> and
+    selecting copy link address</li>
+  <li>Go back to the terminal and change to the <code>PyTorch</code> folder by running
+    <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/project-vol/pytorch-deployment$</span> cd ../../PyTorch</code></pre>
+  <li> Run
+    <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/PyTorch$</span> curl &#60;copied-url&#62;/vgg11_scripted -T kitten.jpg</code></pre>
+    (Replace <code>&#60;copied-url&#62;</code> with the URL you copied earlier). If you should get a JSON response, the
+    service is running successfully.
+</ol>
+
+<h4 id="python-deploy">Python Model Deployment</h4>
+
+<ol start="6">
+  <li>Go to the <code>Python-Model-Deployment</code> folder by running
+    <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work$</span> cd serve-tutorials/Python-Model-Deployment</code></pre>
+  </li>
+  <li>Install the required packages by running
+    <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/serve-tutorials/Python-Model-Deployment$</span> pip install -r requirements.txt</code></pre>
+  </li>
+  <li>Open the <code> getting_started_with_swebert.ipynb</code> notebook file and run all cells.</li>
+  <li>Inside the terminal, execute the following</li>
+  <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/serve-tutorials/Python-Model-Deployment$</span> stackn create object afbert -r minor && stackn get objects</code></pre>
+  <li>Check that the model is listed; you should be able to see the newly created model object in
+    your Scilifelab Serve UI, under the "<em>Objects</em>" tab</li>
+  <li> Go to the Serve tab on the portal and create a Python Model Deployment with the follwing entries:
+    <p>
+    <ul>
+      <li><strong><em>Name</em>:</strong> SweBert</li>
+      <li><strong><em>Model</em>:</strong> afbert:v0.1.0</li>
+      Leave the rest as defaults
+    </ul>
+    </p>
+    <p><strong>Note:</strong> It could take some time for this model to initialize, so keep
+      checking the logs until it is available and wait until it is running successfully.</p>
+  </li>
+  <li>Copy the link for the service by right clicking <span style="font-weight: 500;color: #041c39c7;">Open</span> and
+    selecting copy link address</li>
+  <li>Replace the endpoint with the URL that you copied and run the cells in the notebook. If you see a
+    prediction, the service is running successfully.</li>
+</ol>
+<p>You can play around by changing the values of the <code>example</code> and
+  <code>msk_ind</code> variables. The latter will mask (or "hide") one of the words in the
+  example sentence; then the prediction will shown the possible candidates for such "missing"
+  word.
+</p>
+
+
 {% endblock %}
