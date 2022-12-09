@@ -1,19 +1,13 @@
 {% extends base_template %}
 {% load static %}
 {% block extra_head %}
-<script>
-	function captchaCallbackCheck() {
-		validator = document.getElementById("recaptcha_check_empty");
-		validator.value = 1;
-	}
-</script>
+<script src="{% static 'js/form_validation.js' %}"></script>
 {% endblock %}
 {% block content %}
   <section>
         <div class="modal-dialog">
           <div class="modal-content">
-            <!-- <form action="https://forms.dckube.scilifelab.se/api/v1/form/cUyui2NE59M5xs9U/incoming" method="POST" accept-charset="utf-8"> -->
-						<form name="contactForm" onsubmit="return validateForm()">
+            <form action="https://forms.dckube.scilifelab.se/api/v1/form/cUyui2NE59M5xs9U/incoming" method="POST" accept-charset="utf-8">
             <div class="modal-body">
               <div class="">
                 <h1 class="h1" style="font-weight: 800;text-align: center">Contact us</h1>
@@ -21,17 +15,17 @@
                 <p>If you've faced any bugs please, send us details on what happened, so that we could reproduce your results.</p>
                 <p>You can fill in the below form to get in touch with us. If you prefer though, you can instead email us at <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a>.</p>
               </div>
-                <div class="mb-3">
-                    <label for="submitter_name" class="form-label fw-bold">Your name:</label>
+                <div class="mb-3 form-group ">
+                    <label for="submitter_name" class="form-label fw-bold required">Your name:</label>
                     <input type="text" class="form-control" id="submitter_name" name="submitter_name" required>
                 </div>
                 <div class="mb-3">
-                    <label for="submitter_email" class="form-label fw-bold">Your contact email:</label>
-                    <input type="email" class="form-control" id="submitter_email" name="submitter_email">
+                    <label for="submitter_email" class="form-label fw-bold required">Your contact email:</label>
+                    <input type="email" class="form-control" id="submitter_email" name="submitter_email" required>
                 </div>
                 <div class="mb-3">
-                  <label for="query_type" class="form-label fw-bold">Type of query:</label>
-                  <select class="form-select" id="query_type" name="query_type">
+                  <label for="query_type" class="form-label fw-bold required">Type of query:</label>
+                  <select class="form-select" id="query_type" name="query_type" required>
                     <option selected>---</option>
                     <option value="request-support">Request support</option>
                     <option value="feature-suggestion">Feature suggestion</option>
@@ -40,8 +34,8 @@
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label for="query_message" class="form-label fw-bold">Message:</label>
-                  <textarea class="form-control" id="query_message" name="query_message" rows="5"></textarea>
+                  <label for="query_message" class="form-label fw-bold required">Message:</label>
+                  <textarea class="form-control" id="query_message" name="query_message" rows="5" required></textarea>
                 </div>
             </div>
             <div class="modal-footer">

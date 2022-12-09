@@ -1,5 +1,8 @@
 {% extends base_template %}
 {% load static %}
+{% block extra_head %}
+<script src="{% static 'js/form_validation.js' %}"></script>
+{% endblock %}
 {% block content %}
 <div class="container-fluid p-0">
 
@@ -62,28 +65,33 @@
               <div class="row justify-content-center">
                 <div class="col-6 border rounded p-4">
                   <div class="mb-3">
-                    <label for="name" class="form-label">Your name:</label>
-                    <input type="text" class="form-control" name="name" id="name">
+                    <label for="name" class="form-label required">Your name:</label>
+                    <input type="text" class="form-control" name="name" id="name" required>
                   </div>
                   <div class="mb-3">
-                    <label for="email" class="form-label">Your email address(that connected to your SciLifeLab Serve
+                    <label for="email" class="form-label required">Your email address(that connected to your SciLifeLab Serve
                       account):</label>
-                    <input type="email" class="form-control" name="email" id="email">
+                    <input type="email" class="form-control" name="email" id="email" required>
                   </div>
                   <div class="mb-3">
                     <label for="course_title" class="form-label">Title of course/workshop/webinar:</label>
                     <input type="text" class="form-control" name="course_title" id="course_title">
                   </div>
                   <div class="mb-3">
-                    <label for="course_dates" class="form-label">Date(s) and time(s) of couse/workshop/webinar:</label>
-                    <input type="text" class="form-control" name="course_dates" id="course_dates">
+                    <label for="course_dates" class="form-label required">Date(s) and time(s) of couse/workshop/webinar:</label>
+                    <input type="text" class="form-control" name="course_dates" id="course_dates" required>
                   </div>
                   <div class="mb-3">
-                    <label for="course_description" class="form-label">Description of couse/workshop/webinar:</label>
-                    <textarea class="form-control" name="course_description" id="course_description" rows="4"></textarea>
+                    <label for="course_description" class="form-label required">Description of couse/workshop/webinar:</label>
+                    <textarea class="form-control" name="course_description" id="course_description" rows="4" required></textarea>
                   </div>
                   <div class="mb-3">
-                    <div class="g-recaptcha" data-sitekey="6LfX3uggAAAAAFOoQPUE-iPY8wR9dPYp7bIBTc9W"></div>
+								<input id='recaptcha_check_empty' required tabindex='-1',
+style='width:50px; height:0; opacity:0; pointer-events:none; 
+position:relative; 
+bottom:-20px;'>
+
+                    <div class="g-recaptcha" data-sitekey="6LfX3uggAAAAAFOoQPUE-iPY8wR9dPYp7bIBTc9W" data-callback="captchaCallbackCheck"></div>
                   </div>
                   <div class="mb-3">
                     <button class="btn btn-primary" type="submit">Submit application</button>
