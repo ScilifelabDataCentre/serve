@@ -306,3 +306,37 @@ a.disabled {
 .select2-container--bootstrap4 {
     display: inline-block;
 }
+
+a {
+    color: #045C64
+  }
+  a:hover {
+    color: #045C64
+  }
+  
+  code {
+    background-color: #e5e5e5;
+    padding: 0.4em;
+    margin-left: 0.2m;
+    margin-right: 0.2em;
+    margin-bottom: 0.5em;
+    color: black;
+    font-size: 0.8em;
+    font-weight: 700;
+  }
+
+  pre code {
+    display: block;
+    white-space: pre;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: scroll;
+    max-width: 100%;
+    min-width: 100px;
+    background-color: #e5e5e5;
+    color: black;
+    border-radius: .375rem;
+    font-size: 1.1em;
+    font-weight: 700;
+    margin-top: 0.4em;
+    padding: .8571429em 1.1428571em;
+  }
