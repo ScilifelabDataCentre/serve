@@ -28,41 +28,41 @@
     Create a file using any text editor you have and insert the code below or simply <a
       href="https://raw.githubusercontent.com/ScilifelabDataCentre/shiny-adhd-medication-sweden/main/Dockerfile">download
       this example from here</a>.</p>
-  <pre><code>
-                                        FROM rocker/shiny:latest
+<pre><code><span style="color:#045C64">FROM</span> rocker/shiny:latest
 
-                                        RUN apt-get update && \
-                                            apt-get upgrade -y && \
-                                            apt-get clean && \
-                                            apt-get install -y git libxml2-dev libmagick++-dev && \
-                                            rm -rf /var/lib/apt/lists/*
+<span style="color:#045C64">RUN</span> apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && \
+    apt-get install -y git libxml2-dev libmagick++-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-                                        RUN Rscript -e 'install.packages(c("shiny","tidyverse"))'
+<span style="color:#045C64">RUN</span> Rscript -e 'install.packages(c("shiny","tidyverse"))'
 
-                                        COPY /app/ /srv/shiny-server/app
+<span style="color:#045C64">COPY</span> /app/ /srv/shiny-server/app
 
-                                        RUN cd /srv/shiny-server/ && \
-                                            sudo chown -R shiny:shiny /srv/shiny-server/app
-                                        
-                                        COPY shiny-customized.config /etc/shiny-server/shiny-server.conf
-                                        
-                                        EXPOSE 3838
+<span style="color:#045C64">RUN</span> cd /srv/shiny-server/ && \
+    sudo chown -R shiny:shiny /srv/shiny-server/app
 
-                                        CMD ["R", "-e", "shiny::runApp('/app/', host = '0.0.0.0', port = 3838)"]
+<span style="color:#045C64">COPY</span> shiny-customized.config /etc/shiny-server/shiny-server.conf
 
-                                        </code></pre>
+<span style="color:#045C64">EXPOSE</span> 3838
+
+<span style="color:#045C64">CMD</span> ["R", "-e", "shiny::runApp('/app/', host = '0.0.0.0', port = 3838)"]</code></pre>
   <p>Let us look at how you can customize it for your own app. In this example two packages were installed: <i>shiny</i>
-    and <i>tidyverse</i>. This was done in the line <code>RUN Rscript -e
-      'install.packages(c("shiny","tidyverse"))'</code>. Add your own packages here as needed by your app.</p>
+    and <i>tidyverse</i>. This was done with the command
+    <pre><code><span style="color:#045C64">CMD</span> ["R", "-e", "shiny::runApp('/app/', host = '0.0.0.0', port = 3838)"]</code></pre>
+  Add your own packages here as needed by your app.</p>
   <p>In this example the actual Shiny app code (the file <i>app.R</i>) as well as all dependencies are located in the
-    folder called <i>'app'</i>. This folder as a whole is copied into the image in the line <code>COPY /app/
-      /srv/shiny-server/app</code>. Change the folder names in this line and lines below if you have your own folder
+    folder called <i>'app'</i>. This folder as a whole is copied into the image using the command
+    <pre><code><span style="color:#045C64">COPY</span> /app/ /srv/shiny-server/app</code></pre>
+    Change the folder names in this line and lines below if you have your own folder
     name. NB: This Dockerfile is expected to be placed in the parent folder of your app folder (so you should have <i>'app'</i>
     folder and this Dockerfile in the same folder).</p>
   <h3>Step 2: Build an image</h3>
-  <p>Ensure that Docker Desktop is running. Open the Terminal (or Windows Terminal) on your computer and navigate to the
+  <p>Ensure that Docker Desktop is running. Open a terminal on your computer and navigate to the
     folder where your app folder and Dockerfile are located. To build an image you will need to run the following
-    command: <code>docker build -t &lt;your-user-name&gt;/&lt;your-app-name&gt; .</code> (NB: do not forget the dot at
+    command: 
+    <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker build -t &lt;your-user-name&gt;/&lt;your-app-name&gt; .</code></pre> (NB: do not forget the dot at
     the end of the command). Before you run it, replace <i>&lt;your-user-name&gt;/&lt;your-app-name&gt;</i> with your
     DockerHub username and the name of the app. Building the image may take a while. Once the process is completed, you
     should be able to see the image among your images in the Docker Desktop app.</p>
