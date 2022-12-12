@@ -60,7 +60,7 @@ Creating a Docker image for your Dash app
 <p>The Dockerfile is a set of instructions which you can change to fit your app needs (e.g. rename files
   and copy or run additional files). The first line declares that the image is based on Python 3.9; change
   the Python version if needed. This is followed by copying the <i>requirements.txt</i> in the image, and
-  the required packages are installed in the line '
+  the required packages are installed in the fourth command:
 <pre><code><span style="color:#045C64">RUN</span> pip3 install -r /requirements.txt</code></pre>
 Subsequently, the <i>app.py</i> is copied, <i>/code/assests</i> folder is created and the content of our
 <i>assets</i> folder is copied there.
@@ -77,7 +77,6 @@ process is completed, you should be able to see the image among your images in t
 </p>
 <h3>Step 3: Upload the Docker image into DockerHub</h3>
 <p>Log in to Dockerhub</p>
-
 <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker login --username &lt;user-name&gt;</code></pre>
 <p>This will prompt you for your password. Next, you must tag your image by running</p>
 <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker tag &lt;app-name&gt; &lt;user-name&gt;/&lt;app-name&gt;</code></pre>
@@ -85,10 +84,9 @@ process is completed, you should be able to see the image among your images in t
 <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker push &lt;user-name&gt;/&lt;app-name&gt;</code></pre>
 
 <h3>Step 4: Publish your app on SciLifeLab Serve</h3>
-
 <p>Follow <a
   href="{% url 'guide_hosting' %}">these instructions</a> to publish your app to SciLifeLab Serve.</p>
-Use
+  Use the following settings:
 <ul>
   <li> <strong><em>DockerHub Image</em>:</strong> <i>&lt;user-name&gt;/&lt;app-name&gt;</i></li>
   <li><strong><em>App Port</em>:</strong> 8000</li>

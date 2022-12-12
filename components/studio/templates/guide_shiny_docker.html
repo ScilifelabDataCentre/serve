@@ -60,16 +60,16 @@ Creating a Docker image for your R Shiny app
 </p>
 <h3>Step 2: Build an image</h3>
 <p>Ensure that Docker Desktop is running. Open a terminal on your computer and navigate to the
-  folder where your app folder and Dockerfile are located using <code>cd</code>.</p> Build the docker image.
+  folder where your app folder and Dockerfile are located using <code>cd</code>.</p>
+
+<p>Next, build the Docker image by running the following command:</p>
 <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker build -t &lt;user-name&gt;/&lt;app-name&gt; .</code></pre>
 (NB: do not forget the dot at
 the end of the command). Before you run it, replace <i>&lt;user-name&gt;/&lt;app-name&gt;</i> with your
-DockerHub username and the name of the app. Building the image may take a while. Once the process is completed, you
-should be able to see the image among your images in the Docker Desktop app.</p>
+DockerHub username and the name of the app. Building the image may take a while.</p>
 
 <h3>Step 3: Upload the Docker image into DockerHub</h3>
 <p>Log in to Dockerhub</p>
-
 <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker login --username &lt;user-name&gt;</code></pre>
 <p>This will prompt you for your password. Next, you must tag your image by running</p>
 <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker tag &lt;app-name&gt; &lt;user-name&gt;/&lt;app-name&gt;</code></pre>
@@ -77,9 +77,8 @@ should be able to see the image among your images in the Docker Desktop app.</p>
 <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker push &lt;user-name&gt;/&lt;app-name&gt;</code></pre>
 
 <h3>Step 4: Publish your app on SciLifeLab Serve</h3>
-<p>Follow <a
-  href="{% url 'guide_hosting' %}">these instructions</a> to publish your app to SciLifeLab Serve.</p>
-Use
+<p>Follow <a href="{% url 'guide_hosting' %}">these instructions</a> to publish your app to SciLifeLab Serve.</p>
+Use the following settings:
 <ul>
   <li> <strong><em>DockerHub Image</em>:</strong> <i>&lt;user-name&gt;/&lt;app-name&gt;</i></li>
   <li><strong><em>App Port</em>:</strong> 3838</li>
