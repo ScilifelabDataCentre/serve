@@ -1,33 +1,31 @@
 {% extends "guide_template.html" %}
 {% block heading %}
-  Turning an R Shiny apps into a Docker image
+Creating a Docker image for your R Shiny app
 {% endblock %}
 
 {% block guide-content %}
-  <p>As of now, SciLifeLab Serve only allows to host R Shiny applications if they are packaged as Docker images. While
-    this is a straightforward process, it can cause difficulties if you have never created a Docker image before. To
-    make this easier, the SciLifeLab Serve team is happy to help you with this through a free individual consultation,
-    get in touch with us by e-mailing <a href="mailto:datacentre@scilifelab.se">datacentre@scilifelab.se</a>.
-    Alternatively, we provide step-by-step instructions on how to do it on this page. We do not go in detail explaining
-    what each of the tools and settings we use here mean as we try to keep it as simple/short as possible. You can learn
-    more about Docker images in the <a href="https://docs.docker.com/">official Docker documentation</a>.</p>
-  <p>You can find <a href="https://github.com/ScilifelabDataCentre/shiny-adhd-medication-sweden">the example Shiny app
-    used in this tutorial on GitHub</a>.</p>
+<p>To host your R Shiny app, you must <i>containerize</i> it using Docker or similar service.
+  Below you will find a step-by-step tutorial on how to containerize your app using Docker.
+  This tutorial is based on the example provided in <a
+    href="https://github.com/ScilifelabDataCentre/shiny-adhd-medication-sweden">this link</a>.</p>
 
-  
-  <h3>Prerequisites:</h3>
-  <ol>
-    <li><a href="https://docs.docker.com/get-docker/">Docker</a> installed on your machine</li>
-    <li>An account to <a href="https://hub.docker.com/">DockerHub</a></li>
-  </ol>
+<h3>Having issues?</h3>
+<p>The SciLifeLab Serve team is happy to help you with this through a free individual consultation.
+  Get in touch with us by e-mailing <a href="mailto:datacentre@scilifelab.se">datacentre@scilifelab.se</a>.</p>
 
-  <h3>Step 1: Create a Dockerfile</h3>
-  <p>Docker images are built from sets of instructions given in a so-called <a
+<h3>Prerequisites:</h3>
+<ol>
+  <li><a href="https://docs.docker.com/get-docker/">Docker</a> installed on your machine</li>
+  <li>An account to <a href="https://hub.docker.com/">DockerHub</a></li>
+</ol>
+
+<h3>Step 1: Create a Dockerfile</h3>
+<p>Docker images are built from sets of instructions given in a so-called <a
     href="https://docs.docker.com/engine/reference/builder/">Dockerfile</a>. The name of the file should be exactly
-    'Dockerfile' and it should not have any file extension. We created an example Dockerfile to make it easier to start.
-    Create a file using any text editor you have and insert the code below or simply <a
-      href="https://raw.githubusercontent.com/ScilifelabDataCentre/shiny-adhd-medication-sweden/main/Dockerfile">download
-      this example from here</a>.</p>
+  'Dockerfile' and it should not have any file extension. We created an example Dockerfile to make it easier to start.
+  Create a file using any text editor you have and insert the code below or simply <a
+    href="https://raw.githubusercontent.com/ScilifelabDataCentre/shiny-adhd-medication-sweden/main/Dockerfile">download
+    this example from here</a>.</p>
 <pre><code><span style="color:#045C64">FROM</span> rocker/shiny:latest
 
 <span style="color:#045C64">RUN</span> apt-get update && \
@@ -48,36 +46,43 @@
 <span style="color:#045C64">EXPOSE</span> 3838
 
 <span style="color:#045C64">CMD</span> ["R", "-e", "shiny::runApp('/app/', host = '0.0.0.0', port = 3838)"]</code></pre>
-  <p>Let us look at how you can customize it for your own app. In this example two packages were installed: <i>shiny</i>
-    and <i>tidyverse</i>. This was done with the command
-    <pre><code><span style="color:#045C64">CMD</span> ["R", "-e", "shiny::runApp('/app/', host = '0.0.0.0', port = 3838)"]</code></pre>
-  Add your own packages here as needed by your app.</p>
-  <p>In this example the actual Shiny app code (the file <i>app.R</i>) as well as all dependencies are located in the
-    folder called <i>'app'</i>. This folder as a whole is copied into the image using the command
-    <pre><code><span style="color:#045C64">COPY</span> /app/ /srv/shiny-server/app</code></pre>
-    Change the folder names in this line and lines below if you have your own folder
-    name. NB: This Dockerfile is expected to be placed in the parent folder of your app folder (so you should have <i>'app'</i>
-    folder and this Dockerfile in the same folder).</p>
-  <h3>Step 2: Build an image</h3>
-  <p>Ensure that Docker Desktop is running. Open a terminal on your computer and navigate to the
-    folder where your app folder and Dockerfile are located. To build an image you will need to run the following
-    command: 
-    <pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker build -t &lt;your-user-name&gt;/&lt;your-app-name&gt; .</code></pre> (NB: do not forget the dot at
-    the end of the command). Before you run it, replace <i>&lt;your-user-name&gt;/&lt;your-app-name&gt;</i> with your
-    DockerHub username and the name of the app. Building the image may take a while. Once the process is completed, you
-    should be able to see the image among your images in the Docker Desktop app.</p>
-  
-    <h3>Step 3: Upload the Docker image into DockerHub</h3>
-  <p>The easiest way to publish an image on DockerHub is to sign in to your account with Docker Desktop and then pick
-    "Push to Hub" among the options for your app image. This will publish your image on <i>https://hub.docker.com/r/&lt;your-user-name&gt;/&lt;your-app-name&gt;</i>.
-    For example, our example app is available on <a
-      href="https://hub.docker.com/r/scilifelabdatacentre/shiny-adhd-medication-sweden">https://hub.docker.com/r/scilifelabdatacentre/shiny-adhd-medication-sweden</a>.
-  </p>
-  <h3>Step 4: Publish your app on SciLifeLab Serve</h3>
-  <p>Now that you built an image and made it available through DockerHub, you can <a href="{% url 'guide_hosting' %}">follow
-    our
-    general instructions for publishing your R Shiny app on SciLifeLab Serve</a> to make it available for others to see
-    and interact with. When creating your app on SciLifeLab Serve, under Docker image you will need to give <i>&lt;your-user-name&gt;/&lt;your-app-name&gt;</i>;
-    under path to folder insert <i>/</i> ; under app port insert <i>3838</i>.</p>
+<p>Let us look at how you can customize it for your own app. In this example two packages were installed: <i>shiny</i>
+  and <i>tidyverse</i>. This was done with the command</p>
+<pre><code><span style="color:#045C64">CMD</span> ["R", "-e", "shiny::runApp('/app/', host = '0.0.0.0', port = 3838)"]</code></pre>
+<p>Add your own packages here as needed by your app.</p>
+<p>In this example the actual Shiny app code (the file <i>app.R</i>) as well as all dependencies are located in the
+  folder called <i>'app'</i>. This folder as a whole is copied into the image using the command
+<pre><code><span style="color:#045C64">COPY</span> /app/ /srv/shiny-server/app</code></pre>
+<p>Change the folder names in this line and lines below if you have your own folder
+  name. NB: This Dockerfile is expected to be placed in the parent folder of your app folder (so you should have
+  <i>'app'</i>
+  folder and this Dockerfile in the same folder).
+</p>
+<h3>Step 2: Build an image</h3>
+<p>Ensure that Docker Desktop is running. Open a terminal on your computer and navigate to the
+  folder where your app folder and Dockerfile are located using <code>cd</code>.</p> Build the docker image.
+<pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker build -t &lt;user-name&gt;/&lt;app-name&gt; .</code></pre>
+(NB: do not forget the dot at
+the end of the command). Before you run it, replace <i>&lt;user-name&gt;/&lt;app-name&gt;</i> with your
+DockerHub username and the name of the app. Building the image may take a while. Once the process is completed, you
+should be able to see the image among your images in the Docker Desktop app.</p>
+
+<h3>Step 3: Upload the Docker image into DockerHub</h3>
+<p>Log in to Dockerhub</p>
+
+<pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker login --username &lt;user-name&gt;</code></pre>
+<p>This will prompt you for your password. Next, you must tag your image by running</p>
+<pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker tag &lt;app-name&gt; &lt;user-name&gt;/&lt;app-name&gt;</code></pre>
+<p>Finally, push the image to dockerhub by executing the following</p>
+<pre><code><span style="color:#045C64">jovyan@1b6fs2:~/work/path/to/Dockerfile$</span> docker push &lt;user-name&gt;/&lt;app-name&gt;</code></pre>
+
+<h3>Step 4: Publish your app on SciLifeLab Serve</h3>
+<p>Follow <a
+  href="{% url 'guide_hosting' %}">these instructions</a> to publish your app to SciLifeLab Serve.</p>
+Use
+<ul>
+  <li> <strong><em>DockerHub Image</em>:</strong> <i>&lt;user-name&gt;/&lt;app-name&gt;</i></li>
+  <li><strong><em>App Port</em>:</strong> 3838</li>
+</ul>
 
 {% endblock %}
