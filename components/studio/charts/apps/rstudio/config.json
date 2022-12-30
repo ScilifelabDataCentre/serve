@@ -10,10 +10,6 @@
         "apps": {
             "Persistent Volume":"many"
         },
-        "credentials": {
-            "username": {"type": "string", "default":"username", "title": "Username"},
-            "password": {"type": "string", "default":"password", "title": "Password"}
-        },
         "default_values": {
             "port": "8787",
             "targetport": "8787"

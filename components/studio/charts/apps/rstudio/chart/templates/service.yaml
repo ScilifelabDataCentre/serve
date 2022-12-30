@@ -4,7 +4,7 @@ metadata:
   name: {{ .Values.service.name }}
   namespace: {{ .Values.namespace }}
   labels:
-    run: {{ .Release.Name }}-vscode
+    run: {{ .Release.Name }}-rstudio
 spec:
   ports:
   - protocol: TCP

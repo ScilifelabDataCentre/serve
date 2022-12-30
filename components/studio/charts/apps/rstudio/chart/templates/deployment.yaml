@@ -35,10 +35,8 @@ spec:
     {{- end }}
       containers:
       - env:
-        - name: USER
-          value: {{ .Values.credentials.username }}
-        - name: PASSWORD
-          value: {{ .Values.credentials.password }}
+        - name: DISABLE_AUTH
+          value: true
         image: rocker/rstudio:latest #3.12.0
         name: rstudio
         imagePullPolicy: IfNotPresent
