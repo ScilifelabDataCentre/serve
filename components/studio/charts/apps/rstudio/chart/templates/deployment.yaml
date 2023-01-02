@@ -37,6 +37,8 @@ spec:
       - env:
         - name: DISABLE_AUTH
           value: "true"
+        - name: USER
+          value: stackn
         image: rocker/rstudio:latest #3.12.0
         name: rstudio
         imagePullPolicy: IfNotPresent
@@ -58,7 +60,7 @@ spec:
               command:
                 - /bin/bash
                 - -c
-                - mkdir -p /home/stackn/.scaleout && cp -n /stackn.json /home/stackn/.scaleout/stackn.json
+                - mkdir -p /home/stackn/.scaleout && cp -n /stackn.json /home/stackn/.scaleout/stackn.json && rm -rf /home/rstudio
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
       volumes:
