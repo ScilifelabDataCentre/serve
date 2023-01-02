@@ -52,7 +52,7 @@ spec:
           subPath: stackn.json
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
-          mountPath: /home/stackn/{{ $key }}
+          mountPath: /home/stackn
         {{- end }}
         lifecycle:
           postStart:
