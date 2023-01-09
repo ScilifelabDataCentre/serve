@@ -1,0 +1,24 @@
+{
+    "name": "RStudio",
+    "slug": "rstudio",
+    "category": "develop",
+    "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+    },
+    "description": "",
+    "settings": {
+        "apps": {
+            "Persistent Volume":"many"
+        },
+        "default_values": {
+            "port": "8787",
+            "targetport": "8787"
+          },
+        "export-cli": "True",
+        "permissions": {
+            "public": {"value":"false", "option": "false"},
+            "project": {"value":"true", "option": "true"},
+            "private": {"value":"false", "option": "true"}
+        }
+    }
+}
