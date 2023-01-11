@@ -1,15 +1,10 @@
-## Status
-
-- [ ] Ready
-- [ ] Draft
-- [ ] Hold
+# Chart
 
 ## Description
 
-*If the PR contains a chart, use the [chart PR template](?expand=1&template=chart.md) instead.*
+Describe your changes. 
 
-Describe your changes here to communicate to the maintainers why we should accept this pull request. 
-If it fixes a bug or resolves a feature request, be sure to include a link to that issue.
+If the pull request contains a new chart, you should describe the service it provides, the origin of its image, and any other things that may be relevant.
 
 ## Types of changes
 
@@ -17,15 +12,24 @@ What types of changes does your code introduce to STACKn?
 
 - [ ] Hotfix (fixing a critical bug in production)
 - [ ] Bugfix
-- [ ] New feature
+- [ ] New chart
 - [ ] Documentation update
 
 ## Checklist
 
-_If you're unsure about any of the items below, don't hesitate to ask. We're here to help! 
-This is simply a reminder of what we are going to look for before merging your code._
+### Chart
 
-- [ ] This pull request is against **serve-0.6** branch (not applicable for hotfixes)
+- [ ] The image is not running as root
+- [ ] The file system is read-only
+- [ ] The service account token is not mounted (not applicable if the token is required for the funtion of the pod)
+- [ ] A `readinessProbe` is included
+- [ ] NetworkPolicies are included to keep the network access to a minimum
+- [ ] Resource limits have been set (CPU, memory, and ephemeral storage), both a good estimate of the requested resources, and the maximum resources the pods may use 
+- [ ] A unique service account is created
+- [ ] Any sensitive data is stored in a `Secret`
+
+### General
+
 - [ ] I have included a link to the issue on GitHub or JIRA (if any)
 - [ ] I have included migration files (if there are changes to the model classes)
 - [ ] I have read the [CONTRIBUTING](https://github.com/scaleoutsystems/stackn/blob/master/CONTRIBUTING.md) doc
