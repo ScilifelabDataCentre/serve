@@ -16,6 +16,7 @@ import sys
 AUTHENTICATION_BACKENDS = [
     'social_core.backends.github.GithubOAuth2',
     'social_core.backends.google.GoogleOAuth2',
+    'social_core.backends.elixir.ElixirOpenIdConnect',
     'django.contrib.auth.backends.ModelBackend',
     'guardian.backends.ObjectPermissionBackend',
 ]
@@ -122,9 +123,32 @@ SOCIAL_AUTH_GITHUB_KEY = '<your-github-key>'
 SOCIAL_AUTH_GITHUB_SECRET = '<your-github-secret>'
 SOCIAL_AUTH_GITHUB_SCOPE = ['user:email']   # Ask for the user's email
 
+#LS Login
+SOCIAL_AUTH_JSONFIELD_ENABLED = True
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/auth_fail/'
+SOCIAL_AUTH_ELIXIR_KEY = "<your-social-auth-key>"
+SOCIAL_AUTH_ELIXIR_SECRET = "<your-social-auth-secret>"
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+SOCIAL_AUTH_URL_NAMESPACE = 'social'
+SOCIAL_AUTH_IMMUTABLE_USER_FIELDS = ['email',]
+SOCIAL_AUTH_ELIXIR_SCOPE = ['profile', 'country', 'schac_home_organization']
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.social_auth.associate_by_email',
+    'studio.custom_social_auth_pipeline.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'studio.custom_social_auth_pipeline.user_details',
+)
+
 # Google
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '<your-google-oauth2-key>'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '<your-google-oauth2-secret>'
+
+
 
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {
@@ -188,11 +212,11 @@ if sys.argv[1] == 'test':
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': 'postgres',
-            'USER': 'postgres',
-            'PASSWORD': 'postgres',
-            'HOST': 'db',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'stackn',
+            'USER': 'stackn',
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+            'HOST': 'stackn-studio-postgres',
             'PORT': '5432',
         }
     }
@@ -206,6 +230,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 12,
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
