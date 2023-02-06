@@ -18,10 +18,10 @@
               <div class="col-lg-6 offset-lg-3">
                 <div class="p-5">
                   <div class="text-center mb-1">
-                        <img src="{% static 'images/stackn.png' %}" alt="STACKn Logo" width="200" >
+                        <img src="{% static 'images/scaleout-studio.svg' %}" alt="STACKn Logo" width="300" >
                   </div>
                   <div class="text-center">
-                    <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
+                    <h1 class="h5 text-gray-900 mb-4">Welcome Back!</h1>
                   </div>
                   <form method="POST">
                     {% csrf_token %}
@@ -29,12 +29,12 @@
                     <button type="submit" class="btn btn-primary btn-block">Login</button>
                   </form>
                   <hr>
-                    <a href="{% url 'social:begin' 'github' %}" class="btn btn-dark btn-block">
-                      <i class="fab fa-github fa-fw"></i> Login with Github
+                    <a href="{% url 'social:begin' 'elixir' %}" class="btn btn-dark btn-block">
+                      <i class="fab fa-openid fa-fw"></i> Ls Login
                     </a>
-                    <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-google btn-block">
+                    {% comment %} <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-google btn-block">
                       <i class="fab fa-google fa-fw"></i> Login with Google
-                    </a>
+                    </a> {% endcomment %}
                   <hr>
                   <div class="text-center">
                     <a href="{% url 'password_reset' %}">Forgot Password?</a>
