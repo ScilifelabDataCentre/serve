@@ -1,5 +1,5 @@
 #  Django Third Party Apps
-Django==3.2.11
+Django==3.2.16
 django-appconf==1.0.5
 django-bootstrap-modal-forms==2.2.0
 django-celery-beat==2.2.1
@@ -49,7 +49,7 @@ rjsmin==1.2.0
 s3fs==2022.1.0
 six==1.16.0
 social-auth-app-django==5.0.0
-social-auth-core==4.2.0
+social-auth-core[openidconnect]==4.2.0
 sqlparse==0.4.2
 urllib3==1.26.8
 vine==5.0.0
