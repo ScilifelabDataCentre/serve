@@ -4,6 +4,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
+from django.shortcuts import render
 from rest_framework.authentication import (BasicAuthentication,
                                            SessionAuthentication,
                                            TokenAuthentication)
@@ -42,6 +43,9 @@ def home(request):
     template = 'home.html'
     return render(request, template, locals())
 
+def auth_fail(request):
+    template = 'auth_fail.html'
+    return render(request, template, locals())
 
 def contact(request):
     menu = dict()
@@ -180,6 +184,11 @@ def shiny_docker(request):
 def handle_page_not_found(request, exception):
     return HttpResponseRedirect('/')
 
+def teaching(request):
+    menu = dict()
+    menu['teaching'] = 'active'
+    base_template = 'base.html'
+    return render(request, 'teaching.html', locals())
 
 class AccessPermission(BasePermission):
 
