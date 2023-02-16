@@ -306,3 +306,8 @@ a.disabled {
 .select2-container--bootstrap4 {
     display: inline-block;
 }
+
+.form-label.required:after { 
+  content:"*";
+  color:red;
+} 
