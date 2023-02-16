@@ -1,0 +1,57 @@
+{% extends base_template %}
+{% load static %}
+{% block content %}
+  <section>
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form action="https://forms.dckube.scilifelab.se/api/v1/form/cUyui2NE59M5xs9U/incoming" method="POST" accept-charset="utf-8">
+            <div class="modal-body">
+              <div class="">
+                <h1 class="h1" style="font-weight: 800;text-align: center">Contact us</h1>
+                <p>The SciLifeLab Serve is developed and maintained by the SciLifeLab Data Centre and Scaleout. We welcome suggestions, contributions, and questions related to the content of this site. This could include, for example, a suggestion for a feature that is not currently implemented. Alternatively, you can request an update or correction to particular pages.</p>
+                <p>If you've faced any bugs please, send us details on what happened, so that we could reproduce your results.</p>
+                <p>You can fill in the below form to get in touch with us. If you prefer though, you can instead email us at <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a>.</p>
+              </div>
+                <div class="mb-3">
+                    <label for="submitter_name" class="form-label fw-bold">Your name:</label>
+                    <input type="text" class="form-control" id="submitter_name" name="submitter_name">
+                </div>
+                <div class="mb-3">
+                    <label for="submitter_email" class="form-label fw-bold">Your contact email:</label>
+                    <input type="email" class="form-control" id="submitter_email" name="submitter_email">
+                </div>
+                <div class="mb-3">
+                  <label for="query_type" class="form-label fw-bold">Type of query:</label>
+                  <select class="form-select" id="query_type" name="query_type">
+                    <option selected>---</option>
+                    <option value="request-support">Request support</option>
+                    <option value="feature-suggestion">Feature suggestion</option>
+                    <option value="bug-report">Bug report</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="query_message" class="form-label fw-bold">Message:</label>
+                  <textarea class="form-control" id="query_message" name="query_message" rows="5"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="col-7 p-4">
+               <div class="mb-0">
+                <div class="g-recaptcha" data-sitekey="6LfX3uggAAAAAFOoQPUE-iPY8wR9dPYp7bIBTc9W"></div>
+              </div>
+                    <br>
+              <div class="mb-3" style="text-align: right;margin-right: -15px">
+                  <button type="submit" class="btn btn-success d-sm-inline-block">Submit</button>
+              </div>
+
+            </div>
+
+                </div>
+
+          </form>
+          </div>
+        </div>
+  </section>
+
+{% endblock %}
