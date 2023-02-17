@@ -1,0 +1,51 @@
+FROM python:3.8.10-alpine as base
+LABEL maintainer="fredrik@scaleoutsystems.com"
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN apk add --update --no-cache \
+    libffi-dev \
+    build-base \
+    python3-dev \
+    py3-setuptools \
+    postgresql-dev \
+    libpq \
+    jpeg-dev \ 
+    zlib-dev \
+    gcc \
+    openjpeg-dev \
+    && pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+FROM bitnami/kubectl:1.20.9 as kubectl
+FROM alpine/helm:3.1.1 as helm
+
+FROM python:3.8.10-alpine as build
+COPY --from=base /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
+COPY --from=base /usr/local/bin/ /usr/local/bin/
+COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
+COPY --from=helm /usr/bin/helm /usr/local/bin/
+
+RUN apk add --update --no-cache \
+    sudo \
+    bash \
+    postgresql-client \
+    libpq \
+    jpeg-dev \ 
+    openjpeg-dev \
+    libpng-dev
+
+
+# Set working directory
+COPY . /app/
+WORKDIR /app
+ARG USER=stackn
+RUN adduser -D $USER \
+        && echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USER \
+        && chmod 0440 /etc/sudoers.d/$USER \
+        && mkdir -p /app/media /app/charts/values \
+        && chown -R $USER /app
+
+USER $USER
+
