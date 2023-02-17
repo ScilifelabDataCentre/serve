@@ -56,7 +56,7 @@ spec:
           mountPath: /etc/nginx
         - name: auth-vol
           mountPath: /auth
-      - image: scaleoutsystems/mlflow-server:latest
+      - image: ghcr.io/scilifelabdatacentre/serve-mlflow:latest
         imagePullPolicy: IfNotPresent
         name: mlflow
         env:
@@ -72,8 +72,8 @@ spec:
           value: {{ .Values.s3.secret_key }}
         ports:
         - containerPort: 5000
-        # command: ["/bin/sh"]
-        # args: ["-c", "mlflow server --host 0.0.0.0:5000"]
+        command: ["/bin/sh"]
+        args: ["-c", "mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri ${BACKEND_STORE_URI} --default-artifact-root s3://${MLFLOW_BUCKET}/"]
         resources: {}
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}
