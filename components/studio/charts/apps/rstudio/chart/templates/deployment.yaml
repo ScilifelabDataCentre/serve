@@ -18,6 +18,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/path: /metrics
         # prometheus.io/port: "8501"
+        container.apparmor.security.beta.kubernetes.io/rstudio: runtime/default
       labels:
         release: {{ $.Release.Name }}
         app: rstudio
@@ -34,41 +35,22 @@ spec:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       containers:
-      - env:
-        - name: DISABLE_AUTH
-          value: "true"
-        - name: USER
-          value: stackn
-        image: rocker/rstudio:latest #3.12.0
-        name: rstudio
+      - name: rstudio
+        image: {{ .Values.app.image }}
         imagePullPolicy: IfNotPresent
+        securityContext:
+          {{ .Values.app.securityContext | toYaml | nindent 8 | trim }}
         ports:
-          - containerPort: 8787
+          - containerPort: {{ .Values.app.port }}
         volumeMounts:
-        - name: cli-config-vol
-          mountPath: /home/stackn/.scaleout
-        - name: cli-config
-          mountPath: /stackn.json
-          subPath: stackn.json
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
-          mountPath: /home/stackn
+          mountPath: /home/jovyan
         {{- end }}
-        lifecycle:
-          postStart:
-            exec:
-              command:
-                - /bin/bash
-                - -c
-                - mkdir -p /home/stackn/.scaleout && cp -n /stackn.json /home/stackn/.scaleout/stackn.json && rm -rf /home/rstudio
+
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
       volumes:
-      - name: cli-config-vol
-        emptyDir: {}
-      - name: cli-config
-        configMap:
-          name: {{ .Release.Name }}-cli-config
       {{- range $key, $value := .Values.apps.volumeK8s }}
       - name: {{ $key }}
         persistentVolumeClaim:

@@ -9,9 +9,26 @@ app:
     requests:
       memory: 1024Mi
       cpu: 1.0
+      ephemeral-storage: 10Mi
     limits:
       memory: 1024Mi
       cpu: 1.0
+      ephemeral-storage: 200Mi
+  
+  image: ghcr.io/scilifelabdatacentre/serve-rstudio:latest
+
+  port: 8787
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    privileged: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    readOnlyRootFilesystem: true
+    runAsGroup: 1000
+    capabilities:
+      drop:
+        - all
       
   gpu:
     enabled: false
@@ -35,3 +52,9 @@ ingress:
 
 s3sync:
   image: scaleoutsystems/s3-sync:latest
+
+service:
+  name: rstudio
+
+global:
+  protocol: TCP
