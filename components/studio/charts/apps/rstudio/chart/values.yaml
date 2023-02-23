@@ -24,7 +24,7 @@ app:
     privileged: false
     runAsNonRoot: true
     runAsUser: 1000
-    readOnlyRootFilesystem: true
+    readOnlyRootFilesystem: false
     runAsGroup: 1000
     capabilities:
       drop:

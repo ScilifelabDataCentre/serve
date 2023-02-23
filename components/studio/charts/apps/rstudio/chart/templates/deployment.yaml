@@ -8,7 +8,7 @@ spec:
   selector:
     matchLabels:
       release: {{ $.Release.Name }}
-      app: rstudio
+      app: {{ .Values.appname }}
       project: {{ $.Values.project.slug }}
       type: app
       pod: rstudio
@@ -17,11 +17,10 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: /metrics
-        # prometheus.io/port: "8501"
         container.apparmor.security.beta.kubernetes.io/rstudio: runtime/default
       labels:
         release: {{ $.Release.Name }}
-        app: rstudio
+        app: {{ .Values.appname }}
         project: {{ $.Values.project.slug }}
         type: app
         pod: rstudio
