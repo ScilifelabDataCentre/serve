@@ -8,7 +8,7 @@
     "description": "",
     "settings": {
         "apps": {
-            "Persistent Volume":"many"
+            "Persistent Volume":"one"
         },
         "default_values": {
             "port": "8787",
