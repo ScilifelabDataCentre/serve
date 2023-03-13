@@ -24,5 +24,12 @@ jobs:
     if: github.repository == 'scilifelabdatacentre/stackn'
     runs-on: ubuntu-20.04
     steps:
-      - name: Simple echo
+      - name: Echo begin
+        run: echo 'Begin'
+
+      - name: Branch or tag that triggered the workflow run
+        run: echo running on branch ${GITHUB_REF##*/}
+        
+      - name: Echo done
         run: echo 'Done'
+  
