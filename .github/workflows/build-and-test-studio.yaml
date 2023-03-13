@@ -1,0 +1,28 @@
+name: Build and test studio
+
+on:
+  # Adds ability to run this workflow manually
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+      tags:
+        description: 'Manual run'
+        required: false
+        type: boolean
+
+jobs:
+
+  build:
+    if: github.repository == 'scilifelabdatacentre/stackn'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Simple echo
+        run: echo 'Done'
