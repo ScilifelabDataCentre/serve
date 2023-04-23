@@ -31,16 +31,16 @@
 
                                         RUN Rscript -e 'install.packages(c("shiny","tidyverse"))'
 
-                                        COPY /app/ /srv/shiny-server/app
+                                        COPY /app/ /srv/shiny-server/app 
 
                                         RUN cd /srv/shiny-server/ && \
                                             sudo chown -R shiny:shiny /srv/shiny-server/app
-                                        
+
                                         COPY shiny-customized.config /etc/shiny-server/shiny-server.conf
-                                        
+
                                         EXPOSE 3838
 
-                                        CMD ["R", "-e", "shiny::runApp('/app/', host = '0.0.0.0', port = 3838)"]
+                                        CMD ["/usr/bin/shiny-server"]
 
                                         </code></pre>
                                         <p>Let us look at how you can customize it for your own app. In this example two packages were installed: <i>shiny</i> and <i>tidyverse</i>. This was done in the line <code>RUN Rscript -e 'install.packages(c("shiny","tidyverse"))'</code>. Add your own packages here as needed by your app.</p>
