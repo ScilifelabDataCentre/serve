@@ -172,9 +172,9 @@
                         </ul>
                         <h3 id="shiny">R Shiny</h3>
                         <p>This is a resource to deploy R Shiny apps. Currently, only apps that have been packaged as a
-                            Docker container and made available on <a href="https://hub.docker.com/">DockerHub</a> are
-                            supported. </p>
-                        <p>To deploy a R Shiny App click the Create button on the R Shiny App card in the Serve
+                            Docker container and made available on public image repository (e.g., <a href="https://hub.docker.com/">DockerHub</a> or <a href="https://ghcr.io">ghcr.io</a>) are
+                            supported. If you can find a <a href="{% url 'shiny_docker' %}">step-by-step tutorial on how to do that here</a>. If you have questions about this, simply email us at serve@scilifelab.se.</p>
+                        <p>Once your Docker image is ready, to deploy an R Shiny App click the Create button on the R Shiny App card in the Serve
                             Tab. Then enter
                             the following information in the form:</p>
                         <ul>
@@ -203,22 +203,22 @@
                                 </ul>
                             </li>
                             <li><strong>App Port:</strong> The port that the Shiny server runs on (usually 3838).</li>
-                            <li><strong>DockerHub Image:</strong> Name of the image on DockerHub.</li>
+                            <li><strong>DockerHub Image:</strong> Name of the image on DockerHub or full url to the image on a different repository.</li>
                         </ul>
                         <p>When you deploy your app, you'll be taken to the serve page again, and should see your app in
                             a list on the top of the screen. The state will initially show as 'Pending' (shown in an
                             orange label), but should change to 'Running' (shown in a green label)</p>
 
-                        <p>To update a Shiny App after a new image has been published on DockerHub, click the pencil
+                        <p>To update a Shiny App after a new image has been published on DockerHub or elsewhere, click the pencil
                             icon next to the app and press on the <b>Update</b> button on the bottom of the form. To
                             delete the app, press the bin icon beside the pencil icon.</p>
 
                         <h3 id="dash">Dash</h3>
                         <p>This is a resource to deploy Dash apps. Currently, only apps that have been packaged as a
-                            Docker container and made available on <a href="https://hub.docker.com/">DockerHub</a> are
-                            supported. </p>
+                            Docker container and made available on public image repository (e.g., <a href="https://hub.docker.com/">DockerHub</a> or <a href="https://ghcr.io">ghcr.io</a>) are
+                            supported. You can find a <a href="{% url 'dash_docker' %}">step-by-step tutorial on how to do that here</a>. If you have questions about this, simply email us at serve@scilifelab.se.</p>
 
-                        <p>To deploy a Dash App click the Create button on the Dash App
+                        <p>Once your Docker image is ready, to deploy a Dash App click the Create button on the Dash App
                             card in the Serve Tab. Then Enter the following information in the form:</p>
                         <ul>
                             <li><strong>Name: </strong>Name of the app, specified by the user (e.g., 'Dash Example')
@@ -250,13 +250,13 @@
                                 container) in which
                                 the main Dash application file is located (usually app.py).</li>
                             <li><strong>App Port:</strong> The port that the Dash app runs on (usually 8050).</li>
-                            <li><strong>DockerHub Image:</strong> Name of the image on DockerHub.</li>
+                            <li><strong>DockerHub Image:</strong> Name of the image on DockerHub or full url to the image on a different repository.</li>
                         </ul>
                         <p>When you deploy your app, you'll be taken to the serve page again, and should see your app in
                             a list on the top of the screen. The state will initially show as 'Pending' (shown in an
                             orange label), but should change to 'Running' (shown in a green label)</p>
 
-                        <p>To update a Dash App after a new image has been published on DockerHub, click the pencil icon
+                        <p>To update a Dash App after a new image has been published on DockerHub or elsewhere, click the pencil icon
                             next to the app and press on the <b>Update</b> button on the bottom of the form. To delete
                             the app, press the bin icon beside the pencil icon.</p>
 
