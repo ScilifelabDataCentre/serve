@@ -1,9 +1,9 @@
 # Apps
 minio
-certifi
+certifi==2021.10.8
 chardet
 
-django==3.2.12
+django==3.2.16
 django-appconf
 django-compressor
 django-cors-middleware
@@ -16,11 +16,11 @@ oauthlib
 psycopg2-binary
 pytz
 rcssmin
-requests
+requests==2.28.1
 rjsmin
 six
 sqlparse
-urllib3>=1.26.5
+urllib3==1.26.8
 vine
 gitdb2
 GitPython
@@ -52,7 +52,7 @@ channels-redis
 dash-bootstrap-components
 pymongo
 Pillow
-mozilla-django-oidc
+mozilla-django-oidc==2.0.0
 s3fs
 django-tagulous
 libcst
