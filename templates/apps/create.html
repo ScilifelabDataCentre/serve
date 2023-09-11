@@ -1,24 +1,26 @@
-{% extends 'projects/base.html' %}
-{% block title %}Settings - {{ app.name }}{% endblock %}
+{% extends 'base.html' %}
 {% load static %}
 {% load custom_tags %}
 
 {% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Create {{ app.name }}</li>
+    </ol>
+</nav>
 
+<h1 class="h3 mb-3">Create {{ app.name }}</h1>
 <div class="row">
-    <div class="col">
-
-        <h3>Settings {{ app.name }}</h3>
-    </div>
-</div>
-
-<div class="row pt-3">
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
             <div class="card-body">
-                <form method="post">
+                <form action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}"
+                    method="post">
                     {% csrf_token %}
 
+                    <input type="hidden" id="app_action" name="app_action" value="{{ app_action }}">
                     <input type="hidden" id="app_id" name="app_id" value="{{ appinstance.pk }}">
                     <div class="mb-3">
                         <label class="form-label">Name</label>
@@ -29,8 +31,7 @@
                     {% if form.dep_permissions %}
                     <div class="mb-3">
                         <label class="form-label">Permissions</label>
-                        <select {% if not show_permissions %} disabled {% endif %} name="permission" id="permission"
-                            class="form-control">
+                        <select name="permission" id="permission" class="form-control">
                             {% for name, value in form.form_permissions.items %}
                             {% if value.option == "true" %}
                             {% if value.value %}
@@ -47,7 +48,7 @@
                     {% if form.dep_model %}
                     <div class="mb-3">
                         <label class="form-label">Model</label>
-                        <select name="model" id="model" class="form-control">
+                        <select required name="model" id="model" class="form-control">
                             {% for model in form.models %}
                             <option value="{{ model.pk }}" {{ model.selected }}>{{ model.name }}:{{ model.version }}
                             </option>
@@ -93,6 +94,17 @@
                     </div>
                     {% endif %}
 
+                    {% if form.dep_volumes %}
+                    <div class="mb-3">
+                        <label class="form-label">Volumes</label>
+                        <select name="volumes" id="volumes" class="form-control" required>
+                            {% for volume in form.volumes %}
+                            <option value="{{ volume.pk }}">{{ volume.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
                     {% if form.dep_apps %}
                     {% for app_name, appinstances in form.app_deps.items %}
                     <div class="mb-3">
@@ -103,12 +115,10 @@
                             <option value="{{ appinstance.pk }}" {{ appinstance.selected }}>{{ appinstance.name }}
                             </option>
                             {% endfor %}
-                            <option value="none">None</option>
                         </select>
                     </div>
                     {% endfor %}
                     {% endif %}
-
 
                     {% for key, vals in form.primitives.items %}
 
@@ -134,27 +144,16 @@
                             class="form-control">
                         {% endif %}
 
+                        {% if subval.type == "password" %}
+                        <label class="form-label">{{ subval.title }}</label>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}"
+                            class="form-control">
+                        {% endif %}
+
                         {% if subval.type == "textfield" %}
                         <label class="form-label">{{ subval.title }}</label>
                         <textarea id="{{ subkey }}" name="{{ key }}.{{ subkey }}" class="form-control"
                             rows="20">{{ subval.default }}</textarea>
-                        {% endif %}
-
-                        {% if subval.type == "password" %}
-                        <label class="form-label">{{ subval.title }}</label>
-
-                        <div class="input-group">
-                            <input type="password" id="{{ subkey }}" name="{{ key }}.{{ subkey }}"
-                                value="{{ subval.default }}" class="form-control">
-
-                            <button type="button" class="btn btn-outline-dark btn-show-password">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button disabled type="button" class="btn btn-outline-dark btn-copy"
-                                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Copy">
-                                <i class="bi bi-clipboard"></i>
-                            </button>
-                        </div>
                         {% endif %}
 
                         {% if subval.type == "number" %}
@@ -163,19 +162,17 @@
                             value="{{ subval.default }}" class="form-control">
                         {% endif %}
 
-
                         {% if subval.type == "select" %}
 
                         <label class="form-label">{{ subval.title }}</label>
 
-                        <select {% if not subval.user_can_edit %} disabled {% endif %} name="{{ key }}.{{ subkey }}"
-                            id="{{ subkey }}" class="form-control">
+                        <select name="{{ key }}.{{ subkey }}" id="{{ subkey }}" class="form-control">
                             {% for item in subval.items %}
 
                             {% if subval.default == item.value %}
-                            <option value="{{item.value}}" selected>{{item.name}}</option>
+                                <option value="{{item.value}}" selected>{{item.name}}</option>
                             {% else %}
-                            <option value="{{item.value}}">{{item.name}}</option>
+                                <option value="{{item.value}}">{{item.name}}</option>
                             {% endif %}
                             {% endfor %}
                         </select>
@@ -198,119 +195,14 @@
                     </div>
                     {% endif %}
 
-                    <button class="btn btn-primary" type="submit">Update</button>
-                    <a class="btn btn-secondary float-end" href="{{ request.headers.referer }}">Cancel</a>
+                    <button class="btn btn-primary" type="submit">Create</button>
+                    <button class="btn btn-secondary float-end" type="submit"
+                        onclick="window.location='{{ request.headers.referer }}' ; return false;">
+                        Cancel
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
-<div class="row pt-3">
-
-    <div class="col-12 col-xl-6">
-
-        <div class="card shadow border-0 p-3">
-            <h3 class="card-title">Tags</h3>
-
-
-            <form method="POST" action="{% url 'apps:add_tag' request.user project.slug appinstance.pk %}">
-
-                {% csrf_token %}
-
-                <div class="row pt-3">
-                    <div class="col-12 col-md-10">
-
-                        {% include './common/autocomplete.html' with str_list=all_tags id_suffix="tags" name="tag" required=True %}
-
-                    </div>
-                    <div class="col-12 col-md-2 pt-3 pt-md-0">
-
-                        <div class="row">
-                            <div class="col">
-                                <input type="submit" class="btn btn-primary w-100" value="Add">
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-            </form>
-
-            <div class="row pt-3">
-                <div class="col-12 d-flex">
-
-                    {% with appinstance.tags|split:"," as tags %}
-
-                    {% for tag in tags %}
-
-                    <form action="{% url 'apps:remove_tag' request.user project.slug appinstance.pk %}" method="post">
-
-                        {% csrf_token %}
-
-                        <div class="align-items-center d-flex m-1 p-2 rounded shadow">
-                            {{tag}} <button type="submit" class="btn-close ms-1" name="tag" value="{{tag}}"
-                                aria-label="Close"></button>
-                        </div>
-                    </form>
-
-                    {% endfor %}
-
-                    {% endwith %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    {
-
-        const COPY_STR = "Copy", COPIED_STR = "Copied!"
-
-        const copyBtns = document.querySelectorAll('.btn-copy');
-        const showPasswordBtns = document.querySelectorAll('.btn-show-password');
-
-        const resetAll = () => {
-
-            copyBtns.forEach(element => {
-
-                const tooltipInstance = bootstrap.Tooltip.getInstance(element);
-                tooltipInstance.setContent({ '.tooltip-inner': COPY_STR });
-            })
-        }
-
-        copyBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-
-                resetAll();
-                const input = btn.parentElement.querySelector('input');
-                input.select();
-                document.execCommand('copy');
-
-                const tooltipInstance = bootstrap.Tooltip.getInstance(btn);
-                tooltipInstance.setContent({ '.tooltip-inner': COPIED_STR });
-
-            });
-        });
-
-        showPasswordBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-
-                resetAll();
-                const input = btn.parentElement.querySelector('input');
-                const copyBtn = btn.parentElement.querySelector('button.btn-copy');
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
-                    copyBtn.disabled = false;
-                } else {
-                    input.type = 'password';
-                    btn.innerHTML = '<i class="bi bi-eye"></i>';
-                    copyBtn.disabled = true;
-                }
-            });
-        })
-    }
-</script>
 {% endblock %}

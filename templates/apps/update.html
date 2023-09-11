@@ -1,13 +1,19 @@
-{% extends 'projects/base.html' %}
-{% block title %}Settings - {{ app.name }}{% endblock %}
+{% extends 'base.html' %}
 {% load static %}
 {% load custom_tags %}
 
 {% block content %}
 
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Update {{ app.name }}</li>
+    </ol>
+</nav>
+
 <div class="row">
     <div class="col">
-
         <h3>Settings {{ app.name }}</h3>
     </div>
 </div>
@@ -93,6 +99,19 @@
                     </div>
                     {% endif %}
 
+
+                    {% if form.dep_volumes %}
+                    <div class="mb-3">
+                        <label class="form-label">Volumes</label>
+                        <select name="volumes" id="volumes" class="form-control" required>
+                            {% for volume in form.volumes %}
+                            <option value="{{ volume.pk }}">{{ volume.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+
                     {% if form.dep_apps %}
                     {% for app_name, appinstances in form.app_deps.items %}
                     <div class="mb-3">
@@ -103,7 +122,6 @@
                             <option value="{{ appinstance.pk }}" {{ appinstance.selected }}>{{ appinstance.name }}
                             </option>
                             {% endfor %}
-                            <option value="none">None</option>
                         </select>
                     </div>
                     {% endfor %}
@@ -221,7 +239,7 @@
                 <div class="row pt-3">
                     <div class="col-12 col-md-10">
 
-                        {% include './common/autocomplete.html' with str_list=all_tags id_suffix="tags" name="tag" required=True %}
+                        {% include 'common/autocomplete.html' with str_list=all_tags id_suffix="tags" name="tag" required=True %}
 
                     </div>
                     <div class="col-12 col-md-2 pt-3 pt-md-0">
