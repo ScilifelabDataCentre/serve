@@ -6,4 +6,3 @@
 
 docker exec studio bash -c "python manage.py flush --no-input"
 docker restart studio
-sleep 30

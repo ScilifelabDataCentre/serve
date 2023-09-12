@@ -8,6 +8,8 @@ describe("Test login", () => {
             // pre-creates a test user for this test
             cy.log("Resetting db state. Running db-reset.sh");
             cy.exec("./cypress/e2e/db-reset.sh");
+            cy.wait(60000);
+            cy.exec("./cypress/e2e/db-seed-contributor.sh");
         }
         else {
             cy.log("Skipping resetting the db state.");
@@ -28,8 +30,8 @@ describe("Test login", () => {
 
 
 
-        cy.get('input[name=username]').type(users.login.username)
-        cy.get('input[name=password]').type(users.login.password)
+        cy.get('input[name=username]').type(users.contributor.username)
+        cy.get('input[name=password]').type(users.contributor.password)
 
         cy.get("button").contains('Login').click()
             .then((href) => {
@@ -41,7 +43,7 @@ describe("Test login", () => {
 
     it("can login an existing user through the UI when input is valid using cypress command", () => {
 
-        cy.loginViaUI(users.login.username, users.login.password)
+        cy.loginViaUI(users.contributor.username, users.contributor.password)
 
     })
 
