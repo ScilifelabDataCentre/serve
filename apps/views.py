@@ -91,7 +91,7 @@ def logs(request, user, project, ai_id):
     name="dispatch",
 )
 class FilteredView(View):
-    template_name = "new.html"
+    template_name = "apps/new.html"
 
     def get(self, request, user, project, category):
         project = Project.objects.get(slug=project)

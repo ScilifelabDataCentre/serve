@@ -8,13 +8,15 @@ describe("Test project contributor user functionality", () => {
 
     before(() => {
         // seed the db with: contributor user, a blank project
-        //cy.log("Seeding the db for the contributor tests. Running db-seed-contributor.sh");
+        cy.log("Seeding the db for the contributor tests. Running db-seed-contributor.sh");
+        cy.exec("./cypress/e2e/db-reset.sh")
         cy.log("Running seed_contributor.py")
         cy.exec("./cypress/e2e/db-seed-contributor.sh")
     })
 
     beforeEach(() => {
         // username in fixture must match username in db-reset.sh
+        cy.log("Logging in as contributor user")
         cy.fixture('users.json').then(function (data) {
             users = data
 
