@@ -8,7 +8,6 @@ describe("Test login", () => {
             // pre-creates a test user for this test
             cy.log("Resetting db state. Running db-reset.sh");
             cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(60000);
             cy.exec("./cypress/e2e/db-seed-contributor.sh");
         }
         else {

@@ -7,7 +7,6 @@ describe("Test sign up", () => {
         if (Cypress.env('do_reset_db') === true) {
             cy.log("Resetting db state. Running db-reset.sh");
             cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(60000);
         }
         else {
             cy.log("Skipping resetting the db state.");
