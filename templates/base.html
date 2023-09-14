@@ -113,6 +113,23 @@
         }
     </script>
 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <script>
+        $(document).ready(function(){
+        $(window).scroll(function(){
+            var scroll = $(window).scrollTop();
+            if (scroll > 100) {
+            $(".nav_main").removeClass('py-2').removeClass('shadow-sm').addClass('border-bottom');
+            $(".nav_div").removeClass('p-2').addClass('p-1');
+            }else{
+            $(".nav_main").removeClass('border-bottom').addClass('shadow-sm').addClass('py-2');
+            $(".nav_div").removeClass('p-1').addClass('p-2');
+            }
+        });
+        });
+    </script>
+
     {% block extra_scripts %} {% endblock %}
 
     {% include 'common/analytics.html' %}
