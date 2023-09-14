@@ -11,6 +11,7 @@ describe("Test views as authenticated user", () => {
       users = data
     })
     cy.exec("./cypress/e2e/db-reset.sh");
+    cy.wait(60000);
     cy.exec("./cypress/e2e/db-seed-login.sh");
   })
 
