@@ -22,7 +22,7 @@ def test_index():
 
     # Check if it returns the correct status code
     assert response.status_code == 200
-    assert "<title>Overview | SciLifeLab Serve</title>" in response.content.decode()
+    assert "<title>Apps | SciLifeLab Serve</title>" in response.content.decode()
 
 
 def test_home_view_class():
