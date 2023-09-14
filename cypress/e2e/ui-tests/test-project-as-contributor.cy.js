@@ -30,7 +30,7 @@ describe("Test project contributor user functionality", () => {
     it("can run the test setup", () => {
     })
 
-    it("can create a new blank project", () => {
+    it("can create a new blank project", { scrollBehavior: false }, () => { // need to disable scrolling due to our fixed navbar
 
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
