@@ -192,7 +192,7 @@ class ModelViewForbidden(TestCase):
         response = self.client.get(reverse("models:list", kwargs={"user": owner, "project": project.slug}))
         self.assertTemplateUsed(response, "403.html")
         self.assertEqual(response.status_code, 403)
-        assert "<title>Page forbidden | SciLifeLab Serve</title>" in response.content.decode()
+        assert "<title>Forbidden | SciLifeLab Serve</title>" in response.content.decode()
 
     def test_forbidden_models_create(self):
         """
