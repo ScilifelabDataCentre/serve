@@ -111,23 +111,25 @@
                 })
             })
         }
-    </script>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+        window.addEventListener('load', function () {
+            let btnToTop = document.getElementById("btn-to-top");
+            window.onscroll = function () {
+                if (
+                    (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) &&
+                    window.innerWidth >= 768
+                ) {
+                    btnToTop.style.display = "block";
+                } else {
+                    btnToTop.style.display = "none";
+                }
+            };
+            btnToTop.addEventListener("click", function () {
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+            });
+        })
 
-    <script>
-        $(document).ready(function(){
-        $(window).scroll(function(){
-            var scroll = $(window).scrollTop();
-            if (scroll > 100) {
-            $(".nav_main").removeClass('py-2').removeClass('shadow-sm').addClass('border-bottom');
-            $(".nav_div").removeClass('py-2').addClass('py-1');
-            }else{
-            $(".nav_main").removeClass('border-bottom').addClass('shadow-sm').addClass('py-2');
-            $(".nav_div").removeClass('py-1').addClass('py-2');
-            }
-        });
-        });
     </script>
 
     {% block extra_scripts %} {% endblock %}
@@ -136,6 +138,10 @@
 
     <!-- This is for django wiki -->
     {% render_block "js" %}
+
+    <button type="button" class="btn btn-secondary btn-lg btn-top" id="btn-to-top">
+        <i class="bi bi-arrow-up"></i>
+    </button>
 
 </body>
 
