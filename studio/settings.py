@@ -344,6 +344,10 @@ APPS_PER_USER_LIMIT = {
     "docker-registry": 1,
     "combiner": 2,
     "mongodb": 1,
+    "dashapp": 1,
+    "rstudio": 1,
+    "shinyapp": 1,
+    "standardapp": 1,
 }
 
 PROJECTS_PER_USER_LIMIT = 5
