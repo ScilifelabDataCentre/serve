@@ -69,14 +69,11 @@ jobs:
         run: |
           kubectl get no
           kubectl get pods -A -o wide
-          cat /etc/group
-          cat /etc/passwd
           sudo usermod -a -G microk8s $USER
           sudo chown -f -R $USER ~/.kube
           sudo microk8s config >> ~/.kube/config
-          newgrp microk8s
-          cat /etc/group
-          cat /etc/passwd
+          exec sudo su -l $USER
+          microk8s config
           
       - name: Dump config
         working-directory: ${{env.working-directory}}
