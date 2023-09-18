@@ -64,6 +64,33 @@ describe("Test project contributor user functionality", () => {
                 cy.get('[data-cy="settings"]').click()
                 cy.url().should("include", "settings")
                 cy.get('h3').should('contain', 'Project settings')
+
+                // Check that the app limits work using Jupyter Lab as example
+                cy.go('back')
+                // step 1. create persistent volume
+                cy.get('[data-cy="create-app-card"]').contains('Persistent Volume').parent().siblings().find('.btn').click()
+                cy.get('input[name=app_name]').type("e2e-create-pv")
+                cy.get('.btn-primary').contains('Create').click()
+                // step 2. create 3 jupyter lab instances (current limit)
+                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
+                cy.get('input[name=app_name]').type("e2e-create-jl")
+                cy.get('.btn-primary').contains('Create').click()
+                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
+                cy.get('input[name=app_name]').type("e2e-create-jl")
+                cy.get('.btn-primary').contains('Create').click()
+                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
+                cy.get('input[name=app_name]').type("e2e-create-jl")
+                cy.get('.btn-primary').contains('Create').click()
+                // step 3. check that the button to create another one does not work
+                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('not.have.attr', 'href')
+                // step 4. check that it is not possible to create another one using direct url
+                let projectURL
+                    cy.url().then(url => {
+                        projectURL = url
+                    });
+                cy.then(() =>
+                    cy.request({url: projectURL + "/apps/create/jupyter-lab?from=overview", failOnStatusCode: false}).its('status').should('equal', 403)
+                    )
             })
 
         // TODO: add additional asserts
