@@ -73,15 +73,11 @@ jobs:
           sudo usermod -a -G microk8s $USER
           sudo chown -f -R $USER ~/.kube
           sudo microk8s config >> ~/.kube/config
-          su - $USER
-          id
-          microk8s config
           
       - name: Dump config
         working-directory: ${{env.working-directory}}
         run: | 
-          newgrp microk8s
-          microk8s config > cluster.conf
+          sudo microk8s config > cluster.conf
           ls -la
 
       - name: Start serve
