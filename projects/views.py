@@ -446,7 +446,7 @@ class CreateProjectView(View):
         user_can_create = Project.objects.user_can_create(request.user)
         if not user_can_create:
             return HttpResponseForbidden()
-    
+
         pre_selected_template = request.GET.get("template")
 
         arr = ProjectTemplate.objects.filter(name=pre_selected_template)

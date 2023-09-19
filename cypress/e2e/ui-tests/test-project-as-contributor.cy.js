@@ -135,7 +135,7 @@ describe("Test project contributor user functionality", () => {
 
         // Names of projects to create
         const project_name = "e2e-create-proj-test"
-        
+
         // Create 5 projects (current limit)
         Cypress._.times(5, () => {
             cy.visit("/projects/")
