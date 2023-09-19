@@ -269,36 +269,37 @@
                 {% endif %}
                 <div class="row g-2 py-2 mx-2">
                     <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                    <div class="card h-100">
-                    <div class="card-body">
-                        <div class="row g-0 w-100 h-100">
-                            <div class="col-8 d-flex align-items-bottom flex-column">
-                                <div class="pt-2">
-                                    <h5>Machine Learning Models</h5>
-                                </div>
-                                <div class="align-items-end d-flex h-100">
-                                    <div>
-                                        <div class="row">
-                                            <div class="col">
-                                                <p></p>
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="row g-0 w-100 h-100">
+                                        <div class="col-8 d-flex align-items-bottom flex-column">
+                                            <div class="pt-2">
+                                                <h5>Machine Learning Models</h5>
                                             </div>
-                                        </div>
-                                            <div class="row">
-                                                <div class="col">
-                                                    <a class="btn btn-primary btn-sm"
-                                                    href="{% url 'models:create' request.user project.slug %}">Create</a>
+                                            <div class="align-items-end d-flex h-100">
+                                                <div>
+                                                    <div class="row">
+                                                        <div class="col">
+                                                            <p></p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col">
+                                                            <a class="btn btn-primary btn-sm"
+                                                                href="{% url 'models:create' request.user project.slug %}">Create</a>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <img src="/static/images/logos/apps/netpolicy-logo.png" class="img-fluid float-end w-75" alt="App Logo">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-4">
-                                <img src="/static/images/logos/apps/netpolicy-logo.png" class="img-fluid float-end w-75" alt="App Logo">
-                            </div>
                         </div>
-                    </div>
-                    </div>
-                    </div>
+
                 </div>
             </div>
         </div>
