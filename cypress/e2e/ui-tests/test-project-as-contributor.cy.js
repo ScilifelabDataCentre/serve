@@ -60,27 +60,17 @@ describe("Test project contributor user functionality", () => {
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
 
-                // Check that project settings are available
-                cy.get('[data-cy="settings"]').click()
-                cy.url().should("include", "settings")
-                cy.get('h3').should('contain', 'Project settings')
-
                 // Check that the app limits work using Jupyter Lab as example
-                cy.go('back')
                 // step 1. create persistent volume
                 cy.get('[data-cy="create-app-card"]').contains('Persistent Volume').parent().siblings().find('.btn').click()
                 cy.get('input[name=app_name]').type("e2e-create-pv")
                 cy.get('.btn-primary').contains('Create').click()
                 // step 2. create 3 jupyter lab instances (current limit)
-                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
-                cy.get('input[name=app_name]').type("e2e-create-jl")
-                cy.get('.btn-primary').contains('Create').click()
-                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
-                cy.get('input[name=app_name]').type("e2e-create-jl")
-                cy.get('.btn-primary').contains('Create').click()
-                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
-                cy.get('input[name=app_name]').type("e2e-create-jl")
-                cy.get('.btn-primary').contains('Create').click()
+                Cypress._.times(3, () => {
+                        cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
+                        cy.get('input[name=app_name]').type("e2e-create-jl")
+                        cy.get('.btn-primary').contains('Create').click()
+                  });
                 // step 3. check that the button to create another one does not work
                 cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('not.have.attr', 'href')
                 // step 4. check that it is not possible to create another one using direct url
@@ -91,10 +81,23 @@ describe("Test project contributor user functionality", () => {
                 cy.then(() =>
                     cy.request({url: projectURL + "/apps/create/jupyter-lab?from=overview", failOnStatusCode: false}).its('status').should('equal', 403)
                     )
+
+                // Check that project settings are available
+                cy.get('[data-cy="settings"]').click()
+                cy.url().should("include", "settings")
+                cy.get('h3').should('contain', 'Project settings')
+
+                // Delete the project from the settings menu
+                cy.get('a').contains("Delete").click()
+                .then((href) => {
+                    cy.get('div#delete').should('have.css', 'display', 'block')
+                    cy.get('#id_delete_button').parent().parent().find('button').contains('Delete').click()
+                    .then((href) => {
+                        cy.get('div#deleteModal').should('have.css', 'display', 'block')
+                        cy.get('div#deleteModal').find('button').contains('Confirm').click()
+                    })
+                   })
             })
-
-        // TODO: add additional asserts
-
     })
 
     it.skip("can create a new mlflow project", () => {
@@ -126,5 +129,28 @@ describe("Test project contributor user functionality", () => {
                     cy.contains(project_name).should('not.exist')
                })
             })
+    })
+
+    it("limit on number of projects per user is enforced", () => {
+
+        // Names of projects to create
+        const project_name = "e2e-create-proj-test"
+        
+        // Create 5 projects (current limit)
+        Cypress._.times(5, () => {
+            cy.visit("/projects/")
+            cy.get("a").contains('New project').click()
+            cy.get("a").contains('Create').first().click()
+            cy.get('input[name=name]').type(project_name)
+            cy.get("input[name=save]").contains('Create project').click()
+        });
+
+        // Now check that it is not possible to create another project
+        // not possible to click the button to create a new project
+        cy.visit("/projects/")
+        cy.get("button").contains('New project').should('not.have.attr', 'href')
+        // if accessing directly with the url, the request is not accepted
+        cy.request({url: "/projects/create", failOnStatusCode: false}).its('status').should('equal', 403)
+        cy.request({url: "/projects/templates", failOnStatusCode: false}).its('status').should('equal', 403)
     })
 })

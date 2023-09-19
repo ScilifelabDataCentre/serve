@@ -430,6 +430,9 @@ class RevokeAccessToProjectView(View):
 
 @login_required
 def project_templates(request):
+    user_can_create = Project.objects.user_can_create(request.user)
+    if not user_can_create:
+        return HttpResponseForbidden()
     template = "projects/project_templates.html"
     templates = ProjectTemplate.objects.filter(enabled=True).order_by("slug", "-revision").distinct("slug")
     media_url = django_settings.MEDIA_URL
@@ -440,6 +443,10 @@ class CreateProjectView(View):
     template_name = "projects/project_create.html"
 
     def get(self, request):
+        user_can_create = Project.objects.user_can_create(request.user)
+        if not user_can_create:
+            return HttpResponseForbidden()
+    
         pre_selected_template = request.GET.get("template")
 
         arr = ProjectTemplate.objects.filter(name=pre_selected_template)
@@ -455,6 +462,9 @@ class CreateProjectView(View):
         )
 
     def post(self, request, *args, **kwargs):
+        user_can_create = Project.objects.user_can_create(request.user)
+        if not user_can_create:
+            return HttpResponseForbidden()
         success = True
 
         template_id = request.POST.get("template_id")
