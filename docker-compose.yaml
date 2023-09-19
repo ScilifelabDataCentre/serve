@@ -137,7 +137,6 @@ services:
     image: stackn:develop
     volumes:
     - .:/app:cached  
-    working_dir: /app
     command: ["pytest"] 
     profiles:
       - donotstart
@@ -151,7 +150,9 @@ services:
       context: .
       dockerfile: Dockerfile.cypress
     volumes:
+      - .:/app  
       - "/var/run/docker.sock:/var/run/docker.sock"
+    entrypoint: ["/bin/bash", "-c", "npm install . && cypress run --spec cypress/e2e/ui-tests/test-project-as-contributor.cy.js"]
     profiles:
       - donotstart
     networks:

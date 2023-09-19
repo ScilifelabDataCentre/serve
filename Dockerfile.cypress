@@ -1,9 +1,6 @@
 FROM cypress/included:11.2.0
 
 WORKDIR /app
-COPY . /app/
 
-RUN npm remove package-lock.json \ 
-    && npm install .
-
+RUN npm remove package-lock.json
 RUN apt-get update && apt-get -y install docker.io
