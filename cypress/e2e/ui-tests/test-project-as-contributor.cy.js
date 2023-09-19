@@ -82,6 +82,19 @@ describe("Test project contributor user functionality", () => {
                     cy.request({url: projectURL + "/apps/create/jupyter-lab?from=overview", failOnStatusCode: false}).its('status').should('equal', 403)
                     )
 
+                // Section Models - Machine Learning Models
+                // Navigate to the create models view and cancel back again
+                cy.get("div#models").first("h5").should("contain", "Machine Learning Models")
+                cy.get("div#models").find("a.btn").click()
+                    .then((href) => {
+                        cy.url().should("include", "models/create")
+                        cy.get('h3').should("contain", "Create Model Object")
+                        cy.get("button").contains("Cancel").click()
+                            .then((href) => {
+                                cy.get('h3').should("contain", project_name)
+                        })
+                    })
+
                 // Check that project settings are available
                 cy.get('[data-cy="settings"]').click()
                 cy.url().should("include", "settings")

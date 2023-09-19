@@ -23,6 +23,18 @@
     --bs-btn-disabled-border-color: var(--scaleout-black);
 }
 
+/* serve button for scrolling to top */
+.btn-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: none;
+    padding: 0px;
+    width: 3rem;
+    height: 3rem;
+    opacity: 0.5;
+}
+
 /* forms */
 
 .form-control {
