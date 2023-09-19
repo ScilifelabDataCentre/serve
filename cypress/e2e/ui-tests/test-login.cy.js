@@ -26,7 +26,7 @@ describe("Test login", () => {
     it("can login an existing user through the UI when input is valid", () => {
 
         cy.visit("accounts/login/")
-	
+
 
 
 
@@ -38,6 +38,7 @@ describe("Test login", () => {
                 cy.log(href)
                 cy.url().should("include", "projects")
                 cy.get('h3').should('contain', 'My projects')
+                cy.get('h3').parent().parent().find('p').first().should('not.contain', 'You need to be logged in')
             })
     })
 
