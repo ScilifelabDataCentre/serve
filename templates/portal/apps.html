@@ -26,20 +26,25 @@
     </div>
 <div class="row pt-3 g-4">
     {% for app in published_apps %}
-    <div class="col-12 col-md-6 col-lg-6 col-xl-4">
+    <div class="col-12 col-sm-12 col-md-6 col-lg-6 col-xl-4 col-xxl-4 mb-4">
         <div class="card h-100 border-0 shadow">
 
-            <div style="height:350px;" class="align-items-center d-flex justify-content-center p-2">
-
-                {% static 'images/logos/apps/' as static_url %}
-
-                <img height="50px"  class="img-fluid img-cover" src="{{static_url}}{{app.app.slug}}-logo.png"
-                    alt="Card image cap">
-            </div>
             <div class="card-body px-4 pt-2">
-                <h3 class="card-header bg-white">
-                    {{ app.name }}
-                </h3>
+
+                <div class="col-12  d-flex flex-row">
+                    <div class="col-8 d-flex">
+                        <h3 class="card-header bg-white" style="font-size: 1.1rem;">
+                            {{ app.name }}
+                        </h3>
+                    </div>
+                    <div class="col-4 d-flex justify-content-end">
+                        {% static 'images/logos/apps/' as static_url %}
+                        <img class="img-fluid float-end img-cover" style="height:50px;padding-right: 5%;"
+                            src="{{static_url}}{{app.app.slug}}-logo.png"
+                            alt="App Logo">
+                    </div>
+                </div>
+
                 <div>
                     {% if request.session.app_tags|exists:app.id %}
                     {% with app.tags|split:"," as tags %}
@@ -78,7 +83,7 @@
                     {% endwith %}
                     {% endif %}
                 </div>
-                <!-- <p>Some text here</p> -->
+                <p>Some text here</p>
                 <div class="row pt-3">
                     <div class="col">
 
