@@ -173,15 +173,10 @@
                                     </div>
                                     <div class="col-4">
                                         {% static 'images/logos/apps/' as static_url %}
-                                        <img src="{{static_url}}{{app.logo|default:'default-logo.png'}}" class="img-fluid float-end h-75"
+                                        <img src="{{static_url}}{{app.logo|default:'default-logo.png'}}" class="img-fluid float-end w-75"
                                             alt="App Logo">
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-4">
-                                {% static 'images/logos/apps/' as static_url %}
-                                <img src="{{static_url}}{{app.logo|default:'default-logo.png'}}" class="img-fluid float-end w-75"
-                                    alt="App Logo">
                             </div>
                         </div>
                     </div>
