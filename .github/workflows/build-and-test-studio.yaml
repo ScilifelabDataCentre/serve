@@ -125,7 +125,7 @@ jobs:
         working-directory: ${{env.working-directory}}
         id: tests
         run: |
-          docker compose run tests
+          docker compose run unit-tests
 
       - name: Cypress run e2e tests
         uses: cypress-io/github-action@v5

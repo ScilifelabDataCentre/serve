@@ -133,7 +133,7 @@ services:
         aliases:
           - celery-beat.127.0.0.1.nip.io
 
-  tests:
+  unit-tests:
     image: stackn:develop
     volumes:
     - .:/app:cached  
@@ -145,6 +145,17 @@ services:
       internal_network:
         aliases:
           - studio.127.0.0.1.nip.io
+  
+  ui-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.cypress
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    profiles:
+      - donotstart
+    networks:
+      internal_network:
 
 networks:
   internal_network:
