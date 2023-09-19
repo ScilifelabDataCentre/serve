@@ -13,7 +13,8 @@ body{
     margin-right: 20px;
     margin-left: 5px;
     margin-top: 0.5px;
-    color: #9ca3af;
-    background: #f0f8ff00;
-    border-color: #f0f8ff00;
+    /*color: #9ca3af;*/
+    color: var(--serve-grey-ghost-text);
+    background: var(--serve-black-background);
+    border-color: var(--serve-black-background);
 }
