@@ -33,6 +33,12 @@
                             class="form-control" required>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea type="text" id="app_description" name="app_description"
+                            class="form-control" rows="2">{{ existing_app_description }}</textarea>
+                    </div>
+
                     {% if form.dep_permissions %}
                     <div class="mb-3">
                         <label class="form-label">Permissions</label>

@@ -192,6 +192,7 @@ class AppSettingsView(View):
         show_permissions = True
         from_page = request.GET.get("from") if "from" in request.GET else "filtered"
         existing_app_name = appinstance.name
+        existing_app_description = appinstance.description
         app = appinstance.app
 
         if not app.user_can_edit:
@@ -228,6 +229,7 @@ class AppSettingsView(View):
         access = handle_permissions(parameters, project)
 
         appinstance.name = request.POST.get("app_name")
+        appinstance.description = request.POST.get("app_description")
         appinstance.parameters.update(parameters)
         appinstance.access = access
         appinstance.save()
