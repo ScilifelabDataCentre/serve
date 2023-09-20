@@ -29,6 +29,12 @@
                             class="form-control" required>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" id="app_description" name="app_description" value="{{ existing_app_description }}"
+                            class="form-control" required>
+                    </div>
+
                     {% if form.dep_permissions %}
                     <div class="mb-3">
                         <label class="form-label">Permissions</label>
