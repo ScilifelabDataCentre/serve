@@ -2,6 +2,8 @@
 
     --serve-black-background: #f0f8ff00;
     --serve-black-background-rgb: 240, 248, 255;
+    --serve-grey-value-text: #696969;
+    --serve-grey-value-text-rgb: rgb(105, 105, 105);
     --serve-grey-ghost-text: #9ca3af;
     --serve-grey-ghost-text-rgb: 156, 163, 175;
 

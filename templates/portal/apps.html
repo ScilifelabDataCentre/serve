@@ -24,77 +24,140 @@
             </div>
         </div>
     </div>
+
+
+    <div class="row pt-3 g-4">
+        <div class="card-group">
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                {% for app in published_apps %}
+                <div class="col-12 col-sm-12 col-md-6 col-lg-6 col-xl-4 col-xxl-4 mb-4 pb-4">
+                    <div class="card h-100 border-0 shadow">
+                        <div class="card-body d-flex flex-column mx-4 my-1">
+
+                            <div class="col-12 d-flex flex-row pb-2">
+                                <div class="col-8 d-flex">
+                                    <h5 class="card-title bg-white">{{ app.name }}</h5>
+                                </div>
+                                <div class="col-4 d-flex justify-content-end">
+                                    {% static 'images/logos/apps/' as static_url %}
+                                    <img class="img-fluid float-end img-cover" style="height:50px;padding-right: 5%;"
+                                        src="{{static_url}}{{app.app.slug}}-logo.png"
+                                        alt="App Logo">
+                                </div>
+                            </div>
+
+                            <div class="card-text">
+                                {% if app.name == "dash1" %}
+                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                                {% endif %}
+                                <ul class="list-unstyled">
+                                    <li class="list-group-item  "><span class="value-label">Owner:</span> {{ app.owner }}</li>
+                                    <li><span class="value-label">Created on:</span> {{ app.created_on|date:"d M, Y" }}</li>
+                                </ul>
+                            </div>
+
+                            <div>
+
+                            </div>
+                            <div class="row mt-auto">
+                                <div class="col-6">
+                                    <a href="#" class="btn btn-primary">Open</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="col-6 d-flex">
+                                <small class="text-muted">{{ app.app.name }}</small>
+                            </div>
+                            <div class="col-6 d-flex text-end">
+                                <small class="text-muted">{{ app.created_on.year }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+
 <div class="row pt-3 g-4">
     {% for app in published_apps %}
-    <div class="col-12 col-sm-12 col-md-6 col-lg-6 col-xl-4 col-xxl-4 mb-4">
+    <div class="col-12 col-sm-12 col-md-6 col-lg-6 col-xl-4 col-xxl-4 mb-4 pb-4">
         <div class="card h-100 border-0 shadow">
-            <div class="card-body px-4">
-
-                <div class="col-12 d-flex flex-row">
-                    <div class="col-8 d-flex">
-                        <h4 class="bg-white">
-                            {{ app.name }}
-                        </h4>
+            <div class="card-body mx-4 my-4">
+                <div class="py-4">
+                    <div class="col-12 d-flex flex-row">
+                        <div class="col-8 d-flex">
+                            <h4 class="bg-white">
+                                {{ app.name }}
+                            </h4>
+                        </div>
+                        <div class="col-4 d-flex justify-content-end">
+                            {% static 'images/logos/apps/' as static_url %}
+                            <img class="img-fluid float-end img-cover" style="height:50px;padding-right: 5%;"
+                                src="{{static_url}}{{app.app.slug}}-logo.png"
+                                alt="App Logo">
+                        </div>
                     </div>
-                    <div class="col-4 d-flex justify-content-end">
-                        {% static 'images/logos/apps/' as static_url %}
-                        <img class="img-fluid float-end img-cover" style="height:50px;padding-right: 5%;"
-                            src="{{static_url}}{{app.app.slug}}-logo.png"
-                            alt="App Logo">
+
+                    <div>
+                        <div class="col-12 d-flex align-items-bottom flex-column">{{ app.app.name }}</div>
+                        <div><h6 style="font-weight: 500;display: inline-flex;">Owner:</h6> {{ app.owner }}</div>
+                        <div><h6 style="font-weight: 500;display: inline-flex;">Created on:</h6> {{ app.created_on|date:"d M, Y" }}</div>
                     </div>
-                </div>
 
-                <div>
-                    <div class="col-12 d-flex align-items-bottom flex-column">{{ app.app }}</div>
-                    <div><h6 style="font-weight: 500;display: inline-flex;">Owner:</h6> {{ app.owner }}</div>
-                    <div><h6 style="font-weight: 500;display: inline-flex;">Created on:</h6> {{ app.created_on }}</div>
-                </div>
-
-                <div>
-                    {% if request.session.app_tags|exists:app.id %}
-                    {% with app.tags|split:"," as tags %}
-                    {% for tag in tags %}
-                    <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
-                        href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">
-                        <div class="tag-ico fas fa-tag fa-sm"></div><span>{{ tag }}</span>
-                    </a>
-                    {% endfor %}
-                    <a href="{% url 'portal:apps' %}?app_id_remove={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
-                        style="display: inline-flex;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger btn-circle tag-count">
-                            -
-                        </button>
-                    </a>
-                    {% endwith %}
-                    {% else %}
-                    {% with app.tags|split:"," as tags %}
-                    {% with tags|count_str as tag_limit %}
-                    {% for tag in tags|slice:tag_limit %}
-                    <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
-                        href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">
-                        <div class="tag-ico fas fa-tag fa-sm "></div><span>{{ tag }}</span>
-                    </a>
-                    {% endfor %}
-                    {% if tags.count > tag_limit %}
-                    <a href="{% url 'portal:apps' %}?app_id_add={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
-                        style="display: inline-flex;">
-                        {% csrf_token %}
-                        <button style="font-weight: 600;" type="submit" class="btn btn-light tag-count">+{{
-                            tags.count|subtract:tag_limit }}</button>
-                    </a>
-                    {% endif %}
-                    {% endwith %}
-                    {% endwith %}
-                    {% endif %}
-                </div>
-
-                <div class="row pt-3">
-                    <div class="col">
-
-                        <a href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary">Open</a>
+                    <div>
+                        {% if request.session.app_tags|exists:app.id %}
+                        {% with app.tags|split:"," as tags %}
+                        {% for tag in tags %}
+                        <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
+                            href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">
+                            <div class="tag-ico fas fa-tag fa-sm"></div><span>{{ tag }}</span>
+                        </a>
+                        {% endfor %}
+                        <a href="{% url 'portal:apps' %}?app_id_remove={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
+                            style="display: inline-flex;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-circle tag-count">
+                                -
+                            </button>
+                        </a>
+                        {% endwith %}
+                        {% else %}
+                        {% with app.tags|split:"," as tags %}
+                        {% with tags|count_str as tag_limit %}
+                        {% for tag in tags|slice:tag_limit %}
+                        <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
+                            href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">
+                            <div class="tag-ico fas fa-tag fa-sm "></div><span>{{ tag }}</span>
+                        </a>
+                        {% endfor %}
+                        {% if tags.count > tag_limit %}
+                        <a href="{% url 'portal:apps' %}?app_id_add={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
+                            style="display: inline-flex;">
+                            {% csrf_token %}
+                            <button style="font-weight: 600;" type="submit" class="btn btn-light tag-count">+{{
+                                tags.count|subtract:tag_limit }}</button>
+                        </a>
+                        {% endif %}
+                        {% endwith %}
+                        {% endwith %}
+                        {% endif %}
                     </div>
+
+                    <div class="col-12 d-flex flex-row">
+                        <div class="col-12 absolute-bottom">
+                            <div>
+                                <a href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary">Open</a>
+                            </div>
+                            <div class="col-6 text-end pb-10">test</div>
+                        </div>
+
+                    </div>
+
                 </div>
+
             </div>
         </div>
     </div>

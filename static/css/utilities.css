@@ -23,6 +23,11 @@
     opacity: 1 !important;
 }
 
+.absolute-bottom {
+    position: absolute;
+    bottom:0;
+}
+
 @media (max-width:576px) {
 
     .w-xs-100 {
