@@ -146,6 +146,7 @@ class AppInstance(models.Model):
     app_dependencies = models.ManyToManyField("apps.AppInstance", blank=True)
     created_on = models.DateTimeField(auto_now_add=True)
     deleted_on = models.DateTimeField(null=True, blank=True)
+    description = models.TextField(blank=True, null=True, default="")
     info = models.JSONField(blank=True, null=True)
     model_dependencies = models.ManyToManyField("models.Model", blank=True)
     name = models.CharField(max_length=512, default="app_name")

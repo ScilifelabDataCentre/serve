@@ -124,6 +124,7 @@ def handle_permissions(parameters, project):
 
 def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     app_name = data.get("app_name")
+    app_description = data.get("app_description")
 
     parameters_out, app_deps, model_deps = serialize_app(data, project, app_settings, user.username)
 
@@ -136,6 +137,7 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
 
     app_instance = AppInstance(
         name=app_name,
+        description=app_description,
         access=access,
         app=app,
         project=project,
