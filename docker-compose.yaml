@@ -152,7 +152,7 @@ services:
     volumes:
       - .:/app  
       - "/var/run/docker.sock:/var/run/docker.sock"
-    entrypoint: ["/bin/bash", "-c", "npm install . && cypress run --spec cypress/e2e/ui-tests/test-project-as-contributor.cy.js"]
+    entrypoint: ["/bin/bash", "-c", "npm install . && cypress run --spec cypress/e2e/ui-tests/test-deploy-app.cy.js"]
     profiles:
       - donotstart
     networks:

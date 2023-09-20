@@ -7,7 +7,7 @@ module.exports = defineConfig({
   },
 
   e2e: {
-    baseUrl: 'http://studio.192.168.0.130.nip.io:8080',
+    baseUrl: 'http://studio.127.0.0.1.nip.io:8080',
     //baseUrl: 'https://serve-dev.scilifelab.se',
     experimentalSessionAndOrigin: true,
 

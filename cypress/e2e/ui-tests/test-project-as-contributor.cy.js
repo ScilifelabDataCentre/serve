@@ -97,12 +97,13 @@ describe("Test project contributor user functionality", () => {
 
             cy.get('input[name=app_name]').type(volume_name)
             cy.get('button').contains('Create').click()
-            cy.wait(15)
             cy.get('span').should('contain', 'Installed')
             cy.get('tbody:contains("Persistent Volume")').find('i.bi-three-dots-vertical').click()
             cy.get('tbody:contains("Persistent Volume")').find('a.confirm-delete').click()
-            cy.wait(15)
-            cy.get('span').should('contain', 'Terminated')
+            cy.get('button').contains('Delete').click()
+
+            cy.get('tbody:contains("Persistent Volume")').find('span').should('contain', 'Terminated')
+            cy.get('tbody:contains("Persistent Volume")').find('span').should('contain', 'Deleted')
 
           } else {
             cy.log('Skipped because create_resources is not true');
