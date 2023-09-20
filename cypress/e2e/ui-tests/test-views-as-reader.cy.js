@@ -24,9 +24,9 @@ describe("Test views as authenticated user", () => {
 
   it("can view the Apps view", () => {
 
-    cy.visit("/portal/index")
+    cy.visit("/apps")
 
-    cy.get('h3').should('contain', 'Apps')
+    cy.get('h3').should('contain', 'apps')
   })
 
   it("can view the Models view", () => {
