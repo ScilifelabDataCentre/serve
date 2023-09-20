@@ -42,17 +42,17 @@
                                     {% static 'images/logos/apps/' as static_url %}
                                     <img class="img-fluid float-end img-cover" style="height:50px;padding-right: 5%;"
                                         src="{{static_url}}{{app.app.slug}}-logo.png"
-                                        alt="App Logo">
+                                        alt="App Logo" title="{{app.app.name}}">
                                 </div>
                             </div>
 
                             <div class="card-text">
-                                {% if app.name == "dash1" %}
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                {% endif %}
+                                <p>{{app.description}}</p>
                                 <ul class="list-unstyled">
-                                    <li class="list-group-item  "><span class="value-label">Owner:</span> {{ app.owner }}</li>
-                                    <li><span class="value-label">Created on:</span> {{ app.created_on|date:"d M, Y" }}</li>
+                                    <li class="list-group-item row">
+                                        <div class="col-3"><span class="value-label">Owner:</span></div>
+                                        <div class="col-9">{{ app.owner.first_name }} {{ app.owner.last_name }}</div>
+                                    </li>
                                 </ul>
                             </div>
 
@@ -61,7 +61,7 @@
                             </div>
                             <div class="row mt-auto">
                                 <div class="col-6">
-                                    <a href="#" class="btn btn-primary">Open</a>
+                                    <a href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary btn-sm">Open</a>
                                 </div>
                             </div>
                         </div>
@@ -70,7 +70,7 @@
                                 <small class="text-muted">{{ app.app.name }}</small>
                             </div>
                             <div class="col-6 d-flex text-end">
-                                <small class="text-muted">{{ app.created_on.year }}</small>
+                                <small class="text-muted">Last updated: {{ app.updated_on|date:"d M, Y" }}</small>
                             </div>
                         </div>
                     </div>
