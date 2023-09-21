@@ -93,6 +93,36 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
+    it("can create a persistent volume", () => {
+        // Names of objects to create
+        const project_name = "e2e-create-proj-test"
+        const volume_name = "e2e-project-vol"
+        const project_title_name = project_name + " | SciLifeLab Serve"
+        const createResources = Cypress.env('create_resources');
+
+        if (createResources === 'true') {
+
+            cy.visit("/projects/")
+            cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("Persistent Volume")').find('a:contains("Create")').click()
+
+            cy.get('input[name=app_name]').type(volume_name)
+            cy.get('button').contains('Create').click()
+            cy.get('span').should('contain', 'Installed')
+            cy.get('tbody:contains("Persistent Volume")').find('i.bi-three-dots-vertical').click()
+            cy.get('tbody:contains("Persistent Volume")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+
+            cy.get('tbody:contains("Persistent Volume")').find('span').should('contain', 'Terminated')
+            cy.get('tbody:contains("Persistent Volume")').find('span').should('contain', 'Deleted')
+
+          } else {
+            cy.log('Skipped because create_resources is not true');
+          }
+
+    })
+
+
     it.skip("can create a new mlflow project", () => {
     })
 
