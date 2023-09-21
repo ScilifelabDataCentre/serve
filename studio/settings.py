@@ -333,7 +333,7 @@ MIGRATION_MODULES = {
 APPS_PER_PROJECT_LIMIT = {
     "dashapp": 10,
     "shinyapp": 10,
-    "standardapp": 10,
+    "customapp": 10,
     "pytorch-serve": 10,
     "tensorflow-serve": 10,
     "mlflow-serve": 10,

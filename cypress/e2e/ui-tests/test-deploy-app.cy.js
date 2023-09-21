@@ -35,7 +35,7 @@ describe("Test deploying app", () => {
         const app_name = "e2e-streamlit-example"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const createResources = Cypress.env('create_resources');
-        const app_type = "Standard App"
+        const app_type = "Custom App"
 
         if (createResources === 'true') {
             cy.visit("/projects/")
