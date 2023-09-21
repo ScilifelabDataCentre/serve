@@ -194,6 +194,7 @@ class AppSettingsView(View):
         existing_app_name = appinstance.name
         existing_app_description = appinstance.description
         app = appinstance.app
+        do_display_description_field = app.category.name.lower() == "serve"
 
         if not app.user_can_edit:
             return HttpResponseForbidden()
@@ -345,6 +346,8 @@ class CreateView(View):
             user = User.objects.get(username=user)
 
         user_can_create = AppInstance.objects.user_can_create(user, project, app_slug)
+
+        do_display_description_field = app.category.name.lower() == "serve"
 
         if not user_can_create:
             return HttpResponseForbidden()
