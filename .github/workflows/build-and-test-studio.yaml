@@ -58,6 +58,27 @@ jobs:
           sudo chgrp -R 1000 media
           sudo chmod -R g+rwx media
           ls -al
+          
+      - name: A job to install MicroK8s
+        uses: balchua/microk8s-actions@v0.3.2
+        with:
+          channel: '1.26/stable'
+          addons: '["dns", "rbac", "hostpath-storage", "registry"]'
+          
+      - name: Test and config MicroK8s
+        run: |
+          kubectl get no
+          kubectl get pods -A -o wide
+          echo "Running usermod to add ${USER} to microk8s group"
+          sudo usermod -a -G microk8s $USER
+          sudo chown -f -R $USER ~/.kube
+          sudo microk8s config >> ~/.kube/config
+          
+      - name: Dump config
+        working-directory: ${{env.working-directory}}
+        run: | 
+          sudo microk8s config > cluster.conf
+          ls -la
 
       - name: Start serve
         working-directory: ${{env.working-directory}}
@@ -96,11 +117,15 @@ jobs:
           response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
           if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
 
+      - name: Check if celery worker can access kubectl
+        run: |
+          docker exec celery-worker kubectl get po
+
       - name: Run unit tests
         working-directory: ${{env.working-directory}}
         id: tests
         run: |
-          docker compose run tests
+          docker compose run unit-tests
 
       - name: Cypress run e2e tests
         uses: cypress-io/github-action@v5

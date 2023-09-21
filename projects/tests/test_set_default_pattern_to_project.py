@@ -16,9 +16,9 @@ class SetDefaultPatternToProjectTestCase(TestCase):
     def test_is_as_unique_as_possible(self):
         view = UpdatePatternView()
 
-        for _ in range(30):
+        for i in range(30):
             project = Project.objects.create_project(
-                name="test-perm-SetDefaultPatternToProjectTestCase",
+                name=f"test-perm-SetDefaultPatternToProjectTestCase-{i}",
                 owner=self.user,
                 description="",
                 repository="",

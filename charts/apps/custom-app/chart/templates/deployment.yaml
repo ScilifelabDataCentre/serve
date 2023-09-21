@@ -8,10 +8,10 @@ spec:
   selector:
     matchLabels:
       release: {{ $.Release.Name }}
-      app: standardapp
+      app: customapp
       project: {{ $.Values.project.slug }}
       type: app
-      pod: standardapp
+      pod: customapp
   template:
     metadata:
       annotations:
@@ -20,12 +20,12 @@ spec:
         # prometheus.io/port: "8501"
       labels:
         release: {{ $.Release.Name }}
-        app: standardapp
+        app: customapp
         project: {{ $.Values.project.slug }}
         networking/allow-internet-egress: "true"
         networking/allow-egress-to-studio-web: "true"
         type: app
-        pod: standardapp
+        pod: customapp
     spec:
     {{ if .Values.app.gpu.enabled }}
       affinity:
@@ -64,7 +64,7 @@ spec:
       {{- end }} 
       {{ end }}
       containers:
-      - name: standardapp
+      - name: customapp
         image: {{ .Values.appconfig.image }}
         imagePullPolicy: IfNotPresent
         {{- if .Values.securityContext.enabled }}

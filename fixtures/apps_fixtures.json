@@ -490,8 +490,8 @@
     "model": "apps.apps",
     "pk": 21,
     "fields": {
-      "name": "Standard App",
-      "slug": "standardapp",
+      "name": "Custom App",
+      "slug": "customapp",
       "category": "serve",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
@@ -546,7 +546,7 @@
           }
         }
       },
-      "chart": "apps/standard-app/chart",
+      "chart": "apps/custom-app/chart",
       "logo": "default-logo.png",
       "updated_on": "2023-08-25T19:45:03.927Z",
       "created_on": "2023-08-25T21:34:37.815Z"
