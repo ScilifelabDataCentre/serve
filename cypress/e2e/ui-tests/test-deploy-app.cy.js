@@ -29,30 +29,31 @@ describe("Test deploying app", () => {
 
     })
 
-    it("can create a standard app", { defaultCommandTimeout: 100000 }, () => {
+    it("can deploy an app", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
         const app_name = "e2e-streamlit-example"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const createResources = Cypress.env('create_resources');
+        const app_type = "Standard App"
 
         if (createResources === 'true') {
             cy.visit("/projects/")
             cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("Standard App")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
 
             cy.get('input[name=app_name]').type(app_name)
             cy.get('input[name="appconfig.port"]').clear().type("8080")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('button').contains('Create').click()
             
-            cy.get('tbody:contains("Standard App")').find('span').should('contain', 'Running')
+            cy.get('tbody:contains("' + app_type + '")').find('span').should('contain', 'Running')
 
-            cy.get('tbody:contains("Standard App")').find('i.bi-three-dots-vertical').click()
-            cy.get('tbody:contains("Standard App")').find('a.confirm-delete').click()
+            cy.get('tbody:contains("' + app_type + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tbody:contains("' + app_type + '")').find('a.confirm-delete').click()
             
             cy.get('button').contains('Delete').click()
-            cy.get('tbody:contains("Standard App")').find('span').should('contain', 'Deleted')
+            cy.get('tbody:contains("' + app_type + '")').find('span').should('contain', 'Deleted')
         } else {
             cy.log('Skipped because create_resources is not true');
       }
