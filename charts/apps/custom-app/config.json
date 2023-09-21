@@ -1,6 +1,6 @@
 {
-    "name": "Standard App",
-    "slug": "standardapp",
+    "name": "Custom App",
+    "slug": "customapp",
     "category": "serve",
     "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"

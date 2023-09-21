@@ -4,7 +4,7 @@ metadata:
   name: {{ .Values.service.name }}
   namespace: {{ .Values.namespace }}
   labels:
-    run: {{ .Release.Name }}-standardapp
+    run: {{ .Release.Name }}-customapp
 spec:
   ports:
   - protocol: TCP

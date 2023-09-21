@@ -278,12 +278,12 @@ STORAGECLASS = "microk8s-hostpath"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
-DOMAIN = "studio.127.0.0.1.nip.io"
-AUTH_DOMAIN = "10.0.144.239"
+DOMAIN = "studio.192.168.0.130.nip.io"
+AUTH_DOMAIN = "192.168.0.130"
 AUTH_PROTOCOL = "http"
-STUDIO_URL = "http://studio.127.0.0.1.nip.io:8080"
+STUDIO_URL = "http://studio.192.168.0.130.nip.io:8080"
 # To enable sticky sessions for k8s ingress
-SESSION_COOKIE_DOMAIN = ".127.0.0.1.nip.io"
+SESSION_COOKIE_DOMAIN = ".192.168.0.130.nip.io"
 
 # App statuses
 APPS_STATUS_SUCCESS = ["Running", "Succeeded", "Success"]
@@ -333,7 +333,7 @@ MIGRATION_MODULES = {
 APPS_PER_PROJECT_LIMIT = {
     "dashapp": 10,
     "shinyapp": 10,
-    "standardapp": 10,
+    "customapp": 10,
     "pytorch-serve": 10,
     "tensorflow-serve": 10,
     "mlflow-serve": 10,
