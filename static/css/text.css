@@ -22,3 +22,7 @@ body{
     background: var(--serve-black-background);
     border-color: var(--serve-black-background);
 }
+
+.card-footer-text {
+    font-size: 8pt;
+}
