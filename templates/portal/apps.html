@@ -42,9 +42,15 @@
                                 </div>
                                 <div class="col-4 d-flex justify-content-end">
                                     {% static 'images/logos/apps/' as static_url %}
+                                    {% if app.app.name == "Standard App" %}
+                                    <img class="img-fluid float-end img-cover" style="height:50px;"
+                                        src="{{static_url}}default-logo.png"
+                                        alt="App Logo" title="{{app.app.name}}">
+                                    {% else %}
                                     <img class="img-fluid float-end img-cover" style="height:50px;"
                                         src="{{static_url}}{{app.app.slug}}-logo.png"
                                         alt="App Logo" title="{{app.app.name}}">
+                                    {% endif %}
                                 </div>
                             </div>
 
