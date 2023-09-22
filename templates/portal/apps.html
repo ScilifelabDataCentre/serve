@@ -103,6 +103,13 @@
                                 <div class="col-6">
                                     <a href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary btn-sm">Open</a>
                                 </div>
+                                <div class="col-6 text-end">
+                                    {% if app.status_group == "success" %}
+                                    <span class="badge bg-success">Running</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Waiting</span>
+                                    {% endif %}
+                                </div>
                             </div>
 
                             <div class="clearfix"></div>
