@@ -10,7 +10,9 @@
     <div class="col">
         <h3>
             Models
-            {% if published_models|length > 0 %}<small>{{ published_models|length }}</small>{% endif %}
+            {% if published_models|length > 0 %}
+            <small class="ghost-number">{{ published_models|length }}</small>
+            {% endif %}
         </h3>
 
         <div>

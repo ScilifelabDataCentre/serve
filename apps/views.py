@@ -192,7 +192,9 @@ class AppSettingsView(View):
         show_permissions = True
         from_page = request.GET.get("from") if "from" in request.GET else "filtered"
         existing_app_name = appinstance.name
+        existing_app_description = appinstance.description
         app = appinstance.app
+        do_display_description_field = app.category.name is not None and app.category.name.lower() == "serve"
 
         if not app.user_can_edit:
             return HttpResponseForbidden()
@@ -228,6 +230,7 @@ class AppSettingsView(View):
         access = handle_permissions(parameters, project)
 
         appinstance.name = request.POST.get("app_name")
+        appinstance.description = request.POST.get("app_description")
         appinstance.parameters.update(parameters)
         appinstance.access = access
         appinstance.save()
@@ -343,6 +346,8 @@ class CreateView(View):
             user = User.objects.get(username=user)
 
         user_can_create = AppInstance.objects.user_can_create(user, project, app_slug)
+
+        do_display_description_field = app.category is not None and app.category.name.lower() == "serve"
 
         if not user_can_create:
             return HttpResponseForbidden()
