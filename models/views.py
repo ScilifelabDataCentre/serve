@@ -326,12 +326,14 @@ def index(request, user=None, project=None, id=0):
             tagged_published_models = []
             for model in published_models:
                 model_objs = model.model_obj.order_by("-model__version")
-                latest_model_obj = model_objs[0]
-                mymodel = latest_model_obj.model
-                for t in mymodel.tags.all():
-                    if t in request.session["tag_filters"]:
-                        tagged_published_models.append(model)
-                        break
+                # 20230922: This fixes uncaught exception:
+                if len(model_objs) > 0:
+                    latest_model_obj = model_objs[0]
+                    mymodel = latest_model_obj.model
+                    for t in mymodel.tags.all():
+                        if t in request.session["tag_filters"]:
+                            tagged_published_models.append(model)
+                            break
             published_models = tagged_published_models
 
         request.session.modified = True
