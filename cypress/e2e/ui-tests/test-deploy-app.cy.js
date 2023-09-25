@@ -37,7 +37,7 @@ describe("Test deploying app", () => {
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
 
-        if (createResources === 'true') {
+        if (createResources === true) {
             cy.visit("/projects/")
             cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
 
