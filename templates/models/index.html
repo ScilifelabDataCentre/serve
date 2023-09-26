@@ -2,13 +2,12 @@
 
 {% block title %}Models{% endblock %}
 {% load static %}
-
 {% load custom_tags %}
 
 {% block content %}
 <div class="row">
     <div class="col">
-        <h3>
+        <h3 class="h3 mb-3 me-5">
             Models
             {% if published_models|length > 0 %}
             <small class="ghost-number">{{ published_models|length }}</small>
