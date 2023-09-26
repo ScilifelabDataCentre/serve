@@ -11,7 +11,8 @@ requires-python = "=3.8"
 keywords = ["machine learning", "life science", "research", "django", "python"]
 
 [tool.example]
-branch = "unset"
+build-date = "unset"
+gitref = "unset"
 imagetag = "unset"
 
 [tool.isort]
