@@ -100,7 +100,7 @@ spec:
       {{ end }}
       - name: serve
         image: {{ .Values.deployment.image }}
-        command: ["torchserve", "--start", "--model-store", "/home/model-server/model-store/{{ .Values.model.path }}", "--models", "all", "--ts-config config.properties", "--foreground"]
+        command: ["torchserve", "--start", "--model-store", "/home/model-server/model-store/{{ .Values.model.path }}", "--models", "all", "--ts-config", "config.properties", "--foreground"]
         {{- if .Values.securityContext.enabled }}
         securityContext:
           runAsUser: {{ .Values.securityContext.runAsUser }}
