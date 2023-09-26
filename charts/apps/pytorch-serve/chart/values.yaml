@@ -21,7 +21,7 @@ project:
   slug: project-slug
 
 deployment:
-  image: pytorch/torchserve:latest
+  image: ghcr.io/scilifelabdatacentre/serve-torchserve:230925-1502
   version: version
   name: deployment-name
   endpoint: deployment-endpoint
