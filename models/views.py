@@ -85,7 +85,8 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
         # We use reverse_lazy() because we are
         # in "constructor attribute" code
         # that is run before urls.py is completely loaded
-        redirect_url = reverse_lazy("models:list", args=[user, project])
+        # redirect_url = reverse_lazy("models:list", args=[user, project])
+        redirect_url = reverse_lazy("projects:details", args=[user, project])
 
         # Fetching current project and setting default object type
         model_project = (
