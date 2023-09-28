@@ -4,9 +4,6 @@ project:
   name: project
   slug: project-slug
 
-gpu:
-  enabled: false
-
 affinity:
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
@@ -30,10 +27,6 @@ minio:
   access_key: minio
   secret_key: minio123
   bucket: dataset 
-
-ingress:
-  v1beta1: false
-  secretName: prod-ingress
 
 appconfig:
   port: 8888

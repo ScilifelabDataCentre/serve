@@ -1,14 +1,47 @@
 namespace: default
-volumes: {}
+appname: mlflow
+project:
+  name: project
+  slug: project-slug
+
+global:
+  domain: localhost
+
+apps:
+  volumek8s:
+
+appconfig:
+  port: 5000
+  uiport: 9090
+  image: ghcr.io/scilifelabdatacentre/serve-mlflow:230216-0853
+
+service:
+  name: mlflow-svc
+
+s3:
+  service:
+  port: 
+
+imagePullSecrets:
+  - name: regcred
 
 ingress:
   v1beta1: false
   secretName: prod-ingress
 
+ingress:
+  v1beta1: false
+  secretName: prod-ingress
+
+podSecurityContext:
+  fsGroup: 1000
+
 securityContext:
-  enabled: true
+  runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 1000
-  fsGroup: 1000
   allowPrivilegeEscalation: false
   privileged: false
+  capabilities:
+    drop:
+      - all
