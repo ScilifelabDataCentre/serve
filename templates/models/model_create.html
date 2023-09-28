@@ -75,30 +75,6 @@
 
                     <div class="row pt-3">
                         <div class="col">
-                            <label for="app" class="form-label">App*</label><small> (where the trained models are
-                                located)</small>
-                            <select name="app" id="app" class="form-control" required>
-                                {% for app in apps %}
-                                <option value="{{ app.pk }}">{{ app.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row pt-3">
-                        <div class="col">
-                            <label for="volume" class="form-label">Persistent Volume*</label><small> (mounted to the
-                                above app)</small>
-                            <select name="volume" id="volume" class="form-control" required>
-                                {% for volume in volumes %}
-                                <option value="{{ volume.name }}">{{ volume.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row pt-3">
-                        <div class="col">
                             <button class="btn btn-primary" type="submit" value="Submit">Create</button>
                             <button class="btn btn-secondary float-end" type="submit"
                                 onclick="window.location='{{ request.headers.referer }}' ; return false;"

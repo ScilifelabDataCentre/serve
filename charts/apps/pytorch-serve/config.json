@@ -22,16 +22,6 @@
             "port": "80",
             "targetport": "8080"
           },
-        "modelstore": {
-            "meta": {
-                "title": "Models"
-            },
-            "path": {
-                "type": "string",
-                "default": "models",
-                "title": "S3 bucket"
-            }
-        },
         "env_variables": {
             "{{ app_name }}_URL": "https://{{ release }}.{{ global.domain }}/predictions/"
         }
