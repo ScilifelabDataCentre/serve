@@ -8,9 +8,9 @@ register = template.Library()
 
 
 @register.simple_tag
-def get_version():
+def get_version_text():
     """Gets the deployed system version as a formatted text."""
-    return SystemVersion().get_version()
+    return SystemVersion().get_version_text()
 
 
 @register.simple_tag

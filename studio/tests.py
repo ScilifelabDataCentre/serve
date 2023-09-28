@@ -6,6 +6,8 @@ from apps.models import AppInstance, Apps
 from projects.models import Project
 from scripts.app_instance_permissions import run
 
+from .system_version import SystemVersion
+
 User = get_user_model()
 
 
@@ -49,3 +51,37 @@ class AppInstancePermissionScriptTestCase(TestCase):
         has_perm = user.has_perm("can_access_app", app_instance)
 
         self.assertFalse(has_perm)
+
+
+# Tests for the system version
+def test_system_version_verify_init_counter():
+    actual1 = SystemVersion().get_init_counter()
+    assert actual1 == 1
+    actual2 = SystemVersion().get_init_counter()
+    assert actual2 == 1
+    assert actual1 is actual2
+
+
+def test_system_version_verify_pyproject_is_parsed():
+    actual = SystemVersion().get_pyproject_is_parsed()
+    assert actual is True
+
+
+def test_system_version_get_version_text():
+    actual = SystemVersion().get_version_text()
+    assert actual == "unset"
+
+
+def test_system_version_get_build_date():
+    actual = SystemVersion().get_build_date()
+    assert actual == "unset"
+
+
+def test_system_version_get_gitref():
+    actual = SystemVersion().get_gitref()
+    assert actual == "unset"
+
+
+def test_system_version_get_imagetag():
+    actual = SystemVersion().get_imagetag()
+    assert actual == "unset"
