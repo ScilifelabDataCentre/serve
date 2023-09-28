@@ -4,27 +4,25 @@ project:
   name: project
   slug: project-slug
 
-app:
-  resources:
-    requests:
-      memory: 1024Mi
-      cpu: 1.0
-    limits:
-      memory: 1024Mi
-      cpu: 1.0
+global:
+  protocol: TCP
 
-  gpu:
-    enabled: false
+apps:
+  volumek8s:
 
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: acceleration
-            operator: In
-            values:
-            - gpu
+resources:
+  requests:
+    ephemeral-storage: "50Mi"
+    cpu: 1.0
+  limits:
+    ephemeral-storage: "400Mi"
+    cpu: 1.0
+
+appconfig:
+  port: 8000
+
+service:
+  name: dashapp-svc
 
 imagePullSecrets:
   - name: regcred
@@ -33,13 +31,18 @@ ingress:
   v1beta1: false
   secretName: prod-ingress
 
-s3sync:
-  image: scaleoutsystems/s3-sync:latest
+podSecurityContext:
+  fsGroup: 1000
 
 securityContext:
-  enabled: true
+  runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 1000
-  fsGroup: 1000
   allowPrivilegeEscalation: false
   privileged: false
+  capabilities:
+    drop:
+      - all
+
+
+
