@@ -7,6 +7,9 @@ project:
 global:
   protocol: TCP
 
+apps:
+  volumek8s:
+
 resources:
   requests:
     ephemeral-storage: "50Mi"
