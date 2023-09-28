@@ -3,21 +3,12 @@
     This singleton class would be appropriate to add to a cache and kept in memory.
 """
 
-from typing import Dict
+# Using tomli library. When python>=3.11 then can instead use importlib.metadata
+import pathlib
 
+import tomli
 
-class Singleton(type):
-    """
-    Implements the singleton pattern.
-    Usage: ClassName(metaclass=Singleton)
-    """
-
-    _instances: Dict[type, object] = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
+from .singleton import Singleton
 
 
 class SystemVersion(metaclass=Singleton):
@@ -33,10 +24,12 @@ class SystemVersion(metaclass=Singleton):
 
     def __init__(self, *args, **kwargs):
         self.__init_counter += 1
-        self.__parse_toml()
+        self.__set_values_from_toml()
 
     def get_version_text(self):
         """Gets a formatted text of the deployed system in format <date> (v0.0.0)."""
+        if self.__build_date == "" or self.__gitref == "":
+            return "unset"
         return f"{self.__build_date} ({self.__gitref})"
 
     def get_build_date(self):
@@ -61,9 +54,24 @@ class SystemVersion(metaclass=Singleton):
     def get_pyproject_is_parsed(self):
         return self.__pyproject_is_parsed
 
-    def __parse_toml(self):
-        # TODO: parse toml file
-        self.__build_date = "<date from toml>"
-        self.__gitref = "<git ref from toml>"
-        self.__imagetag = "<image tag from toml>"
-        self.__pyproject_is_parsed = True
+    def __set_values_from_toml(self):
+        err_message = ""
+        try:
+            proj_path = pathlib.Path(__file__).parents[1] / "pyproject.toml"
+            with open(proj_path, "rb") as f:
+                toml_dict = tomli.load(f)
+                self.__build_date = toml_dict["tool"].get("serve").get("build-date")
+                self.__gitref = toml_dict["tool"].get("serve").get("gitref")
+                self.__imagetag = toml_dict["tool"].get("serve").get("imagetag")
+            self.__pyproject_is_parsed = True
+        except tomli.TOMLDecodeError:
+            print("Unable to parse pyproject.toml file. The toml file is invalid.")
+            err_message = "parsing error"
+        except Exception as e:
+            print("Unable to parse pyproject.toml file. Caught general exception.")
+            err_message = f"error {str(e)}"
+        else:
+            print("Unable to parse pyproject.toml file. Using default values for system version attributes.")
+            self.__build_date == err_message
+            self.__gitref == err_message
+            self.__imagetag == err_message

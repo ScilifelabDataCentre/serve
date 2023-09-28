@@ -54,11 +54,11 @@ class AppInstancePermissionScriptTestCase(TestCase):
 
 
 # Tests for the system version
-def test_system_version_verify_init_counter():
-    actual1 = SystemVersion().get_init_counter()
-    assert actual1 == 1
-    actual2 = SystemVersion().get_init_counter()
-    assert actual2 == 1
+def test_system_version_verify_singleton():
+    actual1 = SystemVersion()
+    assert actual1.get_init_counter() == 1
+    actual2 = SystemVersion()
+    assert actual2.get_init_counter() == 1
     assert actual1 is actual2
 
 
@@ -74,14 +74,14 @@ def test_system_version_get_version_text():
 
 def test_system_version_get_build_date():
     actual = SystemVersion().get_build_date()
-    assert actual == "unset"
+    assert actual == ""
 
 
 def test_system_version_get_gitref():
     actual = SystemVersion().get_gitref()
-    assert actual == "unset"
+    assert actual == ""
 
 
 def test_system_version_get_imagetag():
     actual = SystemVersion().get_imagetag()
-    assert actual == "unset"
+    assert actual == ""

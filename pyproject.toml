@@ -10,10 +10,10 @@ description = "SciLifeLab Serve is a platform offering machine learning model se
 requires-python = "=3.8"
 keywords = ["machine learning", "life science", "research", "django", "python"]
 
-[tool.example]
-build-date = "unset"
-gitref = "unset"
-imagetag = "unset"
+[tool.serve]
+build-date = ""
+gitref = ""
+imagetag = ""
 
 [tool.isort]
 profile = 'black'
