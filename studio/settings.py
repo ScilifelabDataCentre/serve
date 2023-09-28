@@ -345,7 +345,6 @@ APPS_PER_PROJECT_LIMIT = {
     "minio": 1,
     "mongo-express": 1,
     "reducer": 2,
-    "docker-registry": 1,
     "combiner": 2,
     "mongodb": 1,
 }
