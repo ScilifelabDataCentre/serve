@@ -441,7 +441,6 @@
           "Persistent Volume": "one"
         },
         "publishable": "true",
-        "flavor": "one",
         "logs": [
           "serve"
         ],
@@ -545,7 +544,6 @@
       "priority": "400",
       "settings": {
         "publishable": "true",
-        "flavor": "one",
         "logs": [
           "serve"
         ],
@@ -598,7 +596,6 @@
       "priority": "400",
       "settings": {
         "publishable": "true",
-        "flavor": "one",
         "logs": [
           "serve"
         ],
