@@ -8,10 +8,10 @@ spec:
   selector:
     matchLabels:
       release: {{ $.Release.Name }}
-      app: vscode
+      app: {{ .Values.appname }}
       project: {{ $.Values.project.slug }}
       type: app
-      pod: vscode
+      pod: {{ .Values.appname }}
   template:
     metadata:
       annotations:
@@ -20,71 +20,46 @@ spec:
         # prometheus.io/port: "8501"
       labels:
         release: {{ $.Release.Name }}
-        app: vscode
+        app: {{ .Values.appname }}
         project: {{ $.Values.project.slug }}
         networking/allow-internet-egress: "true"
         networking/allow-egress-to-studio-web: "true"
         type: app
-        pod: vscode
+        pod: {{ .Values.appname }}
     spec:
-    {{ if .Values.app.gpu.enabled }}
+    {{- if .Values.gpu.enabled }}
       affinity:
-        {{ .Values.app.affinity | toYaml | nindent 8 | trim }}
+        {{ .Values.affinity | toYaml | nindent 8 | trim }}
     {{ end }}
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       automountServiceAccountToken: false
-      {{- if .Values.securityContext.enabled }}
       securityContext:
-        fsGroup: {{ .Values.securityContext.fsGroup }}
-      {{- end }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
       - name: vscode
-        image: codercom/code-server:latest #3.12.0
+        image: {{ .Values.appconfig.image }} #TODO add own image here when we have it -  2023-09-28
         imagePullPolicy: IfNotPresent
-        {{- if .Values.securityContext.enabled }}
-        securityContext:
-          runAsUser: {{ .Values.securityContext.runAsUser }}
-          runAsGroup: {{ .Values.securityContext.runAsGroup }}
-          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
-          privileged: {{ .Values.securityContext.privileged }}
-          capabilities:
-            drop:
-              - all
-        {{- end }}
         command:
           - /bin/bash
           - -c 
           - code-server --auth=none --bind-addr 0.0.0.0:8080
         ports:
-          - containerPort: 8080
+          - containerPort: {{ .Values.appconfig.port }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}  
         volumeMounts:
-        - name: cli-config-vol
-          mountPath: /home/coder/.scaleout
-        - name: cli-config
-          mountPath: /stackn.json
-          subPath: stackn.json
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
           mountPath: /home/coder/{{ $key }}
         {{- end }}
-        lifecycle:
-          postStart:
-            exec:
-              command:
-                - /bin/bash
-                - -c
-                - mkdir -p /home/coder/.scaleout && cp -n /stackn.json /home/coder/.scaleout/stackn.json
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
       volumes:
-      - name: cli-config-vol
-        emptyDir: {}
-      - name: cli-config
-        configMap:
-          name: {{ .Release.Name }}-cli-config
       {{- range $key, $value := .Values.apps.volumeK8s }}
       - name: {{ $key }}
         persistentVolumeClaim:
