@@ -1,4 +1,4 @@
-FROM python:3.8.10-alpine as base
+FROM python:3.8-alpine3.17 as base
 LABEL maintainer="fredrik@scaleoutsystems.com"
 WORKDIR /app
 COPY requirements.txt .
@@ -21,7 +21,7 @@ RUN apk add --update --no-cache \
     fribidi-dev \
     libimagequant-dev \
     libxcb-dev libpng-dev \
-    && pip install --upgrade pip \
+    && pip install --upgrade pip setuptools\
     && pip install --no-cache-dir -r requirements.txt
 
 # Installing Pillow separate from the packages in requirements
@@ -29,11 +29,11 @@ RUN apk add --update --no-cache \
 RUN python3 -m pip install --upgrade pip \
     && python3 -m pip install Pillow==9.4.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb" --global-option="--disable-zlib"
 
-FROM bitnami/kubectl:1.20.9 as kubectl
-FROM alpine/helm:3.1.1 as helm
+FROM bitnami/kubectl:1.28.2 as kubectl
+FROM alpine/helm:3.12.3 as helm
 
 # Non-root user with sudo access
-FROM python:3.8.10-alpine as build
+FROM python:3.8-alpine3.17 as build
 COPY --from=base /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
 COPY --from=base /usr/local/bin/ /usr/local/bin/
 COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
