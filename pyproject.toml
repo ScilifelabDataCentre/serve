@@ -1,6 +1,19 @@
-# This file contains settings for linters and code checkers isort, black and mypy.
+# This file contains project information and helps control the version numbers displayed.
+# It also contains settings for linters and code checkers isort, black and mypy.
 # Note that these settings are not respected with pre-commit run --all-files
 # In that case add configurations to the .pre-commit-config.yaml file.
+
+[project]
+name = "serve"
+version = "0.0.0"
+description = "SciLifeLab Serve is a platform offering machine learning model serving, app hosting (Shiny, Streamlit, Dash, etc.), and other tools to life science researchers affiliated with a Swedish research institute."
+requires-python = "=3.8"
+keywords = ["machine learning", "life science", "research", "django", "python"]
+
+[tool.serve]
+build-date = ""
+gitref = ""
+imagetag = ""
 
 [tool.isort]
 profile = 'black'
