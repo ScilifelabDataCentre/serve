@@ -46,8 +46,75 @@
     "model": "projects.projecttemplate",
     "pk": 2,
     "fields": {
-      "name": "MLFlow",
+      "name": "Base",
       "slug": "default",
+      "description": "Standard project with 1 PVC and Minio (change this desc later)",
+      "template": {
+        "flavors": {
+          "Medium": {
+            "cpu": {
+              "requirement": "100m",
+              "limit": "1000m"
+            },
+            "mem": {
+              "requirement": "1Gi",
+              "limit": "8Gi"
+            },
+            "gpu": {
+              "requirement": "0",
+              "limit": "0"
+            },
+            "ephmem": {
+              "requirement": "50Mi",
+              "limit": "100Mi"
+            }
+          }
+        },
+        "environments": {
+          "Jupyter Lab": {
+            "repository": "scaleoutsystems",
+            "image": "jupyter-stackn:v0.2.1",
+            "app": "jupyter-lab"
+          },
+          "MLflow Serving": {
+            "repository": "ghcr.io/scilifelabdatacentre",
+            "image": "serve-mlflow:230216-0853",
+            "app": "mlflow-serve"
+          }
+        },
+        "apps": {
+          "project-vol": {
+            "slug": "volumeK8s",
+            "volume.size": "1Gi",
+            "permission": "project",
+            "volume.accessModes": "ReadWriteMany",
+            "volume.storageClass": "microk8s-hostpath",
+            "storageClass": "microk8s-hostpath",
+            "app_id": "",
+            "app_release_name": ""
+          },
+          "project-minio": {
+            "slug": "minio",
+            "app:volumeK8s": [
+              "project-vol"
+            ],
+            "credentials.access_key": "accesskey",
+            "credentials.secret_key": "secretkey123",
+            "permission": "project"
+          }
+        },
+        "settings": {
+          "project-S3": "project-minio"
+        }
+      }
+    }
+  },
+  {
+    "model": "projects.projecttemplate",
+    "pk": 3,
+    "fields": {
+      "name": "MLFlow",
+      "slug": "mlflow",
       "description": "Track experiments and serve models from the model registry using MLFlow. ",
       "template": {
         "flavors": {
