@@ -29,8 +29,8 @@
         },
         "environments": {
           "Jupyter Lab": {
-            "repository": "scaleoutsystems",
-            "image": "jupyter-stackn:v0.2.1",
+            "repository": "ghcr.io/scilifelabdatacentre",
+            "image": "serve-jupyterlab:230921-1444",
             "app": "jupyter-lab"
           },
           "MLflow Serving": {
@@ -73,7 +73,7 @@
         "environments": {
           "Jupyter Lab": {
             "repository": "scaleoutsystems",
-            "image": "jupyter-stackn:v0.2.1",
+            "image": "serve-jupyterlab:230921-1444",
             "app": "jupyter-lab"
           },
           "MLflow Serving": {
@@ -139,8 +139,8 @@
         },
         "environments": {
           "Jupyter Lab": {
-            "repository": "scaleoutsystems",
-            "image": "jupyter-stackn:v0.2.1",
+            "repository": "ghcr.io/scilifelabdatacentre",
+            "image": "serve-jupyterlab:230921-1444",
             "app": "jupyter-lab"
           },
           "MLflow Serving": {

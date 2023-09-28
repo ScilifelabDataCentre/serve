@@ -139,15 +139,6 @@
             "credentials.username": "username",
             "credentials.password": "password",
             "permission": "project"
-        },
-          "project-registry": {
-            "slug": "docker-registry",
-            "app:volumeK8s": [
-              "reg-vol"
-            ],
-            "credentials.username": "username123",
-            "credentials.password": "pass999111222",
-            "permission": "project"
           }
         },
         "settings": {

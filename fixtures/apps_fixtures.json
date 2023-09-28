@@ -373,6 +373,7 @@
       },
       "description": "",
       "settings": {
+        "flavor": "one",
         "apps": {
           "Persistent Volume": "many"
         },
@@ -437,10 +438,11 @@
       "description": "",
       "priority": "400",
       "settings": {
+        "flavor": "one",
+        "publishable": "true",
         "apps": {
           "Persistent Volume": "one"
         },
-        "publishable": "true",
         "logs": [
           "serve"
         ],
@@ -502,6 +504,7 @@
       "description": "",
       "priority": "600",
       "settings": {
+        "flavor": "one",
         "apps": {
           "Persistent Volume": "many"
         },
@@ -543,6 +546,7 @@
       "description": "",
       "priority": "400",
       "settings": {
+        "flavor": "one",
         "publishable": "true",
         "logs": [
           "serve"
@@ -595,6 +599,7 @@
       "description": "",
       "priority": "400",
       "settings": {
+        "flavor": "one",
         "publishable": "true",
         "logs": [
           "serve"
