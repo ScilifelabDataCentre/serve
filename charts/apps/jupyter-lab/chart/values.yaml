@@ -3,14 +3,6 @@ appname: jupyter-lab
 project:
   name: project
   slug: project-slug
-  
-resources:
-  requests:
-    ephemeral-storage: "50Mi"
-    cpu: 1.0
-  limits:
-    ephemeral-storage: "400Mi"
-    cpu: 1.0
 
 gpu:
   enabled: false

@@ -10,10 +10,10 @@ spec:
   selector:
     matchLabels:
       release: {{ $.Release.Name }}
-      app: tensorflow-serving
+      app: {{ .Values.appname }}
       project: {{ $.Values.project.slug }}
       type: app
-      pod: tensorflow-serving
+      pod: {{ .Values.appname }}
   template:
     metadata:
       annotations:
@@ -22,33 +22,16 @@ spec:
         prometheus.io/port: "8501"
       labels:
         release: {{ $.Release.Name }}
-        app: tensorflow-serving
+        app: {{ .Values.appname }}
         project: {{ $.Values.project.slug }}
         networking/allow-internet-egress: "true"
         networking/allow-internet-ingress: "true"
         type: app
-        pod: tensorflow-serving
+        pod: {{ .Values.appname }}
     spec:
-    {{ if .Values.flavor.gpu.enabled }}
-      affinity:
-        {{ .Values.labs.affinity | toYaml | nindent 8 | trim }}
-    {{ end }}
       automountServiceAccountToken: false
-      {{- if .Values.securityContext.enabled }}
       securityContext:
-        fsGroup: {{ .Values.securityContext.fsGroup }}
-      {{- end }}
-      volumes:
-      - name: rp-conf
-        configMap:
-          name: {{ .Release.Name }}-rp-config
-      {{ if .Values.model_card.enabled }}
-      - name: mc-conf
-        configMap:
-          name: {{ .Release.Name }}-mc-config
-      {{ end }}
-      - name: model-vol
-        emptyDir: {}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
       - name: copy-model
         image: minio/mc
@@ -67,8 +50,6 @@ spec:
           value: {{ .Values.model.access_key }}
         - name: S3_SECRET_ACCESS_KEY
           value: {{ .Values.model.secret_key }}
-        - name: AWS_REGION
-          value: us-east-1
         - name: S3_ENDPOINT
           value: {{ .Values.model.url }}
         - name: STACKN_MODEL_BUCKET
@@ -87,16 +68,8 @@ spec:
       - name: reverse-proxy
         image: nginxinc/nginx-unprivileged:latest
         imagePullPolicy: Always
-        {{- if .Values.securityContext.enabled }}
         securityContext:
-          runAsUser: 101
-          runAsGroup: 101
-          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
-          privileged: {{ .Values.securityContext.privileged }}
-          capabilities:
-            drop:
-              - all
-        {{- end }}
+          {{- toYaml .Values.securityContext | nindent 10 }}
         volumeMounts:
         - name: rp-conf
           mountPath: /etc/nginx
@@ -107,7 +80,6 @@ spec:
           requests:
             cpu: 100m
             memory: 128Mi
-
       {{ if .Values.model_card.enabled }}
       - name: model-card
         image: nginx:alpine
@@ -119,36 +91,28 @@ spec:
           mountPath: /etc/nginx
       {{ end }}
       - name: serve
-        {{- if .Values.securityContext.enabled }}
+        image: {{ .Values.appconfig.image }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: {{ .Values.appconfig.port }}
         securityContext:
-          runAsUser: {{ .Values.securityContext.runAsUser }}
-          runAsGroup: {{ .Values.securityContext.runAsGroup }}
-          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
-          privileged: {{ .Values.securityContext.privileged }}
-          capabilities:
-            drop:
-              - all
-        {{- end }}
+          {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
-          requests:
-            memory: {{ .Values.flavor.requests.memory | default "256Mi" }}
-            cpu: {{ .Values.flavor.requests.cpu | default "200m" }}
-            {{ if .Values.flavor.gpu.enabled }}
-            nvidia.com/gpu: {{ .Values.flavor.requests.gpu }}
-            {{ end }}
-          limits:
-            memory: {{ .Values.flavor.limits.memory | default "256Mi" }}
-            cpu: {{ .Values.flavor.limits.cpu | default "200m" }}
-            {{ if .Values.flavor.gpu.enabled }}
-            nvidia.com/gpu: {{ .Values.flavor.requests.gpu }}
-            {{ end }}
+          {{- toYaml .Values.flavor | nindent 10 }}
         volumeMounts:
         - name: model-vol
           mountPath: /models
         env:
         - name: MODEL_NAME
           value: models
-        image: {{ .Values.deployment.image }}
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: {{ .Values.deployment.port }}
+      volumes:
+      - name: rp-conf
+        configMap:
+          name: {{ .Release.Name }}-rp-config
+      {{ if .Values.model_card.enabled }}
+      - name: mc-conf
+        configMap:
+          name: {{ .Release.Name }}-mc-config
+      {{ end }}
+      - name: model-vol
+        emptyDir: {}
