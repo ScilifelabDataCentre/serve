@@ -116,6 +116,7 @@
         "apps": {
           "Persistent Volume": "one"
         },
+        "flavor": "one",
         "default_values": {
           "port": "5000",
           "targetport": "5000"
