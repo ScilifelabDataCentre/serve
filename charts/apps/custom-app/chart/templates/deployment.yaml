@@ -39,8 +39,6 @@ spec:
       - name: copy-to-pvc
         image: {{ .Values.appconfig.image }}
         imagePullPolicy: IfNotPresent
-        securityContext:
-          {{- toYaml .Values.securityContext | nindent 12 }}
         command:
           - /bin/sh
           - -c
