@@ -14,17 +14,6 @@ appconfig:
   port: 8787
   image: ghcr.io/scilifelabdatacentre/serve-rstudio:latest
 
-resources:
-  requests:
-    ephemeral-storage: "50Mi"
-    cpu: 1.0
-  limits:
-    ephemeral-storage: "400Mi"
-    cpu: 1.0
-
-gpu:
-  enabled: false
-
 affinity:
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:

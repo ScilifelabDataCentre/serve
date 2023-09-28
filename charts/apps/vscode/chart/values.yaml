@@ -10,20 +10,9 @@ global:
 apps:
   volumek8s:
 
-resources:
-  requests:
-    ephemeral-storage: "50Mi"
-    cpu: 1.0
-  limits:
-    ephemeral-storage: "400Mi"
-    cpu: 1.0
-
 appconfig:
   port: 8080
   image: codercom/code-server:latest
-
-gpu:
-  enabled: false
 
 affinity:
   nodeAffinity:

@@ -29,7 +29,7 @@ spec:
         type: app
         pod: {{ .Values.appname }}
     spec:
-    {{ if .Values.flavor.gpu.enabled }}
+    {{ if index .Values.flavor.limits "nvidia.com/gpu" }}
       affinity:
         {{ .Values.affinity | toYaml | nindent 8 | trim }}
     {{ end }}
@@ -70,18 +70,7 @@ spec:
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
-          requests:
-            memory: {{ .Values.flavor.requests.memory | default "256Mi" }}
-            cpu: {{ .Values.flavor.requests.cpu | default "200m" }}
-            {{ if .Values.flavor.gpu.enabled }}
-            nvidia.com/gpu: {{ .Values.flavor.requests.gpu }}
-            {{ end }}
-          limits:
-            memory: {{ .Values.flavor.limits.memory | default "256Mi" }}
-            cpu: {{ .Values.flavor.limits.cpu | default "200m" }}
-            {{ if .Values.flavor.gpu.enabled }}
-            nvidia.com/gpu: {{ .Values.flavor.requests.gpu }}
-            {{ end }}
+          {{- toYaml .Values.flavor | nindent 10 }}
         workingDir: /home/jovyan/work
         volumeMounts:
         - name: jupyterconf

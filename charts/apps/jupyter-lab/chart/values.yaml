@@ -25,16 +25,6 @@ affinity:
           values:
           - gpu
 
-flavor:
-  gpu: 
-    enabled: false
-  requests:
-    memory: 256Mi
-    cpu: 1.0
-  limits:
-    memory: 512Mi
-    cpu: 1.0
-
 global:
   domain: localhost
 

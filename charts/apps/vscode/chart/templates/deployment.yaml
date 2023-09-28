@@ -27,7 +27,7 @@ spec:
         type: app
         pod: {{ .Values.appname }}
     spec:
-    {{- if .Values.gpu.enabled }}
+    {{ if index .Values.flavor.limits "nvidia.com/gpu" }}
       affinity:
         {{ .Values.affinity | toYaml | nindent 8 | trim }}
     {{ end }}
@@ -51,7 +51,7 @@ spec:
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
-          {{- toYaml .Values.resources | nindent 10 }}  
+          {{- toYaml .Values.flavor | nindent 10 }}  
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
