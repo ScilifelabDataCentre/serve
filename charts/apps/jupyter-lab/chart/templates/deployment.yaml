@@ -10,10 +10,10 @@ spec:
   selector:
     matchLabels:
       release: {{ .Release.Name }}
-      app: lab
+      app: {{ .Values.appname }}
       project: {{ .Values.project.slug }}
       type: app
-      pod: lab
+      pod: {{ .Values.appname }}
   template:
     metadata:
       annotations:
@@ -22,44 +22,28 @@ spec:
         # prometheus.io/port: "8501"
       labels:
         release: {{ .Release.Name }}
-        app: lab
+        app: {{ .Values.appname }}
         project: {{ .Values.project.slug }}
         networking/allow-internet-egress: "true"
         networking/allow-egress-to-studio-web: "true"
         type: app
-        pod: lab
+        pod: {{ .Values.appname }}
     spec:
     {{ if .Values.flavor.gpu.enabled }}
       affinity:
-        {{ .Values.labs.affinity | toYaml | nindent 8 | trim }}
-    {{ end }}
-    {{ if .Values.environment.registry }}
-      imagePullSecrets:
-        - name: {{ .Release.Name }}-pull-secret
+        {{ .Values.affinity | toYaml | nindent 8 | trim }}
     {{ end }}
       automountServiceAccountToken: false
       hostname: lab
       subdomain: default-subdomain
-      {{- if .Values.securityContext.enabled }}
       securityContext:
-        fsGroup: {{ .Values.securityContext.fsGroup }}
-      {{- end }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-      - name: labs
-        image: {{ .Values.environment.repository }}/{{ .Values.environment.image }}
+      - name: jupyter-lab
+        image: {{ .Values.appconfig.image }}
         imagePullPolicy: IfNotPresent
-        {{- if .Values.securityContext.enabled }}
-        securityContext:
-          runAsUser: {{ .Values.securityContext.runAsUser }}
-          runAsGroup: {{ .Values.securityContext.runAsGroup }}
-          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
-          privileged: {{ .Values.securityContext.privileged }}
-          capabilities:
-            drop:
-              - all
-        {{- end }}
         ports:
-        - containerPort: 8888
+        - containerPort: {{ .Values.appconfig.port }}
         env:
         - name: JUPYTER_ENABLE_LAB
           value: "yes"
@@ -83,6 +67,8 @@ spec:
         - name: {{ $key }}
           value: "{{ $value }}"
         {{- end }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
           requests:
             memory: {{ .Values.flavor.requests.memory | default "256Mi" }}
@@ -98,25 +84,20 @@ spec:
             {{ end }}
         workingDir: /home/jovyan/work
         volumeMounts:
-        - name: cli-config
-          mountPath: /home/jovyan/.scaleout/stackn.json
-          subPath: stackn.json
         - name: jupyterconf
           mountPath: /etc/jupyter/jupyter_notebook_config.py
           subPath: jupyter_notebook_config.py
-
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
           mountPath: /home/jovyan/work/{{ $key }}
         {{- end }}
+    {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        - name: ghcrsecret
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
       volumes:
-      - name: cli-config
-        configMap:
-          name: {{ .Release.Name }}-cli-config
       - name: jupyterconf
         configMap:
           name: {{ .Release.Name }}-jupyter-configmap

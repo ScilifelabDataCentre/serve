@@ -1,38 +1,45 @@
-
-settings_file: project-settings
-user_settings_file: user-settings
 namespace: default
 appname: jupyter-lab
 project:
   name: project
   slug: project-slug
   
-labs:
-  image: scaleoutsystems/jupyter-stackn:v0.1.5
+resources:
+  requests:
+    ephemeral-storage: "50Mi"
+    cpu: 1.0
+  limits:
+    ephemeral-storage: "400Mi"
+    cpu: 1.0
 
-  resources:
-    requests:
-      memory: 512Mi
-      cpu: 0.2
-    limits:
-      memory: 512Mi
-      cpu: 0.2
+gpu:
+  enabled: false
 
-  gpu:
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: acceleration
+          operator: In
+          values:
+          - gpu
+
+flavor:
+  gpu: 
     enabled: false
-
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: acceleration
-            operator: In
-            values:
-            - gpu
+  requests:
+    memory: 256Mi
+    cpu: 1.0
+  limits:
+    memory: 512Mi
+    cpu: 1.0
 
 global:
   domain: localhost
+
+apps:
+  volumek8s:
 
 imagePullSecrets:
   - name: regcred
@@ -46,10 +53,19 @@ ingress:
   v1beta1: false
   secretName: prod-ingress
 
+appconfig:
+  port: 8888
+  image: ghcr.io/scilifelabdatacentre/serve-jupyterlab:230921-1444
+
 service:
-  name: ""
-  port: 80
-  targetport: 8888
+  name: jupyterlab-svc
+
+imagePullSecrets:
+  - name: regcred
+
+ingress:
+  v1beta1: false
+  secretName: prod-ingress
 
 mlflow:
   url: ""
@@ -60,10 +76,15 @@ mlflow:
   username: ""
   password: ""
 
+podSecurityContext:
+  fsGroup: 100
+
 securityContext:
-  enabled: true
+  runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 100
-  fsGroup: 100
   allowPrivilegeEscalation: false
   privileged: false
+  capabilities:
+    drop:
+      - all
