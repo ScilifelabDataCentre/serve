@@ -21,6 +21,13 @@ class PublishedModel(models.Model):
     updated_on = models.DateTimeField(auto_now=True)
     created_on = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def model_description(self):
+        desc = None
+        for mo in self.model_obj.all():
+            desc = mo.model.description
+        return desc
+
 
 @receiver(pre_save, sender=PublishedModel)
 def on_project_save(sender, instance, **kwargs):

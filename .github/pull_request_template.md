@@ -1,8 +1,6 @@
 ## Status
 
-- [ ] Ready
-- [ ] Draft
-- [ ] Hold
+To set the status of the pull request, use the built-in github feature to set the PR as Draft or Ready for review.
 
 ## Description
 
@@ -11,12 +9,7 @@ If it fixes a bug or resolves a feature request, be sure to include a link to th
 
 ## Types of changes
 
-What types of changes does your code introduce to STACKn?
-
-- [ ] Hotfix (fixing a critical bug in production)
-- [ ] Bugfix
-- [ ] New feature
-- [ ] Documentation update
+To indicate the type of change (such as bugfix or new feature), use a github pull request label.
 
 ## Checklist
 

@@ -85,7 +85,8 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
         # We use reverse_lazy() because we are
         # in "constructor attribute" code
         # that is run before urls.py is completely loaded
-        redirect_url = reverse_lazy("models:list", args=[user, project])
+        # redirect_url = reverse_lazy("models:list", args=[user, project])
+        redirect_url = reverse_lazy("projects:details", args=[user, project])
 
         # Fetching current project and setting default object type
         model_project = (
@@ -110,8 +111,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             model_version = form.cleaned_data["version"]
             model_folder_name = form.cleaned_data["path"]
             model_type = request.POST.get("model-type")
-            model_persistent_vol = request.POST.get("volume")
-            model_app = request.POST.get("app")
+
             model_file = ""
             model_card = ""
             model_S3 = model_project.s3storage
@@ -121,12 +121,15 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             secure_mode = False
             building_from_current = False
 
-            # Copying folder from passed app that contains trained model
-            # First find the app release name
-            app = AppInstance.objects.get(pk=model_app)
-            app_release = app.parameters["release"]  # e.g 'rfc058c6f'
+            # Copying folder from PVC that contains trained model
+            # The minio sidecar does this. 
+            # First find the minio release name
+            minio_set = Apps.objects.get(slug="minio")
+            minio = AppInstance.objects.filter(Q(app=minio_set), Q(state="Running")).first()
+
+            minio_release = minio.parameters["release"]  # e.g 'rfc058c6f'
             # Now find the related pod
-            cmd = "kubectl get po -l release=" + app_release + ' -o jsonpath="{.items[0].metadata.name}"'
+            cmd = "kubectl get po -l release=" + minio_release + ' -o jsonpath="{.items[0].metadata.name}"'
             try:
                 result = subprocess.check_output(cmd, shell=True)
                 # because the above subprocess run returns a byte-like object
@@ -151,13 +154,13 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             cmd = (
                 "kubectl cp "
                 + app_pod
-                + ":/home/jovyan/work/"
-                + model_persistent_vol
-                + "/"
+                + ":/data/"
                 + model_folder_name
                 + " "
                 + "./"
                 + model_folder_name
+                + " -c " 
+                + minio_release + "-minio-sidecar"
             )
             try:
                 result = subprocess.check_output(cmd, shell=True)
@@ -326,12 +329,14 @@ def index(request, user=None, project=None, id=0):
             tagged_published_models = []
             for model in published_models:
                 model_objs = model.model_obj.order_by("-model__version")
-                latest_model_obj = model_objs[0]
-                mymodel = latest_model_obj.model
-                for t in mymodel.tags.all():
-                    if t in request.session["tag_filters"]:
-                        tagged_published_models.append(model)
-                        break
+                # 20230922: This fixes uncaught exception:
+                if len(model_objs) > 0:
+                    latest_model_obj = model_objs[0]
+                    mymodel = latest_model_obj.model
+                    for t in mymodel.tags.all():
+                        if t in request.session["tag_filters"]:
+                            tagged_published_models.append(model)
+                            break
             published_models = tagged_published_models
 
         request.session.modified = True
