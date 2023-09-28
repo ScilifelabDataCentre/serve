@@ -43,6 +43,17 @@ def public_apps(request, id=0):
 
     published_apps = AppInstance.objects.filter(~Q(state="Deleted"), access="public")
 
+    # Get the app instance latest status (not state)
+    # Similar to GetStatusView() in apps.views
+    for app in published_apps:
+        try:
+            app.latest_status = app.status.latest().status_type
+
+            app.status_group = "success" if app.latest_status in settings.APPS_STATUS_SUCCESS else "warning"
+        except:  # noqa E722 TODO: Add exception
+            app.latest_status = "unknown"
+            app.status_group = "unknown"
+
     # create session object to store ids for tag seacrh if it does not exist
     if "app_tag_filters" not in request.session:
         request.session["app_tag_filters"] = []
