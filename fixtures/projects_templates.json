@@ -22,8 +22,8 @@
               "limit": "0"
             },
             "ephmem": {
-              "requirement": "50Mi",
-              "limit": "100Mi"
+              "requirement": "2Gi",
+              "limit": "5Gi"
             }
           }
         },
@@ -65,8 +65,8 @@
               "limit": "0"
             },
             "ephmem": {
-              "requirement": "50Mi",
-              "limit": "100Mi"
+              "requirement": "2Gi",
+              "limit": "5Gi"
             }
           }
         },
@@ -132,8 +132,8 @@
               "limit": "0"
             },
             "ephmem": {
-              "requirement": "50Mi",
-              "limit": "100Mi"
+              "requirement": "2Gi",
+              "limit": "5Gi"
             }
           }
         },
