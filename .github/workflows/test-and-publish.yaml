@@ -197,7 +197,6 @@ jobs:
           key: "tool.serve.imagetag"
           value: ${{ steps.meta.outputs.version }}
 
-
       - name: Log in to ghcr.io
         uses: docker/login-action@v1
         with:

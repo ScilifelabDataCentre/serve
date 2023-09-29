@@ -1,5 +1,10 @@
 {% load static %}
 
+{% load get_version get_setting %}
+{% get_version_text as version_text %}
+{% get_image_tag as imagetag_text %}
+{% get_setting "DEBUG" as debug_mode %}
+
 <div class="footer border-top bg-light text-muted small pt-4 mt-auto">
     <div class="container">
     <div class="row pb-2">
@@ -18,6 +23,12 @@
             <div class="col-lg-6">
                 <p>SciLifeLab Serve is developed and operated by the <a href="https://scilifelab.se/data" target="_blank" class="text-muted">SciLifeLab Data Centre</a>. SciLifeLab Serve is free to use for all life science researchers affiliated with a Swedish research institution and their collaborators. The service is based on an  <a href="#" class="text-muted">open source platform</a> working on top of a Kubernetes cluster.</p>
                 <p>Please email serve@scilifelab.se with any questions.</p>
+                <p>
+                    version {{version_text}}
+                    {% if debug_mode %}
+                    <br><span style="color: rebeccapurple;">image: {{imagetag_text}} (DEBUG)</span>
+                     {% endif %}
+                </p>
             </div>
             <div class="col-8 col-md-6 col-lg-4">
                 <div class="row">
