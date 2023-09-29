@@ -197,7 +197,8 @@ class AppSettingsView(View):
         from_page = request.GET.get("from") if "from" in request.GET else "filtered"
         existing_app_name = appinstance.name
         existing_app_description = appinstance.description
-        existing_app_release_name = appinstance.parameters["release"]
+        if "release" in appinstance.parameters:
+            existing_app_release_name = appinstance.parameters["release"]
         app = appinstance.app
         do_display_description_field = app.category.name is not None and app.category.name.lower() == "serve"
 
