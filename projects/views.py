@@ -81,10 +81,13 @@ def settings(request, user, project_slug):
         print(err)
 
     template = "projects/settings.html"
-    project = Project.objects.filter(
-        Q(owner=request.user) | Q(authorized=request.user),
-        Q(slug=project_slug),
-    ).first()
+    if request.user.is_superuser:
+        project = Project.objects.filter(Q(slug=project_slug),).first()
+    else:
+        project = Project.objects.filter(
+            Q(owner=request.user) | Q(authorized=request.user),
+            Q(slug=project_slug),
+        ).first()
 
     try:
         User._meta.get_field("is_user")
@@ -532,7 +535,10 @@ class DetailsView(View):
 
         if request.user.is_authenticated:
             project = Project.objects.get(slug=project_slug)
-            categories = AppCategories.objects.all().order_by("-priority")
+            if request.user.is_superuser:
+                categories = AppCategories.objects.all().exclude(slug__in=["compute"]).order_by("-priority")
+            else:
+                categories = AppCategories.objects.all().exclude(slug__in=["store","network","compute"]).order_by("-priority")
             # models = Model.objects.filter(project=project).order_by("-uploaded_at")[:10]
             models = Model.objects.filter(project=project).order_by("-uploaded_at")
 
