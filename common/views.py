@@ -26,8 +26,14 @@ class SignUpView(CreateView):
 
     def post(self, request, *args, **kwargs):
         form = self.get_form()
-        if form.is_valid():
-            form.save()
+        # To set cleaned_data attribute
+        form.is_valid()
+        form_to_save = SignUpForm({
+            "username": form.cleaned_data.get("email"),
+            **form.cleaned_data
+            })
+        if form_to_save.is_valid():
+            form_to_save.save()
             if settings.INACTIVE_USERS:
                 messages.success(request, "Account request has been registered! Please wait for admin to approve!")
                 redirect_name = "common:success"

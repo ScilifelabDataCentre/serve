@@ -29,3 +29,14 @@
         width: 100% !important
     }
 }
+
+.rollable {
+    overflow: hidden;
+    max-height: 400px;
+    transition: max-height 0.5s ease-in-out;
+}
+
+.rollable.hidden {
+    max-height: 0 !important;
+}
+
