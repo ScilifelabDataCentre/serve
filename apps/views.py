@@ -1,3 +1,5 @@
+import re
+
 import requests
 from django.apps import apps
 from django.conf import settings
@@ -9,11 +11,13 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
 
+from studio.settings import DOMAIN
+
 from .generate_form import generate_form
 from .helpers import can_access_app_instances, create_app_instance, handle_permissions
 from .models import AppCategories, AppInstance, Apps
 from .serialize import serialize_app
-from .tasks import delete_resource, deploy_resource
+from .tasks import delete_and_deploy_resource, delete_resource, deploy_resource
 
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
@@ -186,13 +190,14 @@ class AppSettingsView(View):
 
     def get(self, request, user, project, ai_id):
         project, appinstance = self.get_shared_data(project, ai_id)
-
+        domain = DOMAIN
         all_tags = AppInstance.tags.tag_model.objects.all()
         template = "apps/update.html"
         show_permissions = True
         from_page = request.GET.get("from") if "from" in request.GET else "filtered"
         existing_app_name = appinstance.name
         existing_app_description = appinstance.description
+        existing_app_release_name = appinstance.parameters["release"]
         app = appinstance.app
         do_display_description_field = app.category.name is not None and app.category.name.lower() == "serve"
 
@@ -209,7 +214,6 @@ class AppSettingsView(View):
 
     def post(self, request, user, project, ai_id):
         project, appinstance = self.get_shared_data(project, ai_id)
-
         app = appinstance.app
         app_settings = app.settings
         body = request.POST.copy()
@@ -231,13 +235,33 @@ class AppSettingsView(View):
 
         appinstance.name = request.POST.get("app_name")
         appinstance.description = request.POST.get("app_description")
+        current_release_name = appinstance.parameters["release"]
+        # if subdomain is set as --generated--, then use appname
+        if request.POST.get("app_release_name") == "":
+            new_release_name = appinstance.parameters["appname"]
+        else:
+            new_release_name = request.POST.get("app_release_name")
         appinstance.parameters.update(parameters)
         appinstance.access = access
+        new_url = appinstance.table_field["url"].replace(current_release_name, new_release_name)
+        appinstance.table_field.update({"url": new_url})
         appinstance.save()
         appinstance.app_dependencies.set(app_deps)
         appinstance.model_dependencies.set(model_deps)
-        # Attempting to deploy apps settings
-        _ = deploy_resource.delay(appinstance.pk, "update")
+        # check if new subdomain has been created
+        if current_release_name != new_release_name:
+            _ = delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
+            try:
+                rel_name_obj = ReleaseName.objects.get(name=new_release_name, project=appinstance.project, status="active")
+                rel_name_obj.status = "in-use"
+                rel_name_obj.app = appinstance
+                rel_name_obj.save()
+            except Exception as e:
+                print("Error: Submitted release name not owned by project.")
+                print(e)
+        else:
+            # Attempting to deploy apps settings
+            _ = deploy_resource.delay(appinstance.pk, "update")
 
         return HttpResponseRedirect(
             reverse(
@@ -248,6 +272,30 @@ class AppSettingsView(View):
                 },
             )
         )
+
+
+@permission_required_or_403("can_view_project", (Project, "slug", "project"))
+def create_releasename(request, user, project, app_slug):
+    pattern = re.compile("^[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]$")
+    available = "invalid"
+    system_subdomains = ["keycloak", "grafana", "prometheus", "studio"]
+    if pattern.match(request.POST.get("rn")):
+        available = "false"
+        count_rn = ReleaseName.objects.filter(name=request.POST.get("rn")).count()
+        if count_rn == 0 and request.POST.get("rn") not in system_subdomains:
+            available = "true"
+            release = ReleaseName()
+            release.name = request.POST.get("rn")
+            release.status = "active"
+            release.project = Project.objects.get(slug=project)
+            release.save()
+        print("RELEASE_NAME: ", request.POST.get("rn"), count_rn)
+    return JsonResponse(
+        {
+            "available": available,
+            "rn": request.POST.get("rn"),
+        }
+    )
 
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
@@ -303,7 +351,7 @@ class CreateServeView(View):
     def get(self, request, user, project, app_slug, version):
         template = "apps/create.html"
         project, app, app_settings = self.get_shared_data(project, app_slug)
-
+        domain = DOMAIN
         user = request.user
         if "from" in request.GET:
             from_page = request.GET.get("from")
@@ -334,7 +382,7 @@ class CreateView(View):
     def get(self, request, user, project, app_slug, data=[], wait=False, call=False):
         template = "apps/create.html"
         project, app, app_settings = self.get_shared_data(project, app_slug)
-
+        domain = DOMAIN
         if not call:
             user = request.user
             if "from" in request.GET:

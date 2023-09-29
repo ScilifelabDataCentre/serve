@@ -11,6 +11,7 @@ urlpatterns = [
     path("status", views.GetStatusView.as_view(), name="get_status"),
     path("<category>", views.FilteredView.as_view(), name="filtered"),
     path("create/<app_slug>", CreateView.as_view(), name="create"),
+    path("create/<app_slug>/create_releasename", views.create_releasename, name="create_releasename"),
     path("serve/<app_slug>/<version>", CreateServeView.as_view(), name="serve"),
     path("logs/<ai_id>", views.logs, name="logs"),
     path("settings/<ai_id>", AppSettingsView.as_view(), name="appsettings"),
