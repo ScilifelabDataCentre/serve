@@ -82,7 +82,9 @@ def settings(request, user, project_slug):
 
     template = "projects/settings.html"
     if request.user.is_superuser:
-        project = Project.objects.filter(Q(slug=project_slug),).first()
+        project = Project.objects.filter(
+            Q(slug=project_slug),
+        ).first()
     else:
         project = Project.objects.filter(
             Q(owner=request.user) | Q(authorized=request.user),
@@ -538,7 +540,9 @@ class DetailsView(View):
             if request.user.is_superuser:
                 categories = AppCategories.objects.all().exclude(slug__in=["compute"]).order_by("-priority")
             else:
-                categories = AppCategories.objects.all().exclude(slug__in=["store","network","compute"]).order_by("-priority")
+                categories = (
+                    AppCategories.objects.all().exclude(slug__in=["store", "network", "compute"]).order_by("-priority")
+                )
             # models = Model.objects.filter(project=project).order_by("-uploaded_at")[:10]
             models = Model.objects.filter(project=project).order_by("-uploaded_at")
 
