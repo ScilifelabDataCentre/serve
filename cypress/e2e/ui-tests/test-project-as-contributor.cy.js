@@ -9,11 +9,11 @@ describe("Test project contributor user functionality", () => {
     before(() => {
         // seed the db with: contributor user, a blank project
         cy.log("Seeding the db for the contributor tests. Running db-seed-contributor.sh");
-        //cy.exec("./cypress/e2e/db-reset.sh")
-        //cy.wait(60000)
+        cy.exec("./cypress/e2e/db-reset.sh")
+        cy.wait(60000)
         cy.visit("/")
         cy.log("Running seed_contributor.py")
-        //cy.exec("./cypress/e2e/db-seed-contributor.sh")
+        cy.exec("./cypress/e2e/db-seed-contributor.sh")
     })
 
     beforeEach(() => {
