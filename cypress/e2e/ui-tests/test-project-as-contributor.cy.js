@@ -73,10 +73,24 @@ describe("Test project contributor user functionality", () => {
                         })
                     })
 
+                // Check that the correct deployment options are available
+                cy.get('.card-header').find('h5').should('contain', 'Develop')
+                cy.get('.card-header').find('h5').should('contain', 'Serve')
+                cy.get('.card-header').find('h5').should('contain', 'Models')
+                cy.get('.card-header').find('h5').should('not.contain', 'Network')
+                cy.get('.card-header').find('h5').should('not.contain', 'Store')
+
                 // Check that project settings are available
                 cy.get('[data-cy="settings"]').click()
                 cy.url().should("include", "settings")
                 cy.get('h3').should('contain', 'Project settings')
+
+                // Check that the correct project settings are visible (i.e. no extra settings)
+                cy.get('.list-group').find('a').should('contain', 'Access')
+                cy.get('.list-group').find('a').should('not.contain', 'S3 storage')
+                cy.get('.list-group').find('a').should('not.contain', 'MLFlow')
+                cy.get('.list-group').find('a').should('not.contain', 'Flavors')
+                cy.get('.list-group').find('a').should('not.contain', 'Environments')
 
                 // Delete the project from the settings menu
                 cy.get('a').contains("Delete").click()
