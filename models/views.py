@@ -152,7 +152,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                 print(error)
             # Note: default namespace is assumed here
             cmd = (
-                f"kubectl cp -n {settings.NAMESPACE}"
+                f"kubectl cp -n {settings.NAMESPACE} "
                 + app_pod
                 + ":/data/"
                 + model_folder_name
