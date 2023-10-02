@@ -51,7 +51,7 @@
                     </div>
                     {% endif %}
                     {% if do_display_description_field or request.user.is_superuser %}
-                    <div class="mb-3">
+                    <div id="subdomain" class="mb-3">
                         <label class="form-label">Subdomain (under {{domain}})</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="A subdomain is automatically generated for the app. If you want to create a custom subdomain, click on New">
                         </span>
@@ -175,7 +175,7 @@
 
                     <h6> {{ vals.meta_title }}</h6>
                     {% for subkey, subval in vals.items %}
-                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%} 
+                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%}
                     <div class="mb-3 form-group validate-item">
                     {% else %}
                     <div class="mb-3">
@@ -235,13 +235,13 @@
                         {% if subkey == "port"%}
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on.">
                         </span>
-                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" required>
+                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="{{ subval.default }}" class="form-control" required>
                          <div class="invalid-feedback">
                             Please add a valid port!
                         </div>
                         {% else %}
                         <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
-                        {% endif %} 
+                        {% endif %}
                         {% endif %}
 
 
@@ -439,7 +439,7 @@
                     setTimeout(function(){
                         window.location.href = window.location.href.replace( /[\?#].*|$/, "?from=overview&rn="+data.rn );
                     }, 2000);
-                    
+
                 } else {
                     if ($('#rn').hasClass('is-valid')) {
                         $('#rn').removeClass('is-valid');

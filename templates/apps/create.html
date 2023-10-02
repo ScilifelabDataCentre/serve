@@ -44,9 +44,9 @@
                         </div>
                     </div>
                     {% endif %}
-                    
+
                     {% if do_display_description_field or request.user.is_superuser %}
-                    <div class="mb-3">
+                    <div id="subdomain" class="mb-3">
                         <label class="form-label">Subdomain (under {{domain}})</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="A subdomain is automatically generated for the app. If you want to create a custom subdomain, click on New">
                         </span>
@@ -164,7 +164,7 @@
 
                     <h6> {{ vals.meta_title }}</h6>
                     {% for subkey, subval in vals.items %}
-                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%} 
+                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%}
                     <div class="mb-3 form-group validate-item">
                     {% else %}
                     <div class="mb-3">
@@ -273,7 +273,7 @@
         return new bootstrap.Tooltip(tooltipTriggerEl)
         })
         //var scores = ["app_name","app_description","image"]
-        for (item of ["app_name","app_description","image"]) {
+        for (item of ["app_name","app_description","image", "port"]) {
             if (sessionStorage.getItem(item) != null) {
                 document.getElementById(item).value = sessionStorage.getItem(item)
                 sessionStorage.removeItem(item)
@@ -316,6 +316,7 @@
         var app_name = document.getElementById('app_name').value
         var app_description = document.getElementById('app_description').value
         var image = document.getElementById('image').value
+        var port = document.getElementById('port').value
         $.ajax({
             type: "POST",
             url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
@@ -330,9 +331,10 @@
                         sessionStorage.setItem("app_name",app_name);
                         sessionStorage.setItem("app_description", app_description);
                         sessionStorage.setItem("image", image);
+                        sessionStorage.setItem("port", port);
                         window.location.href = window.location.href.replace( /[\?#].*|$/, "?from=overview&rn="+data.rn );
                     }, 2000);
-                    
+
                 } else {
                     if ($('#rn').hasClass('is-valid')) {
                         $('#rn').removeClass('is-valid');
