@@ -1,4 +1,4 @@
-name: Build and test Serve
+name: Serve CI
 
 on:
   push:
@@ -58,27 +58,6 @@ jobs:
           sudo chgrp -R 1000 media
           sudo chmod -R g+rwx media
           ls -al
-          
-      - name: A job to install MicroK8s
-        uses: balchua/microk8s-actions@v0.3.2
-        with:
-          channel: '1.26/stable'
-          addons: '["dns", "rbac", "hostpath-storage", "registry"]'
-          
-      - name: Test and config MicroK8s
-        run: |
-          kubectl get no
-          kubectl get pods -A -o wide
-          echo "Running usermod to add ${USER} to microk8s group"
-          sudo usermod -a -G microk8s $USER
-          sudo chown -f -R $USER ~/.kube
-          sudo microk8s config >> ~/.kube/config
-          
-      - name: Dump config
-        working-directory: ${{env.working-directory}}
-        run: | 
-          sudo microk8s config > cluster.conf
-          ls -la
 
       - name: Start serve
         working-directory: ${{env.working-directory}}
@@ -117,75 +96,8 @@ jobs:
           response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
           if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
 
-      - name: Check if celery worker can access kubectl
-        run: |
-          docker exec celery-worker kubectl get po
-
       - name: Run unit tests
         working-directory: ${{env.working-directory}}
         id: tests
         run: |
           docker compose run unit-tests
-
-      - name: Cypress run e2e tests
-        uses: cypress-io/github-action@v5
-        with:
-          working-directory: ${{env.working-directory}}
-          config: pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }}
-          quiet: true
-      - name: Save cypress screenshot artifacts on failure
-        uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: cypress-screenshots
-          path: cypress/screenshots
-      - name: Save cypress video artifacts on failure
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: cypress-videos
-          path: cypress/videos
-
-  publish:
-    if: | 
-      github.repository == 'scilifelabdatacentre/stackn'
-    needs: build_and_test
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - dockerfile: ./Dockerfile
-            image: ghcr.io/${{ github.repository }}/serve-studio
-          - dockerfile: ./Dockerfile.nginx
-            image: ghcr.io/${{ github.repository }}/serve-ingress
-    permissions:
-      packages: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        
-      - name: Docker meta
-        uses: docker/metadata-action@v4
-        id: meta
-        with:
-          images: ${{ matrix.image }}
-          tags: |
-            type=raw,value={{date 'YYYYMMDD'}},prefix=${{ github.ref_name }}-
-    
-      - name: Log in to ghcr.io
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: docker build serve
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: "${{ github.event_name != 'pull_request' }}"
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ matrix.dockerfile }}
