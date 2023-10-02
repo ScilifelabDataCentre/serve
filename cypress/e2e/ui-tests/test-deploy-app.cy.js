@@ -9,11 +9,11 @@ describe("Test deploying app", () => {
     before({ defaultCommandTimeout: 100000 }, () => {
         // seed the db with: contributor user, a blank project
         cy.log("Seeding the db for the contributor tests. Running db-seed-contributor.sh");
-        cy.exec("./cypress/e2e/db-reset.sh")
-        cy.wait(60000)
+        //cy.exec("./cypress/e2e/db-reset.sh")
+        //cy.wait(60000)
         cy.visit("/")
         cy.log("Running seed_contributor.py")
-        cy.exec("./cypress/e2e/db-seed-contributor.sh")
+        //cy.exec("./cypress/e2e/db-seed-contributor.sh")
     })
 
     beforeEach(() => {
@@ -33,6 +33,7 @@ describe("Test deploying app", () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
         const app_name = "e2e-streamlit-example"
+        const app_description = "e2e-streamlit-description"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
@@ -46,6 +47,7 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
 
             cy.get('input[name=app_name]').type(app_name)
+            cy.get('textarea[name=app_description]').type(app_description)
             cy.get('input[name="appconfig.port"]').clear().type("8080")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('button').contains('Create').click()
