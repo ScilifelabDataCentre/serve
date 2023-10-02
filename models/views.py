@@ -129,7 +129,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
 
             minio_release = minio.parameters["release"]  # e.g 'rfc058c6f'
             # Now find the related pod
-            cmd = "kubectl get po -l release=" + minio_release + ' -o jsonpath="{.items[0].metadata.name}"'
+            cmd = f"kubectl get po -n {settings.NAMESPACE} -l release=\"{minio_release}\" -o jsonpath=\"{{.items[0].metadata.name}}\""
             try:
                 result = subprocess.check_output(cmd, shell=True)
                 # because the above subprocess run returns a byte-like object
@@ -152,7 +152,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                 print(error)
             # Note: default namespace is assumed here
             cmd = (
-                "kubectl cp "
+                f"kubectl cp -n {settings.NAMESPACE}"
                 + app_pod
                 + ":/data/"
                 + model_folder_name
