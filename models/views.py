@@ -142,7 +142,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                 return redirect(redirect_url)
 
             # Copy model folder from pod to a temp location within studio pod
-            temp_folder_path = str(settings.BASE_DIR) + "/tmp"  # which should be /app/tmp
+            temp_folder_path = os.path.join(str(settings.BASE_DIR), "media", "tmp")  # which should be /app/media/tmp
             # Create and move into the new directory
             try:
                 os.mkdir(temp_folder_path)

@@ -429,7 +429,7 @@ def get_resource_usage():
 
     resources = dict()
 
-    args_pod = ["kubectl", "get", "po", "-o", "json"]
+    args_pod = ["kubectl", "-n", f"{settings.NAMESPACE}" "get", "po", "-o", "json"]
     results_pod = subprocess.run(args_pod, capture_output=True)
     results_pod_json = json.loads(results_pod.stdout.decode("utf-8"))
     try:
