@@ -118,8 +118,8 @@
 
                     {% if form.dep_flavor %}
                     <div class="mb-3">
-                        <label class="form-label">Flavors</label>
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Flavor determines the resources available for the app. Only Medium (1 cpu, 1G mem) available by default right now. You can get in touch if you have other requirements.">
+                        <label class="form-label">Hardware</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Hardware allocation for your app. Only one option is available by default. If your app requires more hardware resources, get in touch with us (serve@scilifelab.se) with a request.">
                         </span>
                         <select name="flavor" id="flavor" class="form-control">
                             {% for flavor in form.flavors %}
