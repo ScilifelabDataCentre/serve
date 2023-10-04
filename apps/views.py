@@ -359,6 +359,8 @@ class CreateServeView(View):
         else:
             from_page = "filtered"
 
+        do_display_description_field = app.category is not None and app.category.name.lower() == "serve"
+
         form = generate_form(app_settings, project, app, user, [])
 
         for model in form["models"]:
@@ -396,10 +398,10 @@ class CreateView(View):
 
         user_can_create = AppInstance.objects.user_can_create(user, project, app_slug)
 
-        do_display_description_field = app.category is not None and app.category.name.lower() == "serve"
-
         if not user_can_create:
             return HttpResponseForbidden()
+
+        do_display_description_field = app.category is not None and app.category.name.lower() == "serve"
 
         form = generate_form(app_settings, project, app, user, [])
 

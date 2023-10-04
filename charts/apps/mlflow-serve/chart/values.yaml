@@ -3,32 +3,17 @@ appname: mlflow-serve
 namespace: default
 visibility: private
 
-resources:
-  limits:
-    cpu: 1000m
-    memory: 4Gi
-  requests:
-    cpu: 700m
-    memory: 2Gi
 
 global:
   domain: global.domain
-
-registry:
-  secure: False
-  host: stack-docker-registry:5000
-
-imagePullSecret: regcred
+  protocol: TCP
 
 project:
   slug: project-slug
 
-deployment:
-  image: scaleoutsystems/default-python:latest
-  version: version
-  name: deployment-name
-  endpoint: deployment-endpoint
-  path: deployment-path
+appconfig:
+  image: ghcr.io/scilifelabdatacentre/serve-mlflow:230216-0853
+  port: 5000
   
 
 context:
@@ -52,10 +37,6 @@ model:
   bucket: bucket
   obj: obj
 
-default_values:
-  is_tar: false
-  port: 8501
-
 model_card:
   enabled: false
   path: model-card
@@ -63,10 +44,15 @@ model_card:
 ingress:
   v1beta1: false
 
+podSecurityContext:
+  fsGroup: 100
+
 securityContext:
-  enabled: true
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
   allowPrivilegeEscalation: false
   privileged: false
+  capabilities:
+    drop:
+      - all

@@ -113,9 +113,6 @@ def settings(request, user, project_slug):
     flavors = Flavor.objects.filter(project=project)
     mlflows = MLFlow.objects.filter(Q(project=project), Q(app__state="Running"))
 
-    registry_app = Apps.objects.get(slug="docker-registry")
-    registries = AppInstance.objects.filter(app=registry_app.pk, project=project)
-
     return render(request, template, locals())
 
 
