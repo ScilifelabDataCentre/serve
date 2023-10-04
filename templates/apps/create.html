@@ -14,6 +14,19 @@
 
 <h1 class="h3 mb-3">Create {{ app.name }}</h1>
 <div class="row">
+    <div class="col-12 mt-2 mb-4">
+        {% if app.slug == 'customapp' %}
+        This form allows you to start hosting an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="#">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.
+        {% elif app.slug == 'dashapp' %}
+        This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="#">documentation page on Dash apps</a> for step-by-step instructions.
+        {% elif app.slug in 'shinyapp,shinyproxyapp' %}
+        This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="#">documentation page on Shiny apps</a> for step-by-step instructions.
+        {% else %}
+        [link to documentation to be added here]
+        {% endif %}
+    </div>
+</div>
+<div class="row">
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
             <div class="card-body">
