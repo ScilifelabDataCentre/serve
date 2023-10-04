@@ -9,7 +9,7 @@ metadata:
 spec:
   ports:
   - port: 80
-    targetPort: 9090
+    targetPort: {{ .Values.appconfig.uiport }}
     protocol: TCP
   selector:
     release: {{ .Release.Name }}

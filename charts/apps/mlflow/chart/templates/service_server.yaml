@@ -7,8 +7,8 @@ metadata:
     run: {{ .Release.Name }}-mlflow
 spec:
   ports:
-  - port: 5000
-    targetPort: 5000
+  - port: {{ .Values.appconfig.port }}
+    targetPort: {{ .Values.appconfig.port }}
     protocol: TCP
   selector:
     release: {{ .Release.Name }}

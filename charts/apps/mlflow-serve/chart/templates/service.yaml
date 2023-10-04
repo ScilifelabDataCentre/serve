@@ -5,11 +5,11 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     run: {{ .Values.appname }}-svc
-    app: mlflow-serve
+    app: {{ .Values.appname }}
 spec:
   ports:
   - protocol: TCP
     port: 80
-    targetPort: 5000
+    targetPort: {{ .Values.appconfig.port }}
   selector:
     release: {{ .Release.Name }}
