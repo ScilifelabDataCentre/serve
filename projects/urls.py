@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.urls import path
 
@@ -11,7 +12,7 @@ from .views import (
 )
 
 app_name = "projects"
-
+User = get_user_model()
 basicpatterns = [
     path("projects/", views.IndexView.as_view(), name="index"),
     path(
@@ -94,7 +95,7 @@ extrapatterns = [
     ),
 ]
 
-if settings.ENABLE_PROJECT_EXTRA_SETTINGS:
+if settings.ENABLE_PROJECT_EXTRA_SETTINGS or User.is_superuser:
     urlpatterns = basicpatterns + extrapatterns
 else:
     urlpatterns = basicpatterns

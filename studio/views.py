@@ -39,7 +39,7 @@ class AccessPermission(BasePermission):
         """
         try:
             release = request.GET.get("release")
-            app_instance = AppInstance.objects.get(parameters__contains={"release": release})
+            app_instance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
             project = app_instance.project
         # TODO: Make it an explicit exception. At least catch `Exception`
         except:  # noqa: E722
