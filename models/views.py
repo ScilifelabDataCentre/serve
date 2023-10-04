@@ -122,7 +122,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             building_from_current = False
 
             # Copying folder from PVC that contains trained model
-            # The minio sidecar does this. 
+            # The minio sidecar does this.
             # First find the minio release name
             minio_set = Apps.objects.get(slug="minio")
             minio = AppInstance.objects.filter(Q(app=minio_set),Q(project=model_project), Q(state="Running")).first()
@@ -159,8 +159,9 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                 + " "
                 + "./"
                 + model_folder_name
-                + " -c " 
-                + minio_release + "-minio-sidecar"
+                + " -c "
+                + minio_release
+                + "-minio-sidecar"
             )
             try:
                 result = subprocess.check_output(cmd, shell=True)

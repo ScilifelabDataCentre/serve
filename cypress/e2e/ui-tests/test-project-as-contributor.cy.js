@@ -73,10 +73,24 @@ describe("Test project contributor user functionality", () => {
                         })
                     })
 
+                // Check that the correct deployment options are available
+                cy.get('.card-header').find('h5').should('contain', 'Develop')
+                cy.get('.card-header').find('h5').should('contain', 'Serve')
+                cy.get('.card-header').find('h5').should('contain', 'Models')
+                cy.get('.card-header').find('h5').should('not.contain', 'Network')
+                cy.get('.card-header').find('h5').should('not.contain', 'Store')
+
                 // Check that project settings are available
                 cy.get('[data-cy="settings"]').click()
                 cy.url().should("include", "settings")
                 cy.get('h3').should('contain', 'Project settings')
+
+                // Check that the correct project settings are visible (i.e. no extra settings)
+                cy.get('.list-group').find('a').should('contain', 'Access')
+                cy.get('.list-group').find('a').should('not.contain', 'S3 storage')
+                cy.get('.list-group').find('a').should('not.contain', 'MLFlow')
+                cy.get('.list-group').find('a').should('not.contain', 'Flavors')
+                cy.get('.list-group').find('a').should('not.contain', 'Environments')
 
                 // Delete the project from the settings menu
                 cy.get('a').contains("Delete").click()
@@ -92,36 +106,6 @@ describe("Test project contributor user functionality", () => {
                    })
             })
     })
-
-    it("can create a persistent volume", () => {
-        // Names of objects to create
-        const project_name = "e2e-create-proj-test"
-        const volume_name = "e2e-project-vol"
-        const project_title_name = project_name + " | SciLifeLab Serve"
-        const createResources = Cypress.env('create_resources');
-
-        if (createResources === 'true') {
-
-            cy.visit("/projects/")
-            cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("Persistent Volume")').find('a:contains("Create")').click()
-
-            cy.get('input[name=app_name]').type(volume_name)
-            cy.get('button').contains('Create').click()
-            cy.get('span').should('contain', 'Installed')
-            cy.get('tbody:contains("Persistent Volume")').find('i.bi-three-dots-vertical').click()
-            cy.get('tbody:contains("Persistent Volume")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
-
-            cy.get('tbody:contains("Persistent Volume")').find('span').should('contain', 'Terminated')
-            cy.get('tbody:contains("Persistent Volume")').find('span').should('contain', 'Deleted')
-
-          } else {
-            cy.log('Skipped because create_resources is not true');
-          }
-
-    })
-
 
     it.skip("can create a new mlflow project", () => {
     })
@@ -167,19 +151,15 @@ describe("Test project contributor user functionality", () => {
             .then((href) => {
                 cy.log(href)
                 // Check that the app limits work using Jupyter Lab as example
-                // step 1. create persistent volume
-                cy.get('[data-cy="create-app-card"]').contains('Persistent Volume').parent().siblings().find('.btn').click()
-                cy.get('input[name=app_name]').type("e2e-create-pv")
-                cy.get('.btn-primary').contains('Create').click()
-                // step 2. create 3 jupyter lab instances (current limit)
+                // step 1. create 3 jupyter lab instances (current limit)
                 Cypress._.times(3, () => {
                         cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
                         cy.get('input[name=app_name]').type("e2e-create-jl")
                         cy.get('.btn-primary').contains('Create').click()
                   });
-                // step 3. check that the button to create another one does not work
+                // step 2. check that the button to create another one does not work
                 cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('not.have.attr', 'href')
-                // step 4. check that it is not possible to create another one using direct url
+                // step 3. check that it is not possible to create another one using direct url
                 let projectURL
                     cy.url().then(url => {
                         projectURL = url

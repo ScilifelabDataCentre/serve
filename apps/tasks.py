@@ -167,6 +167,23 @@ def post_delete_hooks(instance):
 
 @shared_task
 @transaction.atomic
+def delete_and_deploy_resource(instance_pk, new_release_name):
+    appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
+
+    if appinstance and appinstance.state != "Deleted":
+        # The instance does exist.
+        parameters = appinstance.parameters
+        results = controller.delete(parameters)
+
+        if results.returncode == 0:
+            post_delete_hooks(appinstance)
+            parameters["release"] = new_release_name
+            appinstance.parameters.update(parameters)
+            appinstance.save()
+            deploy_resource(instance_pk)
+
+@shared_task
+@transaction.atomic
 def deploy_resource(instance_pk, action="create"):
     print("TASK - DEPLOY RESOURCE...")
     app_instance = AppInstance.objects.select_for_update().get(pk=instance_pk)

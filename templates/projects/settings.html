@@ -31,6 +31,7 @@
                     role="tab">
                     Access
                 </a>
+                {% if enable_extra_settings or request.user.is_superuser %}
                 <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#s3storage"
                     role="tab">
                     S3 storage
@@ -39,7 +40,6 @@
                     role="tab">
                     MLFlow
                 </a>
-                {% if enable_extra_settings %}
                 <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#flavors"
                     role="tab">
                     Flavors
@@ -50,7 +50,7 @@
                 </a>
                 {% endif %}
 
-                {% if request.user.pk == project.owner.pk %}
+                {% if request.user.pk == project.owner.pk or request.user.is_superuser %}
 
                 <a class="default list-group-item list-group-item-action p-3 text-red" data-bs-toggle="list"
                     href="#delete" role="tab">
@@ -136,7 +136,7 @@
                     </div>
                 </div>
             </div>
-            {% if enable_extra_settings %}
+            {% if enable_extra_settings or request.user.is_superuser %}
             <div class="tab-pane fade" id="flavors" role="tabpanel">
                 <div class="card shadow border-0">
 
