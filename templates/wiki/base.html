@@ -6,10 +6,10 @@
 
 {% block content %}
 
-<!-- Breadcrumbs -->
+{# Breadcrumbs #}
 {% include 'wiki/breadcrumbs.html' %}
 
-<!-- Admin menu items -->
+{# Admin menu items #}
 {% include 'wiki/admin_menu.html' %}
 
 <div class="row">
@@ -51,7 +51,7 @@
     <div class="col-12 col-md-9 col-md-9 mt-4 mt-md-0">
         <div class="container">
         {% wiki_messages %}
-        <!-- Main page contents -->
+        {# Main page contents  #}
         {% block wiki_contents %}{% endblock %}
         </div>
     </div>
