@@ -30,7 +30,7 @@ describe("Test project contributor user functionality", () => {
     it("can run the test setup", () => {
     })
 
-    it("can create a new blank project, open settings, delete from settings", () => {
+    it("can create a new project with default template, open settings, delete from settings", () => {
 
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
@@ -60,6 +60,75 @@ describe("Test project contributor user functionality", () => {
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
 
+                // Check that the correct deployment options are available
+                cy.get('.card-header').find('h5').should('contain', 'Develop')
+                cy.get('.card-header').find('h5').should('contain', 'Serve')
+                cy.get('.card-header').find('h5').should('not.contain', 'Models')
+                cy.get('.card-header').find('h5').should('not.contain', 'Additional options [admins only]')
+
+                // Check that project settings are available
+                cy.get('[data-cy="settings"]').click()
+                cy.url().should("include", "settings")
+                cy.get('h3').should('contain', 'Project settings')
+
+                // Check that the correct project settings are visible (i.e. no extra settings)
+                cy.get('.list-group').find('a').should('contain', 'Access')
+                cy.get('.list-group').find('a').should('not.contain', 'S3 storage')
+                cy.get('.list-group').find('a').should('not.contain', 'MLFlow')
+                cy.get('.list-group').find('a').should('not.contain', 'Flavors')
+                cy.get('.list-group').find('a').should('not.contain', 'Environments')
+
+                // Delete the project from the settings menu
+                cy.get('a').contains("Delete").click()
+                .then((href) => {
+                    cy.get('div#delete').should('have.css', 'display', 'block')
+                    cy.get('#id_delete_button').parent().parent().find('button').contains('Delete').click()
+                    .then((href) => {
+                        cy.get('div#deleteModal').should('have.css', 'display', 'block')
+                        cy.get('div#deleteModal').find('button').contains('Confirm').click()
+                    })
+                    cy.contains(project_name).should('not.exist')
+
+                   })
+            })
+    })
+
+    it("can create a new project with ML serving template, open settings, delete from settings", () => {
+
+        // Names of objects to create
+        const project_name = "e2e-create-proj-test"
+        const volume_name = "e2e-project-vol"
+        const project_title_name = project_name + " | SciLifeLab Serve"
+
+        cy.visit("/projects/")
+        cy.get("title").should("have.text", "My projects | SciLifeLab Serve")
+
+        // Click button for UI to create a new project
+        cy.get("a").contains('New project').click()
+        cy.url().should("include", "projects/templates")
+        cy.get('h3').should('contain', 'New project')
+
+        // Next click button to create a new blank project
+        cy.get(".card-body").last().contains("Create").click()
+        cy.url().should("include", "projects/create?template=")
+        cy.get('h3').should('contain', 'New project')
+
+        // Fill in the options for creating a new blank project
+        cy.get('input[name=name]').type(project_name)
+        cy.get('textarea[name=description]').type("A test project created by an e2e test.")
+        cy.get("input[name=save]").contains('Create project').click()
+        .then((href) => {
+                cy.log(href)
+                //cy.url().should("include", "/project-e2e-blank");
+                cy.get("title").should("have.text", project_title_name)
+                cy.get('h3').should('contain', project_name)
+
+                // Check that the correct deployment options are available
+                cy.get('.card-header').find('h5').should('contain', 'Develop')
+                cy.get('.card-header').find('h5').should('contain', 'Serve')
+                cy.get('.card-header').find('h5').should('contain', 'Models')
+                cy.get('.card-header').find('h5').should('not.contain', 'Additional options [admins only]')
+
                 // Section Models - Machine Learning Models
                 // Navigate to the create models view and cancel back again
                 cy.get("div#models").first("h5").should("contain", "Machine Learning Models")
@@ -72,13 +141,6 @@ describe("Test project contributor user functionality", () => {
                                 cy.get('h3').should("contain", project_name)
                         })
                     })
-
-                // Check that the correct deployment options are available
-                cy.get('.card-header').find('h5').should('contain', 'Develop')
-                cy.get('.card-header').find('h5').should('contain', 'Serve')
-                cy.get('.card-header').find('h5').should('contain', 'Models')
-                cy.get('.card-header').find('h5').should('not.contain', 'Network')
-                cy.get('.card-header').find('h5').should('not.contain', 'Store')
 
                 // Check that project settings are available
                 cy.get('[data-cy="settings"]').click()
