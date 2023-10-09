@@ -1,63 +1,11 @@
 [
   {
     "model": "apps.apps",
-    "pk": 3,
-    "fields": {
-      "name": "Docker Registry",
-      "slug": "docker-registry",
-      "category": "store",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
-      },
-      "description": "",
-      "settings": {
-        "apps": {
-          "Persistent Volume": "one"
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "80"
-        },
-        "credentials": {
-          "username": {
-            "type": "string",
-            "default": "admin",
-            "title": "Username"
-          },
-          "password": {
-            "type": "string",
-            "default": "password",
-            "title": "Password"
-          }
-        },
-        "permissions": {
-          "public": {
-            "value": "false",
-            "option": "false"
-          },
-          "project": {
-            "value": "true",
-            "option": "true"
-          },
-          "private": {
-            "value": "false",
-            "option": "true"
-          }
-        }
-      },
-      "chart": "apps/docker-registry/chart",
-      "logo": "docker-registry-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
-  },
-  {
-    "model": "apps.apps",
     "pk": 8,
     "fields": {
       "name": "Jupyter Lab",
       "slug": "jupyter-lab",
-      "category": "compute",
+      "category": "develop",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
@@ -168,6 +116,7 @@
         "apps": {
           "Persistent Volume": "one"
         },
+        "flavor": "one",
         "default_values": {
           "port": "5000",
           "targetport": "5000"
@@ -425,6 +374,7 @@
       },
       "description": "",
       "settings": {
+        "flavor": "one",
         "apps": {
           "Persistent Volume": "many"
         },
@@ -489,11 +439,11 @@
       "description": "",
       "priority": "400",
       "settings": {
+        "flavor": "one",
+        "publishable": "true",
         "apps": {
           "Persistent Volume": "one"
         },
-        "publishable": "true",
-        "flavor": "one",
         "logs": [
           "serve"
         ],
@@ -555,6 +505,7 @@
       "description": "",
       "priority": "600",
       "settings": {
+        "flavor": "one",
         "apps": {
           "Persistent Volume": "many"
         },
@@ -596,8 +547,8 @@
       "description": "",
       "priority": "400",
       "settings": {
-        "publishable": "true",
         "flavor": "one",
+        "publishable": "true",
         "logs": [
           "serve"
         ],
@@ -649,8 +600,8 @@
       "description": "",
       "priority": "400",
       "settings": {
-        "publishable": "true",
         "flavor": "one",
+        "publishable": "true",
         "logs": [
           "serve"
         ],
@@ -685,6 +636,59 @@
       },
       "chart": "apps/shiny/chart",
       "logo": "shinyapp-logo.png",
+      "updated_on": "2023-08-25T19:45:03.927Z",
+      "created_on": "2023-08-25T21:34:37.815Z"
+    }
+  },
+  {
+    "model": "apps.apps",
+    "pk": 25,
+    "fields": {
+      "name": "Shiny Proxy App",
+      "slug": "shinyproxyapp",
+      "category": "serve",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "description": "",
+      "priority": "400",
+      "settings": {
+        "publishable": "true",
+        "flavor": "one",
+        "logs": [
+          "serve"
+        ],
+        "default_values": {
+          "port": "80",
+          "targetport": "3838"
+        },
+        "permissions": {
+          "public": {
+            "value": "false",
+            "option": "true"
+          },
+          "project": {
+            "value": "true",
+            "option": "true"
+          },
+          "private": {
+            "value": "false",
+            "option": "true"
+          }
+        },
+        "appconfig": {
+          "meta": {
+            "title": "Configurations"
+          },
+          "image": {
+            "type": "string",
+            "default": "registry/repository/image:tag",
+            "title": "Image"
+          }
+        }
+      },
+      "chart": "apps/shinyproxy/chart",
+      "logo": "shinyproxyapp-logo.png",
       "updated_on": "2023-08-25T19:45:03.927Z",
       "created_on": "2023-08-25T21:34:37.815Z"
     }

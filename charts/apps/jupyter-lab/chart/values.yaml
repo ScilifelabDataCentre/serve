@@ -1,38 +1,24 @@
-
-settings_file: project-settings
-user_settings_file: user-settings
 namespace: default
 appname: jupyter-lab
 project:
   name: project
   slug: project-slug
-  
-labs:
-  image: scaleoutsystems/jupyter-stackn:v0.1.5
 
-  resources:
-    requests:
-      memory: 512Mi
-      cpu: 0.2
-    limits:
-      memory: 512Mi
-      cpu: 0.2
-
-  gpu:
-    enabled: false
-
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: acceleration
-            operator: In
-            values:
-            - gpu
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: acceleration
+          operator: In
+          values:
+          - gpu
 
 global:
   domain: localhost
+
+apps:
+  volumek8s:
 
 imagePullSecrets:
   - name: regcred
@@ -42,14 +28,19 @@ minio:
   secret_key: minio123
   bucket: dataset 
 
+appconfig:
+  port: 8888
+  image: ghcr.io/scilifelabdatacentre/serve-jupyterlab:231004-1113
+
+service:
+  name: jupyterlab-svc
+
+imagePullSecrets:
+  - name: regcred
+
 ingress:
   v1beta1: false
   secretName: prod-ingress
-
-service:
-  name: ""
-  port: 80
-  targetport: 8888
 
 mlflow:
   url: ""
@@ -60,10 +51,15 @@ mlflow:
   username: ""
   password: ""
 
+podSecurityContext:
+  fsGroup: 100
+
 securityContext:
-  enabled: true
+  runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 100
-  fsGroup: 100
   allowPrivilegeEscalation: false
   privileged: false
+  capabilities:
+    drop:
+      - all

@@ -22,15 +22,15 @@
               "limit": "0"
             },
             "ephmem": {
-              "requirement": "50Mi",
-              "limit": "100Mi"
+              "requirement": "2Gi",
+              "limit": "5Gi"
             }
           }
         },
         "environments": {
           "Jupyter Lab": {
-            "repository": "scaleoutsystems",
-            "image": "jupyter-stackn:v0.2.1",
+            "repository": "ghcr.io/scilifelabdatacentre",
+            "image": "serve-jupyterlab:230921-1444",
             "app": "jupyter-lab"
           },
           "MLflow Serving": {
@@ -65,15 +65,15 @@
               "limit": "0"
             },
             "ephmem": {
-              "requirement": "50Mi",
-              "limit": "100Mi"
+              "requirement": "2Gi",
+              "limit": "5Gi"
             }
           }
         },
         "environments": {
           "Jupyter Lab": {
             "repository": "scaleoutsystems",
-            "image": "jupyter-stackn:v0.2.1",
+            "image": "serve-jupyterlab:230921-1444",
             "app": "jupyter-lab"
           },
           "MLflow Serving": {
@@ -132,15 +132,15 @@
               "limit": "0"
             },
             "ephmem": {
-              "requirement": "50Mi",
-              "limit": "100Mi"
+              "requirement": "2Gi",
+              "limit": "5Gi"
             }
           }
         },
         "environments": {
           "Jupyter Lab": {
-            "repository": "scaleoutsystems",
-            "image": "jupyter-stackn:v0.2.1",
+            "repository": "ghcr.io/scilifelabdatacentre",
+            "image": "serve-jupyterlab:230921-1444",
             "app": "jupyter-lab"
           },
           "MLflow Serving": {

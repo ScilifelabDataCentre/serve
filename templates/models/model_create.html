@@ -4,6 +4,14 @@
 
 {% block content %}
 
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Create model object</li>
+    </ol>
+</nav>
+
 <div class="row">
     <div class="col">
         <h3>Create Model Object</h3>

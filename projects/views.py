@@ -81,10 +81,15 @@ def settings(request, user, project_slug):
         print(err)
 
     template = "projects/settings.html"
-    project = Project.objects.filter(
-        Q(owner=request.user) | Q(authorized=request.user),
-        Q(slug=project_slug),
-    ).first()
+    if request.user.is_superuser:
+        project = Project.objects.filter(
+            Q(slug=project_slug),
+        ).first()
+    else:
+        project = Project.objects.filter(
+            Q(owner=request.user) | Q(authorized=request.user),
+            Q(slug=project_slug),
+        ).first()
 
     try:
         User._meta.get_field("is_user")
@@ -107,9 +112,6 @@ def settings(request, user, project_slug):
     s3instances = S3.objects.filter(Q(project=project), Q(app__state="Running"))
     flavors = Flavor.objects.filter(project=project)
     mlflows = MLFlow.objects.filter(Q(project=project), Q(app__state="Running"))
-
-    registry_app = Apps.objects.get(slug="docker-registry")
-    registries = AppInstance.objects.filter(app=registry_app.pk, project=project)
 
     return render(request, template, locals())
 
@@ -532,7 +534,12 @@ class DetailsView(View):
 
         if request.user.is_authenticated:
             project = Project.objects.get(slug=project_slug)
-            categories = AppCategories.objects.all().order_by("-priority")
+            if request.user.is_superuser:
+                categories = AppCategories.objects.all().exclude(slug__in=["compute"]).order_by("-priority")
+            else:
+                categories = (
+                    AppCategories.objects.all().exclude(slug__in=["store", "network", "compute"]).order_by("-priority")
+                )
             # models = Model.objects.filter(project=project).order_by("-uploaded_at")[:10]
             models = Model.objects.filter(project=project).order_by("-uploaded_at")
 

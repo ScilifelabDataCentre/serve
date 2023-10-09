@@ -17,29 +17,66 @@
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
             <div class="card-body">
-                <form action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}"
-                    method="post">
+                <form class="needs-validation" action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
 
                     <input type="hidden" id="app_action" name="app_action" value="{{ app_action }}">
                     <input type="hidden" id="app_id" name="app_id" value="{{ appinstance.pk }}">
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item">
                         <label class="form-label">Name</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Display name for the application. This is the name visible on the app catalogue if the app is public">
+                        </span>
                         <input type="text" id="app_name" name="app_name" value="{{ existing_app_name }}"
                             class="form-control" required>
+                        <div class="invalid-feedback">
+                            Please add a valid name!
+                        </div>
                     </div>
-
                     {% if do_display_description_field %}
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item">
                         <label class="form-label">Description</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Summarize the application in a few words">
+                        </span>
                         <textarea type="text" id="app_description" name="app_description" value="{{ existing_app_description }}"
-                            class="form-control" rows="2"></textarea>
+                            class="form-control" rows="2" required></textarea>
+                        <div class="invalid-feedback">
+                            Please add a description of the app!
+                        </div>
                     </div>
                     {% endif %}
 
+                    {% if do_display_description_field or request.user.is_superuser %}
+                    <div id="subdomain" class="mb-3">
+                        <label class="form-label">Subdomain (under {{domain}})</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="A subdomain is automatically generated for the app. If you want to create a custom subdomain, click on New">
+                        </span>
+                        <div class="input-group">
+                            <select name="app_release_name" id="app_release_name" type="text" class="form-control" formnovalidate="formnovalidate">
+                                <option value="" {% if not request.GET.rn %}selected{% endif %}>---- Generated ----</option>
+                            {% for item in form.release_names %}
+                                <option value="{{ item.name }}" {% if request.GET.rn == item.name %}selected{% endif %}>{{ item.name }}.{{domain}}</option>
+                            {% endfor %}
+                            </select>
+                            <button class="btn btn-outline-secondary" onclick="toggleSubdomain()" type="button">New</button>
+                        </div>
+                    </div>
+                    <div id="subdomain-add" class="mb-3" style="display: none;">
+                        <label class="form-label">New Subdomain</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Valid subdomain names are those that have letters a-z and numbers 0-9 and a hyphen '-'. The hyphen should not be at the start or end of the subdomain">
+                        </span>
+                        <div class="input-group">
+                            <input id="rn" type="text" class="form-control" placeholder="New Subdomain ..." name="rn">
+                            <button onclick="submitDomain()" type="button" class="btn btn-outline-secondary" >Add</button>
+                            <div class="valid-feedback">Subdomain Added</div>
+                            <div id="subdomain-invalid" class="invalid-feedback">Subdomain already exists. Please choose another.</div>
+                        </div>
+                    </div>
+                    {% endif %}
                     {% if form.dep_permissions %}
                     <div class="mb-3">
                         <label class="form-label">Permissions</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to them. Project apps can only be accessed by project members. Private apps are only accessible by users that create the apps.">
+                        </span>
                         <select name="permission" id="permission" class="form-control">
                             {% for name, value in form.form_permissions.items %}
                             {% if value.option == "true" %}
@@ -57,6 +94,8 @@
                     {% if form.dep_model %}
                     <div class="mb-3">
                         <label class="form-label">Model</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="List of model objects created in the project.">
+                        </span>
                         <select required name="model" id="model" class="form-control">
                             {% for model in form.models %}
                             <option value="{{ model.pk }}" {{ model.selected }}>{{ model.name }}:{{ model.version }}
@@ -80,6 +119,8 @@
                     {% if form.dep_flavor %}
                     <div class="mb-3">
                         <label class="form-label">Flavors</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Flavor determines the resources available for the app. Only Medium (1 cpu, 1G mem) available by default right now. You can get in touch if you have other requirements.">
+                        </span>
                         <select name="flavor" id="flavor" class="form-control">
                             {% for flavor in form.flavors %}
                             <option value="{{ flavor.pk }}">{{ flavor.name }}</option>
@@ -123,7 +164,11 @@
 
                     <h6> {{ vals.meta_title }}</h6>
                     {% for subkey, subval in vals.items %}
+                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%}
+                    <div class="mb-3 form-group validate-item">
+                    {% else %}
                     <div class="mb-3">
+                    {% endif %}
                         {% if subval.type == "boolean" %}
                         <label class="form-label">{{ subval.title }}</label>
                         <select name="{{ key }}.{{ subkey }}" id="{{ subkey }}" class="form-control">
@@ -139,8 +184,16 @@
 
                         {% if subval.type == "string" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}"
-                            class="form-control">
+                        {% if subkey == "image" %}
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="DockerHub or Github Docker Image for the app">
+                        </span>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control" required>
+                        <div class="invalid-feedback">
+                            Please add a valid image name!
+                        </div>
+                        {% else %}
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
+                        {% endif %}
                         {% endif %}
 
                         {% if subval.type == "password" %}
@@ -157,8 +210,16 @@
 
                         {% if subval.type == "number" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}"
-                            value="{{ subval.default }}" class="form-control">
+                        {% if subkey == "port"%}
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on.">
+                        </span>
+                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" required>
+                         <div class="invalid-feedback">
+                            Please add a valid port!
+                        </div>
+                        {% else %}
+                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
+                        {% endif %}
                         {% endif %}
 
                         {% if subval.type == "select" %}
@@ -204,4 +265,89 @@
         </div>
     </div>
 </div>
+<!-- Bootstrap core JavaScript-->
+<script>
+    $(document).ready(function(){
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+        //var scores = ["app_name","app_description","image"]
+        for (item of ["app_name","app_description","image", "port"]) {
+            if (sessionStorage.getItem(item) != null) {
+                document.getElementById(item).value = sessionStorage.getItem(item)
+                sessionStorage.removeItem(item)
+            };
+        }
+    });
+</script>
+<script>
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+    (function () {
+    'use strict'
+    // Fetch all the forms we want to apply custom Bootstrap validation styles to
+    var forms = document.querySelectorAll('.needs-validation')
+    var validateGroup = document.getElementsByClassName('validate-item');
+    // Loop over them and prevent submission
+    Array.prototype.filter.call(forms, function (form) {
+        form.addEventListener('submit', function (event) {
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+                }
+            //Added validation class to all form-groups in need of validation
+            for (var i = 0; i < validateGroup.length; i++) {
+                validateGroup[i].classList.add('was-validated');
+            }
+        }, false);
+        })
+    })()
+    function toggleSubdomain() {
+        var x = document.getElementById("subdomain-add");
+        if (x.style.display === "none") {
+            x.style.display = "block";
+        } else {
+            x.style.display = "none";
+        }
+    }
+
+    function submitDomain() {
+        var rn = document.getElementById('rn').value
+        var app_name = document.getElementById('app_name').value
+        var app_description = document.getElementById('app_description').value
+        var image = document.getElementById('image').value
+        var port = document.getElementById('port').value
+        $.ajax({
+            type: "POST",
+            url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
+            data: {"rn": rn,"csrfmiddlewaretoken": '{{ csrf_token }}'},
+            success: function(data){
+                if (data.available == "true"){
+                    if ($('#rn').hasClass('is-invalid')) {
+                        $('#rn').removeClass('is-invalid');
+                    }
+                    $('#rn').addClass('is-valid');
+                    setTimeout(function(){
+                        sessionStorage.setItem("app_name",app_name);
+                        sessionStorage.setItem("app_description", app_description);
+                        sessionStorage.setItem("image", image);
+                        sessionStorage.setItem("port", port);
+                        window.location.href = window.location.href.replace( /[\?#].*|$/, "?from=overview&rn="+data.rn );
+                    }, 2000);
+
+                } else {
+                    if ($('#rn').hasClass('is-valid')) {
+                        $('#rn').removeClass('is-valid');
+                    }
+                    $('#rn').addClass('is-invalid');
+                    if (data.available == "invalid") {
+                        $('#subdomain-invalid').text("Subdomain is invalid. Please choose another.");
+                    } else {
+                        $('#subdomain-invalid').text("Subdomain already exists. Please choose another.");
+                    }
+                }
+            }
+            });
+        }
+</script>
 {% endblock %}

@@ -122,14 +122,14 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             building_from_current = False
 
             # Copying folder from PVC that contains trained model
-            # The minio sidecar does this. 
+            # The minio sidecar does this.
             # First find the minio release name
             minio_set = Apps.objects.get(slug="minio")
-            minio = AppInstance.objects.filter(Q(app=minio_set), Q(state="Running")).first()
+            minio = AppInstance.objects.filter(Q(app=minio_set),Q(project=model_project), Q(state="Running")).first()
 
             minio_release = minio.parameters["release"]  # e.g 'rfc058c6f'
             # Now find the related pod
-            cmd = "kubectl get po -l release=" + minio_release + ' -o jsonpath="{.items[0].metadata.name}"'
+            cmd = f"kubectl get po -n {settings.NAMESPACE} -l release=\"{minio_release}\" -o jsonpath=\"{{.items[0].metadata.name}}\""
             try:
                 result = subprocess.check_output(cmd, shell=True)
                 # because the above subprocess run returns a byte-like object
@@ -142,7 +142,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                 return redirect(redirect_url)
 
             # Copy model folder from pod to a temp location within studio pod
-            temp_folder_path = str(settings.BASE_DIR) + "/tmp"  # which should be /app/tmp
+            temp_folder_path = os.path.join(str(settings.BASE_DIR), "media", "tmp")  # which should be /app/media/tmp
             # Create and move into the new directory
             try:
                 os.mkdir(temp_folder_path)
@@ -152,15 +152,16 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                 print(error)
             # Note: default namespace is assumed here
             cmd = (
-                "kubectl cp "
+                f"kubectl cp -n {settings.NAMESPACE} "
                 + app_pod
                 + ":/data/"
                 + model_folder_name
                 + " "
                 + "./"
                 + model_folder_name
-                + " -c " 
-                + minio_release + "-minio-sidecar"
+                + " -c "
+                + minio_release
+                + "-minio-sidecar"
             )
             try:
                 result = subprocess.check_output(cmd, shell=True)

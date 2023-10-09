@@ -345,7 +345,6 @@ APPS_PER_PROJECT_LIMIT = {
     "minio": 1,
     "mongo-express": 1,
     "reducer": 2,
-    "docker-registry": 1,
     "combiner": 2,
     "mongodb": 1,
 }
@@ -353,6 +352,6 @@ APPS_PER_PROJECT_LIMIT = {
 PROJECTS_PER_USER_LIMIT = 5
 
 STUDIO_ACCESSMODE = os.environ.get("STUDIO_ACCESSMODE", "")
-ENABLE_PROJECT_EXTRA_SETTINGS = True
+ENABLE_PROJECT_EXTRA_SETTINGS = False
 
 DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore
