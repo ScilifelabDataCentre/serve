@@ -30,8 +30,7 @@ on:
         type: boolean
 
 jobs:
-
-  build_and_test:
+  CI:
     if: github.repository == 'scilifelabdatacentre/stackn'
     runs-on: ubuntu-20.04
     env:
