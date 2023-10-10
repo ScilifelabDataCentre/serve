@@ -114,9 +114,12 @@ p a {
     color: var(--serve-teal);
 }
 
-footer a {
+p a:hover,
+p a:focus,
+p a:active {
     color: var(--serve-teal);
 }
+
 
 p,
 h1,
@@ -135,4 +138,17 @@ h6 {
 .list-group-item {
     --bs-list-group-active-bg: var(--serve-dark-grey);
     --bs-list-group-active-border-color: var(--serve-dark-grey);
+}
+
+/* main navigation */
+.nav .nav-item .nav-link {
+    color: var(--serve-teal);
+    font-weight: 500;
+    font-size: 1.05rem;
+}
+
+.nav .nav-item .nav-link:hover,
+.nav .nav-item .nav-link:focus,
+.nav .nav-item .nav-link.active {
+    color: var(--serve-teal);
 }

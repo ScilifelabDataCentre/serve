@@ -8,13 +8,13 @@
             </a>
             <ul class="nav col-12 col-lg-auto my-2 my-md-0 justify-content-center text-center">
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'portal:home' %}" target="_self" title="Homepage">
+                    <a class="nav-link nav-main-menu" href="{% url 'portal:home' %}" target="_self" title="Homepage">
                         <i class="fa-solid fa-home d-block mx-auto"></i>
                         Home
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'portal:apps' %}" target="_self" title="Apps">
+                    <a class="nav-link nav-main-menu" href="{% url 'portal:apps' %}" target="_self" title="Apps">
                         Apps
                     </a>
                 </li>
@@ -52,13 +52,13 @@
                 {% else %}
 
                 <li class="nav-item mx-2">
-                    <a class="btn btn-success" href="{% url 'common:signup' %}">
+                    <a class="btn btn-profile" href="{% url 'common:signup' %}">
                         <i class="bi bi-person-plus"></i> Register
                     </a>
                 </li>
 
                 <li class="nav-item mx-2">
-                    <a class="btn btn-success" href="{% url 'login' %}">
+                    <a class="btn btn-profile" href="{% url 'login' %}">
                         <i class="bi bi-box-arrow-in-right"></i> Log in
                     </a>
                 </li>
