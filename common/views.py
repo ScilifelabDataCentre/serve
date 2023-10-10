@@ -4,8 +4,9 @@ from django.http.response import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, TemplateView
+from django.db import transaction
 
-from .forms import SignUpForm
+from .forms import SignUpForm, UserForm, ProfileForm
 
 
 # Create your views here.
@@ -21,30 +22,32 @@ class RegistrationCompleteView(TemplateView):
 
 
 class SignUpView(CreateView):
-    form_class = SignUpForm
     template_name = "registration/signup.html"
+    form_class = UserForm
 
-    def post(self, request, *args, **kwargs):
-        form = self.get_form()
-        # To set cleaned_data attribute
-        form.is_valid()
-        form_to_save = SignUpForm({
-            "username": form.cleaned_data.get("email"),
-            **form.cleaned_data
-            })
-        if form_to_save.is_valid():
-            form_to_save.save()
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if 'profile_form' not in context:
+            context['profile_form'] = ProfileForm(self.request.POST or None)
+        return context
+
+    @transaction.atomic
+    def form_valid(self, form):
+        context = self.get_context_data()
+        profile_form = context['profile_form']
+        form_ = SignUpForm(user=form, profile=profile_form)
+        if form_.is_valid():
+            form_.save()
             if settings.INACTIVE_USERS:
-                messages.success(request, "Account request has been registered! Please wait for admin to approve!")
+                messages.success(self.request, "Account request has been registered! Please wait for admin to approve!")
                 redirect_name = "common:success"
             else:
-                messages.success(request, "Account created successfully!")
+                messages.success(self.request, "Account created successfully!")
                 redirect_name = "login"
-
             return HttpResponseRedirect(reverse_lazy(redirect_name))
+        else:
+            return self.form_invalid(form)
 
-        # Otherwise use built-in parent class-based checks
-        return super().post(request, *args, **kwargs)
-
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+    def form_invalid(self, form):
+        context = self.get_context_data()
+        return self.render_to_response(context)

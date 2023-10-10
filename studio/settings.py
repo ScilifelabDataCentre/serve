@@ -327,6 +327,7 @@ MIGRATION_MODULES = {
     "monitor": "studio.migrations.monitor",
     "portal": "studio.migrations.portal",
     "projects": "studio.migrations.projects",
+    "common": "common.migrations",
 }
 
 # Defines how many apps a user is allowed to create within one project
