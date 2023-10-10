@@ -33,6 +33,17 @@ data:
         container-memory-request: {{ .Values.flavor.requests.memory }}
         id:  {{ .Release.Name }}
         labels:
-          z2sp.instance: {{ .Release.Name }}
+          sp.instance: {{ .Release.Name }}
+          alow-api-access: "true"
+          shinyproxy-app: {{ .Release.Name }}
+        kubernetes-pod-patches: |
+         - op: add
+           path: /spec/securityContext
+           value:
+             runAsUser: 999
+             runAsGroup: 999
+             runAsNonRoot: true
+             allowPrivilegeEscalation: false
+             privileged: false
       title: Serve Shiny Proxy
   
