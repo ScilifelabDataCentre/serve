@@ -14,6 +14,14 @@ describe("Test deploying app", () => {
         cy.visit("/")
         cy.log("Running seed_contributor.py")
         cy.exec("./cypress/e2e/db-seed-contributor.sh")
+        // username in fixture must match username in db-reset.sh
+        cy.fixture('users.json').then(function (data) {
+            users = data
+
+            cy.loginViaApi(users.contributor.username, users.contributor.password)
+        })
+        const project_name = "e2e-create-proj-test"
+        cy.createBlankProject(project_name)
     })
 
     beforeEach(() => {
@@ -24,9 +32,6 @@ describe("Test deploying app", () => {
 
             cy.loginViaApi(users.contributor.username, users.contributor.password)
         })
-        const project_name = "e2e-create-proj-test"
-        cy.createBlankProject(project_name)
-
     })
 
     it("can deploy a private and public app", { defaultCommandTimeout: 100000 }, () => {
@@ -66,6 +71,7 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
 
             cy.get('input[name=app_name]').type(app_name)
+            cy.get('textarea[name=app_description]').type(app_description)
             cy.get('#permission').select('public')
             cy.get('input[name="appconfig.port"]').clear().type("8080")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
@@ -82,6 +88,18 @@ describe("Test deploying app", () => {
             //cy.get('h5.card-title').contains(app_name).parents('div.card-body')
             //    .find('span.badge').should("have.text", "Running")
 
+            // Remove the created public app and verify that it is deleted from public apps page
+            cy.visit("/projects/")
+            cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
+            cy.get('tbody:contains("' + app_type + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tbody:contains("' + app_type + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            cy.get('tbody:contains("' + app_type + '")').find('span').should('contain', 'Deleted')
+            cy.visit("/apps")
+            cy.get("title").should("have.text", "Apps | SciLifeLab Serve")
+            cy.get('h3').should('contain', 'Public apps')
+            cy.get('h5.card-title').should('not.exist')
+
         } else {
             cy.log('Skipped because create_resources is not true');
       }
@@ -90,8 +108,8 @@ describe("Test deploying app", () => {
     it("can set and change custom subdomain", () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
-        const app_name = "e2e-streamlit-example"
-        const app_description = "e2e-streamlit-description"
+        const app_name = "e2e-subdomain-example"
+        const app_description = "e2e-subdomain-description"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
@@ -140,8 +158,8 @@ describe("Test deploying app", () => {
             cy.log("Now changing subdomain of an already create app")
             cy.visit("/projects/")
             cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
-            cy.get('tbody:contains("' + app_type + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tbody:contains("' + app_type + '")').find('a').contains("Settings").click()
+            cy.get('tbody:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tbody:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('[id="subdomain"]').find('button').click()
             cy.get('[id="subdomain-add"]').find('[id="rn"]').type(subdomain_3)
             cy.get('[id="subdomain-add"]').find('button').click()

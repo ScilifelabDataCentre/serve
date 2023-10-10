@@ -35,6 +35,6 @@ describe("Test sign up", () => {
         cy.get("input#submit-id-save").click();
 
         cy.url().should("include", "accounts/login");
-        cy.get('.alert-info').should('contain', 'Account created successfully!');
+        cy.get('.alert-success').should('contain', 'Account created successfully!');
     })
 })
