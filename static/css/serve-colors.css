@@ -5,11 +5,23 @@
   color: rgba(4, 92, 100, 1);  teal
   color: rgba(76, 151, 159, 1); aqua
 
+  lime tints:
+  lime: #A7C947, RGB: 167/201/71
+  25 % – #E9F2D1, RGB: 233/242/209
+  50 % – #D3E4A3, RGB: 211/228/163
+  75 % – #BDD775, RGB: 189/215/117
+
   grape tints:
   grape: #491F53, RGB: 73/31/83
   75%: #77577E, RGB:119/87/126
   50%: #A48FA9, RGB: 164/143/169
   25%: #D2C7D4, RGB: 210/199/212
+
+  teal tints:
+  teal: #045C64, RGB: 4/92/100
+  25 % – #C0D6D8, RGB: 192/214/216
+  50 % – #82AEB2, RGB: 130/174/178
+  75 % – #43858B, RGB: 67/133/139
 
   shades of black between 5-90% used as complementary colors
   color: rgba(229, 229, 229, 1); light grey
@@ -27,14 +39,19 @@
     --serve-grey-ghost-text-rgb: 156, 163, 175;
 
     --serve-lime: #a7c947;
-    --serve-lime-075: #a7c947bf;
-    --serve-lime-050: #a7c94780;
-    --serve-lime-025: #a7c94740;
+    --serve-lime-075: #BDD775;
+    --serve-lime-050: #D3E4A3;
+    --serve-lime-025: #E9F2D1;
 
     --serve-grape: #491F53;
     --serve-grape-075: #77577E;
     --serve-grape-050: #A48FA9;
     --serve-grape-025: #D2C7D4;
+
+    --serve-teal: #045C64;
+    --serve-teal-075: #C0D6D8;
+    --serve-teal-050: #82AEB2;
+    --serve-teal-025: #43858B;
 
     --serve-light-grey: #e5e5e5;
     --serve-medium-grey: #a6a6a6;
