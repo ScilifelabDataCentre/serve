@@ -9,7 +9,7 @@ body {
 :root{
     font-family: 'Lato', var(--bs-font-sans-serif);
     font-weight: 400;
-    font-size: .825rem;
+    font-size: 1rem;
     line-height: 1.625;
 }
 

@@ -1,34 +1,3 @@
-/* SciLifeLab brand colors
-  use 1, 0.75, 0.50, or 0.25
-  color: rgba(167, 201, 71, 1);  lime
-  color: rgba(73, 31, 83, 1);  grape, use as "color pop" or on smaller details
-  color: rgba(4, 92, 100, 1);  teal
-  color: rgba(76, 151, 159, 1); aqua
-
-  lime tints:
-  lime: #A7C947, RGB: 167/201/71
-  25 % – #E9F2D1, RGB: 233/242/209
-  50 % – #D3E4A3, RGB: 211/228/163
-  75 % – #BDD775, RGB: 189/215/117
-
-  grape tints:
-  grape: #491F53, RGB: 73/31/83
-  75%: #77577E, RGB:119/87/126
-  50%: #A48FA9, RGB: 164/143/169
-  25%: #D2C7D4, RGB: 210/199/212
-
-  teal tints:
-  teal: #045C64, RGB: 4/92/100
-  25 % – #C0D6D8, RGB: 192/214/216
-  50 % – #82AEB2, RGB: 130/174/178
-  75 % – #43858B, RGB: 67/133/139
-
-  shades of black between 5-90% used as complementary colors
-  color: rgba(229, 229, 229, 1); light grey
-  color: rgba(166,166,166, 1); medium grey
-  color: rgba(63,63,63,1); dark grey
-*/
-
 :root {
 
     --serve-black-background: #f0f8ff00;
@@ -57,8 +26,6 @@
     --serve-medium-grey: #a6a6a6;
     --serve-dark-grey: #3f3f3f;
 
-    --serve-black: #000000;
-
     --scaleout-black: #191919;
     --scaleout-red: #E0746D;
     --scaleout-yellow: #EBD886;
@@ -71,21 +38,21 @@
     --scaleout-grey-5: #F6EDE4;
     --scaleout-grey-6: #DDDDDD;
 
-    --bs-link-color: var(--serve-black);
+    --bs-link-color: var(--serve-dark-grey);
     --bs-link-decoration: none;
-    --bs-link-hover-color: var(--serve-black);
+    --bs-link-hover-color: var(--serve-dark-grey);
 
-    --bs-blue: var(--serve-black);
+    --bs-blue: var(--serve-dark-grey);
     --bs-indigo: #6610f2;
     --bs-purple: #6f42c1;
     --bs-pink: #d63384;
     --bs-red: var(--scaleout-red);
     --bs-orange: #fd7e14;
     --bs-yellow: var(--scaleout-yellow);
-    --bs-green: var(--serve-lime);
+    --bs-green: var(--scaleout-green);
     --bs-teal: #20c997;
     --bs-cyan: #0dcaf0;
-    --bs-black: var(--serve-black);
+    --bs-black: var(--serve-dark-grey);
     --bs-white: var(--scaleout-white);
     --bs-gray: var(--scaleout-grey-1);
     --bs-gray-dark: var(--scaleout-grey-6);
@@ -98,14 +65,14 @@
     --bs-gray-700: var(--scaleout-grey-4);
     --bs-gray-800: var(--scaleout-grey-5);
     --bs-gray-900: var(--scaleout-grey-6);
-    --bs-primary: var(--serve-black);
+    --bs-primary: var(--serve-dark-grey);
     --bs-secondary: var(--scaleout-grey-6);
-    --bs-success: var(--serve-lime);
+    --bs-success: var(--scaleout-green);
     --bs-info: var(--scaleout-grey-6);
     --bs-warning: var(--scaleout-yellow);
     --bs-danger: var(--scaleout-red);
     --bs-light: var(--scaleout-grey-1);
-    --bs-dark: var(--serve-black);
+    --bs-dark: var(--serve-dark-grey);
 }
 
 .bg-grey-1 {
