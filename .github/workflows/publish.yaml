@@ -1,0 +1,80 @@
+name: Publish
+
+on:
+  workflow_run:
+    workflows: ["E2E-tests"]
+    types:
+      - completed
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    if: |
+      github.repository == 'scilifelabdatacentre/stackn'
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dockerfile: ./Dockerfile
+            image: ghcr.io/${{ github.repository }}/serve-studio
+          - dockerfile: ./Dockerfile.nginx
+            image: ghcr.io/${{ github.repository }}/serve-ingress
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set current date as env variable
+        run: echo "BUILD_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Docker meta
+        uses: docker/metadata-action@v4
+        id: meta
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=raw,value={{date 'YYYYMMDD'}},prefix=${{ github.ref_name }}-
+
+      - name: Set the build date project toml file
+        uses: ciiiii/toml-editor@1.0.0
+        with:
+          file: "pyproject.toml"
+          key: "tool.serve.build-date"
+          value: ${{ env.BUILD_DATE }}
+
+      - name: Set the git tag or branch name in the project toml file
+        uses: ciiiii/toml-editor@1.0.0
+        with:
+          file: "pyproject.toml"
+          key: "tool.serve.gitref"
+          value: ${{ github.ref_name }}
+
+      - name: Set the image tag in the project toml file
+        uses: ciiiii/toml-editor@1.0.0
+        with:
+          file: "pyproject.toml"
+          key: "tool.serve.imagetag"
+          value: ${{ steps.meta.outputs.version }}
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: docker build serve
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: "${{ github.event_name != 'pull_request' }}"
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ${{ matrix.dockerfile }}
