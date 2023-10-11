@@ -7,7 +7,7 @@ describe("Test of the home page", () => {
 
     it("should open the home page on link click", () => {
         cy.get("li.nav-item a").contains("Home").click()
-        cy.url().should("include", "")
+        cy.url().should("include", "/home")
     })
 
     it("should open the Apps page on link click", () => {
