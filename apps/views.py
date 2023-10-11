@@ -252,14 +252,6 @@ class AppSettingsView(View):
         # check if new subdomain has been created
         if current_release_name != new_release_name:
             _ = delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
-            try:
-                rel_name_obj = ReleaseName.objects.get(name=new_release_name, project=appinstance.project, status="active")
-                rel_name_obj.status = "in-use"
-                rel_name_obj.app = appinstance
-                rel_name_obj.save()
-            except Exception as e:
-                print("Error: Submitted release name not owned by project.")
-                print(e)
         else:
             # Attempting to deploy apps settings
             _ = deploy_resource.delay(appinstance.pk, "update")
