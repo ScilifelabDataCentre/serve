@@ -272,7 +272,6 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
         })
-        //var scores = ["app_name","app_description","image"]
         for (item of ["app_name","app_description","image", "port"]) {
             if (sessionStorage.getItem(item) != null) {
                 document.getElementById(item).value = sessionStorage.getItem(item)
@@ -313,10 +312,18 @@
 
     function submitDomain() {
         var rn = document.getElementById('rn').value
-        var app_name = document.getElementById('app_name').value
-        var app_description = document.getElementById('app_description').value
-        var image = document.getElementById('image').value
-        var port = document.getElementById('port').value
+        if (document.getElementById('app_name') != null) {
+            var app_name = document.getElementById('app_name').value
+        }
+        if (document.getElementById('app_description') != null) {
+            var app_description = document.getElementById('app_description').value
+        }
+        if (document.getElementById('image') != null) {
+            var image = document.getElementById('image').value
+        }
+        if (document.getElementById('port') != null) {
+            var port = document.getElementById('port').value
+        }
         $.ajax({
             type: "POST",
             url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
