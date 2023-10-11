@@ -623,14 +623,12 @@ class SignUpForm:
     profile: ProfileForm
 
     def clean(self) -> None:
-        user.clean()
-        profile.clean()
-        breakpoint()
+        self.is_valid()
         user_data = self.user.cleaned_data
         profile_data = self.profile.cleaned_data
 
         email = user_data.get("email", "")
-        affiliation = user_data.get("affiliation")
+        affiliation = profile_data.get("affiliation")
         why_account_needed = profile_data.get("why_account_needed")
 
         user_data["email"] = email.lower()

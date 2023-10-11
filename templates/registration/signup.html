@@ -40,6 +40,13 @@
                                 <p>{{form.errors}}</p>
                                 {% endif %}
 
+                                {% if profile_form.errors|length > 0 %}
+                                <p>Form invalid</p>
+                                <p>{{profile_form.errors}}</p>
+                                {% endif %}
+                                {{ form.non_field_errors }}
+                                {{ profile_form.non_field_errors }}
+
                                 {% csrf_token %}
                                 <div class="row pb-3">
                                     <div class="col-12">

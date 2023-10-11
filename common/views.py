@@ -36,6 +36,7 @@ class SignUpView(CreateView):
         context = self.get_context_data()
         profile_form = context['profile_form']
         form_ = SignUpForm(user=form, profile=profile_form)
+        form_.clean()
         if form_.is_valid():
             form_.save()
             if settings.INACTIVE_USERS:
@@ -46,8 +47,12 @@ class SignUpView(CreateView):
                 redirect_name = "login"
             return HttpResponseRedirect(reverse_lazy(redirect_name))
         else:
-            return self.form_invalid(form)
+            print(form_.user.errors)  # Print errors to the console or log them
+            print(form_.profile.errors)  # Print errors to the console or log them
+            return self.form_invalid(form_)
 
-    def form_invalid(self, form):
+    def form_invalid(self, form: SignUpForm):
         context = self.get_context_data()
+        context['form'] = form.user  # The user form
+        context['profile_form'] = form.profile  # The profile form
         return self.render_to_response(context)
