@@ -39,7 +39,7 @@
 
                 <li class="nav-item">
                 <div class="btn-group">
-                    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="{{request.user.email}}">
+                    <button type="button" class="btn btn-profile dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="{{request.user.email}}">
                         <i class="bi bi-person-circle"></i> Profile
                     </button>
                     <ul class="dropdown-menu">
@@ -52,13 +52,13 @@
                 {% else %}
 
                 <li class="nav-item mx-2">
-                    <a class="btn btn-success" href="{% url 'common:signup' %}">
+                    <a class="btn btn-profile" href="{% url 'common:signup' %}">
                         <i class="bi bi-person-plus"></i> Register
                     </a>
                 </li>
 
                 <li class="nav-item mx-2">
-                    <a class="btn btn-success" href="{% url 'login' %}">
+                    <a class="btn btn-profile" href="{% url 'login' %}">
                         <i class="bi bi-box-arrow-in-right"></i> Log in
                     </a>
                 </li>

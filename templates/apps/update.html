@@ -31,10 +31,9 @@
 <div class="row pt-3">
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
-            <div class="card-body">
-                <form class="needs-validation" method="post" novalidate>
-                    {% csrf_token %}
-
+            <form class="needs-validation" method="post" novalidate>
+                {% csrf_token %}
+                <div class="card-body">
                     <input type="hidden" id="app_id" name="app_id" value="{{ appinstance.pk }}">
                     <div class="mb-3 validate-item">
                         <label class="form-label">Name</label>
@@ -148,6 +147,7 @@
                     {% endif %}
 
                     {% if form.dep_environment %}
+                    {% if form.environments.objs.count > 0 %}
                     <div class="mb-3">
                         <label class="form-label">{{ form.environments.title }}</label>
                         <select name="environment" id="environment" class="form-control">
@@ -161,7 +161,7 @@
                         </select>
                     </div>
                     {% endif %}
-
+                    {% endif %}
 
                     {% if form.dep_apps %}
                     {% for app_name, appinstances in form.app_deps.items %}
@@ -287,11 +287,12 @@
                         </select>
                     </div>
                     {% endif %}
-
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a class="btn btn-danger" href="{{ request.headers.referer }}">Cancel</a>
                     <button class="btn btn-primary" type="submit">Update</button>
-                    <a class="btn btn-secondary float-end" href="{{ request.headers.referer }}">Cancel</a>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>

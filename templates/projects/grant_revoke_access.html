@@ -3,21 +3,25 @@
     <div class="card-header bg-light py-3">
         <h5 class="card-title mb-0">Grant or revoke access</h5>
     </div>
-    <div class="card-body">
+    <form autocomplete="off" action="{% url 'projects:grant_access' request.user project.slug %}" method="post">
+        {% csrf_token %}
+        <div class="card-body">
 
-        <p>For granting access to this project,
-            enter username of user below. User will be added to project if exists.</p>
+            <p>For granting access to this project,
+                enter username of user below. User will be added to project if exists.</p>
 
-        <form autocomplete="off" action="{% url 'projects:grant_access' request.user project.slug %}" method="post">
-            {% csrf_token %}
+        
 
             <div class="mb-3">
                 <label class="form-label" for="id_selected_user">Username</label>
                 <input type="text" placeholder="Username" name="selected_user" id="id_selected_user"
                     class="form-control">
             </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
             <button type="submit" class="btn btn-square btn-primary">Grant access</button>
-        </form>
+        </div>
+    </form>
 
         {% if project.authorized.all %}
 

@@ -21,8 +21,8 @@
     {% for template in templates %}
 
     <div class="col-12 col-lg-6 col-xxl-4">
-        <div class="card shadow border-0">
-            <div class="card-body">
+        <div class="card shadow border-0 h-100">
+            <div class="card-body d-flex flex-column">
 
                 <div class="row">
                     <div class="col-8">
@@ -53,17 +53,17 @@
                         {% endif %}
                     </div>
                 </div>
+            </div>
 
+            <div class="card-footer d-flex justify-content-end">
 
-                <div class="row">
-                    <div class="col">
-                        <a class="btn btn-primary"
-                            href="{% url 'projects:create' %}?template={{ template.name | urlencode }}">Create</a>
-                    </div>
-                </div>
+                <a class="btn btn-primary align-self-end"
+                    href="{% url 'projects:create' %}?template={{ template.name | urlencode }}">Create</a>
+
             </div>
         </div>
     </div>
+
     {% endfor %}
 </div>
 {% endblock %}
