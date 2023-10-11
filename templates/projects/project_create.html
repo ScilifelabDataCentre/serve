@@ -24,19 +24,15 @@
     <div class="col-12 col-xl-6">
         {% if template %}
         <div class="card shadow border-0">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="card-body">
 
-            <div class="card-body">
-
-                <div class="row">
-
-                    <div class="col">
-                        <p>You are using the following project template: <strong>{{template.name}}</strong></p>
+                    <div class="row">
+                        <div class="col">
+                            <p>You are using the following project template: <strong>{{template.name}}</strong></p>
+                        </div>
                     </div>
-                </div>
-
-                <form method="POST">
-                    {% csrf_token %}
-
 
                     <div class="row pb-3">
                         <div class="col-12">
@@ -67,24 +63,18 @@
                         {% endif %}
                     </div>
 
-
-                    <div class="row">
-                        <div class="d-flex justify-content-end">
-
-                            <a href="/projects/templates" class="btn me-2">Cancel</a>
-                            <input type="submit" name="save" value="Create project" class="btn btn-primary ms-2"
-                                id="submit-id-save">
-                        </div>
-                    </div>
-
-                </form>
-            </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="/projects/templates" class="btn btn-danger me-2">Cancel</a>
+                    <input type="submit" name="save" value="Create project" class="btn btn-primary ms-2"
+                        id="submit-id-save">        
+                </div>
+            </form>
         </div>
         {% else %}
         <div class="alert alert-danger" role="alert">
             Unable to find project template
         </div>
-
         {% endif %}
 
     </div>

@@ -52,26 +52,26 @@
                     {{project.name}}
                 </h5>
                 <p><b>Project owner:</b> {{ project.owner.email }}</p>
-                <div class="row pt-3">
-                    <div class="col d-flex justify-content-between">
-                        {% if request.user.is_authenticated %}
-                        <a href="{% url 'projects:details' request.user project.slug %}"
-                            class="btn btn-primary">Open</a>
-
-                        {% if project.owner == request.user %}
-                        <a class="confirm-delete btn btn-danger"
-                            href="{% url 'projects:delete' request.user project.slug %}">
-                            Delete
-                        </a>
-                        {% elif request.user.is_superuser %}
-                        <a class="confirm-delete btn btn-danger" href="{% url 'projects:delete' request.user project.slug %}">
-                            (Admin) Delete
-                        </a>
-                        {% endif %}
-                        {% endif %}
-                    </div>
-                </div>
             </div>
+            
+            <div class="card-footer d-flex justify-content-between">
+                {% if request.user.is_authenticated %}
+
+                {% if project.owner == request.user %}
+                <a class="confirm-delete btn btn-danger"
+                    href="{% url 'projects:delete' request.user project.slug %}">
+                    Delete
+                </a>
+                {% elif request.user.is_superuser %}
+                <a class="confirm-delete btn btn-danger" href="{% url 'projects:delete' request.user project.slug %}">
+                    (Admin) Delete
+                </a>
+
+                {% endif %}
+                <a href="{% url 'projects:details' request.user project.slug %}"
+                class="btn btn-primary">Open</a>
+                {% endif %}
+            </div>  
         </div>
     </div>
 

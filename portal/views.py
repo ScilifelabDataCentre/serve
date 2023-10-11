@@ -1,7 +1,7 @@
 from django.apps import apps
 from django.conf import settings
 from django.db.models import Q
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.generic import View
 
 AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
@@ -91,6 +91,16 @@ class HomeView(View):
 
     def get(self, request):
         return render(request, self.template, locals())
+
+
+class HomeViewDynamic(View):
+    template = "portal/home.html"
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect("projects/")
+        else:
+            return render(request, self.template, locals())
 
 
 def about(request):

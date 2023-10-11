@@ -5,13 +5,11 @@
 
 <head>
     <title>{% block title %}{% endblock %} | SciLifeLab Serve</title>
-    <!-- This is for django wiki -->
+    {# This is for django wiki #}
     {% render_block "css" %}
     {% include 'common/common_head.html' %}
     {% block extra_head %} {% endblock %}
 </head>
-
-{% include 'common/common_fonts.html' %}
 
 <body class="d-flex flex-column min-vh-100">
 
@@ -136,7 +134,7 @@
 
     {% include 'common/analytics.html' %}
 
-    <!-- This is for django wiki -->
+    {# This is for django wiki #}
     {% render_block "js" %}
 
     <button type="button" class="btn btn-secondary btn-lg btn-top" id="btn-to-top">

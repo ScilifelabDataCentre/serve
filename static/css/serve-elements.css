@@ -12,15 +12,27 @@
 }
 
 .btn-primary {
-    --bs-btn-bg: var(--scaleout-black);
-    --bs-btn-border-color: var(--scaleout-black);
-    --bs-btn-hover-bg: var(--scaleout-black);
-    --bs-btn-hover-border-color: var(--scaleout-black);
+    --bs-btn-bg: var(--serve-dark-grey);
+    --bs-btn-border-color: var(--serve-dark-grey);
+    --bs-btn-hover-bg: var(--serve-dark-grey);
+    --bs-btn-hover-border-color: var(--serve-dark-grey);
     --bs-btn-focus-shadow-rgb: 49, 132, 253;
-    --bs-btn-active-bg: var(--scaleout-black);
-    --bs-btn-active-border-color: var(--scaleout-black);
-    --bs-btn-disabled-bg: var(--scaleout-black);
-    --bs-btn-disabled-border-color: var(--scaleout-black);
+    --bs-btn-active-bg: var(--serve-dark-grey);
+    --bs-btn-active-border-color: var(--serve-dark-grey);
+    --bs-btn-disabled-bg: var(--serve-dark-grey);
+    --bs-btn-disabled-border-color: var(--serve-dark-grey);
+}
+
+.btn-profile {
+    --bs-btn-bg: var(--serve-lime);
+    --bs-btn-border-color: var(--serve-lime);
+    --bs-btn-hover-bg: var(--serve-lime);
+    --bs-btn-hover-border-color: var(--serve-lime);
+    --bs-btn-focus-shadow-rgb: 49, 132, 253;
+    --bs-btn-active-bg: var(--serve-lime);
+    --bs-btn-active-border-color: var(--serve-lime);
+    --bs-btn-disabled-bg: var(--serve-lime);
+    --bs-btn-disabled-border-color: var(--serve-lime);
 }
 
 /* serve button for scrolling to top */
@@ -93,10 +105,21 @@ a.btn:hover::after, a.btn:focus::after, a.btn.active::after {
 }
 
 .navbar-nav {
-    --bs-nav-link-color: var(--scaleout-black-rgb)
+    --bs-nav-link-color: var(--serve-dark-grey)
 }
 
 /* text */
+
+p a {
+    color: var(--serve-teal);
+}
+
+p a:hover,
+p a:focus,
+p a:active {
+    color: var(--serve-teal);
+}
+
 
 p,
 h1,
@@ -104,14 +127,28 @@ h2,
 h3,
 h4,
 h5,
-h6,
-a {
+h6 {
     opacity: .8;
 }
+
+
 
 /* lists */
 
 .list-group-item {
-    --bs-list-group-active-bg: var(--scaleout-black);
-    --bs-list-group-active-border-color: var(--scaleout-black);
+    --bs-list-group-active-bg: var(--serve-dark-grey);
+    --bs-list-group-active-border-color: var(--serve-dark-grey);
+}
+
+/* main navigation */
+.nav .nav-item .nav-link {
+    color: var(--serve-teal);
+    font-weight: 500;
+    font-size: 1.05rem;
+}
+
+.nav .nav-item .nav-link:hover,
+.nav .nav-item .nav-link:focus,
+.nav .nav-item .nav-link.active {
+    color: var(--serve-teal);
 }
