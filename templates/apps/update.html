@@ -148,6 +148,7 @@
                     {% endif %}
 
                     {% if form.dep_environment %}
+                    {% if form.environments.objs.count > 0 %}
                     <div class="mb-3">
                         <label class="form-label">{{ form.environments.title }}</label>
                         <select name="environment" id="environment" class="form-control">
@@ -161,7 +162,7 @@
                         </select>
                     </div>
                     {% endif %}
-
+                    {% endif %}
 
                     {% if form.dep_apps %}
                     {% for app_name, appinstances in form.app_deps.items %}
