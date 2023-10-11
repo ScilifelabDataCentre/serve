@@ -6,6 +6,9 @@
       "slug": "blank",
       "template": {
         "apps": {
+          "Project Network Policy": {
+            "slug": "netpolicy"
+          },
           "project-vol": {
             "app_id": "",
             "app_release_name": "",
