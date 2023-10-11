@@ -83,6 +83,9 @@
           }
         },
         "apps": {
+          "Project Network Policy": {
+            "slug": "netpolicy"
+          },
           "project-vol": {
             "slug": "volumeK8s",
             "volume.size": "1Gi",
