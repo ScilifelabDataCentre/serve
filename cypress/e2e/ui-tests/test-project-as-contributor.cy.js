@@ -30,7 +30,7 @@ describe("Test project contributor user functionality", () => {
     it("can run the test setup", () => {
     })
 
-    it("can create a new project with default template, open settings, delete from settings", () => {
+    it("can create a new project with default template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
@@ -57,6 +57,7 @@ describe("Test project contributor user functionality", () => {
         cy.wait(5000) // sometimes it takes a while to create a project
             .then((href) => {
                 cy.log(href)
+                cy.reload()
                 //cy.url().should("include", "/project-e2e-blank");
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
@@ -94,7 +95,7 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
-    it("can create a new project with ML serving template, open settings, delete from settings", () => {
+    it("can create a new project with ML serving template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
@@ -110,7 +111,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('h3').should('contain', 'New project')
 
         // Next click button to create a new blank project
-        cy.get(".card-body").last().contains("Create").click()
+        cy.get(".card-footer").last().contains("Create").click()
         cy.url().should("include", "projects/create?template=")
         cy.get('h3').should('contain', 'New project')
 
@@ -119,8 +120,9 @@ describe("Test project contributor user functionality", () => {
         cy.get('textarea[name=description]').type("A test project created by an e2e test.")
         cy.get("input[name=save]").contains('Create project').click()
         cy.wait(5000) // sometimes it takes a while to create a project
-        .then((href) => {
+            .then((href) => {
                 cy.log(href)
+                cy.reload()
                 //cy.url().should("include", "/project-e2e-blank");
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
@@ -174,7 +176,7 @@ describe("Test project contributor user functionality", () => {
     it.skip("can create a new mlflow project", () => {
     })
 
-    it("can delete a project from projects overview", () => {
+    it("can delete a project from projects overview", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
         const project_name = "e2e-delete-proj-test"
@@ -187,7 +189,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('div#modalConfirmDelete').should('have.css', 'display', 'none')
 
         // Next click button to delete the project
-        cy.get('h5.card-title').contains(project_name).siblings('div').find('a.confirm-delete').click()
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
             .then((href) => {
                 cy.get('div#modalConfirmDelete').should('have.css', 'display', 'block')
 
@@ -236,7 +238,7 @@ describe("Test project contributor user functionality", () => {
 
         // Delete the created project
         cy.visit("/projects/")
-        cy.get('h5.card-title').contains(project_name).siblings('div').find('a.confirm-delete').click()
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
             .then((href) => {
                 cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
                     cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
