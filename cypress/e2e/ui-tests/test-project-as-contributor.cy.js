@@ -57,6 +57,7 @@ describe("Test project contributor user functionality", () => {
         cy.wait(5000) // sometimes it takes a while to create a project
             .then((href) => {
                 cy.log(href)
+                cy.reload()
                 //cy.url().should("include", "/project-e2e-blank");
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
@@ -118,9 +119,10 @@ describe("Test project contributor user functionality", () => {
         cy.get('input[name=name]').type(project_name)
         cy.get('textarea[name=description]').type("A test project created by an e2e test.")
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(10000) // sometimes it takes a while to create a project
-        .then((href) => {
+        cy.wait(5000) // sometimes it takes a while to create a project
+            .then((href) => {
                 cy.log(href)
+                cy.reload()
                 //cy.url().should("include", "/project-e2e-blank");
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
