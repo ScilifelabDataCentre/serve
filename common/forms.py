@@ -566,6 +566,12 @@ class UserForm(UserCreationForm):
                 "username",
                 ]
 
+    def clean_email(self) -> str:
+        email = self.cleaned_data["email"].lower()
+        if User.objects.filter(email=email).exists():
+            self.add_error("email", ValidationError("Email already exists"))
+        return email
+
 
 class ProfileForm(forms.ModelForm):
     affiliation = forms.ChoiceField(

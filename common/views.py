@@ -39,8 +39,8 @@ class SignUpView(CreateView):
         form_.clean()
         if form_.is_valid():
             form_.save()
-            # TODO send email to registered user to confirm email address here
             if settings.INACTIVE_USERS:
+                # TODO send email to registered user to confirm email address here
                 messages.success(self.request, "Account request has been registered! Please wait for admin to approve!")
                 redirect_name = "common:success"
             else:
@@ -48,14 +48,18 @@ class SignUpView(CreateView):
                 redirect_name = "login"
             return HttpResponseRedirect(reverse_lazy(redirect_name))
         else:
-            print(form_.user.errors)  # Print errors to the console or log them
-            print(form_.profile.errors)  # Print errors to the console or log them
-            return self.form_invalid(form_)
+            return self.custom_form_invalid(form, profile_form)
 
-    def form_invalid(self, form: SignUpForm):
+    def custom_form_invalid(self, user_form, profile_form):
+        # Both user_form and profile_form are form instances with their current state.
         context = self.get_context_data()
-        context['form'] = form.user  # The user form
-        context['profile_form'] = form.profile  # The profile form
-        print(form.user.errors)  # Print errors to the console or log them
-        print(form.profile.errors)  # Print errors to the console or log them
+        context['form'] = user_form  # The user form with its current state and errors.
+        context['profile_form'] = profile_form  # The profile form with its current state and errors.
         return self.render_to_response(context)
+
+    # You might want to override the original form_invalid to prevent it from being called with an inappropriate argument.
+    def form_invalid(self, form):
+        # Just in case this gets called, redirect it to the custom handler.
+        # 'form' here will be a UserForm instance.
+        profile_form = self.get_context_data().get('profile_form')
+        return self.custom_form_invalid(form, profile_form)
