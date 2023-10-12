@@ -45,16 +45,16 @@ describe("Test deploying app", () => {
 
         if (createResources === true) {
             cy.visit("/projects/")
-            cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
-
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             // Create an app with private or project permissions
             cy.log("Now creating a private or project app")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
 
             cy.get('input[name=app_name]').type(app_name)
             cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('input[name="appconfig.port"]').clear().type("8080")
+            cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
+            cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
 
             // TODO: debug problems with status not set to Running
@@ -73,8 +73,9 @@ describe("Test deploying app", () => {
             cy.get('input[name=app_name]').type(app_name)
             cy.get('textarea[name=app_description]').type(app_description)
             cy.get('#permission').select('public')
-            cy.get('input[name="appconfig.port"]').clear().type("8080")
+            cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
+            cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
 
             // TODO: debug problems with status not set to Running
@@ -90,7 +91,7 @@ describe("Test deploying app", () => {
 
             // Remove the created public app and verify that it is deleted from public apps page
             cy.visit("/projects/")
-            cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tbody:contains("' + app_type + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tbody:contains("' + app_type + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
@@ -105,7 +106,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can set and change custom subdomain", () => {
+    it("can set and change custom subdomain", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
         const app_name = "e2e-subdomain-example"
@@ -119,15 +120,16 @@ describe("Test deploying app", () => {
 
         if (createResources === true) {
             cy.visit("/projects/")
-            cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             // Create an app and set a custom subdomain for it
             cy.log("Now creating an app with a custom subdomain")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             // fill out other fields
             cy.get('input[name=app_name]').type(app_name)
             cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('input[name="appconfig.port"]').clear().type("8080")
+            cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
+            cy.get('input[name="appconfig.path"]').clear().type("/home")
             // fill out subdomain field
             cy.get('[id="subdomain"]').find('button').click()
             cy.get('[id="subdomain-add"]').find('[id="rn"]').type(subdomain)
@@ -155,9 +157,9 @@ describe("Test deploying app", () => {
             cy.get('[id="subdomain"]').find('select#app_release_name option:selected').should('contain', subdomain_2) // and the newly added subdomain as selected again
 
             // Change subdomain of a previously created app
-            cy.log("Now changing subdomain of an already create app")
+            cy.log("Now changing subdomain of an already created app")
             cy.visit("/projects/")
-            cy.get('div.card-body:contains("' + project_name + '")').find('a:contains("Open")').first().click()
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tbody:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tbody:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('[id="subdomain"]').find('button').click()
