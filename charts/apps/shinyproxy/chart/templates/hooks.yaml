@@ -14,6 +14,7 @@ spec:
       name: "delete-user-pods-{{ .Release.Name }}"
       labels:
         {{- include "shinyproxy.labels" . | nindent 8 }}
+        allow-api-access: "true"
     spec:
       restartPolicy: Never
       serviceAccountName: default
@@ -24,6 +25,6 @@ spec:
           - "delete"
           - "pods"
           - "-l"
-          - "z2sp.instance={{ .Release.Name }}"
+          - "sp.instance={{ .Release.Name }}"
           - "-n"
           - "{{ .Values.namespace }}"

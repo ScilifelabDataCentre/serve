@@ -45,6 +45,8 @@ ingress:
   v1beta1: false
 
 podSecurityContext:
+  seccompProfile:
+      type: RuntimeDefault
   fsGroup: 100
 
 securityContext:

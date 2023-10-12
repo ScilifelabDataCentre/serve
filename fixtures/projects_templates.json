@@ -6,6 +6,9 @@
       "slug": "blank",
       "template": {
         "apps": {
+          "project-netpolicy": {
+            "slug": "netpolicy"
+          },
           "project-vol": {
             "app_id": "",
             "app_release_name": "",
@@ -61,6 +64,9 @@
       "slug": "default",
       "template": {
         "apps": {
+          "project-netpolicy": {
+            "slug": "netpolicy"
+          },
           "project-vol": {
             "app_id": "",
             "app_release_name": "",
