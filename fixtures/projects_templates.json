@@ -6,7 +6,7 @@
       "slug": "blank",
       "template": {
         "apps": {
-          "Project Network Policy": {
+          "project-netpolicy": {
             "slug": "netpolicy"
           },
           "project-vol": {
@@ -64,7 +64,7 @@
       "slug": "default",
       "template": {
         "apps": {
-          "Project Network Policy": {
+          "project-netpolicy": {
             "slug": "netpolicy"
           },
           "project-vol": {
