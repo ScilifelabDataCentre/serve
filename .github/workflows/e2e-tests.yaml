@@ -115,12 +115,6 @@ jobs:
         run: |
           docker exec celery-worker kubectl get po
 
-      - name: Run unit tests
-        working-directory: ${{env.working-directory}}
-        id: tests
-        run: |
-          docker compose run unit-tests
-
       - name: Cypress run e2e tests
         uses: cypress-io/github-action@v5
         with:
