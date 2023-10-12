@@ -35,6 +35,23 @@
     --bs-btn-disabled-border-color: var(--serve-lime);
 }
 
+.btn-outline-serve {
+    --bs-btn-color: var(--serve-teal);
+    --bs-btn-border-color: var(--serve-teal);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--serve-teal);
+    --bs-btn-hover-border-color: var(--serve-teal);
+    --bs-btn-focus-shadow-rgb: 25,135,84;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--serve-teal);
+    --bs-btn-active-border-color: var(--serve-teal);
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: var(--serve-teal);
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: var(--serve-teal);
+    --bs-gradient: none;
+}
+
 /* serve button for scrolling to top */
 .btn-top {
     position: fixed;

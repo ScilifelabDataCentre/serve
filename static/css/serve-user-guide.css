@@ -1,0 +1,9 @@
+/* CSS specifically for the user guide based on classes in django-wiki*/
+
+#article-container {
+    color: grey;
+  }
+
+#article-menu {
+    color: red;
+  }

@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% load sekizai_tags i18n wiki_tags static %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/serve-user-guide.css' %}">
+{% endblock %}
+
 {% block title %}{% block wiki_pagetitle %}{% endblock %}{% endblock %}
 
 
@@ -20,7 +24,7 @@
             <div class="d-flex my-2 py-3 border-top">
                 <form class="d-flex" role="search" method="GET" action="{% spaceless %} {% url 'wiki:search' %} {% endspaceless %}">
                     <input class="form-control me-2" type="search" name="q" placeholder="Search.." aria-label="Search">
-                    <button class="btn btn-outline-success" type="submit">Search</button>
+                    <button class="btn btn-outline-serve" type="submit">Search</button>
                   </form>
             </div>
             {% if urlpath.root.get_descendants %}
