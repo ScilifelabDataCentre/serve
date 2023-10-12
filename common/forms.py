@@ -595,7 +595,7 @@ class ProfileForm(forms.ModelForm):
                 ),
             required=False,
             )
-    notes = forms.CharField(
+    note = forms.CharField(
             widget=forms.Textarea(
                 attrs={
                     "class": "form-control",
@@ -612,7 +612,7 @@ class ProfileForm(forms.ModelForm):
         fields = [
             "affiliation",
             "department",
-            "notes",
+            "note",
             "why_account_needed",
         ]
 
@@ -621,6 +621,7 @@ class ProfileForm(forms.ModelForm):
 class SignUpForm:
     user: UserForm
     profile: ProfileForm
+    is_approved: bool = False
 
     def clean(self) -> None:
         self.is_valid()
@@ -638,6 +639,8 @@ class SignUpForm:
         is_affiliated = affiliation is not None and affiliation != "other"
         is_request_account_empty = not bool(why_account_needed)
         is_department_empty = not bool(profile_data.get("department"))
+
+        self.is_approved = is_university_email
 
         if is_university_email:
             # Check that selected affiliation is equal to affiliation from email
@@ -677,5 +680,6 @@ class SignUpForm:
         user = self.user.save()
         profile = self.profile.save(commit=False)
         profile.user = user
+        profile.is_approved = self.is_approved
         profile.save()
         return profile

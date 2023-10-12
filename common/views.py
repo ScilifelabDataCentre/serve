@@ -39,6 +39,7 @@ class SignUpView(CreateView):
         form_.clean()
         if form_.is_valid():
             form_.save()
+            # TODO send email to registered user to confirm email address here
             if settings.INACTIVE_USERS:
                 messages.success(self.request, "Account request has been registered! Please wait for admin to approve!")
                 redirect_name = "common:success"
@@ -55,4 +56,6 @@ class SignUpView(CreateView):
         context = self.get_context_data()
         context['form'] = form.user  # The user form
         context['profile_form'] = form.profile  # The profile form
+        print(form.user.errors)  # Print errors to the console or log them
+        print(form.profile.errors)  # Print errors to the console or log them
         return self.render_to_response(context)
