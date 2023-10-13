@@ -518,7 +518,27 @@ class ListTextWidget(forms.TextInput):
         return (text_html + data_list)
 
 
-class UserForm(UserCreationForm):
+class BootstrapErrorFormMixin:
+    def add_error_classes(self):
+        for field_name, errors in self.errors.items():
+            if errors:
+                self.fields[field_name].widget.attrs.update(
+                        {
+                            'class': 'form-control is-invalid',
+                            "aria-describedby": f"validation_{field_name}"
+                        }
+                        )
+            else:
+                self.fields[field_name].widget.attrs.update({'class': 'form-control'})
+
+    def is_valid(self):
+        valid = super().is_valid()
+        if not valid:
+            self.add_error_classes()
+        return valid
+
+
+class UserForm(BootstrapErrorFormMixin, UserCreationForm):
     first_name = forms.CharField(
         min_length=1,
         max_length=30,
@@ -571,8 +591,18 @@ class UserForm(UserCreationForm):
             self.add_error("email", ValidationError("Email already exists"))
         return email
 
+    def add_error_classes(self):
+        super().add_error_classes()
+        if "password1" in self.errors or "password2" in self.errors:
+            self.fields["password1"].widget.attrs.update({'class': 'form-control is-invalid'})
+            self.fields["password2"].widget.attrs.update({'class': 'form-control is-invalid'})
+            errors_p1 = self.errors.get("password1", [])
+            self.errors["password1"] = errors_p1 + self.errors.get("password2", [])
+            if "password2" in self.errors:
+                del self.errors["password2"]
 
-class ProfileForm(forms.ModelForm):
+
+class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
     affiliation = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control", "placeholder": "University"}),
         label="University affiliation",
@@ -671,6 +701,7 @@ class SignUpForm:
                     "Please select 'Other' in affiliation or use your University email"
                 )
                                )
+                self.profile.add_error("affiliation", ValidationError(""))
 
             if is_request_account_empty:
                 self.profile.add_error("why_account_needed", ValidationError(
@@ -679,7 +710,9 @@ class SignUpForm:
                                )
 
     def is_valid(self) -> bool:
-        return self.user.is_valid() and self.profile.is_valid()
+        is_user_valid = self.user.is_valid()
+        is_profile_valid = self.profile.is_valid()
+        return is_user_valid and is_profile_valid
 
     def save(self):
         user = self.user.save()

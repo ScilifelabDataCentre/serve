@@ -39,52 +39,50 @@
                                     <div class="col-12">
                                         {{form.email}}
                                         {{form.email.label_tag}}
+                                        {% if form.email.errors %}
+                                        <div id="validation_email" class="invalid-feedback pt-1">
+                                            {% for error in form.email.errors %}
+                                            <p class="m-0">{{error|escape}}</p>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
                                     </div>
-                                    {% if form.email.errors %}
-
-                                    {% for key, key_errors in form.errors.as_data.items %}
-                                    {% if key == 'email' %}
-                                    {% for error in key_errors %}
-                                    {% if error.code != 'unique'%}
-                                    <div class="pt-1">
-                                        {{error.message}}
-                                    </div>
-                                    {% endif %}
-                                    {% endfor %}
-                                    {% endif %}
-                                    {% endfor %}
-                                    {% endif %}
                                 </div>
                                 <div id="id_request_account_info" class="rollable">
 																	<div class="row pb-3">
                                     <div class="col-12 ">
 																			{{ profile_form.why_account_needed }}
+                                      {% if profile_form.why_account_needed.errors %}
+                                      <div id="validation_why_account_needed" class="invalid-feedback pt-1">
+                                          {% for error in profile_form.why_account_needed.errors %}
+                                            <p class="m-0">{{error|escape}}</p>
+                                          {% endfor %}
+                                      </div>
+                                      {% endif %}
 																		</div>
 																	</div>
 																</div>
                                 <div class="row pb-3">
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
                                         {{form.first_name}}
+                                    {% if form.first_name.errors %}
+                                    <div id="validation_first_name" class="invalid-feedback pt-1">
+                                        {% for error in form.first_name.errors %}
+                                          <p class="m-0">{{error|escape}}</p>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                     </div>
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
                                         {{form.last_name}}
+                                      {% if form.last_name.errors %}
+                                      <div id="validation_last_name" class="pt-1 invalid-feedback">
+                                          {% for error in form.last_name.errors %}
+                                          <p class="m-0">{{error|escape}}</p>
+                                          {% endfor %}
+                                      </div>
+                                      {% endif %}
                                     </div>
-
-                                    {% if form.first_name.errors %}
-                                    <div class="pt-1">
-                                        {% for error in form.first_name.errors %}
-                                        <p class="m-0">{{error|escape}}</p>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-
-                                    {% if form.last_name.errors %}
-                                    <div class="pt-1">
-                                        {% for error in form.last_name.errors %}
-                                        <p class="m-0">{{error|escape}}</p>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
                                 </div>
 
 																<div class="row pb-3">
@@ -92,26 +90,25 @@
 																			{{ profile_form.affiliation }}
 																			{{ profile_form.affiliation.label_tag }}
 
+                                      {% if profile_form.affiliation.errors %}
+                                        <div id="validation_affilation" class="pt-1 invalid-feedback">
+                                            {% for error in profile_form.affiliation.errors %}
+                                            <p class="m-0">{{error|escape}}</p>
+                                            {% endfor %}
+                                        </div>
+                                      {% endif %}
 																		</div>
 																		<div class="col-12 col-md-6 pb-3 pb-md-0">
 																			{{ profile_form.department }}
 																			{{ profile_form.department.label_tag }}
+                                      {% if profile_form.department.errors %}
+                                        <div id="validation_department" class="pt-1 invalid-feedback">
+                                            {% for error in profile_form.department.errors %}
+                                            <p class="m-0">{{error|escape}}</p>
+                                            {% endfor %}
+                                        </div>
+                                      {% endif %}
 																		</div>
-
-                                    {% if profile_form.affiliation.errors %}
-                                      <div class="pt-1">
-                                          {% for error in profile_form.affiliation.errors %}
-                                          <p class="m-0">{{error|escape}}</p>
-                                          {% endfor %}
-                                      </div>
-                                    {% endif %}
-                                    {% if profile_form.department.errors %}
-                                      <div class="pt-1">
-                                          {% for error in profile_form.department.errors %}
-                                          <p class="m-0">{{error|escape}}</p>
-                                          {% endfor %}
-                                      </div>
-                                    {% endif %}
 																</div>
 
 
@@ -119,18 +116,26 @@
                                 <div class="row pb-3">
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
                                         {{form.password1}}
+                                        {% if form.password1.errors %}
+                                        <div id="validation_password1" class="pt-1 invalid-feedback">
+                                            {% for error in form.password1.errors %}
+                                            <p class="m-0">{{error|escape}}</p>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
                                     </div>
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
                                         {{form.password2}}
+                                        {% if form.password2.errors %}
+                                        <div id="validation_password2" class="pt-1 invalid-feedback">
+                                            {% for error in form.password2.errors %}
+                                            <p class="m-0">{{error|escape}}</p>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
                                     </div>
 
-                                    {% if form.password2.errors %}
-                                    <div class="pt-1">
-                                        {% for error in form.password2.errors %}
-                                        <p class="m-0">{{error|escape}}</p>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
+
 
                                 </div>
 																<div class="row pb-3">
