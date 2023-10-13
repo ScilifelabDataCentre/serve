@@ -6,14 +6,14 @@
     <div class="card-body">
 
         <p>For granting access to this project,
-            enter username of user below. User will be added to project if exists.</p>
+            enter email of user below. User will be added to project if exists.</p>
 
         <form autocomplete="off" action="{% url 'projects:grant_access' request.user project.slug %}" method="post">
             {% csrf_token %}
 
             <div class="mb-3">
-                <label class="form-label" for="id_selected_user">Username</label>
-                <input type="text" placeholder="Username" name="selected_user" id="id_selected_user"
+                <label class="form-label" for="id_selected_user">Email</label>
+                <input type="text" placeholder="Email" name="selected_user" id="id_selected_user"
                     class="form-control">
             </div>
             <button type="submit" class="btn btn-square btn-primary">Grant access</button>
@@ -53,7 +53,7 @@
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h1 class="modal-title fs-5" id="revokeAccessModal-{{user.pk}}-Label">Revoke
-                                            access for user {{user.username}}</h1>
+                                            access for user with email {{user.username}}</h1>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"
                                             aria-label="Close"></button>
                                     </div>
