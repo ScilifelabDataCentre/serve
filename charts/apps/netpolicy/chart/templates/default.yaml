@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ .Release.Name }}-allow-project-ingress
-  namespace: default
+  namespace: {{ .Values.namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -19,7 +19,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ .Release.Name }}-allow-ingress-from-studio
-  namespace: default
+  namespace: {{ .Values.namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -36,7 +36,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ .Release.Name }}-allow-egress-to-project
-  namespace: default
+  namespace: {{ .Values.namespace }}
 spec:
   podSelector:
     matchLabels:

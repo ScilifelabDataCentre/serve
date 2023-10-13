@@ -6,10 +6,10 @@
 
 {% block content %}
 
-<!-- Breadcrumbs -->
+{# Breadcrumbs #}
 {% include 'wiki/breadcrumbs.html' %}
 
-<!-- Admin menu items -->
+{# Admin menu items #}
 {% include 'wiki/admin_menu.html' %}
 
 <div class="row">
@@ -51,13 +51,13 @@
     <div class="col-12 col-md-9 col-md-9 mt-4 mt-md-0">
         <div class="container">
         {% wiki_messages %}
-        <!-- Main page contents -->
+        {# Main page contents  #}
         {% block wiki_contents %}{% endblock %}
         </div>
     </div>
 </div>
 
-  <p class="border-top mt-4 pt-4">{% blocktrans %}The SciLifeLab Serve user guide is powered by <a href="http://www.django-wiki.org">django-wiki</a>, an open source application under the <a href="http://www.gnu.org/licenses/quick-guide-gplv3.html">GPLv3</a> license. Let knowledge be the cure.{% endblocktrans %}</p>
+  <p class="border-top mt-4 pt-2 text-muted small">{% blocktrans %}The SciLifeLab Serve user guide is powered by <a href="http://www.django-wiki.org">django-wiki</a>, an open source application under the <a href="http://www.gnu.org/licenses/quick-guide-gplv3.html">GPLv3</a> license. Let knowledge be the cure.{% endblocktrans %}</p>
 
   <script src="{% static "wiki/js/jquery-3.6.0.min.js" %}"></script>
   <script src="{% static "wiki/js/core.js" %}"></script>

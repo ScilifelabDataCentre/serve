@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appname }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      release: {{ .Release.Name }}
+      app: {{ .Values.appname }}
+      project: {{ .Values.project.slug }}
+      type: app
+      pod: {{ .Values.appname }}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        # prometheus.io/port: "8501"
+      labels:
+        release: {{ .Release.Name }}
+        app: {{ .Values.appname }}
+        project: {{ .Values.project.slug }}
+        networking/allow-internet-egress: "true"
+        networking/allow-egress-to-studio-web: "true"
+        type: app
+        pod: {{ .Values.appname }}
+    spec:
+    {{ if index .Values.flavor.limits "nvidia.com/gpu" }}
+      affinity:
+        {{ .Values.affinity | toYaml | nindent 8 | trim }}
+    {{ end }}
+      automountServiceAccountToken: false
+      hostname: lab
+      subdomain: default-subdomain
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: jupyter-lab
+        image: {{ .Values.appconfig.image }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: {{ .Values.appconfig.port }}
+        env:
+        - name: JUPYTER_ENABLE_LAB
+          value: "yes"
+        - name: NOTEBOOK_PASSWD_SHA1
+          value: ""
+        - name: NOTEBOOK_TOKEN
+          value: ""
+        - name: MLFLOW_TRACKING_URI
+          value: "http://{{ .Values.mlflow.service }}:{{ .Values.mlflow.port }}"
+        - name: MLFLOW_TRACKING_USERNAME
+          value: {{ .Values.mlflow.username }}
+        - name: MLFLOW_TRACKING_PASSWORD
+          value: {{ .Values.mlflow.password }}
+        - name: MLFLOW_S3_ENDPOINT_URL
+          value: "http://{{ .Values.mlflow.s3service }}:{{ .Values.mlflow.s3port }}"
+        - name: AWS_ACCESS_KEY_ID
+          value: {{ .Values.mlflow.access_key }}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: {{ .Values.mlflow.secret_key }}
+        {{- range $key, $value := .Values.app_env }}
+        - name: {{ $key }}
+          value: "{{ $value }}"
+        {{- end }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        resources:
+          {{- toYaml .Values.flavor | nindent 10 }}
+        workingDir: /home/jovyan/work
+        volumeMounts:
+        - name: jupyterconf
+          mountPath: /etc/jupyter/jupyter_notebook_config.py
+          subPath: jupyter_notebook_config.py
+        {{- range $key, $value := .Values.apps.volumeK8s }}
+        - name: {{ $key }}
+          mountPath: /home/jovyan/work/{{ $key }}
+        {{- end }}
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      volumes:
+      - name: jupyterconf
+        configMap:
+          name: {{ .Release.Name }}-jupyter-configmap
+      {{- range $key, $value := .Values.apps.volumeK8s }}
+      - name: {{ $key }}
+        persistentVolumeClaim:
+          claimName: {{ $value.release }}
+      {{- end }}

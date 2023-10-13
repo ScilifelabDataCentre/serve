@@ -65,7 +65,9 @@ class AppInstanceManager(models.Manager):
                 time_threshold = datetime.now() - timedelta(minutes=deleted_time_delta)
                 q &= ~Q(state="Deleted") | Q(deleted_on__gte=time_threshold)
 
-        q &= Q(owner=user) | Q(access__in=["project", "public"])
+        q &= Q(owner=user) | Q(
+            access__in=["project", "public", "private"] if user.is_superuser else ["project", "public"]
+        )
         q &= Q(project=project)
 
         return q
@@ -146,6 +148,7 @@ class AppInstance(models.Model):
     app_dependencies = models.ManyToManyField("apps.AppInstance", blank=True)
     created_on = models.DateTimeField(auto_now_add=True)
     deleted_on = models.DateTimeField(null=True, blank=True)
+    description = models.TextField(blank=True, null=True, default="")
     info = models.JSONField(blank=True, null=True)
     model_dependencies = models.ManyToManyField("models.Model", blank=True)
     name = models.CharField(max_length=512, default="app_name")

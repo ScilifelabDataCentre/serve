@@ -6,13 +6,13 @@ metadata:
 spec:
   ports:
   - name: preds
-    port: {{ .Values.deployment.inference_port }}
+    port: {{ .Values.appconfig.inference_port }}
     targetPort: ts 
   - name: mdl
-    port: {{ .Values.deployment.management_port }}
+    port: {{ .Values.appconfig.management_port }}
     targetPort: ts-management
   - name: metrics
-    port: {{ .Values.deployment.metrics_port }}
+    port: {{ .Values.appconfig.metrics_port }}
     targetPort: ts-metrics
   selector:
     release: {{ $.Release.Name }}

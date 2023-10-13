@@ -80,3 +80,44 @@ Cypress.Commands.add('loginViaApi', (username, password) => {
       }
     )
   })
+
+
+Cypress.Commands.add('createBlankProject', (project_name) => {
+
+  cy.visit("/projects/")
+
+  // Click button for UI to create a new project
+  cy.get("a").contains('New project').click()
+  cy.get('h3').should('contain', 'New project')
+
+  // Next click button to create a new blank project
+  cy.get("a").contains('Create').first().click()
+  cy.get('h3').should('contain', 'New project')
+
+  // Fill in the options for creating a new blank project
+  cy.get('input[name=name]').type(project_name)
+  cy.get('textarea[name=description]').type("A test project created by an e2e test.")
+  cy.get("input[name=save]").contains('Create project').click()
+  cy.wait(5000) // need to wait a bit for the project to be created on some machines, otherwise won't find the new project under /projects/
+
+})
+
+Cypress.Commands.add('deleteBlankProject', (project_name) => {
+
+  cy.visit("/projects/")
+
+  cy.get('h5.card-title').contains(project_name).siblings('div').find('a.confirm-delete').click()
+  .then((href) => {
+      cy.get('div#modalConfirmDelete').should('have.css', 'display', 'block')
+
+      cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
+          cy.log($elem.text())
+
+          cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
+
+          // Assert that the project has been deleted
+          cy.contains(project_name).should('not.exist')
+     })
+  })
+
+})

@@ -10,10 +10,10 @@ spec:
   selector:
     matchLabels:
       release: {{ $.Release.Name }}
-      app: pytorch-serve
+      app: {{ .Values.appname }}
       project: {{ $.Values.project.slug }}
       type: app
-      pod: pytorch-serve
+      pod: {{ .Values.appname }}
   template:
     metadata:
       annotations:
@@ -22,32 +22,16 @@ spec:
         prometheus.io/port: "8501"
       labels:
         release: {{ $.Release.Name }}
-        app: pytorch-serve
+        app: {{ .Values.appname }}
         project: {{ $.Values.project.slug }}
         networking/allow-internet-egress: "true"
         networking/allow-internet-ingress: "true"
         type: app
-        pod: pytorch-serve
+        pod: {{ .Values.appname }}
     spec:
       automountServiceAccountToken: false
-      {{- if .Values.securityContext.enabled }}
       securityContext:
-        fsGroup: {{ .Values.securityContext.fsGroup }}
-      {{- end }}
-      volumes:
-      - name: torch-conf
-        configMap:
-          name: {{ .Release.Name }}-torch-conf
-      - name: rp-conf
-        configMap:
-          name: {{ .Release.Name }}-rp-config
-      {{ if .Values.model_card.enabled }}
-      - name: mc-conf
-        configMap:
-          name: {{ .Release.Name }}-mc-config
-      {{ end }}
-      - name: model-vol
-        emptyDir: {}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
       - name: copy-model
         image: minio/mc
@@ -66,12 +50,10 @@ spec:
           value: {{ .Values.model.access_key }}
         - name: S3_SECRET_ACCESS_KEY
           value: {{ .Values.model.secret_key }}
-        - name: AWS_REGION
-          value: us-east-1
         - name: S3_ENDPOINT
           value: {{ .Values.model.url }}
         - name: MODEL_STORE
-          value: {{ .Values.modelstore.path }}
+          value: {{ .Values.model.path }}
         - name: STACKN_MODEL_FILE
           value: {{ .Values.model.obj }}
       - name: extract-model
@@ -84,7 +66,7 @@ spec:
           mountPath: /home/model-server/model-store/
         env:
         - name: MODEL_STORE
-          value: {{ .Values.modelstore.path }}
+          value: {{ .Values.model.path }}
         - name: STACKN_MODEL_FILE
           value: {{ .Values.model.obj }}
       containers:
@@ -98,47 +80,35 @@ spec:
         - name: mc-conf
           mountPath: /etc/nginx
       {{ end }}
-      - name: serve
-        image: {{ .Values.deployment.image }}
-        # lifecycle:
-        #   postStart:
-        #     exec:
-        #       command: ["/bin/sh", "-c", 'curl -X POST "http://localhost:8081/models?model_name=mnist&url=model.mar&initial_workers=2"']
-        # readinessProbe:
-        #   tcpSocket:
-        #     port: 8081
-        #   initialDelaySeconds: 30
-        #   periodSeconds: 10
-        #args: ["curl", "-X", "POST", "http://localhost:8081/models?url=model.mar"]
-        args: ["torchserve", "--start", "--model-store", "/home/model-server/model-store", "--models", "all", "--ncs"]
-        {{- if .Values.securityContext.enabled }}
+      - name: pytorch-serve
+        image: {{ .Values.appconfig.image }}
+        command: ["torchserve", "--start", "--model-store", "/home/model-server/model-store/{{ .Values.model.path }}", "--models", "all", "--ts-config", "config.properties", "--foreground"]
         securityContext:
-          runAsUser: {{ .Values.securityContext.runAsUser }}
-          runAsGroup: {{ .Values.securityContext.runAsGroup }}
-          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
-          privileged: {{ .Values.securityContext.privileged }}
-          capabilities:
-            drop:
-              - all
-        {{- end }}
-        # env:
-        # - name: MODEL_STORE
-        #   value: {{ .Values.modelstore.path }}
+          {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
-          limits:
-            cpu: {{ .Values.flavor.limits.cpu }}
-            memory: {{ .Values.flavor.limits.memory }}
-          requests:
-            cpu: {{ .Values.flavor.requests.cpu }}
-            memory: {{ .Values.flavor.requests.memory }}
+          {{- toYaml .Values.flavor | nindent 10 }}
         volumeMounts:
         - name: model-vol
           mountPath: /home/model-server/model-store/
         imagePullPolicy: Always
         ports:
         - name: ts
-          containerPort: {{ .Values.deployment.inference_port }}
+          containerPort: {{ .Values.appconfig.inference_port }}
         - name: ts-management
-          containerPort: {{ .Values.deployment.management_port }}
+          containerPort: {{ .Values.appconfig.management_port }}
         - name: ts-metrics
-          containerPort: {{ .Values.deployment.metrics_port }}
+          containerPort: {{ .Values.appconfig.metrics_port }}
+      volumes:
+      - name: torch-conf
+        configMap:
+          name: {{ .Release.Name }}-torch-conf
+      - name: rp-conf
+        configMap:
+          name: {{ .Release.Name }}-rp-config
+      {{ if .Values.model_card.enabled }}
+      - name: mc-conf
+        configMap:
+          name: {{ .Release.Name }}-mc-config
+      {{ end }}
+      - name: model-vol
+        emptyDir: {}

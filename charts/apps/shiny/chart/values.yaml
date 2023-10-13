@@ -4,27 +4,17 @@ project:
   name: project
   slug: project-slug
 
-app:
-  resources:
-    requests:
-      memory: 1024Mi
-      cpu: 1.0
-    limits:
-      memory: 1024Mi
-      cpu: 1.0
+global:
+  protocol: TCP
 
-  gpu:
-    enabled: false
+apps:
+  volumek8s:
 
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: acceleration
-            operator: In
-            values:
-            - gpu
+appconfig:
+  port: 8501
+
+service:
+  name: customapp-svc
 
 imagePullSecrets:
   - name: regcred
@@ -33,13 +23,23 @@ ingress:
   v1beta1: false
   secretName: prod-ingress
 
-s3sync:
-  image: scaleoutsystems/s3-sync:latest
+podSecurityContext:
+  seccompProfile:
+      type: RuntimeDefault
+  fsGroup: 1000
 
 securityContext:
-  enabled: true
+  runAsNonRoot: true
   runAsUser: 999
   runAsGroup: 999
-  fsGroup: 999
   allowPrivilegeEscalation: false
   privileged: false
+  capabilities:
+    drop:
+      - all
+
+
+  
+
+
+

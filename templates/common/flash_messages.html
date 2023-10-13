@@ -1,6 +1,6 @@
 {% if messages %}
     {% for msg in messages %}
-    <div class="alert alert-info alert-dismissible fade show mt-3" id="flash-msg" role="alert">
+    <div class="alert {% if msg.tags == 'error' %}alert-danger{% elif msg.tags == 'success'%}alert-success{% elif msg.tags == 'warning'%}alert-warning{% else %}alert-info{% endif %} alert-dismissible fade show mt-3" id="flash-msg" role="alert">
         {{ msg }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>

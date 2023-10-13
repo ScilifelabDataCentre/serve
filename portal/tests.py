@@ -9,7 +9,7 @@ from portal import views
 @pytest.mark.django_db
 def test_index():
     # Get correct request
-    request = RequestFactory().get(reverse("portal:index"))
+    request = RequestFactory().get(reverse("portal:apps"))
 
     # Create session
     s = SessionStore()
@@ -18,7 +18,7 @@ def test_index():
     request.session = s
 
     # Get response. Since index is a function, this is the correct way
-    response = views.index(request)
+    response = views.public_apps(request)
 
     # Check if it returns the correct status code
     assert response.status_code == 200

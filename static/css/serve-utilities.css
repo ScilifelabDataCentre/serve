@@ -1,0 +1,46 @@
+.rounded-100 {
+    border-radius: 100%;
+}
+
+.h-r-30 {
+    height: 30rem !important
+}
+
+.img-cover {
+    object-fit: cover;
+}
+
+.vh-75 {
+    height: 75vh !important;
+}
+
+.vh-50 {
+    height: 50vh !important;
+}
+
+.hover-opacity-100:hover {
+
+    opacity: 1 !important;
+}
+
+.absolute-bottom {
+    position: absolute;
+    bottom:0;
+}
+
+@media (max-width:576px) {
+
+    .w-xs-100 {
+        width: 100% !important
+    }
+}
+
+.rollable {
+    overflow: hidden;
+    max-height: 400px;
+    transition: max-height 0.5s ease-in-out;
+}
+
+.rollable.hidden {
+    max-height: 0 !important;
+}

@@ -3,29 +3,14 @@ appname: tensorflow-serving
 namespace: default
 visibility: private
 
-resources:
-  limits:
-    cpu: 1000m
-    memory: 4Gi
-  requests:
-    cpu: 700m
-    memory: 2Gi
-
-registry:
-  secure: False
-  host: stack-docker-registry:5000
-
-imagePullSecret: regcred
+global:
+  protocol: TCP
 
 project:
   slug: project-slug
 
-deployment:
+appconfig:
   image: ghcr.io/scilifelabdatacentre/serve-tensorflow:230214-0820
-  version: version
-  name: deployment-name
-  endpoint: deployment-endpoint
-  path: deployment-path
   port: 8501
 
 context:
@@ -55,13 +40,23 @@ model_card:
   enabled: false
   path: model-card
 
+imagePullSecrets:
+  - name: regcred
+
 ingress:
   v1beta1: false
 
+podSecurityContext:
+  seccompProfile:
+      type: RuntimeDefault
+  fsGroup: 1000
+
 securityContext:
-  enabled: true
+  runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 1000
-  fsGroup: 1000
   allowPrivilegeEscalation: false
   privileged: false
+  capabilities:
+    drop:
+      - all

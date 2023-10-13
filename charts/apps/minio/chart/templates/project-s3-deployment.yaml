@@ -29,10 +29,19 @@ spec:
       automountServiceAccountToken: false
       {{- if .Values.securityContext.enabled }}
       securityContext:
+        seccompProfile:
+          type: RuntimeDefault
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
       containers:
-      - args:
+      - name: {{ .Release.Name }}-minio
+        image: minio/minio:14128-5ee91dc
+        imagePullPolicy: IfNotPresent
+        command:
+          - "/bin/sh"
+          - "-ce"
+          - "/usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.minioConsolePort }}" 
+        args:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - server
         - /home/stackn/{{ $key }}
@@ -63,19 +72,34 @@ spec:
             name: api-server
           - containerPort: 9001
             name: ui-console
-        image: minio/minio:14128-5ee91dc
-        imagePullPolicy: IfNotPresent
-        command:
-          - "/bin/sh"
-          - "-ce"
-          - "/usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.minioConsolePort }}"
-        name: {{ .Release.Name }}-minio
         resources: {}
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
           mountPath: /data
         {{- end }}
+      
+      - name: {{ .Release.Name }}-minio-sidecar
+        image: alpine:3.18.3
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "while true; do sleep 3600; done;"]
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+          runAsGroup: {{ .Values.securityContext.runAsGroup }}
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          privileged: {{ .Values.securityContext.privileged }}
+          capabilities:
+            drop:
+              - all
+        {{- end }}
+        resources: {}
+        volumeMounts:
+        {{- range $key, $value := .Values.apps.volumeK8s }}
+        - name: {{ $key }}
+          mountPath: /data
+        {{- end }}
+
       hostname: {{ .Release.Name }}-minio
       restartPolicy: Always
       volumes:

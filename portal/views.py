@@ -1,14 +1,14 @@
 from django.apps import apps
 from django.conf import settings
 from django.db.models import Q
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.generic import View
 
 AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 
 
-def index(request, id=0):
+def public_apps(request, id=0):
     try:
         projects = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status="active")
     except Exception:
@@ -43,6 +43,17 @@ def index(request, id=0):
 
     published_apps = AppInstance.objects.filter(~Q(state="Deleted"), access="public")
 
+    # Get the app instance latest status (not state)
+    # Similar to GetStatusView() in apps.views
+    for app in published_apps:
+        try:
+            app.latest_status = app.status.latest().status_type
+
+            app.status_group = "success" if app.latest_status in settings.APPS_STATUS_SUCCESS else "warning"
+        except:  # noqa E722 TODO: Add exception
+            app.latest_status = "unknown"
+            app.status_group = "unknown"
+
     # create session object to store ids for tag seacrh if it does not exist
     if "app_tag_filters" not in request.session:
         request.session["app_tag_filters"] = []
@@ -71,7 +82,7 @@ def index(request, id=0):
 
     request.session.modified = True
 
-    template = "portal/index.html"
+    template = "portal/apps.html"
     return render(request, template, locals())
 
 
@@ -80,6 +91,16 @@ class HomeView(View):
 
     def get(self, request):
         return render(request, self.template, locals())
+
+
+class HomeViewDynamic(View):
+    template = "portal/home.html"
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect("projects/")
+        else:
+            return render(request, self.template, locals())
 
 
 def about(request):

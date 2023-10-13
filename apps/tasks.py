@@ -5,6 +5,7 @@ from datetime import datetime
 
 import requests
 from celery import shared_task
+from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import EmptyResultSet
 from django.db import transaction
@@ -16,7 +17,7 @@ from studio.celery import app
 
 from . import controller
 from .models import AppInstance, Apps, AppStatus, ResourceData
-
+ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
 def get_URI(parameters):
     URI = "https://" + parameters["release"] + "." + parameters["global"]["domain"]
@@ -44,7 +45,7 @@ def post_create_hooks(instance):
 
         # OBS!! TEMP WORKAROUND to be able to connect to minio
         minio_svc = "{}-minio".format(instance.parameters["release"])
-        cmd = "kubectl" f" -n {settings.NAMESPACE}" f" get svc {minio_svc}" ' -o jsonpath="{.spec.clusterIP"} '
+        cmd = f"kubectl -n {settings.NAMESPACE} get svc {minio_svc} -o jsonpath='{{.spec.clusterIP}}'"
         minio_host_url = ""
         try:
             result = subprocess.run(
@@ -106,7 +107,7 @@ def post_create_hooks(instance):
         # between docker and k8s does not work currently)
         # Sure one could use FQDN but lets avoid going via the internet
         mlflow_svc = instance.parameters["service"]["name"]
-        cmd = "kubectl" f" -n {settings.NAMESPACE}" f" get svc {mlflow_svc}" ' -o jsonpath="{.spec.clusterIP"} '
+        cmd = f"kubectl -n {settings.NAMESPACE} get svc {mlflow_svc} -o jsonpath='{{.spec.clusterIP}}'"
         mlflow_host_ip = ""
         try:
             result = subprocess.run(
@@ -164,6 +165,31 @@ def post_delete_hooks(instance):
     elif project.mlflow and project.mlflow.app == instance:
         project.mlflow.delete()
 
+
+@shared_task
+@transaction.atomic
+def delete_and_deploy_resource(instance_pk, new_release_name):
+    appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
+
+    if appinstance and appinstance.state != "Deleted":
+        # The instance does exist.
+        parameters = appinstance.parameters
+        results = controller.delete(parameters)
+
+        if results.returncode == 0:
+            post_delete_hooks(appinstance)
+            parameters["release"] = new_release_name
+            appinstance.parameters.update(parameters)
+            appinstance.save()
+            deploy_resource(instance_pk)
+            try:
+                rel_name_obj = ReleaseName.objects.get(name=new_release_name, project=appinstance.project, status="active")
+                rel_name_obj.status = "in-use"
+                rel_name_obj.app = appinstance
+                rel_name_obj.save()
+            except Exception as e:
+                print("Error: Submitted release name not owned by project.")
+                print(e)
 
 @shared_task
 @transaction.atomic
@@ -366,7 +392,9 @@ def check_status():
             # Find the app instance release name
             app_release = instance.parameters["release"]  # e.g 'rfc058c6f'
             # Now check if there exists a pod with that release
-            cmd = "kubectl" f" -n {settings.NAMESPACE}" f"get po -l release={app_release}"
+            cmd = f"kubectl -n {settings.NAMESPACE} get po -l release=\"{app_release}\""
+            
+
             try:
                 # returns a byte-like object
                 result = subprocess.run(
@@ -427,7 +455,7 @@ def get_resource_usage():
 
     resources = dict()
 
-    args_pod = ["kubectl", "get", "po", "-o", "json"]
+    args_pod = ["kubectl", "-n", f"{settings.NAMESPACE}" "get", "po", "-o", "json"]
     results_pod = subprocess.run(args_pod, capture_output=True)
     results_pod_json = json.loads(results_pod.stdout.decode("utf-8"))
     try:

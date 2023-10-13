@@ -12,10 +12,10 @@ spec:
   selector:
     matchLabels:
       release: {{ .Release.Name }}
-      app: mlflow-serve
+      app: {{ .Values.appname }}
       project: {{ .Values.project.slug }}
       type: app
-      pod: mlflow-serve
+      pod: {{ .Values.appname }}
   template:
     metadata:
       annotations:
@@ -24,17 +24,15 @@ spec:
         prometheus.io/port: "8501"
       labels:
         release: {{ .Release.Name }}
-        app: mlflow-serve
+        app: {{ .Values.appname }}
         project: {{ .Values.project.slug }}
         networking/allow-internet-egress: "true"
         type: app
-        pod: mlflow-serve
+        pod: {{ .Values.appname }}
     spec:
       automountServiceAccountToken: false
-      {{- if .Values.securityContext.enabled }}
       securityContext:
-        fsGroup: {{ .Values.securityContext.fsGroup }}
-      {{- end }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       volumes:
       - name: rp-conf
         configMap:
@@ -46,12 +44,7 @@ spec:
       {{ end }}
       - name: model-vol
         emptyDir: {}
-      {{ if .Values.environment.registry }}
-      imagePullSecrets:
-        - name: {{ .Release.Name }}-pull-secret
-      {{ end }}
       initContainers:
-      
       - name: copy-model
         image: minio/mc
         imagePullPolicy: Always
@@ -69,8 +62,6 @@ spec:
           value: {{ .Values.model.access_key }}
         - name: S3_SECRET_ACCESS_KEY
           value: {{ .Values.model.secret_key }}
-        - name: AWS_REGION
-          value: us-east-1
         - name: S3_ENDPOINT
           value: {{ .Values.model.url }}
         - name: STACKN_MODEL_BUCKET
@@ -93,87 +84,41 @@ spec:
       - name: reverse-proxy
         image: nginxinc/nginx-unprivileged:latest
         imagePullPolicy: Always
-        {{- if .Values.securityContext.enabled }}
         securityContext:
-          runAsUser: 101
-          runAsGroup: 101
-          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
-          privileged: {{ .Values.securityContext.privileged }}
-          capabilities:
-            drop:
-              - all
-        {{- end }}
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        resources:
+          {{- toYaml .Values.flavor | nindent 10 }}
         volumeMounts:
         - name: rp-conf
           mountPath: /etc/nginx
-        resources:
-          limits:
-            cpu: 200m
-            memory: 256Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
-
       {{ if .Values.model_card.enabled }}
       - name: model-card
         image: nginxinc/nginx-unprivileged:latest
         imagePullPolicy: Always
-        {{- if .Values.securityContext.enabled }}
         securityContext:
-          runAsUser: 101
-          runAsGroup: 101
-          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
-          privileged: {{ .Values.securityContext.privileged }}
-          capabilities:
-            drop:
-              - all
-        {{- end }}
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        resources:
+          {{- toYaml .Values.flavor | nindent 10 }}
         volumeMounts:
         - name: model-vol
           mountPath: /model
         - name: mc-conf
           mountPath: /etc/nginx
-        resources:
-          limits:
-            cpu: 200m
-            memory: 256Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
       {{ end }}
       - name: serve
         command: ["/bin/sh"]
         args: ["-c", "mlflow models serve -m /models/model -h 0.0.0.0"]
-        {{- if .Values.securityContext.enabled }}
+        image: {{ .Values.appconfig.image }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.appconfig.port }}
         securityContext:
-          runAsUser: {{ .Values.securityContext.runAsUser }}
-          runAsGroup: {{ .Values.securityContext.runAsGroup }}
-          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
-          privileged: {{ .Values.securityContext.privileged }}
-          capabilities:
-            drop:
-              - all
-        {{- end }}
+          {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
-          limits:
-            cpu: {{ .Values.flavor.limits.cpu }}
-            memory: {{ .Values.flavor.limits.memory }}
-          requests:
-            cpu: {{ .Values.flavor.requests.cpu }}
-            memory: {{ .Values.flavor.requests.memory }}
+          {{- toYaml .Values.flavor | nindent 10 }}
         volumeMounts:
         - name: model-vol
           mountPath: /models
         {{- with .Values.extraVolumeMounts }}
         {{- tpl . $ | nindent 8 }}
         {{- end }}
-        # env:
-        # - name: GUNICORN_CMD_ARGS
-        #   value: "--limit-request-field_size 0"
-        #   {{- with .Values.extraEnv }}
-        #   {{- tpl . $ | nindent 10 }}
-        #   {{- end }}
-        image: {{ .Values.environment.repository }}/{{ .Values.environment.image }}
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 5000

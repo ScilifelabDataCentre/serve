@@ -331,26 +331,30 @@ MIGRATION_MODULES = {
 }
 
 # Defines how many apps a user is allowed to create within one project
-APPS_PER_USER_LIMIT = {
-    "vscode": 1,
-    "volumeK8s": 1,
-    "pytorch-serve": 1,
-    "tensorflow-serve": 1,
-    "mlflow-serve": 1,
+APPS_PER_PROJECT_LIMIT = {
+    "dashapp": 10,
+    "shinyapp": 10,
+    "shinyproxyapp": 10,
+    "customapp": 10,
+    "pytorch-serve": 10,
+    "tensorflow-serve": 10,
+    "mlflow-serve": 10,
+    "rstudio": 3,
+    "vscode": 3,
+    "jupyter-lab": 3,
     "mlflow": 1,
-    "minio": 1,
-    "jupyter-lab": 1,
-    "mongo-express": 1,
-    "reducer": 2,
-    "docker-registry": 1,
-    "combiner": 2,
-    "mongodb": 1,
+    "volumeK8s": 0,
+    "minio": 0,
+    "mongo-express": 0,
+    "reducer": 0,
+    "combiner": 0,
+    "mongodb": 0,
+    "netpolicy": 0,
 }
 
-PROJECTS_PER_USER_LIMIT = 3
+PROJECTS_PER_USER_LIMIT = 5
 
 STUDIO_ACCESSMODE = os.environ.get("STUDIO_ACCESSMODE", "")
-ENABLE_PROJECT_EXTRA_SETTINGS = True
+ENABLE_PROJECT_EXTRA_SETTINGS = False
 
-DISABLED_APP_INSTANCE_FIELDS = []
-
+DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore

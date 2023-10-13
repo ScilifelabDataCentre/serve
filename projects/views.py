@@ -81,10 +81,15 @@ def settings(request, user, project_slug):
         print(err)
 
     template = "projects/settings.html"
-    project = Project.objects.filter(
-        Q(owner=request.user) | Q(authorized=request.user),
-        Q(slug=project_slug),
-    ).first()
+    if request.user.is_superuser:
+        project = Project.objects.filter(
+            Q(slug=project_slug),
+        ).first()
+    else:
+        project = Project.objects.filter(
+            Q(owner=request.user) | Q(authorized=request.user),
+            Q(slug=project_slug),
+        ).first()
 
     try:
         User._meta.get_field("is_user")
@@ -107,9 +112,6 @@ def settings(request, user, project_slug):
     s3instances = S3.objects.filter(Q(project=project), Q(app__state="Running"))
     flavors = Flavor.objects.filter(project=project)
     mlflows = MLFlow.objects.filter(Q(project=project), Q(app__state="Running"))
-
-    registry_app = Apps.objects.get(slug="docker-registry")
-    registries = AppInstance.objects.filter(app=registry_app.pk, project=project)
 
     return render(request, template, locals())
 
@@ -430,6 +432,9 @@ class RevokeAccessToProjectView(View):
 
 @login_required
 def project_templates(request):
+    user_can_create = Project.objects.user_can_create(request.user)
+    if not user_can_create:
+        return HttpResponseForbidden()
     template = "projects/project_templates.html"
     templates = ProjectTemplate.objects.filter(enabled=True).order_by("slug", "-revision").distinct("slug")
     media_url = django_settings.MEDIA_URL
@@ -440,6 +445,10 @@ class CreateProjectView(View):
     template_name = "projects/project_create.html"
 
     def get(self, request):
+        user_can_create = Project.objects.user_can_create(request.user)
+        if not user_can_create:
+            return HttpResponseForbidden()
+
         pre_selected_template = request.GET.get("template")
 
         arr = ProjectTemplate.objects.filter(name=pre_selected_template)
@@ -455,6 +464,9 @@ class CreateProjectView(View):
         )
 
     def post(self, request, *args, **kwargs):
+        user_can_create = Project.objects.user_can_create(request.user)
+        if not user_can_create:
+            return HttpResponseForbidden()
         success = True
 
         template_id = request.POST.get("template_id")
@@ -522,7 +534,10 @@ class DetailsView(View):
 
         if request.user.is_authenticated:
             project = Project.objects.get(slug=project_slug)
-            categories = AppCategories.objects.all().order_by("-priority")
+            if request.user.is_superuser:
+                categories = AppCategories.objects.all().order_by("-priority")
+            else:
+                categories = AppCategories.objects.all().exclude(slug__in=["admin-apps"]).order_by("-priority")
             # models = Model.objects.filter(project=project).order_by("-uploaded_at")[:10]
             models = Model.objects.filter(project=project).order_by("-uploaded_at")
 

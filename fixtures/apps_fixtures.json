@@ -1,439 +1,375 @@
 [
   {
-    "model": "apps.apps",
-    "pk": 3,
     "fields": {
-      "name": "Docker Registry",
-      "slug": "docker-registry",
-      "category": "store",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
-      },
+      "category": "develop",
+      "chart": "apps/jupyter-lab/chart",
+      "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "settings": {
-        "apps": {
-          "Persistent Volume": "one"
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "80"
-        },
-        "credentials": {
-          "username": {
-            "type": "string",
-            "default": "admin",
-            "title": "Username"
-          },
-          "password": {
-            "type": "string",
-            "default": "password",
-            "title": "Password"
-          }
-        },
-        "permissions": {
-          "public": {
-            "value": "false",
-            "option": "false"
-          },
-          "project": {
-            "value": "true",
-            "option": "true"
-          },
-          "private": {
-            "value": "false",
-            "option": "true"
-          }
-        }
-      },
-      "chart": "apps/docker-registry/chart",
-      "logo": "docker-registry-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
-  },
-  {
-    "model": "apps.apps",
-    "pk": 8,
-    "fields": {
+      "logo": "jupyter-lab-logo.png",
       "name": "Jupyter Lab",
-      "slug": "jupyter-lab",
-      "category": "compute",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
-      },
-      "description": "",
       "priority": "500",
       "settings": {
         "apps": {
           "Persistent Volume": "many"
         },
-        "flavor": "one",
         "default_values": {
           "port": "80",
           "targetport": "8888"
         },
         "environment": {
           "name": "from",
-          "title": "Image",
           "quantity": "one",
+          "title": "Image",
           "type": "match"
         },
+        "export-cli": "True",
+        "flavor": "one",
         "permissions": {
-          "public": {
-            "value": "false",
-            "option": "false"
+          "private": {
+            "option": "true",
+            "value": "false"
           },
           "project": {
-            "value": "true",
-            "option": "true"
+            "option": "true",
+            "value": "true"
           },
-          "private": {
-            "value": "false",
-            "option": "true"
+          "public": {
+            "option": "false",
+            "value": "false"
           }
-        },
-        "export-cli": "True"
+        }
       },
-      "chart": "apps/jupyter-lab/chart",
-      "logo": "jupyter-lab-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
-  },
-  {
-    "model": "apps.apps",
-    "pk": 9,
-    "fields": {
-      "name": "Minio",
-      "slug": "minio",
-      "category": "store",
+      "slug": "jupyter-lab",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
+      "updated_on": "2021-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 8
+  },
+  {
+    "fields": {
+      "category": "admin-apps",
+      "chart": "apps/minio/chart",
+      "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
+      "logo": "minio-logo.png",
+      "name": "Minio",
       "priority": "200",
       "settings": {
         "apps": {
           "Persistent Volume": "one"
         },
+        "credentials": {
+          "access_key": {
+            "default": "accesskey",
+            "title": "Access Key",
+            "type": "string"
+          },
+          "secret_key": {
+            "default": "secretkey123",
+            "title": "Secret Key",
+            "type": "string"
+          }
+        },
         "default_values": {
           "port": "9000",
           "targetport": "9000"
         },
-        "credentials": {
-          "access_key": {
-            "type": "string",
-            "default": "accesskey",
-            "title": "Access Key"
-          },
-          "secret_key": {
-            "type": "string",
-            "default": "secretkey123",
-            "title": "Secret Key"
-          }
-        },
         "permissions": {
-          "public": {
-            "value": "false",
-            "option": "false"
+          "private": {
+            "option": "true",
+            "value": "false"
           },
           "project": {
-            "value": "true",
-            "option": "true"
+            "option": "true",
+            "value": "true"
           },
-          "private": {
-            "value": "false",
-            "option": "true"
+          "public": {
+            "option": "false",
+            "value": "false"
           }
         }
       },
-      "chart": "apps/minio/chart",
-      "logo": "minio-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
-  },
-  {
-    "model": "apps.apps",
-    "pk": 10,
-    "fields": {
-      "name": "MLFlow",
-      "slug": "mlflow",
-      "category": "develop",
+      "slug": "minio",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
+      "updated_on": "2021-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 9
+  },
+  {
+    "fields": {
+      "category": "develop",
+      "chart": "apps/mlflow/chart",
+      "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
+      "logo": "mlflow-logo.png",
+      "name": "MLFlow",
       "settings": {
+        "S3": "one",
         "apps": {
           "Persistent Volume": "one"
+        },
+        "credentials": {
+          "password": {
+            "default": "password",
+            "title": "Password",
+            "type": "string"
+          },
+          "username": {
+            "default": "admin",
+            "title": "Username",
+            "type": "string"
+          }
         },
         "default_values": {
           "port": "5000",
           "targetport": "5000"
         },
-        "S3": "one",
-        "credentials": {
-          "username": {
-            "type": "string",
-            "default": "admin",
-            "title": "Username"
-          },
-          "password": {
-            "type": "string",
-            "default": "password",
-            "title": "Password"
-          }
-        },
+        "flavor": "one",
         "permissions": {
-          "public": {
-            "value": "false",
-            "option": "false"
+          "private": {
+            "option": "true",
+            "value": "false"
           },
           "project": {
-            "value": "true",
-            "option": "true"
+            "option": "true",
+            "value": "true"
           },
-          "private": {
-            "value": "false",
-            "option": "true"
+          "public": {
+            "option": "false",
+            "value": "false"
           }
         }
       },
-      "chart": "apps/mlflow/chart",
-      "logo": "mlflow-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
-  },
-  {
-    "model": "apps.apps",
-    "pk": 11,
-    "fields": {
-      "name": "MLFlow Serve",
-      "slug": "mlflow-serve",
-      "category": "serve",
-      "priority": "400",
+      "slug": "mlflow",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
+      "updated_on": "2021-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 10
+  },
+  {
+    "fields": {
+      "category": "serve",
+      "chart": "apps/mlflow-serve/chart",
+      "created_on": "2021-02-19T21:34:37.815Z",
+      "logo": "mlflow-serve-logo.png",
+      "name": "MLFlow Serve",
+      "priority": "400",
       "settings": {
-        "model": {
-          "quantity": "one",
-          "object_type": "mlflow"
-        },
-        "flavor": "one",
-        "environment": {
-          "name": "from",
-          "title": "Environment",
-          "quantity": "one",
-          "type": "match"
-        },
-        "logs": [
-          "serve"
-        ],
         "default_values": {
           "is_tar": "False",
           "port": "5000",
           "targetport": "8501"
         },
-        "permissions": {
-          "public": {
-            "value": "false",
-            "option": "true"
-          },
-          "project": {
-            "value": "true",
-            "option": "true"
-          },
-          "private": {
-            "value": "false",
-            "option": "true"
-          }
-        },
         "env_variables": {
           "{{ app_name }}_URL": "https://{{ release }}.{{ global.domain }}/invocation"
         },
+        "environment": {
+          "name": "from",
+          "quantity": "one",
+          "title": "Environment",
+          "type": "match"
+        },
+        "flavor": "one",
+        "logs": [
+          "serve"
+        ],
+        "model": {
+          "object_type": "mlflow",
+          "quantity": "one"
+        },
+        "permissions": {
+          "private": {
+            "option": "true",
+            "value": "false"
+          },
+          "project": {
+            "option": "true",
+            "value": "true"
+          },
+          "public": {
+            "option": "true",
+            "value": "false"
+          }
+        },
         "publishable": "true"
       },
-      "chart": "apps/mlflow-serve/chart",
-      "logo": "mlflow-serve-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
+      "slug": "mlflow-serve",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "updated_on": "2021-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 11
   },
   {
-    "model": "apps.apps",
-    "pk": 15,
     "fields": {
-      "name": "Tensorflow Serving",
-      "slug": "tensorflow-serve",
       "category": "serve",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}/v1/models/models:predict"
-      },
+      "chart": "apps/tensorflow-serve/chart",
+      "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
+      "logo": "tensorflow-serve-logo.png",
+      "name": "Tensorflow Serving",
       "priority": "600",
       "settings": {
-        "model": {
-          "object_type": "tensorflow"
-        },
         "default_values": {
           "port": "80",
           "targetport": "8501"
         },
+        "env_variables": {
+          "{{ app_name }}_URL": "https://{{ release }}.{{ global.domain }}/v1/models/models:predict"
+        },
         "flavor": "one",
         "logs": [
           "serve"
         ],
+        "model": {
+          "object_type": "tensorflow"
+        },
         "permissions": {
-          "public": {
-            "value": "false",
-            "option": "true"
+          "private": {
+            "option": "true",
+            "value": "false"
           },
           "project": {
-            "value": "true",
-            "option": "true"
+            "option": "true",
+            "value": "true"
           },
-          "private": {
-            "value": "false",
-            "option": "true"
+          "public": {
+            "option": "true",
+            "value": "false"
           }
-        },
-        "env_variables": {
-          "{{ app_name }}_URL": "https://{{ release }}.{{ global.domain }}/v1/models/models:predict"
         },
         "publishable": "true"
       },
-      "chart": "apps/tensorflow-serve/chart",
-      "logo": "tensorflow-serve-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
+      "slug": "tensorflow-serve",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}/v1/models/models:predict"
+      },
+      "updated_on": "2021-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 15
   },
   {
-    "model": "apps.apps",
-    "pk": 17,
     "fields": {
-      "name": "PyTorch Serve",
-      "slug": "pytorch-serve",
       "category": "serve",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}/predictions/"
-      },
+      "chart": "apps/pytorch-serve/chart",
+      "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
+      "logo": "pytorch-serve-logo.png",
+      "name": "PyTorch Serve",
       "priority": "500",
       "settings": {
-        "model": {
-          "object_type": "pytorch"
-        },
-        "logs": [
-          "serve"
-        ],
         "default_values": {
           "port": "80",
           "targetport": "8080"
         },
-        "permissions": {
-          "public": {
-            "value": "false",
-            "option": "true"
-          },
-          "project": {
-            "value": "true",
-            "option": "true"
-          },
-          "private": {
-            "value": "false",
-            "option": "true"
-          }
-        },
-        "flavor": "one",
-        "modelstore": {
-          "meta": {
-            "title": "Models"
-          },
-          "path": {
-            "type": "string",
-            "default": "models",
-            "title": "S3 bucket"
-          }
-        },
         "env_variables": {
           "{{ app_name }}_URL": "https://{{ release }}.{{ global.domain }}/predictions/"
         },
-        "publishable": "true"
-      },
-      "chart": "apps/pytorch-serve/chart",
-      "logo": "pytorch-serve-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
-  },
-  {
-    "model": "apps.apps",
-    "pk": 18,
-    "fields": {
-      "name": "Persistent Volume",
-      "slug": "volumeK8s",
-      "category": "store",
-      "table_field": {},
-      "description": "",
-      "priority": "600",
-      "settings": {
-        "volume": {
-          "size": {
-            "type": "string",
-            "default": "1Gi",
-            "title": "Size"
+        "flavor": "one",
+        "logs": [
+          "serve"
+        ],
+        "model": {
+          "object_type": "pytorch"
+        },
+        "permissions": {
+          "private": {
+            "option": "true",
+            "value": "false"
           },
-          "storageClass": {
-            "type": "string",
-            "default": "",
-            "title": "StorageClass"
+          "project": {
+            "option": "true",
+            "value": "true"
           },
-          "accessModes": {
-            "type": "string",
-            "default": "ReadWriteMany",
-            "title": "AccessModes"
+          "public": {
+            "option": "true",
+            "value": "false"
           }
         },
+        "publishable": "true"
+      },
+      "slug": "pytorch-serve",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}/predictions/"
+      },
+      "updated_on": "2021-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 17
+  },
+  {
+    "fields": {
+      "category": "admin-apps",
+      "chart": "apps/volumeK8s/chart",
+      "created_on": "2021-02-19T21:34:37.815Z",
+      "description": "",
+      "logo": "volumeK8s-logo.png",
+      "name": "Persistent Volume",
+      "priority": "600",
+      "settings": {
         "default_values": {
           "port": "port",
           "targetport": "targetport"
         },
         "permissions": {
-          "public": {
-            "value": "false",
-            "option": "false"
+          "private": {
+            "option": "true",
+            "value": "false"
           },
           "project": {
-            "value": "true",
-            "option": "true"
+            "option": "true",
+            "value": "true"
           },
-          "private": {
-            "value": "false",
-            "option": "true"
+          "public": {
+            "option": "false",
+            "value": "false"
+          }
+        },
+        "volume": {
+          "accessModes": {
+            "default": "ReadWriteMany",
+            "title": "AccessModes",
+            "type": "string"
+          },
+          "size": {
+            "default": "1Gi",
+            "title": "Size",
+            "type": "string"
+          },
+          "storageClass": {
+            "default": "",
+            "title": "StorageClass",
+            "type": "string"
           }
         }
       },
-      "chart": "apps/volumeK8s/chart",
-      "logo": "volumeK8s-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
+      "slug": "volumeK8s",
+      "table_field": {},
+      "updated_on": "2021-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 18
   },
   {
-    "model": "apps.apps",
-    "pk": 19,
     "fields": {
-      "name": "VS Code",
-      "slug": "vscode",
       "category": "develop",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
-      },
+      "chart": "apps/vscode/chart",
+      "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
+      "logo": "vscode-logo.png",
+      "name": "VS Code",
       "settings": {
         "apps": {
           "Persistent Volume": "many"
@@ -443,36 +379,39 @@
           "targetport": "8080"
         },
         "export-cli": "True",
+        "flavor": "one",
         "permissions": {
-          "public": {
-            "value": "false",
-            "option": "false"
+          "private": {
+            "option": "true",
+            "value": "false"
           },
           "project": {
-            "value": "true",
-            "option": "true"
+            "option": "true",
+            "value": "true"
           },
-          "private": {
-            "value": "false",
-            "option": "true"
+          "public": {
+            "option": "false",
+            "value": "false"
           }
         }
       },
-      "chart": "apps/vscode/chart",
-      "logo": "vscode-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
+      "slug": "vscode",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "updated_on": "2021-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 19
   },
   {
-    "model": "apps.apps",
-    "pk": 20,
     "fields": {
-      "name": "Network Policy",
-      "slug": "netpolicy",
-      "category": "network",
-      "table_field": {},
+      "category": "admin-apps",
+      "chart": "apps/netpolicy/chart",
+      "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
+      "logo": "netpolicy-logo.png",
+      "name": "Network Policy",
       "priority": "600",
       "settings": {
         "default_values": {
@@ -480,89 +419,87 @@
           "targetport": ""
         }
       },
-      "chart": "apps/netpolicy/chart",
-      "logo": "netpolicy-logo.png",
-      "updated_on": "2021-03-10T19:45:03.927Z",
-      "created_on": "2021-02-19T21:34:37.815Z"
-    }
+      "slug": "netpolicy",
+      "table_field": {},
+      "updated_on": "2021-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 20
   },
   {
-    "model": "apps.apps",
-    "pk": 21,
     "fields": {
-      "name": "Standard App",
-      "slug": "standardapp",
       "category": "serve",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
-      },
+      "chart": "apps/custom-app/chart",
+      "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
+      "logo": "default-logo.png",
+      "name": "Custom App",
       "priority": "400",
       "settings": {
+        "appconfig": {
+          "image": {
+            "default": "registry/repository/image:tag",
+            "title": "Image",
+            "type": "string"
+          },
+          "meta": {
+            "title": "Configurations"
+          },
+          "path": {
+            "default": "",
+            "title": "Path to folder for persistent storage (leave blank if Persistent Volume is set to None)",
+            "type": "string"
+          },
+          "port": {
+            "default": "8000",
+            "title": "Port",
+            "type": "number"
+          }
+        },
         "apps": {
           "Persistent Volume": "one"
         },
-        "publishable": "true",
-        "flavor": "one",
-        "logs": [
-          "serve"
-        ],
         "default_values": {
           "port": "80",
           "targetport": "8000"
         },
+        "flavor": "one",
+        "logs": [
+          "serve"
+        ],
         "permissions": {
-          "public": {
-            "value": "false",
-            "option": "true"
+          "private": {
+            "option": "true",
+            "value": "false"
           },
           "project": {
-            "value": "true",
-            "option": "true"
+            "option": "true",
+            "value": "true"
           },
-          "private": {
-            "value": "false",
-            "option": "true"
+          "public": {
+            "option": "true",
+            "value": "false"
           }
         },
-        "appconfig": {
-          "meta": {
-            "title": "Configurations"
-          },
-          "image": {
-            "type": "string",
-            "default": "registry/repository/image:tag",
-            "title": "Image"
-          },
-          "port": {
-            "type": "number",
-            "default": "8000",
-            "title": "Port"
-          },
-          "path": {
-            "type": "string",
-            "default": "",
-            "title": "Path to folder for persistent storage (leave blank if Persistent Volume is set to None)"
-          }
-        }
+        "publishable": "true"
       },
-      "chart": "apps/standard-app/chart",
-      "logo": "default-logo.png",
-      "updated_on": "2023-08-25T19:45:03.927Z",
-      "created_on": "2023-08-25T21:34:37.815Z"
-    }
-  },
-  {
-    "model": "apps.apps",
-    "pk": 22,
-    "fields": {
-      "name": "RStudio",
-      "slug": "rstudio",
-      "category": "develop",
+      "slug": "customapp",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
+      "updated_on": "2023-08-25T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 21
+  },
+  {
+    "fields": {
+      "category": "develop",
+      "chart": "apps/rstudio/chart",
+      "created_on": "2023-08-31T09:30:00.000Z",
       "description": "",
+      "logo": "rstudio-logo.png",
+      "name": "RStudio",
       "priority": "600",
       "settings": {
         "apps": {
@@ -572,131 +509,188 @@
           "port": "80",
           "targetport": "8787"
         },
+        "flavor": "one",
         "permissions": {
-          "public": {
-            "value": "false",
-            "option": "false"
+          "private": {
+            "option": "true",
+            "value": "false"
           },
           "project": {
-            "value": "true",
-            "option": "true"
+            "option": "true",
+            "value": "true"
           },
-          "private": {
-            "value": "false",
-            "option": "true"
+          "public": {
+            "option": "false",
+            "value": "false"
           }
         }
       },
-      "chart": "apps/rstudio/chart",
-      "logo": "rstudio-logo.png",
-      "updated_on": "2023-08-31T09:30:00.000Z",
-      "created_on": "2023-08-31T09:30:00.000Z"
-    }
-  },
-  {
-    "model": "apps.apps",
-    "pk": 23,
-    "fields": {
-      "name": "Dash App",
-      "slug": "dashapp",
-      "category": "serve",
+      "slug": "rstudio",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
+      "updated_on": "2023-08-31T09:30:00.000Z"
+    },
+    "model": "apps.apps",
+    "pk": 22
+  },
+  {
+    "fields": {
+      "category": "serve",
+      "chart": "apps/dash/chart",
+      "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
+      "logo": "dashapp-logo.png",
+      "name": "Dash App",
       "priority": "400",
       "settings": {
-        "publishable": "true",
-        "flavor": "one",
-        "logs": [
-          "serve"
-        ],
+        "appconfig": {
+          "image": {
+            "default": "registry/repository/image:tag",
+            "title": "Image",
+            "type": "string"
+          },
+          "meta": {
+            "title": "Configurations"
+          }
+        },
         "default_values": {
           "port": "80",
           "targetport": "8000"
         },
-        "permissions": {
-          "public": {
-            "value": "false",
-            "option": "true"
-          },
-          "project": {
-            "value": "true",
-            "option": "true"
-          },
-          "private": {
-            "value": "false",
-            "option": "true"
-          }
-        },
-        "appconfig": {
-          "meta": {
-            "title": "Configurations"
-          },
-          "image": {
-            "type": "string",
-            "default": "registry/repository/image:tag",
-            "title": "Image"
-          }
-        }
-      },
-      "chart": "apps/dash/chart",
-      "logo": "dashapp-logo.png",
-      "updated_on": "2023-08-25T19:45:03.927Z",
-      "created_on": "2023-08-25T21:34:37.815Z"
-    }
-  },
-  {
-    "model": "apps.apps",
-    "pk": 24,
-    "fields": {
-      "name": "Shiny App",
-      "slug": "shinyapp",
-      "category": "serve",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
-      },
-      "description": "",
-      "priority": "400",
-      "settings": {
-        "publishable": "true",
         "flavor": "one",
         "logs": [
           "serve"
         ],
+        "permissions": {
+          "private": {
+            "option": "true",
+            "value": "false"
+          },
+          "project": {
+            "option": "true",
+            "value": "true"
+          },
+          "public": {
+            "option": "true",
+            "value": "false"
+          }
+        },
+        "publishable": "true"
+      },
+      "slug": "dashapp",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "updated_on": "2023-08-25T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 23
+  },
+  {
+    "fields": {
+      "category": "admin-apps",
+      "chart": "apps/shiny/chart",
+      "created_on": "2023-08-25T21:34:37.815Z",
+      "description": "Shiny app without ShinyProxy as a middle layer.",
+      "logo": "shinyapp-logo.png",
+      "name": "Shiny App",
+      "priority": "400",
+      "settings": {
+        "appconfig": {
+          "image": {
+            "default": "registry/repository/image:tag",
+            "title": "Image",
+            "type": "string"
+          },
+          "meta": {
+            "title": "Configurations"
+          }
+        },
         "default_values": {
           "port": "80",
           "targetport": "3838"
         },
+        "flavor": "one",
+        "logs": [
+          "serve"
+        ],
         "permissions": {
-          "public": {
-            "value": "false",
-            "option": "true"
+          "private": {
+            "option": "true",
+            "value": "false"
           },
           "project": {
-            "value": "true",
-            "option": "true"
+            "option": "true",
+            "value": "true"
           },
-          "private": {
-            "value": "false",
-            "option": "true"
+          "public": {
+            "option": "true",
+            "value": "false"
           }
         },
+        "publishable": "true"
+      },
+      "slug": "shinyapp",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "updated_on": "2023-08-25T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 24
+  },
+  {
+    "fields": {
+      "category": "serve",
+      "chart": "apps/shinyproxy/chart",
+      "created_on": "2023-08-25T21:34:37.815Z",
+      "description": "",
+      "logo": "shinyapp-logo.png",
+      "name": "Shiny App",
+      "priority": "400",
+      "settings": {
         "appconfig": {
+          "image": {
+            "default": "registry/repository/image:tag",
+            "title": "Image",
+            "type": "string"
+          },
           "meta": {
             "title": "Configurations"
-          },
-          "image": {
-            "type": "string",
-            "default": "registry/repository/image:tag",
-            "title": "Image"
           }
-        }
+        },
+        "default_values": {
+          "port": "80",
+          "targetport": "3838"
+        },
+        "flavor": "one",
+        "logs": [
+          "serve"
+        ],
+        "permissions": {
+          "private": {
+            "option": "true",
+            "value": "false"
+          },
+          "project": {
+            "option": "true",
+            "value": "true"
+          },
+          "public": {
+            "option": "true",
+            "value": "false"
+          }
+        },
+        "publishable": "true"
       },
-      "chart": "apps/shiny/chart",
-      "logo": "shinyapp-logo.png",
-      "updated_on": "2023-08-25T19:45:03.927Z",
-      "created_on": "2023-08-25T21:34:37.815Z"
-    }
+      "slug": "shinyproxyapp",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "updated_on": "2023-08-25T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 25
   }
 ]

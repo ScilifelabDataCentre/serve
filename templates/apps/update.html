@@ -13,29 +13,86 @@
     </ol>
 </nav>
 
+<h1 class="h3 mb-3">Settings {{ app.name }}</h1>
 <div class="row">
-    <div class="col">
-        <h3>Settings {{ app.name }}</h3>
+    <div class="col-12 mt-2 mb-4">
+        {% if app.slug == 'customapp' %}
+        This form allows you to start hosting an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="#">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.
+        {% elif app.slug == 'dashapp' %}
+        This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="#">documentation page on Dash apps</a> for step-by-step instructions.
+        {% elif app.slug in 'shinyapp,shinyproxyapp' %}
+        This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="#">documentation page on Shiny apps</a> for step-by-step instructions.
+        {% else %}
+        [link to documentation to be added here]
+        {% endif %}
     </div>
 </div>
 
 <div class="row pt-3">
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-
+            <form class="needs-validation" method="post" novalidate>
+                {% csrf_token %}
+                <div class="card-body">
                     <input type="hidden" id="app_id" name="app_id" value="{{ appinstance.pk }}">
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item">
                         <label class="form-label">Name</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Display name for the application. This is the name visible on the app catalogue if the app is public">
+                        </span>
                         <input type="text" id="app_name" name="app_name" value="{{ existing_app_name }}"
                             class="form-control" required>
+                        <div class="invalid-feedback">
+                            Please add a valid name!
+                        </div>
                     </div>
 
+                    {% if do_display_description_field %}
+                    <div class="mb-3 validate-item">
+                        <label class="form-label">Description</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Summarize the application in a few words">
+                        </span>
+                        <textarea type="text" id="app_description" name="app_description"
+                            class="form-control" rows="2" required>{{ existing_app_description }}</textarea>
+                        <div class="invalid-feedback">
+                            Please add a description of the app!
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if do_display_description_field or request.user.is_superuser %}
+                    <div id="subdomain" class="mb-3">
+                        <label class="form-label">Subdomain (under {{domain}})</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="A subdomain is automatically generated for the app. If you want to create a custom subdomain, click on New">
+                        </span>
+                        <div class="input-group">
+                            <select name="app_release_name" id="app_release_name" type="text" class="form-control" formnovalidate="formnovalidate">
+                                <option value="" {% if not request.GET.rn %}selected{% endif %}>---- Generated ----</option>
+                                <option value="{{ existing_app_release_name }}" {% if not request.GET.rn %}selected{% endif %}>{{ existing_app_release_name }}.{{domain}}</option>
+                            {% for item in form.release_names %}
+                                {% if item.name != existing_app_release_name  %}
+                                <option value="{{ item.name }}" {% if request.GET.rn == item.name %}selected{% endif %}>{{ item.name }}.{{domain}}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                            <button class="btn btn-outline-secondary" onclick="toggleSubdomain()" type="button">New</button>
+                        </div>
+                    </div>
+                    <div id="subdomain-add" class="mb-3" style="display: none;">
+                        <label class="form-label">New Subdomain</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Valid subdomain names are those that have letters a-z and numbers 0-9 and a hyphen '-'. The hyphen should not be at the start or end of the subdomain">
+                        </span>
+                        <div class="input-group">
+                            <input id="rn" type="text" class="form-control" placeholder="New Subdomain ..." name="rn">
+                            <button onclick="submitDomain()" type="button" class="btn btn-outline-secondary">Add</button>
+                            <div class="valid-feedback">Subdomain Added</div>
+                            <div id="subdomain-invalid" class="invalid-feedback">Subdomain already exists. Please choose another.</div>
+                        </div>
+                    </div>
+                    {% endif %}
                     {% if form.dep_permissions %}
                     <div class="mb-3">
                         <label class="form-label">Permissions</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to them. Project apps can only be accessed by project members. Private apps are only accessible by users that create the apps.">
+                        </span>
                         <select {% if not show_permissions %} disabled {% endif %} name="permission" id="permission"
                             class="form-control">
                             {% for name, value in form.form_permissions.items %}
@@ -54,6 +111,8 @@
                     {% if form.dep_model %}
                     <div class="mb-3">
                         <label class="form-label">Model</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="List of model objects created in the project.">
+                        </span>
                         <select name="model" id="model" class="form-control">
                             {% for model in form.models %}
                             <option value="{{ model.pk }}" {{ model.selected }}>{{ model.name }}:{{ model.version }}
@@ -76,7 +135,9 @@
 
                     {% if form.dep_flavor %}
                     <div class="mb-3">
-                        <label class="form-label">Flavors</label>
+                        <label class="form-label">Hardware</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Hardware allocation for your app. Only one option is available by default. If your app requires more hardware resources, get in touch with us (serve@scilifelab.se) with a request.">
+                        </span>
                         <select name="flavor" id="flavor" class="form-control">
                             {% for flavor in form.flavors %}
                             <option value="{{ flavor.pk }}">{{ flavor.name }}</option>
@@ -86,6 +147,7 @@
                     {% endif %}
 
                     {% if form.dep_environment %}
+                    {% if form.environments.objs.count > 0 %}
                     <div class="mb-3">
                         <label class="form-label">{{ form.environments.title }}</label>
                         <select name="environment" id="environment" class="form-control">
@@ -99,19 +161,7 @@
                         </select>
                     </div>
                     {% endif %}
-
-
-                    {% if form.dep_volumes %}
-                    <div class="mb-3">
-                        <label class="form-label">Volumes</label>
-                        <select name="volumes" id="volumes" class="form-control" required>
-                            {% for volume in form.volumes %}
-                            <option value="{{ volume.pk }}">{{ volume.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
                     {% endif %}
-
 
                     {% if form.dep_apps %}
                     {% for app_name, appinstances in form.app_deps.items %}
@@ -123,6 +173,7 @@
                             <option value="{{ appinstance.pk }}" {{ appinstance.selected }}>{{ appinstance.name }}
                             </option>
                             {% endfor %}
+                            <option value="None">None</option>
                         </select>
                     </div>
                     {% endfor %}
@@ -133,7 +184,11 @@
 
                     <h6> {{ vals.meta_title }}</h6>
                     {% for subkey, subval in vals.items %}
+                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%}
+                    <div class="mb-3 form-group validate-item">
+                    {% else %}
                     <div class="mb-3">
+                    {% endif %}
                         {% if subval.type == "boolean" %}
                         <label class="form-label">{{ subval.title }}</label>
                         <select name="{{ key }}.{{ subkey }}" id="{{ subkey }}" class="form-control">
@@ -149,8 +204,16 @@
 
                         {% if subval.type == "string" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}"
-                            class="form-control">
+                        {% if subkey == "image" %}
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="DockerHub or Github Docker Image for the app">
+                        </span>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control" required>
+                        <div class="invalid-feedback">
+                            Please add a valid image name!
+                        </div>
+                        {% else %}
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
+                        {% endif %}
                         {% endif %}
 
                         {% if subval.type == "textfield" %}
@@ -178,8 +241,16 @@
 
                         {% if subval.type == "number" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}"
-                            value="{{ subval.default }}" class="form-control">
+                        {% if subkey == "port"%}
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on.">
+                        </span>
+                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="{{ subval.default }}" class="form-control" required>
+                         <div class="invalid-feedback">
+                            Please add a valid port!
+                        </div>
+                        {% else %}
+                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
+                        {% endif %}
                         {% endif %}
 
 
@@ -216,11 +287,12 @@
                         </select>
                     </div>
                     {% endif %}
-
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a class="btn btn-danger" href="{{ request.headers.referer }}">Cancel</a>
                     <button class="btn btn-primary" type="submit">Update</button>
-                    <a class="btn btn-secondary float-end" href="{{ request.headers.referer }}">Cancel</a>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -331,5 +403,66 @@
             });
         })
     }
+</script>
+<script>
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+    (function () {
+    'use strict'
+    // Fetch all the forms we want to apply custom Bootstrap validation styles to
+    var forms = document.querySelectorAll('.needs-validation')
+    var validateGroup = document.getElementsByClassName('validate-item');
+    // Loop over them and prevent submission
+    Array.prototype.filter.call(forms, function (form) {
+        form.addEventListener('submit', function (event) {
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+                }
+            //Added validation class to all form-groups in need of validation
+            for (var i = 0; i < validateGroup.length; i++) {
+                validateGroup[i].classList.add('was-validated');
+            }
+        }, false);
+        })
+    })()
+    function toggleSubdomain() {
+        var x = document.getElementById("subdomain-add");
+        if (x.style.display === "none") {
+            x.style.display = "block";
+        } else {
+            x.style.display = "none";
+        }
+    }
+
+    function submitDomain() {
+        var rn = document.getElementById('rn').value
+        $.ajax({
+            type: "POST",
+            url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
+            data: {"rn": rn,"csrfmiddlewaretoken": '{{ csrf_token }}'},
+            success: function(data){
+                if (data.available == "true"){
+                    if ($('#rn').hasClass('is-invalid')) {
+                        $('#rn').removeClass('is-invalid');
+                    }
+                    $('#rn').addClass('is-valid');
+                    setTimeout(function(){
+                        window.location.href = window.location.href.replace( /[\?#].*|$/, "?from=overview&rn="+data.rn );
+                    }, 2000);
+
+                } else {
+                    if ($('#rn').hasClass('is-valid')) {
+                        $('#rn').removeClass('is-valid');
+                    }
+                    $('#rn').addClass('is-invalid');
+                    if (data.available == "invalid") {
+                        $('#subdomain-invalid').text("Subdomain is invalid. Please choose another.");
+                    } else {
+                        $('#subdomain-invalid').text("Subdomain already exists. Please choose another.");
+                    }
+                }
+            }
+            });
+        }
 </script>
 {% endblock %}

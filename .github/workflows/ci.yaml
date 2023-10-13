@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+
+  # Adds ability to run this workflow manually
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+      tags:
+        description: 'Manual run'
+        required: false
+        type: boolean
+
+jobs:
+  CI:
+    if: github.repository == 'scilifelabdatacentre/stackn'
+    runs-on: ubuntu-20.04
+    env:
+      working-directory: .
+
+    steps:
+      - name: Branch or tag that triggered the workflow run
+        run: |
+          echo "Running on branch ${GITHUB_REF##*/}"
+          echo "Running as UID: $UID, GID: $GID"
+          whoami
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Prepare repository
+        run: |
+          echo "Running as UID: $UID, GID: $GID"
+          export GID=1000
+          echo "Now running as UID: $UID, GID: $GID"
+          whoami
+          pwd
+          mv .env.template .env
+          sudo chgrp -R 1000 media
+          sudo chmod -R g+rwx media
+          ls -al
+
+      - name: Start serve
+        working-directory: ${{env.working-directory}}
+        id: setup
+        run: |
+          set -ex
+          echo "Deploying serve"
+          docker compose up -d --build
+
+      - name: Determine and set Serve URL
+        working-directory: ${{env.working-directory}}
+        run: |
+          curl --version | head -n 1
+          STUDIO_URL=`awk -F '= ' -v replace="'" '/STUDIO_URL/{gsub(replace, "", $NF); print $NF}' studio/settings.py`
+          echo "STUDIO_URL=$STUDIO_URL" >> $GITHUB_ENV
+          echo "The Serve URL is $STUDIO_URL"
+          docker exec studio pwd
+          docker exec studio ls -al
+          docker exec studio whoami
+          docker exec studio id stackn
+
+      - name: Check URL is up
+        uses: gerdemann/http-status-code@1.0.0
+        with:
+          url: ${{ env.STUDIO_URL }}
+          code: 200 # http status code
+          timeout: 120 # seconds
+          interval: 5 # seconds
+        continue-on-error: true
+
+      - name: Check if Serve is ready
+        working-directory: ${{env.working-directory}}
+        id: check_serve_up
+        run: |
+          echo "Checking response from STUDIO_URL: ${{ env.STUDIO_URL }}"
+          response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
+          if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
+
+      - name: Run unit tests
+        working-directory: ${{env.working-directory}}
+        id: tests
+        run: |
+          docker compose run unit-tests
