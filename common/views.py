@@ -57,7 +57,6 @@ class SignUpView(CreateView):
         context['profile_form'] = profile_form  # The profile form with its current state and errors.
         return self.render_to_response(context)
 
-    # You might want to override the original form_invalid to prevent it from being called with an inappropriate argument.
     def form_invalid(self, form):
         # Just in case this gets called, redirect it to the custom handler.
         # 'form' here will be a UserForm instance.

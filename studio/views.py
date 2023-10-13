@@ -28,7 +28,6 @@ def set_new_user_inactive(sender, instance, **kwargs):
 
 @receiver(post_save, sender=UserProfile)
 def post_save_userprofile(sender, instance, **kwargs):
-    print("Creating User Profile")
     if not settings.INACTIVE_USERS:
         user = instance.user
         user.is_active = instance.is_approved

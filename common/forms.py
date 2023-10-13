@@ -497,7 +497,6 @@ EMAIL_ALLOW_REGEX = re.compile(
     (r"^(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*?"  # Subdomain part
      f"({('|').join([l[0] for l in UNIVERSITIES[1:]])}"
      ")\.se"  # End of the domain
-     "(?:[A-Z0-9-]{0,63}(?<!-))?$"  # Enforce 63-character limit
     ), re.IGNORECASE
 )
 

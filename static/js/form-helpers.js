@@ -3,7 +3,7 @@ window.onload = (event) => {
     const choiceSelect = document.getElementById('id_affiliation');
     const request_account_field = document.getElementById('id_request_account_info');
 
-    const domainRegex = /^(?:[A-Z0-9](?:[\.A-Z0-9-]{0,61}[A-Z0-9])?\.)*?(uu|lu|gu|su|umu|liu|ki|kth|chalmers|ltu|hhs|slu|kau|lnu|oru|miun|mau|mdu|bth|fhs|gih|hb|du|hig|hh|hkr|his|hv|ju|sh)\.se(?:[A-Z0-9-]{0,63}(?<!-))?$/i;
+    const domainRegex = /^(?:[A-Z0-9](?:[\.A-Z0-9-]{0,61}[A-Z0-9])?\.)*?(uu|lu|gu|su|umu|liu|ki|kth|chalmers|ltu|hhs|slu|kau|lnu|oru|miun|mau|mdu|bth|fhs|gih|hb|du|hig|hh|hkr|his|hv|ju|sh)\.se$/i;
 
     function changeVisibility() {
         let shouldHide = false;
