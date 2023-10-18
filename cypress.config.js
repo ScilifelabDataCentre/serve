@@ -2,7 +2,7 @@ const { defineConfig } = require("cypress");
 
 module.exports = defineConfig({
   env: {
-    do_reset_db: true,
+    do_reset_db: false,
     create_resources: true,
   },
 
