@@ -6,10 +6,16 @@ describe("Test superuser access", () => {
     let users
 
     before(() => {
-        // seed the db with: superuser user, a blank project
-        cy.log("Seeding the db for the superuser tests. Running db-seed-contributor.sh");
-        cy.exec("./cypress/e2e/db-reset.sh")
-        cy.wait(60000)
+        // do db reset if needed
+        if (Cypress.env('do_reset_db') === true) {
+            cy.log("Resetting db state. Running db-reset.sh");
+            cy.exec("./cypress/e2e/db-reset.sh");
+            cy.wait(60000);
+        }
+        else {
+            cy.log("Skipping resetting the db state.");
+        }
+        // seed the db with a user
         cy.visit("/")
         cy.log("Running seed_superuser.py")
         cy.exec("./cypress/e2e/db-seed-superuser.sh")
