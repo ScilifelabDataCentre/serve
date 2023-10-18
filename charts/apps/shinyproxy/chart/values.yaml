@@ -38,8 +38,8 @@ s3sync:
 
 securityContext:
   enabled: true
-  runAsUser: 999
-  runAsGroup: 999
-  fsGroup: 999
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
   allowPrivilegeEscalation: false
   privileged: false

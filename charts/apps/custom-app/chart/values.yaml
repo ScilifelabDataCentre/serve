@@ -24,6 +24,8 @@ ingress:
   secretName: prod-ingress
   
 podSecurityContext:
+  seccompProfile:
+      type: RuntimeDefault
   fsGroup: 1000
 
 securityContext:
