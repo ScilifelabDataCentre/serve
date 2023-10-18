@@ -26,7 +26,7 @@ describe("Test deploying app", () => {
 
             cy.loginViaApi(users.deploy_app_user.username, users.deploy_app_user.password)
         })
-        const project_name = "e2e-create-proj-test"
+        const project_name = "e2e-deploy-app-test"
         cy.createBlankProject(project_name)
     })
 
@@ -42,7 +42,7 @@ describe("Test deploying app", () => {
 
     it("can deploy a private and public app", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
-        const project_name = "e2e-create-proj-test"
+        const project_name = "e2e-deploy-app-test"
         const app_name_public = "e2e-streamlit-example-public"
         const app_name_private = "e2e-streamlit-example-private"
         const app_description = "e2e-streamlit-description"
@@ -115,7 +115,7 @@ describe("Test deploying app", () => {
 
     it("can set and change custom subdomain", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
-        const project_name = "e2e-create-proj-test"
+        const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-subdomain-example"
         const app_description = "e2e-subdomain-description"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
