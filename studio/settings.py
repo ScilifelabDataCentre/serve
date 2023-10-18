@@ -224,6 +224,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media/")
 
 STATIC_URL = "/static/"
 STATIC_ROOT = ""
+# SS-507
+# Please keep "static" files first, because common/forms.py expects it
 STATICFILES_DIRS = (os.path.join("static"),)
 
 # Default primary key field type

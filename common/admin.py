@@ -1,8 +1,5 @@
 from django.contrib import admin
 
-# Register your models here.
-
-
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
 from django.contrib.auth.models import User
@@ -27,3 +24,4 @@ class UserAdmin(DefaultUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 
+# Register your models here.

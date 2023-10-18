@@ -1,0 +1,36 @@
+{
+    "universities": {
+        "other": "Other",
+        "uu": "Uppsala University",
+        "lu": "Lunds University",
+        "gu": "Göteborgs University",
+        "su": "Stockholms University",
+        "umu": "Umeå University",
+        "liu": "Linköpings University",
+        "ki": "(KI) Karolinska institutet",
+        "kth": "KTH Royal Institute of Technology",
+        "chalmers": "Chalmers University of Technology",
+        "ltu": "Luleå University of Technology",
+        "hhs": "Stockholm School of Economics",
+        "slu": "Swedish University of Agricultural Sciences",
+        "kau": "Karlstad University",
+        "lnu": "Linnaeus University",
+        "oru": "Örebro University",
+        "miun": "Mid Sweden University",
+        "mau": "Malmö University",
+        "mdu": "Mälardalen University",
+        "bth": "Blekinge Institute of Technology",
+        "fhs": "Swedish Defence University",
+        "gih": "Swedish School of Sport and Health Sciences",
+        "hb": "University of Borås",
+        "du": "Dalarna University",
+        "hig": "University of Gävle",
+        "hh": "Halmstad University",
+        "hkr": "Kristianstad University",
+        "his": "University of Skövde",
+        "hv": "University West",
+        "ju": "Jönköping University",
+        "sh": "Södertörn University"
+    }
+}
+
