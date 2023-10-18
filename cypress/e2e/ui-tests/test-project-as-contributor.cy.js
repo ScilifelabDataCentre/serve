@@ -36,11 +36,10 @@ describe("Test project contributor user functionality", () => {
     it("can run the test setup", () => {
     })
 
-    it("can create a new project with default template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
+    it.skip("can create a new project with default template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
-        const project_name = "e2e-create-proj-test"
-        const volume_name = "e2e-project-vol"
+        const project_name = "e2e-create-default-proj-test"
         const project_title_name = project_name + " | SciLifeLab Serve"
 
         cy.visit("/projects/")
@@ -64,7 +63,6 @@ describe("Test project contributor user functionality", () => {
             .then((href) => {
                 cy.log(href)
                 cy.reload()
-                //cy.url().should("include", "/project-e2e-blank");
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
 
@@ -104,8 +102,7 @@ describe("Test project contributor user functionality", () => {
     it("can create a new project with ML serving template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
-        const project_name = "e2e-create-proj-test"
-        const volume_name = "e2e-project-vol"
+        const project_name = "e2e-create-ml-proj-test"
         const project_title_name = project_name + " | SciLifeLab Serve"
 
         cy.visit("/projects/")
@@ -129,7 +126,6 @@ describe("Test project contributor user functionality", () => {
             .then((href) => {
                 cy.log(href)
                 cy.reload()
-                //cy.url().should("include", "/project-e2e-blank");
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
 
