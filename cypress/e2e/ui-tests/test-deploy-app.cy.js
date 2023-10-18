@@ -2,23 +2,29 @@ describe("Test deploying app", () => {
 
     // Tests performed as an authenticated user that
     // creates and deletes objects.
-    // user: e2e_tests_contributor_tester
+    // user: e2e_tests_deploy_app_user
 
     let users
 
     before({ defaultCommandTimeout: 100000 }, () => {
-        // seed the db with: contributor user, a blank project
-        cy.log("Seeding the db for the contributor tests. Running db-seed-contributor.sh");
-        cy.exec("./cypress/e2e/db-reset.sh")
-        cy.wait(60000)
+        // do db reset if needed
+        if (Cypress.env('do_reset_db') === true) {
+            cy.log("Resetting db state. Running db-reset.sh");
+            cy.exec("./cypress/e2e/db-reset.sh");
+            cy.wait(60000);
+        }
+        else {
+            cy.log("Skipping resetting the db state.");
+        }
+        // seed the db with a user
         cy.visit("/")
-        cy.log("Running seed_contributor.py")
-        cy.exec("./cypress/e2e/db-seed-contributor.sh")
+        cy.log("Running seed-deploy-app-user.py")
+        cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
         // username in fixture must match username in db-reset.sh
         cy.fixture('users.json').then(function (data) {
             users = data
 
-            cy.loginViaApi(users.contributor.username, users.contributor.password)
+            cy.loginViaApi(users.deploy_app_user.username, users.deploy_app_user.password)
         })
         const project_name = "e2e-create-proj-test"
         cy.createBlankProject(project_name)
@@ -26,18 +32,19 @@ describe("Test deploying app", () => {
 
     beforeEach(() => {
         // username in fixture must match username in db-reset.sh
-        cy.log("Logging in as contributor user")
+        cy.log("Logging in")
         cy.fixture('users.json').then(function (data) {
             users = data
 
-            cy.loginViaApi(users.contributor.username, users.contributor.password)
+            cy.loginViaApi(users.deploy_app_user.username, users.deploy_app_user.password)
         })
     })
 
     it("can deploy a private and public app", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
-        const app_name = "e2e-streamlit-example"
+        const app_name_public = "e2e-streamlit-example-public"
+        const app_name_private = "e2e-streamlit-example-private"
         const app_description = "e2e-streamlit-description"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const createResources = Cypress.env('create_resources');
@@ -50,7 +57,7 @@ describe("Test deploying app", () => {
             cy.log("Now creating a private or project app")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
 
-            cy.get('input[name=app_name]').type(app_name)
+            cy.get('input[name=app_name]').type(app_name_private)
             cy.get('textarea[name=app_description]').type(app_description)
             cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
@@ -58,19 +65,19 @@ describe("Test deploying app", () => {
             cy.get('button').contains('Create').click()
 
             // TODO: debug problems with status not set to Running
-            //cy.get('tbody:contains("' + app_type + '")').find('span').should('contain', 'Running')
+            //cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Running')
 
-            cy.get('tbody:contains("' + app_type + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tbody:contains("' + app_type + '")').find('a.confirm-delete').click()
+            cy.get('tr:contains("' + app_name_private + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_private + '")').find('a.confirm-delete').click()
 
             cy.get('button').contains('Delete').click()
-            cy.get('tbody:contains("' + app_type + '")').find('span').should('contain', 'Deleted')
+            cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Deleted')
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.log("Now creating a public app")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
 
-            cy.get('input[name=app_name]').type(app_name)
+            cy.get('input[name=app_name]').type(app_name_public)
             cy.get('textarea[name=app_description]').type(app_description)
             cy.get('#permission').select('public')
             cy.get('input[name="appconfig.port"]').clear().type("8501")
@@ -79,12 +86,12 @@ describe("Test deploying app", () => {
             cy.get('button').contains('Create').click()
 
             // TODO: debug problems with status not set to Running
-            //cy.get('tbody:contains("' + app_type + '")').find('span').should('contain', 'Running')
+            //cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
 
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').should('contain', app_name)
+            cy.get('h5.card-title').should('contain', app_name_public)
 
             //cy.get('h5.card-title').contains(app_name).parents('div.card-body')
             //    .find('span.badge').should("have.text", "Running")
@@ -92,10 +99,10 @@ describe("Test deploying app", () => {
             // Remove the created public app and verify that it is deleted from public apps page
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tbody:contains("' + app_type + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tbody:contains("' + app_type + '")').find('a.confirm-delete').click()
+            cy.get('tr:contains("' + app_name_public + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_public + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            cy.get('tbody:contains("' + app_type + '")').find('span').should('contain', 'Deleted')
+            cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Deleted')
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve")
             cy.get('h3').should('contain', 'Public apps')
@@ -160,8 +167,8 @@ describe("Test deploying app", () => {
             cy.log("Now changing subdomain of an already created app")
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tbody:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tbody:contains("' + app_name + '")').find('a').contains("Settings").click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('[id="subdomain"]').find('button').click()
             cy.get('[id="subdomain-add"]').find('[id="rn"]').type(subdomain_3)
             cy.get('[id="subdomain-add"]').find('button').click()
