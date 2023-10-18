@@ -22,6 +22,19 @@ class RegistrationCompleteView(TemplateView):
 
 
 class SignUpView(CreateView):
+    """
+    View for user registration
+
+    This view uses two forms: UserForm and ProfileForm together, and due to that it's a bit complicated.
+    See SS-507 for more information.
+
+    From technical perspective, it relies on django calling ``form_valid`` to validate form first.
+    If the form is valid, it will save the form and redirect to ``success`` page.
+
+    If the form is invalid, it will call ``custom_form_invalid`` to render the form again with errors.
+
+    But if there are any errors with UserForm it will call ``form_invalid`` first.
+    """
     template_name = "registration/signup.html"
     form_class = UserForm
 
@@ -31,6 +44,7 @@ class SignUpView(CreateView):
             context['profile_form'] = ProfileForm(self.request.POST or None)
         return context
 
+    # Transaction decorator is needed for form_.save() to work properly
     @transaction.atomic
     def form_valid(self, form):
         context = self.get_context_data()

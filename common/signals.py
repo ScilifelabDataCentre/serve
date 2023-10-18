@@ -16,6 +16,8 @@ def custom_save(sender, instance, **kwargs):
     . So we decided to use this signal to set the username to the email address.
 
     This call back is registered by ``common.apps.CommonConfig.ready()``
+
+    NB! There is also a post save signal that could be found in ``studio.views.py``
     """
     instance.username = instance.email
 

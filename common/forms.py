@@ -24,6 +24,8 @@ with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
     UNIVERSITIES = [(k, v) for k, v in UNIVERSITIES.items()]
 
 
+# Regex for validating email domain
+# Same regexp could be found in templates/registration/signup.html
 EMAIL_ALLOW_REGEX = re.compile(
     (r"^(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*?"  # Subdomain part
      f"({('|').join([l[0] for l in UNIVERSITIES if l[0] != 'other'])}"
@@ -33,6 +35,10 @@ EMAIL_ALLOW_REGEX = re.compile(
 
 
 class ListTextWidget(forms.TextInput):
+    """
+    This widget is used to create a text input with a list of options on input.
+    """
+
     def __init__(self, data_list, name, *args, **kwargs):
         super(ListTextWidget, self).__init__(*args, **kwargs)
         self._name = name
@@ -40,6 +46,9 @@ class ListTextWidget(forms.TextInput):
         self.attrs.update({'list':'list__%s' % self._name})
 
     def render(self, name, value, attrs=None, renderer=None):
+        """
+        Render the widget as an HTML string.
+        """
         text_html = super(ListTextWidget, self).render(name, value, attrs=attrs)
         data_list = '<datalist id="list__%s">' % self._name
         for item in self._list:
@@ -50,6 +59,13 @@ class ListTextWidget(forms.TextInput):
 
 
 class BootstrapErrorFormMixin:
+    """
+    This is a base class for all forms that use bootstrap.
+
+    It adds bootstrap error classes to fields
+
+    Because of ``is_valid`` method, it should be used with Django forms only.
+    """
     def add_error_classes(self):
         for field_name, errors in self.errors.items():
             if errors:
@@ -117,12 +133,21 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
                 ]
 
     def clean_email(self) -> str:
+        """
+        Validate that the supplied email address is unique.
+
+        This runs after the basic `UserCreationForm` validation.
+        """
         email = self.cleaned_data["email"].lower()
         if User.objects.filter(email=email).exists():
             self.add_error("email", ValidationError("Email already exists"))
         return email
 
     def add_error_classes(self):
+        """
+        Add bootstrap error classes to fields and move errors from password2 to password1
+        so that errors are displayed in one place on the left side of the form
+        """
         super().add_error_classes()
         if "password1" in self.errors or "password2" in self.errors:
             self.fields["password1"].widget.attrs.update({'class': 'form-control is-invalid'})
@@ -185,6 +210,10 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
 
 @dataclass
 class SignUpForm:
+    """
+    This class is used to validate user and profile forms together.
+    """
+
     user: UserForm
     profile: ProfileForm
     is_approved: bool = False
@@ -241,10 +270,14 @@ class SignUpForm:
                                )
 
     def is_valid(self) -> bool:
+        # these two calls are done that way, so that we can get errors for both forms and display them together
         is_user_valid = self.user.is_valid()
         is_profile_valid = self.profile.is_valid()
         return is_user_valid and is_profile_valid
 
+
+    # Because this function is meant to be used in SignUpView, it doesn't have @transaction.atomic
+    # But if you are going to use it somewhere else, you should add it
     def save(self):
         user = self.user.save()
         profile = self.profile.save(commit=False)
