@@ -14,6 +14,11 @@
     "password": "test12345",
     "username": "e2e_tests_login_user"
   },
+  "reader_user": {
+    "email": "no-reply-reader@scilifelab.se",
+    "password": "test12345",
+    "username": "e2e_tests_reader_user"
+  },
   "superuser": {
     "email": "no-reply-superuser@scilifelab.se",
     "password": "test12345",
