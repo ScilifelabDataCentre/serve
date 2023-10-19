@@ -36,7 +36,7 @@ describe("Test project contributor user functionality", () => {
     it("can run the test setup", () => {
     })
 
-    it.skip("can create a new project with default template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
+    it("can create a new project with default template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
