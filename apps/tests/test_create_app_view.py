@@ -9,10 +9,15 @@ from ..models import AppInstance, Apps
 
 User = get_user_model()
 
+test_user = {
+    "username": "foo1",
+    "email": "foo@test.com",
+    "password": "bar"
+}
 
 class CreateAppViewTestCase(TestCase):
     def setUp(self) -> None:
-        self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
+        self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         self.app = Apps.objects.create(
             name="Jupyter Lab",
             slug="jupyter-lab",
@@ -55,7 +60,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -70,7 +75,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -91,7 +96,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data(user)
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -114,7 +119,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -129,7 +134,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -148,7 +153,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -181,7 +186,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -200,7 +205,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.user.user_permissions.add(add_permission)
 
-        self.user = User.objects.get(username="foo1")
+        self.user = User.objects.get(username=test_user["email"])
 
         response = c.get(f"/{self.user.username}/{project.slug}/apps/create/jupyter-lab")
 
@@ -212,7 +217,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -252,7 +257,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -271,7 +276,7 @@ class CreateAppViewTestCase(TestCase):
 
         project = self.get_data()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
