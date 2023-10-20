@@ -11,7 +11,7 @@ describe("Test project contributor user functionality", () => {
         if (Cypress.env('do_reset_db') === true) {
             cy.log("Resetting db state. Running db-reset.sh");
             cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(60000);
+            cy.wait(Cypress.env('wait_db_reset'));
         }
         else {
             cy.log("Skipping resetting the db state.");
