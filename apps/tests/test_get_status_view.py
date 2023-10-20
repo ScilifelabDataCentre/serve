@@ -67,7 +67,7 @@ class GetStatusViewTestCase(TestCase):
 
         user = User.objects.create_user("foo2", "foo2@test.com", "bar")
 
-        response = c.post("/accounts/login/", {"username": "foo2", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": "foo2@test.com", "password": "bar"})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
