@@ -20,6 +20,11 @@ os.environ["AWS_SECURITY_TOKEN"] = "testing"
 os.environ["AWS_SESSION_TOKEN"] = "testing"
 os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
+test_user = {
+    "username": "foo1",
+    "email": "foo@test.com",
+    "password": "bar"
+}
 
 class ModelViewTests(TestCase):
     bucket_name = "test-bucket"
@@ -35,7 +40,7 @@ class ModelViewTests(TestCase):
         s3.meta.client.put_object(Bucket=self.bucket_name, Key="public_uid", Body=b"test")
         s3.meta.client.put_object(Bucket=self.bucket_name, Key="test_uid", Body=b"test")
         # Create user
-        self.user = User.objects.create_user("foo", "foo@test.com", "bar")
+        self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
 
         self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="", repository="")
 
@@ -74,7 +79,7 @@ class ModelViewTests(TestCase):
             ),
         )
         public_model.save()
-        self.client.login(username="foo", password="bar")
+        self.client.login(username=test_user["email"], password="bar")
         self.client.post(
             reverse(
                 "models:publish_model",
@@ -165,7 +170,7 @@ class ModelViewTests(TestCase):
 
 class ModelViewForbidden(TestCase):
     def setUp(self):
-        user = User.objects.create_user("foo", "foo@test.com", "bar")
+        user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
 
         project = Project.objects.create_project(name="test-perm", owner=user, description="", repository="")
 
@@ -181,13 +186,13 @@ class ModelViewForbidden(TestCase):
         new_model.save()
 
         user = User.objects.create_user("member", "bar@test.com", "bar")
-        self.client.login(username="member", password="bar")
+        self.client.login(username="bar@test.com", password="bar")
 
     def test_forbidden_models_list(self):
         """
         Test non-project member not allowed to access /models
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(reverse("models:list", kwargs={"user": owner, "project": project.slug}))
         self.assertTemplateUsed(response, "403.html")
@@ -198,7 +203,7 @@ class ModelViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /models/create
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -213,7 +218,7 @@ class ModelViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /models/<int:id>
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         model = Model.objects.get(name="test")
         response = self.client.get(
@@ -233,7 +238,7 @@ class ModelViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /models/<int:id>/delete
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         model = Model.objects.get(name="test")
         response = self.client.get(
@@ -253,7 +258,7 @@ class ModelViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /models/<int:id>/publish
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         model = Model.objects.get(name="test")
         response = self.client.get(
@@ -273,7 +278,7 @@ class ModelViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /models/<int:id>/add_tag
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         model = Model.objects.get(name="test")
         response = self.client.get(
@@ -294,7 +299,7 @@ class ModelViewForbidden(TestCase):
         Test non-project member not allowed to
         access /models/<int:id>/remove_tag
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         model = Model.objects.get(name="test")
         response = self.client.get(
@@ -315,7 +320,7 @@ class ModelViewForbidden(TestCase):
         Test non-project member not allowed to
         access /models/<int:id>/unpublish
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         model = Model.objects.get(name="test")
         response = self.client.get(
@@ -335,7 +340,7 @@ class ModelViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /models/<int:id>/access
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         model = Model.objects.get(name="test")
         response = self.client.get(
@@ -355,7 +360,7 @@ class ModelViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /models/<int:id>/upload
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         model = Model.objects.get(name="test")
         response = self.client.get(
@@ -375,7 +380,7 @@ class ModelViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /models/<int:id>/docker
         """
-        owner = User.objects.get(username="foo")
+        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         model = Model.objects.get(name="test")
         response = self.client.get(
