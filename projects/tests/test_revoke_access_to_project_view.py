@@ -64,7 +64,7 @@ class RevokeAccessToProjectViewTestCase(TestCase):
 
         authorized = project.authorized.all()
 
-        self.assertEquals(len(authorized), 0)
+        self.assertEqual(len(authorized), 0)
 
         self.user2 = User.objects.get(username=test_user_2["email"])
 

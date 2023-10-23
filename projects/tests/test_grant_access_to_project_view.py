@@ -62,7 +62,7 @@ class GrantAccessToProjectViewTestCase(TestCase):
 
         authorized = project.authorized.all()
 
-        self.assertEquals(len(authorized), 1)
+        self.assertEqual(len(authorized), 1)
 
         authorized_user = authorized[0]
 
@@ -108,7 +108,7 @@ class GrantAccessToProjectViewTestCase(TestCase):
 
         authorized = project.authorized.all()
 
-        self.assertEquals(len(authorized), 0)
+        self.assertEqual(len(authorized), 0)
 
     """
     THIS TEST FAILS ON SCALEOUT DUE TO is_client does not exist
