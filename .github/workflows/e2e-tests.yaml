@@ -53,6 +53,14 @@ jobs:
           sudo chmod -R g+rwx media
           ls -al
 
+      - name: Change ip in settings.py
+        run: | 
+          export IP=$(curl https://api.ipify.org)
+          echo "IP is ${IP}"
+          sed -i 's\127.0.0.1\'"$IP"'\g' studio/settings.py 
+          sed -i 's\10.0.144.239\'"$IP"'\g' studio/settings.py
+          sed -n 281,288p studio/settings.py 
+
       - name: A job to install MicroK8s
         uses: balchua/microk8s-actions@v0.3.2
         with:
@@ -67,6 +75,7 @@ jobs:
           sudo usermod -a -G microk8s $USER
           sudo chown -f -R $USER ~/.kube
           sudo microk8s config >> ~/.kube/config
+          helm
 
       - name: Dump config
         working-directory: ${{env.working-directory}}
