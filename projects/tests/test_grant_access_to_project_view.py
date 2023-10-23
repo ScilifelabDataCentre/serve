@@ -5,12 +5,32 @@ from projects.models import Project
 
 User = get_user_model()
 
+test_user_1 = {
+    "username": "foo1",
+    "email": "foo@test.com",
+    "password": "bar"
+}
+
+test_user_2 = {
+    "username": "foo2",
+    "email": "foo2@test.com",
+    "password": "bar"
+}
+
+test_client = {
+    "username": "client1",
+    "email": "foo3@test.com",
+    "password": "bar"
+}
+
+
+
 
 class GrantAccessToProjectViewTestCase(TestCase):
     def setUp(self) -> None:
-        self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
-        self.user2 = User.objects.create_user("foo2", "foo2@test.com", "bar")
-        self.user3 = User.objects.create_user("client1", "foo3@test.com", "bar")
+        self.user = User.objects.create_user(test_user_1["username"], test_user_1["email"], test_user_1["password"])
+        self.user2 = User.objects.create_user(test_user_2["username"], test_user_2["email"], test_user_2["password"])
+        self.user3 = User.objects.create_user(test_client["username"], test_client["email"], test_client["password"])
         self.client = Client()
 
     def get_data(self, user=None):
@@ -24,7 +44,7 @@ class GrantAccessToProjectViewTestCase(TestCase):
         return project
 
     def test_grant_access_to_user(self):
-        response = self.client.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = self.client.post("/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -33,7 +53,7 @@ class GrantAccessToProjectViewTestCase(TestCase):
 
         response = self.client.post(
             f"/{self.user.username}/{project.slug}/project/access/grant",
-            {"selected_user": "foo2"},
+            {"selected_user": test_user_2["email"]},
         )
 
         self.assertEqual(response.status_code, 302)
@@ -48,14 +68,14 @@ class GrantAccessToProjectViewTestCase(TestCase):
 
         self.assertEqual(authorized_user.id, self.user2.id)
 
-        self.user2 = User.objects.get(username="foo2")
+        self.user2 = User.objects.get(username=test_user_2["email"])
 
         has_perm = self.user2.has_perm("can_view_project", project)
 
         self.assertTrue(has_perm)
 
     def test_grant_access_to_user_no_access(self):
-        response = self.client.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = self.client.post("/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -64,13 +84,13 @@ class GrantAccessToProjectViewTestCase(TestCase):
 
         response = self.client.post(
             f"/{self.user.username}/{project.slug}/project/access/grant",
-            {"selected_user": "foo2"},
+            {"selected_user": test_user_2["email"]},
         )
 
         self.assertEqual(response.status_code, 403)
 
     def test_grant_access_to_non_existing_user(self):
-        response = self.client.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = self.client.post("/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -94,7 +114,7 @@ class GrantAccessToProjectViewTestCase(TestCase):
     THIS TEST FAILS ON SCALEOUT DUE TO is_client does not exist
     def test_grant_access_to_client(self):
         response = self.client.post(
-            "/accounts/login/", {"username": "foo1", "password": "bar"}
+            "/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]}
         )
         response.status_code
 
@@ -104,7 +124,7 @@ class GrantAccessToProjectViewTestCase(TestCase):
 
         response = self.client.post(
             f"/{self.user.username}/{project.slug}/project/access/grant",
-            {"selected_user": "client1"},
+            {"selected_user":test_client["email"]},
         )
 
         self.assertEqual(response.status_code, 302)

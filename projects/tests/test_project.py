@@ -8,10 +8,21 @@ from ..models import Project
 
 User = get_user_model()
 
+test_user = {
+    "username": "admin",
+    "email": "foo@test.com",
+    "password": "bar"
+}
+
+test_member = {
+    "username": "member",
+    "email": "member@test.com",
+    "password": "bar"
+}
 
 class ProjectTestCase(TestCase):
     def setUp(self):
-        user = User.objects.create_user("admin", "foo@test.com")
+        user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         Project.objects.create(
             name="test-secret",
             slug="test-secret",
@@ -20,7 +31,7 @@ class ProjectTestCase(TestCase):
             project_secret="c2VjcmV0",
         )
         _ = Project.objects.create_project(name="test-perm", owner=user, description="", repository="")
-        user = User.objects.create_user("member", "bar@test.com")
+        user = User.objects.create_user(test_member["username"], test_member["email"], test_member["password"])
 
     def test_decrypt_key(self):
         project = Project.objects.filter(name="test-secret").first()
@@ -39,13 +50,13 @@ class ProjectTestCase(TestCase):
         """
         Ensure that non-project member don't have 'can_view_project' permission
         """
-        user = User.objects.get(username="member")
+        user = User.objects.get(username=test_member["email"])
         project = Project.objects.get(name="test-perm")
         self.assertFalse(user.has_perm("can_view_project", project))
 
     @override_settings(PROJECTS_PER_USER_LIMIT=1)
     def test_user_can_create(self):
-        user = User.objects.get(username="member")
+        user = User.objects.get(username=test_member["email"])
         result = Project.objects.user_can_create(user)
 
         self.assertTrue(result)
@@ -58,7 +69,7 @@ class ProjectTestCase(TestCase):
 
     @override_settings(PROJECTS_PER_USER_LIMIT=None)
     def test_user_can_create_should_handle_none(self):
-        user = User.objects.get(username="member")
+        user = User.objects.get(username=test_member["email"])
         result = Project.objects.user_can_create(user)
 
         self.assertTrue(result)
@@ -71,7 +82,7 @@ class ProjectTestCase(TestCase):
 
     @override_settings(PROJECTS_PER_USER_LIMIT=0)
     def test_user_can_create_should_handle_zero(self):
-        user = User.objects.get(username="member")
+        user = User.objects.get(username=test_member["email"])
         result = Project.objects.user_can_create(user)
 
         self.assertFalse(result)
@@ -86,7 +97,7 @@ class ProjectTestCase(TestCase):
             None,
         )
 
-        user = User.objects.get(username="member")
+        user = User.objects.get(username=test_member["email"])
 
         _ = Project.objects.create(name="test-perm1", owner=user, description="", repository="")
 
@@ -95,7 +106,7 @@ class ProjectTestCase(TestCase):
         self.assertFalse(result)
 
         user.user_permissions.add(add_permission)
-        user = User.objects.get(username="member")
+        user = User.objects.get(username=test_member["email"])
 
         result = Project.objects.user_can_create(user)
 
@@ -103,7 +114,7 @@ class ProjectTestCase(TestCase):
 
     @override_settings(PROJECTS_PER_USER_LIMIT=1)
     def test_create_project_raises_exception(self):
-        user = User.objects.get(username="member")
+        user = User.objects.get(username=test_member["email"])
 
         _ = Project.objects.create(name="test-perm1", owner=user, description="", repository="")
 
@@ -117,7 +128,7 @@ class ProjectTestCase(TestCase):
         result = Project.objects.user_can_create(superuser)
         self.assertTrue(result)
 
-        user = User.objects.get(username="member")
+        user = User.objects.get(username=test_member["email"])
 
         result = Project.objects.user_can_create(user)
         self.assertFalse(result)
