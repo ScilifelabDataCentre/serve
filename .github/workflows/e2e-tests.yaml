@@ -53,19 +53,10 @@ jobs:
           sudo chmod -R g+rwx media
           ls -al
 
-      - name: Change ip in settings.py
-        run: | 
-          export IP=$(curl https://api.ipify.org)
-          echo "IP is ${IP}"
-          sed -i 's\127.0.0.1\'"$IP"'\g' studio/settings.py
-          sed -i 's\127.0.0.1\'"$IP"'\g' cypress.config.js 
-          sed -i 's\10.0.144.239\'"$IP"'\g' studio/settings.py
-          sed -n 281,288p studio/settings.py 
-
       - name: A job to install MicroK8s
         uses: balchua/microk8s-actions@v0.3.2
         with:
-          channel: '1.26/stable'
+          channel: '1.28/stable'
           addons: '["dns", "rbac", "hostpath-storage", "registry", "helm"]'
 
       - name: Test and config MicroK8s
@@ -125,6 +116,8 @@ jobs:
       - name: Check if celery worker can access kubectl and helm
         run: |
           docker exec celery-worker kubectl version
+          docker exec celery-worker kubectl run nginx --image=nginx --port=80
+          docker exec celery-worker kubectl get po
           docker exec celery-worker helm version
 
       - name: Cypress run e2e tests
