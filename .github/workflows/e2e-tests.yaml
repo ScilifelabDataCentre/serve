@@ -57,7 +57,7 @@ jobs:
         uses: balchua/microk8s-actions@v0.3.2
         with:
           channel: '1.28/stable'
-          addons: '["dns", "rbac", "hostpath-storage", "registry", "helm"]'
+          addons: '["dns", "rbac", "hostpath-storage", "ingress", "helm"]'
 
       - name: Test and config MicroK8s
         run: |

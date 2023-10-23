@@ -31,7 +31,7 @@ describe("Test sign up", () => {
         cy.get('input[name=last_name]').type("last name");
         cy.get('input[name=password1]').type(userdata.password);
         cy.get('input[name=password2]').type(userdata.password);
-
+        cy.get('input[name=department]').select(0);
         cy.get("input#submit-id-save").click();
 
         cy.url().should("include", "accounts/login");
