@@ -83,6 +83,7 @@ jobs:
         run: |
           sudo microk8s config > cluster.conf
           ls -la
+          cat cluster.conf
 
       - name: Start serve
         working-directory: ${{env.working-directory}}
