@@ -18,7 +18,7 @@ describe("Test deploying app", () => {
         cy.fixture('users.json').then(function (data) {
             users = data
 
-            cy.loginViaApi(users.contributor.username, users.contributor.password)
+            cy.loginViaApi(users.contributor.email, users.contributor.password)
         })
         const project_name = "e2e-create-proj-test"
         cy.createBlankProject(project_name)
@@ -30,7 +30,7 @@ describe("Test deploying app", () => {
         cy.fixture('users.json').then(function (data) {
             users = data
 
-            cy.loginViaApi(users.contributor.username, users.contributor.password)
+            cy.loginViaApi(users.contributor.email, users.contributor.password)
         })
     })
 

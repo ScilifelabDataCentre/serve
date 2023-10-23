@@ -17,7 +17,7 @@ describe("Test views as authenticated user", () => {
 
   beforeEach(() => {
 
-    cy.loginViaApi(users.login.username, users.login.password)
+    cy.loginViaApi(users.login.email, users.login.password)
 
   })
 

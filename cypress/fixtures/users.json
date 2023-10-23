@@ -1,11 +1,12 @@
 {
   "contributor": {
-    "email": "no-reply-contributor@scilifelab.se",
+    "email": "no-reply-contributor@scilifelab.uu.se",
     "password": "test12345",
     "username": "e2e_tests_contributor_tester"
   },
   "login": {
     "password": "test12345",
+    "email": "no-reply-login@scilifelab.uu.se",
     "username": "e2e_tests_login_tester"
   },
   "superuser": {

@@ -17,12 +17,12 @@ describe("Test project contributor user functionality", () => {
     })
 
     beforeEach(() => {
-        // username in fixture must match username in db-reset.sh
+        // email in fixture must match email in db-reset.sh
         cy.log("Logging in as contributor user")
         cy.fixture('users.json').then(function (data) {
             users = data
 
-            cy.loginViaApi(users.contributor.username, users.contributor.password)
+            cy.loginViaApi(users.contributor.email, users.contributor.password)
         })
     })
 

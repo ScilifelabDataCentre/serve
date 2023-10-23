@@ -17,8 +17,9 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     userdata = testdata["login"]
 
     username = userdata["username"]
+    email = userdata["email"]
     pwd = userdata["password"]
 
     # Create the contributor user
-    user = User.objects.create_user(username, "", pwd)
+    user = User.objects.create_user(username, email, pwd)
     user.save()
