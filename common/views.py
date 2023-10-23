@@ -50,7 +50,6 @@ class SignUpView(CreateView):
         context = self.get_context_data()
         profile_form = context['profile_form']
         form_ = SignUpForm(user=form, profile=profile_form)
-        form_.clean()
         if form_.is_valid():
             form_.save()
             if settings.INACTIVE_USERS:

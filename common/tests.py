@@ -19,7 +19,7 @@ def get_affilitaion(email):
 
 @st.composite
 def input_form(draw,
-                email=st.emails(domains=st.from_regex(EMAIL_ALLOW_REGEX).map(lambda x: x.strip("@"))),
+               email=st.emails(domains=st.from_regex(EMAIL_ALLOW_REGEX)).filter(lambda x: x.endswith(".se")),
                 name=st.text(min_size=3, max_size=20),
                 surname=st.text(min_size=3, max_size=20),
                 affiliation_getter=get_affilitaion,
@@ -85,10 +85,10 @@ def test_pass_validation(form):
                          why_account_needed=st.text(min_size=10, max_size=100)
                          ))
 def test_pass_validation_other_email_request_account(form):
-
     is_val = form.is_valid()
-    assert hasattr(form, "cleaned_data")
-    assert is_val, form.errors
+    assert hasattr(form.user, "cleaned_data")
+    assert hasattr(form.profile, "cleaned_data")
+    assert is_val, form.user.errors
 
 
 @pytest.mark.django_db
@@ -96,24 +96,26 @@ def test_pass_validation_other_email_request_account(form):
                                                              (get_affilitaion(x), "other")])))
 def test_invalid_input_affiliation_ne_email(form):
     is_val = form.is_valid()
-    assert hasattr(form, "cleaned_data")
-    assert {'affiliation': ['Email affiliation is different from selected']} == form.errors
+    assert hasattr(form.user, "cleaned_data")
+    assert hasattr(form.profile, "cleaned_data")
+    assert {'affiliation': ['Email affiliation is different from selected']} == form.profile.errors
 
 
 @pytest.mark.django_db
 @given(form = input_form(affiliation_getter=lambda x: "other"))
 def test_invalid_input_affilitaion_is_other(form):
     is_val = form.is_valid()
-    assert hasattr(form, "cleaned_data")
-    assert {'affiliation': ['You are required to select your affiliation']} == form.errors
+    assert hasattr(form.user, "cleaned_data")
+    assert hasattr(form.profile, "cleaned_data")
+    assert {'affiliation': ['You are required to select your affiliation']} == form.profile.errors
 
 
 @pytest.mark.django_db
 @given(form = input_form(department=st.sampled_from(["", None])))
 def test_invalid_input_department_is_empty(form):
     is_val = form.is_valid()
-    assert hasattr(form, "cleaned_data")
-    assert {'department': ['You are required to select your department']} == form.errors
+    assert hasattr(form.profile, "cleaned_data")
+    assert {'department': ['You are required to select your department']} == form.profile.errors
 
 
 @pytest.mark.django_db
@@ -125,8 +127,8 @@ def test_invalid_input_department_is_empty(form):
 @settings(verbosity=Verbosity.verbose)
 def test_fail_validation_other_email_request_account_field_empty(form):
     is_val = form.is_valid()
-    assert not is_val, form.errors
-    assert {'why_account_needed': ['Please describe why do you need an account']} == form.errors
+    assert not is_val, (form.user.errors, form.profile.errors)
+    assert {'why_account_needed': ['Please describe why do you need an account']} == form.profile.errors
 
 
 @pytest.mark.django_db
@@ -136,6 +138,6 @@ def test_fail_validation_other_email_request_account_field_empty(form):
                          ))
 def test_fail_validation_other_email_affiliation_selected(form):
     is_val = form.is_valid()
-    assert not is_val, form.errors
+    assert not is_val, (form.user.errors, form.profile.errors)
     assert {'email': [                    "Email is not from Swedish University. \n"
-                    "Please select 'Other' in affiliation or use your University email"]} == form.errors
+                    "Please select 'Other' in affiliation or use your University email"]} == form.user.errors

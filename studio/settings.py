@@ -360,3 +360,10 @@ STUDIO_ACCESSMODE = os.environ.get("STUDIO_ACCESSMODE", "")
 ENABLE_PROJECT_EXTRA_SETTINGS = False
 
 DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore
+
+# This was added in SS-507.
+# This setting is for django-guardian.
+# We had to set it because AnonymousUser was not working properly.
+# Specifically, apps.tests.test_user_has_no_access was failing.
+# Also anonymous access to pages was not working.
+ANONYMOUS_USER_NAME = None

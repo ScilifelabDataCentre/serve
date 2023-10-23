@@ -8,10 +8,10 @@ from ..models import AppCategories, AppInstance, Apps
 User = get_user_model()
 
 test_user = {
-    "username": "foo1",
+    "username": "foo@test.com",
     "email": "foo@test.com",
     "password": "bar"
-} 
+}
 
 class GetStatusViewTestCase(TestCase):
     def setUp(self) -> None:
@@ -65,7 +65,7 @@ class GetStatusViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 403)
 
-        user = User.objects.create_user("foo2", "foo2@test.com", "bar")
+        user = User.objects.create_user("foo2@test.com", "foo2@test.com", "bar")
 
         response = c.post("/accounts/login/", {"username": "foo2@test.com", "password": "bar"})
         response.status_code

@@ -157,6 +157,9 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
             if "password2" in self.errors:
                 del self.errors["password2"]
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.data})"
+
 
 class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
     affiliation = forms.ChoiceField(
@@ -207,6 +210,9 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
             "why_account_needed",
         ]
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.data})"
+
 
 @dataclass
 class SignUpForm:
@@ -219,14 +225,12 @@ class SignUpForm:
     is_approved: bool = False
 
     def clean(self) -> None:
-        self.is_valid()
         user_data = self.user.cleaned_data
         profile_data = self.profile.cleaned_data
 
         email = user_data.get("email", "")
         affiliation = profile_data.get("affiliation")
         why_account_needed = profile_data.get("why_account_needed")
-
         user_data["email"] = email.lower()
         affiliation_from_email = email.split("@")[1].split(".")[-2].lower()
 
@@ -269,11 +273,21 @@ class SignUpForm:
                 )
                                )
 
-    def is_valid(self) -> bool:
+    def _is_valid(self) -> bool:
         # these two calls are done that way, so that we can get errors for both forms and display them together
         is_user_valid = self.user.is_valid()
         is_profile_valid = self.profile.is_valid()
         return is_user_valid and is_profile_valid
+
+    def is_valid(self, force_clean=False) -> bool:
+        # is_valid calls from user and profile forms are needed to get cleaned_data attributes
+        # cleaned_data is needed for clean method to work properly
+        # This results in this spagetty code, but it works.
+        is_valid = self._is_valid()
+        if is_valid or force_clean:
+            self.clean()
+            is_valid = self._is_valid()
+        return is_valid
 
 
     # Because this function is meant to be used in SignUpView, it doesn't have @transaction.atomic
