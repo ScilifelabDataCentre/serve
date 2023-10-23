@@ -58,7 +58,7 @@ jobs:
           export IP=$(curl https://api.ipify.org)
           echo "IP is ${IP}"
           sed -i 's\127.0.0.1\'"$IP"'\g' studio/settings.py
-          sed -i 's\127.0.0.1\'"$IP"'\g' cypress.config.py 
+          sed -i 's\127.0.0.1\'"$IP"'\g' cypress.config.js 
           sed -i 's\10.0.144.239\'"$IP"'\g' studio/settings.py
           sed -n 281,288p studio/settings.py 
 
