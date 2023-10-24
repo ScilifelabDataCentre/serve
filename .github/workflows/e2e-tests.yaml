@@ -95,10 +95,6 @@ jobs:
           STUDIO_URL=`awk -F '= ' -v replace="'" '/STUDIO_URL/{gsub(replace, "", $NF); print $NF}' studio/settings.py`
           echo "STUDIO_URL=$STUDIO_URL" >> $GITHUB_ENV
           echo "The Serve URL is $STUDIO_URL"
-          docker exec studio pwd
-          docker exec studio ls -al
-          docker exec studio whoami
-          docker exec studio id stackn
 
       - name: Check URL is up
         uses: gerdemann/http-status-code@1.0.0
@@ -120,9 +116,6 @@ jobs:
       - name: Check if celery worker can access kubectl and helm
         run: |
           docker exec celery-worker kubectl version
-          docker exec celery-worker kubectl run nginx --image=nginx --port=80
-          sleep 30
-          docker exec celery-worker kubectl get po
           docker exec celery-worker helm version
 
       - name: Setup upterm session
