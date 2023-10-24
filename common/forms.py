@@ -1,20 +1,18 @@
+import json
+import re
 from dataclasses import dataclass
 from typing import Optional, Sequence
-import re
-import json
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from django.core.validators import EmailValidator
-from django.utils.safestring import mark_safe
 from django.core.exceptions import ValidationError
-from django import forms
+from django.core.validators import EmailValidator
 from django.db import transaction
-from django.conf import settings
+from django.utils.safestring import mark_safe
 
 from common.models import UserProfile
-
 
 with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
     DEPARTMENTS = json.load(f).get("departments", [])
@@ -27,10 +25,12 @@ with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
 # Regex for validating email domain
 # Same regexp could be found in templates/registration/signup.html
 EMAIL_ALLOW_REGEX = re.compile(
-    (r"^(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*?"  # Subdomain part
-     f"({('|').join([l[0] for l in UNIVERSITIES if l[0] != 'other'])}"
-     ")\.se"  # End of the domain
-    ), re.IGNORECASE
+    (
+        r"^(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*?"  # Subdomain part
+        + f"({('|').join([l[0] for l in UNIVERSITIES if l[0] != 'other'])}"
+        + r")\.se"  # End of the domain
+    ),
+    re.IGNORECASE,
 )
 
 
@@ -43,7 +43,7 @@ class ListTextWidget(forms.TextInput):
         super(ListTextWidget, self).__init__(*args, **kwargs)
         self._name = name
         self._list = data_list
-        self.attrs.update({'list':'list__%s' % self._name})
+        self.attrs.update({"list": "list__%s" % self._name})
 
     def render(self, name, value, attrs=None, renderer=None):
         """
@@ -53,9 +53,9 @@ class ListTextWidget(forms.TextInput):
         data_list = '<datalist id="list__%s">' % self._name
         for item in self._list:
             data_list += '<option value="%s">' % item
-        data_list += '</datalist>'
+        data_list += "</datalist>"
 
-        return (text_html + data_list)
+        return text_html + data_list
 
 
 class BootstrapErrorFormMixin:
@@ -66,17 +66,15 @@ class BootstrapErrorFormMixin:
 
     Because of ``is_valid`` method, it should be used with Django forms only.
     """
+
     def add_error_classes(self):
         for field_name, errors in self.errors.items():
             if errors:
                 self.fields[field_name].widget.attrs.update(
-                        {
-                            'class': 'form-control is-invalid',
-                            "aria-describedby": f"validation_{field_name}"
-                        }
-                        )
+                    {"class": "form-control is-invalid", "aria-describedby": f"validation_{field_name}"}
+                )
             else:
-                self.fields[field_name].widget.attrs.update({'class': 'form-control'})
+                self.fields[field_name].widget.attrs.update({"class": "form-control"})
 
     def is_valid(self):
         valid = super().is_valid()
@@ -100,10 +98,12 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
     )
     email = forms.EmailField(
         max_length=254,
-        label=mark_safe("Use your <a "
-                        "href='https://www.uka.se/sa-fungerar-hogskolan/universitet-och-hogskolor/lista-over-"
-                        "universitet-hogskolor-och-enskilda-utbildningsanordnare'>"
-                        "swedish university</a> email address or submit your request for evaluation."),
+        label=mark_safe(
+            "Use your <a "
+            "href='https://www.uka.se/sa-fungerar-hogskolan/universitet-och-hogskolor/lista-over-"
+            "universitet-hogskolor-och-enskilda-utbildningsanordnare'>"
+            "swedish university</a> email address or submit your request for evaluation."
+        ),
         widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Email*"}),
         label_suffix="",
     )
@@ -129,8 +129,8 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
             "password2",
         ]
         exclude = [
-                "username",
-                ]
+            "username",
+        ]
 
     def clean_email(self) -> str:
         """
@@ -138,26 +138,26 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
 
         This runs after the basic `UserCreationForm` validation.
         """
-        email = self.cleaned_data["email"].lower()
+        email: str = self.cleaned_data["email"].lower()
         if User.objects.filter(email=email).exists():
             self.add_error("email", ValidationError("Email already exists"))
         return email
 
-    def add_error_classes(self):
+    def add_error_classes(self) -> None:
         """
         Add bootstrap error classes to fields and move errors from password2 to password1
         so that errors are displayed in one place on the left side of the form
         """
         super().add_error_classes()
         if "password1" in self.errors or "password2" in self.errors:
-            self.fields["password1"].widget.attrs.update({'class': 'form-control is-invalid'})
-            self.fields["password2"].widget.attrs.update({'class': 'form-control is-invalid'})
+            self.fields["password1"].widget.attrs.update({"class": "form-control is-invalid"})
+            self.fields["password2"].widget.attrs.update({"class": "form-control is-invalid"})
             errors_p1 = self.errors.get("password1", [])
             self.errors["password1"] = errors_p1 + self.errors.get("password2", [])
             if "password2" in self.errors:
                 del self.errors["password2"]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.data})"
 
 
@@ -169,37 +169,37 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
         label_suffix="",
     )
     department = forms.CharField(
-            widget= ListTextWidget(
-               data_list=DEPARTMENTS,
-               name='department-list',
-               attrs={"class": "form-control", "placeholder": "Department"}
-               ),
-            label="Select closest department name or enter your own",
-            label_suffix="",
-            required=False
-            )
+        widget=ListTextWidget(
+            data_list=DEPARTMENTS, name="department-list", attrs={"class": "form-control", "placeholder": "Department"}
+        ),
+        label="Select closest department name or enter your own",
+        label_suffix="",
+        required=False,
+    )
     why_account_needed = forms.CharField(
-            widget=forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Because you are not using Swedish University email, please describe why do you need "
-                    "an account.\nYour request will be submited for evaluation.*",
-                    "style": "height: 70px"
-                    }
-                ),
-            required=False,
-            )
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Because you are not using Swedish University email, please describe why do you need "
+                "an account.\nYour request will be submited for evaluation.*",
+                "style": "height: 70px",
+            }
+        ),
+        required=False,
+    )
     note = forms.CharField(
-            widget=forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": ("If you would like us to get in touch with you, to answer your questions or provide "
-                    "help with Serve, please describe what do you need here"),
-                    "style": "height: 70px"
-                    }
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "placeholder": (
+                    "If you would like us to get in touch with you, to answer your questions or provide "
+                    "help with Serve, please describe what do you need here"
                 ),
-            required=False,
-            )
+                "style": "height: 70px",
+            }
+        ),
+        required=False,
+    )
 
     class Meta:
         model = UserProfile
@@ -244,39 +244,31 @@ class SignUpForm:
         if is_university_email:
             # Check that selected affiliation is equal to affiliation from email
             if is_affiliated and affiliation != affiliation_from_email:
-                self.profile.add_error("affiliation", ValidationError(
-                "Email affiliation is different from selected"
-                )
-                           )
+                self.profile.add_error("affiliation", ValidationError("Email affiliation is different from selected"))
             if not is_affiliated:
-                self.profile.add_error("affiliation", ValidationError(
-                "You are required to select your affiliation"
-                )
-                           )
+                self.profile.add_error("affiliation", ValidationError("You are required to select your affiliation"))
             if is_department_empty:
-                self.profile.add_error("department", ValidationError(
-                "You are required to select your department"
-                )
-                           )
+                self.profile.add_error("department", ValidationError("You are required to select your department"))
         else:
             if is_affiliated:
-                self.user.add_error("email", ValidationError(
-                    "Email is not from Swedish University. \n"
-                    "Please select 'Other' in affiliation or use your University email"
+                self.user.add_error(
+                    "email",
+                    ValidationError(
+                        "Email is not from Swedish University. \n"
+                        "Please select 'Other' in affiliation or use your University email"
+                    ),
                 )
-                               )
                 self.profile.add_error("affiliation", ValidationError(""))
 
             if is_request_account_empty:
-                self.profile.add_error("why_account_needed", ValidationError(
-                    "Please describe why do you need an account"
+                self.profile.add_error(
+                    "why_account_needed", ValidationError("Please describe why do you need an account")
                 )
-                               )
 
     def _is_valid(self) -> bool:
         # these two calls are done that way, so that we can get errors for both forms and display them together
-        is_user_valid = self.user.is_valid()
-        is_profile_valid = self.profile.is_valid()
+        is_user_valid: bool = self.user.is_valid()
+        is_profile_valid: bool = self.profile.is_valid()
         return is_user_valid and is_profile_valid
 
     def is_valid(self, force_clean=False) -> bool:
@@ -288,7 +280,6 @@ class SignUpForm:
             self.clean()
             is_valid = self._is_valid()
         return is_valid
-
 
     # Because this function is meant to be used in SignUpView, it doesn't have @transaction.atomic
     # But if you are going to use it somewhere else, you should add it
