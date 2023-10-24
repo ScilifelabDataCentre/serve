@@ -6,19 +6,29 @@ describe("Test views as authenticated user", () => {
   let users
 
   before(() => {
-    // username in fixture must match username in db-reset.sh
-    cy.fixture('users.json').then(function (data) {
-      users = data
-    })
-    cy.exec("./cypress/e2e/db-reset.sh");
-    cy.wait(60000);
-    cy.exec("./cypress/e2e/db-seed-login.sh");
+            // do db reset if needed
+            if (Cypress.env('do_reset_db') === true) {
+              cy.log("Resetting db state. Running db-reset.sh");
+              cy.exec("./cypress/e2e/db-reset.sh");
+              cy.wait(Cypress.env('wait_db_reset'));
+            }
+          else {
+              cy.log("Skipping resetting the db state.");
+          }
+          // seed the db with a user
+          cy.visit("/")
+          cy.log("Running seed_reader_user.py")
+          cy.exec("./cypress/e2e/db-seed-reader-user.sh")
+          // log in
+          cy.log("Logging in")
+          cy.fixture('users.json').then(function (data) {
+              users = data
+
+              cy.loginViaApi(users.reader_user.username, users.reader_user.password)
+          })
   })
 
   beforeEach(() => {
-
-    cy.loginViaApi(users.login.username, users.login.password)
-
   })
 
 
