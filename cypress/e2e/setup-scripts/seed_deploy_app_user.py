@@ -1,4 +1,4 @@
-"""DB seed script for e2e cypress login tests."""
+"""DB seed script for e2e cypress contributor tests."""
 
 import json
 import os.path
@@ -14,12 +14,12 @@ print(f"Now loading the json users file from fixtures path: {cypress_path}")  # 
 with open(os.path.join(cypress_path, "users.json"), "r") as f:
     testdata = json.load(f)
 
-    userdata = testdata["login_user"]
+    userdata = testdata["deploy_app_user"]
 
     username = userdata["username"]
     email = userdata["email"]
     pwd = userdata["password"]
 
-    # Create the login user
+    # Create the deploy-app-user user
     user = User.objects.create_user(username, email, pwd)
     user.save()
