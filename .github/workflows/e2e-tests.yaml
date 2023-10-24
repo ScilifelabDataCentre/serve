@@ -32,76 +32,6 @@ jobs:
       working-directory: .
 
     steps:
-      - name: Branch or tag that triggered the workflow run
-        run: |
-          echo "Running on branch ${GITHUB_REF##*/}"
-          echo "Running as UID: $UID, GID: $GID"
-          whoami
-
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Prepare repository
-        run: |
-          echo "Running as UID: $UID, GID: $GID"
-          export GID=1000
-          echo "Now running as UID: $UID, GID: $GID"
-          whoami
-          pwd
-          mv .env.template .env
-          sudo chgrp -R 1000 media
-          sudo chmod -R g+rwx media
-          ls -al
-
-      - name: A job to install MicroK8s
-        uses: balchua/microk8s-actions@v0.3.2
-        with:
-          channel: '1.28/stable'
-          addons: '["dns", "rbac", "hostpath-storage", "ingress", "helm"]'
-
-      - name: Test and config MicroK8s
-        run: |
-          kubectl get no
-          kubectl get pods -A -o wide
-          echo "Running usermod to add ${USER} to microk8s group"
-          sudo usermod -a -G microk8s $USER
-          sudo chown -f -R $USER ~/.kube
-          sudo microk8s config >> ~/.kube/config
-          helm
-name: E2E-tests
-
-on:
-  push:
-    branches:
-      - develop
-    paths-ignore:
-      - '**.md'
-
-  # Adds ability to run this workflow manually
-  workflow_dispatch:
-    inputs:
-      logLevel:
-        description: 'Log level'
-        required: true
-        default: 'warning'
-        type: choice
-        options:
-        - info
-        - warning
-        - debug
-      tags:
-        description: 'Manual run'
-        required: false
-        type: boolean
-
-jobs:
-  e2e:
-    if: github.repository == 'scilifelabdatacentre/stackn'
-    runs-on: ubuntu-20.04
-    env:
-      working-directory: .
-
-    steps:
       - name: Workflow Telemetry
         uses: runforesight/workflow-telemetry-action@v1.8.0
   
@@ -190,76 +120,6 @@ jobs:
         run: |
           docker exec celery-worker kubectl version
           docker exec celery-worker kubectl run nginx --image=nginx --port=80
-          docker exec celery-worker kubectl get po
-          docker exec celery-worker helm version
-
-      - name: Cypress run e2e tests
-        uses: cypress-io/github-action@v5
-        with:
-          working-directory: ${{env.working-directory}}
-          config: pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }}
-          quiet: true
-      - name: Save cypress screenshot artifacts on failure
-        uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: cypress-screenshots
-          path: cypress/screenshots
-      - name: Save cypress video artifacts on failure
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: cypress-videos
-          path: cypress/videos
-
-      - name: Dump config
-        working-directory: ${{env.working-directory}}
-        run: |
-          sudo microk8s config > cluster.conf
-          ls -la
-          cat cluster.conf
-
-      - name: Start serve
-        working-directory: ${{env.working-directory}}
-        id: setup
-        run: |
-          set -ex
-          echo "Deploying serve"
-          docker compose up -d --build
-
-      - name: Determine and set Serve URL
-        working-directory: ${{env.working-directory}}
-        run: |
-          curl --version | head -n 1
-          STUDIO_URL=`awk -F '= ' -v replace="'" '/STUDIO_URL/{gsub(replace, "", $NF); print $NF}' studio/settings.py`
-          echo "STUDIO_URL=$STUDIO_URL" >> $GITHUB_ENV
-          echo "The Serve URL is $STUDIO_URL"
-          docker exec studio pwd
-          docker exec studio ls -al
-          docker exec studio whoami
-          docker exec studio id stackn
-
-      - name: Check URL is up
-        uses: gerdemann/http-status-code@1.0.0
-        with:
-          url: ${{ env.STUDIO_URL }}
-          code: 200 # http status code
-          timeout: 120 # seconds
-          interval: 5 # seconds
-        continue-on-error: true
-
-      - name: Check if Serve is ready
-        working-directory: ${{env.working-directory}}
-        id: check_serve_up
-        run: |
-          echo "Checking response from STUDIO_URL: ${{ env.STUDIO_URL }}"
-          response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
-          if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
-
-      - name: Check if celery worker can access kubectl and helm
-        run: |
-          docker exec celery-worker kubectl version
-          docker exec celery-worker kubectl run nginx --image=nginx --port=80
           sleep 15
           docker exec celery-worker kubectl get po
           docker exec celery-worker helm version
@@ -269,7 +129,6 @@ jobs:
         with:
           working-directory: ${{env.working-directory}}
           config: pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }}
-          browser: chrome
           quiet: true
       - name: Save cypress screenshot artifacts on failure
         uses: actions/upload-artifact@v3
