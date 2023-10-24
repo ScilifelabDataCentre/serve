@@ -64,7 +64,7 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
 
-            cy.wait(60000)
+            cy.wait(30000)
             cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Running')
 
             cy.get('tr:contains("' + app_name_private + '")').find('i.bi-three-dots-vertical').click()
