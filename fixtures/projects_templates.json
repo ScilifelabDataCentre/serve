@@ -16,7 +16,7 @@
             "slug": "volumeK8s",
             "storageClass": "microk8s-hostpath",
             "volume.accessModes": "ReadWriteMany",
-            "volume.size": "1Gi",
+            "volume.size": "0.1Gi",
             "volume.storageClass": "microk8s-hostpath"
           }
         },
@@ -35,20 +35,20 @@
         "flavors": {
           "2 vCPU, 4 GB RAM": {
             "cpu": {
-              "limit": "2000m",
-              "requirement": "500m"
+              "limit": "100m",
+              "requirement": "50m"
             },
             "ephmem": {
-              "limit": "5000Mi",
-              "requirement": "100Mi"
+              "limit": "50Mi",
+              "requirement": "10Mi"
             },
             "gpu": {
               "limit": "0",
               "requirement": "0"
             },
             "mem": {
-              "limit": "4Gi",
-              "requirement": "1Gi"
+              "limit": "0.4Gi",
+              "requirement": "0.1Gi"
             }
           }
         }
@@ -74,7 +74,7 @@
             "slug": "volumeK8s",
             "storageClass": "microk8s-hostpath",
             "volume.accessModes": "ReadWriteMany",
-            "volume.size": "1Gi",
+            "volume.size": "0.1Gi",
             "volume.storageClass": "microk8s-hostpath"
           },
           "project-minio": {
@@ -102,20 +102,20 @@
         "flavors": {
           "2 vCPU, 4 GB RAM": {
             "cpu": {
-              "limit": "2000m",
-              "requirement": "500m"
+              "limit": "100m",
+              "requirement": "50m"
             },
             "ephmem": {
-              "limit": "5000Mi",
-              "requirement": "100Mi"
+              "limit": "50Mi",
+              "requirement": "10Mi"
             },
             "gpu": {
               "limit": "0",
               "requirement": "0"
             },
             "mem": {
-              "limit": "4Gi",
-              "requirement": "1Gi"
+              "limit": "0.4Gi",
+              "requirement": "0.1Gi"
             }
           }
         },
