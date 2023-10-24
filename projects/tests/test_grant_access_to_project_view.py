@@ -5,25 +5,11 @@ from projects.models import Project
 
 User = get_user_model()
 
-test_user_1 = {
-    "username": "foo1",
-    "email": "foo@test.com",
-    "password": "bar"
-}
+test_user_1 = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
 
-test_user_2 = {
-    "username": "foo2",
-    "email": "foo2@test.com",
-    "password": "bar"
-}
+test_user_2 = {"username": "foo2", "email": "foo2@test.com", "password": "bar"}
 
-test_client = {
-    "username": "client1",
-    "email": "foo3@test.com",
-    "password": "bar"
-}
-
-
+test_client = {"username": "client1", "email": "foo3@test.com", "password": "bar"}
 
 
 class GrantAccessToProjectViewTestCase(TestCase):
@@ -44,7 +30,9 @@ class GrantAccessToProjectViewTestCase(TestCase):
         return project
 
     def test_grant_access_to_user(self):
-        response = self.client.post("/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]})
+        response = self.client.post(
+            "/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]}
+        )
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -75,7 +63,9 @@ class GrantAccessToProjectViewTestCase(TestCase):
         self.assertTrue(has_perm)
 
     def test_grant_access_to_user_no_access(self):
-        response = self.client.post("/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]})
+        response = self.client.post(
+            "/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]}
+        )
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -90,7 +80,9 @@ class GrantAccessToProjectViewTestCase(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_grant_access_to_non_existing_user(self):
-        response = self.client.post("/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]})
+        response = self.client.post(
+            "/accounts/login/", {"username": test_user_1["email"], "password": test_user_1["password"]}
+        )
         response.status_code
 
         self.assertEqual(response.status_code, 302)

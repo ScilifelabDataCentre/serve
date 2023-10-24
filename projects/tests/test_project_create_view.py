@@ -7,11 +7,8 @@ from ..models import ProjectTemplate
 
 User = get_user_model()
 
-test_user = {
-    "username": "foo1",
-    "email": "foo@test.com",
-    "password": "bar"
-}
+test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
+
 
 class ProjectCreateViewTestCase(TestCase):
     def setUp(self):

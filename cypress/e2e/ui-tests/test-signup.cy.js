@@ -33,7 +33,7 @@ describe("Test sign up", () => {
         cy.get('input[name=password2]').type(userdata.password);
         cy.get('input[name="department"]').click().click();
         cy.get('input[name="department"]').type('Biology Education Centre');
-        
+
         cy.get("input#submit-id-save").click();
 
         cy.url().should("include", "accounts/login");

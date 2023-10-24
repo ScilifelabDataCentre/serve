@@ -9,11 +9,8 @@ from ..models import AppInstance, Apps
 
 User = get_user_model()
 
-test_user = {
-    "username": "foo1",
-    "email": "foo@test.com",
-    "password": "bar"
-}
+test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
+
 
 class CreateAppViewTestCase(TestCase):
     def setUp(self) -> None:
