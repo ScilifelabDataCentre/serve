@@ -64,7 +64,7 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
 
-            // TODO: debug problems with status not set to Running
+            cy.wait(60000)
             cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Running')
 
             cy.get('tr:contains("' + app_name_private + '")').find('i.bi-three-dots-vertical').click()
@@ -85,7 +85,7 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
 
-            // TODO: debug problems with status not set to Running
+            cy.wait(5000)
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
 
             cy.visit("/apps")
