@@ -48,7 +48,6 @@ jobs:
         run: |
           echo "Running as UID: $UID, GID: $GID"
           export GID=127
-          export UID=1001
           echo "Now running as UID: $UID, GID: $GID"
           whoami
           pwd
