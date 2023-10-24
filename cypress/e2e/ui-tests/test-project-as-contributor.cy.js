@@ -7,10 +7,16 @@ describe("Test project contributor user functionality", () => {
     let users
 
     before(() => {
-        // seed the db with: contributor user, a blank project
-        cy.log("Seeding the db for the contributor tests. Running db-seed-contributor.sh");
-        cy.exec("./cypress/e2e/db-reset.sh")
-        cy.wait(60000)
+        // do db reset if needed
+        if (Cypress.env('do_reset_db') === true) {
+            cy.log("Resetting db state. Running db-reset.sh");
+            cy.exec("./cypress/e2e/db-reset.sh");
+            cy.wait(Cypress.env('wait_db_reset'));
+        }
+        else {
+            cy.log("Skipping resetting the db state.");
+        }
+        // seed the db with a user
         cy.visit("/")
         cy.log("Running seed_contributor.py")
         cy.exec("./cypress/e2e/db-seed-contributor.sh")
@@ -33,8 +39,7 @@ describe("Test project contributor user functionality", () => {
     it("can create a new project with default template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
-        const project_name = "e2e-create-proj-test"
-        const volume_name = "e2e-project-vol"
+        const project_name = "e2e-create-default-proj-test"
         const project_title_name = project_name + " | SciLifeLab Serve"
 
         cy.visit("/projects/")
@@ -58,7 +63,6 @@ describe("Test project contributor user functionality", () => {
             .then((href) => {
                 cy.log(href)
                 cy.reload()
-                //cy.url().should("include", "/project-e2e-blank");
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
 
@@ -95,11 +99,11 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
-    it("can create a new project with ML serving template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
+    // This test cannot run properly in GitHub workflows because there is an issue with minio creation there. Therefore, it should be run locally to make sure things work. For GitHub, skipping it.
+    it.skip("can create a new project with ML serving template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
-        const project_name = "e2e-create-proj-test"
-        const volume_name = "e2e-project-vol"
+        const project_name = "e2e-create-ml-proj-test"
         const project_title_name = project_name + " | SciLifeLab Serve"
 
         cy.visit("/projects/")
@@ -123,7 +127,6 @@ describe("Test project contributor user functionality", () => {
             .then((href) => {
                 cy.log(href)
                 cy.reload()
-                //cy.url().should("include", "/project-e2e-blank");
                 cy.get("title").should("have.text", project_title_name)
                 cy.get('h3').should('contain', project_name)
 
