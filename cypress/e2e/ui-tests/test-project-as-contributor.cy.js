@@ -100,7 +100,7 @@ describe("Test project contributor user functionality", () => {
     })
 
     // This test cannot run properly in GitHub workflows because there is an issue with minio creation there. Therefore, it should be run locally to make sure things work. For GitHub, skipping it.
-    it.skip("can create a new project with ML serving template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
+    it("can create a new project with ML serving template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
         const project_name = "e2e-create-ml-proj-test"
