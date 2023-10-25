@@ -137,7 +137,7 @@ services:
     image: stackn:develop
     volumes:
     - .:/app:cached
-    command: ["pytest", "--hypothesis-show-statistics", "-vv", "common/"]
+    command: ["pytest"]
     profiles:
       - donotstart
     networks:
