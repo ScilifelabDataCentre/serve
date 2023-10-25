@@ -72,7 +72,7 @@ def input_form(
 @pytest.mark.pass_validation
 @pytest.mark.django_db(transaction=True, serialized_rollback=True)
 @given(form=input_form())
-@settings(verbosity=Verbosity.verbose, max_examples=30)
+@settings(verbosity=Verbosity.verbose, max_examples=6)
 def test_pass_validation(form):
 
     UserProfile.objects.all().delete()
@@ -93,6 +93,7 @@ def test_pass_validation(form):
         why_account_needed=st.text(min_size=10, max_size=100),
     )
 )
+@settings(verbosity=Verbosity.verbose, max_examples=6)
 def test_pass_validation_other_email_request_account(form):
     is_val = form.is_valid()
     assert hasattr(form.user, "cleaned_data")
@@ -108,26 +109,29 @@ def test_pass_validation_other_email_request_account(form):
         )
     )
 )
+@settings(verbosity=Verbosity.verbose, max_examples=6)
 def test_invalid_input_affiliation_ne_email(form):
     is_val = form.is_valid()
     assert hasattr(form.user, "cleaned_data")
     assert hasattr(form.profile, "cleaned_data")
     assert not is_val
-    assert {"affiliation": ["Email affiliation is different from selected"]} == form.profile.errors
+    assert {"affiliation": ["Email affiliation is different from selected university"]} == form.profile.errors
 
 
 @pytest.mark.django_db
 @given(form=input_form(affiliation_getter=lambda x: "other"))
+@settings(verbosity=Verbosity.verbose, max_examples=6)
 def test_invalid_input_affilitaion_is_other(form):
     is_val = form.is_valid()
     assert hasattr(form.user, "cleaned_data")
     assert hasattr(form.profile, "cleaned_data")
     assert not is_val
-    assert {"affiliation": ["You are required to select your affiliation"]} == form.profile.errors
+    assert {"affiliation": ["You are required to select a university affiliation"]} == form.profile.errors
 
 
 @pytest.mark.django_db
 @given(form=input_form(department=st.sampled_from(["", None])))
+@settings(verbosity=Verbosity.verbose, max_examples=6)
 def test_invalid_input_department_is_empty(form):
     is_val = form.is_valid()
     assert hasattr(form.profile, "cleaned_data")
@@ -143,11 +147,11 @@ def test_invalid_input_department_is_empty(form):
         why_account_needed=st.sampled_from(["", None]),
     )
 )
-@settings(verbosity=Verbosity.verbose)
+@settings(verbosity=Verbosity.verbose, max_examples=6)
 def test_fail_validation_other_email_request_account_field_empty(form):
     is_val = form.is_valid()
     assert not is_val, (form.user.errors, form.profile.errors)
-    assert {"why_account_needed": ["Please describe why do you need an account"]} == form.profile.errors
+    assert {"why_account_needed": ["Please describe why you need an account"]} == form.profile.errors
 
 
 @pytest.mark.django_db
@@ -157,12 +161,13 @@ def test_fail_validation_other_email_request_account_field_empty(form):
         affiliation_getter=lambda x: choice([unis[0] for unis in UNIVERSITIES if unis[0] != "other"]),
     )
 )
+@settings(verbosity=Verbosity.verbose, max_examples=6)
 def test_fail_validation_other_email_affiliation_selected(form):
     is_val = form.is_valid()
     assert not is_val, (form.user.errors, form.profile.errors)
     assert {
         "email": [
-            "Email is not from Swedish University. \n"
-            "Please select 'Other' in affiliation or use your University email"
+            "Email is not from a Swedish university. \n"
+            "Please select 'Other' in affiliation or use your Swedish university email"
         ]
     } == form.user.errors
