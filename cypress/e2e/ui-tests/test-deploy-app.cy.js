@@ -64,8 +64,8 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
 
-            // TODO: debug problems with status not set to Running
-            //cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Running')
+            cy.wait(30000)
+            cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Running')
 
             cy.get('tr:contains("' + app_name_private + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_private + '")').find('a.confirm-delete').click()
@@ -85,8 +85,8 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
 
-            // TODO: debug problems with status not set to Running
-            //cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
+            cy.wait(5000)
+            cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
 
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve")
