@@ -19,7 +19,7 @@ services:
   studio:
     user: "${UID}:${GID}"
     container_name: studio
-    build: 
+    build:
       context: .
     image: stackn:develop
     command: ["scripts/wait-for-it.sh", "db:5432", "--", sh, scripts/run_web.sh]
@@ -53,7 +53,7 @@ services:
      internal_network:
        aliases:
          - redis.127.0.0.1.nip.io
-  
+
   rabbit:
     image: rabbitmq
     container_name: rabbitmq
@@ -136,21 +136,21 @@ services:
   unit-tests:
     image: stackn:develop
     volumes:
-    - .:/app:cached  
-    command: ["pytest"] 
+    - .:/app:cached
+    command: ["pytest"]
     profiles:
       - donotstart
     networks:
       internal_network:
         aliases:
           - studio.127.0.0.1.nip.io
-  
+
   ui-tests:
     build:
       context: .
       dockerfile: Dockerfile.cypress
     volumes:
-      - .:/app  
+      - .:/app
       - "/var/run/docker.sock:/var/run/docker.sock"
     entrypoint: ["/bin/bash", "-c", "npm install . && cypress run"]
     profiles:

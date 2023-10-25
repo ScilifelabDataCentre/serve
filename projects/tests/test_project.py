@@ -8,17 +8,10 @@ from ..models import Project
 
 User = get_user_model()
 
-test_user = {
-    "username": "admin",
-    "email": "foo@test.com",
-    "password": "bar"
-}
+test_user = {"username": "admin", "email": "foo@test.com", "password": "bar"}
 
-test_member = {
-    "username": "member",
-    "email": "member@test.com",
-    "password": "bar"
-}
+test_member = {"username": "member", "email": "member@test.com", "password": "bar"}
+
 
 class ProjectTestCase(TestCase):
     def setUp(self):

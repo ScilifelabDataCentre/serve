@@ -45,4 +45,3 @@ window.onload = (event) => {
 
     email.addEventListener('input', changeVisibility);
 };
-

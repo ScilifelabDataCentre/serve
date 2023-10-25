@@ -1,14 +1,12 @@
-"""DB seed script for e2e cypress contributor tests."""
+"""DB seed script for e2e cypress login tests."""
 
 import json
 import os.path
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
 from projects.models import Project
-
-User = get_user_model()
 
 cypress_path = os.path.join(settings.BASE_DIR, "cypress/fixtures")
 print(f"Now loading the json users file from fixtures path: {cypress_path}")  # /app/cypress/fixtures
@@ -16,15 +14,12 @@ print(f"Now loading the json users file from fixtures path: {cypress_path}")  # 
 with open(os.path.join(cypress_path, "users.json"), "r") as f:
     testdata = json.load(f)
 
-    userdata = testdata["contributor"]
+    userdata = testdata["reader_user"]
 
     username = userdata["username"]
     email = userdata["email"]
     pwd = userdata["password"]
 
-    # Create the contributor user
+    # Create the reader user
     user = User.objects.create_user(username, email, pwd)
     user.save()
-
-    # Create a dummy project to be deleted by the contributor user
-    Project.objects.create_project(name="e2e-delete-proj-test", owner=user, description="", repository="")

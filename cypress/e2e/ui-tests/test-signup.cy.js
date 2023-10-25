@@ -7,7 +7,7 @@ describe("Test sign up", () => {
         if (Cypress.env('do_reset_db') === true) {
             cy.log("Resetting db state. Running db-reset.sh");
             cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(60000);
+            cy.wait(Cypress.env('wait_db_reset'));
         }
         else {
             cy.log("Skipping resetting the db state.");
@@ -33,7 +33,7 @@ describe("Test sign up", () => {
         cy.get('input[name=password2]').type(userdata.password);
         cy.get('input[name="department"]').click().click();
         cy.get('input[name="department"]').type('Biology Education Centre');
-        
+
         cy.get("input#submit-id-save").click();
 
         cy.url().should("include", "accounts/login");

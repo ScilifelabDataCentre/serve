@@ -7,11 +7,8 @@ from ..models import AppCategories, AppInstance, Apps
 
 User = get_user_model()
 
-test_user = {
-    "username": "foo@test.com",
-    "email": "foo@test.com",
-    "password": "bar"
-}
+test_user = {"username": "foo@test.com", "email": "foo@test.com", "password": "bar"}
+
 
 class GetStatusViewTestCase(TestCase):
     def setUp(self) -> None:

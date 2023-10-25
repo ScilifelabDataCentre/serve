@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 {% load sekizai_tags i18n wiki_tags static %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/serve-user-guide.css' %}">
+{% endblock %}
+
 {% block title %}{% block wiki_pagetitle %}{% endblock %}{% endblock %}
 
 
 {% block content %}
+{% block wiki_body %}
 
 {# Breadcrumbs #}
 {% include 'wiki/breadcrumbs.html' %}
@@ -14,13 +19,13 @@
 
 <div class="row">
 
-    <div class="col-12 col-md-3 sticky-md-top pt-2">
-        <aside class="sticky-md-top py-2 border-bottom">
+    <div class="col-12 col-lg-3 sticky-lg-top pt-2">
+        <aside class="sticky-lg-top py-2 border-bottom">
             <h4 data-cy="sidebar-title">SciLifeLab Serve user guide</h4>
             <div class="d-flex my-2 py-3 border-top">
                 <form class="d-flex" role="search" method="GET" action="{% spaceless %} {% url 'wiki:search' %} {% endspaceless %}">
                     <input class="form-control me-2" type="search" name="q" placeholder="Search.." aria-label="Search">
-                    <button class="btn btn-outline-success" type="submit">Search</button>
+                    <button class="btn btn-outline-serve" type="submit">Search</button>
                   </form>
             </div>
             {% if urlpath.root.get_descendants %}
@@ -48,7 +53,7 @@
         {% endif %}
         </aside>
     </div>
-    <div class="col-12 col-md-9 col-md-9 mt-4 mt-md-0">
+    <div class="col-12 col-lg-9 mt-4 mt-lg-0">
         <div class="container">
         {% wiki_messages %}
         {# Main page contents  #}
@@ -56,6 +61,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
 
   <p class="border-top mt-4 pt-2 text-muted small">{% blocktrans %}The SciLifeLab Serve user guide is powered by <a href="http://www.django-wiki.org">django-wiki</a>, an open source application under the <a href="http://www.gnu.org/licenses/quick-guide-gplv3.html">GPLv3</a> license. Let knowledge be the cure.{% endblocktrans %}</p>
 

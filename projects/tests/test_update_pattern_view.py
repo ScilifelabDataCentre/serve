@@ -7,11 +7,8 @@ from ..views import UpdatePatternView
 
 User = get_user_model()
 
-test_user = {
-    "username": "foo1",
-    "email": "foo@test.com",
-    "password": "bar"
-}
+test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
+
 
 class UpdatePatternViewTestCase(TestCase):
     def setUp(self) -> None:
@@ -29,7 +26,9 @@ class UpdatePatternViewTestCase(TestCase):
         return project
 
     def test_update_pattern_view(self):
-        response = self.client.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
+        response = self.client.post(
+            "/accounts/login/", {"username": test_user["email"], "password": test_user["password"]}
+        )
         response.status_code
 
         self.assertEqual(response.status_code, 302)

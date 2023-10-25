@@ -1,1 +1,1 @@
-default_app_config = 'common.CommonConfig'
+default_app_config = "common.CommonConfig"

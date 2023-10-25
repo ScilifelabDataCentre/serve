@@ -27,8 +27,8 @@ with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
 EMAIL_ALLOW_REGEX = re.compile(
     (
         r"^(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*?"  # Subdomain part
-        f"({('|').join([l[0] for l in UNIVERSITIES if l[0] != 'other'])}"
-        ")\.se"  # End of the domain
+        + f"({('|').join([l[0] for l in UNIVERSITIES if l[0] != 'other'])}"
+        + r")\.se"  # End of the domain
     ),
     re.IGNORECASE,
 )
@@ -141,12 +141,12 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
 
         This runs after the basic `UserCreationForm` validation.
         """
-        email = self.cleaned_data["email"].lower()
+        email: str = self.cleaned_data["email"].lower()
         if User.objects.filter(email=email).exists():
             self.add_error("email", ValidationError("Email already exists"))
         return email
 
-    def add_error_classes(self):
+    def add_error_classes(self) -> None:
         """
         Add bootstrap error classes to fields and move errors from password2 to password1
         so that errors are displayed in one place on the left side of the form
@@ -160,7 +160,7 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
             if "password2" in self.errors:
                 del self.errors["password2"]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.data})"
 
 
@@ -262,8 +262,8 @@ class SignUpForm:
 
     def _is_valid(self) -> bool:
         # these two calls are done that way, so that we can get errors for both forms and display them together
-        is_user_valid = self.user.is_valid()
-        is_profile_valid = self.profile.is_valid()
+        is_user_valid: bool = self.user.is_valid()
+        is_profile_valid: bool = self.profile.is_valid()
         return is_user_valid and is_profile_valid
 
     def is_valid(self, force_clean=False) -> bool:

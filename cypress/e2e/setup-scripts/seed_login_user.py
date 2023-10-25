@@ -14,12 +14,12 @@ print(f"Now loading the json users file from fixtures path: {cypress_path}")  # 
 with open(os.path.join(cypress_path, "users.json"), "r") as f:
     testdata = json.load(f)
 
-    userdata = testdata["login"]
+    userdata = testdata["login_user"]
 
     username = userdata["username"]
     email = userdata["email"]
     pwd = userdata["password"]
 
-    # Create the contributor user
+    # Create the login user
     user = User.objects.create_user(username, email, pwd)
     user.save()

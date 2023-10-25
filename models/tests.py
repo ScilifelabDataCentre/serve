@@ -20,11 +20,8 @@ os.environ["AWS_SECURITY_TOKEN"] = "testing"
 os.environ["AWS_SESSION_TOKEN"] = "testing"
 os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
-test_user = {
-    "username": "foo1",
-    "email": "foo@test.com",
-    "password": "bar"
-}
+test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
+
 
 class ModelViewTests(TestCase):
     bucket_name = "test-bucket"
