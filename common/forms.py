@@ -119,6 +119,8 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
     )
 
+    required_css_class = "required"
+
     class Meta:
         model = User
         fields = [
@@ -189,6 +191,8 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
         help_text="If you would like us to get in touch with you, to answer your questions or provide help with "
         "Serve, please describe how we can help you here.",
     )
+
+    required_css_class = "required"
 
     class Meta:
         model = UserProfile
