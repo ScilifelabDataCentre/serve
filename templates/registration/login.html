@@ -20,6 +20,24 @@
             <div class="col text-center">
               <h2 class="text-dark mb-4">Log in</h2>
             </div>
+
+            {% if form.errors %}
+            <div class="alert alert-danger" role="alert">
+              Your email and password didn't match. Please try again.
+            </div>
+            {% endif %}
+
+            {% if next %}
+            <div class="alert alert-danger" role="alert">
+                {% if user.is_authenticated %}
+                  Your account doesn't have access to this page. To proceed,
+                  please login with an account that has access.
+                {% else %}
+                  Please login to see this page.
+                {% endif %}
+              </div>
+            {% endif %}
+
             <div class="py-4 d-flex justify-content-center">
 
               <div class="w-100">
@@ -35,22 +53,6 @@
                   </div>
                   <div class="form-group d-flex justify-content-center"><button type="submit"
                       class="btn btn-primary w-xs-100 px-5">Login</button></div>
-
-                  {% if form.errors %}
-                  <div class="row pt-2">
-                    <div class="col">
-                      <p>Your email and password didn't match. Please try again.</p>
-                      {% endif %}
-                      {% if next %}
-                      {% if user.is_authenticated %}
-                      <p>Your account doesn't have access to this page. To proceed,
-                        please login with an account that has access.</p>
-                      {% else %}
-                      <p>Please login to see this page.</p>
-                      {% endif %}
-                    </div>
-                  </div>
-                  {% endif %}
                 </form>
               </div>
 
