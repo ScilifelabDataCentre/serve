@@ -27,7 +27,7 @@ RUN apk add --update --no-cache \
 # Installing Pillow separate from the packages in requirements
 # greatly speeds up the docker build.
 RUN python3 -m pip install --upgrade pip \
-    && python3 -m pip install Pillow==9.4.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb" --global-option="--disable-zlib"
+    && python3 -m pip install Pillow==10.1.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb"
 
 FROM bitnami/kubectl:1.28.2 as kubectl
 FROM alpine/helm:3.12.3 as helm
