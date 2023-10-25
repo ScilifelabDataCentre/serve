@@ -87,36 +87,39 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
     first_name = forms.CharField(
         min_length=1,
         max_length=30,
-        label=False,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "First name*"}),
+        label="First name",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
     )
     last_name = forms.CharField(
         min_length=1,
         max_length=30,
-        label=False,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Last name*"}),
+        label="Last name",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
     )
     email = forms.EmailField(
         max_length=254,
-        label=mark_safe(
+        label="Email",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        help_text=mark_safe(
             "Use your <a "
             "href='https://www.uka.se/sa-fungerar-hogskolan/universitet-och-hogskolor/lista-over-"
             "universitet-hogskolor-och-enskilda-utbildningsanordnare'>"
-            "swedish university</a> email address or submit your request for evaluation."
+            "Swedish university</a> email address. If you are not affiliated with a Swedish university,"
+            "your account request will be reviewed manually."
         ),
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Email*"}),
-        label_suffix="",
     )
     password1 = forms.CharField(
         min_length=8,
-        label=False,
-        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Password*"}),
+        label="Password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
     )
     password2 = forms.CharField(
         min_length=8,
-        label=False,
-        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Confirm password*"}),
+        label="Confirm password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
     )
+
+    required_css_class = "required"
 
     class Meta:
         model = User
@@ -163,43 +166,33 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
 
 class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
     affiliation = forms.ChoiceField(
-        widget=forms.Select(attrs={"class": "form-control", "placeholder": "University"}),
-        label="University affiliation",
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label="University",
         choices=UNIVERSITIES,
-        label_suffix="",
+        help_text="Your university affiliation, must match the email address.",
     )
     department = forms.CharField(
-        widget=ListTextWidget(
-            data_list=DEPARTMENTS, name="department-list", attrs={"class": "form-control", "placeholder": "Department"}
-        ),
-        label="Select closest department name or enter your own",
-        label_suffix="",
+        widget=ListTextWidget(data_list=DEPARTMENTS, name="department-list", attrs={"class": "form-control"}),
+        label="Department",
         required=False,
+        help_text="Select closest department name or enter your own.",
     )
     why_account_needed = forms.CharField(
-        widget=forms.Textarea(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Because you are not using Swedish University email, please describe why do you need "
-                "an account.\nYour request will be submited for evaluation.*",
-                "style": "height: 70px",
-            }
-        ),
+        widget=forms.Textarea(attrs={"class": "form-control", "style": "height: 70px"}),
         required=False,
+        label="How do you plan to use Serve?",
+        help_text="Because you are not using a Swedish university email, please describe why you need an account."
+        " Your request will be manually evaluated by the Serve team.",
     )
     note = forms.CharField(
-        widget=forms.Textarea(
-            attrs={
-                "class": "form-control",
-                "placeholder": (
-                    "If you would like us to get in touch with you, to answer your questions or provide "
-                    "help with Serve, please describe what do you need here"
-                ),
-                "style": "height: 70px",
-            }
-        ),
+        widget=forms.Textarea(attrs={"class": "form-control", "style": "height: 70px"}),
         required=False,
+        label="Do you require support?",
+        help_text="If you would like us to get in touch with you, to answer your questions or provide help with "
+        "Serve, please describe how we can help you here.",
     )
+
+    required_css_class = "required"
 
     class Meta:
         model = UserProfile
@@ -244,9 +237,13 @@ class SignUpForm:
         if is_university_email:
             # Check that selected affiliation is equal to affiliation from email
             if is_affiliated and affiliation != affiliation_from_email:
-                self.profile.add_error("affiliation", ValidationError("Email affiliation is different from selected"))
+                self.profile.add_error(
+                    "affiliation", ValidationError("Email affiliation is different from selected university")
+                )
             if not is_affiliated:
-                self.profile.add_error("affiliation", ValidationError("You are required to select your affiliation"))
+                self.profile.add_error(
+                    "affiliation", ValidationError("You are required to select a university affiliation")
+                )
             if is_department_empty:
                 self.profile.add_error("department", ValidationError("You are required to select your department"))
         else:
@@ -254,16 +251,14 @@ class SignUpForm:
                 self.user.add_error(
                     "email",
                     ValidationError(
-                        "Email is not from Swedish University. \n"
-                        "Please select 'Other' in affiliation or use your University email"
+                        "Email is not from a Swedish university. \n"
+                        "Please select 'Other' in affiliation or use your Swedish university email"
                     ),
                 )
                 self.profile.add_error("affiliation", ValidationError(""))
 
             if is_request_account_empty:
-                self.profile.add_error(
-                    "why_account_needed", ValidationError("Please describe why do you need an account")
-                )
+                self.profile.add_error("why_account_needed", ValidationError("Please describe why you need an account"))
 
     def _is_valid(self) -> bool:
         # these two calls are done that way, so that we can get errors for both forms and display them together

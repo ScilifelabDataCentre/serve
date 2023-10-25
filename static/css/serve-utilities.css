@@ -44,3 +44,8 @@
 .rollable.hidden {
     max-height: 0 !important;
 }
+
+label.required::before {
+    content: ' *';
+    color: red;
+}
