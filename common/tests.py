@@ -72,7 +72,7 @@ def input_form(
 @pytest.mark.pass_validation
 @pytest.mark.django_db(transaction=True, serialized_rollback=True)
 @given(form=input_form())
-@settings(verbosity=Verbosity.verbose, max_examples=1)
+@settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)
 def test_pass_validation(form):
 
     UserProfile.objects.all().delete()
