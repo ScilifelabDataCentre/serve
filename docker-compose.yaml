@@ -134,6 +134,7 @@ services:
           - celery-beat.127.0.0.1.nip.io
 
   unit-tests:
+    user: "${UID}:${GID}"
     image: stackn:develop
     volumes:
     - .:/app:cached
