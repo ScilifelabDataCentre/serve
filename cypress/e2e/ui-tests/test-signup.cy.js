@@ -17,7 +17,7 @@ describe("Test sign up", () => {
     beforeEach(() => {
         // username in fixture must match username in db-reset.sh
         cy.fixture('users.json').then(function (data) {
-            userdata = data.login;
+            userdata = data.login_user;
           })
     })
 
