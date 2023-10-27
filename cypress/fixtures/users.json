@@ -25,7 +25,7 @@
     "username": "e2e_superuser_tester"
   },
   "signup_user": {
-    "email": "no-reply-signupuser@scilifelab.se",
+    "email": "no-reply-signupuser@scilifelab.uu.se",
     "password": "test12345",
     "username": "e2e_signupuser_tester"
   }
