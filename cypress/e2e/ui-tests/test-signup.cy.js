@@ -17,7 +17,7 @@ describe("Test sign up", () => {
     beforeEach(() => {
         // username in fixture must match username in db-reset.sh
         cy.fixture('users.json').then(function (data) {
-            userdata = data.login_user;
+            users = data.signup_user;
           })
     })
 
@@ -26,12 +26,11 @@ describe("Test sign up", () => {
         cy.visit("/signup/");
         cy.get("title").should("have.text", "Register | SciLifeLab Serve")
 
-        cy.get('input[name=email]').type(userdata.email);
+        cy.get('input[name=email]').type(users.email);
         cy.get('input[name=first_name]').type("first name");
         cy.get('input[name=last_name]').type("last name");
-        cy.get('input[name=password1]').type(userdata.password);
-        cy.get('input[name=password2]').type(userdata.password);
-        cy.get('input[name="department"]').click().click();
+        cy.get('input[name=password1]').type(users.password);
+        cy.get('input[name=password2]').type(users.password);
         cy.get('input[name="department"]').type('Biology Education Centre');
 
         cy.get("input#submit-id-save").click();
