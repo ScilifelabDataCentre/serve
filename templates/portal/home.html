@@ -59,7 +59,7 @@
         </h2>
 
         {% for app in published_apps %}
-            <div class="col-12 col-md-6 col-lg-4 mb-4" data-aos="fade" data-aos-duration="1000">
+            <div class="col-12 col-md-4 mb-4" data-aos="fade" data-aos-duration="1000">
                 <div class="card h-100 border-0 shadow">
                     <div class="card-body d-flex flex-column m-1">
                         <div class="col-12 d-flex flex-row pb-2 align-items-center">
@@ -78,8 +78,8 @@
                             <p>{{app.description|default_if_none:""}}</p>
                             <ul class="list-unstyled">
                                 <li class="list-group-item row">
-                                    <div class="col-3"><span class="value-label">Owner:</span></div>
-                                    <div class="col-9">{{ app.owner.first_name }} {{ app.owner.last_name }}</div>
+                                    <div class="col-6"><span class="value-label">Owner:</span></div>
+                                    <div class="col-6">{{ app.owner.first_name }} {{ app.owner.last_name }}</div>
                                 </li>
                             </ul>
                         </div>
