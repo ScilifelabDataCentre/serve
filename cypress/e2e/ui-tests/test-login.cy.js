@@ -28,7 +28,7 @@ describe("Test login", () => {
 
         cy.visit("accounts/login/")
 
-        cy.get('input[name=username]').type(users.login_user.username)
+        cy.get('input[name=username]').type(users.login_user.email)
         cy.get('input[name=password]').type(users.login_user.password)
 
         cy.get("button").contains('Login').click()
@@ -42,7 +42,7 @@ describe("Test login", () => {
 
     it("can login an existing user through the UI when input is valid using cypress command", () => {
 
-        cy.loginViaUI(users.login_user.username, users.login_user.password)
+        cy.loginViaUI(users.login_user.email, users.login_user.password)
 
     })
 

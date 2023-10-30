@@ -29,7 +29,7 @@
 <div class="row">
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
-            
+
                 <form class="needs-validation" action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
                 <div class="card-body">
@@ -270,8 +270,8 @@
                     </div>
                     {% endif %}
                 </div>
-                
-            
+
+
             <div class="card-footer d-flex justify-content-between">
                     <button class="btn btn-danger" type="submit"
                         onclick="window.location='{{ request.headers.referer }}' ; return false;">

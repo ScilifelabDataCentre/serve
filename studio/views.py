@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect
 from rest_framework.authentication import (
@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.models import AppInstance
+from common.models import UserProfile
 from projects.models import Project
 
 
@@ -23,6 +24,14 @@ def set_new_user_inactive(sender, instance, **kwargs):
         instance.is_active = False
     else:
         print("Updating User Record")
+
+
+@receiver(post_save, sender=UserProfile)
+def post_save_userprofile(sender, instance, **kwargs):
+    if not settings.INACTIVE_USERS:
+        user = instance.user
+        user.is_active = instance.is_approved
+        user.save()
 
 
 # Since this is a production feature, it will only work if DEBUG is set to False

@@ -53,7 +53,7 @@
                 </h5>
                 <p><b>Project owner:</b> {{ project.owner.email }}</p>
             </div>
-            
+
             <div class="card-footer d-flex justify-content-between">
                 {% if request.user.is_authenticated %}
 
@@ -71,7 +71,7 @@
                 <a href="{% url 'projects:details' request.user project.slug %}"
                 class="btn btn-primary">Open</a>
                 {% endif %}
-            </div>  
+            </div>
         </div>
     </div>
 

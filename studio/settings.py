@@ -224,6 +224,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media/")
 
 STATIC_URL = "/static/"
 STATIC_ROOT = ""
+# SS-507
+# Please keep "static" files first, because common/forms.py expects it
 STATICFILES_DIRS = (os.path.join("static"),)
 
 # Default primary key field type
@@ -327,6 +329,7 @@ MIGRATION_MODULES = {
     "monitor": "studio.migrations.monitor",
     "portal": "studio.migrations.portal",
     "projects": "studio.migrations.projects",
+    "common": "common.migrations",
 }
 
 # Defines how many apps a user is allowed to create within one project
@@ -357,3 +360,10 @@ STUDIO_ACCESSMODE = os.environ.get("STUDIO_ACCESSMODE", "")
 ENABLE_PROJECT_EXTRA_SETTINGS = False
 
 DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore
+
+# This was added in SS-507.
+# This setting is for django-guardian.
+# We had to set it because AnonymousUser was not working properly.
+# Specifically, apps.tests.test_user_has_no_access was failing.
+# Also anonymous access to pages was not working.
+ANONYMOUS_USER_NAME = None

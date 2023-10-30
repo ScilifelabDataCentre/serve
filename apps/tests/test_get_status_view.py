@@ -7,10 +7,12 @@ from ..models import AppCategories, AppInstance, Apps
 
 User = get_user_model()
 
+test_user = {"username": "foo@test.com", "email": "foo@test.com", "password": "bar"}
+
 
 class GetStatusViewTestCase(TestCase):
     def setUp(self) -> None:
-        self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
+        self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         self.category = AppCategories.objects.create(name="Network", priority=100, slug="network")
         self.app = Apps.objects.create(
             name="Jupyter Lab",
@@ -40,7 +42,7 @@ class GetStatusViewTestCase(TestCase):
     def test_user_has_access(self):
         c = Client()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -60,9 +62,9 @@ class GetStatusViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 403)
 
-        user = User.objects.create_user("foo2", "foo2@test.com", "bar")
+        user = User.objects.create_user("foo2@test.com", "foo2@test.com", "bar")
 
-        response = c.post("/accounts/login/", {"username": "foo2", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": "foo2@test.com", "password": "bar"})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -76,7 +78,7 @@ class GetStatusViewTestCase(TestCase):
     def test_apps_empty(self):
         c = Client()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
