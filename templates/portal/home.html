@@ -1,12 +1,163 @@
 {% extends 'base.html' %}
-{% load static %}
 
 {% block title %}Home{% endblock %}
+{% load static %}
+{% load custom_tags %}
 
 {% block content %}
 
+
 <div class="container">
-Homepage content goes here
+    <div class="row ">
+        <div class="col-12 d-flex align-items-center justify-content-center my-4">
+            <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="max-width:400px;width:60%">
+        </div>
+        <div class="col-12 col-lg-8 offset-lg-2 d-flex align-items-center justify-content-center">
+            SciLifeLab Serve is a platform offering machine learning model serving, app hosting, web-based integrated development environments, and other tools to life science researchers affiliated with a Swedish research institute.
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4 d-flex align-items-stretch">
+            <div class="card text-center py-2 shadow" data-aos="fade" data-aos-duration="1000">
+                <h1><i class="bi bi-robot"></i></h1>
+                <div class="card-body">
+                  <h5 class="card-title">Machine Learning Model Serving</h5>
+                  <p class="card-text">Deploy your pre-trained models using TorchServe, TensorFlow Serving, MLFlow. Obtain API endpoints for your models for programmatic access and build apps.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 d-flex align-items-stretch">
+            <div class="card text-center py-2 shadow" data-aos="fade" data-aos-duration="1000">
+                <h1><i class="bi bi-window-stack"></i></h1>
+                <div class="card-body">
+                  <h5 class="card-title">Application Hosting</h5>
+                  <p class="card-text">Host applications such as R Shiny, Plotly Dash, custom Flask apps, etc. to allow others to explore your data or results, or to provide tools based on your deployed machine learning models.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 d-flex align-items-stretch">
+            <div class="card text-center py-2 shadow" data-aos="fade" data-aos-duration="1000">
+                <h1><i class="bi bi-code-slash"></i></h1>
+                <div class="card-body">
+                  <h5 class="card-title">Development Environments</h5>
+                  <p class="card-text">Use a web-browser based IDEs to run analyses or to collaborate with your team-mates.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <h2>News</h2>
+    </div>
+
+
+    <div class="row g-4">
+        <h2 class="py-2">Recent Apps 
+        </h2>
+
+        {% for app in published_apps %}
+            <div class="col-12 col-md-6 col-lg-4 mb-4" data-aos="fade" data-aos-duration="1000">
+                <div class="card h-100 border-0 shadow">
+                    <div class="card-body d-flex flex-column m-1">
+                        <div class="col-12 d-flex flex-row pb-2 align-items-center">
+                            <div class="col-8 d-flex">
+                                <h5 class="card-title bg-white">{{ app.name }}</h5>
+                            </div>
+                            <div class="col-4 d-flex justify-content-end">
+                                {% static 'images/logos/apps/' as static_url %}
+                                <img class="img-fluid float-end img-cover" style="height:50px;"
+                                    src="{{static_url}}{{app.app.logo}}"
+                                    alt="App Logo" title="{{app.app.name}}">
+                            </div>
+                        </div>
+
+                        <div class="card-text">
+                            <p>{{app.description|default_if_none:""}}</p>
+                            <ul class="list-unstyled">
+                                <li class="list-group-item row">
+                                    <div class="col-3"><span class="value-label">Owner:</span></div>
+                                    <div class="col-9">{{ app.owner.first_name }} {{ app.owner.last_name }}</div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="row d-flex flex-column pb-4">
+                            <div class="col-12">
+                                {% if request.session.app_tags|exists:app.id %}
+                                {% with app.tags|split:"," as tags %}
+                                {% for tag in tags %}
+                                <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
+                                    href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">
+                                    <div class="tag-ico fas fa-tag fa-sm"></div><span class="badge text-bg-primary">{{ tag }}</span>
+                                </a>
+                                {% endfor %}
+                                <a href="{% url 'portal:apps' %}?app_id_remove={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
+                                    class="d-inline-flex">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-circle tag-count">
+                                        -
+                                    </button>
+                                </a>
+                                {% endwith %}
+                                {% else %}
+                                {% with app.tags|split:"," as tags %}
+                                {% with tags|count_str as tag_limit %}
+                                {% for tag in tags|slice:tag_limit %}
+                                <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
+                                    href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">
+                                    <div class="tag-ico fas fa-tag fa-sm"></div><span class="badge text-bg-primary">{{ tag }}</span>
+                                </a>
+                                {% endfor %}
+                                {% if tags.count > tag_limit %}
+                                <a href="{% url 'portal:apps' %}?app_id_add={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
+                                    class="d-inline-flex">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-light fw-600 tag-count">+{{
+                                        tags.count|subtract:tag_limit }}</button>
+                                </a>
+                                {% endif %}
+                                {% endwith %}
+                                {% endwith %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mt-auto align-items-center">
+                            <div class="col-6">
+                                <a href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary">Open</a>
+                            </div>
+                            <div class="col-6 text-end">
+                                {% if app.status_group == "success" %}
+                                <span class="badge bg-success">Running</span>
+                                {% else %}
+                                <span class="badge bg-warning">Waiting</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="clearfix"></div>
+                    </div>
+
+                    <div class="card-footer d-flex text-muted card-footer-text">
+                        <div class="col-3 d-inline-block">
+                            <span>{{ app.app.name }}</span>
+                        </div>
+                        <div class="col-9 d-inline-block text-end">
+                            <span>Last updated: {{ app.updated_on|date:"d M, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="row mt-4">
+        <h2>Recent Models</h2>
+    </div>
+
 </div>
 
 
