@@ -90,30 +90,31 @@
         <div class="col-12 col-md-5">
             <h5>Models 
             </h5> 
-            {% for app in published_apps %}
+            {% for model in published_models %}
             
                 <div class="card border-0 shadow my-4">
                     <div class="card-body text-start d-flex justify-content-between">
                         <div class="card-title ">
-                            <a href="{{ app.table_field.url }}" target="_blank">
-                                <h5 class="card-title">{{ app.name }}</h5>
-                            </a>
+                                <h5 class="card-title">{{ model.name }}</h5>
                         </div>
-
                         <div>
                             {% static 'images/logos/apps/' as static_url %}
                             <img class="img-fluid float-end img-cover" style="height:50px;"
-                                src="{{static_url}}{{app.app.logo}}"
-                                alt="App Logo" title="{{app.app.name}}">
+                                src="{{static_url}}default-logo.png"
+                                alt="Model Logo">
                         </div>
                     </div>
 
+
+
+                    
+
                     <div class="card-footer d-flex text-muted card-footer-text">
                         <div class="col-3 d-inline-block text-start">
-                            <span>{{ app.app.name }}</span>
+                            <span></span>
                         </div>
                         <div class="col-9 d-inline-block text-end">
-                            <span>Last updated: {{ app.updated_on|date:"d M, Y" }}</span>
+                            <span>Last updated: {{ model.updated_on|date:"d M, Y" }}</span>
                         </div>
                     </div>
                 </div>
