@@ -14,10 +14,29 @@
         <div class="card-body">
           <!-- Nested Row within Card Body -->
           <div class="col-lg-6 offset-lg-3">
+            <div class="alert alert-warning" role="alert">
+              Please note that on November XX 2023 we rolled out a major update and reset all users' passwords as part of our database upgrade. Please follow the <a href="{% url 'password_reset' %}">password reset procedure</a> to receive a new password.
+            </div>
             <div class="col text-center">
               <h2 class="text-dark mb-4">Log in</h2>
             </div>
 
+            {% if form.errors %}
+            <div class="alert alert-danger" role="alert">
+              Your email and password didn't match. Please try again.
+            </div>
+            {% endif %}
+
+            {% if next %}
+            <div class="alert alert-danger" role="alert">
+                {% if user.is_authenticated %}
+                  Your account doesn't have access to this page. To proceed,
+                  please login with an account that has access.
+                {% else %}
+                  Please login to see this page.
+                {% endif %}
+              </div>
+            {% endif %}
 
             <div class="py-4 d-flex justify-content-center">
 
@@ -25,37 +44,21 @@
                 <form method="post" action="{% url 'login' %}">
                   {% csrf_token %}
                   <div class="form-group pb-2">
-                    <label for="username-id">Username</label>
-                    <input type="text" class="form-control" id="username-id" name="username" placeholder="Username">
+                    <label for="username-id">Email:</label>
+                    <input type="text" class="form-control" id="username-id" name="username">
                   </div>
                   <div class="form-group pb-3">
-                    <label for="password-id">Password</label>
-                    <input type="password" class="form-control" id="password-id" name="password" placeholder="Password">
+                    <label for="password-id">Password:</label>
+                    <input type="password" class="form-control" id="password-id" name="password">
                   </div>
                   <div class="form-group d-flex justify-content-center"><button type="submit"
                       class="btn btn-primary w-xs-100 px-5">Login</button></div>
-
-                  {% if form.errors %}
-                  <div class="row pt-2">
-                    <div class="col">
-                      <p>Your username and password didn't match. Please try again.</p>
-                      {% endif %}
-                      {% if next %}
-                      {% if user.is_authenticated %}
-                      <p>Your account doesn't have access to this page. To proceed,
-                        please login with an account that has access.</p>
-                      {% else %}
-                      <p>Please login to see this page.</p>
-                      {% endif %}
-                    </div>
-                  </div>
-                  {% endif %}
                 </form>
               </div>
 
             </div>
             <div class="text-center">
-              <a href="{% url 'password_reset' %}">Forgot Password?</a>
+              <a href="{% url 'password_reset' %}">Forgot password?</a>
             </div>
             <div class="text-center">
               <a href="{% url 'common:signup' %}">Don't have an account? Sign up here</a>

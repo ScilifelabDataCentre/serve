@@ -7,11 +7,13 @@ from ..models import ProjectTemplate
 
 User = get_user_model()
 
+test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
+
 
 class ProjectCreateViewTestCase(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user("foo", "foo@test.com", "bar")
-        self.client.login(username="foo", password="bar")
+        self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
+        self.client.login(username=test_user["email"], password=test_user["password"])
 
         project_template = ProjectTemplate(name="Template")
         project_template.save()

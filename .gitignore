@@ -148,6 +148,9 @@ cypress/fixtures/profile.json
 # Dependency directories
 node_modules
 
+.DS_Store
+.idea/
+
 # The media folder contents
 media/*
 !media/.gitkeep

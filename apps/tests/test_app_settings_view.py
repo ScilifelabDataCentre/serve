@@ -7,10 +7,12 @@ from ..models import AppCategories, AppInstance, Apps
 
 User = get_user_model()
 
+test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
+
 
 class AppSettingsViewTestCase(TestCase):
     def setUp(self) -> None:
-        self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
+        self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         self.category = AppCategories.objects.create(name="Network", priority=100, slug="network")
         self.app = Apps.objects.create(
             name="Jupyter Lab",
@@ -67,7 +69,7 @@ class AppSettingsViewTestCase(TestCase):
     def test_user_can_edit_true(self):
         c = Client()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)
@@ -81,7 +83,7 @@ class AppSettingsViewTestCase(TestCase):
     def test_user_can_edit_false(self):
         c = Client()
 
-        response = c.post("/accounts/login/", {"username": "foo1", "password": "bar"})
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
         response.status_code
 
         self.assertEqual(response.status_code, 302)

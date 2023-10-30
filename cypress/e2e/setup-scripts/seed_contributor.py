@@ -4,9 +4,11 @@ import json
 import os.path
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
 from projects.models import Project
+
+User = get_user_model()
 
 cypress_path = os.path.join(settings.BASE_DIR, "cypress/fixtures")
 print(f"Now loading the json users file from fixtures path: {cypress_path}")  # /app/cypress/fixtures

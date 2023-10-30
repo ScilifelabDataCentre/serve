@@ -22,12 +22,12 @@ describe("Test superuser access", () => {
     })
 
     beforeEach(() => {
-        // username in fixture must match username in db-reset.sh
+        // email in fixture must match email in db-reset.sh
         cy.log("Logging in as superuser")
         cy.fixture('users.json').then(function (data) {
             users = data
 
-            cy.loginViaApi(users.superuser.username, users.superuser.password)
+            cy.loginViaApi(users.superuser.email, users.superuser.password)
         })
     })
 

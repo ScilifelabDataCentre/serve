@@ -24,7 +24,7 @@ describe("Test views as authenticated user", () => {
           cy.fixture('users.json').then(function (data) {
               users = data
 
-              cy.loginViaApi(users.reader_user.username, users.reader_user.password)
+              cy.loginViaApi(users.reader_user.email, users.reader_user.password)
           })
   })
 

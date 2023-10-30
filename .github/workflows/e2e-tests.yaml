@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Workflow Telemetry
         uses: runforesight/workflow-telemetry-action@v1.8.0
-  
+
       - name: Branch or tag that triggered the workflow run
         run: |
           echo "Running on branch ${GITHUB_REF##*/}"
