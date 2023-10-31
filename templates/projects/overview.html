@@ -86,6 +86,17 @@
                                 <span class="badge bg-secondary">
                                     {{ obj.status.latest.status_type }}
                                 </span>
+                                {% if obj.access %}
+                                    {% if obj.access == 'public' %}
+                                    <span class="badge bg-success">
+                                        {{ obj.access }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        {{ obj.access }}
+                                    </span>
+                                    {% endif %}
+                                {% endif %}
                             </td>
                             <td class="table-action text-center">
                                 <div class="dropdown show">
