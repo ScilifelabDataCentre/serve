@@ -242,8 +242,13 @@ STATICFILES_DIRS = (os.path.join("static"),)
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 # https://www.django-rest-framework.org/api-guide/authentication/#setting-the-authentication-scheme
+# DEFAULT_VERSIONING_CLASS: NamespaceVersioning uses the URL path scheme, e.g. /v1/
+# https://www.django-rest-framework.org/api-guide/versioning/
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.TokenAuthentication"],
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
+    "ALLOWED_VERSIONS": [None, "v1", "v2"],
+    "DEFAULT_VERSION": "v1",
 }
 
 # Tagulous serialization settings

@@ -17,7 +17,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 from . import views
 
@@ -35,7 +35,11 @@ urlpatterns = (
             include("monitor.urls", namespace="monitor"),
         ),
         path("<user>/<project>/apps/", include("apps.urls", namespace="apps")),
+        # API paths using NamespaceVersioning
         path("api/", include("api.urls", namespace="api")),
+        path("openapi/v1/", include("api.openapi.urls", namespace="v1")),
+        path("openapi/v2/", include("api.openapi.urls", namespace="v2")),
+        path("openapi/", include("api.openapi.urls")),
         # for django-wiki
         path("docs/notifications/", include("django_nyt.urls")),
         path("docs/", include("wiki.urls")),
