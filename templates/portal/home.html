@@ -7,9 +7,9 @@
 {% block content %}
 
 
-<div class="container my-4 p-4">
-    <div class="row ">
-        <div class="col-12 d-flex align-items-center justify-content-center my-4">
+<div class="container">
+    <div class="row">
+        <div class="col-12 d-flex align-items-center justify-content-center">
             <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="max-width:400px;width:60%">
         </div>
         <div class="col-12 col-lg-8 offset-lg-2 d-flex align-items-center justify-content-center mb-4">
@@ -49,22 +49,21 @@
 
 
 
-    <div class="row mt-4 text-center justify-content-center border rounded py-4 my-4 bg-light" data-aos="fade" data-aos-duration="1000">
-        <div class="rowg-4 text-center">
-            <h3>Recent updates</h3> 
-    
+    <div class="row my-4 py-4 text-center justify-content-center border rounded bg-light" data-aos="fade" data-aos-duration="1000">
+        <div class="col-12 text-center pt-4">
+            <h3 class="mb-4">Recent updates</h3> 
         </div>
     
-        <div class="col-12 col-md-5 col-lg-4">
+        <div class="col-12 col-md-4 ">
             <h5>Apps 
             </h5> 
             {% for app in published_apps %}
             
-                <div class="card border-0 shadow my-4">
+                <div class="card h-25 border-0 shadow my-4">
                     <div class="card-body text-start d-flex justify-content-between">
                         <div class="card-title ">
                             <a href="{{ app.table_field.url }}" target="_blank">
-                                <h5 class="card-title">{{ app.name }}</h5>
+                                <h5 class="card-title">{{ app.name|truncatechars:20 }}</h5>
                             </a>
                         </div>
 
@@ -88,15 +87,41 @@
             {% endfor %}
         </div>
 
-        <div class="col-12 col-md-5 col-lg-4 offset-lg-1">
+        <div class="col-12 col-md-4">
+            <h5>News 
+            </h5> 
+            {% for app in published_apps %}
+            
+                <div class="card h-25 border shadow my-4">
+                    <div class="card-body text-start d-flex justify-content-between">
+                        <div class="card-title">
+                            <a href="{{ app.table_field.url }}" target="_blank">
+                                <h5 class="card-title">Launch of Serve</h5>                            
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-grape-050">
+                        <div class="text-start text-light">
+                            <span>News item </span>
+                        </div>
+                        <div class="text-end text-light">
+                            <span>Last updated: {{ app.updated_on|date:"d M, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="col-12 col-md-4">
             <h5>Models 
             </h5> 
             {% for model in published_models %}
             
-                <div class="card border-0 shadow my-4">
+                <div class="card h-25 border-0 shadow my-4">
                     <div class="card-body text-start d-flex justify-content-between">
                         <div class="card-title ">
-                                <h5 class="card-title">{{ model.name }}</h5>
+                                <h5 class="card-title">{{ model.name|truncatechars:20 }}</h5>
                         </div>
                         <div>
                             {% static 'images/logos/apps/' as static_url %}
@@ -108,7 +133,7 @@
 
                     <div class="card-footer d-flex text-muted card-footer-text justify-content-between  bg-teal-075">
                         <div class="text-start">
-                            <span></span>
+                            <span>ML Model</span>
                         </div>
                         <div class="text-end">
                             <span>Last updated: {{ model.updated_on|date:"d M, Y" }}</span>
