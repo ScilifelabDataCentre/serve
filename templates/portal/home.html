@@ -7,7 +7,7 @@
 {% block content %}
 
 
-<div class="container bg-light border rounded my-4 p-4">
+<div class="container my-4 p-4">
     <div class="row ">
         <div class="col-12 d-flex align-items-center justify-content-center my-4">
             <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="max-width:400px;width:60%">
@@ -27,7 +27,7 @@
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 shadow" data-aos="fade" data-aos-duration="1000">
+            <div class="card text-center py-2 shadow " data-aos="fade" data-aos-duration="1000">
                 <h1><i class="bi bi-window-stack"></i></h1>
                 <div class="card-body">
                   <h5 class="card-title">Application Hosting</h5>
@@ -47,14 +47,15 @@
         </div>
     </div>
 
-    <div class="row mt-4 g-4 text-center">
-        <h3>News</h3>    <hr class="my-0">
-
-    </div>
 
 
-    <div class="row mt-4 text-center justify-content-center" data-aos="fade" data-aos-duration="1000">
-        <div class="col-12 col-md-5">
+    <div class="row mt-4 text-center justify-content-center border rounded py-4 my-4 bg-light" data-aos="fade" data-aos-duration="1000">
+        <div class="rowg-4 text-center">
+            <h3>Recent updates</h3> 
+    
+        </div>
+    
+        <div class="col-12 col-md-5 col-lg-4">
             <h5>Apps 
             </h5> 
             {% for app in published_apps %}
@@ -75,11 +76,11 @@
                         </div>
                     </div>
 
-                    <div class="card-footer d-flex text-muted card-footer-text">
-                        <div class="col-3 d-inline-block text-start">
+                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-lime-025">
+                        <div class="text-start">
                             <span>{{ app.app.name }}</span>
                         </div>
-                        <div class="col-9 d-inline-block text-end">
+                        <div class="text-end">
                             <span>Last updated: {{ app.updated_on|date:"d M, Y" }}</span>
                         </div>
                     </div>
@@ -87,7 +88,7 @@
             {% endfor %}
         </div>
 
-        <div class="col-12 col-md-5">
+        <div class="col-12 col-md-5 col-lg-4 offset-lg-1">
             <h5>Models 
             </h5> 
             {% for model in published_models %}
@@ -105,15 +106,11 @@
                         </div>
                     </div>
 
-
-
-                    
-
-                    <div class="card-footer d-flex text-muted card-footer-text">
-                        <div class="col-3 d-inline-block text-start">
+                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between  bg-teal-075">
+                        <div class="text-start">
                             <span></span>
                         </div>
-                        <div class="col-9 d-inline-block text-end">
+                        <div class="text-end">
                             <span>Last updated: {{ model.updated_on|date:"d M, Y" }}</span>
                         </div>
                     </div>
