@@ -1,40 +1,42 @@
 from django.http import JsonResponse
 
+from studio.system_version import SystemVersion
+
 
 def are_you_there(request):
     """
     Most simple API endpoint useful for testing
     and verifications.
+    :returns bool: true
     """
-    data = [{"status": True}]
-    return JsonResponse({"data": data})
+    return JsonResponse({"status": True})
 
 
 def get_system_version(request):
     """
-    Returns the version of the deployed application.
+    Gets the version of the deployed application.
+    :returns dict: A dictionary of system version information.
     """
-    data = [{"system-version": "TODO"}, {"build-date": "TODO"}, {"image-tag": "TODO"}]
-    # data = [{"service-version": "1.0 openapi"}]
-    return JsonResponse({"data": data})
+    data = {
+        "system-version": SystemVersion().get_gitref(),
+        "build-date": SystemVersion().get_build_date(),
+        "image-tag": SystemVersion().get_imagetag(),
+    }
+    return JsonResponse(data)
 
 
 def get_api_info(request):
     """
-    Returns the API information.
+    Gets the API information.
     See https://dev.dataportal.se/rest-api-profil/versionhantering
+    :returns dict: A dictionary of API information.
     """
-    data = [{"apiName": "TODO"}, {"apiVersion": "TODO"}, {"apiReleased": "TODO"}]
-    data += [{"apiDocumentation": "TODO"}, {"apiStatus": "beta"}]
-    data += [{"latest-api-version": "v1.0"}]
-    return JsonResponse({"data": data})
-
-
-def list_apps(request):
-    """
-    This API endpoint returns
-    """
-    list_apps = [{"name": "App Name"}]
-    data = {"data": list_apps}
-    print("LIST: ", data)
+    data = {
+        "apiName": "SciLifeLab Serve OpenAPI",
+        "apiVersion": "1.0.0",
+        "apiReleased": "TODO",
+        "apiDocumentation": "TODO",
+        "apiStatus": "beta",
+        "latest-api-version": "v1",
+    }
     return JsonResponse(data)

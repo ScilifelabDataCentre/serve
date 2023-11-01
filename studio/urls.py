@@ -36,10 +36,10 @@ urlpatterns = (
         ),
         path("<user>/<project>/apps/", include("apps.urls", namespace="apps")),
         # API paths using NamespaceVersioning
-        path("api/", include("api.urls", namespace="api")),
         path("openapi/v1/", include("api.openapi.urls", namespace="v1")),
         path("openapi/v2/", include("api.openapi.urls", namespace="v2")),
         path("openapi/", include("api.openapi.urls")),
+        path("api/", include("api.urls", namespace="api")),
         # for django-wiki
         path("docs/notifications/", include("django_nyt.urls")),
         path("docs/", include("wiki.urls")),
