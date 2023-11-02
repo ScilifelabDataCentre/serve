@@ -17,7 +17,7 @@
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 shadow" data-aos="fade" data-aos-duration="1000">
+            <div class="card text-center py-2 shadow" data-aos="fade">
                 <h1><i class="bi bi-robot"></i></h1>
                 <div class="card-body">
                   <h5 class="card-title">Machine Learning Model Serving</h5>
@@ -27,7 +27,7 @@
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 shadow " data-aos="fade" data-aos-duration="1500">
+            <div class="card text-center py-2 shadow " data-aos="fade" >
                 <h1><i class="bi bi-window-stack"></i></h1>
                 <div class="card-body">
                   <h5 class="card-title">Application Hosting</h5>
@@ -37,7 +37,7 @@
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 shadow" data-aos="fade" data-aos-duration="2000">
+            <div class="card text-center py-2 shadow" data-aos="fade">
                 <h1><i class="bi bi-code-slash"></i></h1>
                 <div class="card-body">
                   <h5 class="card-title">Development Environments</h5>
@@ -60,11 +60,12 @@
             <hr class="m-0 bg-lime  border-0" style="height: 2px;">
             {% for app in published_apps %}
             
-                <div class="card h-25 border-0 shadow my-4">
+
+                <div class="card h-25 border-0 shadow my-4" data-aos="slide-up">
                     <div class="card-body text-start">
                         <div class="card-title d-flex justify-content-between align-items-center m-0">
                             <a href="{{ app.table_field.url }}" target="_blank">
-                                <h5 class="">{{ app.name|truncatechars:20 }}</h5>
+                                <h5 class="">{{ app.name|truncatechars:30 }}</h5>
                             </a>
                             <div>
                                 {% static 'images/logos/apps/' as static_url %}
@@ -99,11 +100,11 @@
             <hr class="m-0 bg-teal border-0" style="height: 2px;">
             {% for model in published_models %}
             
-                <div class="card h-25 border-0 shadow my-4">
+                <div class="card h-25 border-0 shadow my-4" data-aos="slide-up">
                     <div class="card-body text-start">
                         <div class="card-title d-flex justify-content-between align-items-center">
                             <a href="{{ app.table_field.url }}" target="_blank">
-                                <h5 class="">{{ model.name|truncatechars:20 }}</h5>
+                                <h5 class="">{{ model.name|truncatechars:30 }}</h5>
                             </a>
                             <div>
                                 {% static 'images/logos/apps/' as static_url %}
