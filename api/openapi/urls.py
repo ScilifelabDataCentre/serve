@@ -3,8 +3,8 @@ from django.conf.urls import include
 from django.urls import path
 from rest_framework_nested import routers
 
-from .apps_views import PublicAppsAPI
-from .common import APIInfo, are_you_there, get_system_version
+from .common_api import APIInfo, are_you_there, get_system_version
+from .public_apps_api import PublicAppsAPI
 
 app_name = "openapi"
 
