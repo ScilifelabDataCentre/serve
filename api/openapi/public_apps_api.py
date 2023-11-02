@@ -1,9 +1,8 @@
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, viewsets
+from rest_framework import viewsets
 from rest_framework.exceptions import NotFound
-from rest_framework.response import Response
 
 from apps.models import AppInstance, Apps
 
@@ -55,39 +54,3 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         app["app_type"] = add_data.name
         data = {"app": app}
         return JsonResponse(data)
-
-
-class AppsAPIView(generics.GenericAPIView):
-    """
-    The class for the Apps API.
-    """
-
-    def get(self, request):
-        """
-        This endpoint TODO
-        """
-        print(f"Requested API version {self.request.version}")
-        message = "msg"
-        if request.version == "v1":
-            message = "This is API version 1."
-        elif request.version == "v2":
-            message = "This is API version 2."
-        return Response({"message": message})
-
-    def list(self, request):
-        """
-        This endpoint TODO
-        """
-        list_apps = []
-        data = {"data": list_apps}
-        print("LIST: ", data)
-        return JsonResponse(data)
-
-    def list_apps(self, request):
-        """
-        This endpoint TODO
-        """
-        list_apps = [{"name": "App Name"}]
-        data = {"data": list_apps}
-        print("LIST: ", data)
-        return Response(data)
