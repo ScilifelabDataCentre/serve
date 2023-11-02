@@ -30,3 +30,15 @@ body {
 .card-footer-text {
     font-size: 8pt;
 }
+
+.text-teal {
+    color: var(--serve-teal)
+}
+
+.text-grape {
+    color: var(--serve-grape)
+}
+
+.text-lime {
+    color: var(--serve-lime)
+}

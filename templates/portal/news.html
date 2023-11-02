@@ -1,0 +1,56 @@
+{% block content %}
+<div class="col-4 align-items-stretch my-4">
+    <div class="card border bg-white my-4">
+
+        <p class="text-muted card-footer-text text-end p-1 m-0">2 Nov, 2023</p>
+        
+        <div class="card-body text-start pt-0">
+            <div class="card-title d-flex justify-content-between align-items-center">
+                <a href="{{ app.table_field.url }}" target="_blank">
+                    <h5 class="text-grape">Launching of serve</h5>                   
+                </a>
+            </div>
+            {% with your_text_variable="Some quick example text to build on the card title and make up the bulk of the card's content. Some quick example text to build on the card title and make up the bulk of the card's content." %}
+                <p class="card-text">{{ your_text_variable|truncatechars:150 }}</p>
+            {% endwith %}    
+        </div>
+    </div>
+</div>
+
+<div class="col-4 align-items-stretch my-4">
+    <div class="card border bg-white my-4">
+
+        <p class="text-muted card-footer-text text-end p-1 m-0">2 Nov, 2023</p>
+        
+        <div class="card-body text-start pt-0">
+            <div class="card-title d-flex justify-content-between align-items-center">
+                <a href="{{ app.table_field.url }}" target="_blank">
+                    <h5 class="text-grape">New functionality</h5>                 
+                </a>
+            </div>
+            {% with your_text_variable="The serve team just added an amazing feature that will blow your mind. The truncatechars filter is applied to limit the displayed text to the first 50 characters in this case. Adjust the number as needed for your specific requirements." %}
+                <p class="card-text">{{ your_text_variable|truncatechars:150 }}</p>
+            {% endwith %}    
+        </div>
+    </div>
+</div>
+
+<div class="col-4 align-items-stretch my-4">
+    <div class="card border bg-white my-4">
+
+        <p class="text-muted card-footer-text text-end p-1 m-0">29 Oct, 2023</p>
+        
+        <div class="card-body text-start pt-0">
+            <div class="card-title d-flex justify-content-between align-items-center">
+                <a href="{{ app.table_field.url }}" target="_blank">
+                    <h5 class="text-grape">New functionality</h5>                 
+                </a>
+            </div>
+            {% with your_text_variable="The serve team just added an amazing feature that will blow your mind. The truncatechars filter is applied to limit the displayed text to the first 50 characters in this case. Adjust the number as needed for your specific requirements." %}
+                <p class="card-text">{{ your_text_variable|truncatechars:150 }}</p>
+            {% endwith %}    
+        </div>
+    </div>
+</div>
+
+{% endblock %}
