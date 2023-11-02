@@ -17,7 +17,9 @@ from studio.celery import app
 
 from . import controller
 from .models import AppInstance, Apps, AppStatus, ResourceData
+
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
+
 
 def get_URI(parameters):
     URI = "https://" + parameters["release"] + "." + parameters["global"]["domain"]
@@ -183,13 +185,16 @@ def delete_and_deploy_resource(instance_pk, new_release_name):
             appinstance.save()
             deploy_resource(instance_pk)
             try:
-                rel_name_obj = ReleaseName.objects.get(name=new_release_name, project=appinstance.project, status="active")
+                rel_name_obj = ReleaseName.objects.get(
+                    name=new_release_name, project=appinstance.project, status="active"
+                )
                 rel_name_obj.status = "in-use"
                 rel_name_obj.app = appinstance
                 rel_name_obj.save()
             except Exception as e:
                 print("Error: Submitted release name not owned by project.")
                 print(e)
+
 
 @shared_task
 @transaction.atomic
@@ -392,8 +397,7 @@ def check_status():
             # Find the app instance release name
             app_release = instance.parameters["release"]  # e.g 'rfc058c6f'
             # Now check if there exists a pod with that release
-            cmd = f"kubectl -n {settings.NAMESPACE} get po -l release=\"{app_release}\""
-            
+            cmd = f'kubectl -n {settings.NAMESPACE} get po -l release="{app_release}"'
 
             try:
                 # returns a byte-like object

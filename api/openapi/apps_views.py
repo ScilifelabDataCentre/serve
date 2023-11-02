@@ -1,36 +1,60 @@
 from django.db.models import Q
 from django.http import JsonResponse
-from rest_framework import generics
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from apps.models import AppInstance, Apps
 
 
-def get_apps_list(request):
-    list_apps = []
-    data = {"data": list_apps}
-    print("LIST: ", data)
-    return JsonResponse(data)
-
-
-class PublicAppsAPI(generics.ListAPIView):
+class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
     """
-    The class for the Apps API.
+    The Public Apps API with read-only methods to get public apps information.
     """
 
-    list_apps = [{"id": "001", "name": "App Name"}]
+    queryset = (
+        AppInstance.objects.filter(~Q(state="Deleted"), access="public")
+        .order_by("-updated_on")[:8]
+        .values("id", "name", "app_id", "table_field", "description", "updated_on")
+    )
 
     def list(self, request):
         """
-        This endpoint TODO
+        This endpoint gets a list of public apps.
+        :returns list: A list of app information.
         """
-        data = {"data": self.list_apps}
-        print("LIST: ", data)
-        return Response(data)
+        print("PublicAppsAPI. Entered list method.")
+        print(f"Requested API version {request.version}")
 
-    def get_queryset(self):
-        data = self.list_apps[0]
-        return Response(data)
+        list_apps = list(self.queryset)
+        for app in list_apps:
+            add_data = Apps.objects.get(id=app["app_id"])
+            app["app_type"] = add_data.name
+        data = {"data": list_apps}
+        print("LIST: ", data)
+        return JsonResponse(data)
+
+    def retrieve(self, request, pk=None):
+        """
+        This endpoint retrieves a single public app instance.
+        :returns dict: A dict of app information.
+        """
+        print(f"PublicAppsAPI. Entered retrieve method with pk = {pk}")
+        print(f"Requested API version {self.request.version}")
+        queryset = AppInstance.objects.all().values(
+            "id", "name", "app_id", "table_field", "description", "updated_on", "access", "state"
+        )
+        app = get_object_or_404(queryset, pk=pk)
+        if app["state"] == "Deleted":
+            raise NotFound("this app has been deleted")
+        if app["access"] != "public":
+            raise NotFound()
+
+        add_data = Apps.objects.get(id=app["app_id"])
+        app["app_type"] = add_data.name
+        data = {"app": app}
+        return JsonResponse(data)
 
 
 class AppsAPIView(generics.GenericAPIView):

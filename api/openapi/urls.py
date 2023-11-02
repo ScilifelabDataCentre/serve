@@ -1,10 +1,10 @@
 import rest_framework.routers as drfrouters
 from django.conf.urls import include
-from django.urls import path, re_path
+from django.urls import path
 from rest_framework_nested import routers
 
 from .apps_views import PublicAppsAPI
-from .common import are_you_there, get_api_info, get_system_version
+from .common import APIInfo, are_you_there, get_system_version
 
 app_name = "openapi"
 
@@ -17,10 +17,8 @@ urlpatterns = [
     # Generic API endpoints
     path("are-you-there", are_you_there),
     path("system-version", get_system_version),
-    path("api-info", get_api_info),
+    path("api-info", APIInfo.as_view({"get": "get_api_info"})),
     # The Apps API
-    path("public-apps", PublicAppsAPI.as_view()),
-    path("public-apps/<int:pk>", PublicAppsAPI.as_view()),
-    # path("public-apps", list_apps),
-    # path("apps", AppsAPIView.as_view()),
+    path("public-apps", PublicAppsAPI.as_view({"get": "list"})),
+    path("public-apps/<int:pk>", PublicAppsAPI.as_view({"get": "retrieve"})),
 ]

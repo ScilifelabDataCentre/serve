@@ -74,7 +74,6 @@ def input_form(
 @given(form=input_form())
 @settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)
 def test_pass_validation(form):
-
     UserProfile.objects.all().delete()
     User.objects.all().delete()
     is_val = form.is_valid()
