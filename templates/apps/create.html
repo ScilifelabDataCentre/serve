@@ -16,13 +16,15 @@
 <div class="row">
     <div class="col-12 mt-2 mb-4">
         {% if app.slug == 'customapp' %}
-        This form allows you to start hosting an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="#">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.
+        <p>This form allows you to start hosting an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="#">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.</p>
         {% elif app.slug == 'dashapp' %}
-        This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="#">documentation page on Dash apps</a> for step-by-step instructions.
+        <p>This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="#">documentation page on Dash apps</a> for step-by-step instructions.</p>
         {% elif app.slug in 'shinyapp,shinyproxyapp' %}
-        This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="#">documentation page on Shiny apps</a> for step-by-step instructions.
-        {% else %}
-        [link to documentation to be added here]
+        <p>This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="#">documentation page on Shiny apps</a> for step-by-step instructions.</p>
+        {% endif %}
+        {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
+        <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
+        <p>Each {{ app.name }} instance can get access to the persistent volume (folder) associated with this project, called 'project-vol'. Please make sure to save all your data files, script files, output from computations, etc. inside 'project-vol'; the files located elsewhere can be deleted at any point. The files saved inside 'project-vol' will be available across all instances of {{ app.name }} (as well as other apps) within this project.</p>
         {% endif %}
     </div>
 </div>

@@ -50,8 +50,7 @@
                 <h5 class="card-title mb-0">{{ objs.title }}</h5>
             </div>
             {% if objs.objs %}
-            <div class="no-footer mx-4 my-4">
-
+            <div class="no-footer mx-4 mt-4">
                 <table id=""
                     class="table table-hover my-0 no-footer table-bordered" role="grid">
                     <thead>
@@ -135,6 +134,9 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            <div class="mx-4 mb-4 small text-muted">
+            *Note that all apps under Develop will be deleted 7 days after creation.
             </div>
             {% else %}
             <div class="h-100 p-4 d-flex align-items-center justify-content-center border-bottom">
