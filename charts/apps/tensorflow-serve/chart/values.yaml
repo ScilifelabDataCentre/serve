@@ -10,7 +10,7 @@ project:
   slug: project-slug
 
 appconfig:
-  image: ghcr.io/scilifelabdatacentre/serve-tensorflow:230214-0820
+  image: ghcr.io/scilifelabdatacentre/serve-tensorflow:231030-1148
   port: 8501
 
 context:

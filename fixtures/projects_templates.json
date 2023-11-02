@@ -23,12 +23,12 @@
         "environments": {
           "Jupyter Lab": {
             "app": "jupyter-lab",
-            "image": "serve-jupyterlab:230921-1444",
+            "image": "serve-jupyterlab:231030-1145",
             "repository": "ghcr.io/scilifelabdatacentre"
           },
           "MLflow Serving": {
             "app": "mlflow-serve",
-            "image": "serve-mlflow:230216-0853",
+            "image": "serve-mlflow:231030-1149",
             "repository": "ghcr.io/scilifelabdatacentre"
           }
         },
@@ -90,12 +90,12 @@
         "environments": {
           "Jupyter Lab": {
             "app": "jupyter-lab",
-            "image": "serve-jupyterlab:230921-1444",
+            "image": "serve-jupyterlab:231030-1145",
             "repository": "ghcr.io/scilifelabdatacentre"
           },
           "MLflow Serving": {
             "app": "mlflow-serve",
-            "image": "serve-mlflow:230216-0853",
+            "image": "serve-mlflow:231030-1149",
             "repository": "ghcr.io/scilifelabdatacentre"
           }
         },
