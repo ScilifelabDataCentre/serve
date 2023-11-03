@@ -138,7 +138,25 @@
             </h3> 
             <hr class="m-0 bg-grape border-0" style="height: 2px;">
         </div>
-        {% include 'portal/news.html' %}
+
+            {% for news in news_objects %}
+            <div class="col-4 align-items-stretch my-4">
+                <div class="card border bg-white my-4" >
+            
+                    <p class="text-muted card-footer-text text-end p-1 m-0">{{ news.created_on|date:"M. j, Y, H:i" }}</p>
+                    <a href="{% url 'news:news' %}#{{ news.title }}" class="stretched-link">
+                    <div class="card-body text-start py-0">
+                        <div class="card-title d-flex justify-content-between align-items-center">
+                            
+                                <h5 class="text-grape">{{ news.title }}</h5>                   
+                            
+                        </div>
+                            <p class="card-text mb-2">{{ news.body|truncatechars:150 }}</p> 
+                    </div>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
     </div>  
 
 </div>

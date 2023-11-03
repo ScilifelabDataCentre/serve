@@ -87,6 +87,7 @@ INSTALLED_APPS = [
     "apps",
     "api",
     "customtags",
+    "news"
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = [
@@ -330,6 +331,7 @@ MIGRATION_MODULES = {
     "portal": "studio.migrations.portal",
     "projects": "studio.migrations.projects",
     "common": "common.migrations",
+    "news": "news.migrations",
 }
 
 # Defines how many apps a user is allowed to create within one project

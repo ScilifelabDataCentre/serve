@@ -27,6 +27,7 @@ urlpatterns = (
         path("", include("common.urls", namespace="common")),
         path("", include("models.urls", namespace="models")),
         path("", include("portal.urls", namespace="portal")),
+        path("", include("news.urls", namespace="news")),
         path("", include("projects.urls", namespace="projects")),
         path("accounts/", include("django.contrib.auth.urls")),
         path("auth/", views.AuthView.as_view()),

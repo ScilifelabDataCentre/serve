@@ -7,6 +7,7 @@ from django.views.generic import View
 AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
+NewsObject = apps.get_model(app_label="news.NewsObject")
 
 def get_public_apps(request, id=0, get_all=True):
     try:
@@ -99,6 +100,7 @@ class HomeView(View):
     def get(self, request, id=0):
         published_apps, request = get_public_apps(request, id=id, get_all=False)
         published_models = PublishedModel.objects.all()
+        news_objects = NewsObject.objects.all()
         if published_models.count() >= 3:
             published_models = published_models[:3]
         else:
