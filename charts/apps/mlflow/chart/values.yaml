@@ -13,7 +13,7 @@ apps:
 appconfig:
   port: 5000
   uiport: 9090
-  image: ghcr.io/scilifelabdatacentre/serve-mlflow:230216-0853
+  image: ghcr.io/scilifelabdatacentre/serve-mlflow:231030-1149
 
 service:
   name: mlflow-svc

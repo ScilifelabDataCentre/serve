@@ -30,7 +30,7 @@ minio:
 
 appconfig:
   port: 8888
-  image: ghcr.io/scilifelabdatacentre/serve-jupyterlab:231004-1113
+  image: ghcr.io/scilifelabdatacentre/serve-jupyterlab:231030-1145
 
 service:
   name: jupyterlab-svc
