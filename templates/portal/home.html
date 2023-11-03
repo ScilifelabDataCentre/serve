@@ -130,7 +130,7 @@
         </div>
     </div>
 
-    <div class="row text-center justify-content-center mt-5">
+    <div class="row text-center mt-5">
         <div class="col-12 text-center">
             <h3>News 
             </h3> 
@@ -138,8 +138,8 @@
         </div>
 
             {% for news in news_objects %}
-            <div class="col-4 align-items-stretch my-4">
-                <div class="card border bg-white my-4" >
+            <div class="col-4 my-4">
+                <div class="card border bg-white my-4" data-aos="slide-up">
             
                     <p class="text-muted card-footer-text text-end p-1 m-0">{{ news.created_on|date:"M. j, Y, H:i" }}</p>
                     <a href="{% url 'news:news' %}#{{ news.title }}" class="stretched-link">
