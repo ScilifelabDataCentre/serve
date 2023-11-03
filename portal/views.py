@@ -100,11 +100,17 @@ class HomeView(View):
     def get(self, request, id=0):
         published_apps, request = get_public_apps(request, id=id, get_all=False)
         published_models = PublishedModel.objects.all()
-        news_objects = NewsObject.objects.all()
+        news_objects = NewsObject.objects.all().order_by('-created_on')
         if published_models.count() >= 3:
             published_models = published_models[:3]
         else:
             published_models = published_models
+            
+        if news_objects.count() >= 3:
+            news_objects = news_objects[:3]
+        else:
+            news_objects = news_objects
+        
         return render(request, self.template, locals())
 
 
