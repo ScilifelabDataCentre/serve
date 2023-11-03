@@ -47,7 +47,7 @@ spec:
       {{- end }}
       containers:
       - name: serve
-        image: ghcr.io/scilifelabdatacentre/serve-shinyproxy:latest
+        image: ghcr.io/scilifelabdatacentre/serve-shinyproxy:231030-1144
         volumeMounts:
           - name: application-conf-{{ .Release.Name }}
             mountPath: /opt/shinyproxy/application.yml

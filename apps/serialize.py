@@ -116,10 +116,10 @@ def serialize_flavor(form_selection, project):
                 "cpu": flavor.cpu_lim,
                 "memory": flavor.mem_lim,
                 "ephemeral-storage": flavor.ephmem_lim,
-            }
+            },
         }
         if flavor.gpu_req and int(flavor.gpu_req) > 0:
-            flavor_json["flavor"]["requests"]["nvidia.com/gpu"] = flavor.gpu_req,
+            flavor_json["flavor"]["requests"]["nvidia.com/gpu"] = (flavor.gpu_req,)
             flavor_json["flavor"]["limits"]["nvidia.com/gpu"] = flavor.gpu_lim
 
     return flavor_json
