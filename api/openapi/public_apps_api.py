@@ -12,12 +12,6 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
     The Public Apps API with read-only methods to get public apps information.
     """
 
-    queryset = (
-        AppInstance.objects.filter(~Q(state="Deleted"), access="public")
-        .order_by("-updated_on")[:8]
-        .values("id", "name", "app_id", "table_field", "description", "updated_on")
-    )
-
     def list(self, request):
         """
         This endpoint gets a list of public apps.
@@ -26,7 +20,13 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         print("PublicAppsAPI. Entered list method.")
         print(f"Requested API version {request.version}")
 
-        list_apps = list(self.queryset)
+        queryset = (
+            AppInstance.objects.filter(~Q(state="Deleted"), access="public")
+            .order_by("-updated_on")[:8]
+            .values("id", "name", "app_id", "table_field", "description", "updated_on")
+        )
+
+        list_apps = list(queryset)
         for app in list_apps:
             add_data = Apps.objects.get(id=app["app_id"])
             app["app_type"] = add_data.name
