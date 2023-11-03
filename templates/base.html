@@ -128,6 +128,18 @@
             });
         })
 
+
+        function copyClip(data) {
+            var inputc = document.body.appendChild(document.createElement("input"));
+            inputc.value = data;
+            var scrollY = window.scrollY; // Store the current scroll position
+            inputc.select();
+            document.execCommand('copy');
+            inputc.parentNode.removeChild(inputc);
+            window.scrollTo(0, scrollY); // Restore the scroll position
+        }
+
+
     </script>
 
     {% block extra_scripts %} {% endblock %}

@@ -101,9 +101,9 @@
                         <div class="row mt-auto align-items-center">
                             <div class="col-6">
                                 {% if "Serve" in app.app.name or app.app.name == "Python Model Deployment" %}
-                                <a class="btn btn-primary" onclick="copyClip('{{app.table_field.url}}')">Copy API Endpoint</a>
+                                    <a class="btn btn-primary" onclick="copyClip('{{app.table_field.url}}')">Copy API Endpoint</a>
                                 {% else %}
-                                <a href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary">Open</a>
+                                    <a href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary">Open</a>
                                 {% endif %}
                             </div>
                             <div class="col-6 text-end">
@@ -132,14 +132,4 @@
         </div>
     </div>
 </div>
-<script>
-    function copyClip(data) {
-        var inputc = document.body.appendChild(document.createElement("input"));
-        inputc.value = data;
-        inputc.focus();
-        inputc.select();
-        document.execCommand('copy');
-        inputc.parentNode.removeChild(inputc);
-}
-</script>
 {% endblock %}
