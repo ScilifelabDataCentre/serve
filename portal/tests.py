@@ -24,10 +24,16 @@ def test_index():
     assert response.status_code == 200
     assert "<title>Apps | SciLifeLab Serve</title>" in response.content.decode()
 
-
+@pytest.mark.django_db
 def test_home_view_class():
     # Get correct request
     request = RequestFactory().get(reverse("portal:home"))
+
+    # Create session
+    s = SessionStore()
+
+    # Add session to request
+    request.session = s
 
     # Get response. Since HomeView is a class, this is the correct way
     response = views.HomeView.as_view()(request)

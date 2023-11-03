@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='NewsObject',
             fields=[
-                ('title', models.CharField(default='News Title', max_length=60, primary_key=True, serialize=False)),
+                ('title', models.CharField(default="", max_length=60, primary_key=True, serialize=False)),
                 ('body', models.TextField(blank=True, null=True, default="", max_length=2024)),
                 ('created_on', models.DateTimeField(auto_now_add=True)),
             ],
