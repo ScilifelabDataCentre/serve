@@ -59,9 +59,7 @@
             </h5> 
             <hr class="m-0 bg-lime  border-0" style="height: 2px;">
             {% for app in published_apps %}
-            
-
-                <div class="card h-25 border-0 shadow my-5" data-aos="slide-up">
+                <div class="card border-0 shadow my-5" data-aos="slide-up">
                     <div class="card-body text-start">
                         <div class="card-title d-flex justify-content-between align-items-center m-0">
                             <a href="{{ app.table_field.url }}" target="_blank">
@@ -74,8 +72,8 @@
                                     alt="App Logo" title="{{app.app.name}}">
                             </div>
                         </div>
-                        <div class="card-text ">
-                            {{ app.description|truncatechars:20 }}
+                        <div class="card-text">
+                            {{ app.description|truncatechars:30 }}
                         </div>
 
 
@@ -100,10 +98,10 @@
             <hr class="m-0 bg-teal border-0" style="height: 2px;">
             {% for model in published_models %}
             
-                <div class="card h-25 border-0 shadow my-5" data-aos="slide-up">
+                <div class="card border-0 shadow my-5" data-aos="slide-up">
                     <div class="card-body text-start">
-                        <div class="card-title d-flex justify-content-between align-items-center">
-                            <a href="{{ app.table_field.url }}" target="_blank">
+                        <div class="card-title d-flex justify-content-between align-items-center m-0">
+                            <a href="{% url 'models:details_public' model.pk %}" target="_self">
                                 <h5 class="">{{ model.name|truncatechars:30 }}</h5>
                             </a>
                             <div>
@@ -113,8 +111,8 @@
                                     alt="App Logo" title="ML model">
                             </div>
                         </div>
-                        <div class="card-text ">
-                            {{ app.description|truncatechars:20 }}
+                        <div class="card-text">
+                            {{model.model_description|default_if_none:"" |truncatechars:30}}
                         </div>
                     </div>
 
