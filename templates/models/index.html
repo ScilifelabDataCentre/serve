@@ -37,16 +37,20 @@
     <div class="col-12 col-md-6 col-lg-4">
         <div class="card h-100 border-0 shadow">
 
-            <div class="{{model.pattern}} rounded-top" style="min-height: 6rem;">
-                {% comment %}TODO make editable {% endcomment %}
-            </div>
 
             <div class="card-body d-flex flex-column">
 
                 <h5 class="card-title">{{ model.name }}</h5>
 
+
                 <div class="card-text">
                     <p>{{model.model_description|default_if_none:""}}</p>
+                    <ul class="list-unstyled">
+                        <li class="list-group-item row">
+                            <div class="col-3"><span class="value-label">Owner:</span></div>
+                            <div class="col-9">{{ model.owner.first_name }} {{ model.owner.last_name }}</div>
+                        </li>
+                    </ul>
                 </div>
 
                 <div class="pb-4">
@@ -99,11 +103,11 @@
                 </div>
             </div>
 
-            <div class="card-footer d-flex text-muted card-footer-text">
-                <div class="col-3 d-inline-block">
-                    <span></span>
+            <div class="card-footer d-flex text-muted card-footer-text justify-content-between  bg-teal-075">
+                <div class="text-start">
+                    <span>ML Model</span>
                 </div>
-                <div class="col-9 d-inline-block text-end">
+                <div class="text-end">
                     <span>Last updated: {{ model.updated_on|date:"d M, Y" }}</span>
                 </div>
             </div>

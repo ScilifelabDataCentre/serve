@@ -1,14 +1,163 @@
 {% extends 'base.html' %}
-{% load static %}
 
 {% block title %}Home{% endblock %}
+{% load static %}
+{% load custom_tags %}
 
 {% block content %}
 
+
 <div class="container">
-Homepage content goes here
+    <div class="row">
+        <div class="col-12 d-flex align-items-center justify-content-center">
+            <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="max-width:400px;width:60%">
+        </div>
+        <div class="col-12 col-lg-8 offset-lg-2 d-flex align-items-center justify-content-center mb-4">
+            SciLifeLab Serve is a platform offering machine learning model serving, app hosting, web-based integrated development environments, and other tools to life science researchers affiliated with a Swedish research institute.
+        </div>
+
+        <div class="col-md-4 d-flex align-items-stretch">
+            <div class="card text-center py-2 shadow" data-aos="fade">
+                <h1><i class="bi bi-robot"></i></h1>
+                <div class="card-body">
+                  <h5 class="card-title">Machine Learning Model Serving</h5>
+                  <p class="card-text">Deploy your pre-trained models using TorchServe, TensorFlow Serving, MLFlow. Obtain API endpoints for your models for programmatic access and build apps.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 d-flex align-items-stretch">
+            <div class="card text-center py-2 shadow " data-aos="fade" >
+                <h1><i class="bi bi-window-stack"></i></h1>
+                <div class="card-body">
+                  <h5 class="card-title">Application Hosting</h5>
+                  <p class="card-text">Host applications such as R Shiny, Plotly Dash, custom Flask apps, etc. to allow others to explore your data or results, or to provide tools based on your deployed machine learning models.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 d-flex align-items-stretch">
+            <div class="card text-center py-2 shadow" data-aos="fade">
+                <h1><i class="bi bi-code-slash"></i></h1>
+                <div class="card-body">
+                  <h5 class="card-title">Development Environments</h5>
+                  <p class="card-text">Use a web-browser based IDEs to run analyses or to collaborate with your team-mates.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="row text-center justify-content-center border rounded bg-light mt-5">
+        <div class="col-12 text-center">
+            <h3 class="pt-4">Recent updates</h3> 
+        </div>
+    
+        <div class="col-12 col-md-6 align-items-stretch my-4 p-4">
+            <h5>Apps 
+            </h5> 
+            <hr class="m-0 bg-lime  border-0" style="height: 2px;">
+            {% for app in published_apps %}
+                <div class="card border-0 shadow my-5" data-aos="slide-up">
+                    <div class="card-body text-start">
+                        <div class="card-title d-flex justify-content-between align-items-center m-0">
+                            <a href="{{ app.table_field.url }}" target="_blank">
+                                <h5 class="">{{ app.name|truncatechars:30 }}</h5>
+                            </a>
+                            <div>
+                                {% static 'images/logos/apps/' as static_url %}
+                                <img style="height:40px;"
+                                    src="{{static_url}}{{app.app.logo}}"
+                                    alt="App Logo" title="{{app.app.name}}">
+                            </div>
+                        </div>
+                        <div class="card-text">
+                            {{ app.description|truncatechars:30 }}
+                        </div>
+
+
+                    </div>
+
+                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-lime-025">
+                        <div class="text-start">
+                            <span>{{ app.app.name }}</span>
+                        </div>
+                        <div class="text-end">
+                            <span>Last updated: {{ app.updated_on|date:"d M, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            <a class="text-muted" href="{% url 'portal:apps' %}" target="_self" title="Apps">Browse all apps</a> 
+        </div>
+
+        <div class="col-12 col-md-6 align-items-stretch my-4 p-4">
+            <h5>Models 
+            </h5> 
+            <hr class="m-0 bg-teal border-0" style="height: 2px;">
+            {% for model in published_models %}
+            
+                <div class="card border-0 shadow my-5" data-aos="slide-up">
+                    <div class="card-body text-start">
+                        <div class="card-title d-flex justify-content-between align-items-center m-0">
+                            <a href="{% url 'models:details_public' model.pk %}" target="_self">
+                                <h5 class="">{{ model.name|truncatechars:30 }}</h5>
+                            </a>
+                            <div>
+                                {% static 'images/logos/apps/' as static_url %}
+                                <img style="height:40px;"
+                                    src="{{static_url}}default-logo.png"
+                                    alt="App Logo" title="ML model">
+                            </div>
+                        </div>
+                        <div class="card-text">
+                            {{model.model_description|default_if_none:"" |truncatechars:30}}
+                        </div>
+                    </div>
+
+                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-teal-075">
+                        <div class="text-start">
+                            <span>ML Model</span>
+                        </div>
+                        <div class="text-end">
+                            <span>Last updated: {{ model.updated_on|date:"d M, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            <a class="text-muted pb-4" href="{% url 'models:index' %}" target="_self" title="Models">Browse all models</a> 
+        </div>
+    </div>
+
+    <div class="row text-center mt-5">
+        <div class="col-12 text-center">
+            <h3>News 
+            </h3> 
+            <hr class="m-0 bg-grape border-0" style="height: 2px;">
+        </div>
+
+            {% for news in news_objects %}
+            <div class="col-4 my-4">
+                <div class="card border bg-white my-4" data-aos="slide-up">
+            
+                    <p class="text-muted card-footer-text text-end p-1 m-0">{{ news.created_on|date:"M. j, Y, H:i" }}</p>
+                    <a href="{% url 'news:news' %}#{{ news.title|slugify }}" class="stretched-link">
+                    <div class="card-body text-start py-0">
+                        <div class="card-title d-flex justify-content-between align-items-center">
+                            
+                                <h5 class="text-grape">{{ news.title }}</h5>                   
+                            
+                        </div>
+                            <p class="card-text mb-2">{{ news.body|truncatechars:150 }}</p> 
+                    </div>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+    </div>  
+
 </div>
-
-
-
 {% endblock %}
+
+
