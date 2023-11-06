@@ -297,7 +297,7 @@ def add_tag(request, user, project, ai_id):
         new_tags = request.POST.get("tag", "")
         for new_tag in new_tags.split(","):
             print("New Tag: ", new_tag)
-            appinstance.tags.add(new_tag.strip().lower())     
+            appinstance.tags.add(new_tag.strip().lower().replace("\"", ""))     
         appinstance.save()
 
     return HttpResponseRedirect(
