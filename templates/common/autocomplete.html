@@ -35,14 +35,15 @@ params:
 
             removeAllChildNodes(ulElement)
 
+
             const createBtnElement = (tag) => {
 
-                tag = tag.trim()
+                tag = tag.replace(/&quot;/g, "")
 
                 const element = document.createElement("button")
                 element.className = "btn p-3 autocomplete-btn w-100 d-flex justify-content-start"
                 element.setAttribute("data-val", tag)
-                element.innerText = tag
+                element.innerHTML = tag
 
                 element.addEventListener("click", (e) => {
 

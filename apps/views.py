@@ -1,5 +1,5 @@
 import re
-
+from html import unescape, escape
 import requests
 from django.apps import apps
 from django.conf import settings
@@ -298,7 +298,9 @@ def add_tag(request, user, project, ai_id):
         new_tags = request.POST.get("tag", "")
         for new_tag in new_tags.split(","):
             print("New Tag: ", new_tag)
-            appinstance.tags.add(new_tag.replace(" ", "").lower())     
+            # Strip and "html encode"
+            new_tag = new_tag.strip().lower()
+            appinstance.tags.add(escape(new_tag))     
         appinstance.save()
 
     return HttpResponseRedirect(
