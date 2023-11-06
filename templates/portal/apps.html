@@ -15,12 +15,14 @@
 
         </h3>
 
-        <div class="tag-list">
+        <div class="tag-list d-flex">
             {% for tf in request.session.app_tag_filters %}
-            <div class="tag d-inline">
-                <span class="badge text-bg-primary">{{ tf }}
-                    <a class="tag-list-ico fas fa-times" style="color: inherit;"
-                    href="{% url 'portal:apps' %}?tf_remove={{ tf | urlencode }}">x</a>
+            <div class="tag d-flex m-1">
+                <span class="badge text-bg-primary  d-flex align-items-center">{{ tf }}
+                    <a href="{% url 'portal:apps' %}?tf_remove={{ tf | urlencode }}">
+                        <button type="submit" class="btn-close btn-close-white ms-1" name="tag" value="{{tag}}"
+                        aria-label="Close"></button>
+                    </a>
                 </span>
             </div>
             {% endfor %}
@@ -67,11 +69,10 @@
                                     <div class="tag-ico fas fa-tag fa-sm"></div><span class="badge text-bg-primary">{{ tag }}</span>
                                 </a>
                                 {% endfor %}
-                                <a href="{% url 'portal:apps' %}?app_id_remove={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
-                                    class="d-inline-flex">
+                                <a href="{% url 'portal:apps' %}?app_id_remove={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-circle tag-count">
-                                        -
+                                    <button type="submit" class="btn btn-danger btn-circle tag-count py-0">
+                                        hide
                                     </button>
                                 </a>
                                 {% endwith %}
@@ -85,11 +86,11 @@
                                 </a>
                                 {% endfor %}
                                 {% if tags.count > tag_limit %}
-                                <a href="{% url 'portal:apps' %}?app_id_add={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
-                                    class="d-inline-flex">
+                                <a href="{% url 'portal:apps' %}?app_id_add={{ app.id | urlencode }}&tag_count={{ tags.count | urlencode }}">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-light fw-600 tag-count">+{{
-                                        tags.count|subtract:tag_limit }}</button>
+                                    <button type="submit" class="btn btn-light fw-600 tag-count py-0">
+                                        show +{{ tags.count|subtract:tag_limit }}
+                                    </button>
                                 </a>
                                 {% endif %}
                                 {% endwith %}
