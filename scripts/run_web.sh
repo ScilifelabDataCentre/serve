@@ -39,7 +39,7 @@ if $INIT; then
     # python manage.py createsuperuser --email $DJANGO_SUPERUSER_EMAIL --username $DJANGO_SUPERUSER --no-input
 
     # ONLY for local testing with docker-compose
-    python manage.py createsuperuser --email 'admin@test.com' --username 'admin' --no-input
+    #python manage.py createsuperuser --email 'admin@test.com' --username 'admin' --no-input
     python manage.py runscript admin_token
 fi
 
