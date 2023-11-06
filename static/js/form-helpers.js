@@ -2,6 +2,8 @@ window.onload = (event) => {
     const email = document.getElementById('id_email');
     const choiceSelect = document.getElementById('id_affiliation');
     const request_account_field = document.getElementById('id_request_account_info');
+    const request_account_label = document.querySelector('label[for="id_why_account_needed"]');
+    const department_label = document.querySelector('label[for="id_department"]');
 
     const domainRegex = /^(?:[A-Z0-9](?:[\.A-Z0-9-]{0,61}[A-Z0-9])?\.)*?(uu|lu|gu|su|umu|liu|ki|kth|chalmers|ltu|hhs|slu|kau|lnu|oru|miun|mau|mdu|bth|fhs|gih|hb|du|hig|hh|hkr|his|hv|ju|sh)\.se$/i;
 
@@ -22,14 +24,17 @@ window.onload = (event) => {
             const domain = match[1];
             choiceSelect.value = domain;
             shouldHide = true;
+            department_label.classList.add('required');
         } else {
             choiceSelect.value = 'other';  // Reset to default or empty value
+            department_label.classList.remove('required');
         }
 
         if (shouldHide) {
             request_account_field.classList.add('hidden');
         } else {
             request_account_field.classList.remove('hidden');
+            request_account_label.classList.add('required');
         }
     }
 
