@@ -329,25 +329,20 @@
             </form>
 
             <div class="row pt-3">
-                <div class="col-12 d-flex">
-
-                    {% with appinstance.tags|split:"," as tags %}
-
-                    {% for tag in tags %}
-
+                {% with appinstance.tags|split:"," as tags %}
+                {% for tag in tags %}
+                <div class="col-3 d-flex">
                     <form action="{% url 'apps:remove_tag' request.user project.slug appinstance.pk %}" method="post">
-
                         {% csrf_token %}
-
-                        <div class="align-items-center d-flex m-1 p-2 rounded shadow">
-                            {{tag}} <button type="submit" class="btn-close ms-1" name="tag" value="{{tag}}"
+                        <span class="badge bg-primary d-flex align-items-center m-1">
+                            {{tag}} <button type="submit" class="btn-close btn-close-white ms-1" name="tag" value="{{tag}}"
                                 aria-label="Close"></button>
-                        </div>
+                        </span>
                     </form>
+                </div>
+                {% endfor %}
 
-                    {% endfor %}
-
-                    {% endwith %}
+                {% endwith %}
                 </div>
             </div>
         </div>

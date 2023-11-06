@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load can_create_app %}
-
+{% load custom_tags %}
 {% block title %}{{ project.name }}{% endblock %}
 
 {% block content %}
@@ -50,8 +50,7 @@
                 <h5 class="card-title mb-0">{{ objs.title }}</h5>
             </div>
             {% if objs.objs %}
-            <div class="no-footer mx-4 my-4">
-
+            <div class="no-footer mx-4 mt-4">
                 <table id=""
                     class="table table-hover my-0 no-footer table-bordered" role="grid">
                     <thead>
@@ -61,6 +60,7 @@
                             <th tabindex="0" rowspan="1" colspan="1">Name</th>
                             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Created</th>
                             <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
+                            <th class="" tabindex="0" rowspan="1" colspan="1">Tags</th>
                             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
                         </tr>
                     </thead>
@@ -107,6 +107,13 @@
                                     </span>
                                     {% endif %}
                                 {% endif %}
+                            </td>
+                            <td id="tags-{{ obj.pk }}">
+                            {% with obj.tags|split:"," as tags %}
+                            {% for tag in tags %}
+                                <span class="badge text-bg-primary">{{ tag }}</span>
+                            {% endfor %}
+                            {% endwith %}
                             </td>
                             <td class="table-action text-center">
                                 <div class="dropdown show">
@@ -156,6 +163,9 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            <div class="mx-4 mb-4 small text-muted">
+            *Note that all apps under Develop will be deleted 7 days after creation.
             </div>
             {% else %}
             <div class="h-100 p-4 d-flex align-items-center justify-content-center border-bottom">

@@ -104,7 +104,7 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
             "Use your <a "
             "href='https://www.uka.se/sa-fungerar-hogskolan/universitet-och-hogskolor/lista-over-"
             "universitet-hogskolor-och-enskilda-utbildningsanordnare'>"
-            "Swedish university</a> email address. If you are not affiliated with a Swedish university,"
+            "Swedish university</a> email address. If you are not affiliated with a Swedish university, "
             "your account request will be reviewed manually."
         ),
     )
