@@ -295,9 +295,10 @@ def create_releasename(request, user, project, app_slug):
 def add_tag(request, user, project, ai_id):
     appinstance = AppInstance.objects.get(pk=ai_id)
     if request.method == "POST":
-        new_tag = request.POST.get("tag", "")
-        print("New Tag: ", new_tag)
-        appinstance.tags.add(new_tag)
+        new_tags = request.POST.get("tag", "")
+        for new_tag in new_tags.split(","):
+            print("New Tag: ", new_tag)
+            appinstance.tags.add(new_tag.replace(" ", "").lower())     
         appinstance.save()
 
     return HttpResponseRedirect(
