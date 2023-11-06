@@ -6,9 +6,10 @@ from django.views.generic import View
 
 AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
+PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
+NewsObject = apps.get_model(app_label="news.NewsObject")
 
-
-def public_apps(request, id=0):
+def get_public_apps(request, id=0, get_all=True):
     try:
         projects = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status="active")
     except Exception:
@@ -41,8 +42,11 @@ def public_apps(request, id=0):
         if "tf_add" not in request.GET and "tf_remove" not in request.GET:
             request.session["app_tags"] = {}
 
-    published_apps = AppInstance.objects.filter(~Q(state="Deleted"), access="public")
-
+    published_apps = AppInstance.objects.filter(~Q(state="Deleted"), access="public").order_by('-updated_on')
+    if published_apps.count() >= 3 and not get_all:
+        published_apps = published_apps[:3]
+    else:
+        published_apps = published_apps
     # Get the app instance latest status (not state)
     # Similar to GetStatusView() in apps.views
     for app in published_apps:
@@ -81,15 +85,32 @@ def public_apps(request, id=0):
         published_apps = tagged_published_apps
 
     request.session.modified = True
+    return published_apps, request
 
+
+def public_apps(request, id=0):
+    published_apps, request = get_public_apps(request, id=id)
     template = "portal/apps.html"
     return render(request, template, locals())
 
 
 class HomeView(View):
+    
     template = "portal/home.html"
-
-    def get(self, request):
+    def get(self, request, id=0):
+        published_apps, request = get_public_apps(request, id=id, get_all=False)
+        published_models = PublishedModel.objects.all()
+        news_objects = NewsObject.objects.all().order_by('-created_on')
+        if published_models.count() >= 3:
+            published_models = published_models[:3]
+        else:
+            published_models = published_models
+            
+        if news_objects.count() >= 3:
+            news_objects = news_objects[:3]
+        else:
+            news_objects = news_objects
+        
         return render(request, self.template, locals())
 
 
