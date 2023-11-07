@@ -101,7 +101,11 @@
 
                         <div class="row mt-auto align-items-center">
                             <div class="col-6">
-                                <a href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary">Open</a>
+                                {% if "Serve" in app.app.name or app.app.name == "Python Model Deployment" %}
+                                    <a class="btn btn-primary" onclick="copyClip('{{app.table_field.url}}')">Copy API Endpoint</a>
+                                {% else %}
+                                    <a href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary">Open</a>
+                                {% endif %}
                             </div>
                             <div class="col-6 text-end">
                                 {% if app.status_group == "success" %}
@@ -129,5 +133,4 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
