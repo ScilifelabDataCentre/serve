@@ -552,6 +552,11 @@
           },
           "meta": {
             "title": "Configurations"
+          },
+          "port": {
+            "default": "8000",
+            "title": "Port",
+            "type": "number"
           }
         },
         "default_values": {
@@ -605,6 +610,11 @@
           },
           "meta": {
             "title": "Configurations"
+          },
+          "port": {
+            "default": "3838",
+            "title": "Port",
+            "type": "number"
           }
         },
         "default_values": {
