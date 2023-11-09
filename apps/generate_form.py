@@ -248,7 +248,12 @@ def generate_form(aset, project, app, user, appinstance=[]):
     form["dep_flavor"] = False
     if "flavor" in aset:
         form["dep_flavor"] = True
-        form["flavors"] = Flavor.objects.filter(project=project)
+        if appinstance:
+            form["current_flavor"] = Flavor.objects.filter(project=project, id=appinstance.flavor.id)
+            form["flavors"] = Flavor.objects.filter(project=project).exclude(id=appinstance.flavor.id)
+        else:
+            form["current_flavor"] = None 
+            form["flavors"] = Flavor.objects.filter(project=project)
 
     form["primitives"] = get_form_primitives(aset, appinstance)
     form["dep_permissions"], form["form_permissions"] = get_form_permission(aset, project, appinstance)

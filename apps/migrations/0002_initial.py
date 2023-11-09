@@ -65,6 +65,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='appinstance',
+            name='flavor',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='appinstance', to='projects.flavor'),
+        ),
+        migrations.AddField(
+            model_name='appinstance',
             name='tags',
             field=tagulous.models.fields.TagField(_set_tag_meta=True, help_text='Enter a comma-separated tag string', to='apps.Tagulous_AppInstance_tags'),
         ),

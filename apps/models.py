@@ -164,6 +164,12 @@ class AppInstance(models.Model):
         on_delete=models.CASCADE,
         related_name="appinstance",
     )
+    flavor = models.ForeignKey(
+        "projects.Flavor",
+        on_delete=models.CASCADE,
+        related_name="appinstance",
+        null=True,
+    )
     state = models.CharField(max_length=50, null=True, blank=True)
     table_field = models.JSONField(blank=True, null=True)
     tags = TagField(blank=True)

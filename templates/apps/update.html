@@ -139,8 +139,12 @@
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Hardware allocation for your app. Only one option is available by default. If your app requires more hardware resources, get in touch with us (serve@scilifelab.se) with a request.">
                         </span>
                         <select name="flavor" id="flavor" class="form-control">
+                            
+                            {% for flavor in form.current_flavor %}
+                                <option value="{{ flavor.pk }}">{{ flavor.name }} (active)</option>
+                            {% endfor %}
                             {% for flavor in form.flavors %}
-                            <option value="{{ flavor.pk }}">{{ flavor.name }}</option>
+                                <option value="{{ flavor.pk }}">{{ flavor.name }}</option>
                             {% endfor %}
                         </select>
                     </div>

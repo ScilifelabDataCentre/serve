@@ -18,6 +18,8 @@ from .models import AppCategories, AppInstance, Apps
 from .serialize import serialize_app
 from .tasks import delete_and_deploy_resource, delete_resource, deploy_resource
 
+from projects.models import Flavor
+
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
@@ -206,7 +208,7 @@ class AppSettingsView(View):
 
         app_settings = appinstance.app.settings
         form = generate_form(app_settings, project, app, request.user, appinstance)
-
+        volume = form['app_deps']['Persistent Volume']
         if request.user.id != appinstance.owner.id:
             show_permissions = False
 
@@ -232,6 +234,9 @@ class AppSettingsView(View):
             raise Exception("Not authorized to use specified app dependency")
 
         access = handle_permissions(parameters, project)
+
+        flavor_id = request.POST.get("flavor")
+        appinstance.flavor = Flavor.objects.get(pk=flavor_id, project=project)
 
         appinstance.name = request.POST.get("app_name")
         appinstance.description = request.POST.get("app_description")
@@ -369,14 +374,16 @@ class CreateServeView(View):
 class CreateView(View):
     def get_shared_data(self, project_slug, app_slug):
         project = Project.objects.get(slug=project_slug)
+        flavor = Flavor.objects.filter(project=project)
         app = Apps.objects.filter(slug=app_slug).order_by("-revision")[0]
         app_settings = app.settings
 
-        return [project, app, app_settings]
+        return [project, app, app_settings, flavor]
 
     def get(self, request, user, project, app_slug, data=[], wait=False, call=False):
         template = "apps/create.html"
-        project, app, app_settings = self.get_shared_data(project, app_slug)
+        project, app, app_settings, flavor = self.get_shared_data(project, app_slug)
+        
         domain = DOMAIN
         if not call:
             user = request.user
@@ -400,8 +407,8 @@ class CreateView(View):
         return render(request, template, locals())
 
     def post(self, request, user, project, app_slug, data=[], wait=False):
-        project, app, app_settings = self.get_shared_data(project, app_slug)
-        data = request.POST
+        project, app, app_settings,flavor = self.get_shared_data(project, app_slug)
+        data = request.POST 
         user = request.user
 
         user_can_create = AppInstance.objects.user_can_create(user, project, app_slug)

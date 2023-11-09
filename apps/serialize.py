@@ -105,7 +105,7 @@ def serialize_flavor(form_selection, project):
         try:
             flavor = Flavor.objects.get(pk=flavor_id)
         except:  # noqa E722 TODO: Add exception
-            flavor = Flavor.objects.get(name=flavor_id, project=project)
+            flavor = Flavor.objects.get(pk=flavor_id, project=project)
         flavor_json["flavor"] = {
             "requests": {
                 "cpu": flavor.cpu_req,
