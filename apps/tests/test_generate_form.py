@@ -55,8 +55,7 @@ class GenerateFormTestCase(TestCase):
         self.project = Project.objects.create_project(
             name="test-perm-generate_form",
             owner=self.user,
-            description="",
-            repository="",
+            description=""
         )
         self.app = Apps.objects.create(name="Persistent Volume", slug="volumeK8s")
         return super().setUp()
@@ -270,8 +269,7 @@ class GenerateFormTestCase(TestCase):
         project = Project.objects.create_project(
             name="test-perm-generate_form2",
             owner=self.user,
-            description="",
-            repository="",
+            description=""
         )
 
         environment = Environment(

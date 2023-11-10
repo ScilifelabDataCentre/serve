@@ -43,8 +43,7 @@ class DeleteAppViewTestCase(TestCase):
         self.project = Project.objects.create_project(
             name="test-perm",
             owner=self.user,
-            description="",
-            repository="",
+            description=""
         )
 
         self.app_instance = AppInstance.objects.create(
@@ -59,8 +58,7 @@ class DeleteAppViewTestCase(TestCase):
         project = Project.objects.create_project(
             name="test-perm",
             owner=user if user is not None else self.user,
-            description="",
-            repository="",
+            description=""
         )
 
         return project

@@ -15,8 +15,7 @@ class AppInstaceManagerTestCase(TestCase):
         self.project = Project.objects.create_project(
             name="test-perm-app-instance-manager",
             owner=self.user,
-            description="",
-            repository="",
+            description=""
         )
         app = Apps.objects.create(name="Persistent Volume", slug="volumeK8s")
 
@@ -93,8 +92,7 @@ class AppInstaceManagerTestCase(TestCase):
         project = Project.objects.create_project(
             name="test-perm-app-instance_manager-2",
             owner=self.user,
-            description="",
-            repository="",
+            description=""
         )
 
         app = Apps.objects.create(name="Combiner", slug="combiner")

@@ -37,8 +37,7 @@ class SetDefaultPatternToProjectTestCase(TestCase):
         project = Project.objects.create_project(
             name="test-perm",
             owner=self.user,
-            description="",
-            repository="",
+            description=""
         )
 
         projects = Project.objects.filter(owner=self.user)
