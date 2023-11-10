@@ -137,7 +137,6 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     access = handle_permissions(parameters_out, project)
 
     flavor_id = data.get("flavor", None)
-    print("FLAVOR ID IS", flavor_id)
     flavor = Flavor.objects.get(pk=flavor_id, project=project) if flavor_id else None
         
     app_instance = AppInstance(

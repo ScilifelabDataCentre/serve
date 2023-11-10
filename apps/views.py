@@ -380,15 +380,14 @@ class CreateServeView(View):
 class CreateView(View):
     def get_shared_data(self, project_slug, app_slug):
         project = Project.objects.get(slug=project_slug)
-        flavor = Flavor.objects.filter(project=project)
         app = Apps.objects.filter(slug=app_slug).order_by("-revision")[0]
         app_settings = app.settings
 
-        return [project, app, app_settings, flavor]
+        return [project, app, app_settings]
 
     def get(self, request, user, project, app_slug, data=[], wait=False, call=False):
         template = "apps/create.html"
-        project, app, app_settings, flavor = self.get_shared_data(project, app_slug)
+        project, app, app_settings = self.get_shared_data(project, app_slug)
         
         domain = DOMAIN
         if not call:
