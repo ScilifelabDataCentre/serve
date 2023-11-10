@@ -412,8 +412,8 @@ class CreateView(View):
         return render(request, template, locals())
 
     def post(self, request, user, project, app_slug, data=[], wait=False):
-        project, app, app_settings,flavor = self.get_shared_data(project, app_slug)
-        data = request.POST 
+        project, app, app_settings = self.get_shared_data(project, app_slug)
+        data = request.POST
         user = request.user
 
         user_can_create = AppInstance.objects.user_can_create(user, project, app_slug)
