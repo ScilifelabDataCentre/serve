@@ -34,15 +34,9 @@ class Migration(migrations.Migration):
                 ('state', models.CharField(blank=True, max_length=50, null=True)),
                 ('table_field', models.JSONField(blank=True, null=True)),
                 ('updated_on', models.DateTimeField(auto_now=True)),
+                ('description', models.TextField(blank=True, default="", null=True)),       
             ],
-        ),
-        migrations.CreateModel(
-            name='AppPermission',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='permission_name', max_length=512)),
-                ('public', models.BooleanField(default=False)),
-            ],
+            options={"permissions": [("can_access_app", "Can access app service")]},
         ),
         migrations.CreateModel(
             name='Tagulous_AppInstance_tags',
@@ -93,8 +87,7 @@ class Migration(migrations.Migration):
                 ('chart_archive', models.FileField(blank=True, null=True, upload_to='apps/')),
                 ('created_on', models.DateTimeField(auto_now_add=True)),
                 ('description', models.TextField(blank=True, default='', null=True)),
-                ('logo', models.CharField(default='dist/logo.png', max_length=512)),
-                ('logo_file', models.FileField(blank=True, null=True, upload_to='apps/logos/')),
+                ('logo', models.CharField(blank=True, max_length=512, null=True)),
                 ('name', models.CharField(max_length=512)),
                 ('priority', models.IntegerField(default=100)),
                 ('revision', models.IntegerField(default=1)),
@@ -103,6 +96,9 @@ class Migration(migrations.Migration):
                 ('table_field', models.JSONField(blank=True, null=True)),
                 ('updated_on', models.DateTimeField(auto_now=True)),
                 ('category', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='apps', to='apps.appcategories')),
+                ('user_can_create', models.BooleanField(default=True)),
+                ('user_can_delete', models.BooleanField(default=True)),
+                ('user_can_edit', models.BooleanField(default=True)),      
             ],
         ),
     ]

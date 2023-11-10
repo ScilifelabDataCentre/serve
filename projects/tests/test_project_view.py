@@ -16,7 +16,7 @@ class ProjectViewTestCase(TestCase):
         cls.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         cls.project_name = "test-title"
         cls.project = Project.objects.create_project(
-            name=cls.project_name, owner=cls.user, description="", repository=""
+            name=cls.project_name, owner=cls.user, description=""
         )
 
     def setUp(self):
@@ -37,7 +37,7 @@ class ProjectViewTestCase(TestCase):
 class FrobiddenProjectViewTestCase(TestCase):
     def setUp(self):
         user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
-        _ = Project.objects.create_project(name="test-perm", owner=user, description="", repository="")
+        _ = Project.objects.create_project(name="test-perm", owner=user, description="")
         user = User.objects.create_user(test_member["username"], test_member["email"], test_member["password"])
         self.client.login(username=test_user["email"], password=test_user["password"])
 

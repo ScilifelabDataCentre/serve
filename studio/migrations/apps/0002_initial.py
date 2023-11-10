@@ -22,22 +22,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='apps',
             name='projects',
-            field=models.ManyToManyField(to='projects.Project'),
-        ),
-        migrations.AddField(
-            model_name='apppermission',
-            name='appinstance',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='permission', to='apps.appinstance'),
-        ),
-        migrations.AddField(
-            model_name='apppermission',
-            name='projects',
-            field=models.ManyToManyField(to='projects.Project'),
-        ),
-        migrations.AddField(
-            model_name='apppermission',
-            name='users',
-            field=models.ManyToManyField(to=settings.AUTH_USER_MODEL),
+            field=models.ManyToManyField(blank=True, to="projects.project"),
         ),
         migrations.AddField(
             model_name='appinstance',
@@ -67,10 +52,18 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='appinstance',
             name='tags',
-            field=tagulous.models.fields.TagField(_set_tag_meta=True, help_text='Enter a comma-separated tag string', to='apps.Tagulous_AppInstance_tags'),
+            field=tagulous.models.fields.TagField(_set_tag_meta=True, blank=True, help_text="Enter a comma-separated tag string", to="apps.tagulous_appinstance_tags",
+            ),
         ),
         migrations.AlterUniqueTogether(
             name='apps',
             unique_together={('slug', 'revision')},
+        ),
+        migrations.AddField(
+            model_name="appinstance",
+            name="flavor",
+            field=models.ForeignKey(
+                null=True, on_delete=django.db.models.deletion.CASCADE, related_name="appinstance", to="projects.flavor"
+            ),
         ),
     ]

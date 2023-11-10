@@ -40,14 +40,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='AppPermission',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='permission_name', max_length=512)),
-                ('public', models.BooleanField(default=False)),
-            ],
-        ),
-        migrations.CreateModel(
             name='Tagulous_AppInstance_tags',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),

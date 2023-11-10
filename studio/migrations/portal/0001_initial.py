@@ -25,10 +25,10 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=512)),
-                ('img', models.ImageField(blank=True, default=None, null=True, upload_to='models/image')),
                 ('updated_on', models.DateTimeField(auto_now=True)),
                 ('created_on', models.DateTimeField(auto_now_add=True)),
                 ('model_obj', models.ManyToManyField(to='portal.PublicModelObject')),
+                ('pattern', models.CharField(default='', max_length=255)),
             ],
         ),
     ]

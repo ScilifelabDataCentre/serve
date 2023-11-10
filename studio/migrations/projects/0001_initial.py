@@ -4,6 +4,7 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
+import projects.models
 
 class Migration(migrations.Migration):
 
@@ -37,6 +38,7 @@ class Migration(migrations.Migration):
                 ('app', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='mlflowobj', to='apps.appinstance')),
                 ('basic_auth', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='projects.basicauth')),
                 ('owner', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, to='auth.user')),
+                ('host', models.CharField(blank=True, default='', max_length=512)),  
             ],
         ),
         migrations.CreateModel(
@@ -47,19 +49,19 @@ class Migration(migrations.Migration):
                 ('clone_url', models.CharField(blank=True, max_length=512, null=True)),
                 ('description', models.TextField(blank=True, null=True)),
                 ('name', models.CharField(max_length=512)),
-                ('project_image', models.ImageField(blank=True, default=None, null=True, upload_to='projects/images/')),
                 ('slug', models.CharField(max_length=512, unique=True)),
                 ('status', models.CharField(blank=True, default='active', max_length=20, null=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('image', models.CharField(blank=True, max_length=2048, null=True)),
                 ('project_key', models.CharField(max_length=512)),
                 ('project_secret', models.CharField(max_length=512)),
-                ('repository', models.CharField(blank=True, max_length=512, null=True)),
-                ('repository_imported', models.BooleanField(default=False)),
                 ('authorized', models.ManyToManyField(blank=True, to=settings.AUTH_USER_MODEL)),
-                ('mlflow', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='project_mlflow', to='projects.mlflow')),
+                ('mlflow', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='project_mlflow', to='projects.mlflow')),
                 ('owner', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, related_name='owner', to='auth.user')),
+                ('image', models.CharField(blank=True, max_length=2048, null=True)),
+                ('pattern', models.CharField(default="", max_length=255)),
+                ('apps_per_project', models.JSONField(blank=True, default=projects.models.get_default_apps_per_project_limit, null=True)),
             ],
+            options={'permissions': [('can_view_project', 'Can view project')]}
         ),
         migrations.CreateModel(
             name='S3',
@@ -97,7 +99,8 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=512)),
                 ('revision', models.IntegerField(default=1)),
                 ('slug', models.CharField(default='', max_length=512)),
-                ('template', models.JSONField(blank=True, null=True)),
+                ('template', models.TextField(blank=True, null=True)),
+                
             ],
             options={
                 'unique_together': {('slug', 'revision')},
@@ -117,7 +120,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='project',
             name='s3storage',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='project_s3', to='projects.s3'),
+            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='project_s3', to='projects.s3'),
         ),
         migrations.AddField(
             model_name='mlflow',
@@ -167,5 +170,25 @@ class Migration(migrations.Migration):
             model_name='basicauth',
             name='project',
             field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='ba_project', to='projects.project'),
+        ),
+        migrations.AddField(
+            model_name='environment',
+            name='public',
+            field=models.BooleanField(default=False),
+        ),
+        migrations.AddField(
+            model_name='projecttemplate',
+            name='enabled',
+            field=models.BooleanField(default=True),
+        ),
+        migrations.AlterField(
+            model_name='environment',
+            name='project',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='projects.project'),
+        ),
+        migrations.AlterField(
+            model_name='environment',
+            name='slug',
+            field=models.CharField(blank=True, max_length=100, null=True),
         ),
     ]

@@ -38,7 +38,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='model',
             name='tags',
-            field=tagulous.models.fields.TagField(_set_tag_meta=True, help_text='Enter a comma-separated tag string', to='models.Tagulous_Model_tags'),
+            field=tagulous.models.fields.TagField(
+                _set_tag_meta=True,
+                blank=True,
+                help_text="Enter a comma-separated tag string",
+                to="models.tagulous_model_tags",
+            ),
         ),
         migrations.AlterUniqueTogether(
             name='metadata',

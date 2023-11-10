@@ -27,4 +27,4 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     user.save()
 
     # Create a dummy project to be deleted by the contributor user
-    Project.objects.create_project(name="e2e-delete-proj-test", owner=user, description="", repository="")
+    Project.objects.create_project(name="e2e-delete-proj-test", owner=user, description="")

@@ -39,7 +39,7 @@ class ModelViewTests(TestCase):
         # Create user
         self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
 
-        self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="", repository="")
+        self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
 
         new_model = Model(
             uid="test_uid",
@@ -169,7 +169,7 @@ class ModelViewForbidden(TestCase):
     def setUp(self):
         user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
 
-        project = Project.objects.create_project(name="test-perm", owner=user, description="", repository="")
+        project = Project.objects.create_project(name="test-perm", owner=user, description="")
 
         new_model = Model(
             uid="test_uid",
