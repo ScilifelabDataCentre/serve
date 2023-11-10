@@ -173,11 +173,26 @@
                         <label class="form-label">{{ app_name }}</label>
                         <select name="app:{{ app_name }}" id="{{ app_name }}" class="form-control" {{
                             appinstances.option_type }} required>
-                            {% for appinstance in appinstances.instances %}
-                            <option value="{{ appinstance.pk }}" {{ appinstance.selected }}>{{ appinstance.name }}
-                            </option>
-                            {% endfor %}
-                            <option value="None">None</option>
+                            {% if app_name == "Persistent Volume" %}
+                                {% if current_volume %}
+                                    <option value="{{ current_volume.pk }}" selected>{{ current_volume.name }} (active)</option>
+                                {% else %}
+                                    <option value="None" selected>None (active)</option>
+                                {% endif %}
+                                
+                                {% for appinstance in available_volumes %}
+                                    <option value="{{ appinstance.pk }}">{{ appinstance.name }}</option>
+                                {% empty %}
+                                    <option value="None">None</option>
+                                {% endfor %}
+                            {% else %}
+                                {% for appinstance in appinstances.instances %}
+                                <option value="{{ appinstance.pk }}" {{ appinstance.selected }}>{{ appinstance.name }}
+                                </option>
+                                {% endfor %}
+                                <option value="None">None</option>
+                            {% endif %}
+                            
                         </select>
                     </div>
                     {% endfor %}
