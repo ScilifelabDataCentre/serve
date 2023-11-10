@@ -24,8 +24,7 @@ class RevokeAccessToProjectViewTestCase(TestCase):
         project = Project.objects.create_project(
             name="test-perm",
             owner=user if user is not None else self.user,
-            description="",
-            repository="",
+            description=""
         )
 
         project.authorized.add(self.user2)

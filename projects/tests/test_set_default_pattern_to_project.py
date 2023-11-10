@@ -20,8 +20,7 @@ class SetDefaultPatternToProjectTestCase(TestCase):
             project = Project.objects.create_project(
                 name=f"test-perm-SetDefaultPatternToProjectTestCase-{i}",
                 owner=self.user,
-                description="",
-                repository="",
+                description=""
             )
 
             result = view.validate(project.pattern)

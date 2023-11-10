@@ -14,8 +14,7 @@ class CreateMLFlowTestCase(TestCase):
         self.project = Project.objects.create_project(
             name=self.project_name,
             owner=self.user,
-            description="",
-            repository="",
+            description=""
         )
 
     def test_no_default_for_project(self):
