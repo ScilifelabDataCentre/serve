@@ -386,7 +386,7 @@ def check_status():
                 status.status_type = "Deleted"
                 status.save()
                 instance.state = "Deleted"
-                instance.deleted_on = datetime.now()
+                instance.deleted_on = timezone.now()
                 instance.save()
 
     # Fetch all app instances whose state is "Deleted" and check whether
@@ -642,7 +642,7 @@ def purge_tasks():
 @app.task
 def delete_old_objects():
     # Define the time threshold (24 hours ago)
-    threshold_time = timezone.now() - timedelta(days=7)
+    threshold_time = timezone.now() - timezone.timedelta(days=7)
 
     # Delete objects older than the threshold time
     old_apps = AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name="Develop")
