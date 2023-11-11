@@ -1,7 +1,6 @@
 import json
 import subprocess
 import time
-from datetime import datetime,timedelta
 from django.utils import timezone
 
 import requests
