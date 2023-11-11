@@ -1,7 +1,8 @@
 import json
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime,timedelta
+from django.utils import timezone
 
 import requests
 from celery import shared_task
@@ -636,3 +637,14 @@ def purge_tasks():
     Remove tasks from queue to avoid overflow
     """
     app.control.purge()
+
+
+@app.task
+def delete_old_objects():
+    # Define the time threshold (24 hours ago)
+    threshold_time = timezone.now() - timedelta(days=7)
+
+    # Delete objects older than the threshold time
+    old_apps = AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name="Develop")
+    for app in old_apps:
+        delete_resource_permanently(app)
