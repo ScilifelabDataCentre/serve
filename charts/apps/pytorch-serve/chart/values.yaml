@@ -10,7 +10,7 @@ project:
   slug: project-slug
 
 appconfig:
-  image: ghcr.io/scilifelabdatacentre/serve-torchserve:230925-1502
+  image: ghcr.io/scilifelabdatacentre/serve-torchserve:231030-1146
   inference_port: 8080
   management_port: 8081
   metrics_port: 8082
@@ -49,6 +49,8 @@ ingress:
   v1beta1: false
 
 podSecurityContext:
+  seccompProfile:
+      type: RuntimeDefault
   fsGroup: 1000
 
 securityContext:

@@ -1,4 +1,4 @@
-name: Serve CI
+name: CI
 
 on:
   push:
@@ -30,8 +30,7 @@ on:
         type: boolean
 
 jobs:
-
-  build_and_test:
+  CI:
     if: github.repository == 'scilifelabdatacentre/stackn'
     runs-on: ubuntu-20.04
     env:
@@ -50,14 +49,15 @@ jobs:
       - name: Prepare repository
         run: |
           echo "Running as UID: $UID, GID: $GID"
-          export GID=1000
+          export GID=127
           echo "Now running as UID: $UID, GID: $GID"
           whoami
           pwd
           mv .env.template .env
-          sudo chgrp -R 1000 media
+          sudo chgrp -R 127 media
           sudo chmod -R g+rwx media
           ls -al
+          echo -e "UID=1001\nGID=127" > .env
 
       - name: Start serve
         working-directory: ${{env.working-directory}}
@@ -74,10 +74,6 @@ jobs:
           STUDIO_URL=`awk -F '= ' -v replace="'" '/STUDIO_URL/{gsub(replace, "", $NF); print $NF}' studio/settings.py`
           echo "STUDIO_URL=$STUDIO_URL" >> $GITHUB_ENV
           echo "The Serve URL is $STUDIO_URL"
-          docker exec studio pwd
-          docker exec studio ls -al
-          docker exec studio whoami
-          docker exec studio id stackn
 
       - name: Check URL is up
         uses: gerdemann/http-status-code@1.0.0

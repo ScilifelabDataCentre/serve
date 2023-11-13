@@ -4,14 +4,11 @@
 {% load static %}
 {% block title %}{{ title }} - Studio{% endblock %}
 {% block extrastyle %}
-    
+<link rel="stylesheet" href="{% static 'css/serve-text.css' %}">
 {% endblock %}
 {% block branding %}
     <img src="{% static 'images/serve_logo.svg' %}" alt="Serve Logo" width="200" height="30px">
 {% endblock %}
 {% block nav-global %}
-
-{% include 'common/common_fonts.html' %}
-
 
 {% endblock %}

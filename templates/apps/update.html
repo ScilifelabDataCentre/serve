@@ -13,19 +13,27 @@
     </ol>
 </nav>
 
+<h1 class="h3 mb-3">Settings {{ app.name }}</h1>
 <div class="row">
-    <div class="col">
-        <h3>Settings {{ app.name }}</h3>
+    <div class="col-12 mt-2 mb-4">
+        {% if app.slug == 'customapp' %}
+        This form allows you to start hosting an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="#">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.
+        {% elif app.slug == 'dashapp' %}
+        This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="#">documentation page on Dash apps</a> for step-by-step instructions.
+        {% elif app.slug in 'shinyapp,shinyproxyapp' %}
+        This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="#">documentation page on Shiny apps</a> for step-by-step instructions.
+        {% else %}
+        [link to documentation to be added here]
+        {% endif %}
     </div>
 </div>
 
 <div class="row pt-3">
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
-            <div class="card-body">
-                <form class="needs-validation" method="post" novalidate>
-                    {% csrf_token %}
-
+            <form class="needs-validation" method="post" novalidate>
+                {% csrf_token %}
+                <div class="card-body">
                     <input type="hidden" id="app_id" name="app_id" value="{{ appinstance.pk }}">
                     <div class="mb-3 validate-item">
                         <label class="form-label">Name</label>
@@ -127,8 +135,8 @@
 
                     {% if form.dep_flavor %}
                     <div class="mb-3">
-                        <label class="form-label">Flavors</label>
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Flavor determines the resources available for the app. Only Medium (1 cpu, 1G mem) available by default right now. You can get in touch if you have other requirements.">
+                        <label class="form-label">Hardware</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Hardware allocation for your app. Only one option is available by default. If your app requires more hardware resources, get in touch with us (serve@scilifelab.se) with a request.">
                         </span>
                         <select name="flavor" id="flavor" class="form-control">
                             {% for flavor in form.flavors %}
@@ -139,6 +147,7 @@
                     {% endif %}
 
                     {% if form.dep_environment %}
+                    {% if form.environments.objs.count > 0 %}
                     <div class="mb-3">
                         <label class="form-label">{{ form.environments.title }}</label>
                         <select name="environment" id="environment" class="form-control">
@@ -152,7 +161,7 @@
                         </select>
                     </div>
                     {% endif %}
-
+                    {% endif %}
 
                     {% if form.dep_apps %}
                     {% for app_name, appinstances in form.app_deps.items %}
@@ -278,11 +287,12 @@
                         </select>
                     </div>
                     {% endif %}
-
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a class="btn btn-danger" href="{{ request.headers.referer }}">Cancel</a>
                     <button class="btn btn-primary" type="submit">Update</button>
-                    <a class="btn btn-secondary float-end" href="{{ request.headers.referer }}">Cancel</a>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -319,25 +329,20 @@
             </form>
 
             <div class="row pt-3">
-                <div class="col-12 d-flex">
-
-                    {% with appinstance.tags|split:"," as tags %}
-
-                    {% for tag in tags %}
-
+                {% with appinstance.tags|split:"," as tags %}
+                {% for tag in tags %}
+                <div class="col-3 d-flex">
                     <form action="{% url 'apps:remove_tag' request.user project.slug appinstance.pk %}" method="post">
-
                         {% csrf_token %}
-
-                        <div class="align-items-center d-flex m-1 p-2 rounded shadow">
-                            {{tag}} <button type="submit" class="btn-close ms-1" name="tag" value="{{tag}}"
+                        <span class="badge bg-primary d-flex align-items-center m-1">
+                            {{tag}} <button type="submit" class="btn-close btn-close-white ms-1" name="tag" value="{{tag}}"
                                 aria-label="Close"></button>
-                        </div>
+                        </span>
                     </form>
+                </div>
+                {% endfor %}
 
-                    {% endfor %}
-
-                    {% endwith %}
+                {% endwith %}
                 </div>
             </div>
         </div>

@@ -1,5 +1,4 @@
 import re
-
 import requests
 from django.apps import apps
 from django.conf import settings
@@ -252,14 +251,6 @@ class AppSettingsView(View):
         # check if new subdomain has been created
         if current_release_name != new_release_name:
             _ = delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
-            try:
-                rel_name_obj = ReleaseName.objects.get(name=new_release_name, project=appinstance.project, status="active")
-                rel_name_obj.status = "in-use"
-                rel_name_obj.app = appinstance
-                rel_name_obj.save()
-            except Exception as e:
-                print("Error: Submitted release name not owned by project.")
-                print(e)
         else:
             # Attempting to deploy apps settings
             _ = deploy_resource.delay(appinstance.pk, "update")
@@ -303,9 +294,10 @@ def create_releasename(request, user, project, app_slug):
 def add_tag(request, user, project, ai_id):
     appinstance = AppInstance.objects.get(pk=ai_id)
     if request.method == "POST":
-        new_tag = request.POST.get("tag", "")
-        print("New Tag: ", new_tag)
-        appinstance.tags.add(new_tag)
+        new_tags = request.POST.get("tag", "")
+        for new_tag in new_tags.split(","):
+            print("New Tag: ", new_tag)
+            appinstance.tags.add(new_tag.strip().lower().replace("\"", ""))     
         appinstance.save()
 
     return HttpResponseRedirect(

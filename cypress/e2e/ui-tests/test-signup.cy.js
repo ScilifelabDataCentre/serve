@@ -1,13 +1,13 @@
 describe("Test sign up", () => {
 
-    let userdata
+    let users
 
     beforeEach(() => {
         // reset and seed the database prior to every test
         if (Cypress.env('do_reset_db') === true) {
             cy.log("Resetting db state. Running db-reset.sh");
             cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(60000);
+            cy.wait(Cypress.env('wait_db_reset'));
         }
         else {
             cy.log("Skipping resetting the db state.");
@@ -15,10 +15,8 @@ describe("Test sign up", () => {
     })
 
     beforeEach(() => {
-        // username in fixture must match username in db-reset.sh
-        cy.fixture('user-signup.json').then(function (data) {
-            userdata = data;
-            userdata.username = data.username_prefix + Date.now(); // max 30 chars allowed in UI form
+        cy.fixture('users.json').then(function (data) {
+            users = data;
           })
     })
 
@@ -27,10 +25,12 @@ describe("Test sign up", () => {
         cy.visit("/signup/");
         cy.get("title").should("have.text", "Register | SciLifeLab Serve")
 
-        cy.get('input[name=username]').type(userdata.username);
-        cy.get('input[name=email]').type(userdata.email);
-        cy.get('input[name=password1]').type(userdata.password);
-        cy.get('input[name=password2]').type(userdata.password);
+        cy.get('input[name=email]').type(users.signup_user.email);
+        cy.get('input[name=first_name]').type("first name");
+        cy.get('input[name=last_name]').type("last name");
+        cy.get('input[name=password1]').type(users.signup_user.password);
+        cy.get('input[name=password2]').type(users.signup_user.password);
+        cy.get('input[name="department"]').type('Biology Education Centre');
 
         cy.get("input#submit-id-save").click();
 

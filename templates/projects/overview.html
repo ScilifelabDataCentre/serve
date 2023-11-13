@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load can_create_app %}
-
+{% load custom_tags %}
 {% block title %}{{ project.name }}{% endblock %}
 
 {% block content %}
@@ -50,8 +50,7 @@
                 <h5 class="card-title mb-0">{{ objs.title }}</h5>
             </div>
             {% if objs.objs %}
-            <div class="no-footer mx-4 my-4">
-
+            <div class="no-footer mx-4 mt-4">
                 <table id=""
                     class="table table-hover my-0 no-footer table-bordered" role="grid">
                     <thead>
@@ -61,6 +60,7 @@
                             <th tabindex="0" rowspan="1" colspan="1">Name</th>
                             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Created</th>
                             <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
+                            <th class="" tabindex="0" rowspan="1" colspan="1">Tags</th>
                             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
                         </tr>
                     </thead>
@@ -74,9 +74,19 @@
                             <td class="d-none d-xxl-table-cell ">{{ obj.app.name }}</td>
                             {% if obj.table_field.url %}
                             <td class="sorting_1">
+                                {% if "Serve" in obj.app.name or obj.app.name == "Python Model Deployment" %}
+                                    <a onclick="copyClip('{{obj.table_field.url}}')">
+                                        {{obj.name}} 
+                                        <!-- Want to use bi-copy but it is not working. Instead, using the full svg code -->
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-copy" viewBox="0 0 16 16">
+                                            <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
+                                        </svg>
+                                    </a>
+                                {% else %}
                                 <a href="{{ obj.table_field.url }}" target="_blank">
                                     {{obj.name}} <i class="bi bi-box-arrow-up-right"></i>
                                 </a>
+                                {% endif %}
                             </td>
                             {% else %}
                             <td class="sorting_1">{{ obj.name }}</td>
@@ -86,6 +96,24 @@
                                 <span class="badge bg-secondary">
                                     {{ obj.status.latest.status_type }}
                                 </span>
+                                {% if obj.access %}
+                                    {% if obj.access == 'public' %}
+                                    <span class="badge bg-success">
+                                        {{ obj.access }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        {{ obj.access }}
+                                    </span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td id="tags-{{ obj.pk }}">
+                            {% with obj.tags|split:"," as tags %}
+                            {% for tag in tags %}
+                                <span class="badge text-bg-primary">{{ tag }}</span>
+                            {% endfor %}
+                            {% endwith %}
                             </td>
                             <td class="table-action text-center">
                                 <div class="dropdown show">
@@ -136,6 +164,9 @@
                     </tbody>
                 </table>
             </div>
+            <div class="mx-4 mb-4 small text-muted">
+            *Note that all apps under Develop will be deleted 7 days after creation.
+            </div>
             {% else %}
             <div class="h-100 p-4 d-flex align-items-center justify-content-center border-bottom">
                 <p>No instances.</p>
@@ -143,55 +174,59 @@
             {% endif %}
                 <div class="row g-2 py-2 mx-2">
                 {% for app in objs.apps %}
-                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                        <div class="card h-100" data-cy="create-app-card">
-                            <div class="card-body">
-                                <div class="row g-0 w-100 h-100">
-                                    <div class="col-8 d-flex align-items-bottom flex-column">
-                                        <div class="pt-2">
-                                            <h5>{{ app.name }}</h5>
-                                        </div>
-                                        <div class="align-items-end d-flex h-100">
-                                            <div>
+                {% if project.s3storage == None and app.slug in 'mlflow,mlflow-serve,pytorch-serve,tensorflow-serve' %}
+                {% else %}
+                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                    <div class="card h-100" data-cy="create-app-card">
+                        <div class="card-body">
+                            <div class="row g-0 w-100 h-100">
+                                <div class="col-8 d-flex align-items-bottom flex-column">
+                                    <div class="pt-2">
+                                        <h5>{{ app.name }}</h5>
+                                    </div>
+                                    <div class="align-items-end d-flex h-100">
+                                        <div>
+                                            <div class="row">
+                                                <div class="col">
+                                                    <p>{{ app.description }}</p>
+                                                </div>
+                                            </div>
                                                 <div class="row">
                                                     <div class="col">
-                                                        <p>{{ app.description }}</p>
+                                                        {% can_create_app request.user project app as can_create %}
+
+                                                        {% if can_create %}
+                                                        <a class="btn btn-primary btn-sm"
+                                                            href="{% url 'apps:create' request.user project.slug app.slug  %}?from=overview">Create</a>
+                                                        {% else %}
+                                                        <button class="btn btn-secondary btn-sm" style="cursor: default;"
+                                                            data-bs-toggle="tooltip" data-bs-placement="top"
+                                                            data-bs-title="Max number of apps of this type reached. Please email serve@scilifelab.se to request to change the app limits.">
+                                                            Create
+                                                        </button>
+                                                        {% endif %}
                                                     </div>
                                                 </div>
-                                                    <div class="row">
-                                                        <div class="col">
-                                                            {% can_create_app request.user project app as can_create %}
-
-                                                            {% if can_create %}
-                                                            <a class="btn btn-primary btn-sm"
-                                                                href="{% url 'apps:create' request.user project.slug app.slug  %}?from=overview">Create</a>
-                                                            {% else %}
-                                                            <button class="btn btn-secondary btn-sm" style="cursor: default;"
-                                                                data-bs-toggle="tooltip" data-bs-placement="top"
-                                                                data-bs-title="Max number of apps of this type reached. Please email serve@scilifelab.se to request to change the app limits.">
-                                                                Create
-                                                            </button>
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-4">
-                                        {% static 'images/logos/apps/' as static_url %}
-                                        <img src="{{static_url}}{{app.logo|default:'default-logo.png'}}" class="img-fluid float-end w-75"
-                                            alt="App Logo">
-                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    {% static 'images/logos/apps/' as static_url %}
+                                    <img src="{{static_url}}{{app.logo|default:'default-logo.png'}}" class="img-fluid float-end w-75"
+                                        alt="App Logo">
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+                {% endif %}
                 {% endfor %}
                 </div>
         </div>
     </div>
     {% endfor %}
 
+    {% if project.s3storage %}
     <div id="models" class="col-12 d-flex">
         <div class="card w-100 border-0 shadow">
             <div class="card-header border-bottom-0 d-flex align-items-center justify-content-between py-3"
@@ -310,6 +345,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <script>
         {

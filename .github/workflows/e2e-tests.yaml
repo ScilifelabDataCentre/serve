@@ -1,15 +1,11 @@
-name: Test and publish Serve
+name: E2E-tests
 
 on:
   push:
     branches:
-      - main
-      - staging
       - develop
     paths-ignore:
       - '**.md'
-    tags:
-      - 'v*'
 
   # Adds ability to run this workflow manually
   workflow_dispatch:
@@ -29,14 +25,16 @@ on:
         type: boolean
 
 jobs:
-
-  build_and_test:
+  e2e:
     if: github.repository == 'scilifelabdatacentre/stackn'
     runs-on: ubuntu-20.04
     env:
       working-directory: .
 
     steps:
+      - name: Workflow Telemetry
+        uses: runforesight/workflow-telemetry-action@v1.8.0
+
       - name: Branch or tag that triggered the workflow run
         run: |
           echo "Running on branch ${GITHUB_REF##*/}"
@@ -49,20 +47,21 @@ jobs:
       - name: Prepare repository
         run: |
           echo "Running as UID: $UID, GID: $GID"
-          export GID=1000
+          export GID=127
           echo "Now running as UID: $UID, GID: $GID"
           whoami
           pwd
           mv .env.template .env
-          sudo chgrp -R 1000 media
+          sudo chgrp -R 127 media
           sudo chmod -R g+rwx media
           ls -al
+          echo -e "UID=1001\nGID=127" > .env
 
       - name: A job to install MicroK8s
         uses: balchua/microk8s-actions@v0.3.2
         with:
-          channel: '1.26/stable'
-          addons: '["dns", "rbac", "hostpath-storage", "registry"]'
+          channel: '1.28/stable'
+          addons: '["dns", "rbac", "hostpath-storage", "ingress", "helm"]'
 
       - name: Test and config MicroK8s
         run: |
@@ -72,12 +71,14 @@ jobs:
           sudo usermod -a -G microk8s $USER
           sudo chown -f -R $USER ~/.kube
           sudo microk8s config >> ~/.kube/config
+          helm
 
       - name: Dump config
         working-directory: ${{env.working-directory}}
         run: |
           sudo microk8s config > cluster.conf
           ls -la
+          cat cluster.conf
 
       - name: Start serve
         working-directory: ${{env.working-directory}}
@@ -94,10 +95,6 @@ jobs:
           STUDIO_URL=`awk -F '= ' -v replace="'" '/STUDIO_URL/{gsub(replace, "", $NF); print $NF}' studio/settings.py`
           echo "STUDIO_URL=$STUDIO_URL" >> $GITHUB_ENV
           echo "The Serve URL is $STUDIO_URL"
-          docker exec studio pwd
-          docker exec studio ls -al
-          docker exec studio whoami
-          docker exec studio id stackn
 
       - name: Check URL is up
         uses: gerdemann/http-status-code@1.0.0
@@ -116,15 +113,11 @@ jobs:
           response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
           if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
 
-      - name: Check if celery worker can access kubectl
+      - name: Check if celery worker can access kubectl and helm
         run: |
-          docker exec celery-worker kubectl get po
+          docker exec celery-worker kubectl version
+          docker exec celery-worker helm version
 
-      - name: Run unit tests
-        working-directory: ${{env.working-directory}}
-        id: tests
-        run: |
-          docker compose run unit-tests
 
       - name: Cypress run e2e tests
         uses: cypress-io/github-action@v5
@@ -145,70 +138,10 @@ jobs:
           name: cypress-videos
           path: cypress/videos
 
-  publish:
-    if: |
-      github.repository == 'scilifelabdatacentre/stackn'
-    needs: build_and_test
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - dockerfile: ./Dockerfile
-            image: ghcr.io/${{ github.repository }}/serve-studio
-          - dockerfile: ./Dockerfile.nginx
-            image: ghcr.io/${{ github.repository }}/serve-ingress
-    permissions:
-      packages: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Set current date as env variable
-        run: echo "BUILD_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-
-      - name: Docker meta
-        uses: docker/metadata-action@v4
-        id: meta
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
         with:
-          images: ${{ matrix.image }}
-          tags: |
-            type=raw,value={{date 'YYYYMMDD'}},prefix=${{ github.ref_name }}-
+          ## If no one connects after 2 minutes, shut down server.
+          wait-timeout-minutes: 2
 
-      - name: Set the build date project toml file
-        uses: ciiiii/toml-editor@1.0.0
-        with:
-          file: "pyproject.toml"
-          key: "tool.serve.build-date"
-          value: ${{ env.BUILD_DATE }}
 
-      - name: Set the git tag or branch name in the project toml file
-        uses: ciiiii/toml-editor@1.0.0
-        with:
-          file: "pyproject.toml"
-          key: "tool.serve.gitref"
-          value: ${{ github.ref_name }}
-
-      - name: Set the image tag in the project toml file
-        uses: ciiiii/toml-editor@1.0.0
-        with:
-          file: "pyproject.toml"
-          key: "tool.serve.imagetag"
-          value: ${{ steps.meta.outputs.version }}
-
-      - name: Log in to ghcr.io
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: docker build serve
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: "${{ github.event_name != 'pull_request' }}"
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ matrix.dockerfile }}

@@ -6,22 +6,28 @@ describe("Test superuser access", () => {
     let users
 
     before(() => {
-        // seed the db with: superuser user, a blank project
-        cy.log("Seeding the db for the superuser tests. Running db-seed-contributor.sh");
-        cy.exec("./cypress/e2e/db-reset.sh")
-        cy.wait(60000)
+        // do db reset if needed
+        if (Cypress.env('do_reset_db') === true) {
+            cy.log("Resetting db state. Running db-reset.sh");
+            cy.exec("./cypress/e2e/db-reset.sh");
+            cy.wait(Cypress.env('wait_db_reset'));
+        }
+        else {
+            cy.log("Skipping resetting the db state.");
+        }
+        // seed the db with a user
         cy.visit("/")
         cy.log("Running seed_superuser.py")
         cy.exec("./cypress/e2e/db-seed-superuser.sh")
     })
 
     beforeEach(() => {
-        // username in fixture must match username in db-reset.sh
+        // email in fixture must match email in db-reset.sh
         cy.log("Logging in as superuser")
         cy.fixture('users.json').then(function (data) {
             users = data
 
-            cy.loginViaApi(users.superuser.username, users.superuser.password)
+            cy.loginViaApi(users.superuser.email, users.superuser.password)
         })
     })
 

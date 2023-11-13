@@ -14,12 +14,27 @@
 
 <h1 class="h3 mb-3">Create {{ app.name }}</h1>
 <div class="row">
+    <div class="col-12 mt-2 mb-4">
+        {% if app.slug == 'customapp' %}
+        <p>This form allows you to start hosting an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="#">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.</p>
+        {% elif app.slug == 'dashapp' %}
+        <p>This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="#">documentation page on Dash apps</a> for step-by-step instructions.</p>
+        {% elif app.slug in 'shinyapp,shinyproxyapp' %}
+        <p>This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="#">documentation page on Shiny apps</a> for step-by-step instructions.</p>
+        {% endif %}
+        {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
+        <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
+        <p>Each {{ app.name }} instance can get access to the persistent volume (folder) associated with this project, called 'project-vol'. Please make sure to save all your data files, script files, output from computations, etc. inside 'project-vol'; the files located elsewhere can be deleted at any point. The files saved inside 'project-vol' will be available across all instances of {{ app.name }} (as well as other apps) within this project.</p>
+        {% endif %}
+    </div>
+</div>
+<div class="row">
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
-            <div class="card-body">
+
                 <form class="needs-validation" action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
-
+                <div class="card-body">
                     <input type="hidden" id="app_action" name="app_action" value="{{ app_action }}">
                     <input type="hidden" id="app_id" name="app_id" value="{{ appinstance.pk }}">
                     <div class="mb-3 validate-item">
@@ -118,8 +133,8 @@
 
                     {% if form.dep_flavor %}
                     <div class="mb-3">
-                        <label class="form-label">Flavors</label>
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Flavor determines the resources available for the app. Only Medium (1 cpu, 1G mem) available by default right now. You can get in touch if you have other requirements.">
+                        <label class="form-label">Hardware</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Hardware allocation for your app. Only one option is available by default. If your app requires more hardware resources, get in touch with us (serve@scilifelab.se) with a request.">
                         </span>
                         <select name="flavor" id="flavor" class="form-control">
                             {% for flavor in form.flavors %}
@@ -130,6 +145,7 @@
                     {% endif %}
 
                     {% if form.dep_environment %}
+                    {% if form.environments.objs.count > 0 %}
                     <div class="mb-3">
                         <label class="form-label">{{ form.environments.title }}</label>
                         <select name="environment" id="environment" class="form-control">
@@ -142,6 +158,7 @@
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
                     {% endif %}
 
                     {% if form.dep_apps %}
@@ -254,14 +271,18 @@
                         </select>
                     </div>
                     {% endif %}
+                </div>
 
-                    <button class="btn btn-primary" type="submit">Create</button>
-                    <button class="btn btn-secondary float-end" type="submit"
+
+            <div class="card-footer d-flex justify-content-between">
+                    <button class="btn btn-danger" type="submit"
                         onclick="window.location='{{ request.headers.referer }}' ; return false;">
                         Cancel
                     </button>
-                </form>
+                    <button class="btn btn-primary" type="submit">Create</button>
+
             </div>
+        </form>
         </div>
     </div>
 </div>
@@ -272,7 +293,6 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
         })
-        //var scores = ["app_name","app_description","image"]
         for (item of ["app_name","app_description","image", "port"]) {
             if (sessionStorage.getItem(item) != null) {
                 document.getElementById(item).value = sessionStorage.getItem(item)
@@ -313,10 +333,18 @@
 
     function submitDomain() {
         var rn = document.getElementById('rn').value
-        var app_name = document.getElementById('app_name').value
-        var app_description = document.getElementById('app_description').value
-        var image = document.getElementById('image').value
-        var port = document.getElementById('port').value
+        if (document.getElementById('app_name') != null) {
+            var app_name = document.getElementById('app_name').value
+        }
+        if (document.getElementById('app_description') != null) {
+            var app_description = document.getElementById('app_description').value
+        }
+        if (document.getElementById('image') != null) {
+            var image = document.getElementById('image').value
+        }
+        if (document.getElementById('port') != null) {
+            var port = document.getElementById('port').value
+        }
         $.ajax({
             type: "POST",
             url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',

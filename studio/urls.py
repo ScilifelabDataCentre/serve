@@ -17,7 +17,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 from . import views
 
@@ -27,6 +27,7 @@ urlpatterns = (
         path("", include("common.urls", namespace="common")),
         path("", include("models.urls", namespace="models")),
         path("", include("portal.urls", namespace="portal")),
+        path("", include("news.urls", namespace="news")),
         path("", include("projects.urls", namespace="projects")),
         path("accounts/", include("django.contrib.auth.urls")),
         path("auth/", views.AuthView.as_view()),
@@ -35,6 +36,10 @@ urlpatterns = (
             include("monitor.urls", namespace="monitor"),
         ),
         path("<user>/<project>/apps/", include("apps.urls", namespace="apps")),
+        # API paths using NamespaceVersioning
+        path("openapi/beta/", include("api.openapi.urls", namespace="beta")),
+        path("openapi/v1/", include("api.openapi.urls", namespace="v1")),
+        path("openapi/", include("api.openapi.urls")),
         path("api/", include("api.urls", namespace="api")),
         # for django-wiki
         path("docs/notifications/", include("django_nyt.urls")),

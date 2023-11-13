@@ -29,6 +29,8 @@ spec:
       automountServiceAccountToken: false
       {{- if .Values.securityContext.enabled }}
       securityContext:
+        seccompProfile:
+          type: RuntimeDefault
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
       containers:

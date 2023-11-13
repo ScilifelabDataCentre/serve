@@ -1,211 +1,130 @@
 [
   {
-    "model": "projects.projecttemplate",
-    "pk": 1,
     "fields": {
-      "name": "Blank Project",
+      "description": "Use this template if you intend to only deploy apps or use integrated development environments (IDEs).",
+      "name": "Default project",
       "slug": "blank",
-      "description": "A project template, with no apps launched at creation.",
       "template": {
-        "flavors": {
-          "Medium": {
-            "cpu": {
-              "requirement": "100m",
-              "limit": "1000m"
-            },
-            "mem": {
-              "requirement": "1Gi",
-              "limit": "8Gi"
-            },
-            "gpu": {
-              "requirement": "0",
-              "limit": "0"
-            },
-            "ephmem": {
-              "requirement": "2Gi",
-              "limit": "5Gi"
-            }
+        "apps": {
+          "project-netpolicy": {
+            "slug": "netpolicy"
+          },
+          "project-vol": {
+            "app_id": "",
+            "app_release_name": "",
+            "permission": "project",
+            "slug": "volumeK8s",
+            "storageClass": "microk8s-hostpath",
+            "volume.accessModes": "ReadWriteMany",
+            "volume.size": "1Gi",
+            "volume.storageClass": "microk8s-hostpath"
           }
         },
         "environments": {
           "Jupyter Lab": {
-            "repository": "ghcr.io/scilifelabdatacentre",
-            "image": "serve-jupyterlab:230921-1444",
-            "app": "jupyter-lab"
+            "app": "jupyter-lab",
+            "image": "serve-jupyterlab:231030-1145",
+            "repository": "ghcr.io/scilifelabdatacentre"
           },
           "MLflow Serving": {
-            "repository": "ghcr.io/scilifelabdatacentre",
-            "image": "serve-mlflow:230216-0853",
-            "app": "mlflow-serve"
+            "app": "mlflow-serve",
+            "image": "serve-mlflow:231030-1149",
+            "repository": "ghcr.io/scilifelabdatacentre"
+          }
+        },
+        "flavors": {
+          "2 vCPU, 4 GB RAM": {
+            "cpu": {
+              "limit": "2000m",
+              "requirement": "500m"
+            },
+            "ephmem": {
+              "limit": "5000Mi",
+              "requirement": "100Mi"
+            },
+            "gpu": {
+              "limit": "0",
+              "requirement": "0"
+            },
+            "mem": {
+              "limit": "4Gi",
+              "requirement": "1Gi"
+            }
           }
         }
       }
-    }
+    },
+    "model": "projects.projecttemplate",
+    "pk": 1
   },
   {
-    "model": "projects.projecttemplate",
-    "pk": 2,
     "fields": {
-      "name": "Base",
+      "description": "Use this template if you intend to deploy machine learning models using the serving functionality.",
+      "name": "Project with ML serving",
       "slug": "default",
-      "description": "Standard project with 1 PVC and Minio (change this desc later)",
       "template": {
-        "flavors": {
-          "Medium": {
-            "cpu": {
-              "requirement": "100m",
-              "limit": "1000m"
-            },
-            "mem": {
-              "requirement": "1Gi",
-              "limit": "8Gi"
-            },
-            "gpu": {
-              "requirement": "0",
-              "limit": "0"
-            },
-            "ephmem": {
-              "requirement": "2Gi",
-              "limit": "5Gi"
-            }
-          }
-        },
-        "environments": {
-          "Jupyter Lab": {
-            "repository": "scaleoutsystems",
-            "image": "serve-jupyterlab:230921-1444",
-            "app": "jupyter-lab"
-          },
-          "MLflow Serving": {
-            "repository": "ghcr.io/scilifelabdatacentre",
-            "image": "serve-mlflow:230216-0853",
-            "app": "mlflow-serve"
-          }
-        },
         "apps": {
+          "project-netpolicy": {
+            "slug": "netpolicy"
+          },
           "project-vol": {
-            "slug": "volumeK8s",
-            "volume.size": "1Gi",
-            "permission": "project",
-            "volume.accessModes": "ReadWriteMany",
-            "volume.storageClass": "microk8s-hostpath",
-            "storageClass": "microk8s-hostpath",
             "app_id": "",
-            "app_release_name": ""
+            "app_release_name": "",
+            "permission": "project",
+            "slug": "volumeK8s",
+            "storageClass": "microk8s-hostpath",
+            "volume.accessModes": "ReadWriteMany",
+            "volume.size": "1Gi",
+            "volume.storageClass": "microk8s-hostpath"
           },
           "project-minio": {
-            "slug": "minio",
             "app:volumeK8s": [
               "project-vol"
             ],
             "credentials.access_key": "accesskey",
             "credentials.secret_key": "secretkey123",
-            "permission": "project"
+            "permission": "project",
+            "slug": "minio"
+          }
+        },
+        "environments": {
+          "Jupyter Lab": {
+            "app": "jupyter-lab",
+            "image": "serve-jupyterlab:231030-1145",
+            "repository": "ghcr.io/scilifelabdatacentre"
+          },
+          "MLflow Serving": {
+            "app": "mlflow-serve",
+            "image": "serve-mlflow:231030-1149",
+            "repository": "ghcr.io/scilifelabdatacentre"
+          }
+        },
+        "flavors": {
+          "2 vCPU, 4 GB RAM": {
+            "cpu": {
+              "limit": "2000m",
+              "requirement": "500m"
+            },
+            "ephmem": {
+              "limit": "5000Mi",
+              "requirement": "100Mi"
+            },
+            "gpu": {
+              "limit": "0",
+              "requirement": "0"
+            },
+            "mem": {
+              "limit": "4Gi",
+              "requirement": "1Gi"
+            }
           }
         },
         "settings": {
           "project-S3": "project-minio"
         }
       }
-    }
-  },
-  {
+    },
     "model": "projects.projecttemplate",
-    "pk": 3,
-    "fields": {
-      "name": "MLFlow",
-      "slug": "mlflow",
-      "description": "Track experiments and serve models from the model registry using MLFlow. ",
-      "template": {
-        "flavors": {
-          "Medium": {
-            "cpu": {
-              "requirement": "100m",
-              "limit": "1000m"
-            },
-            "mem": {
-              "requirement": "1Gi",
-              "limit": "8Gi"
-            },
-            "gpu": {
-              "requirement": "0",
-              "limit": "0"
-            },
-            "ephmem": {
-              "requirement": "2Gi",
-              "limit": "5Gi"
-            }
-          }
-        },
-        "environments": {
-          "Jupyter Lab": {
-            "repository": "ghcr.io/scilifelabdatacentre",
-            "image": "serve-jupyterlab:230921-1444",
-            "app": "jupyter-lab"
-          },
-          "MLflow Serving": {
-            "repository": "ghcr.io/scilifelabdatacentre",
-            "image": "serve-mlflow:230216-0853",
-            "app": "mlflow-serve"
-          }
-        },
-        "apps": {
-          "Project Network Policy": {
-            "slug": "netpolicy"
-          },
-          "minio-vol": {
-            "slug": "volumeK8s",
-            "volume.size": "5Gi",
-            "permission": "project",
-            "volume.accessModes": "ReadWriteMany",
-            "volume.storageClass": "microk8s-hostpath",
-            "storageClass": "microk8s-hostpath",
-            "app_id": "",
-            "app_release_name": ""
-          },
-          "mlflow-vol": {
-            "slug": "volumeK8s",
-            "volume.size": "5Gi",
-            "permission": "project",
-            "volume.accessModes": "ReadWriteMany",
-            "volume.storageClass": "microk8s-hostpath",
-            "storageClass": "microk8s-hostpath",
-            "app_id": "",
-            "app_release_name": ""
-        },
-          "project-vol": {
-            "slug": "volumeK8s",
-            "volume.size": "5Gi",
-            "permission": "project",
-            "volume.accessModes": "ReadWriteMany",
-            "volume.storageClass": "microk8s-hostpath",
-            "storageClass": "microk8s-hostpath",
-            "app_id": "",
-            "app_release_name": ""
-          },
-          "project-minio": {
-            "slug": "minio",
-            "app:volumeK8s": [
-              "minio-vol"
-            ],
-            "credentials.access_key": "accesskey2",
-            "credentials.secret_key": "secretkey193",
-            "permission": "project"
-          },
-          "mlflow-server": {
-            "slug": "mlflow",
-            "app:volumeK8s": ["mlflow-vol"],
-            "S3": "project-minio",
-            "credentials.username": "username",
-            "credentials.password": "password",
-            "permission": "project"
-          }
-        },
-        "settings": {
-          "project-S3": "project-minio",
-          "project-MLflow": "mlflow-server"
-        }
-      }
-    }
+    "pk": 2
   }
 ]

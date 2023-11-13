@@ -87,6 +87,7 @@ INSTALLED_APPS = [
     "apps",
     "api",
     "customtags",
+    "news"
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = [
@@ -224,6 +225,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media/")
 
 STATIC_URL = "/static/"
 STATIC_ROOT = ""
+# SS-507
+# Please keep "static" files first, because common/forms.py expects it
 STATICFILES_DIRS = (os.path.join("static"),)
 
 # Default primary key field type
@@ -240,8 +243,15 @@ STATICFILES_DIRS = (os.path.join("static"),)
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 # https://www.django-rest-framework.org/api-guide/authentication/#setting-the-authentication-scheme
+# DEFAULT_VERSIONING_CLASS: NamespaceVersioning uses the URL path scheme, e.g. /v1/
+# https://www.django-rest-framework.org/api-guide/versioning/
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.TokenAuthentication"],
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
+    "ALLOWED_VERSIONS": [None, "beta", "v1"],
+    "DEFAULT_VERSION": "v1",
+    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
+    "DEFAULT_PARSER_CLASSES": ("rest_framework.parsers.JSONParser",),
 }
 
 # Tagulous serialization settings
@@ -327,12 +337,15 @@ MIGRATION_MODULES = {
     "monitor": "studio.migrations.monitor",
     "portal": "studio.migrations.portal",
     "projects": "studio.migrations.projects",
+    "common": "common.migrations",
+    "news": "news.migrations",
 }
 
 # Defines how many apps a user is allowed to create within one project
 APPS_PER_PROJECT_LIMIT = {
     "dashapp": 10,
     "shinyapp": 10,
+    "shinyproxyapp": 10,
     "customapp": 10,
     "pytorch-serve": 10,
     "tensorflow-serve": 10,
@@ -341,12 +354,13 @@ APPS_PER_PROJECT_LIMIT = {
     "vscode": 3,
     "jupyter-lab": 3,
     "mlflow": 1,
-    "volumeK8s": 1,
-    "minio": 1,
-    "mongo-express": 1,
-    "reducer": 2,
-    "combiner": 2,
-    "mongodb": 1,
+    "volumeK8s": 0,
+    "minio": 0,
+    "mongo-express": 0,
+    "reducer": 0,
+    "combiner": 0,
+    "mongodb": 0,
+    "netpolicy": 0,
 }
 
 PROJECTS_PER_USER_LIMIT = 5
@@ -355,3 +369,10 @@ STUDIO_ACCESSMODE = os.environ.get("STUDIO_ACCESSMODE", "")
 ENABLE_PROJECT_EXTRA_SETTINGS = False
 
 DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore
+
+# This was added in SS-507.
+# This setting is for django-guardian.
+# We had to set it because AnonymousUser was not working properly.
+# Specifically, apps.tests.test_user_has_no_access was failing.
+# Also anonymous access to pages was not working.
+ANONYMOUS_USER_NAME = None

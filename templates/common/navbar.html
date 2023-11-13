@@ -2,65 +2,67 @@
 
 <nav class="bg-light shadow-sm mb-3 py-2">
     <div class="container">
-        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start py-2">
-            <a href="/" class="navbar-brand fs-4 d-flex my-2 my-lg-0 me-lg-auto link-body">
-                <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="height: 2.2rem;" class="hide-dark align-text-top me-4">
-            </a>
-            <ul class="nav col-12 col-lg-auto my-2 my-md-0 justify-content-center text-center">
-                <li class="nav-item">
-                    <a class="nav-link" href="/">
-                        <i class="fa-solid fa-home d-block mx-auto"></i>
-                        Home
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'portal:apps' %}" target="_self" title="#">
-                        Apps
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'models:index' %}" target="_self" title="#">
-                        Models
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/docs/" target="_self" title="#">
-                        User guide
-                    </a>
-                </li>
+        <div class="row">
+            <div class="col-12 col-lg-3 d-flex align-items-center justify-content-lg-start justify-content-center py-2">
+                <a href="/" class="navbar-brand w-100">
+                    <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="width:100%; max-height:2.2rem">
+                </a>
+            </div>
+            <div class="col-12 col-lg-9 d-flex justify-content-lg-end justify-content-center py-2">
+                <ul class="nav text-center justify-content-center align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'portal:home' %}" target="_self" title="Homepage">
+                            <i class="fa-solid fa-home d-block mx-auto"></i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'portal:apps' %}" target="_self" title="Apps">
+                            Apps
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'models:index' %}" target="_self" title="Models">
+                            Models
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs/" target="_self" title="User guide">
+                            User guide
+                        </a>
+                    </li>
+                    {% if request.user.is_authenticated %}
 
-                {% if request.user.is_authenticated %}
+                    <li class="nav-item ">
+                        <a class="nav-link" href="{% url 'projects:index' %}" target="_self" title="My projects">
+                            My projects
+                        </a>
+                    </li>
+                    <li class="btn-group">
+                        <button type="button" class="btn btn-profile dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="{{request.user.email}}">
+                            <i class="bi bi-person-circle"></i> Profile
+                        </button>
+                        <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'password_change' %}"><i class="bi bi-key me-1"></i>Change Password</a></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-1"></i>Sign out</a></li>
+                        </ul>
+                    </li>
+                    
 
-                <li class="nav-item">
-                <div class="btn-group">
-                    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle"></i> {{request.user.email}}
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{% url 'projects:index' %}"><i class="bi bi-folder me-1"></i>My projects</a></li>
-                      <li><a class="dropdown-item" href="{% url 'password_change' %}"><i class="bi bi-key me-1"></i>Change Password</a></li>
-                      <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-1"></i>Sign out</a></li>
-                    </ul>
-                  </div>
-                </li>
+                    {% else %}
 
-                {% else %}
+                    <li class="nav-item flex-wrap">
+                        <a class="btn btn-profile order-lg-2 order-1 mx-2" href="{% url 'common:signup' %}">
+                            <i class="bi bi-person-plus"></i> Register
+                        </a>
+                        <a class="btn btn-profile order-lg-1 order-2 mx-2" href="{% url 'login' %}">
+                            <i class="bi bi-box-arrow-in-right"></i> Log in
+                        </a>
+                    </li>
 
-                <li class="nav-item mx-2">
-                    <a class="btn btn-success" href="{% url 'common:signup' %}">
-                        <i class="bi bi-person-plus"></i> Register
-                    </a>
-                </li>
-
-                <li class="nav-item mx-2">
-                    <a class="btn btn-success" href="{% url 'login' %}">
-                        <i class="bi bi-box-arrow-in-right"></i> Log in
-                    </a>
-                </li>
-
-                {% endif %}
-
-            </ul>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
     </div>
 </nav>

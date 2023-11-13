@@ -26,6 +26,7 @@ spec:
         project: {{ .Values.project.slug }}
         networking/allow-internet-egress: "true"
         networking/allow-egress-to-studio-web: "true"
+        allow-api-access: "true"
         type: app
         pod: serve
     spec:
@@ -40,11 +41,13 @@ spec:
       automountServiceAccountToken: true
       {{- if .Values.securityContext.enabled }}
       securityContext:
+        seccompProfile:
+          type: RuntimeDefault
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
       containers:
       - name: serve
-        image: hamzaisaeed/shinyproxy
+        image: ghcr.io/scilifelabdatacentre/serve-shinyproxy:231030-1144
         volumeMounts:
           - name: application-conf-{{ .Release.Name }}
             mountPath: /opt/shinyproxy/application.yml

@@ -12,7 +12,7 @@ apps:
 
 appconfig:
   port: 8787
-  image: ghcr.io/scilifelabdatacentre/serve-rstudio:latest
+  image: ghcr.io/scilifelabdatacentre/serve-rstudio:231030-1146
 
 affinity:
   nodeAffinity:
@@ -61,6 +61,8 @@ ingress:
   secretName: prod-ingress
   
 podSecurityContext:
+  seccompProfile:
+      type: RuntimeDefault
   fsGroup: 1000
 
 securityContext:

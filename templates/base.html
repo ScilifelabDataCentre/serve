@@ -5,13 +5,11 @@
 
 <head>
     <title>{% block title %}{% endblock %} | SciLifeLab Serve</title>
-    <!-- This is for django wiki -->
+    {# This is for django wiki #}
     {% render_block "css" %}
     {% include 'common/common_head.html' %}
     {% block extra_head %} {% endblock %}
 </head>
-
-{% include 'common/common_fonts.html' %}
 
 <body class="d-flex flex-column min-vh-100">
 
@@ -88,20 +86,20 @@
 
                     modalBodyText.innerText = text
 
-                    const closeBtnElement = document.createElement("button")
-                    closeBtnElement.className = "btn"
-                    closeBtnElement.setAttribute("type", "button")
-                    closeBtnElement.setAttribute("data-bs-dismiss", "modal")
-                    closeBtnElement.innerText = "Close"
-
-                    modalFooter.appendChild(closeBtnElement)
-
                     const confirmBtnElement = document.createElement("button")
                     confirmBtnElement.classList = "btn btn-danger"
                     confirmBtnElement.setAttribute("type", "button")
                     confirmBtnElement.innerText = "Delete"
 
                     modalFooter.appendChild(confirmBtnElement)
+
+                    const closeBtnElement = document.createElement("button")
+                    closeBtnElement.className = "btn btn-primary"
+                    closeBtnElement.setAttribute("type", "button")
+                    closeBtnElement.setAttribute("data-bs-dismiss", "modal")
+                    closeBtnElement.innerText = "Close"
+
+                    modalFooter.appendChild(closeBtnElement)
 
                     confirmBtnElement.addEventListener("click", () => {
                         location.href = href
@@ -130,19 +128,36 @@
             });
         })
 
+
+        function copyClip(data) {
+            var inputc = document.body.appendChild(document.createElement("input"));
+            inputc.value = data;
+            var scrollY = window.scrollY; // Store the current scroll position
+            inputc.select();
+            document.execCommand('copy');
+            inputc.parentNode.removeChild(inputc);
+            window.scrollTo(0, scrollY); // Restore the scroll position
+        }
+
+
     </script>
 
     {% block extra_scripts %} {% endblock %}
 
     {% include 'common/analytics.html' %}
 
-    <!-- This is for django wiki -->
+    {# This is for django wiki #}
     {% render_block "js" %}
 
     <button type="button" class="btn btn-secondary btn-lg btn-top" id="btn-to-top">
         <i class="bi bi-arrow-up"></i>
     </button>
 
+    <script src="{% static 'vendor/aos-2.3.4-dist/js/aos.js' %}"></script>
+    <script>AOS.init({once: true});</script>
+
 </body>
 
 </html>
+
+

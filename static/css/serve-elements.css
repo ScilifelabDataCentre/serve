@@ -1,0 +1,171 @@
+/* buttons */
+
+.btn {
+    opacity: 1;
+}
+
+.btn:focus,
+.btn:hover {
+
+    box-shadow: 0 0.5rem 1rem rgba(var(--bs-body-color-rgb), .15) !important;
+    text-decoration: none;
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--serve-dark-grey);
+    --bs-btn-border-color: var(--serve-dark-grey);
+    --bs-btn-hover-bg: var(--serve-dark-grey);
+    --bs-btn-hover-border-color: var(--serve-dark-grey);
+    --bs-btn-focus-shadow-rgb: 49, 132, 253;
+    --bs-btn-active-bg: var(--serve-dark-grey);
+    --bs-btn-active-border-color: var(--serve-dark-grey);
+    --bs-btn-disabled-bg: var(--serve-dark-grey);
+    --bs-btn-disabled-border-color: var(--serve-dark-grey);
+}
+
+.btn-profile {
+    --bs-btn-bg: var(--serve-lime);
+    --bs-btn-border-color: var(--serve-lime);
+    --bs-btn-hover-bg: var(--serve-lime);
+    --bs-btn-hover-border-color: var(--serve-lime);
+    --bs-btn-focus-shadow-rgb: 49, 132, 253;
+    --bs-btn-active-bg: var(--serve-lime);
+    --bs-btn-active-border-color: var(--serve-lime);
+    --bs-btn-disabled-bg: var(--serve-lime);
+    --bs-btn-disabled-border-color: var(--serve-lime);
+}
+
+.btn-outline-serve {
+    --bs-btn-color: var(--serve-teal);
+    --bs-btn-border-color: var(--serve-teal);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--serve-teal);
+    --bs-btn-hover-border-color: var(--serve-teal);
+    --bs-btn-focus-shadow-rgb: 25,135,84;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--serve-teal);
+    --bs-btn-active-border-color: var(--serve-teal);
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: var(--serve-teal);
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: var(--serve-teal);
+    --bs-gradient: none;
+}
+
+/* serve button for scrolling to top */
+.btn-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: none;
+    padding: 0px;
+    width: 3rem;
+    height: 3rem;
+    opacity: 0.5;
+}
+
+/* forms */
+
+.form-control {
+    border-color: var(--scaleout-grey-6);
+}
+
+.form-control:focus {
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
+    border-color: var(--scaleout-grey-6);
+}
+
+.form-check-input:focus {
+    border-color: var(--scaleout-grey-6);
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--scaleout-green);
+    border-color: var(--scaleout-green);
+}
+
+/* links */
+
+a {
+    text-decoration: none;
+    display: inline-block;
+}
+
+a::after {
+    content: '';
+    display: block;
+    width: 0;
+    height: 1px;
+    background: #000;
+    transition: width .4s;
+}
+
+a:hover::after, a:focus::after, a.active::after {
+    width: 100%;
+}
+
+a.default::after{
+    content:none;
+}
+
+a.default:hover::after, a.default:focus::after, a.default.active::after {
+    width: 100%;
+}
+
+a.btn::after{
+    content:none;
+}
+
+a.btn:hover::after, a.btn:focus::after, a.btn.active::after {
+    width: 100%;
+}
+
+.navbar-nav {
+    --bs-nav-link-color: var(--serve-dark-grey)
+}
+
+/* text */
+
+p a {
+    color: var(--serve-teal);
+}
+
+p a:hover,
+p a:focus,
+p a:active {
+    color: var(--serve-teal);
+}
+
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    opacity: .8;
+}
+
+
+
+/* lists */
+
+.list-group-item {
+    --bs-list-group-active-bg: var(--serve-dark-grey);
+    --bs-list-group-active-border-color: var(--serve-dark-grey);
+}
+
+/* main navigation */
+.nav .nav-item .nav-link {
+    color: var(--serve-teal);
+    font-weight: 500;
+    font-size: 1.05rem;
+}
+
+.nav .nav-item .nav-link:hover,
+.nav .nav-item .nav-link:focus,
+.nav .nav-item .nav-link.active {
+    color: var(--serve-teal);
+}
