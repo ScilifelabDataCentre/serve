@@ -63,7 +63,7 @@ class Migration(migrations.Migration):
             model_name="appinstance",
             name="flavor",
             field=models.ForeignKey(
-                null=True, on_delete=django.db.models.deletion.CASCADE, related_name="appinstance", to="projects.flavor"
+                null=True, on_delete=django.db.models.deletion.RESTRICT, related_name="appinstance", to="projects.flavor"
             ),
         ),
     ]

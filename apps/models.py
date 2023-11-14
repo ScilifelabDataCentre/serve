@@ -166,7 +166,7 @@ class AppInstance(models.Model):
     )
     flavor = models.ForeignKey(
         "projects.Flavor",
-        on_delete=models.CASCADE,
+        on_delete=models.RESTRICT,
         related_name="appinstance",
         null=True,
     )
