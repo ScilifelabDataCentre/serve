@@ -30,41 +30,25 @@ spec:
         type: app
         pod: serve
     spec:
-    {{ if .Values.app.gpu.enabled }}
-      affinity:
-        {{ .Values.app.affinity | toYaml | nindent 8 | trim }}
-    {{ end }}
-    {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
-      automountServiceAccountToken: true
-      {{- if .Values.securityContext.enabled }}
       securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-        fsGroup: {{ .Values.securityContext.fsGroup }}
-      {{- end }}
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+    {{ if index .Values.flavor.limits "nvidia.com/gpu" }}
+      affinity:
+        {{ .Values.affinity | toYaml | nindent 8 | trim }}
+    {{ end }}
+      automountServiceAccountToken: true
       containers:
       - name: serve
-        image: ghcr.io/scilifelabdatacentre/serve-shinyproxy:231030-1144
+        image: {{ .Values.appconfig.proxyimage }}
+        ports:
+          - containerPort: {{ .Values.appconfig.proxyport }}
         volumeMounts:
           - name: application-conf-{{ .Release.Name }}
             mountPath: /opt/shinyproxy/application.yml
             subPath: application.yml
         imagePullPolicy: IfNotPresent
-        {{- if .Values.securityContext.enabled }}
         securityContext:
-          runAsUser: {{ .Values.securityContext.runAsUser }}
-          runAsGroup: {{ .Values.securityContext.runAsGroup }}
-          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
-          privileged: {{ .Values.securityContext.privileged }}
-          capabilities:
-            drop:
-              - all
-        {{- end }}
-        # command: ["/bin/bash"]
-        # args: ["-c", "cd ..;./deploy.sh"]
+          {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
           limits:
             cpu: 300m
@@ -72,8 +56,6 @@ spec:
           requests:
             cpu: 200m
             memory: 512Mi
-        ports:
-          - containerPort: 8080
       volumes:
       - name: application-conf-{{ .Release.Name }}
         configMap:

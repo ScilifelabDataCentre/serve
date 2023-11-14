@@ -668,6 +668,11 @@
           },
           "meta": {
             "title": "Configurations"
+          },
+          "port": {
+            "default": "3838",
+            "title": "Port",
+            "type": "number"
           }
         },
         "default_values": {
