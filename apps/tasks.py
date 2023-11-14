@@ -646,4 +646,4 @@ def delete_old_objects():
     # Delete objects older than the threshold time
     old_apps = AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name="Develop")
     for app in old_apps:
-        delete_resource_permanently(app)
+        delete_resource.delay(app.pk)

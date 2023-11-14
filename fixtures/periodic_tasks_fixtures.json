@@ -113,7 +113,7 @@
   },
   {
     "model": "django_celery_beat.periodictask",
-    "pk": 3,
+    "pk": 6,
     "fields": {
       "name": "delete_old_objects",
       "task": "apps.tasks.delete_old_objects",
