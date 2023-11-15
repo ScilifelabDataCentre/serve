@@ -30,7 +30,6 @@ service:
   name: shinyproxy-svc
 
 ingress:
-  v1beta1: false
   secretName: prod-ingress
 
 s3sync:
