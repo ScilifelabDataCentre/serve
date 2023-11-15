@@ -24,6 +24,7 @@ def test_index():
     assert response.status_code == 200
     assert "<title>Apps | SciLifeLab Serve</title>" in response.content.decode()
 
+
 @pytest.mark.django_db
 def test_home_view_class():
     # Get correct request

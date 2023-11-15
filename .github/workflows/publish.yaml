@@ -7,14 +7,16 @@ on:
   push:
     tags:
       - 'v*'
-  release:
-    types: [published]
 
 jobs:
   publish-on-success:
     if: |
       github.repository == 'scilifelabdatacentre/stackn' &&
-      github.event.workflow_run.conclusion == 'success'
+      (
+        (github.event_name == 'push' && contains(github.ref, 'refs/tags/'))
+        ||
+        (github.event.workflow_run.conclusion == 'success')
+      )
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
