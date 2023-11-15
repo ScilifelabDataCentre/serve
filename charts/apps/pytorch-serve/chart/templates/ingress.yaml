@@ -6,8 +6,10 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    {{ if ne .Values.permission "public" }}
     nginx.ingress.kubernetes.io/auth-url: "{{ .Values.global.protocol }}://{{ .Values.global.auth_domain }}:8080/auth/?release={{ .Values.release }}"
     nginx.ingress.kubernetes.io/auth-signin: "https://{{ .Values.global.domain }}/accounts/login/?next=$scheme%3A%2F%2F$host"
+    {{- end }}
   name: {{ .Release.Name }}-ingress
   namespace: {{ .Values.namespace }}
 spec:
