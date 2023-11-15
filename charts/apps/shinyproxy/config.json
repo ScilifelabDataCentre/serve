@@ -23,6 +23,11 @@
           "meta": {
             "title": "Configurations"
           },
+          "port": {
+            "default": "3838",
+            "title": "Port",
+            "type": "number"
+          },
           "image": {
             "type": "string",
             "default": "registry/repository/image:tag",
