@@ -94,4 +94,5 @@ class AuthView(APIView):
 
 @login_required
 def profile(request):
-    return render(request, "user/profile.html")
+    user_profile = UserProfile.objects.get(user_id=request.user.id)
+    return render(request, "user/profile.html", {"user_profile": user_profile})
