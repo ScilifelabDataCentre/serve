@@ -21,12 +21,7 @@ class GetStatusViewTestCase(TestCase):
             category=self.category,
         )
 
-        self.project = Project.objects.create_project(
-            name="test-perm-get_status",
-            owner=self.user,
-            description="",
-            repository="",
-        )
+        self.project = Project.objects.create_project(name="test-perm-get_status", owner=self.user, description="")
 
         self.app_instance = AppInstance.objects.create(
             access="public",
