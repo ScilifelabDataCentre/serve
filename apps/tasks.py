@@ -1,7 +1,7 @@
 import json
 import subprocess
 import time
-from datetime import datetime
+from django.utils import timezone
 
 import requests
 from celery import shared_task
@@ -385,7 +385,7 @@ def check_status():
                 status.status_type = "Deleted"
                 status.save()
                 instance.state = "Deleted"
-                instance.deleted_on = datetime.now()
+                instance.deleted_on = timezone.now()
                 instance.save()
 
     # Fetch all app instances whose state is "Deleted" and check whether
@@ -636,3 +636,21 @@ def purge_tasks():
     Remove tasks from queue to avoid overflow
     """
     app.control.purge()
+
+
+@app.task
+def delete_old_objects():
+    """
+    Deletes apps of category Develop (e.g., jupyter-lab, vscode etc)
+
+    Setting the threshold to 7 days. If any app is older than this, it will be deleted.
+    The deleted resource will still exist in the database, but with status "Deleted"
+
+    TODO: Make this a variable in settings.py and use the same number in templates
+    """
+    threshold = 7
+    threshold_time = timezone.now() - timezone.timedelta(days=threshold)
+
+    old_apps = AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name="Develop")
+    for app in old_apps:
+        delete_resource.delay(app.pk)
