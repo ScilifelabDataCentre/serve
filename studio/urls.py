@@ -30,6 +30,7 @@ urlpatterns = (
         path("", include("news.urls", namespace="news")),
         path("", include("projects.urls", namespace="projects")),
         path("accounts/", include("django.contrib.auth.urls")),
+        path("user/profile/", views.profile, name="user-profile"),
         path("auth/", views.AuthView.as_view()),
         path(
             "<user>/<project>/monitor/",

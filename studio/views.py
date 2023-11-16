@@ -1,8 +1,10 @@
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect
+from django.shortcuts import render, reverse
 from rest_framework.authentication import (
     BasicAuthentication,
     SessionAuthentication,
@@ -88,3 +90,8 @@ class AuthView(APIView):
             "auth": str(request.auth),
         }
         return Response(content)
+
+
+@login_required
+def profile(request):
+    return render(request, "user/profile.html")
