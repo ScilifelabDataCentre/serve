@@ -203,7 +203,7 @@ def deploy_resource(instance_pk, action="create"):
     app_instance = AppInstance.objects.select_for_update().get(pk=instance_pk)
     status = AppStatus(appinstance=app_instance)
 
-    if action == "create":
+    if (action == "create") or (action == "update"):
         parameters = app_instance.parameters
         status.status_type = "Created"
         status.info = parameters["release"]
@@ -211,11 +211,6 @@ def deploy_resource(instance_pk, action="create"):
         # For backwards-compatibility with old ingress spec:
         if "ingress" not in parameters:
             parameters["ingress"] = dict()
-        try:
-            print("Ingress v1beta1: {}".format(settings.INGRESS_V1BETA1))
-            parameters["ingress"]["v1beta1"] = settings.INGRESS_V1BETA1
-        except:  # noqa E722 TODO: Add exception
-            pass
 
         app_instance.parameters = parameters
         print("App Instance paramenters: {}".format(app_instance))
