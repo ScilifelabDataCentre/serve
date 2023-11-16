@@ -387,7 +387,6 @@ class ProjectList(
             name=name,
             owner=request.user,
             description=description,
-            repository=repository,
         )
         success = True
 
