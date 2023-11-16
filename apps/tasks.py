@@ -640,14 +640,14 @@ def purge_tasks():
 
 @app.task
 def delete_old_objects():
-    '''
+    """
     Deletes apps of category Develop (e.g., jupyter-lab, vscode etc)
-    
+
     Setting the threshold to 7 days. If any app is older than this, it will be deleted.
     The deleted resource will still exist in the database, but with status "Deleted"
-    
-    TODO: Make this a variable in settings.py and use the same number in templates 
-    '''
+
+    TODO: Make this a variable in settings.py and use the same number in templates
+    """
     threshold = 7
     threshold_time = timezone.now() - timezone.timedelta(days=threshold)
 
