@@ -52,13 +52,9 @@ class GenerateFormTestCase(TestCase):
         }
         self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
 
-        self.project = Project.objects.create_project(
-            name="test-perm-generate_form",
-            owner=self.user,
-            description=""
-        )
+        self.project = Project.objects.create_project(name="test-perm-generate_form", owner=self.user, description="")
         self.app = Apps.objects.create(name="Persistent Volume", slug="volumeK8s")
-        return super().setUp()
+        super().setUp()
 
     # primatives
 
@@ -266,11 +262,7 @@ class GenerateFormTestCase(TestCase):
         self.assertEqual(number_of_public, 1)
 
     def test_get_form_environments_with_public_and_other_projects(self):
-        project = Project.objects.create_project(
-            name="test-perm-generate_form2",
-            owner=self.user,
-            description=""
-        )
+        project = Project.objects.create_project(name="test-perm-generate_form2", owner=self.user, description="")
 
         environment = Environment(
             app=self.app,

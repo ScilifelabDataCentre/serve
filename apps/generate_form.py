@@ -249,8 +249,8 @@ def generate_form(aset, project, app, user, appinstance=[]):
     if "flavor" in aset:
         form["dep_flavor"] = True
         if appinstance and appinstance.flavor:
-            form["current_flavor"] = Flavor.objects.filter(project=project, id=appinstance.flavor.id) 
-            form["flavors"] = Flavor.objects.filter(project=project).exclude(id=appinstance.flavor.id) 
+            form["current_flavor"] = Flavor.objects.filter(project=project, id=appinstance.flavor.id)
+            form["flavors"] = Flavor.objects.filter(project=project).exclude(id=appinstance.flavor.id)
         else:
             form["current_flavor"] = None
             form["flavors"] = Flavor.objects.filter(project=project)

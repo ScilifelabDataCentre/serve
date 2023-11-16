@@ -13,9 +13,7 @@ class AppInstaceManagerTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
         self.project = Project.objects.create_project(
-            name="test-perm-app-instance-manager",
-            owner=self.user,
-            description=""
+            name="test-perm-app-instance-manager", owner=self.user, description=""
         )
         app = Apps.objects.create(name="Persistent Volume", slug="volumeK8s")
 
@@ -90,9 +88,7 @@ class AppInstaceManagerTestCase(TestCase):
 
     def test_get_app_instances_of_project(self):
         project = Project.objects.create_project(
-            name="test-perm-app-instance_manager-2",
-            owner=self.user,
-            description=""
+            name="test-perm-app-instance_manager-2", owner=self.user, description=""
         )
 
         app = Apps.objects.create(name="Combiner", slug="combiner")

@@ -18,9 +18,7 @@ class SetDefaultPatternToProjectTestCase(TestCase):
 
         for i in range(30):
             project = Project.objects.create_project(
-                name=f"test-perm-SetDefaultPatternToProjectTestCase-{i}",
-                owner=self.user,
-                description=""
+                name=f"test-perm-SetDefaultPatternToProjectTestCase-{i}", owner=self.user, description=""
             )
 
             result = view.validate(project.pattern)
@@ -34,11 +32,7 @@ class SetDefaultPatternToProjectTestCase(TestCase):
 
         self.assertTrue(is_unique)
 
-        project = Project.objects.create_project(
-            name="test-perm",
-            owner=self.user,
-            description=""
-        )
+        project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
 
         projects = Project.objects.filter(owner=self.user)
 

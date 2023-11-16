@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
 
+from projects.models import Flavor
 from studio.settings import DOMAIN
 
 from .generate_form import generate_form
@@ -18,8 +19,6 @@ from .helpers import can_access_app_instances, create_app_instance, handle_permi
 from .models import AppCategories, AppInstance, Apps
 from .serialize import serialize_app
 from .tasks import delete_and_deploy_resource, delete_resource, deploy_resource
-
-from projects.models import Flavor
 
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
@@ -209,13 +208,15 @@ class AppSettingsView(View):
 
         app_settings = appinstance.app.settings
         form = generate_form(app_settings, project, app, request.user, appinstance)
-        
+
         # This handles the volume cases. If the app is mounted, then that volume should be pre-selected and vice-versa.
         # Note that this assumes only ONE volume per app.
-        current_volumes = appinstance.parameters.get('apps', {}).get('volumeK8s', {}).keys()
+        current_volumes = appinstance.parameters.get("apps", {}).get("volumeK8s", {}).keys()
         current_volume = AppInstance.objects.filter(project=project, name__in=current_volumes).first()
-        available_volumes = AppInstance.objects.filter(project=project, app__name="Persistent Volume").exclude(name=current_volume.name if current_volume else None)
-   
+        available_volumes = AppInstance.objects.filter(project=project, app__name="Persistent Volume").exclude(
+            name=current_volume.name if current_volume else None
+        )
+
         if request.user.id != appinstance.owner.id:
             show_permissions = False
 
@@ -389,7 +390,7 @@ class CreateView(View):
     def get(self, request, user, project, app_slug, data=[], wait=False, call=False):
         template = "apps/create.html"
         project, app, app_settings = self.get_shared_data(project, app_slug)
-        
+
         domain = DOMAIN
         if not call:
             user = request.user

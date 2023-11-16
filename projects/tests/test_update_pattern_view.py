@@ -17,9 +17,7 @@ class UpdatePatternViewTestCase(TestCase):
 
     def get_data(self, user=None):
         project = Project.objects.create_project(
-            name="test-perm",
-            owner=user if user is not None else self.user,
-            description=""
+            name="test-perm", owner=user if user is not None else self.user, description=""
         )
 
         return project
