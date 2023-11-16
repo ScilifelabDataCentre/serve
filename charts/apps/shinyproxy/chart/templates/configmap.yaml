@@ -21,7 +21,7 @@ data:
       landing-page: /app/{{ .Release.Name }}
       livenessProbe: {}
       logo-url: https://www.openanalytics.eu/shinyproxy/logo.png
-      port: 8080
+      port: {{ .Values.appconfig.proxyport }}
       readinessProbe: {}
       specs:
       - container-cmd:
@@ -31,19 +31,20 @@ data:
         container-image: {{ .Values.appconfig.image }}
         container-memory-limit: {{ .Values.flavor.limits.memory }}
         container-memory-request: {{ .Values.flavor.requests.memory }}
+        port: {{ .Values.appconfig.port }}
         id:  {{ .Release.Name }}
         labels:
           sp.instance: {{ .Release.Name }}
           alow-api-access: "true"
           shinyproxy-app: {{ .Release.Name }}
         kubernetes-pod-patches: |
-         - op: add
-           path: /spec/securityContext
-           value:
-             runAsUser: 999
-             runAsGroup: 999
-             runAsNonRoot: true
-             allowPrivilegeEscalation: false
-             privileged: false
+          - op: add
+            path: /spec/securityContext
+            value:
+              runAsUser: 999
+              runAsGroup: 999
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              privileged: false
       title: Serve Shiny Proxy
   
