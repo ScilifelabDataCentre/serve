@@ -37,7 +37,11 @@ strict = false
 python_version = "3.8"
 ignore_missing_imports = true
 warn_return_any = true
-exclude = ["venv", ".venv", "migrations", "examples"]
+exclude = ["venv", ".venv", "examples"]
+
+[[tool.mypy.overrides]]
+module = "*.migrations.*"
+ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = [

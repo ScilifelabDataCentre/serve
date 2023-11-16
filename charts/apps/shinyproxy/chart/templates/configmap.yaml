@@ -47,4 +47,3 @@ data:
               allowPrivilegeEscalation: false
               privileged: false
       title: Serve Shiny Proxy
-  

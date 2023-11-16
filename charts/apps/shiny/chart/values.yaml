@@ -36,9 +36,3 @@ securityContext:
   capabilities:
     drop:
       - all
-
-
-  
-
-
-

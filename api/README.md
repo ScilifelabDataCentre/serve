@@ -24,4 +24,3 @@ REST_FRAMEWORK = {
 ```
 
 For a complete project follow the link above and navigate to settings.py
-

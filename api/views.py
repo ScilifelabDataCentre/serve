@@ -382,7 +382,6 @@ class ProjectList(
     def create(self, request):
         name = request.data["name"]
         description = request.data["description"]
-        repository = request.data["repository"]
         project = Project.objects.create_project(
             name=name,
             owner=request.user,
@@ -486,11 +485,7 @@ class AppInstanceList(
 
         app = Apps.objects.filter(slug=app_slug).order_by("-revision")[0]
 
-        (
-            successful,
-            _,
-            _,
-        ) = helpers.create_app_instance(
+        (successful, _, _,) = helpers.create_app_instance(
             user=user,
             project=project,
             app=app,

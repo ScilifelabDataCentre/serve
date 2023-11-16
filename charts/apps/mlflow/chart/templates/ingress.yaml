@@ -18,7 +18,7 @@ spec:
         paths:
         - path: /
           backend:
-            serviceName: {{ .Values.service.name }}-{{ .Values.app_name }} 
+            serviceName: {{ .Values.service.name }}-{{ .Values.app_name }}
             servicePort: 80
   tls:
     - secretName: {{ .Values.ingress.secretName }}

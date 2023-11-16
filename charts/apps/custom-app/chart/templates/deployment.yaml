@@ -47,7 +47,7 @@ spec:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
           mountPath: /tmp
-      {{- end }} 
+      {{- end }}
       {{- end }}
       containers:
       - name: {{ .Values.appname }}

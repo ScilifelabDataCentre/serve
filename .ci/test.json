@@ -1,8 +1,10 @@
 {
-"app_name": "test",
-"slug": "jupyter-lab",
-"app:volumeK8s": ["project-vol"],
-"environment": "Jupyter Lab",
-"flavor": "Medium",
-"app_action": "Create"
+  "app:volumeK8s": [
+    "project-vol"
+  ],
+  "app_action": "Create",
+  "app_name": "test",
+  "environment": "Jupyter Lab",
+  "flavor": "Medium",
+  "slug": "jupyter-lab"
 }

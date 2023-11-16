@@ -6,8 +6,8 @@
 # To allow setting up fixtures and init DB data for only the first time
 if $INIT; then
     echo "Running studio migrations..."
-    
-    
+
+
     python manage.py makemigrations
     python manage.py migrate
 
@@ -34,7 +34,7 @@ if $INIT; then
 
     # This script goes through all app instances and assigns/removes permissions to users based on the instance access level
     python manage.py runscript app_instance_permissions
-    
+
     # HELM deployment: DJANGO_SUPERUSER_PASSWORD should be an env var within the stackn-studio pod
     # python manage.py createsuperuser --email $DJANGO_SUPERUSER_EMAIL --username $DJANGO_SUPERUSER --no-input
 
@@ -54,4 +54,3 @@ fi
 # Alternative to be used:
 # watchmedo auto-restart -R --patterns="*.py" -- daphne studio.asgi:application -b 0.0.0.0 -p 8080
 # gunicorn studio.wsgi -b 0.0.0.0:8080 --reload
-

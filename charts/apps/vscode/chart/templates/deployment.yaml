@@ -44,14 +44,14 @@ spec:
         imagePullPolicy: IfNotPresent
         command:
           - /bin/bash
-          - -c 
+          - -c
           - code-server --auth=none --bind-addr 0.0.0.0:8080
         ports:
           - containerPort: {{ .Values.appconfig.port }}
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
-          {{- toYaml .Values.flavor | nindent 10 }}  
+          {{- toYaml .Values.flavor | nindent 10 }}
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}

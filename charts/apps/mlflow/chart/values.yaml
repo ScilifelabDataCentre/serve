@@ -20,7 +20,7 @@ service:
 
 s3:
   service:
-  port: 
+  port:
 
 imagePullSecrets:
   - name: regcred
