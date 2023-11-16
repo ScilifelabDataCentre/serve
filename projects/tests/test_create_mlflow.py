@@ -11,12 +11,7 @@ class CreateMLFlowTestCase(TestCase):
 
     def setUp(self) -> None:
         self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
-        self.project = Project.objects.create_project(
-            name=self.project_name,
-            owner=self.user,
-            description="",
-            repository="",
-        )
+        self.project = Project.objects.create_project(name=self.project_name, owner=self.user, description="")
 
     def test_no_default_for_project(self):
         obj = MLFlow(

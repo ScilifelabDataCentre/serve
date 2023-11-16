@@ -13,7 +13,7 @@ class AppsViewForbidden(TestCase):
     def setUp(self):
         user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
 
-        _ = Project.objects.create_project(name="test-perm", owner=user, description="", repository="")
+        _ = Project.objects.create_project(name="test-perm", owner=user, description="")
 
         user = User.objects.create_user("member", "bar@test.com", "bar")
         self.client.login(username="bar@test.com", password="bar")

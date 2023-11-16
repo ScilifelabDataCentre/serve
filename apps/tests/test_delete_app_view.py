@@ -40,12 +40,7 @@ class DeleteAppViewTestCase(TestCase):
             },
         )
 
-        self.project = Project.objects.create_project(
-            name="test-perm",
-            owner=self.user,
-            description="",
-            repository="",
-        )
+        self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
 
         self.app_instance = AppInstance.objects.create(
             access="public",
@@ -57,10 +52,7 @@ class DeleteAppViewTestCase(TestCase):
 
     def get_data(self, user=None):
         project = Project.objects.create_project(
-            name="test-perm",
-            owner=user if user is not None else self.user,
-            description="",
-            repository="",
+            name="test-perm", owner=user if user is not None else self.user, description=""
         )
 
         return project

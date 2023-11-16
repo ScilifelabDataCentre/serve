@@ -99,12 +99,9 @@ class ProjectSerializer(ModelSerializer):
             "slug",
             "owner",
             "authorized",
-            "image",
             "s3storage",
             "updated_at",
             "created_at",
-            "repository",
-            "repository_imported",
         )
 
 

@@ -479,7 +479,6 @@ class CreateProjectView(View):
                 name=name,
                 owner=request.user,
                 description=description,
-                repository="",
                 status="created",
             )
         except ProjectCreationException:
