@@ -26,8 +26,6 @@ repos:
   rev: 23.11.0
   hooks:
   - id: black
-    # 20230811: black is now run to both check and modify files as needed
-    #args: [--check]
 
 # beautify and sort imports
 - repo: https://github.com/pycqa/isort
