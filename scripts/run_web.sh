@@ -12,7 +12,6 @@ if $INIT; then
         python manage.py reset_db --no-input
     fi
 
-
     python manage.py makemigrations
     python manage.py migrate
 
