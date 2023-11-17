@@ -38,7 +38,7 @@
 
                         <div class="row pt-1">
                             <div class="col-4">Affiliation</div>
-                            <div class="col-8 fw-bold">{{user_profile.affiliation_name}}</div>
+                            <div id="userAffiliation" class="col-8 fw-bold">{{user_profile.affiliation}}</div>
                         </div>
                         <div class="row pt-1">
                             <div class="col-4">Department</div>
@@ -56,4 +56,40 @@
         </div>
     </div>
 </div>
+<script>
+    $(document).ready(function(){
+        displayAffiliationName()
+    });
+
+    function displayAffiliationName() {
+        // Converts the affiliation short code to name and displays it
+        let user_affilition_code = "{{user_profile.affiliation}}"
+
+        if (typeof user_affilition_code === "undefined" || user_affilition_code === "") {
+            console.log("Affiliation is not set. Skipping conversion.")
+            return
+        }
+
+        console.log("displayAffiliationName. Getting name for affiliation code: " + user_affilition_code)
+
+        $.ajax({
+            type: "GET",
+            url: "{{API_URL}}",
+            data: {"code": user_affilition_code},
+            beforeSend: function ( xhr ) {
+                $("#userAffiliation").text("...getting affiliation name for " + user_affilition_code);
+            },
+            success: function(data){
+                if (typeof data !== "undefined") {
+                    let name = data.data.name
+                    $("#userAffiliation").text(name)
+                }
+            },
+            error: function (request, status, error) {
+                console.log("error:" + error)
+                $("#userAffiliation").text(user_affilition_code + " (unable to get affiliation name)")
+            }
+        });
+    }
+</script>
 {% endblock content %}

@@ -105,20 +105,11 @@ def profile(request):
     except:  # noqa E722 OK here
         user_profile = UserProfile()
 
-    # Set the affiliation friendly name
-    if user_profile.affiliation is None:
-        user_profile.affiliation_name = ""
+    # The affiliation friendly name is set via ajax
+    host = request.build_absolute_uri("/")
+    API_URL = host + reverse("v1:openapi-lookups-universities")
 
-    else:
-        try:
-            user_profile.affiliation_name = __get_university_name(request, user_profile.affiliation)
-
-        except Exception as e:
-            # In case of error, use the short affiliation code
-            print(f"Unable to get affiliation from the universities API. {e}")
-            user_profile.affiliation_name = f"{user_profile.affiliation} (unable to get name)"
-
-    return render(request, "user/profile.html", {"user_profile": user_profile})
+    return render(request, "user/profile.html", {"user_profile": user_profile, "API_URL": API_URL})
 
 
 def __get_university_name(request, code):
