@@ -248,21 +248,21 @@ class AppSettingsView(View):
 
         appinstance.name = request.POST.get("app_name")
         appinstance.description = request.POST.get("app_description")
+        appinstance.parameters.update(parameters)
+        appinstance.access = access
+        appinstance.save()
+        appinstance.app_dependencies.set(app_deps)
+        appinstance.model_dependencies.set(model_deps)
+        
         current_release_name = appinstance.parameters["release"]
         # if subdomain is set as --generated--, then use appname
         if request.POST.get("app_release_name") == "":
             new_release_name = appinstance.parameters["appname"]
         else:
             new_release_name = request.POST.get("app_release_name")
-        appinstance.parameters.update(parameters)
-        appinstance.access = access
-        new_url = appinstance.table_field["url"].replace(current_release_name, new_release_name)
-        appinstance.table_field.update({"url": new_url})
-        appinstance.save()
-        appinstance.app_dependencies.set(app_deps)
-        appinstance.model_dependencies.set(model_deps)
-        # check if new subdomain has been created
-        if current_release_name != new_release_name:
+        if new_release_name and current_release_name != new_release_name:
+            new_url = appinstance.table_field["url"].replace(current_release_name, new_release_name)
+            appinstance.table_field.update({"url": new_url})
             _ = delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
         else:
             # Attempting to deploy apps settings

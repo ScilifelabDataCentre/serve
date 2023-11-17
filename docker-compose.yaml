@@ -31,6 +31,7 @@ services:
       - DJANGO_SUPERUSER_PASSWORD=dGhpaXNhdmVyeW5vdHNhZmVvbmx
       - DEBUG=true
       - INIT=true
+      - RESET_DB=false
     ports:
       - "8080:8080"
     volumes:
@@ -115,7 +116,6 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
       - DEBUG=true
-      - RESET_DB=false
     volumes:
       - .:/app:cached
       - ${PWD}/cluster.conf:/app/cluster.conf

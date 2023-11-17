@@ -7,7 +7,7 @@
 if $INIT; then
     echo "Running studio migrations..."
     
-    if $RESET_DB; then
+    if [ -n "${RESET_DB}" ] && [ "${RESET_DB}" = "true" ]; then
         echo "RESETTING DATABASE..."
         python manage.py reset_db --no-input
     fi
