@@ -6,7 +6,11 @@
 # To allow setting up fixtures and init DB data for only the first time
 if $INIT; then
     echo "Running studio migrations..."
-
+ 
+    if $RESET_DB; then
+        echo "RESETTING DATABASE..."
+        python manage.py reset_db --no-input
+    fi
 
     python manage.py makemigrations
     python manage.py migrate
