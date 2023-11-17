@@ -23,5 +23,9 @@ urlpatterns = [
     path("public-apps", PublicAppsAPI.as_view({"get": "list"})),
     path("public-apps/<int:pk>", PublicAppsAPI.as_view({"get": "retrieve"})),
     # Supplementary lookups API
-    path("lookups/universities", UniversityLookupAPI.as_view({"get": "list_or_single"})),
+    path(
+        "lookups/universities",
+        UniversityLookupAPI.as_view({"get": "list_or_single"}),
+        name="openapi-lookups-universities",
+    ),
 ]
