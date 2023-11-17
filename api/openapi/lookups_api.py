@@ -67,3 +67,28 @@ class UniversityLookupAPI(viewsets.GenericViewSet):
             # Get all universities
             data = {"data": universities}
             return JsonResponse(data)
+
+
+class DepartmentLookupAPI(viewsets.GenericViewSet):
+    """
+    The department lookup API with read-only methods to get departments.
+    """
+
+    def __get_departments(self):
+        """Get the departments data from the json file."""
+        with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+            departments = json.load(f).get("departments", [])
+            return departments
+
+    def list(self, request):
+        """Gets a list of departments."""
+        print("DepartmentLookupAPI. Entered list")
+
+        try:
+            departments = self.__get_departments()
+        except Exception as e:
+            print(f"Exception: {e}")
+            raise APIException("Server error. Unable to retrieve list of departments from json file.")
+
+        data = {"data": departments}
+        return JsonResponse(data)

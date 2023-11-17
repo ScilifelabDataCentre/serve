@@ -4,7 +4,7 @@ from django.urls import path
 from rest_framework_nested import routers
 
 from .common_api import APIInfo, are_you_there, get_system_version
-from .lookups_api import UniversityLookupAPI
+from .lookups_api import DepartmentLookupAPI, UniversityLookupAPI
 from .public_apps_api import PublicAppsAPI
 
 app_name = "openapi"
@@ -27,5 +27,10 @@ urlpatterns = [
         "lookups/universities",
         UniversityLookupAPI.as_view({"get": "list_or_single"}),
         name="openapi-lookups-universities",
+    ),
+    path(
+        "lookups/departments",
+        DepartmentLookupAPI.as_view({"get": "list"}),
+        name="openapi-lookups-departments",
     ),
 ]
