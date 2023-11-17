@@ -7,7 +7,7 @@ spec:
   ports:
   - name: preds
     port: {{ .Values.appconfig.inference_port }}
-    targetPort: ts 
+    targetPort: ts
   - name: mdl
     port: {{ .Values.appconfig.management_port }}
     targetPort: ts-management
@@ -16,4 +16,3 @@ spec:
     targetPort: ts-metrics
   selector:
     release: {{ $.Release.Name }}
-  

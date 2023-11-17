@@ -87,7 +87,7 @@ INSTALLED_APPS = [
     "apps",
     "api",
     "customtags",
-    "news"
+    "news",
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = [

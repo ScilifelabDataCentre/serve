@@ -4,7 +4,7 @@
 
 ### New functionality
 - Major revamp removing Keycloak and instead using solely Django built-in User model.
-- OAuth2 now supported. See github and google example in studio/settings.py 
+- OAuth2 now supported. See github and google example in studio/settings.py
 - Deployment using docker-compose now available (still need a k8s cluster such as microk8s to deploy apps via helm charts)
 - Auth requests submodule used in nginx ingress for apps. This removes a lot of overhead since Keycloak required a reverse proxy per application.
 - A set of default apps and project templates are now loaded upon deployment. I.e you just need to modify cluster.conf and studio/settings.py to get started with docker-compose.
@@ -16,7 +16,7 @@
 
 ### Other
 - Regular views permissions are now handled by django-guardian
-- Contribution.md has been updated (related to new integration and code tests) 
+- Contribution.md has been updated (related to new integration and code tests)
 
 
 ## v0.5.0
@@ -46,7 +46,7 @@
 
 ### Other
 - [master](https://github.com/scaleoutsystems/stackn/tree/master) branch is archived, new default branch is [main](https://github.com/scaleoutsystems/stackn/tree/main)
-- README.md has been restructured (instructions for local deployment) 
+- README.md has been restructured (instructions for local deployment)
 <br />
 <br />
 
@@ -70,7 +70,7 @@
 ### New functionality
 
 - You can now set environment variables in a model deployment
-- New CLI command `stackn get settings` for listing all the settings needed to set up the CLI client. 
+- New CLI command `stackn get settings` for listing all the settings needed to set up the CLI client.
 The keycloak host is now set automatically after providing the studio host.
 - Added a chart to the models module in STACKn to show how model metrics have changed over time and runs (draft)
 - Create and delete project volumes with the CLI
