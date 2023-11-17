@@ -4,6 +4,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect
@@ -102,7 +103,11 @@ def profile(request):
         # Note that not all users have a user profile object
         # such as the admin superuser
         user_profile = UserProfile.objects.get(user_id=request.user.id)
-    except:  # noqa E722 OK here
+    except ObjectDoesNotExist as e:
+        print(f"ObjectDoesNotExist exception: {e}")
+        user_profile = UserProfile()
+    except Exception as e:
+        print(f"Exception: {e}")
         user_profile = UserProfile()
 
     # The affiliation friendly name is set via ajax
