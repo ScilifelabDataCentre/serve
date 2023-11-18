@@ -5,7 +5,7 @@
 
 # To allow setting up fixtures and init DB data for only the first time
 if $INIT; then
- 
+
     if [ -n "${RESET_DB}" ] && [ "${RESET_DB}" = "true" ]; then
         echo "RESETTING DATABASE..."
         python manage.py reset_db --no-input

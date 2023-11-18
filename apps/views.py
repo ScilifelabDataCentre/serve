@@ -253,7 +253,7 @@ class AppSettingsView(View):
         appinstance.save()
         appinstance.app_dependencies.set(app_deps)
         appinstance.model_dependencies.set(model_deps)
-        
+
         current_release_name = appinstance.parameters["release"]
         # if subdomain is set as --generated--, then use appname
         if request.POST.get("app_release_name") == "":

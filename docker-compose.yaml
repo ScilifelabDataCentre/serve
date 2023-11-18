@@ -31,7 +31,7 @@ services:
       - DJANGO_SUPERUSER_PASSWORD=dGhpaXNhdmVyeW5vdHNhZmVvbmx
       - DEBUG=true
       - INIT=true
-      # This is an environment variable that deletes all data in database on start up of the app. 
+      # This is an environment variable that deletes all data in database on start up of the app.
       # Its primary use is for deployment on remote development environment.
       - RESET_DB=false
     ports:
