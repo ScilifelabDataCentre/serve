@@ -1,7 +1,6 @@
 import json
 import subprocess
 import time
-from django.utils import timezone
 
 import requests
 from celery import shared_task
@@ -10,6 +9,7 @@ from django.conf import settings
 from django.core.exceptions import EmptyResultSet
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from models.models import Model, ObjectType
 from projects.models import S3, BasicAuth, Environment, MLFlow
@@ -647,5 +647,5 @@ def delete_old_objects():
     threshold_time = timezone.now() - timezone.timedelta(days=threshold)
 
     old_apps = AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name="Develop")
-    for app in old_apps:
-        delete_resource.delay(app.pk)
+    for app_ in old_apps:
+        delete_resource.delay(app_.pk)

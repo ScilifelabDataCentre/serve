@@ -40,7 +40,7 @@ spec:
         command:
           - "/bin/sh"
           - "-ce"
-          - "/usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.minioConsolePort }}" 
+          - "/usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.minioConsolePort }}"
         args:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - server
@@ -78,7 +78,7 @@ spec:
         - name: {{ $key }}
           mountPath: /data
         {{- end }}
-      
+
       - name: {{ .Release.Name }}-minio-sidecar
         image: alpine:3.18.3
         imagePullPolicy: IfNotPresent

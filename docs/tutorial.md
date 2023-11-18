@@ -42,7 +42,7 @@ of the things you can do there are:
 
 - Change your Project's description
 - Find link to your MinIO instance and login keys
-- Download a configuration file for your Project which is required when working with 
+- Download a configuration file for your Project which is required when working with
 STACKn CLI
 - Transfer ownership of your Project to another user
 - Delete permanently your Project
@@ -52,7 +52,7 @@ STACKn CLI
 In /examples you will find two examples using MLFlow and Tensorflow, including model creation and serving. We suggest to compress this folder into a .tar file and then upload the file in a Jupyter Lab instance and using the MLFlow project template. Follow the instructions in the README of each example to run the examples or follow the instructions below.
 
 ## MLFlow-diabetes-sklearn
-This example of using MLFlow to track ML experiments is based on the [sklearn diabetes tutorial](https://github.com/mlflow/mlflow/tree/master/examples/sklearn_elasticnet_diabetes/linux). The example trains an ElesticNet model provided by Sklearn. MLFlow will track hyperparams and the model and add the model to the registry. STACKn model registry will sync with the MLFlow registry, thus creating a model object is not needed by the user. 
+This example of using MLFlow to track ML experiments is based on the [sklearn diabetes tutorial](https://github.com/mlflow/mlflow/tree/master/examples/sklearn_elasticnet_diabetes/linux). The example trains an ElesticNet model provided by Sklearn. MLFlow will track hyperparams and the model and add the model to the registry. STACKn model registry will sync with the MLFlow registry, thus creating a model object is not needed by the user.
 
 From inside a Jupyter lab instance:
 ### Instructions

@@ -1,24 +1,33 @@
 {
-    "name": "VS Code",
-    "slug": "vscode",
-    "category": "develop",
-    "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
+  "category": "develop",
+  "description": "",
+  "name": "VS Code",
+  "settings": {
+    "apps": {
+      "Persistent Volume": "many"
     },
-    "description": "",
-    "settings": {
-        "apps": {
-            "Persistent Volume":"many"
-        },
-        "default_values": {
-            "port": "80",
-            "targetport": "8080"
-          },
-        "export-cli": "True",
-        "permissions": {
-            "public": {"value":"false", "option": "false"},
-            "project": {"value":"true", "option": "true"},
-            "private": {"value":"false", "option": "true"}
-        }
+    "default_values": {
+      "port": "80",
+      "targetport": "8080"
+    },
+    "export-cli": "True",
+    "permissions": {
+      "private": {
+        "option": "true",
+        "value": "false"
+      },
+      "project": {
+        "option": "true",
+        "value": "true"
+      },
+      "public": {
+        "option": "false",
+        "value": "false"
+      }
     }
+  },
+  "slug": "vscode",
+  "table_field": {
+    "url": "https://{{ release }}.{{ global.domain }}"
+  }
 }
