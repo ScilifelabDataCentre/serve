@@ -382,12 +382,10 @@ class ProjectList(
     def create(self, request):
         name = request.data["name"]
         description = request.data["description"]
-        repository = request.data["repository"]
         project = Project.objects.create_project(
             name=name,
             owner=request.user,
             description=description,
-            repository=repository,
         )
         success = True
 

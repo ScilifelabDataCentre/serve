@@ -147,7 +147,7 @@ def create_mlflow(sender, instance, created, **kwargs):
 
 # it will become the default objects attribute for a Project model
 class ProjectManager(models.Manager):
-    def create_project(self, name, owner, description, repository, status="active"):
+    def create_project(self, name, owner, description, status="active"):
         user_can_create = self.user_can_create(owner)
 
         if not user_can_create:
@@ -167,8 +167,6 @@ class ProjectManager(models.Manager):
             project_key=key,
             project_secret=secret,
             description=description,
-            repository=repository,
-            repository_imported=False,
             status=status,
         )
 
@@ -259,14 +257,12 @@ class Project(models.Model):
     status = models.CharField(max_length=20, null=True, blank=True, default="active")
     updated_at = models.DateTimeField(auto_now=True)
 
-    # These fields should be removed.
+    # Is needed because of environments
     image = models.CharField(max_length=2048, blank=True, null=True)
+
+    # Is needed for minio
     project_key = models.CharField(max_length=512)
     project_secret = models.CharField(max_length=512)
-    # ----------------------
-    # These fields should be removed.
-    repository = models.CharField(max_length=512, null=True, blank=True)
-    repository_imported = models.BooleanField(default=False)
     # ----------------------
 
     class Meta:

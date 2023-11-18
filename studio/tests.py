@@ -13,7 +13,7 @@ User = get_user_model()
 
 class AppInstancePermissionScriptTestCase(TestCase):
     def get_data(self, user, access):
-        project = Project.objects.create_project(name="test-perm", owner=user, description="", repository="")
+        project = Project.objects.create_project(name="test-perm", owner=user, description="")
         app = Apps.objects.create(name="FEDn Combiner")
 
         app_instance = AppInstance.objects.create(

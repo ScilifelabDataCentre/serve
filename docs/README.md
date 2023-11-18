@@ -15,7 +15,7 @@ Community<br>
 
 # What is STACKn?
 
-STACKn is a lightweight, cloud-native machine learning platform that lets data scientist collaborate on ML projects where they can share datasets, work in Notebook environments, track experiments and serve ML models. STACKn also lets you deploy models and apps in public or private catalouges for sharing model endpoints and custom dashboards.   
+STACKn is a lightweight, cloud-native machine learning platform that lets data scientist collaborate on ML projects where they can share datasets, work in Notebook environments, track experiments and serve ML models. STACKn also lets you deploy models and apps in public or private catalouges for sharing model endpoints and custom dashboards.
 
 <figure>
   <p align="center">
@@ -37,14 +37,14 @@ STACKn is a lightweight, cloud-native machine learning platform that lets data s
 <br />
 
 
-STACKn is a Django framework implementing project-based multi-tenancy, autentication, authorization and object-level permissions on top of popular open source data science tools. An intuitive UI lets users create private or shared projects in which various assets are deployed: 
+STACKn is a Django framework implementing project-based multi-tenancy, autentication, authorization and object-level permissions on top of popular open source data science tools. An intuitive UI lets users create private or shared projects in which various assets are deployed:
 
-- Storage: manage private and shared storage volumes and object storage. Control access on a project and user level. 
-- Notebooks: Jupyter notebooks, RStudio 
-- Experiment tracking: MLFlow 
-- Model registry and serving: STACKn Models, MLFlow, Tensorflow Serving, PyTorch Serve and MLFlow Serve. 
-- Environments: Configure custom Docker environments backing the applications.  
-- Dashboards / Apps: Easily deploy and host Dash, Flask and RShiny UIs and apps.     
+- Storage: manage private and shared storage volumes and object storage. Control access on a project and user level.
+- Notebooks: Jupyter notebooks, RStudio
+- Experiment tracking: MLFlow
+- Model registry and serving: STACKn Models, MLFlow, Tensorflow Serving, PyTorch Serve and MLFlow Serve.
+- Environments: Configure custom Docker environments backing the applications.
+- Dashboards / Apps: Easily deploy and host Dash, Flask and RShiny UIs and apps.
 
 STACKn is highly customizable and cloud agnostic. Deployments can be configured on any infrastructure that implements the Kubernetes API, and is packaged using Helm charts.
 
@@ -117,11 +117,11 @@ The `INIT` flag tells the studio container whether the initial database migratio
 
 
 ## Start using STACKn
-Open studio in your browser (for example `studio.192.168.1.10.nip.io:8080`), register a new user with the "Sign up" button and create a new project. Here are [tutorials](https://scaleoutsystems.github.io/stackn/#/tutorial) to get you started! Happy STACKning!  
+Open studio in your browser (for example `studio.192.168.1.10.nip.io:8080`), register a new user with the "Sign up" button and create a new project. Here are [tutorials](https://scaleoutsystems.github.io/stackn/#/tutorial) to get you started! Happy STACKning!
 <br />
 <br />
 # Production deployment
-Please contact info@scaleoutsystems.com or reach out to the maintainers! 
+Please contact info@scaleoutsystems.com or reach out to the maintainers!
 # Where is STACKn used?
 STACKn is used in various places, an example include [SciLifeLab Data Center](https://www.scilifelab.se/data). For a live view of their deployment visit [Scilifelab Serve](https://serve.scilifelab.se/).
 <br />

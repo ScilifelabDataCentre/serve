@@ -64,6 +64,15 @@
       "slug": "default",
       "template": {
         "apps": {
+          "project-minio": {
+            "app:volumeK8s": [
+              "project-vol"
+            ],
+            "credentials.access_key": "accesskey",
+            "credentials.secret_key": "secretkey123",
+            "permission": "project",
+            "slug": "minio"
+          },
           "project-netpolicy": {
             "slug": "netpolicy"
           },
@@ -76,15 +85,6 @@
             "volume.accessModes": "ReadWriteMany",
             "volume.size": "1Gi",
             "volume.storageClass": "microk8s-hostpath"
-          },
-          "project-minio": {
-            "app:volumeK8s": [
-              "project-vol"
-            ],
-            "credentials.access_key": "accesskey",
-            "credentials.secret_key": "secretkey123",
-            "permission": "project",
-            "slug": "minio"
           }
         },
         "environments": {

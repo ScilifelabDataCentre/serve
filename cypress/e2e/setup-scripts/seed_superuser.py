@@ -25,4 +25,4 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     superuser.save()
 
     # Create a dummy project to be inspected by the superuser tests
-    Project.objects.create_project(name="e2e-superuser-proj-test", owner=superuser, description="", repository="")
+    Project.objects.create_project(name="e2e-superuser-proj-test", owner=superuser, description="")

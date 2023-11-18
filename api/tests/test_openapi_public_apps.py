@@ -22,7 +22,7 @@ class PublicAppsApiTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
-        cls.project = Project.objects.create_project(name="test-perm", owner=cls.user, description="", repository="")
+        cls.project = Project.objects.create_project(name="test-perm", owner=cls.user, description="")
         cls.app = Apps.objects.create(name="Some App", slug="some-app")
 
         cls.app_instance = AppInstance.objects.create(
