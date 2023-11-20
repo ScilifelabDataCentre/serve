@@ -125,7 +125,7 @@ class HomeViewDynamic(View):
         if request.user.is_authenticated:
             return redirect("projects/")
         else:
-            return render(request, self.template, locals())
+            return HomeView.as_view()(request, id=0)
 
 
 def about(request):
