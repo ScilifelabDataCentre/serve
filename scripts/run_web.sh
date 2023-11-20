@@ -6,9 +6,11 @@
 # To allow setting up fixtures and init DB data for only the first time
 if $INIT; then
 
-    if [ -n "${RESET_DB}" ] && [ "${RESET_DB}" = "true" ]; then
+    if [ -n "${RESET_DB}" ] && [ "${RESET_DB}" = "true" ] && [ -n "${DEBUG}" ] && [ "${DEBUG}" = "true" ]; then
         echo "RESETTING DATABASE..."
         python manage.py reset_db --no-input
+        echo "Uninstalling all Helm releases in serve-dev namespace"
+        helm uninstall $(helm ls --all --short -n serve-dev)
     fi
 
     echo "Running studio migrations..."
