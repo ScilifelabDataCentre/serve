@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}My user profile{% endblock title %}
+
+{% block content %}
+<!-- Begin Page Content -->
+<div class="container-sm py-5">
+
+    <!-- Main Content Here -->
+    <div class="card border-0 shadow p-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                    <h3 class="card-title mb-0">My user profile</h3>
+
+                    <div class="row pt-4">
+                        <h6 class="fw-bold">Account</h6>
+                    </div>
+                    <div class="row pt-1">
+                        <div class="col-4">Email address</div>
+                        <div class="col-8 fw-bold">{{user.email}}</div>
+                    </div>
+
+                    <div class="row pt-4">
+                        <h6 class="fw-bold">Contact</h6>
+                    </div>
+                    <div class="row">
+                        <div class="col-4">First name</div>
+                        <div class="col-8 fw-bold">{{user.first_name}}</div>
+                    </div>
+                    <div class="row pt-1">
+                        <div class="col-4">Last name</div>
+                        <div class="col-8 fw-bold">{{user.last_name}}</div>
+                    </div>
+
+                    <div class="row pt-1">
+                        <div class="col-4">Affiliation</div>
+                        <div id="userAffiliation" class="col-8 fw-bold">{{user_profile.affiliation}}</div>
+                    </div>
+                    <div class="row pt-1">
+                        <div class="col-4">Department</div>
+                        <div class="col-8 fw-bold">{{user_profile.department}}</div>
+                    </div>
+
+                    <div class="row mt-5 p-3 small text-white bg-teal">
+                        <p>Last login: {{user.last_login}} </p>
+                        <p>Account created: {{user.date_joined.date}}</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function(){
+        displayAffiliationName()
+    });
+
+    function displayAffiliationName() {
+        // Converts the affiliation short code to name and displays it
+        let user_affilition_code = "{{user_profile.affiliation}}"
+
+        if (typeof user_affilition_code === "undefined" || user_affilition_code === "") {
+            console.log("Affiliation is not set. Skipping conversion.")
+            return
+        }
+
+        console.log("displayAffiliationName. Getting name for affiliation code: " + user_affilition_code)
+
+        $.ajax({
+            type: "GET",
+            url: "{{API_URL}}",
+            data: {"code": user_affilition_code},
+            beforeSend: function ( xhr ) {
+                $("#userAffiliation").text("...getting affiliation name for " + user_affilition_code);
+            },
+            success: function(data){
+                if (typeof data !== "undefined") {
+                    let name = data.data.name
+                    $("#userAffiliation").text(name)
+                }
+            },
+            error: function (request, status, error) {
+                console.log("error:" + error)
+                $("#userAffiliation").text(user_affilition_code + " (unable to get affiliation name)")
+            }
+        });
+    }
+</script>
+{% endblock content %}
