@@ -12,47 +12,43 @@
             <div class="row">
                 <div class="col">
                     <h3 class="card-title mb-0">My user profile</h3>
-                </div>
 
-                <div class="row">
-                    <div class="col">
-                        <div class="row pt-4">
-                            <h6 class="fw-bold">Account</h6>
-                        </div>
-                        <div class="row pt-1">
-                            <div class="col-4">Email address</div>
-                            <div class="col-8 fw-bold">{{user.email}}</div>
-                        </div>
+                    <div class="row pt-4">
+                        <h6 class="fw-bold">Account</h6>
+                    </div>
+                    <div class="row pt-1">
+                        <div class="col-4">Email address</div>
+                        <div class="col-8 fw-bold">{{user.email}}</div>
+                    </div>
 
-                        <div class="row pt-4">
-                            <h6 class="fw-bold">Contact</h6>
-                        </div>
-                        <div class="row">
-                            <div class="col-4">First name</div>
-                            <div class="col-8 fw-bold">{{user.first_name}}</div>
-                        </div>
-                        <div class="row pt-1">
-                            <div class="col-4">Last name</div>
-                            <div class="col-8 fw-bold">{{user.last_name}}</div>
-                        </div>
+                    <div class="row pt-4">
+                        <h6 class="fw-bold">Contact</h6>
+                    </div>
+                    <div class="row">
+                        <div class="col-4">First name</div>
+                        <div class="col-8 fw-bold">{{user.first_name}}</div>
+                    </div>
+                    <div class="row pt-1">
+                        <div class="col-4">Last name</div>
+                        <div class="col-8 fw-bold">{{user.last_name}}</div>
+                    </div>
 
-                        <div class="row pt-1">
-                            <div class="col-4">Affiliation</div>
-                            <div id="userAffiliation" class="col-8 fw-bold">{{user_profile.affiliation}}</div>
-                        </div>
-                        <div class="row pt-1">
-                            <div class="col-4">Department</div>
-                            <div class="col-8 fw-bold">{{user_profile.department}}</div>
-                        </div>
+                    <div class="row pt-1">
+                        <div class="col-4">Affiliation</div>
+                        <div id="userAffiliation" class="col-8 fw-bold">{{user_profile.affiliation}}</div>
+                    </div>
+                    <div class="row pt-1">
+                        <div class="col-4">Department</div>
+                        <div class="col-8 fw-bold">{{user_profile.department}}</div>
+                    </div>
 
-                        <div class="row mt-5 p-3 small text-white bg-teal">
-                            <p>Last login: {{user.last_login}} </p>
-                            <p>Account created: {{user.date_joined.date}}</p>
-                        </div>
+                    <div class="row mt-5 p-3 small text-white bg-teal">
+                        <p>Last login: {{user.last_login}} </p>
+                        <p>Account created: {{user.date_joined.date}}</p>
                     </div>
                 </div>
-
             </div>
+
         </div>
     </div>
 </div>
