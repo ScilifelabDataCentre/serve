@@ -10,7 +10,7 @@ if $INIT; then
         echo "RESETTING DATABASE..."
         python manage.py reset_db --no-input
         echo "Uninstalling all Helm releases in serve-dev namespace"
-        helm uninstall $(helm ls --all --short -n serve-dev)
+        helm uninstall $(helm ls --all --short -n serve-dev) -n serve-dev
     fi
 
     echo "Running studio migrations..."
