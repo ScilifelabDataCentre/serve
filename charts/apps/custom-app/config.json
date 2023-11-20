@@ -1,43 +1,54 @@
 {
-    "name": "Custom App",
-    "slug": "customapp",
-    "category": "serve",
-    "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
+  "category": "serve",
+  "description": "",
+  "name": "Custom App",
+  "priority": "400",
+  "settings": {
+    "appconfig": {
+      "image": {
+        "default": "registry/repository/image:tag",
+        "title": "Image",
+        "type": "string"
+      },
+      "meta": {
+        "title": "Configurations"
+      },
+      "path": {
+        "default": "",
+        "title": "Path to folder for persistent storage (leave blank if Persistent Volume is set to None)",
+        "type": "string"
+      },
+      "port": {
+        "default": "8000",
+        "title": "Port",
+        "type": "number"
+      }
     },
-    "description": "",
-    "priority": "400",
-    "settings": {
-        "flavor": "one",
-        "logs": ["serve"],
-        "default_values": {
-          "port": "80",
-          "targetport": "8000"
-        },
-        "permissions": {
-            "public": {"value":"false", "option": "true"},
-            "project": {"value":"true", "option": "true"},
-            "private": {"value":"false", "option": "true"}
-        },
-        "appconfig": {
-          "meta": {
-            "title": "Configurations"
-          },
-          "image": {
-            "type": "string",
-            "default": "registry/repository/image:tag",
-            "title": "Image"
-          },
-          "port": {
-            "type": "number",
-            "default": "8000",
-            "title": "Port"
-          },
-          "path": {
-            "type": "string",
-            "default": "",
-            "title": "Path to folder for persistent storage (leave blank if Persistent Volume is set to None)"
-          }
-        }
+    "default_values": {
+      "port": "80",
+      "targetport": "8000"
+    },
+    "flavor": "one",
+    "logs": [
+      "serve"
+    ],
+    "permissions": {
+      "private": {
+        "option": "true",
+        "value": "false"
+      },
+      "project": {
+        "option": "true",
+        "value": "true"
+      },
+      "public": {
+        "option": "true",
+        "value": "false"
+      }
     }
+  },
+  "slug": "customapp",
+  "table_field": {
+    "url": "https://{{ release }}.{{ global.domain }}"
+  }
 }

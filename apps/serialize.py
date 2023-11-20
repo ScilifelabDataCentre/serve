@@ -39,7 +39,7 @@ def serialize_model(form_selection):
     obj = []
     if "model" in form_selection:
         model_id = form_selection.get("model", None)
-        if type(model_id) == str:
+        if isinstance(model_id, str):
             model_id = int(model_id)
         obj = Model.objects.filter(pk=model_id)
         print("Fetching selected model:")
@@ -102,10 +102,7 @@ def serialize_flavor(form_selection, project):
     flavor_json = dict()
     if "flavor" in form_selection:
         flavor_id = form_selection.get("flavor", None)
-        try:
-            flavor = Flavor.objects.get(pk=flavor_id)
-        except:  # noqa E722 TODO: Add exception
-            flavor = Flavor.objects.get(name=flavor_id, project=project)
+        flavor = Flavor.objects.get(pk=flavor_id, project=project)
         flavor_json["flavor"] = {
             "requests": {
                 "cpu": flavor.cpu_req,

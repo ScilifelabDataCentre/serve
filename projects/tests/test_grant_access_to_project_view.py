@@ -24,7 +24,6 @@ class GrantAccessToProjectViewTestCase(TestCase):
             name="test-perm",
             owner=user if user is not None else self.user,
             description="",
-            repository="",
         )
 
         return project

@@ -56,6 +56,11 @@ spec:
           requests:
             cpu: 200m
             memory: 512Mi
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.appconfig.proxyport }}
+          initialDelaySeconds: 60
+          periodSeconds: 15
       volumes:
       - name: application-conf-{{ .Release.Name }}
         configMap:

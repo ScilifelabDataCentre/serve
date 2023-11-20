@@ -143,5 +143,3 @@ jobs:
         with:
           ## If no one connects after 2 minutes, shut down server.
           wait-timeout-minutes: 2
-
-

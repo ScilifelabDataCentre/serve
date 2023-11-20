@@ -87,7 +87,7 @@ INSTALLED_APPS = [
     "apps",
     "api",
     "customtags",
-    "news"
+    "news",
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = [
@@ -227,7 +227,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = ""
 # SS-507
 # Please keep "static" files first, because common/forms.py expects it
-STATICFILES_DIRS = (os.path.join("static"),)
+STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"),)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
