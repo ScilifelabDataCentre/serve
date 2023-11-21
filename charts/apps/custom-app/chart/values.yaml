@@ -20,9 +20,8 @@ imagePullSecrets:
   - name: regcred
 
 ingress:
-  v1beta1: false
   secretName: prod-ingress
-  
+
 podSecurityContext:
   seccompProfile:
       type: RuntimeDefault

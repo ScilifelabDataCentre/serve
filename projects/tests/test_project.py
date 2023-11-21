@@ -23,7 +23,7 @@ class ProjectTestCase(TestCase):
             project_key="a2V5",
             project_secret="c2VjcmV0",
         )
-        _ = Project.objects.create_project(name="test-perm", owner=user, description="", repository="")
+        _ = Project.objects.create_project(name="test-perm", owner=user, description="")
         user = User.objects.create_user(test_member["username"], test_member["email"], test_member["password"])
 
     def test_decrypt_key(self):
@@ -54,7 +54,7 @@ class ProjectTestCase(TestCase):
 
         self.assertTrue(result)
 
-        _ = Project.objects.create(name="test-perm1", owner=user, description="", repository="")
+        _ = Project.objects.create(name="test-perm1", owner=user, description="")
 
         result = Project.objects.user_can_create(user)
 
@@ -67,7 +67,7 @@ class ProjectTestCase(TestCase):
 
         self.assertTrue(result)
 
-        _ = Project.objects.create(name="test-perm1", owner=user, description="", repository="")
+        _ = Project.objects.create(name="test-perm1", owner=user, description="")
 
         result = Project.objects.user_can_create(user)
 
@@ -92,7 +92,7 @@ class ProjectTestCase(TestCase):
 
         user = User.objects.get(username=test_member["email"])
 
-        _ = Project.objects.create(name="test-perm1", owner=user, description="", repository="")
+        _ = Project.objects.create(name="test-perm1", owner=user, description="")
 
         result = Project.objects.user_can_create(user)
 
@@ -109,10 +109,10 @@ class ProjectTestCase(TestCase):
     def test_create_project_raises_exception(self):
         user = User.objects.get(username=test_member["email"])
 
-        _ = Project.objects.create(name="test-perm1", owner=user, description="", repository="")
+        _ = Project.objects.create(name="test-perm1", owner=user, description="")
 
         with self.assertRaisesMessage(Exception, "User not allowed to create project"):
-            _ = Project.objects.create_project(name="test-perm", owner=user, description="", repository="")
+            _ = Project.objects.create_project(name="test-perm", owner=user, description="")
 
     @override_settings(PROJECTS_PER_USER_LIMIT=0)
     def test_admin_can_create(self):

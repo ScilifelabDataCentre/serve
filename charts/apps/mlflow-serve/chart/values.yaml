@@ -14,7 +14,7 @@ project:
 appconfig:
   image: ghcr.io/scilifelabdatacentre/serve-mlflow:231030-1149
   port: 5000
-  
+
 
 context:
   image: context-image

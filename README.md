@@ -7,7 +7,9 @@
    </a>
    <br />
       <img alt="Pre-commit" src="https://github.com/ScilifelabDataCentre/stackn/actions/workflows/pre-commit.yaml/badge.svg?branch=develop">
-      <img alt="Build and test" src="https://github.com/ScilifelabDataCentre/stackn/actions/workflows/test-and-publish.yaml/badge.svg?branch=develop">
+      <img alt="CI" src="https://github.com/ScilifelabDataCentre/stackn/actions/workflows/ci.yaml/badge.svg?branch=develop">
+      <img alt="End2end tests" src="https://github.com/ScilifelabDataCentre/stackn/actions/workflows/e2e-tests.yaml/badge.svg?branch=develop">
+
 </p>
 
 # SciLifeLab Serve

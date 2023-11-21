@@ -1,7 +1,6 @@
 import json
 import subprocess
 import time
-from datetime import datetime
 
 import requests
 from celery import shared_task
@@ -10,6 +9,7 @@ from django.conf import settings
 from django.core.exceptions import EmptyResultSet
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from models.models import Model, ObjectType
 from projects.models import S3, BasicAuth, Environment, MLFlow
@@ -203,7 +203,7 @@ def deploy_resource(instance_pk, action="create"):
     app_instance = AppInstance.objects.select_for_update().get(pk=instance_pk)
     status = AppStatus(appinstance=app_instance)
 
-    if action == "create":
+    if (action == "create") or (action == "update"):
         parameters = app_instance.parameters
         status.status_type = "Created"
         status.info = parameters["release"]
@@ -211,11 +211,6 @@ def deploy_resource(instance_pk, action="create"):
         # For backwards-compatibility with old ingress spec:
         if "ingress" not in parameters:
             parameters["ingress"] = dict()
-        try:
-            print("Ingress v1beta1: {}".format(settings.INGRESS_V1BETA1))
-            parameters["ingress"]["v1beta1"] = settings.INGRESS_V1BETA1
-        except:  # noqa E722 TODO: Add exception
-            pass
 
         app_instance.parameters = parameters
         print("App Instance paramenters: {}".format(app_instance))
@@ -385,7 +380,7 @@ def check_status():
                 status.status_type = "Deleted"
                 status.save()
                 instance.state = "Deleted"
-                instance.deleted_on = datetime.now()
+                instance.deleted_on = timezone.now()
                 instance.save()
 
     # Fetch all app instances whose state is "Deleted" and check whether
@@ -636,3 +631,21 @@ def purge_tasks():
     Remove tasks from queue to avoid overflow
     """
     app.control.purge()
+
+
+@app.task
+def delete_old_objects():
+    """
+    Deletes apps of category Develop (e.g., jupyter-lab, vscode etc)
+
+    Setting the threshold to 7 days. If any app is older than this, it will be deleted.
+    The deleted resource will still exist in the database, but with status "Deleted"
+
+    TODO: Make this a variable in settings.py and use the same number in templates
+    """
+    threshold = 7
+    threshold_time = timezone.now() - timezone.timedelta(days=threshold)
+
+    old_apps = AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name="Develop")
+    for app_ in old_apps:
+        delete_resource.delay(app_.pk)

@@ -9,15 +9,19 @@ Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
 NewsObject = apps.get_model(app_label="news.NewsObject")
 
+
 def get_public_apps(request, id=0, get_all=True):
     try:
-        projects = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status="active")
+        projects = Project.objects.filter(
+            Q(owner=request.user) | Q(authorized=request.user), status="active"
+        )  # noqa: F841 local var assigned but never used
+        print(len(projects))
     except Exception:
         print("User not logged in.")
     if "project" in request.session:
-        project_slug = request.session["project"]
+        project_slug = request.session["project"]  # noqa: F841 local var assigned but never used
 
-    media_url = settings.MEDIA_URL
+    media_url = settings.MEDIA_URL  # noqa: F841 local var assigned but never used
 
     # create session object to store info about app and their tag counts
     if "app_tags" not in request.session:
@@ -42,7 +46,7 @@ def get_public_apps(request, id=0, get_all=True):
         if "tf_add" not in request.GET and "tf_remove" not in request.GET:
             request.session["app_tags"] = {}
 
-    published_apps = AppInstance.objects.filter(~Q(state="Deleted"), access="public").order_by('-updated_on')
+    published_apps = AppInstance.objects.filter(~Q(state="Deleted"), access="public").order_by("-updated_on")
     if published_apps.count() >= 3 and not get_all:
         published_apps = published_apps[:3]
     else:
@@ -95,22 +99,22 @@ def public_apps(request, id=0):
 
 
 class HomeView(View):
-    
     template = "portal/home.html"
+
     def get(self, request, id=0):
         published_apps, request = get_public_apps(request, id=id, get_all=False)
         published_models = PublishedModel.objects.all()
-        news_objects = NewsObject.objects.all().order_by('-created_on')
+        news_objects = NewsObject.objects.all().order_by("-created_on")
         if published_models.count() >= 3:
             published_models = published_models[:3]
         else:
             published_models = published_models
-            
+
         if news_objects.count() >= 3:
             news_objects = news_objects[:3]
         else:
             news_objects = news_objects
-        
+
         return render(request, self.template, locals())
 
 
@@ -121,7 +125,7 @@ class HomeViewDynamic(View):
         if request.user.is_authenticated:
             return redirect("projects/")
         else:
-            return render(request, self.template, locals())
+            return HomeView.as_view()(request, id=0)
 
 
 def about(request):
