@@ -49,3 +49,20 @@ label.required::before {
     content: ' *';
     color: red;
 }
+
+.disabled-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9); /* Adjust the alpha value for the desired level of transparency */
+    backdrop-filter: blur(1px); /* Adjust the blur value as needed */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.disabled-overlay p {
+    text-align: center;
+}

@@ -74,7 +74,7 @@
                             <td class="d-none d-xxl-table-cell ">{{ obj.app.name }}</td>
                             {% if obj.table_field.url %}
                             <td class="sorting_1">
-                                {% if "Serve" in obj.app.name or obj.app.name == "Python Model Deployment" %}
+                                {% if "Serv" in obj.app.name or obj.app.name == "Python Model Deployment" %}
                                     <a onclick="copyClip('{{obj.table_field.url}}')">
                                         {{obj.name}}
                                         <!-- Want to use bi-copy but it is not working. Instead, using the full svg code -->
@@ -178,7 +178,7 @@
                 {% else %}
                 <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                     <div class="card h-100" data-cy="create-app-card">
-                        <div class="card-body">
+                        <div class="card-body ">
                             <div class="row g-0 w-100 h-100">
                                 <div class="col-8 d-flex align-items-bottom flex-column">
                                     <div class="pt-2">
@@ -188,7 +188,7 @@
                                         <div>
                                             <div class="row">
                                                 <div class="col">
-                                                    <p>{{ app.description }}</p>
+                                                    <p>{{ app.description }} </p>
                                                 </div>
                                             </div>
                                                 <div class="row">
@@ -196,8 +196,20 @@
                                                         {% can_create_app request.user project app as can_create %}
 
                                                         {% if can_create %}
-                                                        <a class="btn btn-primary btn-sm"
-                                                            href="{% url 'apps:create' request.user project.slug app.slug  %}?from=overview">Create</a>
+
+                                                            <!-- When models are launched REMOVE THIS -->
+                                                                {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
+                                                                <a class="btn btn-primary btn-sm"
+                                                                    href="">Create</a>
+                                                                {% else %}
+                                                            <!-- To here -->
+                                                                <a class="btn btn-primary btn-sm"
+                                                                    href="{% url 'apps:create' request.user project.slug app.slug  %}?from=overview">Create</a>
+
+                                                            <!-- And here -->
+                                                                {% endif %}
+                                                            <!-- To here -->
+
                                                         {% else %}
                                                         <button class="btn btn-secondary btn-sm" style="cursor: default;"
                                                             data-bs-toggle="tooltip" data-bs-placement="top"
@@ -215,8 +227,15 @@
                                     <img src="{{static_url}}{{app.logo|default:'default-logo.png'}}" class="img-fluid float-end w-75"
                                         alt="App Logo">
                                 </div>
+
                             </div>
+
                         </div>
+                        {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
+                        <div class="disabled-overlay">
+                            <p>{{ app.name }} will be available soon</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
@@ -326,8 +345,20 @@
                                                     </div>
                                                     <div class="row">
                                                         <div class="col">
+                                                            <!-- When models are launched REMOVE THIS -->
+                                                                    <!-- This temporary disables models and serving apps -->
+                                                                    {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
+                                                                    <a class="btn btn-primary btn-sm"
+                                                                        href="">Create</a>
+                                                                    {% else %}
+                                                            <!-- To here -->
                                                             <a class="btn btn-primary btn-sm"
                                                                 href="{% url 'models:create' request.user project.slug %}">Create</a>
+
+                                                            <!-- And from here -->
+                                                            {% endif %}
+                                                            <!-- To here -->
+
                                                         </div>
                                                     </div>
                                                 </div>
@@ -338,6 +369,11 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- When models are launched REMOVE THIS -->
+                                    <div class="disabled-overlay">
+                                        <p>Machine Learning Models will be available soon</p>
+                                    </div>
+                                <!-- To here -->
                             </div>
                         </div>
 
