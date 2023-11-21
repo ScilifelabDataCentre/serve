@@ -178,7 +178,7 @@
                 {% else %}
                 <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                     <div class="card h-100" data-cy="create-app-card">
-                        <div class="card-body ">
+                        <div class="card-body">
                             <div class="row g-0 w-100 h-100">
                                 <div class="col-8 d-flex align-items-bottom flex-column">
                                     <div class="pt-2">
@@ -188,7 +188,7 @@
                                         <div>
                                             <div class="row">
                                                 <div class="col">
-                                                    <p>{{ app.description }} </p>
+                                                    <p>{{ app.description }}</p>
                                                 </div>
                                             </div>
                                                 <div class="row">
@@ -227,9 +227,7 @@
                                     <img src="{{static_url}}{{app.logo|default:'default-logo.png'}}" class="img-fluid float-end w-75"
                                         alt="App Logo">
                                 </div>
-
                             </div>
-
                         </div>
                         {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
                         <div class="disabled-overlay">
@@ -376,7 +374,6 @@
                                 <!-- To here -->
                             </div>
                         </div>
-
                 </div>
             </div>
         </div>
