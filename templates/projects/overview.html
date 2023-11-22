@@ -60,7 +60,7 @@
                             <th tabindex="0" rowspan="1" colspan="1">Name</th>
                             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Created</th>
                             <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
-                            <th class="" tabindex="0" rowspan="1" colspan="1">Tags</th>
+                            <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Tags</th>
                             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
                         </tr>
                     </thead>
@@ -108,7 +108,7 @@
                                     {% endif %}
                                 {% endif %}
                             </td>
-                            <td id="tags-{{ obj.pk }}">
+                            <td class="d-none d-xxl-table-cell" id="tags-{{ obj.pk }}">
                             {% with obj.tags|split:"," as tags %}
                             {% for tag in tags %}
                                 <span class="badge text-bg-primary">{{ tag }}</span>
