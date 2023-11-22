@@ -256,7 +256,7 @@ class AppSettingsView(View):
             raise Exception("Not authorized to use specified app dependency")
 
         access = handle_permissions(parameters, project)
-        
+
         flavor_id = request.POST.get("flavor")
         appinstance.flavor = Flavor.objects.get(pk=flavor_id, project=project)
 
@@ -276,7 +276,7 @@ class AppSettingsView(View):
             new_release_name = appinstance.parameters["appname"]
         else:
             new_release_name = request.POST.get("app_release_name")
-            
+
         new_url = f"https://{new_release_name}.{domain}"
         appinstance.table_field.update({"url": new_url})
         if new_release_name and current_release_name != new_release_name:
@@ -285,8 +285,9 @@ class AppSettingsView(View):
         else:
             # Otherwise, we update the resources in the same helm release
             _ = deploy_resource.delay(appinstance.pk, "update")
-            
+
         appinstance.save()
+
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
 def create_releasename(request, user, project, app_slug):
