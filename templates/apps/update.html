@@ -207,7 +207,7 @@
 
                     <h6> {{ vals.meta_title }}</h6>
                     {% for subkey, subval in vals.items %}
-                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%}
+                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port" or subkey == "path" %}
                     <div class="mb-3 form-group validate-item">
                     {% else %}
                     <div class="mb-3">

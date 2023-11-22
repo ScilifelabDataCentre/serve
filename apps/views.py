@@ -224,6 +224,7 @@ class AppSettingsView(View):
 
     def post(self, request, user, project, ai_id):
         project, appinstance = self.get_shared_data(project, ai_id)
+
         app = appinstance.app
         app_settings = app.settings
         body = request.POST.copy()
@@ -231,42 +232,7 @@ class AppSettingsView(View):
         if not app.user_can_edit:
             return HttpResponseForbidden()
 
-        if not body.get("permission", None):
-            body.update({"permission": appinstance.access})
-
-        parameters, app_deps, model_deps = serialize_app(body, project, app_settings, request.user.username)
-
-        authorized = can_access_app_instances(app_deps, request.user, project)
-
-        if not authorized:
-            raise Exception("Not authorized to use specified app dependency")
-
-        access = handle_permissions(parameters, project)
-
-        flavor_id = request.POST.get("flavor")
-        appinstance.flavor = Flavor.objects.get(pk=flavor_id, project=project)
-
-        appinstance.name = request.POST.get("app_name")
-        appinstance.description = request.POST.get("app_description")
-        current_release_name = appinstance.parameters["release"]
-        # if subdomain is set as --generated--, then use appname
-        if request.POST.get("app_release_name") == "":
-            new_release_name = appinstance.parameters["appname"]
-        else:
-            new_release_name = request.POST.get("app_release_name")
-        appinstance.parameters.update(parameters)
-        appinstance.access = access
-        new_url = appinstance.table_field["url"].replace(current_release_name, new_release_name)
-        appinstance.table_field.update({"url": new_url})
-        appinstance.save()
-        appinstance.app_dependencies.set(app_deps)
-        appinstance.model_dependencies.set(model_deps)
-        # check if new subdomain has been created
-        if current_release_name != new_release_name:
-            _ = delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
-        else:
-            # Attempting to deploy apps settings
-            _ = deploy_resource.delay(appinstance.pk, "update")
+        self.update_app_instance(request, project, appinstance, app_settings, body)
 
         return HttpResponseRedirect(
             reverse(
@@ -278,6 +244,49 @@ class AppSettingsView(View):
             )
         )
 
+    def update_app_instance(self, request, project, appinstance, app_settings, body):
+        if not body.get("permission", None):
+            body.update({"permission": appinstance.access})
+        current_release_name = appinstance.parameters["release"]
+        parameters, app_deps, model_deps = serialize_app(body, project, app_settings, request.user.username)
+
+        authorized = can_access_app_instances(app_deps, request.user, project)
+
+        if not authorized:
+            raise Exception("Not authorized to use specified app dependency")
+
+        access = handle_permissions(parameters, project)
+        
+        flavor_id = request.POST.get("flavor")
+        appinstance.flavor = Flavor.objects.get(pk=flavor_id, project=project)
+
+        appinstance.name = request.POST.get("app_name")
+        appinstance.description = request.POST.get("app_description")
+        appinstance.parameters.update(parameters)
+        appinstance.access = access
+        appinstance.app_dependencies.set(app_deps)
+        appinstance.model_dependencies.set(model_deps)
+        appinstance.save()
+        self.update_resource(request, appinstance, current_release_name)
+
+    def update_resource(self, request, appinstance, current_release_name):
+        domain = appinstance.parameters["global"]["domain"]
+        # if subdomain is set as --generated--, then use appname
+        if request.POST.get("app_release_name") == "":
+            new_release_name = appinstance.parameters["appname"]
+        else:
+            new_release_name = request.POST.get("app_release_name")
+            
+        new_url = f"https://{new_release_name}.{domain}"
+        appinstance.table_field.update({"url": new_url})
+        if new_release_name and current_release_name != new_release_name:
+            # This handles the case where a user creates a new subdomain, we must update the helm release aswell
+            _ = delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
+        else:
+            # Otherwise, we update the resources in the same helm release
+            _ = deploy_resource.delay(appinstance.pk, "update")
+            
+        appinstance.save()
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
 def create_releasename(request, user, project, app_slug):
