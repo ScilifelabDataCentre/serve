@@ -247,7 +247,7 @@ class AppSettingsView(View):
     def update_app_instance(self, request, project, appinstance, app_settings, body):
         if not body.get("permission", None):
             body.update({"permission": appinstance.access})
-
+        current_release_name = appinstance.parameters["release"]
         parameters, app_deps, model_deps = serialize_app(body, project, app_settings, request.user.username)
 
         authorized = can_access_app_instances(app_deps, request.user, project)
@@ -264,28 +264,29 @@ class AppSettingsView(View):
         appinstance.description = request.POST.get("app_description")
         appinstance.parameters.update(parameters)
         appinstance.access = access
-        appinstance.save()
         appinstance.app_dependencies.set(app_deps)
         appinstance.model_dependencies.set(model_deps)
+        appinstance.save()
+        self.update_resource(request, appinstance, current_release_name)
 
-        self.update_resource(request, appinstance)
-
-    def update_resource(self, request, appinstance):
-        current_release_name = appinstance.parameters["release"]
+    def update_resource(self, request, appinstance, current_release_name):
+        domain = appinstance.parameters["global"]["domain"]
         # if subdomain is set as --generated--, then use appname
         if request.POST.get("app_release_name") == "":
             new_release_name = appinstance.parameters["appname"]
         else:
             new_release_name = request.POST.get("app_release_name")
 
+        new_url = f"https://{new_release_name}.{domain}"
+        appinstance.table_field.update({"url": new_url})
         if new_release_name and current_release_name != new_release_name:
             # This handles the case where a user creates a new subdomain, we must update the helm release aswell
-            new_url = appinstance.table_field["url"].replace(current_release_name, new_release_name)
-            appinstance.table_field.update({"url": new_url})
             _ = delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
         else:
             # Otherwise, we update the resources in the same helm release
             _ = deploy_resource.delay(appinstance.pk, "update")
+
+        appinstance.save()
 
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
