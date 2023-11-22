@@ -67,10 +67,12 @@
         }
 
         console.log("displayAffiliationName. Getting name for affiliation code: " + user_affilition_code)
+        let api_url = window.location.origin + "/openapi/v1/lookups/universities"
+        console.log("Using API URL: " + api_url)
 
         $.ajax({
             type: "GET",
-            url: "{{API_URL}}",
+            url: api_url,
             data: {"code": user_affilition_code},
             beforeSend: function ( xhr ) {
                 $("#userAffiliation").text("...getting affiliation name for " + user_affilition_code);
