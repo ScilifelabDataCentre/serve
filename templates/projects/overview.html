@@ -164,9 +164,11 @@
                     </tbody>
                 </table>
             </div>
+            {% if objs.title == "Develop" %}
             <div class="mx-4 mb-4 small text-muted">
             *Note that all apps under Develop will be deleted 7 days after creation.
             </div>
+            {% endif %}
             {% else %}
             <div class="h-100 p-4 d-flex align-items-center justify-content-center border-bottom">
                 <p>No instances.</p>
