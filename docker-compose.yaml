@@ -31,6 +31,9 @@ services:
       - DJANGO_SUPERUSER_PASSWORD=dGhpaXNhdmVyeW5vdHNhZmVvbmx
       - DEBUG=true
       - INIT=true
+      # This is an environment variable that deletes all data in database on start up of the app.
+      # Its primary use is for deployment on remote development environment.
+      - RESET_DB=false
     ports:
       - "8080:8080"
     volumes:
@@ -115,7 +118,6 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
       - DEBUG=true
-      - RESET_DB=false
     volumes:
       - .:/app:cached
       - ${PWD}/cluster.conf:/app/cluster.conf
