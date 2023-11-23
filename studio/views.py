@@ -110,11 +110,7 @@ def profile(request):
         print(f"Exception: {e}")
         user_profile = UserProfile()
 
-    # The affiliation friendly name is set via ajax
-    host = request.build_absolute_uri("/")
-    API_URL = host + reverse("v1:openapi-lookups-universities")
-
-    return render(request, "user/profile.html", {"user_profile": user_profile, "API_URL": API_URL})
+    return render(request, "user/profile.html", {"user_profile": user_profile})
 
 
 def __get_university_name(request, code):
