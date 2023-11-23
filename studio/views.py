@@ -1,8 +1,14 @@
+import json
+
+import requests
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect
+from django.shortcuts import render, reverse
 from rest_framework.authentication import (
     BasicAuthentication,
     SessionAuthentication,
@@ -88,3 +94,44 @@ class AuthView(APIView):
             "auth": str(request.auth),
         }
         return Response(content)
+
+
+@login_required
+def profile(request):
+    # Get the user profile
+    try:
+        # Note that not all users have a user profile object
+        # such as the admin superuser
+        user_profile = UserProfile.objects.get(user_id=request.user.id)
+    except ObjectDoesNotExist as e:
+        print(f"ObjectDoesNotExist exception: {e}")
+        user_profile = UserProfile()
+    except Exception as e:
+        print(f"Exception: {e}")
+        user_profile = UserProfile()
+
+    # The affiliation friendly name is set via ajax
+    host = request.build_absolute_uri("/")
+    API_URL = host + reverse("v1:openapi-lookups-universities")
+
+    return render(request, "user/profile.html", {"user_profile": user_profile, "API_URL": API_URL})
+
+
+def __get_university_name(request, code):
+    """Gets the university name by making an API call.
+    :param request: The request object.
+    :param str code: The university code.
+    :returns str name: The university name.
+    """
+    # Get the affiliation name from an API call to /universities by code
+    # Note that reversing the url of openapi-v1 was not working
+    host = request.build_absolute_uri("/")
+    api_url = host + reverse("v1:openapi-lookups-universities")
+    print(f"Making an API request to URL {api_url}")
+    response = requests.get(api_url, params={"code": code})
+
+    if response.status_code == 200:
+        data = response.json()["data"]
+        return data["name"]
+    else:
+        raise Exception("API did not return status 200")

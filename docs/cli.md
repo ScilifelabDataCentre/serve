@@ -145,12 +145,8 @@ Example template.json:
         }
     },
     "settings": {
-        "project-S3": "project-minio" 
+        "project-S3": "project-minio"
     }
   }
 }
 ```
-
-
-
-

@@ -30,7 +30,7 @@ imagePullSecrets:
 ingress:
   v1beta1: false
   secretName: prod-ingress
-  
+
 podSecurityContext:
   fsGroup: 1000
 
@@ -59,7 +59,7 @@ imagePullSecrets:
 ingress:
   v1beta1: false
   secretName: prod-ingress
-  
+
 podSecurityContext:
   seccompProfile:
       type: RuntimeDefault

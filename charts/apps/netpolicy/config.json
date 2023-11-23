@@ -1,11 +1,9 @@
 {
-    "name": "Network Policy",
-    "slug": "netpolicy",
-    "category": "network",
-    "table_field": {},
-    "description": "",
-    "priority": "600",
-    "settings": {
-    }
+  "category": "network",
+  "description": "",
+  "name": "Network Policy",
+  "priority": "600",
+  "settings": {},
+  "slug": "netpolicy",
+  "table_field": {}
 }
-

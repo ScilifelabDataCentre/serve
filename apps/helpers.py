@@ -5,6 +5,8 @@ from django.apps import apps
 from django.conf import settings
 from django.template import engines
 
+from projects.models import Flavor
+
 from .models import AppInstance, AppStatus
 from .serialize import serialize_app
 from .tasks import deploy_resource
@@ -135,6 +137,9 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
 
     access = handle_permissions(parameters_out, project)
 
+    flavor_id = data.get("flavor", None)
+    flavor = Flavor.objects.get(pk=flavor_id, project=project) if flavor_id else None
+
     app_instance = AppInstance(
         name=app_name,
         description=app_description,
@@ -144,6 +149,7 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
         info={},
         parameters=parameters_out,
         owner=user,
+        flavor=flavor,
     )
 
     create_instance_params(app_instance, "create")

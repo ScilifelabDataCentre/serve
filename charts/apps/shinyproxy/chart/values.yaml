@@ -4,14 +4,11 @@ project:
   name: project
   slug: project-slug
 
-app:
-  resources:
-    requests:
-      memory: 1024Mi
-      cpu: 1.0
-    limits:
-      memory: 1024Mi
-      cpu: 1.0
+appconfig:
+  proxyimage: ghcr.io/scilifelabdatacentre/serve-shinyproxy:231030-1144
+  proxyport: 8080
+  port: 3838
+  image:
 
   gpu:
     enabled: false
@@ -26,20 +23,29 @@ app:
             values:
             - gpu
 
-imagePullSecrets:
-  - name: regcred
+global:
+  domain: localhost
+
+service:
+  name: shinyproxy-svc
 
 ingress:
-  v1beta1: false
   secretName: prod-ingress
 
 s3sync:
   image: scaleoutsystems/s3-sync:latest
 
+podSecurityContext:
+  seccompProfile:
+      type: RuntimeDefault
+  fsGroup: 1000
+
 securityContext:
-  enabled: true
   runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 1000
   allowPrivilegeEscalation: false
   privileged: false
+  capabilities:
+    drop:
+      - all

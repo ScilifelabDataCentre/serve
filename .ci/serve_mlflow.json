@@ -1,8 +1,8 @@
 {
-"app_name": "ElasticNet",
-"slug": "mlflow-serve",
-"model": 2,
-"environment": "MLflow Serving",
-"flavor": "Medium",
-"app_action": "Create"
+  "app_action": "Create",
+  "app_name": "ElasticNet",
+  "environment": "MLflow Serving",
+  "flavor": "Medium",
+  "model": 2,
+  "slug": "mlflow-serve"
 }

@@ -1,29 +1,3 @@
-{{ if .Values.ingress.v1beta1 }}
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: {{ .Release.Name }}-ingress
-  namespace: {{ .Values.namespace }}
-  labels:
-    io.kompose.service: {{ .Release.Name }}-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/auth-url: "{{ .Values.global.protocol }}://{{ .Values.global.auth_domain }}:8080/auth/?release={{ .Values.release }}"
-    nginx.ingress.kubernetes.io/auth-signin: "https://{{ .Values.global.domain }}/accounts/login/?next=$scheme%3A%2F%2F$host"
-    #nginx.ingress.kubernetes.io/auth-response-headers: X-Forwarded-Host
-spec:
-  rules:
-    - host: {{ .Release.Name }}.{{ .Values.global.domain }}
-      http:
-        paths:
-        - path: /
-          backend:
-            serviceName: {{ .Values.service.name }}
-            servicePort: {{ .Values.service.port }}
-  tls:
-    - secretName: {{ .Values.ingress.secretName }}
-      hosts:
-        - {{ .Values.global.domain }}
-{{ else }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -32,9 +6,10 @@ metadata:
   labels:
     io.kompose.service: {{ .Release.Name }}-ingress
   annotations:
+    {{ if ne .Values.permission "public" }}
     nginx.ingress.kubernetes.io/auth-url: "{{ .Values.global.protocol }}://{{ .Values.global.auth_domain }}:8080/auth/?release={{ .Values.release }}"
     nginx.ingress.kubernetes.io/auth-signin: "https://{{ .Values.global.domain }}/accounts/login/?next=$scheme%3A%2F%2F$host"
-    #nginx.ingress.kubernetes.io/auth-response-headers: X-Forwarded-Host
+    {{- end }}
 spec:
   rules:
     - host: {{ .Release.Name }}.{{ .Values.global.domain }}
@@ -51,4 +26,3 @@ spec:
     - secretName: {{ .Values.ingress.secretName }}
       hosts:
         - {{ .Values.global.domain }}
-{{- end }}

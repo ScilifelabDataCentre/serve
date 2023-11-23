@@ -1,37 +1,48 @@
 {
-    "name": "MLFlow Serve",
-    "slug": "mlflow-serve",
-    "category": "serve",
-    "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}/invocations"
+  "category": "serve",
+  "description": "",
+  "name": "MLFlow Serve",
+  "priority": "400",
+  "settings": {
+    "default_values": {
+      "is_tar": "False",
+      "port": "5000",
+      "targetport": "8501"
     },
-    "description": "",
-    "priority": "400",
-    "settings": {
-        "model": {
-            "quantity": "one",
-            "object_type": "mlflow"
-        },
-        "flavor": "one",
-        "environment": {
-            "name": "from",
-            "title": "Environment",
-            "quantity": "one",
-            "type": "match"
-        },
-        "logs": ["serve"],
-        "default_values": {
-            "is_tar": "False",
-            "port": "5000",
-            "targetport": "8501"
-        },
-        "permissions": {
-            "public": {"value":"false", "option": "true"},
-            "project": {"value":"true", "option": "true"},
-            "private": {"value":"false", "option": "true"}
-        },
-        "env_variables": {
-            "{{ app_name }}_URL": "https://{{ release }}.{{ global.domain }}/invocation"
-        }
+    "env_variables": {
+      "{{ app_name }}_URL": "https://{{ release }}.{{ global.domain }}/invocation"
+    },
+    "environment": {
+      "name": "from",
+      "quantity": "one",
+      "title": "Environment",
+      "type": "match"
+    },
+    "flavor": "one",
+    "logs": [
+      "serve"
+    ],
+    "model": {
+      "object_type": "mlflow",
+      "quantity": "one"
+    },
+    "permissions": {
+      "private": {
+        "option": "true",
+        "value": "false"
+      },
+      "project": {
+        "option": "true",
+        "value": "true"
+      },
+      "public": {
+        "option": "true",
+        "value": "false"
+      }
     }
+  },
+  "slug": "mlflow-serve",
+  "table_field": {
+    "url": "https://{{ release }}.{{ global.domain }}/invocations"
+  }
 }

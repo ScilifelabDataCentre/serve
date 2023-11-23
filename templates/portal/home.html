@@ -51,12 +51,12 @@
 
     <div class="row text-center justify-content-center border rounded bg-light mt-5">
         <div class="col-12 text-center">
-            <h3 class="pt-4">Recent updates</h3> 
+            <h3 class="pt-4">Recent updates</h3>
         </div>
-    
+
         <div class="col-12 col-md-6 align-items-stretch my-4 p-4">
-            <h5>Apps 
-            </h5> 
+            <h5>Apps
+            </h5>
             <hr class="m-0 bg-lime  border-0" style="height: 2px;">
             {% for app in published_apps %}
                 <div class="card border-0 shadow my-5" data-aos="slide-up">
@@ -89,15 +89,15 @@
                     </div>
                 </div>
             {% endfor %}
-            <a class="text-muted" href="{% url 'portal:apps' %}" target="_self" title="Apps">Browse all apps</a> 
+            <a class="text-muted" href="{% url 'portal:apps' %}" target="_self" title="Apps">Browse all apps</a>
         </div>
 
         <div class="col-12 col-md-6 align-items-stretch my-4 p-4">
-            <h5>Models 
-            </h5> 
+            <h5>Models
+            </h5>
             <hr class="m-0 bg-teal border-0" style="height: 2px;">
             {% for model in published_models %}
-            
+
                 <div class="card border-0 shadow my-5" data-aos="slide-up">
                     <div class="card-body text-start">
                         <div class="card-title d-flex justify-content-between align-items-center m-0">
@@ -126,38 +126,36 @@
                     </div>
                 </div>
             {% endfor %}
-            <a class="text-muted pb-4" href="{% url 'models:index' %}" target="_self" title="Models">Browse all models</a> 
+            <a class="text-muted pb-4" href="{% url 'models:index' %}" target="_self" title="Models">Browse all models</a>
         </div>
     </div>
 
     <div class="row text-center mt-5">
         <div class="col-12 text-center">
-            <h3>News 
-            </h3> 
+            <h3>News
+            </h3>
             <hr class="m-0 bg-grape border-0" style="height: 2px;">
         </div>
 
             {% for news in news_objects %}
             <div class="col-4 my-4">
                 <div class="card border bg-white my-4" data-aos="slide-up">
-            
+
                     <p class="text-muted card-footer-text text-end p-1 m-0">{{ news.created_on|date:"M. j, Y, H:i" }}</p>
                     <a href="{% url 'news:news' %}#{{ news.title|slugify }}" class="stretched-link">
                     <div class="card-body text-start py-0">
                         <div class="card-title d-flex justify-content-between align-items-center">
-                            
-                                <h5 class="text-grape">{{ news.title }}</h5>                   
-                            
+
+                                <h5 class="text-grape">{{ news.title }}</h5>
+
                         </div>
-                            <p class="card-text mb-2">{{ news.body|truncatechars:150 }}</p> 
+                            <p class="card-text mb-2">{{ news.body|truncatechars:150 }}</p>
                     </div>
                     </a>
                 </div>
             </div>
             {% endfor %}
-    </div>  
+    </div>
 
 </div>
 {% endblock %}
-
-
