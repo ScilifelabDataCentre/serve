@@ -184,7 +184,7 @@
                     {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%}
                     <div class="mb-3 form-group validate-item">
                     {% else %}
-                    <div class="mb-3">
+                    <div class="mb-3 {% if subkey == "path" %}path_div{% endif %}">
                     {% endif %}
                         {% if subval.type == "boolean" %}
                         <label class="form-label">{{ subval.title }}</label>
@@ -207,6 +207,13 @@
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control" required>
                         <div class="invalid-feedback">
                             Please add a valid image name!
+                        </div>
+                        {% elif subkey == "path" %}
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Specify the path inside the container that you want to be persistent (path to database or similar).">
+                        </span>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control">
+                        <div class="invalid-feedback">
+                            Please add a valid path!
                         </div>
                         {% else %}
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
@@ -286,6 +293,26 @@
         </div>
     </div>
 </div>
+{# In the custom app creation form, make the path a required field if a persistent volumet is selected #}
+{% if app.name == "Custom App" %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var pvcField = document.getElementById('Persistent Volume');
+        var pathField = document.getElementById('path');
+        var pathDiv = document.querySelector('.path_div');
+
+        pvcField.addEventListener('change', function () {
+            if (pvcField.value !== 'None') {
+                pathField.setAttribute('required', 'required');
+                pathDiv.classList.add('validate-item');
+            } else {
+                pathField.removeAttribute('required');
+                pathDiv.classList.remove('validate-item');
+            }
+        });
+    });
+</script>
+{% endif %}
 <!-- Bootstrap core JavaScript-->
 <script>
     $(document).ready(function(){
