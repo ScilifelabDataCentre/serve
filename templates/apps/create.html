@@ -171,7 +171,7 @@
                             <option value="{{ appinstance.pk }}" {{ appinstance.selected }}>{{ appinstance.name }}
                             </option>
                             {% endfor %}
-                            <option value="None">None</option>
+                            <option value="None" {% if app.name == "Custom App" %}selected="selected"{% endif %}>None</option>
                         </select>
                     </div>
                     {% endfor %}
