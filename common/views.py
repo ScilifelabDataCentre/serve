@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib import messages
+from django.core.mail import send_mail
 from django.db import transaction
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import redirect
@@ -7,6 +8,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, TemplateView
 
 from .forms import ProfileForm, SignUpForm, UserForm
+from .models import EmailVerificationTable
 
 
 # Create your views here.
@@ -16,6 +18,16 @@ class HomeView(TemplateView):
 
 class RegistrationCompleteView(TemplateView):
     template_name = "registration/registration_complete.html"
+
+
+def send_email_(request):
+    send_mail(
+        "Subject here",
+        "Here is the message.",
+        "churnikov@gmail.com",
+        ["not-exists@chur.ru"],
+        fail_silently=False,
+    )
 
 
 # Sign Up View
@@ -76,3 +88,42 @@ class SignUpView(CreateView):
         # 'form' here will be a UserForm instance.
         profile_form = self.get_context_data().get("profile_form")
         return self.custom_form_invalid(form, profile_form)
+
+
+class VerifyView(TemplateView):
+    """
+    View for email verification
+
+    This view is called when user clicks the link in the email sent to him.
+    It will check if the token is valid, and if it is, it will set the user to active.
+    """
+
+    template_name = "registration/verify.html"
+
+    def get(self, request, token, *args, **kwargs):
+        try:
+            email_verification_table = EmailVerificationTable.objects.get(token=token)
+            user = email_verification_table.user
+            if user.is_active:
+                messages.error(request, "Email already verified!")
+                return redirect("portal:home")
+            if user.userprofile.is_approved:
+                user.is_active = True
+                user.save()
+            else:
+                send_mail(
+                    f"User {user.email} has verified their email address",
+                    "Please go to the admin page to activate their account.",
+                    settings.EMAIL_HOST_USER,
+                    # TODO: Change this to the email of the admin
+                    # ["serve@scilifelab.se"],
+                    [settings.EMAIL_HOST_USER],
+                    fail_silently=False,
+                )
+
+            email_verification_table.delete()
+            messages.success(request, "Email verified successfully!")
+            return redirect("login")
+        except EmailVerificationTable.DoesNotExist:
+            messages.error(request, "Invalid token!")
+            return redirect("portal:home")

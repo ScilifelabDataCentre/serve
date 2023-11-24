@@ -32,14 +32,6 @@ def set_new_user_inactive(sender, instance, **kwargs):
         print("Updating User Record")
 
 
-@receiver(post_save, sender=UserProfile)
-def post_save_userprofile(sender, instance, **kwargs):
-    if not settings.INACTIVE_USERS:
-        user = instance.user
-        user.is_active = instance.is_approved
-        user.save()
-
-
 # Since this is a production feature, it will only work if DEBUG is set to False
 
 
