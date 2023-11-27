@@ -44,8 +44,7 @@ spec:
           - containerPort: {{ .Values.appconfig.proxyport }}
         volumeMounts:
           - name: application-conf-{{ .Release.Name }}
-            mountPath: /opt/shinyproxy/application.yml
-            subPath: application.yml
+            mountPath: /opt/shinyproxy/config
         imagePullPolicy: IfNotPresent
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
