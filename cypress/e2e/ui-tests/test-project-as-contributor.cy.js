@@ -40,10 +40,10 @@ describe("Test project contributor user functionality", () => {
 
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
-        const project_title_name = project_name + " | SciLifeLab Serve"
+        const project_title_name = project_name + " | SciLifeLab Serve (beta)"
 
         cy.visit("/projects/")
-        cy.get("title").should("have.text", "My projects | SciLifeLab Serve")
+        cy.get("title").should("have.text", "My projects | SciLifeLab Serve (beta)")
 
         // Click button for UI to create a new project
         cy.get("a").contains('New project').click()
@@ -106,10 +106,10 @@ describe("Test project contributor user functionality", () => {
 
         // Names of objects to create
         const project_name = "e2e-create-ml-proj-test"
-        const project_title_name = project_name + " | SciLifeLab Serve"
+        const project_title_name = project_name + " | SciLifeLab Serve (beta)"
 
         cy.visit("/projects/")
-        cy.get("title").should("have.text", "My projects | SciLifeLab Serve")
+        cy.get("title").should("have.text", "My projects | SciLifeLab Serve (beta)")
 
         // Click button for UI to create a new project
         cy.get("a").contains('New project').click()
