@@ -39,7 +39,7 @@ spec:
         image: {{ .Values.appconfig.image }}
         imagePullPolicy: IfNotPresent
         ports:
-          - containerPort: {{ .Values.service.targetport }}
+          - containerPort: {{ .Values.appconfig.port }}
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
