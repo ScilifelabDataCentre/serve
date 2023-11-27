@@ -177,7 +177,7 @@
                 <div class="row g-2 py-2 mx-2">
                 {% for app in objs.apps %}
                 {% if project.s3storage == None and app.slug in 'mlflow,mlflow-serve,pytorch-serve,tensorflow-serve' %}
-                {% elif app.name == "Shiny App (single copy)" and not request.user.is_superuser %}
+                {% elif app.slug == "shinyapp" and not request.user.is_superuser %}
                 {% else %}
                 <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                     <div class="card h-100" data-cy="create-app-card">

@@ -171,7 +171,7 @@
                             <option value="{{ appinstance.pk }}" {{ appinstance.selected }}>{{ appinstance.name }}
                             </option>
                             {% endfor %}
-                            <option value="None" {% if app.name == "Custom App" %}selected="selected"{% endif %}>None</option>
+                            <option value="None" {% if app.slug == "customapp" %}selected="selected"{% endif %}>None</option>
                         </select>
                     </div>
                     {% endfor %}
@@ -294,7 +294,7 @@
     </div>
 </div>
 {# In the custom app creation form, make the path a required field if a persistent volumet is selected #}
-{% if app.name == "Custom App" %}
+{% if app.slug == "customapp" %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         var pvcField = document.getElementById('Persistent Volume');
