@@ -9,42 +9,55 @@
 
 <div class="container">
     <div class="row">
-        <div class="col-12 d-flex align-items-center justify-content-center">
+        <div class="col-12 d-flex align-items-center justify-content-center mb-2">
             <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="max-width:400px;width:60%">
         </div>
         <div class="col-12 col-lg-8 offset-lg-2 d-flex align-items-center justify-content-center mb-4">
-            SciLifeLab Serve is a platform offering machine learning model serving, app hosting, web-based integrated development environments, and other tools to life science researchers affiliated with a Swedish research institute.
+            SciLifeLab Serve (beta) is a platform offering machine learning model serving, app hosting, web-based integrated development environments, and other tools to life science researchers affiliated with a Swedish research institute.
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
             <div class="card text-center py-2 shadow" data-aos="fade">
                 <h1><i class="bi bi-robot"></i></h1>
                 <div class="card-body">
-                  <h5 class="card-title">Machine Learning Model Serving</h5>
-                  <p class="card-text">Deploy your pre-trained models using TorchServe, TensorFlow Serving, MLFlow. Obtain API endpoints for your models for programmatic access and build apps.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 shadow " data-aos="fade" >
-                <h1><i class="bi bi-window-stack"></i></h1>
-                <div class="card-body">
-                  <h5 class="card-title">Application Hosting</h5>
-                  <p class="card-text">Host applications such as R Shiny, Plotly Dash, custom Flask apps, etc. to allow others to explore your data or results, or to provide tools based on your deployed machine learning models.</p>
+                  <h5 class="card-title">Machine Learning model serving</h5>
+                  <p class="card-text">Deploy your trained models and obtain API endpoints for inference requests. We support TorchServe, TensorFlow Serving, MLFlow.</p>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
             <div class="card text-center py-2 shadow" data-aos="fade">
-                <h1><i class="bi bi-code-slash"></i></h1>
+                <h1><i class="bi bi-window-stack"></i></h1>
                 <div class="card-body">
-                  <h5 class="card-title">Development Environments</h5>
-                  <p class="card-text">Use a web-browser based IDEs to run analyses or to collaborate with your team-mates.</p>
+                  <h5 class="card-title">ML model demo apps</h5>
+                  <p class="card-text">Share web apps with a graphical user interface to allow users to make inferences with custom input. We support apps built using Gradio, Streamlit, Flask, FastAPI, etc.</p>
                 </div>
             </div>
         </div>
+
+        <div class="col-md-4 d-flex align-items-stretch">
+            <div class="card text-center py-2 shadow " data-aos="fade" >
+                <h1><i class="bi bi-bar-chart-line"></i></h1>
+                <div class="card-body">
+                  <h5 class="card-title">Data and analysis apps</h5>
+                  <p class="card-text">Share web  apps with interactive visualisations, analyses, text, tables, etc. We support apps built using R Shiny, Plotly Dash, etc.</p>
+                </div>
+            </div>
+        </div>
+
+        {% comment %}
+        <div class="col-md-4 d-flex align-items-stretch">
+            <div class="card text-center py-2 shadow" data-aos="fade">
+                <h1><i class="bi bi-code-slash"></i></h1>
+                <div class="card-body">
+                  <h5 class="card-title">Development environments</h5>
+                  <p class="card-text">Use web-browser based IDEs to run analyses or to collaborate with your teammates. We offer web-based JupyterLab, RStudio, and VS Code.</p>
+                </div>
+            </div>
+        </div>
+        {% endcomment %}
+
     </div>
 
 
@@ -73,7 +86,7 @@
                             </div>
                         </div>
                         <div class="card-text">
-                            {{ app.description|truncatechars:30 }}
+                            {{ app.description|truncatechars:100 }}
                         </div>
 
 
@@ -138,7 +151,7 @@
         </div>
 
             {% for news in news_objects %}
-            <div class="col-4 my-4">
+            <div class="col-4">
                 <div class="card border bg-white my-4" data-aos="slide-up">
 
                     <p class="text-muted card-footer-text text-end p-1 m-0">{{ news.created_on|date:"M. j, Y, H:i" }}</p>
@@ -155,7 +168,14 @@
                 </div>
             </div>
             {% endfor %}
+
+            {% if link_all_news %}
+            <div class="col-12 text-center">
+                <a class="text-muted" href="{% url 'news:news' %}" target="_self" title="News">Browse all news</a>
+            </div>
+            {% endif %}
     </div>
+
 
 </div>
 {% endblock %}
