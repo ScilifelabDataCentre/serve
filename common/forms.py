@@ -288,3 +288,24 @@ class SignUpForm:
         profile.save()
         email_verification.save()
         return profile
+
+
+class TokenVerificationForm(forms.Form):
+    token = forms.CharField(
+        max_length=100,
+        label="Token",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        help_text="Token from email",
+    )
+
+    def clean_token(self):
+        token = self.cleaned_data["token"]
+        if not EmailVerificationTable.objects.filter(token=token).exists():
+            raise ValidationError("Invalid token")
+        return token
+
+    class Meta:
+        model = EmailVerificationTable
+        fields = [
+            "token",
+        ]

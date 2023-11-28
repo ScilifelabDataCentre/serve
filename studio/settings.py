@@ -178,7 +178,7 @@ LOGIN_URL = "login"
 LOGOUT_URL = "logout"
 
 # Make new user inactive by default
-INACTIVE_USERS = False
+INACTIVE_USERS = True
 
 # Django guardian 403 templates
 GUARDIAN_RENDER_403 = True
@@ -325,9 +325,16 @@ PUBLISHEDMODEL_MODEL = "portal.PublishedModel"
 PUBLICMODELOBJECT_MODEL = "portal.PublicModelObject"
 
 # Email
-EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
-EMAIL_FILE_PATH = BASE_DIR / "sent_emails"
-EMAIL_TEMPLATE_PROTOCOL = "http"
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend" if not DEBUG else "django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 VERSION = "dev"
 

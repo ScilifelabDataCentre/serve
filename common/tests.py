@@ -5,6 +5,7 @@ import pytest
 from django import forms
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
+from django.core import mail
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from hypothesis import Verbosity, assume, given, settings
@@ -19,7 +20,7 @@ from common.forms import (
     SignUpForm,
     UserForm,
 )
-from common.models import UserProfile
+from common.models import EmailVerificationTable, UserProfile
 
 
 def get_affilitaion(email):
@@ -69,19 +70,26 @@ def input_form(
     return form
 
 
-@pytest.mark.pass_validation
-@pytest.mark.django_db(transaction=True, serialized_rollback=True)
-@given(form=input_form())
-@settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)
-def test_pass_validation(form):
-    UserProfile.objects.all().delete()
-    User.objects.all().delete()
-    is_val = form.is_valid()
-    assert hasattr(form.user, "cleaned_data")
-    assert hasattr(form.profile, "cleaned_data")
-    assert is_val, (form.user.errors, form.profile.errors)
-    profile = form.save()
-    assert profile.user.username == profile.user.email
+class TestSignUp(TestCase):
+    @pytest.mark.pass_validation
+    @pytest.mark.django_db(transaction=True, serialized_rollback=True)
+    @given(form=input_form())
+    @settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)
+    def test_pass_validation(form):
+        UserProfile.objects.all().delete()
+        User.objects.all().delete()
+        is_val = form.is_valid()
+        assert hasattr(form.user, "cleaned_data")
+        assert hasattr(form.profile, "cleaned_data")
+        assert is_val, (form.user.errors, form.profile.errors)
+        profile = form.save()
+        assert profile.user.username == profile.user.email
+        # Verify email sending
+        assert mail.outbox[0].subject == "Verify your email address"
+        assert mail.outbox[0].to == [profile.user.email]
+        assert EmailVerificationTable.objects.filter(user=profile.user).exists()
+        token = EmailVerificationTable.objects.get(user=profile.user).token
+        assert token in mail.outbox[0].body
 
 
 @pytest.mark.django_db
