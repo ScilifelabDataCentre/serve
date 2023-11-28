@@ -431,7 +431,7 @@
       "category": "serve",
       "chart": "apps/custom-app/chart",
       "created_on": "2023-08-25T21:34:37.815Z",
-      "description": "",
+      "description": "Apps built with Gradio, Streamlit, Flask, etc.",
       "logo": "default-logo.png",
       "name": "Custom App",
       "priority": "400",
@@ -594,12 +594,12 @@
   },
   {
     "fields": {
-      "category": "admin-apps",
+      "category": "serve",
       "chart": "apps/shiny/chart",
       "created_on": "2023-08-25T21:34:37.815Z",
-      "description": "Shiny app without ShinyProxy as a middle layer.",
+      "description": "Shiny app without ShinyProxy as a middle layer. [admins only]",
       "logo": "shinyapp-logo.png",
-      "name": "Shiny App",
+      "name": "Shiny App (single copy)",
       "priority": "400",
       "settings": {
         "appconfig": {

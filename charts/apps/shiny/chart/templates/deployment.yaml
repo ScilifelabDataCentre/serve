@@ -43,6 +43,6 @@ spec:
         resources:
           {{- toYaml .Values.flavor | nindent 10 }}
         ports:
-          - containerPort: {{ .Values.service.targetport }}
+          - containerPort: {{ .Values.appconfig.port }}
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
