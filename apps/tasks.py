@@ -204,12 +204,8 @@ def delete_and_deploy_resource(instance_pk, new_release_name):
 @transaction.atomic
 def deploy_resource(instance_pk, action="create"):
     print("TASK - DEPLOY RESOURCE...")
-    print("########################### DEPLOY RESOURCE", flush=True)
-
     app_instance = AppInstance.objects.select_for_update().get(pk=instance_pk)
     status = AppStatus(appinstance=app_instance)
-    print("RELEASE", app_instance.parameters["release"], flush=True)
-    print(" ", flush=True)
     if (action == "create") or (action == "update"):
         parameters = app_instance.parameters
         status.status_type = "Created"
@@ -220,7 +216,7 @@ def deploy_resource(instance_pk, action="create"):
             parameters["ingress"] = dict()
 
         app_instance.parameters = parameters
-        print("App Instance parameters: {}".format(app_instance.parameters), flush=True)
+        print("App Instance paramenters: {}".format(app_instance))
         app_instance.save()
 
     results = controller.deploy(app_instance.parameters)
@@ -521,47 +517,6 @@ def delete_old_objects():
 config.load_kube_config("./cluster.conf")
 api = client.CoreV1Api()
 w = watch.Watch()
-@shared_task
-def init_event_listener2(namespace):
-
-    deleted_replica_pod_name = ""
-    for event in w.stream(api.list_namespaced_event, namespace="default"):
-        obj = event["object"]
-        
-        obj_kind = obj.involved_object.kind
-        
-        # get info from ReplicaSet event
-        if obj_kind == "ReplicaSet":
-            message = obj.message
-            pod_name = message.split(": ")[-1]
-            if "Deleted" in message:
-                deleted_replica_pod_name = pod_name
-                print("DELETED NAME", deleted_replica_pod_name, "FROM REPLICASET - IGNORING", flush=True)
-
-        # Get info from Pod event
-        if obj_kind == "Pod":
-            pod_name = obj.involved_object.name
-            if pod_name == deleted_replica_pod_name:
-                continue
-            try:
-                pod = api.read_namespaced_pod_status(name=pod_name, namespace='default')
-            except:
-                pod = None
-            if not pod:
-                status = get_status(pod)
-                status = status.replace("ContainerCreating", "Creating")
-        
-                release = pod.metadata.labels["release"]
-                appinstance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
-                status_object = AppStatus(appinstance=appinstance)
-            
-                print(f"STATUS: {status}", flush=True)
-
-                status_object.status_type = status
-                status_object.save()
-                appinstance.state = status
-                appinstance.save()
-
 
 @shared_task(bind=True, max_retries=None)
 def init_event_listener(self, namespace, label_selector):
@@ -614,7 +569,6 @@ def on_worker_ready(**kwargs):
 
 
 def get_status(pod):
-    print("EVENTLISTNER:Getting status...")
 
     container_statuses = pod.status.container_statuses
 
@@ -639,8 +593,6 @@ def get_status(pod):
                     return "Running"
 
             print("Last state not found.")
-    else:
-        print("Container statuses not found.")
 
     return pod.status.phase
 
