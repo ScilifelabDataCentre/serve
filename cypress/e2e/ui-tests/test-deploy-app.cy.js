@@ -64,9 +64,9 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
 
-            cy.wait(30000)
             cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Running')
 
+            cy.log("Now deleting the private or project app")
             cy.get('tr:contains("' + app_name_private + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_private + '")').find('a.confirm-delete').click()
 
@@ -85,7 +85,6 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
 
-            cy.wait(5000)
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
 
             cy.visit("/apps")
@@ -96,7 +95,26 @@ describe("Test deploying app", () => {
             //cy.get('h5.card-title').contains(app_name).parents('div.card-body')
             //    .find('span.badge').should("have.text", "Running")
 
+            // Check that the public app is displayed on the homepage
+            cy.log("Now checking if the public app is displayed when not logged in.")
+            cy.visit("/home/")
+            cy.get('h5').should('contain', app_name_public)
+            // Log out and check that the public app is still displayed on the homepage
+            cy.visit("/accounts/logout/")
+            cy.get('h1').should('contain', "You have been logged out.") // check logout worked
+            cy.visit("/home/")
+            cy.get('h5').should('contain', app_name_public)
+            // Log back in
+            cy.fixture('users.json').then(function (data) {
+                users = data
+                cy.visit('/accounts/login/')
+                cy.get('input[name=username]').type(users.deploy_app_user.email)
+                cy.get('input[name=password]').type(`${users.deploy_app_user.password}{enter}`, { log: false })
+            })
+            cy.url().should('include', '/projects') // check that login worked
+
             // Remove the created public app and verify that it is deleted from public apps page
+            cy.log("Now deleting the public app")
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_public + '")').find('i.bi-three-dots-vertical').click()
