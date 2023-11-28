@@ -272,5 +272,113 @@ describe("Test project contributor user functionality", () => {
         // if accessing directly with the url, the request is not accepted
         cy.request({url: "/projects/create", failOnStatusCode: false}).its('status').should('equal', 403)
         cy.request({url: "/projects/templates", failOnStatusCode: false}).its('status').should('equal', 403)
+
+        // Now delete all created projects
+        Cypress._.times(5, () => {
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
+            .then((href) => {
+                cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
+                    cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
+               })
+            })
+        });
+    })
+
+    it("giving access to the project to other users works", () => {
+        // Names of projects and apps to create
+        const project_name = "e2e-create-proj-test"
+        const private_app_name = "e2e-private-app-test"
+        const project_app_name = "e2e-project-app-test"
+        const app_type = "Jupyter Lab"
+
+        // Create a project
+        cy.log("Now creating a project")
+        cy.visit("/projects/")
+        // Click button for UI to create a new project
+        cy.get("a").contains('New project').click()
+        // Next click button to create a new blank project
+        cy.get("a").contains('Create').first().click()
+        // Fill in the options for creating a new blank project
+        cy.get('input[name=name]').type(project_name)
+        cy.get('textarea[name=description]').type("A test project created by an e2e test.")
+        cy.get("input[name=save]").contains('Create project').click()
+        cy.wait(5000) // sometimes it takes a while to create a project
+
+        // Create private app
+        cy.log("Now creating a private app")
+        cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+        cy.get('input[name=app_name]').type(private_app_name)
+        cy.get('select[id=permission]').select('private')
+        cy.get('button').contains('Create').click() // create app
+        cy.get('tr:contains("' + private_app_name + '")').find('span').should('contain', 'private') // check that the app got greated
+
+        // Create project app
+        cy.log("Now creating a project app")
+        cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+        cy.get('input[name=app_name]').type(project_app_name)
+        cy.get('select[id=permission]').select('project')
+        cy.get('button').contains('Create').click() // create app
+        cy.get('tr:contains("' + project_app_name + '")').find('span').should('contain', 'project') // check that the app got greated
+
+        // Give access to this project to a collaborator user
+        cy.log("Now giving access to another user")
+        // Go to project settings
+        cy.get('[data-cy="settings"]').click()
+        cy.get('a[href="#access"]').click()
+        // Give access to contributor
+        cy.fixture('users.json').then(function (data) {
+            cy.get('input[name=selected_user]').type(users.contributor_collaborator.email)
+        })
+        cy.get('button').contains('Grant access').click()
+
+        // Log out contributor user
+        cy.log("Now logging out contributor user")
+        cy.visit("/accounts/logout/")
+        cy.get('h1').should('contain', "You have been logged out.") // check logout worked
+
+        // Log in as contributor's collaborator user
+        cy.log("Now logging in as contributor's collaborator user")
+        cy.fixture('users.json').then(function (data) {
+            cy.visit('/accounts/login/')
+            cy.get('input[name=username]').type(users.contributor_collaborator.email)
+            cy.get('input[name=password]').type(`${users.contributor_collaborator.password}{enter}`, { log: false })
+            cy.url().should('include', '/projects')
+            cy.get('h3').should('contain', 'My projects')
+        })
+
+        // Check that the contributor's collaborator user has correct access
+        cy.log("Now checking access to project and apps")
+        cy.get('h5.card-title').should('contain', project_name) // check access to project
+        cy.get('a.btn').contains('Open').click()
+        cy.get('tr:contains("' + private_app_name + '")').should('not.exist') // private app not visible
+        // to be added: go to URL and check that it does not open
+        cy.get('tr:contains("' + project_app_name + '")').should('exist') // project app visible
+        // to be added: go to URL and check that it opens successfully
+
+        // Log out contributor's collaborator user
+        cy.log("Now logging out contributor's collaborator user")
+        cy.visit("/accounts/logout/")
+        cy.get('h1').should('contain', "You have been logged out.") // check logout worked
+
+        // Log back in as contributor user
+        cy.log("Now logging in as contributor user")
+        cy.fixture('users.json').then(function (data) {
+            cy.visit('/accounts/login/')
+            cy.get('input[name=username]').type(users.contributor.email)
+            cy.get('input[name=password]').type(`${users.contributor.password}{enter}`, { log: false })
+            cy.url().should('include', '/projects')
+            cy.get('h3').should('contain', 'My projects')
+        })
+
+        // Delete the created project
+        cy.log("Now deleting the created project")
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
+            .then((href) => {
+                cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
+                    cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
+               })
+            })
     })
 })
