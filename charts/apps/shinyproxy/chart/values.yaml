@@ -5,7 +5,7 @@ project:
   slug: project-slug
 
 appconfig:
-  proxyimage: ghcr.io/scilifelabdatacentre/serve-shinyproxy:231030-1144
+  proxyimage: ghcr.io/scilifelabdatacentre/serve-shinyproxy:231124-2126
   proxyport: 8080
   port: 3838
   image:
