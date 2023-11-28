@@ -1,9 +1,11 @@
 import json
 import subprocess
 import time
-
 import requests
+
 from celery import shared_task
+from celery.signals import worker_ready
+
 from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import EmptyResultSet
@@ -17,6 +19,9 @@ from studio.celery import app
 
 from . import controller
 from .models import AppInstance, Apps, AppStatus, ResourceData
+     
+from kubernetes import client, config, watch
+
 
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
@@ -171,19 +176,18 @@ def post_delete_hooks(instance):
 @shared_task
 @transaction.atomic
 def delete_and_deploy_resource(instance_pk, new_release_name):
+    print("########################### DELETE DEPLOY RESOURCE", flush=True)
+    print(f"INSTALLING {new_release_name}", flush=True)
     appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
 
-    if appinstance and appinstance.state != "Deleted":
+    if appinstance:
         # The instance does exist.
         parameters = appinstance.parameters
         results = controller.delete(parameters)
 
         if results.returncode == 0:
             post_delete_hooks(appinstance)
-            parameters["release"] = new_release_name
-            appinstance.parameters.update(parameters)
-            appinstance.save()
-            deploy_resource(instance_pk)
+            deploy_resource(appinstance.pk)
             try:
                 rel_name_obj = ReleaseName.objects.get(
                     name=new_release_name, project=appinstance.project, status="active"
@@ -200,9 +204,12 @@ def delete_and_deploy_resource(instance_pk, new_release_name):
 @transaction.atomic
 def deploy_resource(instance_pk, action="create"):
     print("TASK - DEPLOY RESOURCE...")
+    print("########################### DEPLOY RESOURCE", flush=True)
+
     app_instance = AppInstance.objects.select_for_update().get(pk=instance_pk)
     status = AppStatus(appinstance=app_instance)
-
+    print("RELEASE", app_instance.parameters["release"], flush=True)
+    print(" ", flush=True)
     if (action == "create") or (action == "update"):
         parameters = app_instance.parameters
         status.status_type = "Created"
@@ -213,7 +220,7 @@ def deploy_resource(instance_pk, action="create"):
             parameters["ingress"] = dict()
 
         app_instance.parameters = parameters
-        print("App Instance paramenters: {}".format(app_instance))
+        print("App Instance parameters: {}".format(app_instance.parameters), flush=True)
         app_instance.save()
 
     results = controller.deploy(app_instance.parameters)
@@ -294,148 +301,6 @@ def delete_resource_permanently(appinstance):
     release_name(appinstance)
 
     appinstance.delete()
-
-
-@app.task
-@transaction.atomic
-def check_status():
-    # TODO: Fix for multicluster setup.
-    args = [
-        "kubectl",
-        "-n",
-        settings.NAMESPACE,
-        "get",
-        "po",
-        "-l",
-        "type=app",
-        "-o",
-        "json",
-    ]
-    results = subprocess.run(
-        args,
-        capture_output=True,
-        check=True,
-        timeout=settings.KUBE_API_REQUEST_TIMEOUT,
-    )
-    res_json = json.loads(results.stdout.decode("utf-8"))
-    app_statuses = dict()
-    # TODO: Handle case of having many pods (could have many replicas,
-    # or could be right after update)
-    for item in res_json["items"]:
-        release = item["metadata"]["labels"]["release"]
-        phase = item["status"]["phase"]
-
-        deletion_timestamp = []
-        if "deletionTimestamp" in item["metadata"]:
-            deletion_timestamp = item["metadata"]["deletionTimestamp"]
-            phase = "Terminated"
-        num_containers = -1
-        try:
-            num_containers = len(item["status"]["containerStatuses"])
-        except:  # noqa E722 TODO: Add exception
-            print("Failed to get number of containers.")
-            pass
-        num_cont_ready = 0
-        if "containerStatuses" in item["status"]:
-            for container in item["status"]["containerStatuses"]:
-                if container["ready"]:
-                    num_cont_ready += 1
-        if phase == "Running" and num_cont_ready != num_containers:
-            phase = "Waiting"
-        app_statuses[release] = {
-            "phase": phase,
-            "num_cont": num_containers,
-            "num_cont_ready": num_cont_ready,
-            "deletion_status": deletion_timestamp,
-        }
-
-    # Fetch all app instances whose state is not "Deleted"
-    instances = AppInstance.objects.filter(~Q(state="Deleted"))
-
-    for instance in instances:
-        release = instance.parameters["release"]
-        if release in app_statuses:
-            current_status = app_statuses[release]["phase"]
-            try:
-                latest_status = AppStatus.objects.filter(appinstance=instance).latest("time").status_type
-            except:  # noqa E722 TODO: Add exception
-                latest_status = "Unknown"
-            if current_status != latest_status:
-                print("New status for release {}".format(release))
-                print("Current status: {}".format(current_status))
-                print("Previous status: {}".format(latest_status))
-                status = AppStatus(appinstance=instance)
-                # if app_statuses[release]['deletion_status']:
-                #     status.status_type = "Terminated"
-                # else:
-                status.status_type = app_statuses[release]["phase"]
-                # status.info = app_statuses[release]
-                status.save()
-            # else:
-            #     print("No update for release: {}".format(release))
-        else:
-            delete_exists = AppStatus.objects.filter(appinstance=instance, status_type="Terminated").exists()
-            if delete_exists:
-                status = AppStatus(appinstance=instance)
-                status.status_type = "Deleted"
-                status.save()
-                instance.state = "Deleted"
-                instance.deleted_on = timezone.now()
-                instance.save()
-
-    # Fetch all app instances whose state is "Deleted" and check whether
-    # there are related pods which are still running
-    pod_status = "None"
-    instances = AppInstance.objects.filter(state="Deleted")
-    for instance in instances:
-        if "url" in instance.table_field:
-            # Find the app instance release name
-            app_release = instance.parameters["release"]  # e.g 'rfc058c6f'
-            # Now check if there exists a pod with that release
-            cmd = f'kubectl -n {settings.NAMESPACE} get po -l release="{app_release}"'
-
-            try:
-                # returns a byte-like object
-                result = subprocess.run(
-                    cmd,
-                    shell=True,
-                    capture_output=True,
-                    timeout=settings.KUBE_API_REQUEST_TIMEOUT,
-                )
-                result_stdout = result.stdout.decode("utf-8")
-                result_stderr = result.stderr.decode("utf-8")
-            except subprocess.CalledProcessError:
-                print("Error running the command: {}".format(cmd))
-
-            if result_stdout != "" and "No resources found in default namespace." not in result_stderr:
-                # Extract the the status of the related release pod
-                cmd = (
-                    "kubectl"
-                    f" -n {settings.NAMESPACE}"
-                    f" get po -l release={app_release} "
-                    ' -o jsonpath="{.items[0].status.phase}"'
-                )
-                try:
-                    result = subprocess.run(
-                        cmd,
-                        shell=True,
-                        capture_output=True,
-                        timeout=settings.KUBE_API_REQUEST_TIMEOUT,
-                    )
-                    pod_status = result.stdout.decode("utf-8")
-                    print(pod_status)
-                except subprocess.CalledProcessError:
-                    print("Error running the command: {}".format(cmd))
-
-                if pod_status == "Running" and instance.state == "Deleted":
-                    print("INFO: running pod associated to app (Deleted)")
-                    print("INFO: DELETE RESOURCE with release: {}".format(app_release))
-                    cmd = "helm" + " delete " + app_release
-                    try:
-                        result = subprocess.run(cmd, shell=True, capture_output=True)
-                        print(result)
-                    except subprocess.CalledProcessError:
-                        print("Error running the command: {}".format(cmd))
 
 
 @app.task
@@ -649,3 +514,151 @@ def delete_old_objects():
     old_apps = AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name="Develop")
     for app_ in old_apps:
         delete_resource.delay(app_.pk)
+
+
+
+
+config.load_kube_config("./cluster.conf")
+api = client.CoreV1Api()
+w = watch.Watch()
+@shared_task
+def init_event_listener2(namespace):
+
+    deleted_replica_pod_name = ""
+    for event in w.stream(api.list_namespaced_event, namespace="default"):
+        obj = event["object"]
+        
+        obj_kind = obj.involved_object.kind
+        
+        # get info from ReplicaSet event
+        if obj_kind == "ReplicaSet":
+            message = obj.message
+            pod_name = message.split(": ")[-1]
+            if "Deleted" in message:
+                deleted_replica_pod_name = pod_name
+                print("DELETED NAME", deleted_replica_pod_name, "FROM REPLICASET - IGNORING", flush=True)
+
+        # Get info from Pod event
+        if obj_kind == "Pod":
+            pod_name = obj.involved_object.name
+            if pod_name == deleted_replica_pod_name:
+                continue
+            try:
+                pod = api.read_namespaced_pod_status(name=pod_name, namespace='default')
+            except:
+                pod = None
+            if not pod:
+                status = get_status(pod)
+                status = status.replace("ContainerCreating", "Creating")
+        
+                release = pod.metadata.labels["release"]
+                appinstance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
+                status_object = AppStatus(appinstance=appinstance)
+            
+                print(f"STATUS: {status}", flush=True)
+
+                status_object.status_type = status
+                status_object.save()
+                appinstance.state = status
+                appinstance.save()
+
+
+@shared_task(bind=True, max_retries=None)
+def init_event_listener(self, namespace, label_selector):
+    try:
+        my_dict = {}
+        for event in w.stream(api.list_namespaced_pod, namespace=namespace, label_selector=label_selector):
+            pod = event["object"]
+            
+            status = get_status(pod)
+            status = status.replace("ContainerCreating", "Creating")
+            release = pod.metadata.labels["release"]
+            creation_timestamp = pod.metadata.creation_timestamp
+            deletion_timestamp = pod.metadata.deletion_timestamp
+            
+            appinstance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
+
+            if appinstance:
+                status_object = AppStatus(appinstance=appinstance)
+                
+                # Case 1 - Set unseen release
+                if release not in my_dict:
+                    my_dict[release] = {"creation_timestamp": creation_timestamp, 
+                                            "deletion_timestamp": deletion_timestamp,
+                                            "status": status}
+                
+                # If pod is newer, update
+                if creation_timestamp > my_dict[release]["creation_timestamp"]:
+                    my_dict[release] = {"creation_timestamp": creation_timestamp, 
+                                "deletion_timestamp": deletion_timestamp,
+                                "status": status}
+                
+                # If pod deleted, set deleted stamp
+                elif deletion_timestamp:
+                    status = "Deleted"
+                    appinstance.deleted_on = timezone.now()
+                
+                update_status(appinstance, status_object, status)
+    except Exception as exc:
+        # Catch other exceptions to trigger a retry
+        raise self.retry(exc=exc)
+
+
+@worker_ready.connect
+def on_worker_ready(**kwargs):
+    # When the Celery worker is ready, start the task
+    label_selector = "type=app"
+    NAMESPACE = settings.NAMESPACE
+    sync_all_statuses(namespace=NAMESPACE, label_selector=label_selector)
+    init_event_listener.apply_async(args=(NAMESPACE, label_selector), countdown=1)
+
+
+def get_status(pod):
+    print("EVENTLISTNER:Getting status...")
+
+    container_statuses = pod.status.container_statuses
+
+    if container_statuses is not None:
+        for container_status in container_statuses:
+            state = container_status.state
+
+            if state is not None:
+                terminated = state.terminated
+
+                if terminated is not None:
+                    return terminated.reason
+
+                waiting = state.waiting
+
+                if waiting is not None:
+                    return waiting.reason
+
+                running = state.running
+
+                if running is not None:
+                    return "Running"
+
+            print("Last state not found.")
+    else:
+        print("Container statuses not found.")
+
+    return pod.status.phase
+
+
+def sync_all_statuses(namespace, label_selector):
+
+    for pod in api.list_namespaced_pod(
+        namespace=namespace, label_selector=label_selector).items:
+        status = pod.status.phase
+        release = pod.metadata.labels["release"]
+        appinstance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
+        if appinstance:
+            status_object = AppStatus(appinstance=appinstance)
+            update_status(appinstance, status_object, status)
+    
+
+def update_status(appinstance, status_object, status):
+    status_object.status_type = status
+    status_object.save()
+    appinstance.state = status
+    appinstance.save()

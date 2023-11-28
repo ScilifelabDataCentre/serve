@@ -281,10 +281,14 @@ class AppSettingsView(View):
         appinstance.table_field.update({"url": new_url})
         if new_release_name and current_release_name != new_release_name:
             # This handles the case where a user creates a new subdomain, we must update the helm release aswell
-            _ = delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
-        else:
-            # Otherwise, we update the resources in the same helm release
-            _ = deploy_resource.delay(appinstance.pk, "update")
+            _ = delete_resource(appinstance.pk)
+            parameters = appinstance.parameters
+            parameters["release"] = new_release_name
+            parameters["appname"] = new_release_name
+            appinstance.parameters.update(parameters)
+            appinstance.save()
+
+        _ = deploy_resource(appinstance.pk, "update")
 
         appinstance.save()
 
