@@ -84,7 +84,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'public')
 
-            cy.log("Now deleting the private or project app")
+            cy.log("Now deleting the private or project app (by now public)")
             cy.get('tr:contains("' + app_name_private + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_private + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
@@ -140,6 +140,8 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get('h5.card-title').should('contain', app_name_public_2)
             cy.get('.card-text').find('p').should('contain', app_description_2)
+
+            // To be added: changing of image, port, flavor, pvc, path in pvc (can at least check if it works to change in DB)
 
             // Remove the created public app and verify that it is deleted from public apps page
             cy.log("Now deleting the public app")
