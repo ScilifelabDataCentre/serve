@@ -173,8 +173,6 @@ def post_delete_hooks(instance):
 @shared_task
 @transaction.atomic
 def delete_and_deploy_resource(instance_pk, new_release_name):
-    print("########################### DELETE DEPLOY RESOURCE", flush=True)
-    print(f"INSTALLING {new_release_name}", flush=True)
     appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
 
     if appinstance:
@@ -511,6 +509,11 @@ def delete_old_objects():
 
 @shared_task(bind=True, max_retries=None)
 def init_event_listener(self, namespace, label_selector):
+    """
+    The event listener takes the latest event and checks if a corresponding appinstance
+    should be updated. It uses the creation timestamp to always use the status of the youngest pod
+    in a helm release.
+    """
     api, w = setup_client()
     try:
         my_dict = {}
@@ -558,7 +561,10 @@ def init_event_listener(self, namespace, label_selector):
 
 @worker_ready.connect
 def on_worker_ready(**kwargs):
-    # When the Celery worker is ready, start the task
+    """
+    This function starts the event listener in a given namespace.
+    When the Celery worker is ready, the task is started.
+    """
     label_selector = "type=app"
     NAMESPACE = settings.NAMESPACE
     sync_all_statuses(namespace=NAMESPACE, label_selector=label_selector)
@@ -566,6 +572,9 @@ def on_worker_ready(**kwargs):
 
 
 def setup_client():
+    """
+    Sets up the kubernetes python client and event streamer
+    """
     if settings.DEBUG:
         config.load_kube_config(settings.KUBECONFIG)
     else:
@@ -577,6 +586,10 @@ def setup_client():
 
 
 def get_status(pod):
+    """
+    Returns the status of a pod by looping through each container
+    and checking the status.
+    """
     container_statuses = pod.status.container_statuses
 
     if container_statuses is not None:
@@ -605,6 +618,9 @@ def get_status(pod):
 
 
 def sync_all_statuses(namespace, label_selector):
+    """
+    Syncs the status of all apps with a pod that is on the cluster
+    """
     api, _ = setup_client()
     for pod in api.list_namespaced_pod(namespace=namespace, label_selector=label_selector).items:
         status = pod.status.phase
@@ -616,6 +632,9 @@ def sync_all_statuses(namespace, label_selector):
 
 
 def update_status(appinstance, status_object, status):
+    """
+    Helper function to update the status of an appinstance and a status object.
+    """
     status_object.status_type = status
     status_object.save()
     appinstance.state = status
