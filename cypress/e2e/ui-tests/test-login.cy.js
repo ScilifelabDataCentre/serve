@@ -48,6 +48,6 @@ describe("Test login", () => {
 
     it("Should have proper title", () => {
 	cy.visit("accounts/login/")
-        cy.get("title").should("have.text", "Login | SciLifeLab Serve")
+        cy.get("title").should("have.text", "Login | SciLifeLab Serve (beta)")
     })
 })

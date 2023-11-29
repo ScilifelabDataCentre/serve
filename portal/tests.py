@@ -22,7 +22,7 @@ def test_index():
 
     # Check if it returns the correct status code
     assert response.status_code == 200
-    assert "<title>Apps | SciLifeLab Serve</title>" in response.content.decode()
+    assert "<title>Apps | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
 @pytest.mark.django_db
@@ -41,7 +41,7 @@ def test_home_view_class():
 
     # Check status code
     assert response.status_code == 200
-    assert "<title>Home | SciLifeLab Serve</title>" in response.content.decode()
+    assert "<title>Home | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
 def test_about_view():
@@ -51,7 +51,7 @@ def test_about_view():
 
     # Check status code
     assert response.status_code == 200
-    assert "<title>About | SciLifeLab Serve</title>" in response.content.decode()
+    assert "<title>About | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
 def test_teaching_view():
@@ -61,7 +61,7 @@ def test_teaching_view():
 
     # Check status code
     assert response.status_code == 200
-    assert "<title>Teaching | SciLifeLab Serve</title>" in response.content.decode()
+    assert "<title>Teaching | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
 def test_privacy_view():
@@ -71,4 +71,4 @@ def test_privacy_view():
 
     # Check status code
     assert response.status_code == 200
-    assert "<title>Privacy policy | SciLifeLab Serve</title>" in response.content.decode()
+    assert "<title>Privacy policy | SciLifeLab Serve (beta)</title>" in response.content.decode()

@@ -38,6 +38,6 @@ describe("Test of the home page", () => {
   })
 
     it("should have proper title", () => {
-	cy.get("title").should("have.text", "Home | SciLifeLab Serve")
+	cy.get("title").should("have.text", "Home | SciLifeLab Serve (beta)")
     })
 })
