@@ -100,18 +100,18 @@ describe("Test deploying app", () => {
             cy.visit("/home/")
             cy.get('h5').should('contain', app_name_public)
             // Log out and check that the public app is still displayed on the homepage
-            cy.visit("/accounts/logout/")
-            cy.get('h1').should('contain', "You have been logged out.") // check logout worked
-            cy.visit("/home/")
+            cy.clearCookies();
+            cy.clearLocalStorage();
+            Cypress.session.clearAllSavedSessions()
+            cy.visit('/projects/')
+            cy.get('h3').should('contain', 'Login required') // check that logout worked
+            cy.visit("/")
             cy.get('h5').should('contain', app_name_public)
             // Log back in
             cy.fixture('users.json').then(function (data) {
                 users = data
-                cy.visit('/accounts/login/')
-                cy.get('input[name=username]').type(users.deploy_app_user.email)
-                cy.get('input[name=password]').type(`${users.deploy_app_user.password}{enter}`, { log: false })
+                cy.loginViaUI(users.deploy_app_user.email, users.deploy_app_user.password)
             })
-            cy.url().should('include', '/projects') // check that login worked
 
             // Remove the created public app and verify that it is deleted from public apps page
             cy.log("Now deleting the public app")
