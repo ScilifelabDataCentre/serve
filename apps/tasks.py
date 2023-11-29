@@ -605,12 +605,12 @@ def get_status(pod):
                 terminated = state.terminated
 
                 if terminated is not None:
-                    return "Terminated"  # terminated.reason
+                    return terminated.reason
 
                 waiting = state.waiting
 
                 if waiting is not None:
-                    return "Waiting"  # waiting.reason
+                    return waiting.reason
 
                 running = state.running
 
