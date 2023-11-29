@@ -28,7 +28,7 @@ class EmailVerificationTable(models.Model):
             "Verify your email address",
             (
                 "Please click this link to verify your email address:"
-                f" https://serve.scilifelab.se/verify/?token={self.token}",
+                f" https://serve.scilifelab.se/verify/?token={self.token}"
             ),
             settings.EMAIL_HOST_USER,
             [self.user.email],
