@@ -332,23 +332,18 @@ describe("Test project contributor user functionality", () => {
         })
         cy.get('button').contains('Grant access').click()
 
-        // Log out contributor user
-        cy.log("Now logging out contributor user")
-        cy.visit("/accounts/logout/")
-        cy.get('h1').should('contain', "You have been logged out.") // check logout worked
+        // Log out step is not needed because cypress sessions take care of that
 
         // Log in as contributor's collaborator user
         cy.log("Now logging in as contributor's collaborator user")
         cy.fixture('users.json').then(function (data) {
-            cy.visit('/accounts/login/')
-            cy.get('input[name=username]').type(users.contributor_collaborator.email)
-            cy.get('input[name=password]').type(`${users.contributor_collaborator.password}{enter}`, { log: false })
-            cy.url().should('include', '/projects')
-            cy.get('h3').should('contain', 'My projects')
+            users = data
+            cy.loginViaUI(users.contributor_collaborator.email, users.contributor_collaborator.password)
         })
 
         // Check that the contributor's collaborator user has correct access
         cy.log("Now checking access to project and apps")
+        cy.visit('/projects/')
         cy.get('h5.card-title').should('contain', project_name) // check access to project
         cy.get('a.btn').contains('Open').click()
         cy.get('tr:contains("' + private_app_name + '")').should('not.exist') // private app not visible
@@ -356,19 +351,13 @@ describe("Test project contributor user functionality", () => {
         cy.get('tr:contains("' + project_app_name + '")').should('exist') // project app visible
         // to be added: go to URL and check that it opens successfully
 
-        // Log out contributor's collaborator user
-        cy.log("Now logging out contributor's collaborator user")
-        cy.visit("/accounts/logout/")
-        cy.get('h1').should('contain', "You have been logged out.") // check logout worked
+        // Log out step is not needed because cypress sessions take care of that
 
         // Log back in as contributor user
-        cy.log("Now logging in as contributor user")
+        cy.log("Now logging back in as contributor user")
         cy.fixture('users.json').then(function (data) {
-            cy.visit('/accounts/login/')
-            cy.get('input[name=username]').type(users.contributor.email)
-            cy.get('input[name=password]').type(`${users.contributor.password}{enter}`, { log: false })
-            cy.url().should('include', '/projects')
-            cy.get('h3').should('contain', 'My projects')
+            users = data
+            cy.loginViaApi(users.contributor.email, users.contributor.password)
         })
 
         // Delete the created project
