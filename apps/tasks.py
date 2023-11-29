@@ -534,7 +534,6 @@ def init_event_listener(self, namespace, label_selector):
             appinstance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
 
             if appinstance:
-                status_object = AppStatus(appinstance=appinstance)
                 
                 # Case 1 - Set unseen release
                 if release not in my_dict:
@@ -542,17 +541,20 @@ def init_event_listener(self, namespace, label_selector):
                                             "deletion_timestamp": deletion_timestamp,
                                             "status": status}
                 
-                # If pod is newer, update
-                if creation_timestamp > my_dict[release]["creation_timestamp"]:
-                    my_dict[release] = {"creation_timestamp": creation_timestamp, 
-                                "deletion_timestamp": deletion_timestamp,
-                                "status": status}
+                # If older pod, skip
+                if creation_timestamp < my_dict[release]["creation_timestamp"] or status == my_dict[release]["status"]:
+                    continue
                 
-                # If pod deleted, set deleted stamp
-                elif deletion_timestamp:
+                # If pod is same and deleted, set deleted stamp
+                elif creation_timestamp == my_dict[release]["creation_timestamp"] and deletion_timestamp:
                     status = "Deleted"
                     appinstance.deleted_on = timezone.now()
-                
+
+                # If pod is newer, update
+                my_dict[release] = {"creation_timestamp": creation_timestamp, 
+                            "deletion_timestamp": deletion_timestamp,
+                            "status": status}
+                status_object = AppStatus(appinstance=appinstance)
                 update_status(appinstance, status_object, status)
     except Exception as exc:
         # Catch other exceptions to trigger a retry
