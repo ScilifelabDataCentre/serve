@@ -575,10 +575,15 @@ def setup_client():
     """
     Sets up the kubernetes python client and event streamer
     """
-    if settings.DEBUG:
-        config.load_kube_config(settings.KUBECONFIG)
-    else:
+    try:
         config.load_incluster_config()
+    except config.ConfigException:
+        try:
+            config.load_kube_config(settings.KUBECONFIG)
+        except config.ConfigException:
+            raise config.ConfigException(
+                "Could not set the cluster config. Try to use the cluster.conf file or set incluster config"
+            )
 
     api = client.CoreV1Api()
     w = watch.Watch()
@@ -600,12 +605,12 @@ def get_status(pod):
                 terminated = state.terminated
 
                 if terminated is not None:
-                    return terminated.reason
+                    return "Terminated"  # terminated.reason
 
                 waiting = state.waiting
 
                 if waiting is not None:
-                    return waiting.reason
+                    return "Waiting"  # waiting.reason
 
                 running = state.running
 
