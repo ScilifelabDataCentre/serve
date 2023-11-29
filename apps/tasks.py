@@ -1,17 +1,17 @@
 import json
 import subprocess
 import time
-import requests
 
+import requests
 from celery import shared_task
 from celery.signals import worker_ready
-
 from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import EmptyResultSet
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+from kubernetes import client, config, watch
 
 from models.models import Model, ObjectType
 from projects.models import S3, BasicAuth, Environment, MLFlow
@@ -19,9 +19,6 @@ from studio.celery import app
 
 from . import controller
 from .models import AppInstance, Apps, AppStatus, ResourceData
-     
-from kubernetes import client, config, watch
-
 
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
@@ -512,48 +509,46 @@ def delete_old_objects():
         delete_resource.delay(app_.pk)
 
 
-
-
-config.load_kube_config("./cluster.conf")
-api = client.CoreV1Api()
-w = watch.Watch()
-
 @shared_task(bind=True, max_retries=None)
 def init_event_listener(self, namespace, label_selector):
+    api, w = setup_client()
     try:
         my_dict = {}
         for event in w.stream(api.list_namespaced_pod, namespace=namespace, label_selector=label_selector):
             pod = event["object"]
-            
+
             status = get_status(pod)
             status = status.replace("ContainerCreating", "Creating")
             release = pod.metadata.labels["release"]
             creation_timestamp = pod.metadata.creation_timestamp
             deletion_timestamp = pod.metadata.deletion_timestamp
-            
+
             appinstance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
 
             if appinstance:
-                
                 # Case 1 - Set unseen release
                 if release not in my_dict:
-                    my_dict[release] = {"creation_timestamp": creation_timestamp, 
-                                            "deletion_timestamp": deletion_timestamp,
-                                            "status": status}
-                
+                    my_dict[release] = {
+                        "creation_timestamp": creation_timestamp,
+                        "deletion_timestamp": deletion_timestamp,
+                        "status": status,
+                    }
+
                 # If older pod, skip
                 if creation_timestamp < my_dict[release]["creation_timestamp"] or status == my_dict[release]["status"]:
                     continue
-                
+
                 # If pod is same and deleted, set deleted stamp
                 elif creation_timestamp == my_dict[release]["creation_timestamp"] and deletion_timestamp:
                     status = "Deleted"
                     appinstance.deleted_on = timezone.now()
 
                 # If pod is newer, update
-                my_dict[release] = {"creation_timestamp": creation_timestamp, 
-                            "deletion_timestamp": deletion_timestamp,
-                            "status": status}
+                my_dict[release] = {
+                    "creation_timestamp": creation_timestamp,
+                    "deletion_timestamp": deletion_timestamp,
+                    "status": status,
+                }
                 status_object = AppStatus(appinstance=appinstance)
                 update_status(appinstance, status_object, status)
     except Exception as exc:
@@ -570,8 +565,14 @@ def on_worker_ready(**kwargs):
     init_event_listener.apply_async(args=(NAMESPACE, label_selector), countdown=1)
 
 
-def get_status(pod):
+def setup_client():
+    config.load_kube_config("./cluster.conf")
+    api = client.CoreV1Api()
+    w = watch.Watch()
+    return api, w
 
+
+def get_status(pod):
     container_statuses = pod.status.container_statuses
 
     if container_statuses is not None:
@@ -600,16 +601,15 @@ def get_status(pod):
 
 
 def sync_all_statuses(namespace, label_selector):
-
-    for pod in api.list_namespaced_pod(
-        namespace=namespace, label_selector=label_selector).items:
+    api, _ = setup_client()
+    for pod in api.list_namespaced_pod(namespace=namespace, label_selector=label_selector).items:
         status = pod.status.phase
         release = pod.metadata.labels["release"]
         appinstance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
         if appinstance:
             status_object = AppStatus(appinstance=appinstance)
             update_status(appinstance, status_object, status)
-    
+
 
 def update_status(appinstance, status_object, status):
     status_object.status_type = status
