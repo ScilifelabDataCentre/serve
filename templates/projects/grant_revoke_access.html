@@ -35,7 +35,7 @@
                     <tbody>
 
                         {% for user in project.authorized.all %}
-                        <tr id="revokeAccessRow-{{user.pk}}">
+                        <tr class="user-with-access" id="revokeAccessRow-{{user.pk}}">
                             <td scope="row">{{ user.username }}</td>
 
                             {% if project.owner.id == request.user.id or request.user.is_superuser %}

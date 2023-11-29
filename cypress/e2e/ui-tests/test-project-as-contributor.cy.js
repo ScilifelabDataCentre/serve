@@ -19,7 +19,7 @@ describe("Test project contributor user functionality", () => {
         // seed the db with a user
         cy.visit("/")
         cy.log("Running seed_contributor.py")
-        //cy.exec("./cypress/e2e/db-seed-contributor.sh")
+        cy.exec("./cypress/e2e/db-seed-contributor.sh")
     })
 
     beforeEach(() => {
@@ -293,7 +293,7 @@ describe("Test project contributor user functionality", () => {
         });
     })
 
-    it("giving access to the project to other users works", () => {
+    it("can give and revoke access to a project to another user", () => {
         // Names of projects and apps to create
         const project_name = "e2e-create-proj-test"
         const private_app_name = "e2e-private-app-test"
@@ -339,6 +339,9 @@ describe("Test project contributor user functionality", () => {
             cy.get('input[name=selected_user]').type(users.contributor_collaborator.email)
         })
         cy.get('button').contains('Grant access').click()
+        cy.fixture('users.json').then(function (data) {
+            cy.get('tr.user-with-access').should('contain', users.contributor_collaborator.email)
+        })
 
         // Log out step is not needed because cypress sessions take care of that
 
@@ -359,7 +362,36 @@ describe("Test project contributor user functionality", () => {
         cy.get('tr:contains("' + project_app_name + '")').should('exist') // project app visible
         // to be added: go to URL and check that it opens successfully
 
-        // Log out step is not needed because cypress sessions take care of that
+        // Log back in as contributor user
+        cy.log("Now logging back in as contributor user")
+        cy.fixture('users.json').then(function (data) {
+            users = data
+            cy.loginViaApi(users.contributor.email, users.contributor.password)
+        })
+
+        // Remove access to the project
+        cy.log("Now removing access from contributor's collaborator user")
+        cy.visit('/projects/')
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.get('[data-cy="settings"]').click()
+        cy.get('a[href="#access"]').click()
+        cy.get('tr.user-with-access').find('button.btn-close').click()
+        .then((href) => {
+            cy.get('button.btn-danger').contains('Revoke').click()
+        })
+
+        // Log in as contributor's collaborator user
+        cy.log("Now again logging in as contributor's collaborator user")
+        cy.fixture('users.json').then(function (data) {
+            users = data
+            cy.loginViaUI(users.contributor_collaborator.email, users.contributor_collaborator.password)
+        })
+
+        // Check that the contributor's collaborator user no longer has access to the project
+        cy.log("Now checking that contributor's collaborator user no longer has access")
+        cy.visit('/projects/')
+        cy.get('h5.card-title').should('not.exist') // check visibility of project
+        // to-do: save the url of the project in a previous step and check if possible to open that with a direct link
 
         // Log back in as contributor user
         cy.log("Now logging back in as contributor user")
