@@ -51,7 +51,6 @@
                 {% endif %}
 
                 {% if request.user.pk == project.owner.pk or request.user.is_superuser %}
-
                 <a class="default list-group-item list-group-item-action p-3 text-red" data-bs-toggle="list"
                     href="#delete" role="tab">
                     Delete
