@@ -8,18 +8,7 @@
 
 <form method="post">
     {% csrf_token %}
-    {{ form.token.label_tag }}
-    {{ form.token }}
-    {% if form.token.help_text %}
-    <small class="form-text text-muted">{{ form.token.help_text }}</small>
-    {% endif %}
-    {% if form.token.errors %}
-    <div class="invalid-feedback">
-        {% for error in form.token.errors %}
-        <p>{{ error }}</p>
-        {% endfor %}
-    </div>
-    {% endif %}
+    {{ form.as_p }}
     <input type="submit" value="Verify Account" class="btn btn-primary" id="submit-id-verify">
 </form>
 

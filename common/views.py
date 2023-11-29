@@ -20,16 +20,6 @@ class RegistrationCompleteView(TemplateView):
     template_name = "registration/registration_complete.html"
 
 
-def send_email_(request):
-    send_mail(
-        "Subject here",
-        "Here is the message.",
-        "churnikov@gmail.com",
-        ["not-exists@chur.ru"],
-        fail_silently=False,
-    )
-
-
 # Sign Up View
 
 
@@ -65,13 +55,11 @@ class SignUpView(CreateView):
         form_ = SignUpForm(user=form, profile=profile_form)
         if form_.is_valid():
             form_.save()
+            redirect_name = "login"
             if settings.INACTIVE_USERS:
-                # TODO send email to registered user to confirm email address here
-                messages.success(self.request, "Account request has been registered! Please wait for admin to approve!")
-                redirect_name = "common:success"
+                messages.success(self.request, "Please check your email to verify your account!")
             else:
                 messages.success(self.request, "Account created successfully!")
-                redirect_name = "login"
             return HttpResponseRedirect(reverse_lazy(redirect_name))
         else:
             return self.custom_form_invalid(form, profile_form)
@@ -95,7 +83,7 @@ class VerifyView(TemplateView):
     template_name = "registration/verify.html"
 
     def get(self, request, *args, **kwargs):
-        token = request.GET.get("token", "")
+        token = request.GET.get("token")
         form = self.form_class(initial={"token": token})
         return render(request, self.template_name, {"form": form})
 
@@ -111,6 +99,7 @@ class VerifyView(TemplateView):
                 if user.userprofile.is_approved:
                     user.is_active = True
                     user.save()
+                    messages.success(request, "Email verified successfully!")
                 else:
                     # If user is not approved, we send an email to the admin to approve the account.
                     send_mail(
@@ -122,12 +111,11 @@ class VerifyView(TemplateView):
                         [settings.EMAIL_HOST_USER],
                         fail_silently=False,
                     )
-                    form.token.help_text = (
-                        "Your email address has been verified. Please wait for admin to approve your account."
+                    messages.success(
+                        request, "Your email address has been verified. Please wait for admin to approve your account."
                     )
 
                 email_verification_table.delete()
-                messages.success(request, "Email verified successfully!")
                 return redirect("login")
             except EmailVerificationTable.DoesNotExist:
                 messages.error(request, "Invalid token!")

@@ -26,7 +26,10 @@ class EmailVerificationTable(models.Model):
     def send_verification_email(self):
         send_mail(
             "Verify your email address",
-            f"Please click this link to verify your email address: https://serve.scilifelab.se/verify/{self.token}",
+            (
+                "Please click this link to verify your email address:"
+                f" https://serve.scilifelab.se/verify/?token={self.token}",
+            ),
             settings.EMAIL_HOST_USER,
             [self.user.email],
             fail_silently=False,
