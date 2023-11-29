@@ -566,7 +566,11 @@ def on_worker_ready(**kwargs):
 
 
 def setup_client():
-    config.load_kube_config("./cluster.conf")
+    if settings.DEBUG:
+        config.load_kube_config(settings.KUBECONFIG)
+    else:
+        config.load_incluster_config()
+
     api = client.CoreV1Api()
     w = watch.Watch()
     return api, w
