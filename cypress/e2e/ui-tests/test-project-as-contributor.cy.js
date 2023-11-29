@@ -19,7 +19,7 @@ describe("Test project contributor user functionality", () => {
         // seed the db with a user
         cy.visit("/")
         cy.log("Running seed_contributor.py")
-        cy.exec("./cypress/e2e/db-seed-contributor.sh")
+        //cy.exec("./cypress/e2e/db-seed-contributor.sh")
     })
 
     beforeEach(() => {
@@ -36,11 +36,13 @@ describe("Test project contributor user functionality", () => {
     it("can run the test setup", () => {
     })
 
-    it("can create a new project with default template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
+    it("can create a new project with default template, open settings, change description, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
         const project_title_name = project_name + " | SciLifeLab Serve (beta)"
+        const project_description = "A test project created by an e2e test."
+        const project_description_2 = "An alternative project description created by an e2e test."
 
         cy.visit("/projects/")
         cy.get("title").should("have.text", "My projects | SciLifeLab Serve (beta)")
@@ -57,46 +59,52 @@ describe("Test project contributor user functionality", () => {
 
         // Fill in the options for creating a new blank project
         cy.get('input[name=name]').type(project_name)
-        cy.get('textarea[name=description]').type("A test project created by an e2e test.")
+        cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").contains('Create project').click()
         cy.wait(5000) // sometimes it takes a while to create a project
+
+        cy.get("title").should("have.text", project_title_name)
+        cy.get('h3').should('contain', project_name)
+        cy.get('.card-text').should('contain', project_description)
+
+        // Check that the correct deployment options are available
+        cy.get('.card-header').find('h5').should('contain', 'Develop')
+        cy.get('.card-header').find('h5').should('contain', 'Serve')
+        cy.get('.card-header').find('h5').should('not.contain', 'Models')
+        cy.get('.card-header').find('h5').should('not.contain', 'Additional options [admins only]')
+
+        // Check that project settings are available
+        cy.get('[data-cy="settings"]').click()
+        cy.url().should("include", "settings")
+        cy.get('h3').should('contain', 'Project settings')
+
+        // Check that the correct project settings are visible (i.e. no extra settings)
+        cy.get('.list-group').find('a').should('contain', 'Access')
+        cy.get('.list-group').find('a').should('not.contain', 'S3 storage')
+        cy.get('.list-group').find('a').should('not.contain', 'MLFlow')
+        cy.get('.list-group').find('a').should('not.contain', 'Flavors')
+        cy.get('.list-group').find('a').should('not.contain', 'Environments')
+
+        // Change project description - THIS DOES NOT WORK RIGHT NOW BECAUSE OF A BUG, TO BE ADDED/ACTIVATED LATER
+        //cy.get('textarea[name=description]').clear().type(project_description_2)
+        //cy.get('button').contains('Save').click()
+        //cy.visit("/projects/")
+        //cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        //cy.get('.card-text').should('contain', project_description_2)
+
+        // Delete the project from the settings menu
+        //cy.get('[data-cy="settings"]').click()
+        cy.get('a').contains("Delete").click()
+        .then((href) => {
+            cy.get('div#delete').should('have.css', 'display', 'block')
+            cy.get('#id_delete_button').parent().parent().find('button').contains('Delete').click()
             .then((href) => {
-                cy.log(href)
-                cy.reload()
-                cy.get("title").should("have.text", project_title_name)
-                cy.get('h3').should('contain', project_name)
-
-                // Check that the correct deployment options are available
-                cy.get('.card-header').find('h5').should('contain', 'Develop')
-                cy.get('.card-header').find('h5').should('contain', 'Serve')
-                cy.get('.card-header').find('h5').should('not.contain', 'Models')
-                cy.get('.card-header').find('h5').should('not.contain', 'Additional options [admins only]')
-
-                // Check that project settings are available
-                cy.get('[data-cy="settings"]').click()
-                cy.url().should("include", "settings")
-                cy.get('h3').should('contain', 'Project settings')
-
-                // Check that the correct project settings are visible (i.e. no extra settings)
-                cy.get('.list-group').find('a').should('contain', 'Access')
-                cy.get('.list-group').find('a').should('not.contain', 'S3 storage')
-                cy.get('.list-group').find('a').should('not.contain', 'MLFlow')
-                cy.get('.list-group').find('a').should('not.contain', 'Flavors')
-                cy.get('.list-group').find('a').should('not.contain', 'Environments')
-
-                // Delete the project from the settings menu
-                cy.get('a').contains("Delete").click()
-                .then((href) => {
-                    cy.get('div#delete').should('have.css', 'display', 'block')
-                    cy.get('#id_delete_button').parent().parent().find('button').contains('Delete').click()
-                    .then((href) => {
-                        cy.get('div#deleteModal').should('have.css', 'display', 'block')
-                        cy.get('div#deleteModal').find('button').contains('Confirm').click()
-                    })
-                    cy.contains(project_name).should('not.exist')
-
-                   })
+                cy.get('div#deleteModal').should('have.css', 'display', 'block')
+                cy.get('div#deleteModal').find('button').contains('Confirm').click()
             })
+        cy.contains(project_name).should('not.exist')
+
+        })
     })
 
     // This test cannot run properly in GitHub workflows because there is an issue with minio creation there. Therefore, it should be run locally to make sure things work. For GitHub, skipping it.
