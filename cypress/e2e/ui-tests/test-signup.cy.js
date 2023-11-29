@@ -23,7 +23,7 @@ describe("Test sign up", () => {
     it("should create new user account with valid form input", () => {
 
         cy.visit("/signup/");
-        cy.get("title").should("have.text", "Register | SciLifeLab Serve")
+        cy.get("title").should("have.text", "Register | SciLifeLab Serve (beta)")
 
         cy.get('input[name=email]').type(users.signup_user.email);
         cy.get('input[name=first_name]').type("first name");

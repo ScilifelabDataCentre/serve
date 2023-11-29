@@ -105,6 +105,7 @@ class HomeView(View):
         published_apps, request = get_public_apps(request, id=id, get_all=False)
         published_models = PublishedModel.objects.all()
         news_objects = NewsObject.objects.all().order_by("-created_on")
+        link_all_news = False
         if published_models.count() >= 3:
             published_models = published_models[:3]
         else:
@@ -112,6 +113,7 @@ class HomeView(View):
 
         if news_objects.count() >= 3:
             news_objects = news_objects[:3]
+            link_all_news = True
         else:
             news_objects = news_objects
 

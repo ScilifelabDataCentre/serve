@@ -29,7 +29,7 @@ class ProjectViewTestCase(TestCase):
         resp = self.get_project_page("details")
         self.assertEqual(resp.status_code, 200)
         self.assertTemplateUsed(resp, "projects/overview.html")
-        assert f"<title>{self.project_name} | SciLifeLab Serve</title>" in resp.content.decode()
+        assert f"<title>{self.project_name} | SciLifeLab Serve (beta)</title>" in resp.content.decode()
 
 
 class FrobiddenProjectViewTestCase(TestCase):

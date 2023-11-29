@@ -18,6 +18,7 @@ repos:
   - id: end-of-file-fixer
     exclude: static/vendor/
   - id: pretty-format-json
+    exclude: ^fixtures/
     args: [--autofix]
 
 
