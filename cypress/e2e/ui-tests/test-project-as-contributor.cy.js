@@ -85,15 +85,15 @@ describe("Test project contributor user functionality", () => {
         cy.get('.list-group').find('a').should('not.contain', 'Flavors')
         cy.get('.list-group').find('a').should('not.contain', 'Environments')
 
-        // Change project description - THIS DOES NOT WORK RIGHT NOW BECAUSE OF A BUG, TO BE ADDED/ACTIVATED LATER
-        //cy.get('textarea[name=description]').clear().type(project_description_2)
-        //cy.get('button').contains('Save').click()
-        //cy.visit("/projects/")
-        //cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-        //cy.get('.card-text').should('contain', project_description_2)
+        // Change project description
+        cy.get('textarea[name=description]').clear().type(project_description_2)
+        cy.get('button').contains('Save').click()
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.get('.card-text').should('contain', project_description_2)
 
         // Delete the project from the settings menu
-        //cy.get('[data-cy="settings"]').click()
+        cy.get('[data-cy="settings"]').click()
         cy.get('a').contains("Delete").click()
         .then((href) => {
             cy.get('div#delete').should('have.css', 'display', 'block')
