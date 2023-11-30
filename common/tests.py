@@ -84,7 +84,7 @@ class TestSignUp(TransactionTestCase):
         profile = form.save()
         assert profile.user.username == profile.user.email
         # Verify email sending
-        assert mail.outbox[0].subject == "Verify your email address"
+        assert mail.outbox[0].subject == "Verify your email address on SciLifeLab Serve"
         assert mail.outbox[0].to == [profile.user.email]
         assert EmailVerificationTable.objects.filter(user=profile.user).exists()
         token = EmailVerificationTable.objects.get(user=profile.user).token
