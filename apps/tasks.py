@@ -554,7 +554,7 @@ def init_event_listener(self, namespace, label_selector):
                 update_status(appinstance, status_object, status)
     except Exception as exc:
         # Catch other exceptions to trigger a retry
-        raise self.retry(exc=exc, countdown = 10)
+        raise self.retry(exc=exc, countdown=10)
 
 
 @worker_ready.connect
@@ -595,12 +595,10 @@ def get_status(pod):
     """
     container_statuses = pod.status.container_statuses
 
-
-
     if container_statuses is not None:
         for container_status in container_statuses:
             state = container_status.state
-            
+
             if state is not None:
                 terminated = state.terminated
 
@@ -625,16 +623,18 @@ def get_status(pod):
 
 
 def mapped_status(reason):
-    status_mapping = {"CrashLoopBackOff": "Error", 
-                    "Completed": "Retrying...",
-                    "ContainerCreating": "Creating",
-                    "PodInitializing": "Pending"}
-    
+    status_mapping = {
+        "CrashLoopBackOff": "Error",
+        "Completed": "Retrying...",
+        "ContainerCreating": "Creating",
+        "PodInitializing": "Pending",
+    }
+
     if reason in status_mapping:
         return status_mapping[reason]
     else:
         return reason
-    
+
 
 def sync_all_statuses(namespace, label_selector):
     """
