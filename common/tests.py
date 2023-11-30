@@ -7,10 +7,10 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import override_settings
 from hypothesis import Verbosity, assume, given, settings
 from hypothesis import strategies as st
-from hypothesis.extra.django import from_field, from_form
+from hypothesis.extra.django import TransactionTestCase, from_field, from_form
 
 from common.forms import (
     DEPARTMENTS,
@@ -70,12 +70,11 @@ def input_form(
     return form
 
 
-class TestSignUp(TestCase):
-    @pytest.mark.pass_validation
-    @pytest.mark.django_db(transaction=True, serialized_rollback=True)
+@override_settings(INACTIVE_USERS=True)
+class TestSignUp(TransactionTestCase):
     @given(form=input_form())
     @settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)
-    def test_pass_validation(form):
+    def test_pass_validation(self, form):
         UserProfile.objects.all().delete()
         User.objects.all().delete()
         is_val = form.is_valid()
