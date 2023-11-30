@@ -655,6 +655,6 @@ def update_status(appinstance, status_object, status):
     Helper function to update the status of an appinstance and a status object.
     """
     status_object.status_type = status
-    status_object.save(update_fields=["status_type"])
+    status_object.save()
     appinstance.state = status
     appinstance.save(update_fields=["state"])
