@@ -6,7 +6,6 @@
 
 .btn:focus,
 .btn:hover {
-
     box-shadow: 0 0.5rem 1rem rgba(var(--bs-body-color-rgb), .15) !important;
     text-decoration: none;
 }
@@ -158,6 +157,12 @@ h6 {
 }
 
 /* main navigation */
+
+a.navbar-brand::after,
+a.tag::after {
+    display:none;
+}
+
 .nav .nav-item .nav-link {
     color: var(--serve-teal);
     font-weight: 500;

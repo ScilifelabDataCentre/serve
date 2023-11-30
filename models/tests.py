@@ -118,7 +118,7 @@ class ModelViewTests(TestCase):
 
         # Check status code
         assert response.status_code == 200
-        assert "<title>Models | SciLifeLab Serve</title>" in response.content.decode()
+        assert "<title>Models | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
     @pytest.mark.skip(reason="It's not working")
     def test_public_model_details_view(self):
@@ -128,7 +128,7 @@ class ModelViewTests(TestCase):
         assert response.status_code == 200
         self.assertTemplateUsed(response, "models/models_details_public.html")
         assert "Model Details" in response.content.decode()
-        assert "<title>Model public Details | SciLifeLab Serve</title>" in response.content.decode()
+        assert "<title>Model public Details | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
     @pytest.mark.skip(reason="Could not make this work")
     def test_private_model_details_view(self):
@@ -143,7 +143,7 @@ class ModelViewTests(TestCase):
         assert response.status_code == 200
         self.assertTemplateUsed(response, "models/models_details_private.html")
         assert "Model Details" in response.content.decode()
-        assert "<title>Private model test Details | SciLifeLab Serve</title>" in response.content.decode()
+        assert "<title>Private model test Details | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
     @pytest.mark.skip(reason="I am even not sure that it's being invoked")
     def test_model_create_view(self):
@@ -153,7 +153,7 @@ class ModelViewTests(TestCase):
         assert response.status_code == 200
         self.assertTemplateUsed(response, "models/models_details_private.html")
         assert "Model Details" in response.content.decode()
-        assert "<title>Private model test Details | SciLifeLab Serve</title>" in response.content.decode()
+        assert "<title>Private model test Details | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
     @pytest.mark.skip(reason="I think that the project is not created for this")
     def test_models_list_view(self):
@@ -162,7 +162,7 @@ class ModelViewTests(TestCase):
         assert response.status_code == 200
         self.assertTemplateUsed(response, "models/models_list.html")
         assert "Models" in response.content.decode()
-        assert f"<title>{self.project.name} - Models | SciLifeLab Serve</title>" in response.content.decode()
+        assert f"<title>{self.project.name} - Models | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
 class ModelViewForbidden(TestCase):
@@ -194,7 +194,7 @@ class ModelViewForbidden(TestCase):
         response = self.client.get(reverse("models:list", kwargs={"user": owner, "project": project.slug}))
         self.assertTemplateUsed(response, "403.html")
         self.assertEqual(response.status_code, 403)
-        assert "<title>Forbidden | SciLifeLab Serve</title>" in response.content.decode()
+        assert "<title>Forbidden | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
     def test_forbidden_models_create(self):
         """

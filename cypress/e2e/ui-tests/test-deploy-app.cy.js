@@ -89,7 +89,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
 
             cy.visit("/apps")
-            cy.get("title").should("have.text", "Apps | SciLifeLab Serve")
+            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
             cy.get('h5.card-title').should('contain', app_name_public)
 
@@ -104,7 +104,7 @@ describe("Test deploying app", () => {
             cy.get('button').contains('Delete').click()
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Deleted')
             cy.visit("/apps")
-            cy.get("title").should("have.text", "Apps | SciLifeLab Serve")
+            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
             cy.get('h5.card-title').should('not.exist')
 
