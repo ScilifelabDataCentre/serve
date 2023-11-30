@@ -242,6 +242,10 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"),)
 # then setting BigAutoField on app level (ex /projects/apps.py)
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
+# Allow all clients to make requests to the OpenAPI
+CORS_URLS_REGEX = r"^/openapi/.*$"
+CORS_ALLOW_ALL_ORIGINS = True
+
 # https://www.django-rest-framework.org/api-guide/authentication/#setting-the-authentication-scheme
 # DEFAULT_VERSIONING_CLASS: NamespaceVersioning uses the URL path scheme, e.g. /v1/
 # https://www.django-rest-framework.org/api-guide/versioning/
