@@ -91,6 +91,29 @@ class TestSignUp(TransactionTestCase):
         assert token in mail.outbox[0].body
 
 
+@override_settings(INACTIVE_USERS=True)
+class TestEmailSending(TransactionTestCase):
+    @given(form=input_form())
+    @settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)
+    def test_email_verification_email_not_from_university(self, form):
+        UserProfile.objects.all().delete()
+        User.objects.all().delete()
+        is_val = form.is_valid()
+        assert hasattr(form.user, "cleaned_data")
+        assert hasattr(form.profile, "cleaned_data")
+        assert is_val, (form.user.errors, form.profile.errors)
+        form.is_approved = False
+        form.save()
+        user = User.objects.get(email=form.user.cleaned_data["email"])
+
+        token = EmailVerificationTable.objects.get(user=user.id).token
+        assert token in mail.outbox[0].body
+
+        resp = self.client.post("/verify/", {"token": token})
+        assert resp.status_code == 302
+        assert f"Please go to the admin page to activate account for {user.email}" in mail.outbox[1].body
+
+
 @pytest.mark.django_db
 @given(
     form=input_form(

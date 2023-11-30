@@ -103,12 +103,10 @@ class VerifyView(TemplateView):
                 else:
                     # If user is not approved, we send an email to the admin to approve the account.
                     send_mail(
-                        f"User {user.email} has verified their email address",
-                        "Please go to the admin page to activate their account.",
+                        "User has verified their email address",
+                        f"Please go to the admin page to activate account for {user.email}",
                         settings.EMAIL_HOST_USER,
-                        # TODO: Change this to the email of the admin
-                        # ["serve@scilifelab.se"],
-                        [settings.EMAIL_HOST_USER],
+                        ["serve@scilifelab.se"],
                         fail_silently=False,
                     )
                     messages.success(
