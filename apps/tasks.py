@@ -199,10 +199,10 @@ def delete_and_deploy_resource(instance_pk, new_release_name):
 @transaction.atomic
 def deploy_resource(instance_pk, action="create"):
     print("TASK - DEPLOY RESOURCE...")
-    app_instance = AppInstance.objects.select_for_update().get(pk=instance_pk)
-    status = AppStatus(appinstance=app_instance)
+    appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
+    status = AppStatus(appinstance=appinstance)
     if (action == "create") or (action == "update"):
-        parameters = app_instance.parameters
+        parameters = appinstance.parameters
         status.status_type = "Created"
         status.info = parameters["release"]
 
@@ -210,17 +210,15 @@ def deploy_resource(instance_pk, action="create"):
         if "ingress" not in parameters:
             parameters["ingress"] = dict()
 
-        app_instance.parameters = parameters
-        print("App Instance paramenters: {}".format(app_instance))
-        app_instance.save()
+        appinstance.parameters = parameters
+        appinstance.save(update_fields=["parameters"])
 
-    results = controller.deploy(app_instance.parameters)
+    results = controller.deploy(appinstance.parameters)
     stdout, stderr = process_helm_result(results)
 
     if results.returncode == 0:
         print("Helm install succeeded")
         status.status_type = "Installed"
-        app_instance.state = "Running"
         helm_info = {
             "success": True,
             "info": {"stdout": stdout, "stderr": stderr},
@@ -228,20 +226,20 @@ def deploy_resource(instance_pk, action="create"):
     else:
         print("Helm install failed")
         status.status_type = "Failed"
-        app_instance.state = "Failed"
+        appinstance.state = "Failed"
         helm_info = {
             "success": False,
             "info": {"stdout": stdout, "stderr": stderr},
         }
 
-    app_instance.info["helm"] = helm_info
-    app_instance.save()
+    appinstance.info["helm"] = helm_info
+    appinstance.save(update_fields=["state", "info"])
     status.save()
 
     if results.returncode != 0:
-        print(app_instance.info["helm"])
+        print(appinstance.info["helm"])
     else:
-        post_create_hooks(app_instance)
+        post_create_hooks(appinstance)
 
 
 @shared_task
@@ -521,7 +519,7 @@ def init_event_listener(self, namespace, label_selector):
             pod = event["object"]
 
             status = get_status(pod)
-            status = status.replace("ContainerCreating", "Creating")
+            status = status[:15]
             release = pod.metadata.labels["release"]
             creation_timestamp = pod.metadata.creation_timestamp
             deletion_timestamp = pod.metadata.deletion_timestamp
@@ -556,7 +554,7 @@ def init_event_listener(self, namespace, label_selector):
                 update_status(appinstance, status_object, status)
     except Exception as exc:
         # Catch other exceptions to trigger a retry
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc, countdown = 10)
 
 
 @worker_ready.connect
@@ -597,20 +595,24 @@ def get_status(pod):
     """
     container_statuses = pod.status.container_statuses
 
+
+
     if container_statuses is not None:
         for container_status in container_statuses:
             state = container_status.state
-
+            
             if state is not None:
                 terminated = state.terminated
 
                 if terminated is not None:
-                    return terminated.reason
+                    reason = terminated.reason
+                    return mapped_status(reason)
 
                 waiting = state.waiting
 
                 if waiting is not None:
-                    return waiting.reason
+                    reason = waiting.reason
+                    return mapped_status(reason)
 
                 running = state.running
 
@@ -621,6 +623,18 @@ def get_status(pod):
 
     return pod.status.phase
 
+
+def mapped_status(reason):
+    status_mapping = {"CrashLoopBackOff": "Error", 
+                    "Completed": "Retrying...",
+                    "ContainerCreating": "Creating",
+                    "PodInitializing": "Pending"}
+    
+    if reason in status_mapping:
+        return status_mapping[reason]
+    else:
+        return reason
+    
 
 def sync_all_statuses(namespace, label_selector):
     """
@@ -641,6 +655,6 @@ def update_status(appinstance, status_object, status):
     Helper function to update the status of an appinstance and a status object.
     """
     status_object.status_type = status
-    status_object.save()
+    status_object.save(update_fields=["status_type"])
     appinstance.state = status
-    appinstance.save()
+    appinstance.save(update_fields=["state"])

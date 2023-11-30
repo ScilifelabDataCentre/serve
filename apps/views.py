@@ -266,7 +266,7 @@ class AppSettingsView(View):
         appinstance.access = access
         appinstance.app_dependencies.set(app_deps)
         appinstance.model_dependencies.set(model_deps)
-        appinstance.save()
+        appinstance.save(update_fields=["flavor", "name", "description", "parameters", "access"])
         self.update_resource(request, appinstance, current_release_name)
 
     def update_resource(self, request, appinstance, current_release_name):
@@ -286,7 +286,7 @@ class AppSettingsView(View):
             parameters["release"] = new_release_name
             parameters["appname"] = new_release_name
             appinstance.parameters.update(parameters)
-            appinstance.save()
+            appinstance.save(update_fields=["parameters", "table_field"])
 
         _ = deploy_resource(appinstance.pk, "update")
 
