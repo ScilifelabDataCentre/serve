@@ -39,7 +39,7 @@ describe("Test superuser access", () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test"
         const volume_name = "e2e-project-vol"
-        const project_title_name = project_name + " | SciLifeLab Serve"
+        const project_title_name = project_name + " | SciLifeLab Serve (beta)"
         const createResources = Cypress.env('create_resources');
 
         if (createResources === 'true') {

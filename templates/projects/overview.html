@@ -60,7 +60,7 @@
                             <th tabindex="0" rowspan="1" colspan="1">Name</th>
                             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Created</th>
                             <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
-                            <th class="" tabindex="0" rowspan="1" colspan="1">Tags</th>
+                            <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Tags</th>
                             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
                         </tr>
                     </thead>
@@ -108,7 +108,7 @@
                                     {% endif %}
                                 {% endif %}
                             </td>
-                            <td id="tags-{{ obj.pk }}">
+                            <td class="d-none d-xxl-table-cell" id="tags-{{ obj.pk }}">
                             {% with obj.tags|split:"," as tags %}
                             {% for tag in tags %}
                                 <span class="badge text-bg-primary">{{ tag }}</span>
@@ -164,9 +164,11 @@
                     </tbody>
                 </table>
             </div>
+            {% if objs.title == "Develop" %}
             <div class="mx-4 mb-4 small text-muted">
             *Note that all apps under Develop will be deleted 7 days after creation.
             </div>
+            {% endif %}
             {% else %}
             <div class="h-100 p-4 d-flex align-items-center justify-content-center border-bottom">
                 <p>No instances.</p>
@@ -175,6 +177,7 @@
                 <div class="row g-2 py-2 mx-2">
                 {% for app in objs.apps %}
                 {% if project.s3storage == None and app.slug in 'mlflow,mlflow-serve,pytorch-serve,tensorflow-serve' %}
+                {% elif app.slug == "shinyapp" and not request.user.is_superuser %}
                 {% else %}
                 <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                     <div class="card h-100" data-cy="create-app-card">
@@ -187,7 +190,7 @@
                                     <div class="align-items-end d-flex h-100">
                                         <div>
                                             <div class="row">
-                                                <div class="col">
+                                                <div class="col small">
                                                     <p>{{ app.description }}</p>
                                                 </div>
                                             </div>

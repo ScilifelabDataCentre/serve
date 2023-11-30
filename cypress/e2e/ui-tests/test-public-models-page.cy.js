@@ -8,7 +8,7 @@ describe("Test of the public models page", () => {
     it("should contain header with text Models", () => {
 
         cy.get('h3').should('contain', 'Models')
-        cy.get("title").should("have.text", "Models | SciLifeLab Serve")
+        cy.get("title").should("have.text", "Models | SciLifeLab Serve (beta)")
     })
 
     it("should contain text about no public models", () => {
