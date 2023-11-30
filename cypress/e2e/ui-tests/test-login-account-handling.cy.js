@@ -27,7 +27,7 @@ describe("Test login, profile page view, password change, password reset", () =>
     it("can login an existing user through the UI when input is valid", () => {
 
         cy.visit("accounts/login/")
-        cy.get("title").should("have.text", "Login | SciLifeLab Serve")
+        cy.get("title").should("have.text", "Login | SciLifeLab Serve (beta)")
 
         cy.get('input[name=username]').type(users.login_user.email)
         cy.get('input[name=password]').type(users.login_user.password)
@@ -94,7 +94,7 @@ describe("Test login, profile page view, password change, password reset", () =>
     it("can reset password with valid form input", () => {
 
         cy.visit("/accounts/password_reset/");
-        cy.get("title").should("have.text", "Password reset | SciLifeLab Serve")
+        cy.get("title").should("have.text", "Password reset | SciLifeLab Serve (beta)")
         cy.get("h2").should("contain", "Password reset")
 
         cy.get('input[type=email]').type(users.login_user.email);
