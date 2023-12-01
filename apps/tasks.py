@@ -537,7 +537,10 @@ def init_event_listener(self, namespace, label_selector):
                     }
 
                 # If older pod, skip
-                if creation_timestamp < status_data[release]["creation_timestamp"] or status == status_data[release]["status"]:
+                if (
+                    creation_timestamp < status_data[release]["creation_timestamp"]
+                    or status == status_data[release]["status"]
+                ):
                     continue
 
                 # If pod is same and deleted, set deleted stamp
@@ -614,7 +617,7 @@ def get_status(pod):
                     return mapped_status(reason)
         else:
             running = state.running
-            
+
             if running is not None:
                 return "Running"
 
@@ -627,6 +630,7 @@ K8S_STATUS_MAP = {
     "ContainerCreating": "Created",
     "PodInitializing": "Pending",
 }
+
 
 def mapped_status(reason: str) -> str:
     return K8S_STATUS_MAP.get(reason, reason)
@@ -646,6 +650,7 @@ def sync_all_statuses(namespace, label_selector):
             update_status(appinstance, status_object, status)
 
 
+@transaction.atomic
 def update_status(appinstance, status_object, status):
     """
     Helper function to update the status of an appinstance and a status object.
