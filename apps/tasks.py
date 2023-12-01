@@ -200,41 +200,26 @@ def delete_and_deploy_resource(instance_pk, new_release_name):
 def deploy_resource(instance_pk, action="create"):
     print("TASK - DEPLOY RESOURCE...")
     appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
-    status = AppStatus(appinstance=appinstance)
-    if (action == "create") or (action == "update"):
-        parameters = appinstance.parameters
-        status.status_type = "Created"
-        status.info = parameters["release"]
-
-        # For backwards-compatibility with old ingress spec:
-        if "ingress" not in parameters:
-            parameters["ingress"] = dict()
-
-        appinstance.parameters = parameters
-        appinstance.save(update_fields=["parameters"])
 
     results = controller.deploy(appinstance.parameters)
     stdout, stderr = process_helm_result(results)
 
     if results.returncode == 0:
         print("Helm install succeeded")
-        status.status_type = "Installed"
+
         helm_info = {
             "success": True,
             "info": {"stdout": stdout, "stderr": stderr},
         }
     else:
         print("Helm install failed")
-        status.status_type = "Failed"
-        appinstance.state = "Failed"
         helm_info = {
             "success": False,
             "info": {"stdout": stdout, "stderr": stderr},
         }
 
     appinstance.info["helm"] = helm_info
-    appinstance.save(update_fields=["state", "info"])
-    status.save()
+    appinstance.save()
 
     if results.returncode != 0:
         print(appinstance.info["helm"])
@@ -262,7 +247,8 @@ def delete_resource(pk):
 
         if results.returncode == 0 or "release: not found" in results.stderr.decode("utf-8"):
             status = AppStatus(appinstance=appinstance)
-            status.status_type = "Terminated"
+            status.status_type = "Deleting..."
+            appinstance.state = "Deleting..."
             status.save()
             print("CALLING POST DELETE HOOKS")
             post_delete_hooks(appinstance)
@@ -271,6 +257,7 @@ def delete_resource(pk):
             status.status_type = "FailedToDelete"
             status.save()
             appinstance.state = "FailedToDelete"
+        appinstance.save(update_fields=["state"])
 
 
 @shared_task
