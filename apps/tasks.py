@@ -20,6 +20,13 @@ from studio.celery import app
 from . import controller
 from .models import AppInstance, Apps, AppStatus, ResourceData
 
+K8S_STATUS_MAP = {
+    "CrashLoopBackOff": "Error",
+    "Completed": "Retrying...",
+    "ContainerCreating": "Created",
+    "PodInitializing": "Pending",
+}
+
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
 
@@ -544,6 +551,7 @@ def init_event_listener(self, namespace, label_selector):
                 status_object = AppStatus(appinstance=appinstance)
                 update_status(appinstance, status_object, status)
     except Exception as exc:
+        print("Event listner exception occured", exc)
         # Catch other exceptions to trigger a retry
         raise self.retry(exc=exc, countdown=10)
 
@@ -611,14 +619,6 @@ def get_status(pod):
                 return "Pending"
 
     return pod.status.phase
-
-
-K8S_STATUS_MAP = {
-    "CrashLoopBackOff": "Error",
-    "Completed": "Retrying...",
-    "ContainerCreating": "Created",
-    "PodInitializing": "Pending",
-}
 
 
 def mapped_status(reason: str) -> str:
