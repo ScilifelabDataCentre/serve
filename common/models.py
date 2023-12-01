@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, User
 from django.core.mail import send_mail
 from django.db import models
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 
 class UserProfile(models.Model):
@@ -24,6 +26,12 @@ class EmailVerificationTable(models.Model):
     token = models.CharField(max_length=100)
 
     def send_verification_email(self):
+        html_message = render_to_string(
+            "registration/verify_email.html",
+            {
+                "token": self.token,
+            },
+        )
         send_mail(
             "Verify your email address on SciLifeLab Serve",
             (
@@ -36,4 +44,5 @@ class EmailVerificationTable(models.Model):
             settings.EMAIL_HOST_USER,
             [self.user.email],
             fail_silently=False,
+            html_message=html_message,
         )
