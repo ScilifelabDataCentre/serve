@@ -1,5 +1,6 @@
 import json
 import re
+import uuid
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
@@ -12,7 +13,7 @@ from django.core.validators import EmailValidator
 from django.db import transaction
 from django.utils.safestring import mark_safe
 
-from common.models import UserProfile
+from common.models import EmailVerificationTable, UserProfile
 
 with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
     DEPARTMENTS = json.load(f).get("departments", [])
@@ -280,8 +281,31 @@ class SignUpForm:
     # But if you are going to use it somewhere else, you should add it
     def save(self):
         user = self.user.save()
+        email_verification = EmailVerificationTable(user=user, token=uuid.uuid4())
         profile = self.profile.save(commit=False)
         profile.user = user
         profile.is_approved = self.is_approved
         profile.save()
+        email_verification.save()
         return profile
+
+
+class TokenVerificationForm(forms.Form):
+    token = forms.CharField(
+        max_length=100,
+        label="Token",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        help_text="Token from email",
+    )
+
+    def clean_token(self):
+        token = self.cleaned_data["token"]
+        if not EmailVerificationTable.objects.filter(token=token).exists():
+            raise ValidationError("Invalid token")
+        return token
+
+    class Meta:
+        model = EmailVerificationTable
+        fields = [
+            "token",
+        ]
