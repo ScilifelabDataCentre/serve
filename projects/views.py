@@ -382,7 +382,7 @@ class GrantAccessToProjectView(View):
 )
 class RevokeAccessToProjectView(View):
     def valid_request(self, selected_username, user, project):
-        if project.owner.id != user.id:
+        if project.owner.id != user.id and not user.is_superuser:
             return [False, None]
 
         qs = User.objects.filter(username=selected_username)

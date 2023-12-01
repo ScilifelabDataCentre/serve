@@ -7,7 +7,11 @@
 {% block content %}
 
 <div class="d-flex justify-content-between">
+    {% if request.user.is_authenticated %}
     <h3>My projects</h3>
+    {% else %}
+    <h3>Login required</h3>
+    {% endif %}
     {% if request.user.is_authenticated %}
     {% if user_can_create %}
     <a href="{% url 'projects:project_templates' %}" class="btn btn-primary ms-2">
