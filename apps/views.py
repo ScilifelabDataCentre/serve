@@ -217,7 +217,7 @@ class AppSettingsView(View):
             name=current_volume.name if current_volume else None
         )
 
-        if request.user.id != appinstance.owner.id:
+        if request.user.id != appinstance.owner.id and not request.user.is_superuser:
             show_permissions = False
 
         return render(request, template, locals())

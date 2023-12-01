@@ -10,8 +10,6 @@
             <p>For granting access to this project,
                 enter email of user below. User will be added to project if exists.</p>
 
-
-
             <div class="mb-3">
                 <label class="form-label" for="id_selected_user">Email</label>
                 <input type="text" placeholder="Email" name="selected_user" id="id_selected_user"
@@ -37,10 +35,10 @@
                     <tbody>
 
                         {% for user in project.authorized.all %}
-                        <tr id="revokeAccessRow-{{user.pk}}">
+                        <tr class="user-with-access" id="revokeAccessRow-{{user.pk}}">
                             <td scope="row">{{ user.username }}</td>
 
-                            {% if project.owner.id == request.user.id %}
+                            {% if project.owner.id == request.user.id or request.user.is_superuser %}
                                 <td class="d-flex justify-content-center">
                                     <button type="button" class="btn-close" aria-label="Close" data-bs-toggle="modal"
                                         data-bs-target="#revokeAccessModal-{{user.pk}}"></button>
@@ -122,4 +120,3 @@
         {% endif %}
 
     </div>
-</div>
