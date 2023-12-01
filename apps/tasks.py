@@ -512,10 +512,11 @@ def init_event_listener(self, namespace, label_selector):
     should be updated. It uses the creation timestamp to always use the status of the youngest pod
     in a helm release.
     """
-    api, w = setup_client()
+    k8s_api = setup_client()
+    k8s_watch = watch.Watch()
     try:
-        my_dict = {}
-        for event in w.stream(api.list_namespaced_pod, namespace=namespace, label_selector=label_selector):
+        status_data = {}
+        for event in k8s_watch.stream(k8s_api.list_namespaced_pod, namespace=namespace, label_selector=label_selector):
             pod = event["object"]
 
             status = get_status(pod)
@@ -528,24 +529,24 @@ def init_event_listener(self, namespace, label_selector):
 
             if appinstance:
                 # Case 1 - Set unseen release
-                if release not in my_dict:
-                    my_dict[release] = {
+                if release not in status_data:
+                    status_data[release] = {
                         "creation_timestamp": creation_timestamp,
                         "deletion_timestamp": deletion_timestamp,
                         "status": status,
                     }
 
                 # If older pod, skip
-                if creation_timestamp < my_dict[release]["creation_timestamp"] or status == my_dict[release]["status"]:
+                if creation_timestamp < status_data[release]["creation_timestamp"] or status == status_data[release]["status"]:
                     continue
 
                 # If pod is same and deleted, set deleted stamp
-                elif creation_timestamp == my_dict[release]["creation_timestamp"] and deletion_timestamp:
+                elif creation_timestamp == status_data[release]["creation_timestamp"] and deletion_timestamp:
                     status = "Deleted"
                     appinstance.deleted_on = timezone.now()
 
                 # If pod is newer, update
-                my_dict[release] = {
+                status_data[release] = {
                     "creation_timestamp": creation_timestamp,
                     "deletion_timestamp": deletion_timestamp,
                     "status": status,
@@ -578,14 +579,14 @@ def setup_client():
     except config.ConfigException:
         try:
             config.load_kube_config(settings.KUBECONFIG)
-        except config.ConfigException:
+        except config.ConfigException as e:
             raise config.ConfigException(
                 "Could not set the cluster config. Try to use the cluster.conf file or set incluster config"
-            )
+            ) from e
 
-    api = client.CoreV1Api()
-    w = watch.Watch()
-    return api, w
+    k8s_api = client.CoreV1Api()
+
+    return k8s_api
 
 
 def get_status(pod):
@@ -611,37 +612,32 @@ def get_status(pod):
                 if waiting is not None:
                     reason = waiting.reason
                     return mapped_status(reason)
-
-                running = state.running
-
-                if running is not None:
-                    return "Running"
-
-            print("Last state not found.")
+        else:
+            running = state.running
+            
+            if running is not None:
+                return "Running"
 
     return pod.status.phase
 
 
-def mapped_status(reason):
-    status_mapping = {
-        "CrashLoopBackOff": "Error",
-        "Completed": "Retrying...",
-        "ContainerCreating": "Creating",
-        "PodInitializing": "Pending",
-    }
+K8S_STATUS_MAP = {
+    "CrashLoopBackOff": "Error",
+    "Completed": "Retrying...",
+    "ContainerCreating": "Created",
+    "PodInitializing": "Pending",
+}
 
-    if reason in status_mapping:
-        return status_mapping[reason]
-    else:
-        return reason
+def mapped_status(reason: str) -> str:
+    return K8S_STATUS_MAP.get(reason, reason)
 
 
 def sync_all_statuses(namespace, label_selector):
     """
     Syncs the status of all apps with a pod that is on the cluster
     """
-    api, _ = setup_client()
-    for pod in api.list_namespaced_pod(namespace=namespace, label_selector=label_selector).items:
+    k8s_api = setup_client()
+    for pod in k8s_api.list_namespaced_pod(namespace=namespace, label_selector=label_selector).items:
         status = pod.status.phase
         release = pod.metadata.labels["release"]
         appinstance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
