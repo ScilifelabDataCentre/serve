@@ -617,9 +617,11 @@ def get_status(pod):
                     return mapped_status(reason)
         else:
             running = state.running
-
-            if running is not None:
+            ready = container_status.ready
+            if running and ready:
                 return "Running"
+            else:
+                return "Pending"
 
     return pod.status.phase
 
