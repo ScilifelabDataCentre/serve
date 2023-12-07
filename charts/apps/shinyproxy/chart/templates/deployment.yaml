@@ -36,7 +36,7 @@ spec:
       affinity:
         {{ .Values.affinity | toYaml | nindent 8 | trim }}
     {{ end }}
-      automountServiceAccountToken: true
+      serviceAccountName: {{ .Values.namespace }}-shinyproxy
       containers:
       - name: serve
         image: {{ .Values.appconfig.proxyimage }}

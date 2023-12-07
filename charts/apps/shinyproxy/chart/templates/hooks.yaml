@@ -17,7 +17,7 @@ spec:
         allow-api-access: "true"
     spec:
       restartPolicy: Never
-      serviceAccountName: default
+      serviceAccountName: {{ .Values.namespace }}-shinyproxy
       containers:
       - name: delete-user-pods
         image: bitnami/kubectl:{{ .Capabilities.KubeVersion.Major }}.{{ .Capabilities.KubeVersion.Minor }}
