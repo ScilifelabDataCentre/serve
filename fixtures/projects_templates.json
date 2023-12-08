@@ -7,6 +7,7 @@
       "template": {
         "apps": {
           "project-netpolicy": {
+            "permission": "private",
             "slug": "netpolicy"
           },
           "project-vol": {
@@ -70,6 +71,7 @@
       "template": {
         "apps": {
           "project-netpolicy": {
+            "permission": "private",
             "slug": "netpolicy"
           },
           "project-vol": {
