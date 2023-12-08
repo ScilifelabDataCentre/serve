@@ -4,7 +4,9 @@ from django.core.mail import send_mail
 from django.db import models
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+
 from studio.settings import DOMAIN
+
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
