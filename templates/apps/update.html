@@ -22,8 +22,10 @@
         This form allows you to host a Dash app at SciLifeLab Serve. Please read our <a href="#">documentation page on Dash apps</a> for step-by-step instructions.
         {% elif app.slug in 'shinyapp,shinyproxyapp' %}
         This form allows you to host a Shiny app at SciLifeLab Serve. Please read our <a href="#">documentation page on Shiny apps</a> for step-by-step instructions.
-        {% else %}
-        [link to documentation to be added here]
+        {% endif %}
+        {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
+        <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
+        <p>Each {{ app.name }} instance can get access to the persistent volume (folder) associated with this project, called 'project-vol'. Please make sure to save all your data files, script files, output from computations, etc. inside 'project-vol'; the files located elsewhere can be deleted at any point. The files saved inside 'project-vol' will be available across all instances of {{ app.name }} (as well as other apps) within this project.</p>
         {% endif %}
     </div>
 </div>

@@ -6,12 +6,11 @@ metadata:
   labels:
     io.kompose.service: {{ .Release.Name }}-ingress
   annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 50m
     {{ if ne .Values.permission "public" }}
     nginx.ingress.kubernetes.io/auth-url: "{{ .Values.global.protocol }}://{{ .Values.global.auth_domain }}:8080/auth/?release={{ .Values.release }}"
     nginx.ingress.kubernetes.io/auth-signin: "https://{{ .Values.global.domain }}/accounts/login/?next=$scheme%3A%2F%2F$host"
     {{- end }}
-    nginx.ingress.kubernetes.io/proxy-body-size: 2000m
-    #nginx.ingress.kubernetes.io/auth-response-headers: X-Forwarded-Host
 spec:
   rules:
     - host: {{ .Release.Name }}.{{ .Values.global.domain }}
@@ -22,9 +21,9 @@ spec:
             service:
               name: {{ .Values.service.name }}
               port:
-                number: 80
+                number: {{ .Values.service.port }}
           pathType: ImplementationSpecific
   tls:
-    - secretName: prod-ingress
+    - secretName: {{ .Values.ingress.secretName }}
       hosts:
         - {{ .Values.global.domain }}

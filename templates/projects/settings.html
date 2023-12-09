@@ -51,7 +51,6 @@
                 {% endif %}
 
                 {% if request.user.pk == project.owner.pk or request.user.is_superuser %}
-
                 <a class="default list-group-item list-group-item-action p-3 text-red" data-bs-toggle="list"
                     href="#delete" role="tab">
                     Delete
@@ -93,48 +92,6 @@
 
                 {% include './grant_revoke_access.html' %}
 
-            </div>
-            <div class="tab-pane fade" id="publish" role="tabpanel">
-                <div class="card shadow border-0">
-
-                    <div class="card-header bg-light py-3">
-                        <h5 class="card-title mb-0">Publish project on GitHub</h5>
-                    </div>
-                    <form action="{% url 'projects:publish_project' request.user project.slug %}" method="post">
-                        {% csrf_token %}
-                        <div class="card-body">
-
-                            {% if not project.clone_url %}
-
-
-                            <div class="mb-3">
-                                <label for="id_user_name" class="form-label">GitHub username</label>
-                                <input type="text" class="form-control" id="id_user_name" name="user_name"
-                                    maxlength="256" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="id_user_password" class="form-label">GitHub password</label>
-                                <input type="password" class="form-control" id="id_user_password" name="user_password"
-                                    maxlength="256" required>
-                            </div>
-                        </div>
-                        <div class="card-footer d-flex justify-content-end">
-                            <button type="submit" class="btn btn-square btn-primary">Publish</button>
-                        </div>
-                        {% else %}
-                            <div class="alert alert-success alert-outline alert-dismissible" role="alert">
-                                <div class="alert-icon">
-                                    <i class="far fa-fw fa-bell"></i>
-                                </div>
-                                <div class="alert-message">
-                                    <strong>This project is already on GitHub!</strong> Clone URL: {{ project.clone_url }}
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        </div>
-                    </form>
-                </div>
             </div>
 
             {% if enable_extra_settings or request.user.is_superuser %}
@@ -262,7 +219,7 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
+
             <div class="tab-pane fade" id="s3storage" role="tabpanel">
                 <div class="card shadow border-0">
 
@@ -326,7 +283,8 @@
                     </div>
                 </div>
             </div>
-
+            {% endif %}
+            {% if request.user.pk == project.owner.pk or request.user.is_superuser %}
             <div class="tab-pane fade" id="delete" role="tabpanel">
                 <div class="card shadow border-0">
 
@@ -379,6 +337,7 @@
                     </div>
                 </div>
             </div>
+            {% endif%}
         </div>
     </div>
 </div>

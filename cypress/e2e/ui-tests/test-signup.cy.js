@@ -20,7 +20,7 @@ describe("Test sign up", () => {
           })
     })
 
-    it("should create new user account with valid form input", () => {
+    it("can create new user account with valid form input", () => {
 
         cy.visit("/signup/");
         cy.get("title").should("have.text", "Register | SciLifeLab Serve (beta)")
@@ -35,6 +35,9 @@ describe("Test sign up", () => {
         cy.get("input#submit-id-save").click();
 
         cy.url().should("include", "accounts/login");
-        cy.get('.alert-success').should('contain', 'Account created successfully!');
+        cy.get('.alert-success').should('contain', ' Please check your email to verify your account!');
+
+        // TO-DO: add steps to check that email was sent, get token from email, go to email verification page, submit token there, then log in with new account
     })
+
 })

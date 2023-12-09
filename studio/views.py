@@ -25,19 +25,11 @@ from projects.models import Project
 
 @receiver(pre_save, sender=User)
 def set_new_user_inactive(sender, instance, **kwargs):
-    if instance._state.adding is True and settings.INACTIVE_USERS:
+    if instance._state.adding and settings.INACTIVE_USERS and not instance.is_superuser:
         print("Creating Inactive User")
         instance.is_active = False
     else:
         print("Updating User Record")
-
-
-@receiver(post_save, sender=UserProfile)
-def post_save_userprofile(sender, instance, **kwargs):
-    if not settings.INACTIVE_USERS:
-        user = instance.user
-        user.is_active = instance.is_approved
-        user.save()
 
 
 # Since this is a production feature, it will only work if DEBUG is set to False

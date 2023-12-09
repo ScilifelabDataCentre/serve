@@ -37,7 +37,7 @@
   },
   {
     "fields": {
-      "app_slug": "fastapi-serve",
+      "app_slug": "python-serve",
       "name": "Python Model Deployment",
       "slug": "python"
     },

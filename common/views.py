@@ -1,12 +1,14 @@
 from django.conf import settings
 from django.contrib import messages
+from django.core.mail import send_mail
 from django.db import transaction
 from django.http.response import HttpResponseRedirect
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, TemplateView
 
-from .forms import ProfileForm, SignUpForm, UserForm
+from .forms import ProfileForm, SignUpForm, TokenVerificationForm, UserForm
+from .models import EmailVerificationTable
 
 
 # Create your views here.
@@ -53,13 +55,11 @@ class SignUpView(CreateView):
         form_ = SignUpForm(user=form, profile=profile_form)
         if form_.is_valid():
             form_.save()
+            redirect_name = "login"
             if settings.INACTIVE_USERS:
-                # TODO send email to registered user to confirm email address here
-                messages.success(self.request, "Account request has been registered! Please wait for admin to approve!")
-                redirect_name = "common:success"
+                messages.success(self.request, "Please check your email to verify your account!")
             else:
                 messages.success(self.request, "Account created successfully!")
-                redirect_name = "login"
             return HttpResponseRedirect(reverse_lazy(redirect_name))
         else:
             return self.custom_form_invalid(form, profile_form)
@@ -76,3 +76,46 @@ class SignUpView(CreateView):
         # 'form' here will be a UserForm instance.
         profile_form = self.get_context_data().get("profile_form")
         return self.custom_form_invalid(form, profile_form)
+
+
+class VerifyView(TemplateView):
+    form_class = TokenVerificationForm
+    template_name = "registration/verify.html"
+
+    def get(self, request, *args, **kwargs):
+        token = request.GET.get("token")
+        form = self.form_class(initial={"token": token})
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request, *args, **kwargs):
+        form = self.form_class(request.POST)
+        if form.is_valid():
+            try:
+                email_verification_table = EmailVerificationTable.objects.get(token=form.cleaned_data["token"])
+                user = email_verification_table.user
+
+                # If user is approved, it means that the user is affiliated with the university
+                # and we can activate the account right away.
+                if user.userprofile.is_approved:
+                    user.is_active = True
+                    user.save()
+                    messages.success(request, "Email verified successfully!")
+                else:
+                    # If user is not approved, we send an email to the admin to approve the account.
+                    send_mail(
+                        "User has verified their email address",
+                        f"Please go to the admin page to activate account for {user.email}",
+                        settings.EMAIL_HOST_USER,
+                        ["serve@scilifelab.se"],
+                        fail_silently=False,
+                    )
+                    messages.success(
+                        request, "Your email address has been verified. Please wait for admin to approve your account."
+                    )
+
+                email_verification_table.delete()
+                return redirect("login")
+            except EmailVerificationTable.DoesNotExist:
+                messages.error(request, "Invalid token!")
+                return redirect("portal:home")
+        return render(request, self.template_name, {"form": form})
