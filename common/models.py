@@ -5,6 +5,8 @@ from django.db import models
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
+from studio.settings import DOMAIN
+
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -35,9 +37,9 @@ class EmailVerificationTable(models.Model):
         send_mail(
             "Verify your email address on SciLifeLab Serve",
             (
-                "You registered an account on SciLifeLab Serve (serve.scilifelab.se).\n"
+                f"You registered an account on SciLifeLab Serve ({DOMAIN}).\n"
                 "Please click this link to verify your email address:"
-                f" https://serve.scilifelab.se/verify/?token={self.token}"
+                f" https://{DOMAIN}/verify/?token={self.token}"
                 "\n\n"
                 "SciLifeLab Serve team"
             ),
