@@ -162,7 +162,7 @@
                                 <h5 class="text-grape">{{ news.title }}</h5>
 
                         </div>
-                            <p class="card-text mb-2">{{ news.body|truncatechars:150 }}</p>
+                            <p class="card-text mb-2">{{ news.body_html|safe|truncatewords:30 }}</p>
                     </div>
                     </a>
                 </div>
