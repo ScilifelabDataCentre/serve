@@ -87,19 +87,17 @@
                         </div>
                     </div>
                     {% endif %}
+
+
                     {% if form.dep_permissions %}
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item">
                         <label class="form-label">Permissions</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to them. Project apps can only be accessed by project members. Private apps are only accessible by users that create the apps.">
                         </span>
-                        <select name="permission" id="permission" class="form-control">
+                        <select name="permission" id="permission" class="form-control" required>
                             {% for name, value in form.form_permissions.items %}
                             {% if value.option == "true" %}
-                            {% if value.value %}
-                            <option value="{{ name }}" selected>{{ name }}</option>
-                            {% else %}
                             <option value="{{ name }}">{{ name }}</option>
-                            {% endif %}
                             {% endif %}
                             {% endfor %}
                         </select>
@@ -132,11 +130,11 @@
                     {% endif %}
 
                     {% if form.dep_flavor %}
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item">
                         <label class="form-label">Hardware</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Hardware allocation for your app. Only one option is available by default. If your app requires more hardware resources, get in touch with us (serve@scilifelab.se) with a request.">
                         </span>
-                        <select name="flavor" id="flavor" class="form-control">
+                        <select name="flavor" id="flavor" class="form-control" required>
                             {% for flavor in form.flavors %}
                             <option value="{{ flavor.pk }}">{{ flavor.name }}</option>
                             {% endfor %}
@@ -320,7 +318,7 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
         })
-        for (item of ["app_name","app_description","image", "port"]) {
+        for (item of ["app_name","app_description","permission","flavor","image", "port"]) {
             if (sessionStorage.getItem(item) != null) {
                 document.getElementById(item).value = sessionStorage.getItem(item)
                 sessionStorage.removeItem(item)
@@ -366,6 +364,12 @@
         if (document.getElementById('app_description') != null) {
             var app_description = document.getElementById('app_description').value
         }
+        if (document.getElementById('permission') != null) {
+            var permission = document.getElementById('permission').value
+        }
+        if (document.getElementById('flavor') != null) {
+            var flavor = document.getElementById('flavor').value
+        }
         if (document.getElementById('image') != null) {
             var image = document.getElementById('image').value
         }
@@ -385,6 +389,8 @@
                     setTimeout(function(){
                         sessionStorage.setItem("app_name",app_name);
                         sessionStorage.setItem("app_description", app_description);
+                        sessionStorage.setItem("permission", permission);
+                        sessionStorage.setItem("flavor", flavor);
                         sessionStorage.setItem("image", image);
                         sessionStorage.setItem("port", port);
                         window.location.href = window.location.href.replace( /[\?#].*|$/, "?from=overview&rn="+data.rn );
