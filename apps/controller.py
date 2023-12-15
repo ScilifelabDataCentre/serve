@@ -22,7 +22,7 @@ def delete(options):
 
 def deploy(options):
     print("STARTING DEPLOY FROM CONTROLLER")
-    _ = os.environ["BASE_PATH"]
+
     app = Apps.objects.get(slug=options["app_slug"], revision=options["app_revision"])
     if app.chart_archive and app.chart_archive != "":
         try:

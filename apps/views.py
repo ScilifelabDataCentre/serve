@@ -266,7 +266,7 @@ class AppSettingsView(View):
         appinstance.access = access
         appinstance.app_dependencies.set(app_deps)
         appinstance.model_dependencies.set(model_deps)
-        appinstance.save()
+        appinstance.save(update_fields=["flavor", "name", "description", "parameters", "access"])
         self.update_resource(request, appinstance, current_release_name)
 
     def update_resource(self, request, appinstance, current_release_name):
@@ -281,10 +281,14 @@ class AppSettingsView(View):
         appinstance.table_field.update({"url": new_url})
         if new_release_name and current_release_name != new_release_name:
             # This handles the case where a user creates a new subdomain, we must update the helm release aswell
-            _ = delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
-        else:
-            # Otherwise, we update the resources in the same helm release
-            _ = deploy_resource.delay(appinstance.pk, "update")
+            delete_resource.delay(appinstance.pk)
+            parameters = appinstance.parameters
+            parameters["release"] = new_release_name
+            parameters["appname"] = new_release_name
+            appinstance.parameters.update(parameters)
+            appinstance.save(update_fields=["parameters", "table_field"])
+
+        deploy_resource.delay(appinstance.pk, "update")
 
         appinstance.save()
 
