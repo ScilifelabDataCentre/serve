@@ -17,6 +17,7 @@ repos:
   - id: mixed-line-ending
   - id: end-of-file-fixer
     exclude: static/vendor/
+    exclude: static/wiki/
   - id: pretty-format-json
     exclude: ^fixtures/
     args: [--autofix]
