@@ -16,8 +16,7 @@ repos:
   - id: detect-private-key
   - id: mixed-line-ending
   - id: end-of-file-fixer
-    exclude: static/vendor/
-    exclude: static/wiki/
+    exclude: static/vendor/|static/wiki/
   - id: pretty-format-json
     exclude: ^fixtures/
     args: [--autofix]
