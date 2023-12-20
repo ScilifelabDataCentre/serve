@@ -20,14 +20,27 @@ credentials:
   access_key: minio-access-key
   secret_key: minio-secret-key
 
+
 ingress:
   v1beta1: false
   secretName: prod-ingress
 
-securityContext:
-  enabled: true
-  runAsUser: 1000
-  runAsGroup: 1000
+appconfig:
+  apiServerPort: 9000
+  uiConsolePort: 9001
+  image: bitnami/minio:2023.12.14-debian-11-r0
+
+podSecurityContext:
+  seccompProfile:
+      type: RuntimeDefault
   fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
   allowPrivilegeEscalation: false
   privileged: false
+  capabilities:
+    drop:
+      - all
+
