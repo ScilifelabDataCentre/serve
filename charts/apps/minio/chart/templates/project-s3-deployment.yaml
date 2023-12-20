@@ -33,6 +33,15 @@ spec:
       - name: {{ .Release.Name }}-minio
         image: {{ .Values.appconfig.image }}
         imagePullPolicy: IfNotPresent
+        command:
+        - "/bin/sh"
+        - "-ce"
+        - "/usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.minioConsolePort }}"
+        args:
+        {{- range $key, $value := .Values.apps.volumeK8s }}
+        - server
+        - /home/{{ $key }}
+        {{- end }}
         env:
         - name: MINIO_ROOT_USER
           valueFrom:
@@ -55,7 +64,7 @@ spec:
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
-          mountPath: bitnami/minio/data
+          mountPath: /data
         {{- end }}
 
       - name: {{ .Release.Name }}-minio-sidecar

@@ -28,7 +28,7 @@ ingress:
 appconfig:
   apiServerPort: 9000
   uiConsolePort: 9001
-  image: bitnami/minio:2023.12.14-debian-11-r0
+  image: minio/minio:latest
 
 podSecurityContext:
   seccompProfile:
