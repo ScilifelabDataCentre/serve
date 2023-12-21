@@ -1,3 +1,4 @@
+import markdown
 from django.apps import apps
 from django.conf import settings
 from django.db.models import Q
@@ -105,6 +106,8 @@ class HomeView(View):
         published_apps, request = get_public_apps(request, id=id, get_all=False)
         published_models = PublishedModel.objects.all()
         news_objects = NewsObject.objects.all().order_by("-created_on")
+        for news in news_objects:
+            news.body_html = markdown.markdown(news.body)
         link_all_news = False
         if published_models.count() >= 3:
             published_models = published_models[:3]

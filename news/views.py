@@ -1,3 +1,4 @@
+import markdown
 from django.shortcuts import render
 
 from .models import NewsObject
@@ -5,4 +6,6 @@ from .models import NewsObject
 
 def news(request):
     news_objects = NewsObject.objects.all().order_by("-created_on")
-    return render(request, "portal/news.html", locals())
+    for news in news_objects:
+        news.body_html = markdown.markdown(news.body)
+    return render(request, "news/news.html", {"news_objects": news_objects})
