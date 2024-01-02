@@ -36,6 +36,8 @@ data:
         container-memory-request: {{ .Values.flavor.requests.memory }}
         port: {{ .Values.appconfig.port }}
         id:  {{ .Release.Name }}
+        display-name: {{ .Values.app_name }}
+        description: {{ .Values.app_description }}
         labels:
           sp.instance: {{ .Release.Name }}
           allow-internet-egress: "true"
