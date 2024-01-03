@@ -34,9 +34,10 @@ spec:
         image: {{ .Values.appconfig.image }}
         imagePullPolicy: IfNotPresent
         command:
-        - "/bin/sh"
-        - "-ce"
-        - "/usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.minioConsolePort }}"
+          - /bin/sh
+          - -ce
+          - |
+            /usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.minioConsolePort }}
         args:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - server
@@ -66,20 +67,18 @@ spec:
         - name: {{ $key }}
           mountPath: /data
         {{- end }}
-
-      - name: {{ .Release.Name }}-minio-sidecar
-        image: alpine:3.18.3
-        imagePullPolicy: IfNotPresent
-        command: ["sh", "-c", "while true; do sleep 3600; done;"]
-        securityContext:
-        {{- toYaml .Values.securityContext | nindent 10 }}
-        resources: {}
-        volumeMounts:
-        {{- range $key, $value := .Values.apps.volumeK8s }}
-        - name: {{ $key }}
-          mountPath: /data
-        {{- end }}
-
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -ce
+              - |
+                sleep 5
+                mc alias set local http://127.0.0.1:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
+                mc admin user add local user password
+                mc mb /data/data-bucket
+                mc admin policy attach local readwrite --user user || true
       hostname: {{ .Release.Name }}-minio
       restartPolicy: Always
       volumes:
