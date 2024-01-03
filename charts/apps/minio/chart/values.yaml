@@ -1,12 +1,6 @@
 namespace: default
 volumes: {}
 
-## Port number for MinIO S3 API Access
-minioAPIPort: "9000"
-
-## Port number for MinIO Browser COnsole Access
-minioConsolePort: "9001"
-
 
 ## Path where PV would be mounted on the MinIO Pod
 mountPath: ""
@@ -28,6 +22,7 @@ ingress:
 appconfig:
   apiServerPort: 9000
   uiConsolePort: 9001
+  ftpPort: 8022
   image: minio/minio:latest
 
 podSecurityContext:
@@ -37,7 +32,8 @@ podSecurityContext:
 
 securityContext:
   runAsNonRoot: true
-  runAsUser: 1001
+  runAsUser: 1000
+  runAsGroup: 1000
   allowPrivilegeEscalation: false
   privileged: false
   capabilities:

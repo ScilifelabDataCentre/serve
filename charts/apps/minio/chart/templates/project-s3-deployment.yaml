@@ -37,7 +37,7 @@ spec:
           - /bin/sh
           - -ce
           - |
-            /usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.minioConsolePort }}
+            /usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.appconfig.uiConsolePort }} --ftp="address=:{{ .Values.appconfig.ftpPort }}"
         args:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - server

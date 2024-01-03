@@ -17,8 +17,22 @@ spec:
           backend:
             service:
               name: {{ .Values.service.name }}
-              port:
-                number: 9001
+              port: 
+                name: console
+          pathType: ImplementationSpecific
+        - path: /minio-api
+          backend:
+            service:
+              name: {{ .Values.service.name }}
+              port: 
+                name: api
+          pathType: ImplementationSpecific
+        - path: /ftp
+          backend:
+            service:
+              name: {{ .Values.service.name }}
+              port: 
+                name: ftp
           pathType: ImplementationSpecific
   tls:
     - secretName: {{ .Values.ingress.secretName }}

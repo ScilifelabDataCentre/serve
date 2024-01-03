@@ -7,11 +7,15 @@ spec:
   ports:
   - name: api
     protocol: TCP
-    port: 9000
-    targetPort: 9000
+    port: {{ .Values.appconfig.apiServerPort }}
+    targetPort: {{ .Values.appconfig.apiServerPort }}
   - name: console
     protocol: TCP
-    port: 9001
-    targetPort: 9001
+    port: {{ .Values.appconfig.uiConsolePort }}
+    targetPort: {{ .Values.appconfig.uiConsolePort }}
+  - name: ftp
+    protocol: TCP
+    port: {{ .Values.appconfig.ftpPort }}
+    targetPort: {{ .Values.appconfig.ftpPort }}
   selector:
     release: {{ .Release.Name }}
