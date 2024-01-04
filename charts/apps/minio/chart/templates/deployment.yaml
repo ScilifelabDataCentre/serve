@@ -37,7 +37,7 @@ spec:
           - /bin/sh
           - -ce
           - |
-            /usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.appconfig.uiConsolePort }} --ftp="address=:{{ .Values.appconfig.ftpPort }}"
+            /usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.appconfig.uiConsolePort }} --ftp="address=:{{ .Values.appconfig.ftpPort }}" --ftp="passive-port-range=30000-40000" --ftp="tls-private-key=home/tls.key" --ftp="tls-public-cert=home/tls.crt" 
         args:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - server
@@ -69,6 +69,9 @@ spec:
         - name: {{ $key }}
           mountPath: /data
         {{- end }}
+        - name: tls-secret
+          mountPath: /home
+          readOnly: true
         lifecycle:
           postStart:
             exec:
@@ -89,4 +92,7 @@ spec:
         persistentVolumeClaim:
           claimName: {{ $value.release }}
       {{- end }}
+      - name: tls-secret
+        secret:
+          secretName: prod-ingress
 status: {}
