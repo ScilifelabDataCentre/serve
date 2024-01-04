@@ -61,6 +61,8 @@ spec:
             name: api-server
           - containerPort: {{ .Values.appconfig.uiConsolePort }}
             name: ui-console
+          - containerPort: {{ .Values.appconfig.ftpPort }}
+            name: ftp
         resources: {}
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}

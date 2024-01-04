@@ -13,9 +13,6 @@ spec:
     protocol: TCP
     port: {{ .Values.appconfig.uiConsolePort }}
     targetPort: {{ .Values.appconfig.uiConsolePort }}
-  - name: ftp
-    protocol: TCP
-    port: {{ .Values.appconfig.ftpPort }}
-    targetPort: {{ .Values.appconfig.ftpPort }}
+
   selector:
     release: {{ .Release.Name }}

@@ -27,13 +27,7 @@ spec:
               port: 
                 name: api
           pathType: ImplementationSpecific
-        - path: /ftp
-          backend:
-            service:
-              name: {{ .Values.service.name }}
-              port: 
-                name: ftp
-          pathType: ImplementationSpecific
+
   tls:
     - secretName: {{ .Values.ingress.secretName }}
       hosts:
