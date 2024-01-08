@@ -2,6 +2,7 @@
 {% load static %}
 {% load can_create_app %}
 {% load custom_tags %}
+{% load get_dict_key %}
 {% block title %}{{ project.name }}{% endblock %}
 
 {% block content %}
@@ -40,6 +41,8 @@
             {% endif %}
     </div>
 </div>
+
+
 
 <div class="row g-4">
     {% for objs in resources %}
@@ -92,8 +95,8 @@
                             <td class="sorting_1">{{ obj.name }}</td>
                             {% endif %}
                             <td class="d-none d-xxl-table-cell">{{ obj.created_on | date:"d/n/y H:i" }}</td>
-                            <td id="status-{{ obj.pk }}">
-                                <span class="badge bg-secondary">
+                            <td>
+                                <span class="badge bg-secondary" id="status-{{ obj.pk }}">
                                     {{ obj.status.latest.status_type }}
                                 </span>
                                 {% if obj.access %}
@@ -115,6 +118,7 @@
                             {% endfor %}
                             {% endwith %}
                             </td>
+                            
                             <td class="table-action text-center">
                                 <div class="dropdown show">
                                     <a href="#" class="default" data-bs-toggle="dropdown" data-display="static">
@@ -164,6 +168,7 @@
                     </tbody>
                 </table>
             </div>
+            
             {% if objs.title == "Develop" %}
             <div class="mx-4 mb-4 small text-muted">
             *Note that all apps under Develop will be deleted 7 days after creation.
@@ -380,8 +385,103 @@
                 </div>
             </div>
         </div>
-    </div>
+
     {% endif %}
+
+
+
+
+    <div id="manage-files" class="col-12 d-flex">
+        <div class="card w-100 border-0 shadow">
+            <div class="card-header border-bottom-0 d-flex align-items-center justify-content-between py-3"
+                style="min-height: 3rem;">
+                <h5 class="card-title mb-0">Manage Files</h5>
+            </div>
+            {% if minio_instance %}
+            <div class="row p-3">
+               <div class="col-6">
+                
+                <p>File managing is activated and was created on {{ minio_instance.created_on }}</p>
+                <a class="btn btn-primary" href="{{ minio_instance.table_field.url }}" target="_blank">
+                    Open <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+
+               </div>
+               <div class="col-6">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item">
+                <strong>Status:</strong>
+                <span class="badge bg-secondary" id="status-{{ minio_instance.pk }}">
+                    {{ minio_instance.status.latest.status_type }}
+                </span>
+               
+              </li>
+              <li class="list-group-item">
+                <strong>Username:</strong>
+                {{ minio_instance.parameters.credentials.access_key }}
+              </li>
+              <li class="list-group-item">
+                <strong>Password:</strong>
+                {{ minio_instance.parameters.credentials.secret_key }}
+              </li>
+              <li class="list-group-item">
+                <strong>API Endpoint:</strong>
+                {{ minio_instance.table_field.url }}
+              </li>
+            </ul>
+        </div>
+        </div>
+            {% else %}
+            <div class="row p-3">
+                <div class="col-12">
+                Activate file managing tools.
+                </div>
+            </div>
+            {% endif %}
+            
+                <div class="row g-2 py-2 mx-2">
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="row g-0 w-100 h-100">
+                                        <div class="col-8 d-flex align-items-bottom flex-column">
+                                            <div class="pt-2">
+                                                <h5>Web-based File Manager</h5>
+                                            </div>
+                                            <div class="align-items-end d-flex h-100">
+                                                {% if minio_instance %}
+                                                <button class="btn btn-success btn-sm" disabled>Activated</button>
+                                                {% else %}                                               
+
+                                                    <div>
+                                                        <a class="btn btn-success btn-sm"
+                                                        href="{% url 'apps:create' request.user project.slug "minio"  %}?from=overview">Activate</a>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <img src="/static/images/logos/apps/minio-logo.png" class="img-fluid float-end w-75" alt="App Logo">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+          
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
 
     <script>
         {
@@ -409,12 +509,14 @@
                     if (Object.hasOwnProperty.call(json, key)) {
 
                         const { status, statusGroup } = json[key]
-                        const querySelector = `#status-${key} > span`
-                        const element = document.querySelector(querySelector)
-                        const className = `badge bg-${statusGroup}`
+                        const querySelector = `#status-${key}`
+                        const elements = document.querySelectorAll(querySelector);
 
-                        element.className = className
-                        element.innerText = status
+                        elements.forEach(element => {
+                            const className = `badge bg-${statusGroup}`;
+                            element.className = className;
+                            element.innerText = status;
+                        });
                     }
                 }
             }
