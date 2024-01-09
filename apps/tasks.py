@@ -491,11 +491,17 @@ def delete_old_objects():
 
     TODO: Make this a variable in settings.py and use the same number in templates
     """
-    threshold = 7
-    threshold_time = timezone.now() - timezone.timedelta(days=threshold)
 
-    old_apps = AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name="Develop")
-    for app_ in old_apps:
+    def get_old_apps(threshold, category):
+        threshold_time = timezone.now() - timezone.timedelta(days=threshold)
+        return AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name=category)
+
+    old_develop_apps = get_old_apps(threshold=7, category="Develop")
+    old_minio_apps = get_old_apps(threshold=1, category="Manage Files")
+    for app_ in old_develop_apps:
+        delete_resource.delay(app_.pk)
+
+    for app_ in old_minio_apps:
         delete_resource.delay(app_.pk)
 
 
