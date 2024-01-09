@@ -46,6 +46,8 @@
 
 <div class="row g-4">
     {% for objs in resources %}
+    {% if objs.title == "Additional options [admins only]" or objs.title == "Manage Files" and not request.user.is_superuser %}
+    {% else %}
     <div id="{{ objs.title|lower }}" class="col-12 d-flex">
         <div class="card w-100 border-0 shadow">
             <div class="card-header border-bottom-0 d-flex align-items-center justify-content-between py-3"
@@ -249,6 +251,7 @@
                 </div>
         </div>
     </div>
+    {% endif %}
     {% endfor %}
 
     {% if project.s3storage %}
