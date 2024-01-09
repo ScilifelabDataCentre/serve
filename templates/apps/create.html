@@ -37,20 +37,24 @@
 
                 <form class="needs-validation" action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
-                
+
                     {% if app.slug == "minio" %}
+
                     <div class="p-3 mb-3">
                         <h4>Important information</h4>
-                    <p>You are about to activate file manager on SciLifeLab Serve. 
+                    <p>You are about to activate file manager on SciLifeLab Serve.
                     This service will be active for 24 hours and automatically terminated afterwards.
                     All credentials needed to use the service will be provided after activation.</p>
                     <p>Click 'Activate' to activate file manager</p>
+                    {{ MINIO_USERNAME }}
+                    {{ MINIO_PASSWORD }}
+
                     </div>
-                    <div class="card-body d-none">
+                    <div class="card-body">
                     {% else %}
                     <div class="card-body">
                     {% endif %}
-                
+
                     <input type="hidden" id="app_action" name="app_action" value="{{ app_action }}">
                     <input type="hidden" id="app_id" name="app_id" value="{{ appinstance.pk }}">
                     <div class="mb-3 validate-item">
@@ -278,6 +282,17 @@
                         </select>
 
                         {% endif %}
+
+                        {% if subval.type == "minio-username" %}
+                        <label class="form-label">{{ subval.title }}</label>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ MINIO_USERNAME }}" class="form-control">
+                        {% endif %}
+
+                        {% if subval.type == "minio-password" %}
+                        <label class="form-label">{{ subval.title }}</label>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ MINIO_PASSWORD }}" class="form-control">
+                        {% endif %}
+
 
                     </div>
                     {% endfor %}

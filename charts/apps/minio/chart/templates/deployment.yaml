@@ -37,7 +37,7 @@ spec:
           - /bin/sh
           - -ce
           - |
-            /usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.appconfig.uiConsolePort }} --ftp="address=:{{ .Values.appconfig.ftpPort }}" --ftp="passive-port-range=30000-40000" --ftp="tls-private-key=home/tls.key" --ftp="tls-public-cert=home/tls.crt" 
+            /usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.appconfig.uiConsolePort }} --ftp="address=:{{ .Values.appconfig.ftpPort }}" --ftp="passive-port-range=30000-40000" --ftp="tls-private-key=home/tls.key" --ftp="tls-public-cert=home/tls.crt"
         args:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - server
@@ -57,7 +57,7 @@ spec:
         securityContext:
         {{- toYaml .Values.securityContext | nindent 10 }}
         ports:
-          - containerPort: {{ .Values.appconfig.apiServerPort }} 
+          - containerPort: {{ .Values.appconfig.apiServerPort }}
             name: api-server
           - containerPort: {{ .Values.appconfig.uiConsolePort }}
             name: ui-console
@@ -81,9 +81,9 @@ spec:
               - |
                 sleep 5
                 mc alias set local http://127.0.0.1:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
-                mc admin user add local user password
+                mc admin user add local {{ .Values.credentials.access_key }} {{ .Values.credentials.secret_key }}
                 mc mb /data/data-bucket
-                mc admin policy attach local readwrite --user user || true
+                mc admin policy attach local readwrite --user {{ .Values.credentials.access_key }} || true
       hostname: {{ .Release.Name }}-minio
       restartPolicy: Always
       volumes:

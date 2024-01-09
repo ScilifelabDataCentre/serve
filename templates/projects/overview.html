@@ -118,7 +118,7 @@
                             {% endfor %}
                             {% endwith %}
                             </td>
-                            
+
                             <td class="table-action text-center">
                                 <div class="dropdown show">
                                     <a href="#" class="default" data-bs-toggle="dropdown" data-display="static">
@@ -168,7 +168,7 @@
                     </tbody>
                 </table>
             </div>
-            
+
             {% if objs.title == "Develop" %}
             <div class="mx-4 mb-4 small text-muted">
             *Note that all apps under Develop will be deleted 7 days after creation.
@@ -399,38 +399,42 @@
             </div>
             {% if minio_instance %}
             <div class="row p-3">
-               <div class="col-6">
-                
-                <p>File managing is activated and was created on {{ minio_instance.created_on }}</p>
-                <a class="btn btn-primary" href="{{ minio_instance.table_field.url }}" target="_blank">
-                    Open <i class="bi bi-box-arrow-up-right"></i>
-                </a>
-
+               <div class="col-12 col-sm-6">
+                    <p>File managing is activated and was created on {{ minio_instance.created_on }}</p>
+                    <a class="btn btn-primary" href="{{ minio_instance.table_field.url }}" target="_blank">
+                        Open <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
                </div>
-               <div class="col-6">
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item">
-                <strong>Status:</strong>
-                <span class="badge bg-secondary" id="status-{{ minio_instance.pk }}">
-                    {{ minio_instance.status.latest.status_type }}
-                </span>
-               
-              </li>
-              <li class="list-group-item">
-                <strong>Username:</strong>
-                {{ minio_instance.parameters.credentials.access_key }}
-              </li>
-              <li class="list-group-item">
-                <strong>Password:</strong>
-                {{ minio_instance.parameters.credentials.secret_key }}
-              </li>
-              <li class="list-group-item">
-                <strong>API Endpoint:</strong>
-                {{ minio_instance.table_field.url }}
-              </li>
-            </ul>
-        </div>
-        </div>
+                <div class="col-12 col-sm-6">
+                    <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong>Status:</strong>
+                        <span class="badge bg-secondary" id="status-{{ minio_instance.pk }}">
+                            {{ minio_instance.status.latest.status_type }}
+                        </span>
+
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Username:</strong>
+                        {{ minio_instance.parameters.credentials.access_key }}
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Password:</strong>
+                        {{ minio_instance.parameters.credentials.secret_key }}
+                    </li>
+                    <li class="list-group-item">
+                        <strong>API Endpoint:</strong>
+                        {{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }}
+                    </li>
+                    </ul>
+                </div>
+
+                <div class="col-12 col-sm-6">
+                    <kbd class="bg-light text-dark">mc alias serve {{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }} {{ minio_instance.parameters.credentials.access_key }} {{ minio_instance.parameters.credentials.secret_key }}
+                    </kbd>
+               </div>
+
+            </div>
             {% else %}
             <div class="row p-3">
                 <div class="col-12">
@@ -438,7 +442,7 @@
                 </div>
             </div>
             {% endif %}
-            
+
                 <div class="row g-2 py-2 mx-2">
                     <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                             <div class="card h-100">
@@ -451,7 +455,7 @@
                                             <div class="align-items-end d-flex h-100">
                                                 {% if minio_instance %}
                                                 <button class="btn btn-success btn-sm" disabled>Activated</button>
-                                                {% else %}                                               
+                                                {% else %}
 
                                                     <div>
                                                         <a class="btn btn-success btn-sm"
@@ -470,7 +474,7 @@
 
 
 
-          
+
 
                 </div>
             </div>

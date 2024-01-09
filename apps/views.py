@@ -1,4 +1,6 @@
 import re
+import secrets
+import string
 
 import requests
 from django.apps import apps
@@ -420,6 +422,17 @@ class CreateView(View):
 
         if not user_can_create:
             return HttpResponseForbidden()
+
+        if app.slug == "minio":
+
+            def generate_password(len: int) -> str:
+                return "".join(
+                    secrets.choice(string.octdigits + string.ascii_uppercase + string.ascii_lowercase + string.digits)
+                    for i in range(len)
+                )
+
+            MINIO_USERNAME = generate_password(8)
+            MINIO_PASSWORD = generate_password(8)
 
         do_display_description_field = app.category is not None and app.category.name.lower() == "serve"
 
