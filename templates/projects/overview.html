@@ -404,9 +404,11 @@
             <div class="row p-3">
                <div class="col-12 col-sm-6">
                     <p>File managing is activated and was created on {{ minio_instance.created_on }}</p>
-                    <a class="btn btn-primary" href="{{ minio_instance.table_field.url }}" target="_blank">
-                        Open <i class="bi bi-box-arrow-up-right"></i>
+                    <p>You can reach the console by clicking the button below</p>
+                    <a class="btn btn-primary mb-3" href="{{ minio_instance.table_field.url }}" target="_blank">
+                        Open File Manager <i class="bi bi-box-arrow-up-right"></i>
                     </a>
+                    <p>To use the S3-API - Read the  <a href="#">instructions here</a></p>
                </div>
                 <div class="col-12 col-sm-6">
                     <ul class="list-group list-group-flush">
@@ -418,12 +420,18 @@
 
                     </li>
                     <li class="list-group-item">
-                        <strong>Username:</strong>
-                        {{ minio_instance.parameters.credentials.access_key }}
+                        <strong>Username (click to copy):</strong>
+                        <span onclick="revealCredential('minio-username'); copyClip('{{ minio_instance.parameters.credentials.access_key }}')">
+                            <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.access_key }}" id="minio-username" disabled style="pointer-events: none;">
+                        </span>
+                        
                     </li>
                     <li class="list-group-item">
-                        <strong>Password:</strong>
-                        {{ minio_instance.parameters.credentials.secret_key }}
+                        <strong>Password (click to copy):</strong>
+                        <span onclick="revealCredential('minio-password'); copyClip('{{ minio_instance.parameters.credentials.secret_key }}')">
+                            <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.secret_key }}" id="minio-password" disabled style="pointer-events: none;">
+                        </span>
+                        
                     </li>
                     <li class="list-group-item">
                         <strong>API Endpoint:</strong>
@@ -432,48 +440,26 @@
                     </ul>
                 </div>
 
-                <div class="col-12 col-sm-6">
-                    <kbd class="bg-light text-dark">mc alias serve {{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }} {{ minio_instance.parameters.credentials.access_key }} {{ minio_instance.parameters.credentials.secret_key }}
-                    </kbd>
-               </div>
+
 
             </div>
             {% else %}
-            <div class="row p-3">
-                <div class="col-12">
-                Activate file managing tools.
+                <div class="row p-3">
+                    <div class="col-12">
+                    Activate file managing tools.
+                    </div>
                 </div>
-            </div>
+
+                {% if minio_instance %}
+                <button class="btn btn-success btn-sm" disabled>Activated</button>
+                {% else %}
+
+                    <div>
+                        <a class="btn btn-success btn-sm"
+                        href="{% url 'apps:create' request.user project.slug "minio"  %}?from=overview">Activate</a>
+                </div>
+                {% endif %}
             {% endif %}
-
-                <div class="row g-2 py-2 mx-2">
-                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="row g-0 w-100 h-100">
-                                        <div class="col-8 d-flex align-items-bottom flex-column">
-                                            <div class="pt-2">
-                                                <h5>Web-based File Manager</h5>
-                                            </div>
-                                            <div class="align-items-end d-flex h-100">
-                                                {% if minio_instance %}
-                                                <button class="btn btn-success btn-sm" disabled>Activated</button>
-                                                {% else %}
-
-                                                    <div>
-                                                        <a class="btn btn-success btn-sm"
-                                                        href="{% url 'apps:create' request.user project.slug "minio"  %}?from=overview">Activate</a>
-                                                </div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <img src="/static/images/logos/apps/minio-logo.png" class="img-fluid float-end w-75" alt="App Logo">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
 
 
@@ -491,6 +477,17 @@
 
 
     <script>
+            function revealCredential(id) {
+              var credential = document.getElementById(id);
+              if (credential.type === "password") {
+                credential.type = "text";
+                
+              } else {
+                credential.type = "password";
+              }
+            }
+
+
         {
             const apps = JSON.parse("{{ app_ids|escapejs }}")
             const body = new FormData()
