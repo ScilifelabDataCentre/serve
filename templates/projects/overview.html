@@ -338,53 +338,53 @@
                 {% endif %}
                 <div class="row g-2 py-2 mx-2">
                     <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="row g-0 w-100 h-100">
-                                        <div class="col-8 d-flex align-items-bottom flex-column">
-                                            <div class="pt-2">
-                                                <h5>Machine Learning Models</h5>
-                                            </div>
-                                            <div class="align-items-end d-flex h-100">
-                                                <div>
-                                                    <div class="row">
-                                                        <div class="col">
-                                                            <p></p>
-                                                        </div>
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="row g-0 w-100 h-100">
+                                    <div class="col-8 d-flex align-items-bottom flex-column">
+                                        <div class="pt-2">
+                                            <h5>Machine Learning Models</h5>
+                                        </div>
+                                        <div class="align-items-end d-flex h-100">
+                                            <div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <p></p>
                                                     </div>
-                                                    <div class="row">
-                                                        <div class="col">
-                                                            <!-- When models are launched REMOVE THIS -->
-                                                                    <!-- This temporary disables models and serving apps -->
-                                                                    {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
-                                                                    <a class="btn btn-primary btn-sm"
-                                                                        href="">Create</a>
-                                                                    {% else %}
-                                                            <!-- To here -->
-                                                            <a class="btn btn-primary btn-sm"
-                                                                href="{% url 'models:create' request.user project.slug %}">Create</a>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <!-- When models are launched REMOVE THIS -->
+                                                                <!-- This temporary disables models and serving apps -->
+                                                                {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
+                                                                <a class="btn btn-primary btn-sm"
+                                                                    href="">Create</a>
+                                                                {% else %}
+                                                        <!-- To here -->
+                                                        <a class="btn btn-primary btn-sm"
+                                                            href="{% url 'models:create' request.user project.slug %}">Create</a>
 
-                                                            <!-- And from here -->
-                                                            {% endif %}
-                                                            <!-- To here -->
+                                                        <!-- And from here -->
+                                                        {% endif %}
+                                                        <!-- To here -->
 
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-4">
-                                            <img src="/static/images/logos/apps/netpolicy-logo.png" class="img-fluid float-end w-75" alt="App Logo">
-                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <img src="/static/images/logos/apps/netpolicy-logo.png" class="img-fluid float-end w-75" alt="App Logo">
                                     </div>
                                 </div>
-                                <!-- When models are launched REMOVE THIS -->
-                                    <div class="disabled-overlay">
-                                        <p>Machine Learning Models will be available soon</p>
-                                    </div>
-                                <!-- To here -->
                             </div>
+                            <!-- When models are launched REMOVE THIS -->
+                                <div class="disabled-overlay">
+                                    <p>Machine Learning Models will be available soon</p>
+                                </div>
+                            <!-- To here -->
                         </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -421,21 +421,23 @@
                     </li>
                     <li class="list-group-item">
                         <strong>Username (click to copy):</strong>
-                        <span onclick="revealCredential('minio-username'); copyClip('{{ minio_instance.parameters.credentials.access_key }}')">
+                        <span onclick="revealCredential('minio-username'); copyClip('{{ minio_instance.parameters.credentials.access_key }}', event)">
                             <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.access_key }}" id="minio-username" disabled style="pointer-events: none;">
                         </span>
-                        
+
                     </li>
                     <li class="list-group-item">
                         <strong>Password (click to copy):</strong>
-                        <span onclick="revealCredential('minio-password'); copyClip('{{ minio_instance.parameters.credentials.secret_key }}')">
+                        <span onclick="revealCredential('minio-password'); copyClip('{{ minio_instance.parameters.credentials.secret_key }}', event)">
                             <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.secret_key }}" id="minio-password" disabled style="pointer-events: none;">
                         </span>
-                        
+
                     </li>
                     <li class="list-group-item">
                         <strong>API Endpoint:</strong>
-                        {{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }}
+                        <span onclick="copyClip('{{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }}', event)">
+                            {{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }}
+                        </span>
                     </li>
                     </ul>
                 </div>
@@ -444,44 +446,53 @@
 
             </div>
             {% else %}
-                <div class="row p-3">
-                    <div class="col-12">
-                    Activate file managing tools.
+
+
+            <div class="row g-2 py-2 mx-2">
+                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="row g-0 w-100 h-100">
+                                <div class="col-8 d-flex align-items-bottom flex-column">
+                                    <div class="pt-2">
+                                        <h5>Activate file managing tools. </h5>
+                                    </div>
+                                    <div class="align-items-end d-flex h-100">
+                                        <div>
+                                            {% if minio_instance %}
+                                            <button class="btn btn-success btn-sm" disabled>Activated</button>
+                                            {% else %}
+                                            <a class="btn btn-success btn-sm"
+                                            href="{% url 'apps:create' request.user project.slug "minio"  %}?from=overview">Activate</a>
+                                            {% endif %}
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <img src="/static/images/logos/apps/minio-logo.png" class="img-fluid float-end w-75" alt="App Logo">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                {% if minio_instance %}
-                <button class="btn btn-success btn-sm" disabled>Activated</button>
-                {% else %}
-
-                    <div>
-                        <a class="btn btn-success btn-sm"
-                        href="{% url 'apps:create' request.user project.slug "minio"  %}?from=overview">Activate</a>
-                </div>
-                {% endif %}
-            {% endif %}
-
-
-
-
-
-                </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
-
-
-
-
-
 
     <script>
             function revealCredential(id) {
               var credential = document.getElementById(id);
               if (credential.type === "password") {
                 credential.type = "text";
-                
+
+            // Remove the tooltip after 2 seconds
+                setTimeout(function() {
+                    credential.type = "password";
+                }, 5000);
+
               } else {
                 credential.type = "password";
               }
