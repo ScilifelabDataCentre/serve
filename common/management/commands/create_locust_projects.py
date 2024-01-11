@@ -17,9 +17,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         identifier = "locust_test_user"
-        users = User.objects.filter(email__contains=identifier)
+        users = User.objects.filter(email__contains=identifier).order_by('date_joined')
 
-        for i, user in enumerate(users):
+        for i, user in enumerate(users, 1):
             try:
                 project = Project.objects.create_project(
                     name=f"locust_test_project_{i}",

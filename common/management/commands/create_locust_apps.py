@@ -14,8 +14,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         identifier = "locust_test_user"
 
-        users = User.objects.filter(email__contains=identifier)
-        print(users, flush=True)
+        users = User.objects.filter(email__contains=identifier).order_by('date_joined')
+        
         for user in users:
             project = Project.objects.filter(owner=user).first()
 
