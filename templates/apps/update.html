@@ -322,13 +322,14 @@
     </div>
 </div>
 
+{% if app.category.pk == 'serve' %}
 <div class="row pt-3">
 
     <div class="col-12 col-xl-6">
 
         <div class="card shadow border-0 p-3">
             <h3 class="card-title">Tags</h3>
-
+            <p>Add relevant keywords to help users find your app in our catalog of public apps.</p>
 
             <form method="POST" action="{% url 'apps:add_tag' request.user project.slug appinstance.pk %}">
 
@@ -372,6 +373,7 @@
             </div>
         </div>
     </div>
+{% endif %}
 </div>
 
 <script>
