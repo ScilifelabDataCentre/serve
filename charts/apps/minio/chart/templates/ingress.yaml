@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-  nginx.ingress.kubernetes.io/proxy-body-size: "10000M"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10000M"
   name: {{ .Release.Name }}-minio
   namespace: {{ .Values.namespace }}
 spec:
