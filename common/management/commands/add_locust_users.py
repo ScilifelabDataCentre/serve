@@ -20,7 +20,7 @@ class Command(BaseCommand):
                 user.is_active=True
                 user.save()
             except:
-                print("user exxists")
+                print("user exists")
 
         self.stdout.write(
             self.style.SUCCESS(f"Successfully created {i} users")
