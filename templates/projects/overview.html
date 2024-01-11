@@ -46,7 +46,7 @@
 
 <div class="row g-4">
     {% for objs in resources %}
-    {% if objs.title == "Additional options [admins only]" or objs.title == "Manage Files" and not request.user.is_superuser %}
+    {% if  objs.title == "Manage Files" and not request.user.is_superuser or objs.title == "Additional options [admins only]" and not request.user.is_superuser %}
     {% else %}
     <div id="{{ objs.title|lower }}" class="col-12 d-flex">
         <div class="card w-100 border-0 shadow">
@@ -411,6 +411,7 @@
                     <p>To use the S3-API - Read the  <a href="#">instructions here</a></p>
                </div>
                 <div class="col-12 col-sm-6">
+                    <h5 class="text-center">Credentials - Click to reveal and copy</h5>
                     <ul class="list-group list-group-flush">
                     <li class="list-group-item">
                         <strong>Status:</strong>
@@ -420,14 +421,14 @@
 
                     </li>
                     <li class="list-group-item">
-                        <strong>Username (click to copy):</strong>
+                        <strong>Username:</strong>
                         <span onclick="revealCredential('minio-username'); copyClip('{{ minio_instance.parameters.credentials.access_key }}', event)">
                             <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.access_key }}" id="minio-username" disabled style="pointer-events: none;">
                         </span>
 
                     </li>
                     <li class="list-group-item">
-                        <strong>Password (click to copy):</strong>
+                        <strong>Password:</strong>
                         <span onclick="revealCredential('minio-password'); copyClip('{{ minio_instance.parameters.credentials.secret_key }}', event)">
                             <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.secret_key }}" id="minio-password" disabled style="pointer-events: none;">
                         </span>
@@ -491,7 +492,7 @@
             // Remove the tooltip after 2 seconds
                 setTimeout(function() {
                     credential.type = "password";
-                }, 5000);
+                }, 8000);
 
               } else {
                 credential.type = "password";
