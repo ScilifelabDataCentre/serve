@@ -47,7 +47,7 @@ def post_create_hooks(instance):
     print("TASK - POST CREATE HOOK...")
     # hard coded hooks for now, we can make this dynamic
     # and loaded from the app specs
-    if instance.app.slug == "minio":
+    if instance.app.slug == "minio-admin":
         # Create project S3 object
         # TODO: If the instance is being updated,
         # update the existing S3 object.

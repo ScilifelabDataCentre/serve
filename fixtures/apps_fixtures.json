@@ -772,5 +772,58 @@
     },
     "model": "apps.apps",
     "pk": 26
+  },
+  {
+    "fields": {
+      "category": "admin-apps",
+      "chart": "apps/minio/chart",
+      "created_on": "2023-02-19T21:34:37.815Z",
+      "description": "",
+      "logo": "minio-logo.png",
+      "name": "Minio Admin",
+      "priority": "200",
+      "settings": {
+        "apps": {
+          "Persistent Volume": "one"
+        },
+        "credentials": {
+          "access_key": {
+            "default": "accesskey",
+            "title": "Username",
+            "type": "minio-username"
+          },
+          "secret_key": {
+            "default": "secretkey123",
+            "title": "Password",
+            "type": "minio-password"
+          }
+        },
+        "default_values": {
+          "port": "9000",
+          "targetport": "9000"
+        },
+        "permissions": {
+          "private": {
+            "option": "true",
+            "value": "false"
+          },
+          "project": {
+            "option": "true",
+            "value": "true"
+          },
+          "public": {
+            "option": "false",
+            "value": "false"
+          }
+        }
+      },
+      "slug": "minio-admin",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "updated_on": "2023-03-10T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 27
   }
 ]
