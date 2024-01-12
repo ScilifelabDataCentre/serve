@@ -12,7 +12,7 @@ class Command(BaseCommand):
         parser.add_argument("num_users", type=int)
 
     def handle(self, *args, **options):
-        for i in range(1,options["num_users"]+1):
+        for i in range(1, options["num_users"] + 1):
             username = f"locust_test_user_{i}"
             email = f"locust_test_user_{i}@test.uu.net"
             password = "password123"

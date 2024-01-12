@@ -17,7 +17,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         identifier = "locust_test_user"
-        users = User.objects.filter(email__contains=identifier).order_by('date_joined')
+        users = User.objects.filter(email__contains=identifier).order_by("date_joined")
 
         for i, user in enumerate(users, 1):
             try:
@@ -27,6 +27,7 @@ class Command(BaseCommand):
                     description="Just a test project for locust load test",
                     status="created",
                 )
+
             except ProjectCreationException:
                 self.stdout.write(self.style.ERROR("ERROR: Failed to create project database object."))
 
