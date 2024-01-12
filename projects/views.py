@@ -566,21 +566,20 @@ class DetailsView(View):
                         "apps": apps_of_category,
                     }
                 )
-        
+
                 def filter_app_slug(slug):
                     return Q(app__slug=slug)
-                
+
         minio_instance = AppInstance.objects.get_app_instances_of_project(
-                    user=request.user,
-                    project=project,
-                    filter_func=filter_app_slug(slug="minio")).first()
- 
+            user=request.user, project=project, filter_func=filter_app_slug(slug="minio")
+        ).first()
+
         context = {
             "resources": resources,
             "models": models,
             "project": project,
             "app_ids": app_ids,
-            "minio_instance": minio_instance
+            "minio_instance": minio_instance,
         }
 
         return render(
