@@ -37,7 +37,7 @@
             {% endif %}
             <p><b>Project owner:</b> {{ project.owner.email }}</p>
             {% if project.authorized.all %}
-            <p><b>Project members:</b> {% for user in project.authorized.all %}{{ user.email }}; {% endfor %}</p>
+            <p><b>Project members:</b> {{ project.authorized.all|join:"; " }}</p>
             {% endif %}
     </div>
 </div>

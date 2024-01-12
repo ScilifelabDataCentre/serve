@@ -17,7 +17,7 @@
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 shadow" data-aos="fade">
+            <div class="card text-center py-2 mb-3 mb-md-0 shadow" data-aos="fade">
                 <h1><i class="bi bi-robot"></i></h1>
                 <div class="card-body">
                   <h5 class="card-title">Machine Learning model serving</h5>
@@ -27,7 +27,7 @@
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 shadow" data-aos="fade">
+            <div class="card text-center py-2 mb-3 mb-md-0 shadow" data-aos="fade">
                 <h1><i class="bi bi-window-stack"></i></h1>
                 <div class="card-body">
                   <h5 class="card-title">ML model demo apps</h5>
@@ -37,7 +37,7 @@
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 shadow " data-aos="fade" >
+            <div class="card text-center py-2 mb-3 mb-md-0 shadow " data-aos="fade" >
                 <h1><i class="bi bi-bar-chart-line"></i></h1>
                 <div class="card-body">
                   <h5 class="card-title">Data and analysis apps</h5>
@@ -48,7 +48,7 @@
 
         {% comment %}
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 shadow" data-aos="fade">
+            <div class="card text-center py-2 mb-3 mb-md-0 shadow" data-aos="fade">
                 <h1><i class="bi bi-code-slash"></i></h1>
                 <div class="card-body">
                   <h5 class="card-title">Development environments</h5>
@@ -151,7 +151,7 @@
         </div>
 
             {% for news in news_objects %}
-            <div class="col-4">
+            <div class="col-md-4">
                 <div class="card border bg-white my-4" data-aos="slide-up">
 
                     <p class="text-muted card-footer-text text-end p-1 m-0">{{ news.created_on|date:"M. j, Y, H:i" }}</p>
@@ -162,7 +162,7 @@
                                 <h5 class="text-grape">{{ news.title }}</h5>
 
                         </div>
-                            <p class="card-text mb-2">{{ news.body|truncatechars:150 }}</p>
+                            <p class="card-text mb-2">{{ news.body_html|safe|truncatewords:30 }}</p>
                     </div>
                     </a>
                 </div>
