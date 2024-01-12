@@ -802,6 +802,7 @@
           "port": "9000",
           "targetport": "9000"
         },
+        "flavor": "one",
         "permissions": {
           "private": {
             "option": "true",
@@ -812,7 +813,7 @@
             "value": "true"
           },
           "public": {
-            "option": "false",
+            "option": "true",
             "value": "false"
           }
         }
