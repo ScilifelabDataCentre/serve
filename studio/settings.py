@@ -366,7 +366,7 @@ APPS_PER_PROJECT_LIMIT = {
     "jupyter-lab": 3,
     "mlflow": 1,
     "volumeK8s": 0,
-    "minio": 0,
+    "minio": 1,
     "mongo-express": 0,
     "reducer": 0,
     "combiner": 0,

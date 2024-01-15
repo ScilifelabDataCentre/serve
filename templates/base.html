@@ -129,7 +129,7 @@
         })
 
 
-        function copyClip(data) {
+        function copyClip(data, event) {
             var inputc = document.body.appendChild(document.createElement("input"));
             inputc.value = data;
             var scrollY = window.scrollY; // Store the current scroll position
@@ -137,6 +137,25 @@
             document.execCommand('copy');
             inputc.parentNode.removeChild(inputc);
             window.scrollTo(0, scrollY); // Restore the scroll position
+
+                // Add confirmation tooltip
+            var tooltip = document.createElement("div");
+            tooltip.innerHTML = "Copied";
+            tooltip.style.position = "fixed";
+            tooltip.classList.add("badge", "bg-secondary", "text-white")
+
+            tooltip.style.zIndex = "9999";
+            document.body.appendChild(tooltip);
+
+            // Position tooltip at the mouse click location
+            tooltip.style.left = event.clientX + "px";
+            tooltip.style.top = event.clientY + "px";
+            tooltip.style.transform = "translate(-50%, -150%)"
+
+            // Remove the tooltip after 2 seconds
+            setTimeout(function() {
+                tooltip.parentNode.removeChild(tooltip);
+            }, 1000);
         }
 
 
