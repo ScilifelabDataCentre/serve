@@ -297,6 +297,16 @@
 
                         {% endif %}
 
+                        {% if subval.type == "minio-username" %}
+                        <label class="form-label">{{ subval.title }}</label>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ appinstance.parameters.credentials.access_key }}" class="form-control">
+                        {% endif %}
+
+                        {% if subval.type == "minio-password" %}
+                        <label class="form-label">{{ subval.title }}</label>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ appinstance.parameters.credentials.secret_key }}" class="form-control">
+                        {% endif %}
+
                     </div>
                     {% endfor %}
 

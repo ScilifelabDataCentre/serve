@@ -530,6 +530,7 @@ class DetailsView(View):
         models = Model.objects.none()
         app_ids = []
         project = None
+        minio_instance = None
 
         if request.user.is_authenticated:
             project = Project.objects.get(slug=project_slug)
@@ -567,11 +568,19 @@ class DetailsView(View):
                     }
                 )
 
+            def filter_app_slug(slug):
+                return Q(app__slug=slug)
+
+            minio_instance = AppInstance.objects.get_app_instances_of_project(
+                user=request.user, project=project, filter_func=filter_app_slug(slug="minio")
+            ).first()
+
         context = {
             "resources": resources,
             "models": models,
             "project": project,
             "app_ids": app_ids,
+            "minio_instance": minio_instance,
         }
 
         return render(
