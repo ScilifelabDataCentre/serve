@@ -200,8 +200,10 @@ class AppSettingsView(View):
         from_page = request.GET.get("from") if "from" in request.GET else "filtered"
         existing_app_name = appinstance.name
         existing_app_description = appinstance.description
-        if "release" in appinstance.parameters:
-            existing_app_release_name = appinstance.parameters["release"]
+        if appinstance.parameters.get("app_release_name", None):
+            existing_app_release_name = appinstance.parameters.get("app_release_name")
+        else:
+            existing_app_release_name = appinstance.parameters.get("appname")
         app = appinstance.app
         do_display_description_field = app.category.name is not None and app.category.name.lower() == "serve"
 
@@ -273,23 +275,26 @@ class AppSettingsView(View):
 
     def update_resource(self, request, appinstance, current_release_name):
         domain = appinstance.parameters["global"]["domain"]
-        # if subdomain is set as --generated--, then use appname
-        if request.POST.get("app_release_name") == "":
-            new_release_name = appinstance.parameters["appname"]
-        else:
+        
+        if request.POST.get("app_release_name", None):
+            # Set new release name as app_release_name
             new_release_name = request.POST.get("app_release_name")
-
+        else:
+            # if app_release_name is not set, use appname
+            new_release_name = appinstance.parameters.get("appname", None)
+        
         new_url = f"https://{new_release_name}.{domain}"
         appinstance.table_field.update({"url": new_url})
         if new_release_name and current_release_name != new_release_name:
             # This handles the case where a user creates a new subdomain, we must update the helm release aswell
-            delete_resource.delay(appinstance.pk)
+            delete_resource(appinstance.pk)
             parameters = appinstance.parameters
-            parameters["appname"] = new_release_name
+            parameters["app_release_name"] = new_release_name
+            parameters["release"] = new_release_name
             appinstance.parameters.update(parameters)
             appinstance.save(update_fields=["parameters", "table_field"])
 
-        deploy_resource.delay(appinstance.pk, "update")
+        deploy_resource(appinstance.pk, "update")
 
         appinstance.save()
 
@@ -453,7 +458,7 @@ class CreateView(View):
             raise Exception("User not allowed to create app")
 
         successful, project_slug, app_category_slug = create_app_instance(user, project, app, app_settings, data, wait)
-
+        
         if not successful:
             return HttpResponseRedirect(
                 reverse(

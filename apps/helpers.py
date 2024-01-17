@@ -129,7 +129,8 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     app_description = data.get("app_description")
 
     parameters_out, app_deps, model_deps = serialize_app(data, project, app_settings, user.username)
-
+    
+    
     authorized = can_access_app_instances(app_deps, user, project)
 
     if not authorized:
@@ -151,14 +152,16 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
         owner=user,
         flavor=flavor,
     )
-
+    
     create_instance_params(app_instance, "create")
 
     # Attempt to create a ReleaseName model object
     rel_name_obj = []
-    if "app_release_name" in data and data.get("app_release_name") != "":
+    if data.get("app_release_name", None):
         submitted_rn = data.get("app_release_name")
         try:
+            # app_release_name referes to the submitted subdomain. A javascript creates the ReleaseName objects
+            # Here, we get that object at set the status to "in-use".
             rel_name_obj = ReleaseName.objects.get(name=submitted_rn, project=project, status="active")
             rel_name_obj.status = "in-use"
             rel_name_obj.save()
@@ -167,10 +170,12 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
             print("Error: Submitted release name not owned by project.")
             print(e)
             return [False, None, None]
+    else:
+        app_instance.parameters["app_release_name"] = app_instance.parameters["appname"]
 
     # Add fields for apps table:
     # to be displayed as app details in views
-    if app_instance.app.table_field and app_instance.app.table_field != "":
+    if app_instance.app.table_field:
         django_engine = engines["django"]
         info_field = django_engine.from_string(app_instance.app.table_field).render(app_instance.parameters)
         app_instance.table_field = eval(info_field)
