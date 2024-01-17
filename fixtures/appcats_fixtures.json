@@ -19,5 +19,12 @@
     },
     "model": "apps.appcategories",
     "pk": "admin-apps"
+  },
+  {
+    "fields": {
+      "name": "Manage Files"
+    },
+    "model": "apps.appcategories",
+    "pk": "manage-files"
   }
 ]

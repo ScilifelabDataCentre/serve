@@ -2,6 +2,7 @@
 {% load static %}
 {% load can_create_app %}
 {% load custom_tags %}
+{% load get_dict_key %}
 {% block title %}{{ project.name }}{% endblock %}
 
 {% block content %}
@@ -36,13 +37,17 @@
             {% endif %}
             <p><b>Project owner:</b> {{ project.owner.email }}</p>
             {% if project.authorized.all %}
-            <p><b>Project members:</b> {% for user in project.authorized.all %}{{ user.email }}; {% endfor %}</p>
+            <p><b>Project members:</b> {{ project.authorized.all|join:"; " }}</p>
             {% endif %}
     </div>
 </div>
 
+
+
 <div class="row g-4">
     {% for objs in resources %}
+    {% if  objs.title == "Manage Files" and not request.user.is_superuser or objs.title == "Additional options [admins only]" and not request.user.is_superuser %}
+    {% else %}
     <div id="{{ objs.title|lower }}" class="col-12 d-flex">
         <div class="card w-100 border-0 shadow">
             <div class="card-header border-bottom-0 d-flex align-items-center justify-content-between py-3"
@@ -92,8 +97,8 @@
                             <td class="sorting_1">{{ obj.name }}</td>
                             {% endif %}
                             <td class="d-none d-xxl-table-cell">{{ obj.created_on | date:"d/n/y H:i" }}</td>
-                            <td id="status-{{ obj.pk }}">
-                                <span class="badge bg-secondary">
+                            <td>
+                                <span class="badge bg-secondary" id="status-{{ obj.pk }}">
                                     {{ obj.status.latest.status_type }}
                                 </span>
                                 {% if obj.access %}
@@ -115,6 +120,7 @@
                             {% endfor %}
                             {% endwith %}
                             </td>
+
                             <td class="table-action text-center">
                                 <div class="dropdown show">
                                     <a href="#" class="default" data-bs-toggle="dropdown" data-display="static">
@@ -164,6 +170,7 @@
                     </tbody>
                 </table>
             </div>
+
             {% if objs.title == "Develop" %}
             <div class="mx-4 mb-4 small text-muted">
             *Note that all apps under Develop will be deleted 7 days after creation.
@@ -244,6 +251,7 @@
                 </div>
         </div>
     </div>
+    {% endif %}
     {% endfor %}
 
     {% if project.s3storage %}
@@ -330,60 +338,168 @@
                 {% endif %}
                 <div class="row g-2 py-2 mx-2">
                     <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="row g-0 w-100 h-100">
-                                        <div class="col-8 d-flex align-items-bottom flex-column">
-                                            <div class="pt-2">
-                                                <h5>Machine Learning Models</h5>
-                                            </div>
-                                            <div class="align-items-end d-flex h-100">
-                                                <div>
-                                                    <div class="row">
-                                                        <div class="col">
-                                                            <p></p>
-                                                        </div>
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="row g-0 w-100 h-100">
+                                    <div class="col-8 d-flex align-items-bottom flex-column">
+                                        <div class="pt-2">
+                                            <h5>Machine Learning Models</h5>
+                                        </div>
+                                        <div class="align-items-end d-flex h-100">
+                                            <div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <p></p>
                                                     </div>
-                                                    <div class="row">
-                                                        <div class="col">
-                                                            <!-- When models are launched REMOVE THIS -->
-                                                                    <!-- This temporary disables models and serving apps -->
-                                                                    {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
-                                                                    <a class="btn btn-primary btn-sm"
-                                                                        href="">Create</a>
-                                                                    {% else %}
-                                                            <!-- To here -->
-                                                            <a class="btn btn-primary btn-sm"
-                                                                href="{% url 'models:create' request.user project.slug %}">Create</a>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <!-- When models are launched REMOVE THIS -->
+                                                                <!-- This temporary disables models and serving apps -->
+                                                                {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
+                                                                <a class="btn btn-primary btn-sm"
+                                                                    href="">Create</a>
+                                                                {% else %}
+                                                        <!-- To here -->
+                                                        <a class="btn btn-primary btn-sm"
+                                                            href="{% url 'models:create' request.user project.slug %}">Create</a>
 
-                                                            <!-- And from here -->
-                                                            {% endif %}
-                                                            <!-- To here -->
+                                                        <!-- And from here -->
+                                                        {% endif %}
+                                                        <!-- To here -->
 
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-4">
-                                            <img src="/static/images/logos/apps/netpolicy-logo.png" class="img-fluid float-end w-75" alt="App Logo">
-                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <img src="/static/images/logos/apps/netpolicy-logo.png" class="img-fluid float-end w-75" alt="App Logo">
                                     </div>
                                 </div>
-                                <!-- When models are launched REMOVE THIS -->
-                                    <div class="disabled-overlay">
-                                        <p>Machine Learning Models will be available soon</p>
-                                    </div>
-                                <!-- To here -->
                             </div>
+                            <!-- When models are launched REMOVE THIS -->
+                                <div class="disabled-overlay">
+                                    <p>Machine Learning Models will be available soon</p>
+                                </div>
+                            <!-- To here -->
                         </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+
     {% endif %}
 
+
+
+
+    <div id="manage-files" class="col-12 d-flex">
+        <div class="card w-100 border-0 shadow">
+            <div class="card-header border-bottom-0 d-flex align-items-center justify-content-between py-3"
+                style="min-height: 3rem;">
+                <h5 class="card-title mb-0">Manage Files</h5>
+            </div>
+            {% if minio_instance %}
+            <div class="row p-3">
+               <div class="col-12 col-sm-6">
+                    <p>File managing is activated and was created on {{ minio_instance.created_on }}</p>
+                    <p>You can reach the console by clicking the button below</p>
+                    <a class="btn btn-primary mb-3" href="{{ minio_instance.table_field.url }}" target="_blank">
+                        Open File Manager <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                    <p>To use the S3-API - Read the  <a href="https://serve.scilifelab.se/docs/files/">instructions here</a></p>
+               </div>
+                <div class="col-12 col-sm-6">
+                    <h5 class="text-center">Credentials - Click to reveal and copy</h5>
+                    <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong>Status:</strong>
+                        <span class="badge bg-secondary" id="status-{{ minio_instance.pk }}">
+                            {{ minio_instance.status.latest.status_type }}
+                        </span>
+
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Username:</strong>
+                        <span onclick="revealCredential('minio-username'); copyClip('{{ minio_instance.parameters.credentials.access_key }}', event)">
+                            <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.access_key }}" id="minio-username" disabled style="pointer-events: none;">
+                        </span>
+
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Password:</strong>
+                        <span onclick="revealCredential('minio-password'); copyClip('{{ minio_instance.parameters.credentials.secret_key }}', event)">
+                            <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.secret_key }}" id="minio-password" disabled style="pointer-events: none;">
+                        </span>
+
+                    </li>
+                    <li class="list-group-item">
+                        <strong>API Endpoint:</strong>
+                        <span onclick="copyClip('{{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }}', event)">
+                            {{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }}
+                        </span>
+                    </li>
+                    </ul>
+                </div>
+
+
+
+            </div>
+            {% else %}
+
+
+            <div class="row g-2 py-2 mx-2">
+                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="row g-0 w-100 h-100">
+                                <div class="col-8 d-flex align-items-bottom flex-column">
+                                    <div class="pt-2">
+                                        <h5>Activate file managing tools. </h5>
+                                    </div>
+                                    <div class="align-items-end d-flex h-100">
+                                        <div>
+                                            {% if minio_instance %}
+                                            <button class="btn btn-success btn-sm" disabled>Activated</button>
+                                            {% else %}
+                                            <a class="btn btn-success btn-sm"
+                                            href="{% url 'apps:create' request.user project.slug "minio"  %}?from=overview">Activate</a>
+                                            {% endif %}
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <img src="/static/images/logos/apps/minio-logo.png" class="img-fluid float-end w-75" alt="App Logo">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
     <script>
+            function revealCredential(id) {
+              var credential = document.getElementById(id);
+              if (credential.type === "password") {
+                credential.type = "text";
+
+            // Remove the tooltip after 2 seconds
+                setTimeout(function() {
+                    credential.type = "password";
+                }, 8000);
+
+              } else {
+                credential.type = "password";
+              }
+            }
+
+
         {
             const apps = JSON.parse("{{ app_ids|escapejs }}")
             const body = new FormData()
@@ -409,12 +525,14 @@
                     if (Object.hasOwnProperty.call(json, key)) {
 
                         const { status, statusGroup } = json[key]
-                        const querySelector = `#status-${key} > span`
-                        const element = document.querySelector(querySelector)
-                        const className = `badge bg-${statusGroup}`
+                        const querySelector = `#status-${key}`
+                        const elements = document.querySelectorAll(querySelector);
 
-                        element.className = className
-                        element.innerText = status
+                        elements.forEach(element => {
+                            const className = `badge bg-${statusGroup}`;
+                            element.className = className;
+                            element.innerText = status;
+                        });
                     }
                 }
             }

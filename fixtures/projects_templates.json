@@ -91,7 +91,7 @@
             "credentials.access_key": "accesskey",
             "credentials.secret_key": "secretkey123",
             "permission": "project",
-            "slug": "minio"
+            "slug": "minio-admin"
           }
         },
         "environments": {

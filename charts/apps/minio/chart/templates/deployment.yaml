@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-minio
+  namespace: {{ .Values.namespace }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      release: {{ .Release.Name }}
+      app: minio
+      project: {{ .Values.project.slug }}
+      type: app
+      pod: minio
+  template:
+    metadata:
+      labels:
+        release: {{ .Release.Name }}
+        app: minio
+        project: {{ .Values.project.slug }}
+        networking/allow-internet-egress: "false"
+        type: app
+        pod: minio
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Release.Name }}-minio
+        image: {{ .Values.appconfig.image }}
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -ce
+          - |
+            /usr/bin/docker-entrypoint.sh minio server {{ .Values.bucketRoot }} --console-address :{{ .Values.appconfig.uiConsolePort }}
+        args:
+        {{- range $key, $value := .Values.apps.volumeK8s }}
+        - server
+        - /home/{{ $key }}
+        {{- end }}
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-minio
+              key: accesskey
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-minio
+              key: secretkey
+        securityContext:
+        {{- toYaml .Values.securityContext | nindent 10 }}
+        ports:
+          - containerPort: {{ .Values.appconfig.apiServerPort }}
+            name: api-server
+          - containerPort: {{ .Values.appconfig.uiConsolePort }}
+            name: ui-console
+          - containerPort: {{ .Values.appconfig.ftpPort }}
+            name: ftp
+        resources: {}
+        volumeMounts:
+        {{- range $key, $value := .Values.apps.volumeK8s }}
+        - name: {{ $key }}
+          mountPath: /data
+        {{- end }}
+        - name: tls-secret
+          mountPath: /home
+          readOnly: true
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -ce
+              - |
+                sleep 5
+                mc alias set local http://127.0.0.1:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
+                mc admin user add local {{ .Values.credentials.access_key }} {{ .Values.credentials.secret_key }}
+                mc mb /data/data-bucket
+                mc admin policy attach local readwrite --user {{ .Values.credentials.access_key }} || true
+      hostname: {{ .Release.Name }}-minio
+      restartPolicy: Always
+      volumes:
+      {{- range $key, $value := .Values.apps.volumeK8s }}
+      - name: {{ $key }}
+        persistentVolumeClaim:
+          claimName: {{ $value.release }}
+      {{- end }}
+      - name: tls-secret
+        secret:
+          secretName: prod-ingress
+status: {}
