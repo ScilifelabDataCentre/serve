@@ -274,23 +274,21 @@ class AppSettingsView(View):
     def update_resource(self, request, appinstance, current_release_name):
         domain = appinstance.parameters["global"]["domain"]
         # if subdomain is set as --generated--, then use appname
-        if request.POST.get("app_release_name") == "":
-            new_release_name = appinstance.parameters["appname"]
-        else:
+        if request.POST.get("app_release_name"):
             new_release_name = request.POST.get("app_release_name")
+        else:
+            new_release_name = appinstance.parameters["appname"]
 
         new_url = f"https://{new_release_name}.{domain}"
         appinstance.table_field.update({"url": new_url})
+        print("########### NEW URL", new_release_name, new_url)
         if new_release_name and current_release_name != new_release_name:
             # This handles the case where a user creates a new subdomain, we must update the helm release aswell
-            delete_resource.delay(appinstance.pk)
-            parameters = appinstance.parameters
-            parameters["release"] = new_release_name
-            parameters["appname"] = new_release_name
-            appinstance.parameters.update(parameters)
-            appinstance.save(update_fields=["parameters", "table_field"])
+            print("############# DELETEING RESOURCE", appinstance.parameters["release"])
+            delete_and_deploy_resource.delay(appinstance.pk, new_release_name)
 
-        deploy_resource.delay(appinstance.pk, "update")
+        else:
+            deploy_resource.delay(appinstance.pk, "update")
 
         appinstance.save()
 

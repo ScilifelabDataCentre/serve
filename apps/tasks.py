@@ -183,23 +183,23 @@ def delete_and_deploy_resource(instance_pk, new_release_name):
     appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
 
     if appinstance:
-        # The instance does exist.
-        parameters = appinstance.parameters
-        results = controller.delete(parameters)
+        delete_resource(appinstance.pk)
 
-        if results.returncode == 0:
-            post_delete_hooks(appinstance)
-            deploy_resource(appinstance.pk)
-            try:
-                rel_name_obj = ReleaseName.objects.get(
-                    name=new_release_name, project=appinstance.project, status="active"
-                )
-                rel_name_obj.status = "in-use"
-                rel_name_obj.app = appinstance
-                rel_name_obj.save()
-            except Exception as e:
-                print("Error: Submitted release name not owned by project.")
-                print(e)
+        parameters = appinstance.parameters
+        parameters["release"] = new_release_name
+        appinstance.parameters.update(parameters)
+        appinstance.save(update_fields=["parameters", "table_field"])
+
+        try:
+            rel_name_obj = ReleaseName.objects.get(name=new_release_name, project=appinstance.project, status="active")
+            rel_name_obj.status = "in-use"
+            rel_name_obj.app = appinstance
+            rel_name_obj.save()
+        except Exception as e:
+            print("Error: Submitted release name not owned by project.")
+            print(e)
+
+        deploy_resource(appinstance.pk)
 
 
 @shared_task
@@ -218,6 +218,7 @@ def deploy_resource(instance_pk, action="create"):
             "success": True,
             "info": {"stdout": stdout, "stderr": stderr},
         }
+
     else:
         print("Helm install failed")
         helm_info = {
