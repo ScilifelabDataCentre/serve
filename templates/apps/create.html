@@ -38,7 +38,6 @@
                 <form class="needs-validation" action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
 
-
                     {% if app.slug == "minio" %}
 
                     <div class="p-3 mb-3">
