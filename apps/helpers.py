@@ -162,8 +162,7 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
         try:
             # app_release_name referes to the submitted subdomain. A javascript creates the ReleaseName objects
             # Here, we get that object at set the status to "in-use".
-            rel_name_obj = ReleaseName.objects.get(name=submitted_rn, project=project, status="active")
-            rel_name_obj.status = "in-use"
+            rel_name_obj, created = ReleaseName.objects.get_or_create(name=submitted_rn, project=project, status="in-use")
             rel_name_obj.save()
             app_instance.parameters["release"] = submitted_rn
         except Exception as e:
