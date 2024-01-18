@@ -17,11 +17,11 @@
 <div class="row">
     <div class="col-12 mt-2 mb-4">
         {% if app.slug == 'customapp' %}
-        This form allows you to host an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="/docs/application-hosting/other/">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.
+        <p>This form allows you to host an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="/docs/application-hosting/other/">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.</p>
         {% elif app.slug == 'dashapp' %}
-        This form allows you to host a Dash app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/dash/">documentation page on Dash apps</a> for step-by-step instructions.
+        <p>This form allows you to host a Dash app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/dash/">documentation page on Dash apps</a> for step-by-step instructions.</p>
         {% elif app.slug in 'shinyapp,shinyproxyapp' %}
-        This form allows you to host a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.
+        <p>This form allows you to host a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.</p>
         {% endif %}
         {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
         <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
@@ -332,13 +332,14 @@
     </div>
 </div>
 
+{% if app.category.pk == 'serve' %}
 <div class="row pt-3">
 
     <div class="col-12 col-xl-6">
 
         <div class="card shadow border-0 p-3">
             <h3 class="card-title">Tags</h3>
-
+            <p>Add relevant keywords to help users find your app in our catalog of public apps.</p>
 
             <form method="POST" action="{% url 'apps:add_tag' request.user project.slug appinstance.pk %}">
 
@@ -382,6 +383,7 @@
             </div>
         </div>
     </div>
+{% endif %}
 </div>
 
 <script>
@@ -486,7 +488,7 @@
                     }
                     $('#rn').addClass('is-invalid');
                     if (data.available == "invalid") {
-                        $('#subdomain-invalid').text("Subdomain is invalid. Please choose another.");
+                        $('#subdomain-invalid').text("Subdomain is invalid. Only lowercase English letters (a-z), numbers (0-9) and hyphens (-) are allowed; hyphen cannot be the first or last character.");
                     } else {
                         $('#subdomain-invalid').text("Subdomain already exists. Please choose another.");
                     }
