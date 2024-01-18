@@ -301,7 +301,7 @@ class AppSettingsView(View):
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
 def create_releasename(request, user, project, app_slug):
-    pattern = re.compile("^[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]$")
+    pattern = re.compile("^[a-z0-9][a-z0-9-]+[a-z0-9]$")
     available = "invalid"
     system_subdomains = ["keycloak", "grafana", "prometheus", "studio"]
     if pattern.match(request.POST.get("rn")):

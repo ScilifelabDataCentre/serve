@@ -470,7 +470,7 @@ class CreateProjectView(View):
         success = True
 
         template_id = request.POST.get("template_id")
-        name = request.POST.get("name", "default")
+        name = request.POST.get("name", "default")[:200]
         description = request.POST.get("description", "")
 
         # Try to create database project object.
