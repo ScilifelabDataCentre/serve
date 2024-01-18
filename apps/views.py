@@ -275,14 +275,14 @@ class AppSettingsView(View):
 
     def update_resource(self, request, appinstance, current_release_name):
         domain = appinstance.parameters["global"]["domain"]
-        
+
         if request.POST.get("app_release_name", None):
             # Set new release name as app_release_name
             new_release_name = request.POST.get("app_release_name")
         else:
             # if app_release_name is not set, use appname
             new_release_name = appinstance.parameters.get("appname", None)
-        
+
         new_url = f"https://{new_release_name}.{domain}"
         appinstance.table_field.update({"url": new_url})
         if new_release_name and current_release_name != new_release_name:
@@ -458,7 +458,7 @@ class CreateView(View):
             raise Exception("User not allowed to create app")
 
         successful, project_slug, app_category_slug = create_app_instance(user, project, app, app_settings, data, wait)
-        
+
         if not successful:
             return HttpResponseRedirect(
                 reverse(

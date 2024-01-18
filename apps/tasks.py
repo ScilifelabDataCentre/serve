@@ -209,9 +209,11 @@ def deploy_resource(instance_pk, action="create"):
     appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
 
     if appinstance.parameters.get("app_release_name"):
-        new_rel_name_obj, created = ReleaseName.objects.get_or_create(name=appinstance.parameters.get("app_release_name"), project=appinstance.project)
-        new_rel_name_obj.app=appinstance
-        new_rel_name_obj.status="in-use"
+        new_rel_name_obj, created = ReleaseName.objects.get_or_create(
+            name=appinstance.parameters.get("app_release_name"), project=appinstance.project
+        )
+        new_rel_name_obj.app = appinstance
+        new_rel_name_obj.status = "in-use"
         new_rel_name_obj.save()
 
     results = controller.deploy(appinstance.parameters)
