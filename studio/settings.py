@@ -35,7 +35,7 @@ else:
 # For django-wiki
 SITE_ID = 1
 # wiki: Sign up, login and logout views should be accessible.
-WIKI_ACCOUNT_HANDLING = True
+WIKI_ACCOUNT_HANDLING = False
 # wiki: No user signup, but superusers can create new users.
 WIKI_ACCOUNT_SIGNUP_ALLOWED = False
 
@@ -297,7 +297,7 @@ AUTH_DOMAIN = "10.0.144.239"
 AUTH_PROTOCOL = "http"
 STUDIO_URL = "http://studio.127.0.0.1.nip.io:8080"
 # To enable sticky sessions for k8s ingress
-SESSION_COOKIE_DOMAIN = ".127.0.0.1.nip.io"
+# SESSION_COOKIE_DOMAIN = ".127.0.0.1.nip.io"
 
 # App statuses
 APPS_STATUS_SUCCESS = ["Running", "Succeeded", "Success"]

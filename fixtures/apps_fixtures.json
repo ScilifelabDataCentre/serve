@@ -107,7 +107,6 @@
       "chart": "apps/mlflow/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "mlflow-logo.png",
       "name": "MLFlow",
       "settings": {
         "S3": "one",
@@ -160,7 +159,6 @@
       "category": "serve",
       "chart": "apps/mlflow-serve/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
-      "logo": "mlflow-serve-logo.png",
       "name": "MLFlow Serve",
       "priority": "400",
       "settings": {
@@ -217,7 +215,6 @@
       "chart": "apps/tensorflow-serve/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "tensorflow-serve-logo.png",
       "name": "Tensorflow Serving",
       "priority": "600",
       "settings": {
@@ -266,7 +263,6 @@
       "chart": "apps/pytorch-serve/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "pytorch-serve-logo.png",
       "name": "PyTorch Serve",
       "priority": "500",
       "settings": {
