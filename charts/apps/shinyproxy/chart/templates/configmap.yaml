@@ -9,6 +9,8 @@ data:
     management:
       server:
         port: 9091
+    server:
+      secure-cookies: true
     proxy:
       authentication: none
       container-backend: kubernetes
@@ -24,6 +26,7 @@ data:
       logo-url: https://www.openanalytics.eu/shinyproxy/logo.png
       port: {{ .Values.appconfig.proxyport }}
       readinessProbe: {}
+      same-site-cookie: None
       specs:
       - container-cmd:
         - /usr/bin/shiny-server
@@ -34,6 +37,8 @@ data:
         container-memory-request: {{ .Values.flavor.requests.memory }}
         port: {{ .Values.appconfig.port }}
         id:  {{ .Release.Name }}
+        display-name: {{ .Values.app_name }}
+        description: {{ .Values.app_description }}
         labels:
           sp.instance: {{ .Release.Name }}
           allow-internet-egress: "true"
