@@ -297,7 +297,7 @@ AUTH_DOMAIN = "10.0.144.239"
 AUTH_PROTOCOL = "http"
 STUDIO_URL = "http://studio.127.0.0.1.nip.io:8080"
 # To enable sticky sessions for k8s ingress
-# SESSION_COOKIE_DOMAIN = ".127.0.0.1.nip.io"
+SESSION_COOKIE_DOMAIN = ".127.0.0.1.nip.io"
 
 # App statuses
 APPS_STATUS_SUCCESS = ["Running", "Succeeded", "Success"]
