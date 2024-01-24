@@ -10,6 +10,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.decorators import api_view
 from rest_framework.mixins import (
     CreateModelMixin,
     ListModelMixin,
@@ -815,3 +816,56 @@ class ProjectTemplateList(
         except Exception as err:
             print(err)
         return HttpResponse("Created new template: {}.".format(name), status=200)
+
+
+@api_view(["GET", "POST"])
+def update_app_status(request):
+    """
+    Manages the app instance status.
+    Implemented as a DRF function based view.
+    Support GET and POST verbs.
+    POST verb requires input parameters: request, new-status, event-ts
+    Optional parameters: event-msg
+    """
+
+    # POST verb
+    if request.method == "POST":
+        # In a transaction update user instance state, add row to app_statuss
+        print("INFO: API method update_app_status called with POST verb.")
+
+        # TODO: implement token authentication: token = None
+
+        release = None
+        new_status = None
+        event_msg = None
+        event_ts = None
+
+        try:
+            # Validate the input
+
+            # Required input
+            release = request.data["release"]
+            new_status = request.data["new-status"]
+            event_ts = request.data["event-ts"]
+
+            # Optional
+            if "event-msg" in request.data:
+                event_msg = request.data["event-msg"]
+        except KeyError as err:
+            print(f"API method called with invalid input. Missing required input parameter: {err}")
+            return Response(f"Invalid input. Missing required input parameter: {err}", 400)
+        except Exception as err:
+            print(f"API method called with invalid input:  {err}, {type(err)}")
+            return Response(f"Invalid input. {err}", 400)
+
+        print(f"DEBUG:  Method update_app_status input: {release=}, {new_status=}, {event_ts=}, {event_msg=}")
+
+        # TODO: Call method to update app instance and save app statuss
+        # Use retries and atomic transaction
+
+        # TODO: change to return Response("ok", 200)
+        return Response({"message": "DEBUG: POST", "data": request.data})
+
+    # GET verb
+    print("API method update_app_status called with GET verb.")
+    return Response({"message": "DEBUG: GET"})

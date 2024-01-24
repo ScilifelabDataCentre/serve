@@ -21,6 +21,7 @@ from .views import (
     ReleaseNameList,
     ResourceList,
     S3List,
+    update_app_status,
 )
 
 app_name = "api"
@@ -55,4 +56,5 @@ urlpatterns = [
     # Internal API endpoints
     path("token-auth/", CustomAuthToken.as_view(), name="api_token_auth"),
     path("settings/", get_studio_settings),
+    path("app-status/", update_app_status),
 ]
