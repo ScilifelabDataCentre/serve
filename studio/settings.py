@@ -35,7 +35,7 @@ else:
 # For django-wiki
 SITE_ID = 1
 # wiki: Sign up, login and logout views should be accessible.
-WIKI_ACCOUNT_HANDLING = True
+WIKI_ACCOUNT_HANDLING = False
 # wiki: No user signup, but superusers can create new users.
 WIKI_ACCOUNT_SIGNUP_ALLOWED = False
 

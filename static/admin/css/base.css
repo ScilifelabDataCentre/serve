@@ -81,7 +81,7 @@ body {
     margin: 0;
     padding: 0;
     font-size: 0.875rem;
-    font-family: 'Manrope', serif;
+    font-family: serif;
     color: var(--body-fg);
     background: var(--body-bg);
 }
