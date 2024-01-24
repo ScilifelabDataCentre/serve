@@ -37,7 +37,7 @@ spec:
       containers:
       - name: {{ .Values.appname }}
         image: {{ .Values.appconfig.image }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
