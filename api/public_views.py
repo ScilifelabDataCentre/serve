@@ -13,3 +13,12 @@ def get_studio_settings(request):
     studio_settings.append(studio_url)
 
     return JsonResponse({"data": studio_settings})
+
+
+def are_you_there(request):
+    """
+    Most simple API endpoint useful for testing
+    and verifications.
+    :returns bool: true
+    """
+    return JsonResponse({"status": True})
