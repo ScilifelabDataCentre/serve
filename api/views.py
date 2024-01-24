@@ -3,6 +3,7 @@ import time
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.utils.text import slugify
@@ -10,7 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.mixins import (
     CreateModelMixin,
     ListModelMixin,
@@ -819,6 +820,12 @@ class ProjectTemplateList(
 
 
 @api_view(["GET", "POST"])
+@permission_classes(
+    (
+        IsAuthenticated,
+        AdminPermission,
+    )
+)
 def update_app_status(request):
     """
     Manages the app instance status.
@@ -830,10 +837,7 @@ def update_app_status(request):
 
     # POST verb
     if request.method == "POST":
-        # In a transaction update user instance state, add row to app_statuss
         print("INFO: API method update_app_status called with POST verb.")
-
-        # TODO: implement token authentication: token = None
 
         release = None
         new_status = None
@@ -841,7 +845,7 @@ def update_app_status(request):
         event_ts = None
 
         try:
-            # Validate the input
+            # Parse and validate the input
 
             # Required input
             release = request.data["release"]
@@ -860,12 +864,53 @@ def update_app_status(request):
 
         print(f"DEBUG:  Method update_app_status input: {release=}, {new_status=}, {event_ts=}, {event_msg=}")
 
-        # TODO: Call method to update app instance and save app statuss
-        # Use retries and atomic transaction
+        msg = ""
 
-        # TODO: change to return Response("ok", 200)
-        return Response({"message": "DEBUG: POST", "data": request.data})
+        try:
+            # Verify that the requested app instance exists
+            app_instance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
+            if app_instance is None:
+                print(f"The specified app instance was not found {release=}.")
+                return Response(f"The specified app instance was not found {release=}.", 404)
+
+            print(f"The app instance exists. name={app_instance.name}, state={app_instance.state}")
+        except Exception as err:
+            print(f"Unable to fetch the specified app instance {release=}. {err}, {type(err)}")
+            return Response(f"Unable to fetch the specified app instance {release=}.", 500)
+
+        msg = ""
+
+        # Determine whether to update the state and status
+        if new_status == app_instance.state:
+            msg = f"New status is equal to current status. No change detected. {release=}, {new_status=}"
+            print(msg)
+            return Response(f"OK. {msg}", 200)
+
+        # TODO: Compare timestamps
+        try:
+            # TODO: Call method to update app instance and save app statuss
+            # Use retries and atomic transaction
+            update_status(app_instance, None, new_status)
+            msg = f"Updated the new status for {release=} to {new_status=}"
+            print(msg)
+        except Exception as err:
+            print(f"Unable to update the app instance state or status for  {release=}. {err}, {type(err)}")
+            return Response(f"Unable to update the app instance state or status for {release=}.", 500)
+
+        return Response(f"OK. {msg}", 200)
 
     # GET verb
     print("API method update_app_status called with GET verb.")
     return Response({"message": "DEBUG: GET"})
+
+
+# TODO: Testing
+@transaction.atomic
+def update_status(appinstance, status_object, status):
+    """
+    Helper function to update the status of an appinstance and a status object.
+    """
+    # status_object.status_type = status
+    # status_object.save()
+    appinstance.state = status
+    appinstance.save(update_fields=["state"])
