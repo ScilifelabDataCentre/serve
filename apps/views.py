@@ -425,8 +425,8 @@ class CreateView(View):
             return HttpResponseForbidden()
 
         if app.slug == "minio":
-            MINIO_USERNAME = get_random_string(8)
-            MINIO_PASSWORD = get_random_string(8)
+            minio_username = get_random_string(8)
+            minio_password = get_random_string(8)
 
         do_display_description_field = app.category is not None and app.category.name.lower() == "serve"
 

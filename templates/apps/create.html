@@ -281,12 +281,12 @@
 
                         {% if subval.type == "minio-username" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ MINIO_USERNAME }}" class="form-control">
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_username }}" class="form-control">
                         {% endif %}
 
                         {% if subval.type == "minio-password" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ MINIO_PASSWORD }}" class="form-control">
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_password }}" class="form-control">
                         {% endif %}
 
 
