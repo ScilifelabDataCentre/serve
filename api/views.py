@@ -1,6 +1,8 @@
 import json
 import time
+from datetime import datetime
 
+import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -22,7 +24,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from apps.models import AppCategories, AppInstance, Apps
+from apps.models import AppCategories, AppInstance, Apps, AppStatus
 from apps.tasks import delete_resource
 from models.models import ObjectType
 from portal.models import PublishedModel
@@ -844,13 +846,17 @@ def update_app_status(request):
         event_msg = None
         event_ts = None
 
+        utc = pytz.UTC
+
         try:
             # Parse and validate the input
 
             # Required input
             release = request.data["release"]
             new_status = request.data["new-status"]
-            event_ts = request.data["event-ts"]
+
+            event_ts = datetime.strptime(request.data["event-ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
+            event_ts = utc.localize(event_ts)
 
             # Optional
             if "event-msg" in request.data:
@@ -862,10 +868,9 @@ def update_app_status(request):
             print(f"API method called with invalid input:  {err}, {type(err)}")
             return Response(f"Invalid input. {err}", 400)
 
-        print(f"DEBUG:  Method update_app_status input: {release=}, {new_status=}, {event_ts=}, {event_msg=}")
+        print(f"DEBUG: API method update_app_status input: {release=}, {new_status=}, {event_ts=}, {event_msg=}")
 
-        msg = ""
-
+        # TODO: wrap the filter select and update in an atomic locked transaction or use select_for_update
         try:
             # Verify that the requested app instance exists
             app_instance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
@@ -873,25 +878,56 @@ def update_app_status(request):
                 print(f"The specified app instance was not found {release=}.")
                 return Response(f"The specified app instance was not found {release=}.", 404)
 
-            print(f"The app instance exists. name={app_instance.name}, state={app_instance.state}")
+            print(f"DEBUG: The app instance exists. name={app_instance.name}, state={app_instance.state}")
+
+            # Also get the latest app status object for this app instance
+            app_status = app_instance.status.latest()
+            print(f"DEBUG: AppStatus {app_status.status_type=}, {app_status.time=}, {app_status.info=}.")
         except Exception as err:
             print(f"Unable to fetch the specified app instance {release=}. {err}, {type(err)}")
             return Response(f"Unable to fetch the specified app instance {release=}.", 500)
 
-        msg = ""
-
         # Determine whether to update the state and status
-        if new_status == app_instance.state:
-            msg = f"New status is equal to current status. No change detected. {release=}, {new_status=}"
-            print(msg)
+
+        # Compare timestamps
+        time_ftm = "%Y-%m-%d %H:%M:%S"
+        if event_ts <= app_status.time:
+            msg = "The incoming event-ts is older than the current status ts so nothing to do."
+            msg += f"event_ts={event_ts.strftime(time_ftm)}, app_status.time={str(app_status.time.strftime(time_ftm))}"
+            print(f"DEBUG: {msg}")
             return Response(f"OK. {msg}", 200)
 
-        # TODO: Compare timestamps
+        # The event is newer than the existing persisted object
+        if new_status == app_instance.state:
+            # The same status. Simply update the time.
+            try:
+                msg = "DEBUG: New status is equal to current status. Updating the app statuss time field."
+                print(f"{msg} {release=}, {event_ts=}")
+
+                update_status_time(app_status, event_ts, event_msg)
+
+                msg = f"New status is equal to current status {new_status}. Updated the app statuss time field."
+                msg += f" {release=}, {event_ts=}"
+                return Response(f"OK. {msg}", 200)
+            except Exception as err:
+                print(f"Unable to update the app instance state or status for  {release=}. {err}, {type(err)}")
+                return Response(f"Unable to update the app instance state or status for {release=}.", 500)
+
         try:
-            # TODO: Call method to update app instance and save app statuss
+            # Perform the status update for a new status
             # Use retries and atomic transaction
-            update_status(app_instance, None, new_status)
-            msg = f"Updated the new status for {release=} to {new_status=}"
+
+            # The update status command performs 2 operations:
+            # It updates the state in the app instance object and
+            # it also creates a new row in the app statuss table
+            status_object = AppStatus(appinstance=app_instance)
+
+            # Set the app status time field to the incoming event-ts
+            status_object.time = event_ts
+
+            update_status(app_instance, status_object, new_status, event_ts, event_msg)
+
+            msg += f"Updated the new status for {release=} to {new_status=} "
             print(msg)
         except Exception as err:
             print(f"Unable to update the app instance state or status for  {release=}. {err}, {type(err)}")
@@ -904,13 +940,41 @@ def update_app_status(request):
     return Response({"message": "DEBUG: GET"})
 
 
-# TODO: Testing
+# TODO: Consider moving to another module
 @transaction.atomic
-def update_status(appinstance, status_object, status):
+def update_status(appinstance, status_object, status, status_ts=None, event_msg=None):
     """
     Helper function to update the status of an appinstance and a status object.
     """
-    # status_object.status_type = status
-    # status_object.save()
+    # Persist a new app statuss object
+    status_object.status_type = status
+    status_object.time = status_ts
+    status_object.info = event_msg
+    status_object.save()
+
+    # Must re-save the app statuss object with the new event ts
+    status_object.time = status_ts
+
+    if event_msg is None:
+        status_object.save(update_fields=["time"])
+    else:
+        status_object.info = event_msg
+        status_object.save(update_fields=["time", "info"])
+
+    # Update the app instance object
     appinstance.state = status
     appinstance.save(update_fields=["state"])
+
+
+@transaction.atomic
+def update_status_time(status_object, status_ts, event_msg=None):
+    """
+    Helper function to update the time of an app status event.
+    """
+    status_object.time = status_ts
+
+    if event_msg is None:
+        status_object.save(update_fields=["time"])
+    else:
+        status_object.info = event_msg
+        status_object.save(update_fields=["time", "info"])
