@@ -137,9 +137,3 @@ jobs:
         with:
           name: cypress-videos
           path: cypress/videos
-
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        with:
-          ## If no one connects after 2 minutes, shut down server.
-          wait-timeout-minutes: 2
