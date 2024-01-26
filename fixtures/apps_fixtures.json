@@ -36,6 +36,10 @@
           "public": {
             "option": "false",
             "value": "false"
+          },
+          "link": {
+            "option": "false",
+            "value": "false"
           }
         }
       },
@@ -87,6 +91,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "false",
             "value": "false"
           }
@@ -141,6 +149,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "false",
             "value": "false"
           }
@@ -198,6 +210,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "false",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -245,6 +261,10 @@
             "value": "true"
           },
           "public": {
+            "option": "true",
+            "value": "false"
+          },
+          "link": {
             "option": "true",
             "value": "false"
           }
@@ -296,6 +316,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "true",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -333,6 +357,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "false",
             "value": "false"
           }
@@ -390,6 +418,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "false",
             "value": "false"
           }
@@ -479,6 +511,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "true",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -520,6 +556,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "false",
             "value": "false"
           }
@@ -577,6 +617,10 @@
             "value": "true"
           },
           "public": {
+            "option": "true",
+            "value": "false"
+          },
+          "link": {
             "option": "true",
             "value": "false"
           }
@@ -637,6 +681,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "true",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -693,6 +741,10 @@
             "value": "true"
           },
           "public": {
+            "option": "true",
+            "value": "false"
+          },
+          "link": {
             "option": "true",
             "value": "false"
           }
@@ -760,6 +812,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "true",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -813,6 +869,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "true",
             "value": "false"
           }

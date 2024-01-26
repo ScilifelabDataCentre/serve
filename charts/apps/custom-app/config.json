@@ -33,6 +33,10 @@
       "serve"
     ],
     "permissions": {
+      "link": {
+        "option": "true",
+        "value": "false"
+      },
       "private": {
         "option": "true",
         "value": "false"
