@@ -33,7 +33,8 @@ class AppInstanceAdmin(admin.ModelAdmin):
 
     def display_project(self, obj):
         return obj.project.name
-    
+
+
 class AppStatusAdmin(admin.ModelAdmin):
     list_display = (
         "appinstance",

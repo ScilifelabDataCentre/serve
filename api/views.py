@@ -5,6 +5,7 @@ from datetime import datetime
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import HttpResponse
 from django.utils.text import slugify
@@ -23,6 +24,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
 from apps.models import AppCategories, AppInstance, Apps, AppStatus
 from apps.tasks import delete_resource
 from models.models import ObjectType
@@ -841,8 +843,6 @@ def update_app_status(request):
     :returns: An http status code and status text.
     """
 
-    import apps.helpers as helpers
-
     # POST verb
     if request.method == "POST":
         print("INFO: API method update_app_status called with POST verb.")
@@ -867,79 +867,55 @@ def update_app_status(request):
             # Optional
             if "event-msg" in request.data:
                 event_msg = request.data["event-msg"]
+
         except KeyError as err:
             print(f"API method called with invalid input. Missing required input parameter: {err}")
             return Response(f"Invalid input. Missing required input parameter: {err}", 400)
+
         except Exception as err:
             print(f"API method called with invalid input:  {err}, {type(err)}")
             return Response(f"Invalid input. {err}", 400)
 
         print(f"DEBUG: API method update_app_status input: {release=}, {new_status=}, {event_ts=}, {event_msg=}")
 
-        # TODO: wrap the filter select and update in an atomic locked transaction or use select_for_update
         try:
-            # Verify that the requested app instance exists
-            app_instance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
-            if app_instance is None:
-                print(f"The specified app instance was not found {release=}.")
-                return Response(f"The specified app instance was not found {release=}.", 404)
+            result = handle_update_status_request(release, new_status, event_ts, event_msg)
 
-            print(f"DEBUG: The app instance exists. name={app_instance.name}, state={app_instance.state}")
+            if result == HandleUpdateStatusResponseCode.NO_ACTION:
+                return Response(
+                    "OK. NO_ACTION. No action performed. Possibly the event time is older \
+                    than the currently stored time.",
+                    200,
+                )
 
-            # Also get the latest app status object for this app instance
-            app_status = app_instance.status.latest()
-            print(f"DEBUG: AppStatus {app_status.status_type=}, {app_status.time=}, {app_status.info=}.")
+            elif result == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS:
+                return Response("OK. CREATED_FIRST_STATUS. Created a missing AppStatus.", 200)
+
+            elif result == HandleUpdateStatusResponseCode.UPDATED_STATUS:
+                return Response(
+                    "OK. UPDATED_STATUS. Updated the app status. \
+                    Determined that the submitted event was newer and different status.",
+                    200,
+                )
+
+            elif result == HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS:
+                return Response(
+                    "OK. UPDATED_TIME_OF_STATUS. Updated only the event time of the status. \
+                    Determined that the new and old status codes are the same.",
+                    200,
+                )
+
+            else:
+                print(f"Unknown return code from handle_update_status_request() = {result}")
+                return Response(f"Unknown return code from handle_update_status_request() = {result}", 500)
+
+        except ObjectDoesNotExist:
+            print(f"The specified app instance was not found {release=}.")
+            return Response(f"The specified app instance was not found {release=}.", 404)
+
         except Exception as err:
-            print(f"Unable to fetch the specified app instance {release=}. {err}, {type(err)}")
-            return Response(f"Unable to fetch the specified app instance {release=}.", 500)
-
-        # Determine whether to update the state and status
-
-        # Compare timestamps
-        time_ftm = "%Y-%m-%d %H:%M:%S"
-        if event_ts <= app_status.time:
-            msg = "The incoming event-ts is older than the current status ts so nothing to do."
-            msg += f"event_ts={event_ts.strftime(time_ftm)}, app_status.time={str(app_status.time.strftime(time_ftm))}"
-            print(f"DEBUG: {msg}")
-            return Response(f"OK. {msg}", 200)
-
-        # The event is newer than the existing persisted object
-        if new_status == app_instance.state:
-            # The same status. Simply update the time.
-            try:
-                msg = "DEBUG: New status is equal to current status. Updating the app statuss time field."
-                print(f"{msg} {release=}, {event_ts=}")
-
-                helpers.update_status_time(app_status, event_ts, event_msg)
-
-                msg = f"New status is equal to current status {new_status}. Updated the app statuss time field."
-                msg += f" {release=}, {event_ts=}"
-                return Response(f"OK. {msg}", 200)
-            except Exception as err:
-                print(f"Unable to update the app instance state or status for  {release=}. {err}, {type(err)}")
-                return Response(f"Unable to update the app instance state or status for {release=}.", 500)
-
-        try:
-            # Perform the status update for a new status
-            # Use retries and atomic transaction
-
-            # The update status command performs 2 operations:
-            # It updates the state in the app instance object and
-            # it also creates a new row in the app statuss table
-            status_object = AppStatus(appinstance=app_instance)
-
-            # Set the app status time field to the incoming event-ts
-            status_object.time = event_ts
-
-            helpers.update_status(app_instance, status_object, new_status, event_ts, event_msg)
-
-            msg += f"Updated the new status for {release=} to {new_status=} "
-            print(msg)
-        except Exception as err:
-            print(f"Unable to update the app instance state or status for  {release=}. {err}, {type(err)}")
-            return Response(f"Unable to update the app instance state or status for {release=}.", 500)
-
-        return Response(f"OK. {msg}", 200)
+            print(f"Unable to update the status of the specified app instance {release=}. {err}, {type(err)}")
+            return Response(f"Unable to update the status of the specified app instance {release=}.", 500)
 
     # GET verb
     print("API method update_app_status called with GET verb.")

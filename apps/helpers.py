@@ -228,6 +228,9 @@ def handle_update_status_request(
     :returns: A value from the HandleUpdateStatusResponseCode enum.
               Raises an ObjectDoesNotExist exception if the app instance does not exist.
     """
+
+    # TODO: wrap the filter select and update in an atomic locked transaction or use select_for_update
+    # Use retries and atomic transaction
     try:
         # Verify that the requested app instance exists
         app_instance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
