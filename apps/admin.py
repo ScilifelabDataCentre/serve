@@ -33,9 +33,18 @@ class AppInstanceAdmin(admin.ModelAdmin):
 
     def display_project(self, obj):
         return obj.project.name
+    
+class AppStatusAdmin(admin.ModelAdmin):
+    list_display = (
+        "appinstance",
+        "status_type",
+        "time",
+    )
+
+    list_filter = ["appinstance", "status_type", "time"]
 
 
 admin.site.register(AppInstance, AppInstanceAdmin)
 admin.site.register(AppCategories)
 admin.site.register(ResourceData)
-admin.site.register(AppStatus)
+admin.site.register(AppStatus, AppStatusAdmin)
