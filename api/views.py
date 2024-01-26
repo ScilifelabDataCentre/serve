@@ -5,7 +5,6 @@ from datetime import datetime
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.utils.text import slugify
@@ -842,6 +841,8 @@ def update_app_status(request):
     :returns: An http status code and status text.
     """
 
+    import apps.helpers as helpers
+
     # POST verb
     if request.method == "POST":
         print("INFO: API method update_app_status called with POST verb.")
@@ -909,7 +910,7 @@ def update_app_status(request):
                 msg = "DEBUG: New status is equal to current status. Updating the app statuss time field."
                 print(f"{msg} {release=}, {event_ts=}")
 
-                update_status_time(app_status, event_ts, event_msg)
+                helpers.update_status_time(app_status, event_ts, event_msg)
 
                 msg = f"New status is equal to current status {new_status}. Updated the app statuss time field."
                 msg += f" {release=}, {event_ts=}"
@@ -930,7 +931,7 @@ def update_app_status(request):
             # Set the app status time field to the incoming event-ts
             status_object.time = event_ts
 
-            update_status(app_instance, status_object, new_status, event_ts, event_msg)
+            helpers.update_status(app_instance, status_object, new_status, event_ts, event_msg)
 
             msg += f"Updated the new status for {release=} to {new_status=} "
             print(msg)
@@ -943,43 +944,3 @@ def update_app_status(request):
     # GET verb
     print("API method update_app_status called with GET verb.")
     return Response({"message": "DEBUG: GET"})
-
-
-# TODO: Consider moving to another module
-@transaction.atomic
-def update_status(appinstance, status_object, status, status_ts=None, event_msg=None):
-    """
-    Helper function to update the status of an appinstance and a status object.
-    """
-    # Persist a new app statuss object
-    status_object.status_type = status
-    status_object.time = status_ts
-    status_object.info = event_msg
-    status_object.save()
-
-    # Must re-save the app statuss object with the new event ts
-    status_object.time = status_ts
-
-    if event_msg is None:
-        status_object.save(update_fields=["time"])
-    else:
-        status_object.info = event_msg
-        status_object.save(update_fields=["time", "info"])
-
-    # Update the app instance object
-    appinstance.state = status
-    appinstance.save(update_fields=["state"])
-
-
-@transaction.atomic
-def update_status_time(status_object, status_ts, event_msg=None):
-    """
-    Helper function to update the time of an app status event.
-    """
-    status_object.time = status_ts
-
-    if event_msg is None:
-        status_object.save(update_fields=["time"])
-    else:
-        status_object.info = event_msg
-        status_object.save(update_fields=["time", "info"])
