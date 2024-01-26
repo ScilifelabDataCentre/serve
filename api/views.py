@@ -832,9 +832,14 @@ def update_app_status(request):
     """
     Manages the app instance status.
     Implemented as a DRF function based view.
-    Support GET and POST verbs.
-    POST verb requires input parameters: request, new-status, event-ts
-    Optional parameters: event-msg
+    Supports GET and POST verbs.
+
+    The service contract for the POST actions is as follows:
+    :param release str: The release id of the app instance.
+    :param new-status str: The new status code.
+    :param event-ts timestamp: A JSON-formatted timestamp, e.g. 2024-01-25T16:02:50.00Z.
+    :param event-msg json dict: An optional json dict containing pod-msg and/or container-msg.
+    :returns: An http status code and status text.
     """
 
     # POST verb
