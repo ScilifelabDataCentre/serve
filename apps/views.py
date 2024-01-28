@@ -1,6 +1,7 @@
 import re
 import secrets
 import string
+from datetime import datetime
 
 import requests
 from django.apps import apps
@@ -55,38 +56,31 @@ def index(request, user, project):
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
 def logs(request, user, project, ai_id):
-    template = "logs.html"
+    template = "apps/logs.html"
     app = AppInstance.objects.get(pk=ai_id)
     project = Project.objects.get(slug=project)
     app_settings = app.app.settings
-    containers = []
     logs = []
     if "logs" in app_settings:
-        containers = app_settings["logs"]
-        container = containers[0]
-        print("default container: " + container)
-        if "container" in request.GET:
-            container = request.GET.get("container")
-            print("Got container in request: " + container)
-
         try:
             url = settings.LOKI_SVC + "/loki/api/v1/query_range"
             app_params = app.parameters
-            print('{container="' + container + '",release="' + app_params["release"] + '"}')
+            print('{release="' + app_params["release"] + '"}')
             query = {
-                "query": '{container="' + container + '",release="' + app_params["release"] + '"}',
-                "limit": 50,
-                "start": 0,
+                "query": '{release="' + app_params["release"] + '"}',
+                "limit": 500,
+                "since": "30d",
             }
             res = requests.get(url, params=query)
             res_json = res.json()["data"]["result"]
 
             for item in res_json:
-                logs.append("----------BEGIN CONTAINER------------")
                 logline = ""
-                for iline in item["values"]:
-                    logs.append(iline[1])
-                logs.append("----------END CONTAINER------------")
+                for iline in reversed(item["values"]):
+                    # separate timestamp and log
+                    separated_log = iline[1].split(None, 1)
+                    separated_log[0] = datetime.fromtimestamp(int(iline[0]) / 1e9).strftime("%Y-%m-%d, %H:%M:%S")
+                    logs.append(separated_log)
 
         except Exception as e:
             print(e)
