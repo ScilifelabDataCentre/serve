@@ -231,7 +231,7 @@ def test_fail_validation_other_email_affiliation_selected(form):
     assert not is_val, (form.user.errors, form.profile.errors)
     assert {
         "email": [
-            "Email is not from a Swedish university. \n"
-            "Please select 'Other' in affiliation or use your Swedish university email"
+            "Email was not recognized as a researcher email from a Swedish university. \n"
+            "Please select 'Other' in affiliation or use your Swedish university researcher email."
         ]
     } == form.user.errors
