@@ -1,5 +1,8 @@
+import concurrent.futures
+import time
 from datetime import datetime, timedelta
 
+import pytest
 import pytz
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
@@ -135,3 +138,113 @@ class UpdateAppStatusTestCase(TestCase):
         actual_appstatus = actual_app_instance.status.latest()
         assert actual_appstatus.status_type == new_status
         assert actual_appstatus.time == newer_ts
+
+
+@pytest.mark.skip(
+    reason="This test requires a modification to the handle_update_status_request function to add a delay parameter."
+)
+class UpdateAppStatusConcurrentRequestsTestCase(TransactionTestCase):
+    """Test case for concurrent requests operating on an existing app instance."""
+
+    ACTUAL_RELEASE_NAME = "test-release-name"
+    INITIAL_STATUS = "StatusA"
+    INITIAL_EVENT_TS = utc.localize(datetime.now())
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
+        self.category = AppCategories.objects.create(name="Network", priority=100, slug="network")
+        self.app = Apps.objects.create(
+            name="Jupyter Lab",
+            slug="jupyter-lab",
+            user_can_edit=False,
+            category=self.category,
+        )
+
+        self.project = Project.objects.create_project(name="test-perm-get_status", owner=self.user, description="")
+
+        self.app_instance = AppInstance.objects.create(
+            access="public",
+            owner=self.user,
+            name="test_app_instance_public",
+            app=self.app,
+            project=self.project,
+            parameters={
+                "environment": {"pk": ""},
+                "release": self.ACTUAL_RELEASE_NAME,
+            },
+            state=self.INITIAL_STATUS,
+        )
+        self.setUpCreateAppStatus()
+
+    def setUpCreateAppStatus(self):
+        self.status_object = AppStatus(appinstance=self.app_instance)
+        self.status_object.status_type = self.INITIAL_STATUS
+        self.status_object.save()
+        # Must re-save with the desired timeUpdate the app instance object
+        self.status_object.time = self.INITIAL_EVENT_TS
+        self.status_object.save(update_fields=["time"])
+
+    def test_concurrent_requests(self):
+        """
+        To test concurrent tests, we use 2 requests:
+        (a) a request to update the status to StatusA (same as first) and time to +3 secs
+        (b) a request to update the status to StatusB (different) and time to +1
+
+        1. begin request (a), pause after the select operation (fetching of the app instance object)
+        2. begin another request (b) that completes by updating the status to StatusB and the time
+        3. complete request (a) by updating the time
+        """
+
+        # Verify test data created from test setup
+        actual_app_instance = AppInstance.objects.filter(
+            parameters__contains={"release": self.ACTUAL_RELEASE_NAME}
+        ).last()
+
+        assert actual_app_instance.state == self.INITIAL_STATUS
+        actual_appstatus = actual_app_instance.status.latest()
+        assert actual_appstatus.status_type == self.INITIAL_STATUS
+        assert actual_appstatus.time == self.INITIAL_EVENT_TS
+
+        # Test the function using 2 threads
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            task_futures = []
+
+            task_futures.append(executor.submit(self.submit_request_new_time))
+
+            # Give the first request time to start
+            time.sleep(0.01)
+
+            task_futures.append(executor.submit(self.submit_request_new_status))
+
+            for future in concurrent.futures.as_completed(task_futures):
+                result = future.result()
+                print(result)
+                if result[0] == "submit_request_new_time":
+                    assert result[1] == HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
+                elif result[0] == "submit_request_new_status":
+                    assert result[1] == HandleUpdateStatusResponseCode.NO_ACTION
+
+        # Verify that the end result is as expected
+        actual_app_instance = AppInstance.objects.filter(
+            parameters__contains={"release": self.ACTUAL_RELEASE_NAME}
+        ).last()
+
+        # Expected final state values are: status = StatusA, time = time + 3
+        assert actual_app_instance.state == self.INITIAL_STATUS
+        actual_appstatus = actual_app_instance.status.latest()
+        assert actual_appstatus.status_type == self.INITIAL_STATUS
+        assert actual_appstatus.time == self.INITIAL_EVENT_TS + timedelta(seconds=3)
+
+    def submit_request_new_time(self):
+        """A request to update the time for status StatusA."""
+        print("Begin submit_request_new_time")
+        newer_ts = self.INITIAL_EVENT_TS + timedelta(seconds=3)
+        actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, self.INITIAL_STATUS, newer_ts, None, 1)
+        return "submit_request_new_time", actual
+
+    def submit_request_new_status(self):
+        print("Begin submit_request_new_status")
+        newer_ts = self.INITIAL_EVENT_TS + timedelta(seconds=1)
+        new_status = "StatusB"
+        actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, new_status, newer_ts)
+        return "submit_request_new_status", actual
