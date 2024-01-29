@@ -215,7 +215,7 @@ class HandleUpdateStatusResponseCode(Enum):
 
 
 def handle_update_status_request(
-    release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None, update_delay_secs: int = 0
+    release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
 ) -> HandleUpdateStatusResponseCode:
     """
     Helper function to handle update app status requests by determining if the
@@ -254,10 +254,6 @@ def handle_update_status_request(
                 app_status = app_instance.status.latest()
 
             print(f"DEBUG: AppStatus {app_status.status_type=}, {app_status.time=}, {app_status.info=}.")
-
-            if update_delay_secs > 0:
-                print(f"DEBUG: selected app instance status and time. Sleeping for {update_delay_secs}")
-                time.sleep(update_delay_secs)
 
             # Now determine whether to update the state and status
 

@@ -239,6 +239,8 @@ class UpdateAppStatusConcurrentRequestsTestCase(TransactionTestCase):
         """A request to update the time for status StatusA."""
         print("Begin submit_request_new_time")
         newer_ts = self.INITIAL_EVENT_TS + timedelta(seconds=3)
+        # Note that this next line requires a modification to the handle_update_status_request function by adding a new
+        # parameter update_delay_seconds int = 0
         actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, self.INITIAL_STATUS, newer_ts, None, 1)
         return "submit_request_new_time", actual
 
