@@ -7,25 +7,56 @@
     </div>
     <div class="row">
       <div class="table-responsive">
-        <table class="table" style="line-break: anywhere;">
+        <table id="logs" class="table">
           <thead class="table-light">
             <tr>
-              <th scope="col" style="width: 5%">#</th>
-              <th scope="col" style="width: 20%;">Time</th>
-              <th scope="col" style="width: 75%;" >Log</th>
+              <th></th>
+              <th>Time</th>
+              <th>Log</th>
             </tr>
           </thead>
-          <tbody>
-            {% for line in logs %}
-            <tr>
-                <td>{{ forloop.counter }}</th>
-                <td class="fw-bold">{{ line.0 }}</td>
-                <td>{{ line.1 }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
         </table>
       </div>
     </div>
   </div>
+<script>
+let table = new DataTable('#logs', {
+  data: {{ logs|safe }},
+  columns: [
+      {
+          className: 'dt-control w-2',
+          orderable: false,
+          data: null,
+          defaultContent: ''
+      },
+      {
+        className: 'fw-bold w-18',
+        data: '0'
+      },
+      {
+        className: 'log-column truncate-logs w-80',
+        data: '1'
+      }
+  ],
+  order: [[1, 'asc']],
+  language: {
+    "emptyTable": "No Logs found for the app. Logs are only available for 24h."
+  }
+});
+table.on('click', 'td.dt-control', function(e) {
+  let tr = e.target.closest('tr');
+  for (td of tr.children) {
+    if(td.classList && td.classList.contains('log-column')){
+      if(td.classList.contains('truncate-logs')){
+        tr.classList.add('dt-hasChild')
+        td.classList.remove('truncate-logs')
+      } else {
+        tr.classList.remove('dt-hasChild')
+        td.classList.add('truncate-logs')
+      }
+    }
+  }
+
+});
+</script>
 {% endblock %}
