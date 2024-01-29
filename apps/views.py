@@ -275,7 +275,7 @@ class AppSettingsView(View):
     def update_resource(self, request, appinstance, current_release_name):
         domain = appinstance.parameters["global"]["domain"]
         # if subdomain is set as --generated--, then use appname
-        new_release_name =  request.POST.get("app_release_name", appinstance.parameters["appname"])
+        new_release_name = request.POST.get("app_release_name", appinstance.parameters["appname"])
 
         new_url = f"https://{new_release_name}.{domain}"
         appinstance.table_field.update({"url": new_url})
