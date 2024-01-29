@@ -5,7 +5,7 @@
       "chart": "apps/jupyter-lab/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "jupyter-lab-logo.png",
+      "logo": "jupyter-lab-logo.svg",
       "name": "Jupyter Lab",
       "priority": "500",
       "settings": {
@@ -54,7 +54,7 @@
       "chart": "apps/minio/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "minio-logo.png",
+      "logo": "minio-logo.svg",
       "name": "Minio",
       "priority": "200",
       "settings": {
@@ -107,7 +107,6 @@
       "chart": "apps/mlflow/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "mlflow-logo.png",
       "name": "MLFlow",
       "settings": {
         "S3": "one",
@@ -160,7 +159,6 @@
       "category": "serve",
       "chart": "apps/mlflow-serve/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
-      "logo": "mlflow-serve-logo.png",
       "name": "MLFlow Serve",
       "priority": "400",
       "settings": {
@@ -217,7 +215,6 @@
       "chart": "apps/tensorflow-serve/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "tensorflow-serve-logo.png",
       "name": "Tensorflow Serving",
       "priority": "600",
       "settings": {
@@ -266,7 +263,6 @@
       "chart": "apps/pytorch-serve/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "pytorch-serve-logo.png",
       "name": "PyTorch Serve",
       "priority": "500",
       "settings": {
@@ -315,7 +311,6 @@
       "chart": "apps/volumeK8s/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "volumeK8s-logo.png",
       "name": "Persistent Volume",
       "priority": "600",
       "settings": {
@@ -368,7 +363,7 @@
       "chart": "apps/vscode/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "vscode-logo.png",
+      "logo": "vscode-logo.svg",
       "name": "VS Code",
       "settings": {
         "apps": {
@@ -410,7 +405,6 @@
       "chart": "apps/netpolicy/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "netpolicy-logo.png",
       "name": "Network Policy",
       "priority": "600",
       "settings": {
@@ -432,7 +426,7 @@
       "chart": "apps/custom-app/chart",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "Apps built with Gradio, Streamlit, Flask, etc.",
-      "logo": "default-logo.png",
+      "logo": "default-logo.svg",
       "name": "Custom App",
       "priority": "400",
       "settings": {
@@ -498,7 +492,7 @@
       "chart": "apps/rstudio/chart",
       "created_on": "2023-08-31T09:30:00.000Z",
       "description": "",
-      "logo": "rstudio-logo.png",
+      "logo": "rstudio-logo.svg",
       "name": "RStudio",
       "priority": "600",
       "settings": {
@@ -540,7 +534,7 @@
       "chart": "apps/dash/chart",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
-      "logo": "dashapp-logo.png",
+      "logo": "dashapp-logo.svg",
       "name": "Dash App",
       "priority": "400",
       "settings": {
@@ -598,7 +592,7 @@
       "chart": "apps/shiny/chart",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "Shiny app without ShinyProxy as a middle layer. [admins only]",
-      "logo": "shinyapp-logo.png",
+      "logo": "shinyapp-logo.svg",
       "name": "Shiny App (single copy)",
       "priority": "400",
       "settings": {
@@ -656,7 +650,7 @@
       "chart": "apps/shinyproxy/chart",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
-      "logo": "shinyapp-logo.png",
+      "logo": "shinyapp-logo.svg",
       "name": "Shiny App",
       "priority": "400",
       "settings": {
@@ -714,7 +708,7 @@
       "chart": "apps/python-serve/chart",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
-      "logo": "python-serve-logo.png",
+      "logo": "python-serve-logo.svg",
       "name": "Python Model Deployment",
       "priority": "400",
       "settings": {
@@ -779,7 +773,7 @@
       "chart": "apps/minio/chart",
       "created_on": "2023-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "minio-logo.png",
+      "logo": "minio-logo.svg",
       "name": "Minio Admin",
       "priority": "200",
       "settings": {
