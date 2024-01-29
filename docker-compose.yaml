@@ -48,6 +48,11 @@ services:
       internal_network:
         aliases:
           - studio.127.0.0.1.nip.io
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 6s
+      timeout: 10s
+      retries: 10
 
   redis:
     image: redis
@@ -138,6 +143,30 @@ services:
       internal_network:
         aliases:
           - celery-beat.127.0.0.1.nip.io
+
+  event-listener:
+    user: "${UID}:${GID}"
+    container_name: event-listener
+    image: ghcr.io/scilifelabdatacentre/serve-event-listener/event-listener:v0.1.1
+    environment:
+      - KUBECONFIG=/cluster.conf
+      - DEBUG=True
+      - USERNAME=admin@test.com
+      - PASSWORD=dGhpaXNhdmVyeW5vdHNhZmVvbmx
+      - BASE_URL=http://studio.127.0.0.1.nip.io:8080
+    volumes:
+      - ${PWD}/cluster.conf:/cluster.conf
+    networks:
+      internal_network:
+        aliases:
+          - studio.127.0.0.1.nip.io
+    depends_on:
+      studio:
+        condition: service_healthy
+    links:
+      - studio
+    restart: always
+
 
   unit-tests:
     user: "${UID}:${GID}"
