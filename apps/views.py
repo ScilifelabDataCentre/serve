@@ -61,6 +61,7 @@ def logs(request, user, project, ai_id):
     project = Project.objects.get(slug=project)
     app_settings = app.app.settings
     logs = []
+    # Look for logs in app settings. TODO: this logs entry is not used. Remove or change this later.
     if "logs" in app_settings:
         try:
             url = settings.LOKI_SVC + "/loki/api/v1/query_range"
@@ -69,17 +70,18 @@ def logs(request, user, project, ai_id):
             query = {
                 "query": '{release="' + app_params["release"] + '"}',
                 "limit": 500,
-                "since": "30d",
+                "since": "24h",
             }
             res = requests.get(url, params=query)
             res_json = res.json()["data"]["result"]
 
             for item in res_json:
-                logline = ""
-                for iline in reversed(item["values"]):
+                for log_line in reversed(item["values"]):
                     # separate timestamp and log
-                    separated_log = iline[1].split(None, 1)
-                    separated_log[0] = datetime.fromtimestamp(int(iline[0]) / 1e9).strftime("%Y-%m-%d, %H:%M:%S")
+                    separated_log = log_line[1].split(None, 1)
+                    # improve timestamp formatting for table
+                    formatted_time = datetime.strptime(separated_log[0][:-4], "%Y-%m-%dT%H:%M:%S.%f")
+                    separated_log[0] = datetime.strftime(formatted_time, "%Y-%m-%d, %H:%M:%S")
                     logs.append(separated_log)
 
         except Exception as e:
