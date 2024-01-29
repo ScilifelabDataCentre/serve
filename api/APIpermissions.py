@@ -25,6 +25,7 @@ class AdminPermission(BasePermission):
         """
         Should simply return, or raise a 403 response.
         """
+        # To implement expiring tokens, can access the token here: request.auth
         is_authorized = False
 
         if request.user.is_superuser:
