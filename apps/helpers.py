@@ -221,7 +221,7 @@ def handle_update_status_request(
     Helper function to handle update app status requests by determining if the
     request should be performed or ignored.
 
-    :param release str: The release id of the app instance.
+    :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
     :param new_status str: The new status code.
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
@@ -229,52 +229,60 @@ def handle_update_status_request(
               Raises an ObjectDoesNotExist exception if the app instance does not exist.
     """
 
-    # TODO: wrap the filter select and update in an atomic locked transaction or use select_for_update
-    # Use retries and atomic transaction
     try:
-        # Verify that the requested app instance exists
-        app_instance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
-        if app_instance is None:
-            print(f"The specified app instance was not found {release=}.")
-            raise ObjectDoesNotExist
+        # Begin by verifying that the requested app instance exists
+        # We wrap the select and update tasks in a select_for_update lock
+        # to avoid race conditions.
+        with transaction.atomic():
+            app_instance = (
+                AppInstance.objects.select_for_update().filter(parameters__contains={"release": release}).last()
+            )
+            if app_instance is None:
+                print(f"The specified app instance was not found {release=}.")
+                raise ObjectDoesNotExist
 
-        print(f"DEBUG: The app instance exists. name={app_instance.name}, state={app_instance.state}")
+            print(f"DEBUG: The app instance exists. name={app_instance.name}, state={app_instance.state}")
 
-        # Also get the latest app status object for this app instance
-        if app_instance.status is None or app_instance.status.count() == 0:
-            # Missing app status so create one now
-            print(f"AppInstance {release} does not have an associated AppStatus. Creating one now.")
+            # Also get the latest app status object for this app instance
+            if app_instance.status is None or app_instance.status.count() == 0:
+                # Missing app status so create one now
+                print(f"AppInstance {release} does not have an associated AppStatus. Creating one now.")
+                status_object = AppStatus(appinstance=app_instance)
+                update_status(app_instance, status_object, new_status, event_ts, event_msg)
+                return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
+            else:
+                app_status = app_instance.status.latest()
+
+            print(f"DEBUG: AppStatus {app_status.status_type=}, {app_status.time=}, {app_status.info=}.")
+
+            # Now determine whether to update the state and status
+
+            # Compare timestamps
+            time_ftm = "%Y-%m-%d %H:%M:%S"
+            if event_ts <= app_status.time:
+                msg = "The incoming event-ts is older than the current status ts so nothing to do."
+                msg += (
+                    f"event_ts={event_ts.strftime(time_ftm)}, app_status.time={str(app_status.time.strftime(time_ftm))}"
+                )
+                print(f"DEBUG: {msg}")
+                return HandleUpdateStatusResponseCode.NO_ACTION
+
+            # The event is newer than the existing persisted object
+
+            if new_status == app_instance.state:
+                # The same status. Simply update the time.
+                print("DEBUG: The same status. Simply update the time.")
+                update_status_time(app_status, event_ts, event_msg)
+                return HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
+
+            # Different status and newer time
+            print("DEBUG: Different status and newer time.")
             status_object = AppStatus(appinstance=app_instance)
             update_status(app_instance, status_object, new_status, event_ts, event_msg)
-            return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
-        else:
-            app_status = app_instance.status.latest()
-
-        print(f"DEBUG: AppStatus {app_status.status_type=}, {app_status.time=}, {app_status.info=}.")
-
-        # Now determine whether to update the state and status
-
-        # Compare timestamps
-        time_ftm = "%Y-%m-%d %H:%M:%S"
-        if event_ts <= app_status.time:
-            msg = "The incoming event-ts is older than the current status ts so nothing to do."
-            msg += f"event_ts={event_ts.strftime(time_ftm)}, app_status.time={str(app_status.time.strftime(time_ftm))}"
-            print(f"DEBUG: {msg}")
-            return HandleUpdateStatusResponseCode.NO_ACTION
-
-        # The event is newer than the existing persisted object
-        if new_status == app_instance.state:
-            # The same status. Simply update the time.
-            update_status_time(app_status, event_ts, event_msg)
-            return HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
-
-        # Different status and newer time
-        status_object = AppStatus(appinstance=app_instance)
-        update_status(app_instance, status_object, new_status, event_ts, event_msg)
-        return HandleUpdateStatusResponseCode.UPDATED_STATUS
+            return HandleUpdateStatusResponseCode.UPDATED_STATUS
 
     except Exception as err:
-        print(f"Unable to fetch the specified app instance {release=}. {err}, {type(err)}")
+        print(f"Unable to fetch or update the specified app instance {release=}. {err}, {type(err)}")
         raise
 
 

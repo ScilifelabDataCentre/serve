@@ -836,7 +836,7 @@ def update_app_status(request):
     Supports GET and POST verbs.
 
     The service contract for the POST actions is as follows:
-    :param release str: The release id of the app instance.
+    :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
     :param new-status str: The new status code.
     :param event-ts timestamp: A JSON-formatted timestamp, e.g. 2024-01-25T16:02:50.00Z.
     :param event-msg json dict: An optional json dict containing pod-msg and/or container-msg.
@@ -846,11 +846,6 @@ def update_app_status(request):
     # POST verb
     if request.method == "POST":
         print("INFO: API method update_app_status called with POST verb.")
-
-        release = None
-        new_status = None
-        event_msg = None
-        event_ts = None
 
         utc = pytz.UTC
 
@@ -865,8 +860,7 @@ def update_app_status(request):
             event_ts = utc.localize(event_ts)
 
             # Optional
-            if "event-msg" in request.data:
-                event_msg = request.data["event-msg"]
+            event_msg = request.data.get("event-msg", None)
 
         except KeyError as err:
             print(f"API method called with invalid input. Missing required input parameter: {err}")
