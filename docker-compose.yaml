@@ -148,11 +148,11 @@ services:
   event-listener:
     user: "${UID}:${GID}"
     container_name: event-listener
-    image: ghcr.io/scilifelabdatacentre/serve-event-listener/event-listener:v0.1.1
+    image: ghcr.io/scilifelabdatacentre/serve-event-listener/event-listener:v0.1.3
     environment:
       - KUBECONFIG=/cluster.conf
       - DEBUG=True
-      - USERNAME=event_user
+      - USERNAME=event_user@test.com
       - PASSWORD=dGhpaXNhdmVyeW5vdHNhZmVvbmx
       - BASE_URL=http://studio.127.0.0.1.nip.io:8080
     volumes:
