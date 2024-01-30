@@ -836,7 +836,7 @@ def update_app_status(request):
     Supports GET and POST verbs.
 
     The service contract for the POST actions is as follows:
-    :param release str: The release id of the app instance.
+    :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
     :param new-status str: The new status code.
     :param event-ts timestamp: A JSON-formatted timestamp, e.g. 2024-01-25T16:02:50.00Z.
     :param event-msg json dict: An optional json dict containing pod-msg and/or container-msg.

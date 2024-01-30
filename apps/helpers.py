@@ -221,7 +221,7 @@ def handle_update_status_request(
     Helper function to handle update app status requests by determining if the
     request should be performed or ignored.
 
-    :param release str: The release id of the app instance.
+    :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
     :param new_status str: The new status code.
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
