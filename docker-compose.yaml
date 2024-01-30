@@ -29,6 +29,7 @@ services:
       - STUDIO_STORAGECLASS=microk8s-hostpath
       - STUDIO_ACCESSMODE=ReadWriteMany
       - DJANGO_SUPERUSER_PASSWORD=dGhpaXNhdmVyeW5vdHNhZmVvbmx
+      - EVENT_USER_PASSWORD=dGhpaXNhdmVyeW5vdHNhZmVvbmx
       - DEBUG=true
       - INIT=true
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
@@ -151,7 +152,7 @@ services:
     environment:
       - KUBECONFIG=/cluster.conf
       - DEBUG=True
-      - USERNAME=admin@test.com
+      - USERNAME=event_user
       - PASSWORD=dGhpaXNhdmVyeW5vdHNhZmVvbmx
       - BASE_URL=http://studio.127.0.0.1.nip.io:8080
     volumes:
