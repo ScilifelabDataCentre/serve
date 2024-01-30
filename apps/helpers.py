@@ -132,9 +132,12 @@ def handle_permissions(parameters, project):
 def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     app_name = data.get("app_name")
     app_description = data.get("app_description")
-
+    admin_user = False
+    # For custom apps, if admin user fills form, then data.get("admin") exists as hidden input
+    if data.get("admin"):
+        admin_user = True
     parameters_out, app_deps, model_deps = serialize_app(data, project, app_settings, user.username)
-
+    parameters_out["admin"] = admin_user
     authorized = can_access_app_instances(app_deps, user, project)
 
     if not authorized:

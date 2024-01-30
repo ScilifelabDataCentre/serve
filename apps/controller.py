@@ -41,6 +41,9 @@ def deploy(options):
     if "release" not in options:
         print("Release option not specified.")
         return json.dumps({"status": "failed", "reason": "Option release not set."})
+    if "/" == options["appconfig"]["path"]:
+        print("Root path cannot be copied.")
+        return json.dumps({"status": "failed", "reason": "Cannot copy / root path."})
 
     # Save helm values file for internal reference
     unique_filename = "charts/values/{}-{}.yaml".format(str(uuid.uuid4()), str(options["app_name"]))

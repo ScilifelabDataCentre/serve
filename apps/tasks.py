@@ -209,30 +209,39 @@ def deploy_resource(instance_pk, action="create"):
     appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
 
     results = controller.deploy(appinstance.parameters)
-    stdout, stderr = process_helm_result(results)
-
-    if results.returncode == 0:
-        print("Helm install succeeded")
-
-        helm_info = {
-            "success": True,
-            "info": {"stdout": stdout, "stderr": stderr},
-        }
-
-    else:
+    if type(results) is str:
+        results = json.loads(results)
+        stdout = results["status"]
+        stderr = results["reason"]
         print("Helm install failed")
         helm_info = {
             "success": False,
             "info": {"stdout": stdout, "stderr": stderr},
         }
-
-    appinstance.info["helm"] = helm_info
-    appinstance.save()
-
-    if results.returncode != 0:
-        print(appinstance.info["helm"])
+        appinstance.info["helm"] = helm_info
+        appinstance.save()
     else:
-        post_create_hooks(appinstance)
+        stdout, stderr = process_helm_result(results)
+
+        if results.returncode == 0:
+            print("Helm install succeeded")
+
+            helm_info = {
+                "success": True,
+                "info": {"stdout": stdout, "stderr": stderr},
+            }
+        else:
+            print("Helm install failed")
+            helm_info = {
+                "success": False,
+                "info": {"stdout": stdout, "stderr": stderr},
+            }
+        appinstance.info["helm"] = helm_info
+        appinstance.save()
+        if results.returncode != 0:
+            print(appinstance.info["helm"])
+        else:
+            post_create_hooks(appinstance)
 
 
 @shared_task
