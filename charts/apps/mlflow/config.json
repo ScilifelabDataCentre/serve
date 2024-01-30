@@ -24,6 +24,10 @@
       "targetport": "5000"
     },
     "permissions": {
+      "link": {
+        "option": "false",
+        "value": "false"
+      },
       "private": {
         "option": "true",
         "value": "false"

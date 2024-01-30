@@ -69,7 +69,7 @@ def can_access_app_instance(app_instance, user, project):
     """
     authorized = False
 
-    if app_instance.access == "public":
+    if app_instance.access in ("public", "link"):
         authorized = True
     elif app_instance.access == "project":
         if user.has_perm("can_view_project", project):
@@ -120,10 +120,17 @@ def handle_permissions(parameters, project):
 
     elif parameters["permissions"]["private"]:
         access = "private"
+    elif parameters["permissions"]["link"]:
+        access = "link"
 
     return access
 
 
+# TODO: refactor
+# 1. data=[]. This is bad as this is not a list, but a dict and secondly,
+#    it is not a good practice to use mutable as default
+# 2. Use some type annotations
+# 3. Use tuple as return type instead of list
 def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     app_name = data.get("app_name")
     app_description = data.get("app_description")
@@ -173,6 +180,8 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     if app_instance.app.table_field and app_instance.app.table_field != "":
         django_engine = engines["django"]
         info_field = django_engine.from_string(app_instance.app.table_field).render(app_instance.parameters)
+        # Nikita Churikov @ 2024-01-25
+        # TODO: this seems super bad and exploitable
         app_instance.table_field = eval(info_field)
     else:
         app_instance.table_field = {}
@@ -182,8 +191,7 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     status.status_type = "Created"
     status.info = app_instance.parameters["release"]
     app_instance.save()
-    # Saving ReleaseName, permissions, status and
-    # setting up dependencies
+    # Saving ReleaseName, status and setting up dependencies
     if rel_name_obj:
         rel_name_obj.app = app_instance
         rel_name_obj.save()
