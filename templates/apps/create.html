@@ -57,7 +57,7 @@
                         <label class="form-label">Name</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Display name for the application. This is the name visible on the app catalogue if the app is public">
                         </span>
-                        <input type="text" id="app_name" name="app_name" value="{% if app.slug == "minio"%}{{ app.slug }}-{{ project.slug }}{% else %} {{ existing_app_name }} {% endif %}"
+                        <input type="text" id="app_name" name="app_name" value="{% if app.slug == "minio"%}{{ app.slug }}-{{ project.slug }}{% else %}{{ existing_app_name }}{% endif %}"
                             class="form-control" required>
                         <div class="invalid-feedback">
                             Please add a valid name!
