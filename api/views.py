@@ -847,11 +847,6 @@ def update_app_status(request):
     if request.method == "POST":
         print("INFO: API method update_app_status called with POST verb.")
 
-        release = None
-        new_status = None
-        event_msg = None
-        event_ts = None
-
         utc = pytz.UTC
 
         try:
@@ -865,8 +860,7 @@ def update_app_status(request):
             event_ts = utc.localize(event_ts)
 
             # Optional
-            if "event-msg" in request.data:
-                event_msg = request.data["event-msg"]
+            event_msg = request.data.get("event-msg", None)
 
         except KeyError as err:
             print(f"API method called with invalid input. Missing required input parameter: {err}")
