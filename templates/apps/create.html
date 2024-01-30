@@ -2,7 +2,6 @@
 {% block title %}Create {{ app.name }}{% endblock %}
 {% load static %}
 {% load custom_tags %}
-{% load get_dict_key %}
 
 {% block content %}
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
@@ -42,9 +41,7 @@
 
                     <div class="p-3 mb-3">
                         <h4>Important information</h4>
-                    <p>You are about to activate file manager on SciLifeLab Serve.
-                    This service will be active for 24 hours and automatically terminated afterwards.
-                    All credentials needed to use the service will be provided after activation.</p>
+                    <p>You are about to activate file manager on SciLifeLab Serve. You can use it to upload or download files to a volume associated with this project. This service will be active for 24 hours and automatically terminated afterwards. The uploaded files will stay on the volume even after this service has been terminated. All credentials needed to use the service will be provided after activation.</p>
                     <p>Click 'Activate' to activate file manager</p>
 
 
@@ -71,7 +68,7 @@
                         <label class="form-label">Description</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Summarize the application in a few words">
                         </span>
-                        <textarea type="text" id="app_description" name="app_description" value="{{ existing_app_description }}"
+                        <textarea type="text" id="app_description" name="app_description" value=""
                             class="form-control" rows="2" required></textarea>
                         <div class="invalid-feedback">
                             Please add a description of the app!
@@ -282,12 +279,12 @@
 
                         {% if subval.type == "minio-username" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ MINIO_USERNAME }}" class="form-control">
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_username }}" class="form-control">
                         {% endif %}
 
                         {% if subval.type == "minio-password" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ MINIO_PASSWORD }}" class="form-control">
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_password }}" class="form-control">
                         {% endif %}
 
 
