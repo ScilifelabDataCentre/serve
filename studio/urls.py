@@ -42,6 +42,7 @@ urlpatterns = (
         path("openapi/v1/", include("api.openapi.urls", namespace="v1")),
         path("openapi/", include("api.openapi.urls")),
         path("api/", include("api.urls", namespace="api")),
+        path("api/v1/", include("api.urls", namespace="api-v1")),
         # for django-wiki
         path("docs/notifications/", include("django_nyt.urls")),
         path("docs/", include("wiki.urls")),
