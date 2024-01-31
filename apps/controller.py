@@ -41,9 +41,19 @@ def deploy(options):
     if "release" not in options:
         print("Release option not specified.")
         return json.dumps({"status": "failed", "reason": "Option release not set."})
-    if "/" == options["appconfig"]["path"]:
-        print("Root path cannot be copied.")
-        return json.dumps({"status": "failed", "reason": "Cannot copy / root path."})
+    if "appconfig" in options:
+        #check if path is root path
+        if "path" in options["appconfig"] and "/" == options["appconfig"]["path"]:
+            print("Root path cannot be copied.")
+            return json.dumps({"status": "failed", "reason": "Cannot copy / root path."})
+        #check if valid userid
+        if "userid" in options["appconfig"]:
+            if type(options["appconfig"]["userid"]) != int:
+                print("Userid not a number.")
+                return json.dumps({"status": "failed", "reason": "Userid not an integer."})
+            if int(options["appconfig"]["userid"]) > 1010 or int(options["appconfig"]["userid"]) < 999 :
+                print("Userid outside of allowed range.")
+                return json.dumps({"status": "failed", "reason": "Userid outside of allowed range."})
 
     # Save helm values file for internal reference
     unique_filename = "charts/values/{}-{}.yaml".format(str(uuid.uuid4()), str(options["app_name"]))
