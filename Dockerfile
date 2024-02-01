@@ -25,7 +25,7 @@ RUN apk add --update --no-cache \
     fribidi-dev \
     libimagequant-dev \
     libxcb-dev libpng-dev \
-    gcc \ 
+    gcc \
     libffi-dev \
     musl-dev \
     curl \
@@ -42,7 +42,8 @@ RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
     fi
 
 RUN pip install --no-cache-dir -r requirements.txt
-RUN python3 -m pip install --no-cache-dir Pillow==10.2.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb" 
+RUN python3 -m pip install --no-cache-dir Pillow==10.2.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb"
+
 
 
 FROM bitnami/kubectl:1.28.6 as kubectl
