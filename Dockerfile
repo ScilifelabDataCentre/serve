@@ -1,7 +1,12 @@
-FROM python:3.8-alpine3.17 as base
-LABEL maintainer="fredrik@scaleoutsystems.com"
+FROM python:3.8-alpine3.19 as base
+
+LABEL maintainer="serve@scilifelab.se"
 WORKDIR /app
-COPY requirements.txt .
+
+ARG DISABLE_EXTRAS=false
+
+COPY pyproject.toml ./
+
 RUN apk add --update --no-cache \
     build-base \
     python3-dev \
@@ -21,23 +26,33 @@ RUN apk add --update --no-cache \
     fribidi-dev \
     libimagequant-dev \
     libxcb-dev libpng-dev \
-    && pip install --upgrade pip setuptools\
-    && pip install --no-cache-dir -r requirements.txt
+    gcc \ 
+    libffi-dev \
+    musl-dev \
+    curl \
+    && pip install --upgrade pip setuptools \
+    && curl -sSL https://install.python-poetry.org | python3 - \
+    && /root/.local/bin/poetry self add poetry-plugin-export
 
-# Installing Pillow separate from the packages in requirements
-# greatly speeds up the docker build.
-RUN python3 -m pip install --upgrade pip \
-    && python3 -m pip install Pillow==10.2.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb"
+# If build-args is set to DISABLE_EXTRA=true, then we skip all superfluous software
+RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
+    /root/.local/bin/poetry export -f requirements.txt --output requirements.txt; \
+    else /root/.local/bin/poetry export --all-extras  -f requirements.txt --output requirements.txt; \
+    fi
 
-FROM bitnami/kubectl:1.28.2 as kubectl
-FROM alpine/helm:3.12.3 as helm
+RUN pip install --no-cache-dir -r requirements.txt
+RUN python3 -m pip install Pillow==10.2.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb" 
 
-# Non-root user with sudo access
-FROM python:3.8-alpine3.17 as build
+
+FROM bitnami/kubectl:1.28.6 as kubectl
+FROM alpine/helm:3.14.0 as helm
+FROM python:3.8-alpine3.19 as build
+
 COPY --from=base /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
 COPY --from=base /usr/local/bin/ /usr/local/bin/
 COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
 COPY --from=helm /usr/bin/helm /usr/local/bin/
+
 
 RUN apk add --update --no-cache \
     sudo \
@@ -52,7 +67,8 @@ RUN apk add --update --no-cache \
 # Set working directory
 WORKDIR /app
 COPY . /app/
-ARG USER=stackn
+
+ARG USER=serve
 RUN adduser -D $USER \
         && echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USER \
         && chmod 0440 /etc/sudoers.d/$USER \
