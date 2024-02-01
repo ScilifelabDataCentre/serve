@@ -49,6 +49,7 @@ FROM bitnami/kubectl:1.28.6 as kubectl
 FROM alpine/helm:3.14.0 as helm
 FROM python:3.8-alpine3.19 as runtime
 
+ARG DISABLE_EXTRAS=false
 
 RUN apk add --update --no-cache \
     sudo \
@@ -68,6 +69,11 @@ COPY --from=helm /usr/bin/helm /usr/local/bin/
 # Set working directory
 WORKDIR /app
 COPY . /app/
+
+# If build-args is set to DISABLE_EXTRA=true, delete all test files
+RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
+    rm -rf */tests cypress */tests.py pytest.ini cypress.config.js conftest.py docs */.github; \
+    fi
 
 ARG USER=serve
 RUN adduser -D $USER \
