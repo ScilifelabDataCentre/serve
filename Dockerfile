@@ -1,4 +1,4 @@
-FROM python:3.8-alpine3.19 as base
+FROM python:3.8-alpine3.19 as builder
 
 LABEL maintainer="serve@scilifelab.se"
 WORKDIR /app
@@ -10,7 +10,6 @@ COPY pyproject.toml ./
 RUN apk add --update --no-cache \
     build-base \
     python3-dev \
-    py3-setuptools \
     postgresql-dev \
     libpq \
     tiff-dev \
@@ -30,9 +29,11 @@ RUN apk add --update --no-cache \
     libffi-dev \
     musl-dev \
     curl \
-    && pip install --upgrade pip setuptools \
+    && pip install --upgrade --no-cache-dir pip==23.3.2 \
     && curl -sSL https://install.python-poetry.org | python3 - \
     && /root/.local/bin/poetry self add poetry-plugin-export
+
+
 
 # If build-args is set to DISABLE_EXTRA=true, then we skip all superfluous software
 RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
@@ -41,17 +42,12 @@ RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
     fi
 
 RUN pip install --no-cache-dir -r requirements.txt
-RUN python3 -m pip install Pillow==10.2.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb" 
+RUN python3 -m pip install --no-cache-dir Pillow==10.2.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb" 
 
 
 FROM bitnami/kubectl:1.28.6 as kubectl
 FROM alpine/helm:3.14.0 as helm
-FROM python:3.8-alpine3.19 as build
-
-COPY --from=base /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
-COPY --from=base /usr/local/bin/ /usr/local/bin/
-COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
-COPY --from=helm /usr/bin/helm /usr/local/bin/
+FROM python:3.8-alpine3.19 as runtime
 
 
 RUN apk add --update --no-cache \
@@ -61,8 +57,13 @@ RUN apk add --update --no-cache \
     libpq \
     jpeg-dev \
     openjpeg-dev \
-    libpng-dev
+    libpng-dev \
+    && rm -rf /usr/local/lib/python3.8/site-packages/
 
+COPY --from=builder /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
+COPY --from=helm /usr/bin/helm /usr/local/bin/
 
 # Set working directory
 WORKDIR /app
