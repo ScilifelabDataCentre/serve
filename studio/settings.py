@@ -28,7 +28,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-t)9$8__a+vfsak+w30xf9ui9p8#rnyqb6p($!6ne8lin%&zf0h"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
+DEBUG = os.getenv("DEBUG", default="False").lower() in ("true", "1", "t")
 
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
@@ -435,12 +436,12 @@ LOGGING = {
     "loggers": {
         "django_structlog": {
             "handlers": ["json_file"],
-            "level": "INFO",
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
         # Make sure to replace the following logger's name for yours
         "portal": {
             "handlers": ["console"],
-            "level": "DEBUG",
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
     },
 }
