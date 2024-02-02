@@ -14,6 +14,8 @@ import os
 import sys
 from pathlib import Path
 
+import colorlog
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -387,3 +389,25 @@ DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore
 # Specifically, apps.tests.test_user_has_no_access was failing.
 # Also anonymous access to pages was not working.
 ANONYMOUS_USER_NAME = None
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "colored": {
+            "()": "colorlog.ColoredFormatter",  # colored output
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+            "format": "%(log_color)s%(asctime)s - %(levelname)s - %(module)s: %(message)s%(reset)s",
+        },
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "colored"},
+        "console-boring": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
+    },
+}

@@ -26,6 +26,9 @@ minio==7.1.17
 celery==5.3.4
 kubernetes==28.1.0
 
+# Logging
+colorlog==6.8.2
+
 # Building with global-options takes a very long time
 #Pillow==9.4.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb" --global-option="--disable-zlib"
 
