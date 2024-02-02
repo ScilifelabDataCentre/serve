@@ -57,6 +57,17 @@ def deploy(options):
             if userid > 1010 or userid < 999:
                 print("Userid outside of allowed range.")
                 return json.dumps({"status": "failed", "reason": "Userid outside of allowed range."})
+        # check if valid port
+        if "port" in options["appconfig"]:
+            try:
+                port = int(options["appconfig"]["userid"])
+            except Exception as ex:
+                print("Userid not a number.")
+                print(ex)
+                return json.dumps({"status": "failed", "reason": "Port not an integer."})
+            if userid > 3000 or userid < 9999:
+                print("Port outside of allowed range.")
+                return json.dumps({"status": "failed", "reason": "Port outside of allowed range."})
 
     # Save helm values file for internal reference
     unique_filename = "charts/values/{}-{}.yaml".format(str(uuid.uuid4()), str(options["app_name"]))

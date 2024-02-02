@@ -262,9 +262,9 @@
                         {% if subkey == "port" or subkey == "userid" %}
                             {% if subkey == "port" %}
                                 <label class="form-label">{{ subval.title }}</label>
-                                <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on.">
+                                <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on. This should be an integer between 3000-9999.">
                                 </span>
-                                <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" required>
+                                <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" min="3000" max="9999" required>
                                 <div class="invalid-feedback">
                                     Please add a valid port!
                                 </div>
@@ -274,7 +274,7 @@
                                 </span>
                                 <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" min="999" max="1010" required>
                                 <div class="invalid-feedback">
-                                    Please add a valid User ID between 999 and 1000!
+                                    Please add a valid User ID between 999 and 1010!
                                 </div>
                             {% endif %}
                         {% else %}
