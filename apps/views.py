@@ -214,8 +214,11 @@ class AppSettingsView(View):
         existing_app_description = appinstance.description
         if "release" in appinstance.parameters:
             existing_app_release_name = appinstance.parameters["release"]
-        if "appconfig" in appinstance.parameters and "path" in appinstance.parameters["appconfig"]:
-            existing_path = appinstance.parameters["appconfig"]["path"]
+        if "appconfig" in appinstance.parameters:
+            if "path" in appinstance.parameters["appconfig"]:
+                existing_path = appinstance.parameters["appconfig"]["path"]
+            if "userid" in appinstance.parameters["appconfig"]:
+                existing_userid = appinstance.parameters["appconfig"]["userid"]
         app = appinstance.app
         do_display_description_field = app.category.name is not None and app.category.name.lower() == "serve"
 
