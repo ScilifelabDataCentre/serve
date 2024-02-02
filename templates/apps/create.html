@@ -223,7 +223,7 @@
                             Please add a valid image name!
                         </div>
                         {% elif subkey == "path" %}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Specify the path inside the container that you want to be persistent (path to database or similar). If you follow our guide to build the container then please include the username int the path as well.">
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Specify the path inside the container that you want to be persistent (path to database or similar). If you follow our guide to build the container, then please include the username in the path as well.">
                         </span>
                         {% if request.user.is_superuser  %}
                         <input type="hidden" id="admin" name="admin" value="true">
