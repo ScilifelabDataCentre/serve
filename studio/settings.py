@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import colorlog
+import structlog
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -78,6 +79,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_extensions",  # for executing runscript among others
     "django_filters",
+    "django_structlog",
     "tagulous",
     "guardian",
     "crispy_forms",
@@ -101,6 +103,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "django_structlog.middlewares.RequestMiddleware",
 ] + DJANGO_WIKI_MIDDLEWARE
 
 ROOT_URLCONF = "studio.urls"
@@ -390,24 +393,71 @@ DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore
 # Also anonymous access to pages was not working.
 ANONYMOUS_USER_NAME = None
 
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
+        "json_formatter": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.processors.JSONRenderer(),
+        },
+        "plain_console": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.dev.ConsoleRenderer(),
+        },
+        "key_value": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.processors.KeyValueRenderer(key_order=["timestamp", "level", "event", "logger"]),
+        },
         "colored": {
-            "()": "colorlog.ColoredFormatter",  # colored output
+            "()": colorlog.ColoredFormatter,  # colored output
             "datefmt": "%Y-%m-%d %H:%M:%S",
             "format": "%(log_color)s%(asctime)s - %(levelname)s - %(module)s: %(message)s%(reset)s",
         },
     },
     "handlers": {
-        "console": {"class": "logging.StreamHandler", "formatter": "colored"},
-        "console-boring": {
+        "console": {
             "class": "logging.StreamHandler",
+            "formatter": "colored",
+        },
+        "json_file": {
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": "logs/json.log",
+            "formatter": "json_formatter",
+        },
+        "flat_line_file": {
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": "logs/flat_line.log",
+            "formatter": "key_value",
         },
     },
-    "root": {
-        "handlers": ["console"],
-        "level": "DEBUG",
+    "loggers": {
+        "django_structlog": {
+            "handlers": ["json_file"],
+            "level": "INFO",
+        },
+        # Make sure to replace the following logger's name for yours
+        "portal": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
     },
 }
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.filter_by_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+    ],
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
