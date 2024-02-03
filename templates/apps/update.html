@@ -251,7 +251,7 @@
                         {% else %}
                         <div class="input-group mb-3">
                             <span class="input-group-text" id="basic-addon3">/home/</span>
-                            <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ existing_path }}" placeholder="{{ subval.default }}" class="form-control">
+                            <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ existing_path }}" placeholder="{{ subval.default }}" class="form-control" {% if current_volume %}required{% endif %}>
                             <div class="invalid-feedback">
                                 Please add a valid path!
                             </div>
