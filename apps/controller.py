@@ -47,9 +47,6 @@ def deploy(options):
             if "/" == options["appconfig"]["path"]:
                 print("Root path cannot be copied.")
                 return json.dumps({"status": "failed", "reason": "Cannot copy / root path."})
-            if "" == options["appconfig"]["path"]:
-                print("Empty path cannot be copied.")
-                return json.dumps({"status": "failed", "reason": "Cannot copy to empty path."})
         # check if valid userid
         if "userid" in options["appconfig"]:
             try:
