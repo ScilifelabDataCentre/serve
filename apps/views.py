@@ -309,9 +309,15 @@ class AppSettingsView(View):
         if "appconfig" in appinstance.parameters and appinstance.app.slug == "customapp":
             appinstance.parameters["created_by_admin"] = created_by_admin
             # if app is created by admin but admin user is not updating it dont change path.
-            if not request.user.is_superuser and created_by_admin:
-                appinstance.parameters["appconfig"]["userid"] = userid
-                appinstance.parameters["appconfig"]["path"] = existing_path
+            if created_by_admin:
+                if not request.user.is_superuser:
+                    appinstance.parameters["appconfig"]["userid"] = userid
+                    appinstance.parameters["appconfig"]["path"] = existing_path
+            else:
+                appinstance.parameters["appconfig"]["path"] = "/home/"+appinstance.parameters["appconfig"]["path"]
+                if not request.user.is_superuser:
+                    appinstance.parameters["appconfig"]["userid"] = userid
+                    
         appinstance.save(update_fields=["flavor", "name", "description", "parameters", "access"])
         self.update_resource(request, appinstance, current_release_name)
 
