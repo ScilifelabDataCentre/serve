@@ -198,7 +198,7 @@
                     {% if subval.type != "boolean" and  subkey == "image" or subkey == "port" or subkey == "userid"%}
                     <div class="mb-3 form-group validate-item">
                     {% else %}
-                    <div class="mb-3 {% if subkey == "path" %}path_div{% endif %}">
+                    <div class="mb-3 validate-item {% if subkey == "path" %}path_div{% endif %}">
                     {% endif %}
                         {% if subval.type == "boolean" %}
                         <label class="form-label">{{ subval.title }}</label>
@@ -226,7 +226,7 @@
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Specify the path inside the container that you want to be persistent (path to database or similar). If you follow our guide to build the container, then please include the username in the path as well.">
                         </span>
                         {% if request.user.is_superuser  %}
-                        <input type="hidden" id="admin" name="admin" value="true">
+                        <input type="hidden" id="created_by_admin" name="created_by_admin" value="true">
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control">
                         <div class="invalid-feedback">
                             Please add a valid path!

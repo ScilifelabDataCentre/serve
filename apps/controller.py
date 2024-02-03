@@ -43,9 +43,13 @@ def deploy(options):
         return json.dumps({"status": "failed", "reason": "Option release not set."})
     if "appconfig" in options:
         # check if path is root path
-        if "path" in options["appconfig"] and "/" == options["appconfig"]["path"]:
-            print("Root path cannot be copied.")
-            return json.dumps({"status": "failed", "reason": "Cannot copy / root path."})
+        if "path" in options["appconfig"]:
+            if "/" == options["appconfig"]["path"]:
+                print("Root path cannot be copied.")
+                return json.dumps({"status": "failed", "reason": "Cannot copy / root path."})
+            if "" == options["appconfig"]["path"]:
+                print("Empty path cannot be copied.")
+                return json.dumps({"status": "failed", "reason": "Cannot copy to empty path."})
         # check if valid userid
         if "userid" in options["appconfig"]:
             try:
@@ -57,15 +61,18 @@ def deploy(options):
             if userid > 1010 or userid < 999:
                 print("Userid outside of allowed range.")
                 return json.dumps({"status": "failed", "reason": "Userid outside of allowed range."})
+        else:
+            # if no userid, then add default id of 1000
+            options["appconfig"]["userid"] = "1000"
         # check if valid port
         if "port" in options["appconfig"]:
             try:
-                port = int(options["appconfig"]["userid"])
+                port = int(options["appconfig"]["port"])
             except Exception as ex:
                 print("Userid not a number.")
                 print(ex)
                 return json.dumps({"status": "failed", "reason": "Port not an integer."})
-            if userid > 3000 or userid < 9999:
+            if port > 9999 or port < 3000:
                 print("Port outside of allowed range.")
                 return json.dumps({"status": "failed", "reason": "Port outside of allowed range."})
 

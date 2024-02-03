@@ -48,11 +48,7 @@ spec:
         command:
           - /bin/sh
           - -c
-          {{- if $.Values.admin }}
           - cp -r -n {{ $.Values.appconfig.path }}/* /tmp
-          {{- else }}
-          - cp -r -n /home/{{ $.Values.appconfig.path }}/* /tmp
-          {{- end }}
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
@@ -89,11 +85,7 @@ spec:
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
-          {{- if $.Values.admin}}
           mountPath: {{ $.Values.appconfig.path }}
-          {{- else}}
-          mountPath: /home/{{ $.Values.appconfig.path }}
-          {{- end}}
         {{- end }}
         {{- end }}
       terminationGracePeriodSeconds: 30

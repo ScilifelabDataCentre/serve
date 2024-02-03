@@ -1,5 +1,6 @@
 import time
 import uuid
+import re
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -132,12 +133,12 @@ def handle_permissions(parameters, project):
 def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     app_name = data.get("app_name")
     app_description = data.get("app_description")
-    admin_user = False
+    created_by_admin = False
     # For custom apps, if admin user fills form, then data.get("admin") exists as hidden input
-    if data.get("admin"):
-        admin_user = True
+    if data.get("created_by_admin"):
+        created_by_admin = True
     parameters_out, app_deps, model_deps = serialize_app(data, project, app_settings, user.username)
-    parameters_out["admin"] = admin_user
+    parameters_out["created_by_admin"] = created_by_admin
     authorized = can_access_app_instances(app_deps, user, project)
 
     if not authorized:
@@ -189,6 +190,13 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     status = AppStatus(appinstance=app_instance)
     status.status_type = "Created"
     status.info = app_instance.parameters["release"]
+    if "appconfig" in app_instance.parameters:
+        if "path" in app_instance.parameters["appconfig"]:
+            if app_deps:
+                if not created_by_admin:
+                    app_instance.parameters["appconfig"]["path"] = "/home/"+app_instance.parameters["appconfig"]["path"]
+        if "userid" not in app_instance.parameters["appconfig"]:
+            app_instance.parameters["appconfig"]["userid"] = "1000"
     app_instance.save()
     # Saving ReleaseName, permissions, status and
     # setting up dependencies
