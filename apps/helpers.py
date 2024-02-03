@@ -1,6 +1,6 @@
+import re
 import time
 import uuid
-import re
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -194,7 +194,9 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
         if "path" in app_instance.parameters["appconfig"]:
             if app_deps:
                 if not created_by_admin:
-                    app_instance.parameters["appconfig"]["path"] = "/home/"+app_instance.parameters["appconfig"]["path"]
+                    app_instance.parameters["appconfig"]["path"] = (
+                        "/home/" + app_instance.parameters["appconfig"]["path"]
+                    )
         if "userid" not in app_instance.parameters["appconfig"]:
             app_instance.parameters["appconfig"]["userid"] = "1000"
     app_instance.save()

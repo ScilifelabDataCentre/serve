@@ -217,15 +217,15 @@ class AppSettingsView(View):
         # Settings for custom app
         if "appconfig" in appinstance.parameters:
             if "path" in appinstance.parameters["appconfig"]:
-                #check if app created by admin user then don't show path change option to normal user
-                if "created_by_admin" in appinstance.parameters and appinstance.parameters["created_by_admin"] == True:
+                # check if app created by admin user then don't show path change option to normal user
+                if "created_by_admin" in appinstance.parameters and appinstance.parameters["created_by_admin"] is True:
                     created_by_admin = True
                 else:
                     created_by_admin = False
                 existing_path = appinstance.parameters["appconfig"]["path"]
                 if not created_by_admin:
-                    existing_path = existing_path.replace("/home/","",1)
-                
+                    existing_path = existing_path.replace("/home/", "", 1)
+
             if "userid" in appinstance.parameters["appconfig"]:
                 existing_userid = appinstance.parameters["appconfig"]["userid"]
         app = appinstance.app
@@ -255,9 +255,9 @@ class AppSettingsView(View):
 
         app = appinstance.app
         app_settings = app.settings
-        print("SETTINGSSS: ",appinstance.parameters["appconfig"])
+        print("SETTINGSSS: ", appinstance.parameters["appconfig"])
         body = request.POST.copy()
-        
+
         if not app.user_can_edit:
             return HttpResponseForbidden()
 
@@ -278,7 +278,7 @@ class AppSettingsView(View):
             body.update({"permission": appinstance.access})
         current_release_name = appinstance.parameters["release"]
         parameters, app_deps, model_deps = serialize_app(body, project, app_settings, request.user.username)
-        
+
         authorized = can_access_app_instances(app_deps, request.user, project)
 
         if not authorized:
@@ -292,12 +292,12 @@ class AppSettingsView(View):
         appinstance.name = request.POST.get("app_name")
         appinstance.description = request.POST.get("app_description")
         if "appconfig" in appinstance.parameters:
-            created_by_admin = False # default created by admin
-            userid = "1000" # default userid
+            created_by_admin = False  # default created by admin
+            userid = "1000"  # default userid
             if "path" in appinstance.parameters["appconfig"]:
-                #check if app created by admin user then don't show path change option to normal user
+                # check if app created by admin user then don't show path change option to normal user
                 if "created_by_admin" in appinstance.parameters:
-                    if appinstance.parameters["created_by_admin"] == True:
+                    if appinstance.parameters["created_by_admin"] is True:
                         created_by_admin = True
                 existing_path = appinstance.parameters["appconfig"]["path"]
             if "userid" in appinstance.parameters["appconfig"]:
