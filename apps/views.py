@@ -314,10 +314,10 @@ class AppSettingsView(View):
                     appinstance.parameters["appconfig"]["userid"] = userid
                     appinstance.parameters["appconfig"]["path"] = existing_path
             else:
-                appinstance.parameters["appconfig"]["path"] = "/home/"+appinstance.parameters["appconfig"]["path"]
+                appinstance.parameters["appconfig"]["path"] = "/home/" + appinstance.parameters["appconfig"]["path"]
                 if not request.user.is_superuser:
                     appinstance.parameters["appconfig"]["userid"] = userid
-                    
+
         appinstance.save(update_fields=["flavor", "name", "description", "parameters", "access"])
         self.update_resource(request, appinstance, current_release_name)
 
