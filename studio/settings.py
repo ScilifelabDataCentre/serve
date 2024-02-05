@@ -67,7 +67,7 @@ DJANGO_WIKI_CONTEXT_PROCESSOR = [
 ]
 
 STRUCTLOG_MIDDLEWARE = ["django_structlog.middlewares.RequestMiddleware"]
-
+DJANGO_STRUCTLOG_CELERY_ENABLED = not DEBUG
 # Application definition
 
 INSTALLED_APPS = [
@@ -401,7 +401,6 @@ DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore
 # Also anonymous access to pages was not working.
 ANONYMOUS_USER_NAME = None
 
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -436,7 +435,7 @@ LOGGING = {
     "loggers": {
         "": {
             "handlers": ["console" if DEBUG else "json"],
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "WARNING" if DEBUG else "INFO",
         },
         "django.server": {
             "handlers": ["console"],
@@ -445,6 +444,14 @@ LOGGING = {
         },
     },
 }
+# Add logger for each installed app
+for apps in INSTALLED_APPS:
+    LOGGING["loggers"][apps] = {
+        "handlers": ["console" if DEBUG else "json"],
+        "level": "DEBUG" if DEBUG else "INFO",
+        "propagate": False,
+    }
+
 if not DEBUG:
     structlog.configure(
         processors=[
