@@ -12,7 +12,7 @@ apps:
 
 appconfig:
   port: 8050
-  image: docker.io/cavenel/tissuumaps:latest
+  image: ghcr.io/tissuumaps/tissuumaps:3 #docker.io/cavenel/tissuumaps:3
   path: /
 
 service:
