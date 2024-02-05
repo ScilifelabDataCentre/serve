@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -298,12 +299,12 @@ STORAGECLASS = "microk8s-hostpath"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
-DOMAIN = "studio.127.0.0.1.nip.io"
-AUTH_DOMAIN = "10.0.144.239"
+DOMAIN = "studio.192.168.0.130.nip.io"
+AUTH_DOMAIN = "192.168.0.130"
 AUTH_PROTOCOL = "http"
-STUDIO_URL = "http://studio.127.0.0.1.nip.io:8080"
+STUDIO_URL = "http://studio.192.168.0.130.nip.io:8080"
 # To enable sticky sessions for k8s ingress
-SESSION_COOKIE_DOMAIN = ".127.0.0.1.nip.io"
+SESSION_COOKIE_DOMAIN = ".192.168.0.130.nip.io"
 
 # App statuses
 APPS_STATUS_SUCCESS = ["Running", "Succeeded", "Success"]
@@ -403,17 +404,16 @@ LOGGING = {
             "()": structlog.stdlib.ProcessorFormatter,
             "processor": structlog.processors.JSONRenderer(),
         },
-        "plain_console": {
-            "()": structlog.stdlib.ProcessorFormatter,
-            "processor": structlog.dev.ConsoleRenderer(),
-        },
-        "key_value": {
-            "()": structlog.stdlib.ProcessorFormatter,
-            "processor": structlog.processors.KeyValueRenderer(key_order=["timestamp", "level", "event", "logger"]),
-        },
         "colored": {
-            "()": colorlog.ColoredFormatter,  # colored output
+            "()": colorlog.ColoredFormatter,
             "datefmt": "%Y-%m-%d %H:%M:%S",
+            "log_colors": {
+                "DEBUG": "blue",
+                "INFO": "green",
+                "WARNING": "yellow",
+                "ERROR": "red",
+                "CRITICAL": "bold_red",
+            },
             "format": "%(log_color)s%(asctime)s - %(levelname)s - %(module)s: %(message)s%(reset)s",
         },
     },
@@ -422,43 +422,39 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "colored",
         },
-        "json_file": {
-            "class": "logging.handlers.WatchedFileHandler",
-            "filename": "logs/json.log",
+        "json": {
+            "class": "logging.StreamHandler",
             "formatter": "json_formatter",
-        },
-        "flat_line_file": {
-            "class": "logging.handlers.WatchedFileHandler",
-            "filename": "logs/flat_line.log",
-            "formatter": "key_value",
         },
     },
     "loggers": {
-        "django_structlog": {
-            "handlers": ["json_file"],
-            "level": "DEBUG" if DEBUG else "WARNING",
-        },
-        # Make sure to replace the following logger's name for yours
-        "portal": {
-            "handlers": ["console"],
-            "level": "DEBUG" if DEBUG else "WARNING",
+        "": {
+            "handlers": ["console" if DEBUG else "json"],
+            "level": "DEBUG" if DEBUG else "INFO",
         },
     },
 }
+if not DEBUG:
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.stdlib.filter_by_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
 
-structlog.configure(
-    processors=[
-        structlog.contextvars.merge_contextvars,
-        structlog.stdlib.filter_by_level,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),
-        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-    ],
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    cache_logger_on_first_use=True,
-)
+
+def GET_LOGGER(__name__: str):
+    if DEBUG:
+        return logging.getLogger(__name__)
+    else:
+        return structlog.getLogger(__name__)

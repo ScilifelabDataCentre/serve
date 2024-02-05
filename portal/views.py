@@ -1,5 +1,3 @@
-import logging
-
 import markdown
 from django.apps import apps
 from django.conf import settings
@@ -7,8 +5,7 @@ from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.views.generic import View
 
-logger = logging.getLogger(__name__)
-
+logger = settings.GET_LOGGER(__name__)
 
 AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
@@ -23,7 +20,9 @@ def get_public_apps(request, id=0, get_all=True):
         )  # noqa: F841 local var assigned but never used
         print(len(projects))
     except Exception:
-        print("User not logged in.")
+        logger.debug(
+            "User not logged in.",
+        )
     if "project" in request.session:
         project_slug = request.session["project"]  # noqa: F841 local var assigned but never used
 
@@ -82,7 +81,7 @@ def get_public_apps(request, id=0, get_all=True):
     elif "tag_count" not in request.GET:
         tag = ""
         request.session["app_tag_filters"] = []
-    print("app_tag_filters: ", request.session["app_tag_filters"])
+    logger.debug(f"app_tag_filters: {request.session['app_tag_filters']}")
 
     # changed list of published model only if tag filters are present
     if request.session["app_tag_filters"]:
@@ -108,7 +107,9 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, id=0):
-        logger.debug("This is a debug message")
+        logger.debug(
+            "This is a debug message",
+        )
         logger.info("This is an info message")
         logger.warning("This is a warning message")
         logger.error("This is an error message")
