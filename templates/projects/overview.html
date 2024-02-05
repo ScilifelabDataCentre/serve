@@ -73,7 +73,7 @@
                         <tr class="odd">
 
                             {% static 'images/logos/apps/' as static_url %}
-                            <td><img src="{{static_url}}{{obj.app.logo|default:'default-logo.png'}}" class="img-fluid "
+                            <td><img src="{{static_url}}{{obj.app.logo|default:'default-logo.svg'}}" class="img-fluid "
                                     alt="App Logo" style="max-height:25px;"></td>
                             <td class="d-none d-xxl-table-cell ">{{ obj.app.name }}</td>
                             {% if obj.table_field.url %}
@@ -234,7 +234,7 @@
                                 </div>
                                 <div class="col-4">
                                     {% static 'images/logos/apps/' as static_url %}
-                                    <img src="{{static_url}}{{app.logo|default:'default-logo.png'}}" class="img-fluid float-end w-75"
+                                    <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-75"
                                         alt="App Logo">
                                 </div>
                             </div>
