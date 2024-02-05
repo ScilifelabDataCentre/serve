@@ -66,9 +66,7 @@ DJANGO_WIKI_CONTEXT_PROCESSOR = [
     "sekizai.context_processors.sekizai",
 ]
 
-STRUCTLOG_MIDDLEWARE = [
-        "django_structlog.middlewares.RequestMiddleware"
-]
+STRUCTLOG_MIDDLEWARE = ["django_structlog.middlewares.RequestMiddleware"]
 
 # Application definition
 
@@ -100,16 +98,20 @@ INSTALLED_APPS = [
     "news",
 ] + DJANGO_WIKI_APPS
 
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-] + DJANGO_WIKI_MIDDLEWARE + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
+MIDDLEWARE = (
+    [
+        "django.middleware.security.SecurityMiddleware",
+        "django.contrib.sessions.middleware.SessionMiddleware",
+        "django.middleware.common.CommonMiddleware",
+        "django.middleware.csrf.CsrfViewMiddleware",
+        "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "django.contrib.messages.middleware.MessageMiddleware",
+        "django.middleware.clickjacking.XFrameOptionsMiddleware",
+        "corsheaders.middleware.CorsMiddleware",
+    ]
+    + DJANGO_WIKI_MIDDLEWARE
+    + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
+)
 
 
 ROOT_URLCONF = "studio.urls"
@@ -436,11 +438,11 @@ LOGGING = {
             "handlers": ["console" if DEBUG else "json"],
             "level": "DEBUG" if DEBUG else "INFO",
         },
-        'django.server': {
-            'handlers': ['console'],
-            'level': "DEBUG" if DEBUG else "INFO",
-            'propagate': False,
-        }
+        "django.server": {
+            "handlers": ["console"],
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
     },
 }
 if not DEBUG:
@@ -460,10 +462,3 @@ if not DEBUG:
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
-
-
-def GET_LOGGER(__name__: str):
-    if DEBUG:
-        return logging.getLogger(__name__)
-    else:
-        return structlog.getLogger(__name__)

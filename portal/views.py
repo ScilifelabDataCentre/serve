@@ -5,7 +5,9 @@ from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.views.generic import View
 
-logger = settings.GET_LOGGER(__name__)
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
 
 AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
