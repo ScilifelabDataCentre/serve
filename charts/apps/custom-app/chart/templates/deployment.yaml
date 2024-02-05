@@ -33,7 +33,13 @@ spec:
     {{- end }}
       automountServiceAccountToken: false
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        seccompProfile:
+          type: RuntimeDefault
+        {{- if .Values.appconfig.userid }}
+        fsGroup: {{ .Values.appconfig.userid }}
+        {{- else }}
+        fsGroup: 1000
+        {{- end }}
       {{- if .Values.apps.volumeK8s }}
       initContainers:
       - name: copy-to-pvc
@@ -42,7 +48,7 @@ spec:
         command:
           - /bin/sh
           - -c
-          - cp -r {{ $.Values.appconfig.path }}/* /tmp
+          - cp -r -n {{ $.Values.appconfig.path }}/* /tmp
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}
@@ -60,7 +66,19 @@ spec:
         ports:
           - containerPort: {{ .Values.appconfig.port }}
         securityContext:
-          {{- toYaml .Values.securityContext | nindent 10 }}
+          runAsNonRoot: true
+          {{- if .Values.appconfig.userid }}
+          runAsUser:  {{ .Values.appconfig.userid }}
+          runAsGroup: {{ .Values.appconfig.userid }}
+          {{- else }}
+          runAsUser:  1000
+          runAsGroup: 1000
+          {{- end }}
+          allowPrivilegeEscalation: false
+          privileged: false
+          capabilities:
+            drop:
+              - all
         resources:
           {{- toYaml .Values.flavor | nindent 10 }}
         {{- if .Values.apps.volumeK8s }}
