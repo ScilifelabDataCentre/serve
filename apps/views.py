@@ -1,6 +1,7 @@
 import re
 import secrets
 import string
+from datetime import datetime
 
 import requests
 from django.apps import apps
@@ -53,45 +54,55 @@ def index(request, user, project):
     return render(request, template, locals())
 
 
-@permission_required_or_403("can_view_project", (Project, "slug", "project"))
-def logs(request, user, project, ai_id):
-    template = "logs.html"
-    app = AppInstance.objects.get(pk=ai_id)
-    project = Project.objects.get(slug=project)
-    app_settings = app.app.settings
-    containers = []
-    logs = []
-    if "logs" in app_settings:
-        containers = app_settings["logs"]
-        container = containers[0]
-        print("default container: " + container)
-        if "container" in request.GET:
-            container = request.GET.get("container")
-            print("Got container in request: " + container)
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class GetLogsView(View):
+    def get(self, request, user, project, ai_id):
+        template = "apps/logs.html"
+        app = AppInstance.objects.get(pk=ai_id)
+        project = Project.objects.get(slug=project)
+        return render(request, template, locals())
 
-        try:
-            url = settings.LOKI_SVC + "/loki/api/v1/query_range"
-            app_params = app.parameters
-            print('{container="' + container + '",release="' + app_params["release"] + '"}')
-            query = {
-                "query": '{container="' + container + '",release="' + app_params["release"] + '"}',
-                "limit": 50,
-                "start": 0,
-            }
-            res = requests.get(url, params=query)
-            res_json = res.json()["data"]["result"]
+    def post(self, request, user, project):
+        body = request.POST.get("app", "")
+        container = request.POST.get("container", "")
+        app = AppInstance.objects.get(pk=body)
+        project = Project.objects.get(slug=project)
+        app_settings = app.app.settings
+        logs = []
+        # Looks for logs in app settings. TODO: this logs entry is not used. Remove or change this later.
+        if "logs" in app_settings:
+            try:
+                url = settings.LOKI_SVC + "/loki/api/v1/query_range"
+                app_params = app.parameters
+                if app.app.slug == "customapp":
+                    log_query = '{release="' + app_params["release"] + '",container="' + container + '"}'
+                else:
+                    log_query = '{release="' + app_params["release"] + '"}'
+                print(log_query)
+                query = {
+                    "query": log_query,
+                    "limit": 500,
+                    "since": "24h",
+                }
+                res = requests.get(url, params=query)
+                res_json = res.json()["data"]["result"]
 
-            for item in res_json:
-                logs.append("----------BEGIN CONTAINER------------")
-                logline = ""
-                for iline in item["values"]:
-                    logs.append(iline[1])
-                logs.append("----------END CONTAINER------------")
+                for item in res_json:
+                    for log_line in reversed(item["values"]):
+                        # separate timestamp and log
+                        separated_log = log_line[1].split(None, 1)
+                        # improve timestamp formatting for table
+                        formatted_time = datetime.strptime(separated_log[0][:-4], "%Y-%m-%dT%H:%M:%S.%f")
+                        separated_log[0] = datetime.strftime(formatted_time, "%Y-%m-%d, %H:%M:%S")
+                        logs.append(separated_log)
 
-        except Exception as e:
-            print(e)
+            except Exception as e:
+                print(e)
 
-    return render(request, template, locals())
+        return JsonResponse({"data": logs})
 
 
 @method_decorator(
