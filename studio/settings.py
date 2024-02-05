@@ -10,13 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
-import logging
 import os
 import sys
 from pathlib import Path
 
 import colorlog
 import structlog
+
+from studio.utils import add_loggers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -70,6 +71,7 @@ STRUCTLOG_MIDDLEWARE = ["django_structlog.middlewares.RequestMiddleware"]
 DJANGO_STRUCTLOG_CELERY_ENABLED = not DEBUG
 # Application definition
 
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -112,7 +114,6 @@ MIDDLEWARE = (
     + DJANGO_WIKI_MIDDLEWARE
     + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
 )
-
 
 ROOT_URLCONF = "studio.urls"
 CRISPY_TEMPLATE_PACK = "bootstrap"
@@ -438,19 +439,15 @@ LOGGING = {
             "level": "WARNING" if DEBUG else "INFO",
         },
         "django.server": {
-            "handlers": ["console"],
+            "handlers": ["console" if DEBUG else "json"],
             "level": "DEBUG" if DEBUG else "INFO",
             "propagate": False,
         },
     },
 }
-# Add logger for each installed app
-for apps in INSTALLED_APPS:
-    LOGGING["loggers"][apps] = {
-        "handlers": ["console" if DEBUG else "json"],
-        "level": "DEBUG" if DEBUG else "INFO",
-        "propagate": False,
-    }
+
+LOGGING = add_loggers(LOGGING, INSTALLED_APPS)
+
 
 if not DEBUG:
     structlog.configure(
