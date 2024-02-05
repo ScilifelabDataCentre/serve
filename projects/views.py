@@ -149,10 +149,15 @@ class UpdatePatternView(View):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def change_description(request, user, project_slug):
-    project = Project.objects.filter(
-        Q(owner=request.user) | Q(authorized=request.user),
-        Q(slug=project_slug),
-    ).first()
+    if request.user.is_superuser:
+        project = Project.objects.filter(
+            Q(slug=project_slug),
+        ).first()
+    else:
+        project = Project.objects.filter(
+            Q(owner=request.user) | Q(authorized=request.user),
+            Q(slug=project_slug),
+        ).first()
 
     if request.method == "POST":
         description = request.POST.get("description", "")
