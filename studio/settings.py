@@ -299,12 +299,12 @@ STORAGECLASS = "microk8s-hostpath"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
-DOMAIN = "studio.192.168.0.130.nip.io"
-AUTH_DOMAIN = "192.168.0.130"
+DOMAIN = "studio.127.0.0.1.nip.io"
+AUTH_DOMAIN = "10.0.144.239"
 AUTH_PROTOCOL = "http"
-STUDIO_URL = "http://studio.192.168.0.130.nip.io:8080"
+STUDIO_URL = "http://studio.127.0.0.1.nip.io:8080"
 # To enable sticky sessions for k8s ingress
-SESSION_COOKIE_DOMAIN = ".192.168.0.130.nip.io"
+SESSION_COOKIE_DOMAIN = ".127.0.0.1.nip.io"
 
 # App statuses
 APPS_STATUS_SUCCESS = ["Running", "Succeeded", "Success"]
@@ -414,7 +414,7 @@ LOGGING = {
                 "ERROR": "red",
                 "CRITICAL": "bold_red",
             },
-            "format": "%(log_color)s%(asctime)s - %(levelname)s - %(module)s: %(message)s%(reset)s",
+            "format": "%(log_color)s%(asctime)s - %(levelname)s - %(name)s: %(message)s%(reset)s",
         },
     },
     "handlers": {
