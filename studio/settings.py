@@ -66,6 +66,10 @@ DJANGO_WIKI_CONTEXT_PROCESSOR = [
     "sekizai.context_processors.sekizai",
 ]
 
+STRUCTLOG_MIDDLEWARE = [
+        "django_structlog.middlewares.RequestMiddleware"
+]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -105,8 +109,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    "django_structlog.middlewares.RequestMiddleware",
-] + DJANGO_WIKI_MIDDLEWARE
+] + DJANGO_WIKI_MIDDLEWARE + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
+
 
 ROOT_URLCONF = "studio.urls"
 CRISPY_TEMPLATE_PACK = "bootstrap"
@@ -432,6 +436,11 @@ LOGGING = {
             "handlers": ["console" if DEBUG else "json"],
             "level": "DEBUG" if DEBUG else "INFO",
         },
+        'django.server': {
+            'handlers': ['console'],
+            'level': "DEBUG" if DEBUG else "INFO",
+            'propagate': False,
+        }
     },
 }
 if not DEBUG:
