@@ -15,16 +15,18 @@
 <h1 class="h3 mb-3">Create {{ app.name }}</h1>
 <div class="row">
     <div class="col-12 mt-2 mb-4">
+
         {% if app.slug == 'customapp' %}
-        <p>This form allows you to start hosting an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="#">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.</p>
+        <p>This form allows you to start hosting a custom app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="/docs/application-hosting/other/">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.</p>
         {% elif app.slug == 'dashapp' %}
-        <p>This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="#">documentation page on Dash apps</a> for step-by-step instructions.</p>
+        <p>This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/dash/">documentation page on Dash apps</a> for step-by-step instructions.</p>
         {% elif app.slug in 'shinyapp,shinyproxyapp' %}
-        <p>This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="#">documentation page on Shiny apps</a> for step-by-step instructions.</p>
+        <p>This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.</p>
         {% endif %}
         {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
         <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
         <p>Each {{ app.name }} instance can get access to the persistent volume (folder) associated with this project, called 'project-vol'. Please make sure to save all your data files, script files, output from computations, etc. inside 'project-vol'; the files located elsewhere can be deleted at any point. The files saved inside 'project-vol' will be available across all instances of {{ app.name }} (as well as other apps) within this project.</p>
+
         {% endif %}
     </div>
 </div>
@@ -34,14 +36,28 @@
 
                 <form class="needs-validation" action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
-                <div class="card-body">
+
+                    {% if app.slug == "minio" %}
+
+                    <div class="p-3 mb-3">
+                        <h4>Important information</h4>
+                    <p>You are about to activate file manager on SciLifeLab Serve. You can use it to upload or download files to a volume associated with this project. This service will be active for 24 hours and automatically terminated afterwards. The uploaded files will stay on the volume even after this service has been terminated. All credentials needed to use the service will be provided after activation.</p>
+                    <p>Click 'Activate' to activate file manager</p>
+
+
+                    </div>
+                    <div class="card-body d-none">
+                    {% else %}
+                    <div class="card-body">
+                    {% endif %}
+
                     <input type="hidden" id="app_action" name="app_action" value="{{ app_action }}">
                     <input type="hidden" id="app_id" name="app_id" value="{{ appinstance.pk }}">
                     <div class="mb-3 validate-item">
                         <label class="form-label">Name</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Display name for the application. This is the name visible on the app catalogue if the app is public">
                         </span>
-                        <input type="text" id="app_name" name="app_name" value="{{ existing_app_name }}"
+                        <input type="text" id="app_name" name="app_name" value="{% if app.slug == "minio"%}{{ app.slug }}-{{ project.slug }}{% else %}{{ existing_app_name }}{% endif %}"
                             class="form-control" required>
                         <div class="invalid-feedback">
                             Please add a valid name!
@@ -52,7 +68,7 @@
                         <label class="form-label">Description</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Summarize the application in a few words">
                         </span>
-                        <textarea type="text" id="app_description" name="app_description" value="{{ existing_app_description }}"
+                        <textarea type="text" id="app_description" name="app_description" value=""
                             class="form-control" rows="2" required></textarea>
                         <div class="invalid-feedback">
                             Please add a description of the app!
@@ -87,19 +103,17 @@
                         </div>
                     </div>
                     {% endif %}
+
+
                     {% if form.dep_permissions %}
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item">
                         <label class="form-label">Permissions</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to them. Project apps can only be accessed by project members. Private apps are only accessible by users that create the apps.">
                         </span>
-                        <select name="permission" id="permission" class="form-control">
+                        <select name="permission" id="permission" class="form-control" required>
                             {% for name, value in form.form_permissions.items %}
                             {% if value.option == "true" %}
-                            {% if value.value %}
-                            <option value="{{ name }}" selected>{{ name }}</option>
-                            {% else %}
                             <option value="{{ name }}">{{ name }}</option>
-                            {% endif %}
                             {% endif %}
                             {% endfor %}
                         </select>
@@ -132,11 +146,11 @@
                     {% endif %}
 
                     {% if form.dep_flavor %}
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item">
                         <label class="form-label">Hardware</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Hardware allocation for your app. Only one option is available by default. If your app requires more hardware resources, get in touch with us (serve@scilifelab.se) with a request.">
                         </span>
-                        <select name="flavor" id="flavor" class="form-control">
+                        <select name="flavor" id="flavor" class="form-control" required>
                             {% for flavor in form.flavors %}
                             <option value="{{ flavor.pk }}">{{ flavor.name }}</option>
                             {% endfor %}
@@ -181,10 +195,10 @@
 
                     <h6> {{ vals.meta_title }}</h6>
                     {% for subkey, subval in vals.items %}
-                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%}
+                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port" or subkey == "userid"%}
                     <div class="mb-3 form-group validate-item">
                     {% else %}
-                    <div class="mb-3 {% if subkey == "path" %}path_div{% endif %}">
+                    <div class="mb-3 validate-item {% if subkey == "path" %}path_div{% endif %}">
                     {% endif %}
                         {% if subval.type == "boolean" %}
                         <label class="form-label">{{ subval.title }}</label>
@@ -209,12 +223,24 @@
                             Please add a valid image name!
                         </div>
                         {% elif subkey == "path" %}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Specify the path inside the container that you want to be persistent (path to database or similar).">
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Specify the path inside the container that you want to be persistent (path to database or similar). If you follow our guide to build the container, then please include the username in the path as well.">
                         </span>
+                        {% if request.user.is_superuser  %}
+                        <input type="hidden" id="created_by_admin" name="created_by_admin" value="true">
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control">
                         <div class="invalid-feedback">
                             Please add a valid path!
                         </div>
+                        {% else %}
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon3">/home/</span>
+                            <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control">
+                            <div class="invalid-feedback">
+                                Please add a valid path!
+                            </div>
+                        </div>
+                        {% endif %}
+
                         {% else %}
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
                         {% endif %}
@@ -233,14 +259,24 @@
                         {% endif %}
 
                         {% if subval.type == "number" %}
-                        <label class="form-label">{{ subval.title }}</label>
-                        {% if subkey == "port"%}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on.">
-                        </span>
-                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" required>
-                         <div class="invalid-feedback">
-                            Please add a valid port!
-                        </div>
+                        {% if subkey == "port" or subkey == "userid" %}
+                            {% if subkey == "port" %}
+                                <label class="form-label">{{ subval.title }}</label>
+                                <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on. This should be an integer between 3000-9999.">
+                                </span>
+                                <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" min="3000" max="9999" required>
+                                <div class="invalid-feedback">
+                                    Please add a valid port!
+                                </div>
+                            {% elif subkey == "userid" and request.user.is_superuser %}
+                                <label class="form-label">{{ subval.title }}</label>
+                                <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="The UID for the user in the docker container. This can be any number between 999 and 1010.">
+                                </span>
+                                <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" min="999" max="1010" required>
+                                <div class="invalid-feedback">
+                                    Please add a valid User ID between 999 and 1010!
+                                </div>
+                            {% endif %}
                         {% else %}
                         <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
                         {% endif %}
@@ -263,6 +299,17 @@
 
                         {% endif %}
 
+                        {% if subval.type == "minio-username" %}
+                        <label class="form-label">{{ subval.title }}</label>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_username }}" class="form-control">
+                        {% endif %}
+
+                        {% if subval.type == "minio-password" %}
+                        <label class="form-label">{{ subval.title }}</label>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_password }}" class="form-control">
+                        {% endif %}
+
+
                     </div>
                     {% endfor %}
 
@@ -282,12 +329,15 @@
 
 
             <div class="card-footer d-flex justify-content-between">
-                    <button class="btn btn-danger" type="submit"
+                    <button class="btn btn-danger" type="button"
                         onclick="window.location='{{ request.headers.referer }}' ; return false;">
                         Cancel
                     </button>
+                    {% if app.slug == "minio" %}
+                    <button class="btn btn-success" type="submit">Activate</button>
+                    {% else %}
                     <button class="btn btn-primary" type="submit">Create</button>
-
+                    {% endif %}
             </div>
         </form>
         </div>
@@ -320,7 +370,7 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
         })
-        for (item of ["app_name","app_description","image", "port"]) {
+        for (item of ["app_name","app_description","permission","flavor","image", "port", "userid"]) {
             if (sessionStorage.getItem(item) != null) {
                 document.getElementById(item).value = sessionStorage.getItem(item)
                 sessionStorage.removeItem(item)
@@ -366,11 +416,20 @@
         if (document.getElementById('app_description') != null) {
             var app_description = document.getElementById('app_description').value
         }
+        if (document.getElementById('permission') != null) {
+            var permission = document.getElementById('permission').value
+        }
+        if (document.getElementById('flavor') != null) {
+            var flavor = document.getElementById('flavor').value
+        }
         if (document.getElementById('image') != null) {
             var image = document.getElementById('image').value
         }
         if (document.getElementById('port') != null) {
             var port = document.getElementById('port').value
+        }
+        if (document.getElementById('userid') != null) {
+            var userid = document.getElementById('userid').value
         }
         $.ajax({
             type: "POST",
@@ -385,8 +444,13 @@
                     setTimeout(function(){
                         sessionStorage.setItem("app_name",app_name);
                         sessionStorage.setItem("app_description", app_description);
+                        sessionStorage.setItem("permission", permission);
+                        sessionStorage.setItem("flavor", flavor);
                         sessionStorage.setItem("image", image);
                         sessionStorage.setItem("port", port);
+                        if ({{request.user.is_superuser|yesno:"true,false"}}) {
+                            sessionStorage.setItem("userid", userid);
+                        }
                         window.location.href = window.location.href.replace( /[\?#].*|$/, "?from=overview&rn="+data.rn );
                     }, 2000);
 
@@ -396,7 +460,7 @@
                     }
                     $('#rn').addClass('is-invalid');
                     if (data.available == "invalid") {
-                        $('#subdomain-invalid').text("Subdomain is invalid. Please choose another.");
+                        $('#subdomain-invalid').text("Subdomain is invalid. Only lowercase English letters (a-z), numbers (0-9) and hyphens (-) are allowed; hyphen cannot be the first or last character.");
                     } else {
                         $('#subdomain-invalid').text("Subdomain already exists. Please choose another.");
                     }

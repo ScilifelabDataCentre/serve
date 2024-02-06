@@ -60,6 +60,7 @@ module = [
 	"django_plotly_dash.*",
 	"dash_bootstrap_components.*",
 	"markdown.*",
+	"pytz.*",
 	"requests.*",
 	"s3fs.*",
 	"setuptools.*",

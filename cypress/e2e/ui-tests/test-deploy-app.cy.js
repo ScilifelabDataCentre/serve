@@ -40,12 +40,12 @@ describe("Test deploying app", () => {
         })
     })
 
-    it("can deploy a private and public app", { defaultCommandTimeout: 100000 }, () => {
+    it("can deploy a project and public app", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name_public = "e2e-streamlit-example-public"
         const app_name_public_2 = "e2e-streamlit-example-2-public"
-        const app_name_private = "e2e-streamlit-example-private"
+        const app_name_project = "e2e-streamlit-example-project"
         const app_description = "e2e-streamlit-description"
         const app_description_2 = "e2e-streamlit-2-description"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
@@ -56,39 +56,40 @@ describe("Test deploying app", () => {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
-            // Create an app with private or project permissions
-            cy.log("Now creating a private or project app")
+            // Create an app with project permissions
+            cy.log("Now creating a project app")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('input[name=app_name]').type(app_name_private)
+            cy.get('input[name=app_name]').type(app_name_project)
             cy.get('textarea[name=app_description]').type(app_description)
+            cy.get('#permission').select('project')
             cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('input[name="appconfig.path"]').clear().type("/home")
             cy.get('button').contains('Create').click()
             // check that the app was created
-            cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'project')
+            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'project')
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public apps')
             cy.get('h5.card-title').should('not.exist')
 
             // make this app public as an update and check that it works
-            cy.log("Now making the private or project app public")
+            cy.log("Now making the project app public")
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_private + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name_private + '")').find('a').contains('Settings').click()
+            cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
             cy.get('#permission').select('public')
             cy.get('button').contains('Update').click()
-            cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'public')
+            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'public')
 
-            cy.log("Now deleting the private or project app (by now public)")
-            cy.get('tr:contains("' + app_name_private + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name_private + '")').find('a.confirm-delete').click()
+            cy.log("Now deleting the project app (by now public)")
+            cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_project + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            cy.get('tr:contains("' + app_name_private + '")').find('span').should('contain', 'Deleted')
+            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Deleted')
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.log("Now creating a public app")

@@ -24,6 +24,7 @@ drf-nested-routers==0.93.4
 s3fs==2023.9.2
 minio==7.1.17
 celery==5.3.4
+kubernetes==28.1.0
 
 # Building with global-options takes a very long time
 #Pillow==9.4.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb" --global-option="--disable-zlib"

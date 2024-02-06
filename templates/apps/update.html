@@ -17,11 +17,11 @@
 <div class="row">
     <div class="col-12 mt-2 mb-4">
         {% if app.slug == 'customapp' %}
-        This form allows you to host an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="#">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.
+        <p>This form allows you to host an app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="/docs/application-hosting/other/">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.</p>
         {% elif app.slug == 'dashapp' %}
-        This form allows you to host a Dash app at SciLifeLab Serve. Please read our <a href="#">documentation page on Dash apps</a> for step-by-step instructions.
+        <p>This form allows you to host a Dash app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/dash/">documentation page on Dash apps</a> for step-by-step instructions.</p>
         {% elif app.slug in 'shinyapp,shinyproxyapp' %}
-        This form allows you to host a Shiny app at SciLifeLab Serve. Please read our <a href="#">documentation page on Shiny apps</a> for step-by-step instructions.
+        <p>This form allows you to host a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.</p>
         {% endif %}
         {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
         <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
@@ -209,10 +209,10 @@
 
                     <h6> {{ vals.meta_title }}</h6>
                     {% for subkey, subval in vals.items %}
-                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port" or subkey == "path" %}
+                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port" or subkey == "userid" %}
                     <div class="mb-3 form-group validate-item">
                     {% else %}
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item {% if subkey == "path" %}path_div{% endif %}">
                     {% endif %}
                         {% if subval.type == "boolean" %}
                         <label class="form-label">{{ subval.title }}</label>
@@ -236,6 +236,28 @@
                         <div class="invalid-feedback">
                             Please add a valid image name!
                         </div>
+                        {% elif subkey == "path" %}
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Specify the path inside the container that you want to be persistent (path to database or similar). If you follow our guide to build the container, then please include the username in the path as well.">
+                        </span>
+                        {% if request.user.is_superuser and created_by_admin  %}
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ existing_path }}" placeholder="{{ subval.default }}" class="form-control" minlength="2" {% if current_volume %}required{% endif %}>
+                        <div class="invalid-feedback">
+                            Please add a valid path!
+                        </div>
+                        {% elif created_by_admin %}
+                        <div class="input-group mb-3">
+                            <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ existing_path }}" placeholder="{{ subval.default }}" class="form-control" disabled>
+                        </div>
+                        {% else %}
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon3">/home/</span>
+                            <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ existing_path }}" placeholder="{{ subval.default }}" class="form-control" {% if current_volume %}required{% endif %}>
+                            <div class="invalid-feedback">
+                                Please add a valid path!
+                            </div>
+                        </div>
+                        {% endif %}
+
                         {% else %}
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
                         {% endif %}
@@ -265,14 +287,24 @@
                         {% endif %}
 
                         {% if subval.type == "number" %}
-                        <label class="form-label">{{ subval.title }}</label>
-                        {% if subkey == "port"%}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on.">
-                        </span>
-                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="{{ subval.default }}" class="form-control" required>
-                         <div class="invalid-feedback">
-                            Please add a valid port!
-                        </div>
+                        {% if subkey == "port" or subkey == "userid" %}
+                            {% if subkey == "port" %}
+                            <label class="form-label">{{ subval.title }}</label>
+                            <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on. This should be an integer between 3000-9999.">
+                            </span>
+                            <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="{{ subval.default }}" class="form-control" min="3000" max="9999" required>
+                            <div class="invalid-feedback">
+                                Please add a valid port!
+                            </div>
+                            {% elif subkey == "userid" and request.user.is_superuser %}
+                                <label class="form-label">{{ subval.title }}</label>
+                                <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="The UID for the user in the docker container. This can be any number between 999 and 1010.">
+                                </span>
+                                <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="{{ existing_userid }}" class="form-control" min="999" max="1010" required>
+                                <div class="invalid-feedback">
+                                    Please add a valid User ID between 999 and 1010!
+                                </div>
+                            {% endif %}
                         {% else %}
                         <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
                         {% endif %}
@@ -295,6 +327,16 @@
                             {% endfor %}
                         </select>
 
+                        {% endif %}
+
+                        {% if subval.type == "minio-username" %}
+                        <label class="form-label">{{ subval.title }}</label>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ appinstance.parameters.credentials.access_key }}" class="form-control">
+                        {% endif %}
+
+                        {% if subval.type == "minio-password" %}
+                        <label class="form-label">{{ subval.title }}</label>
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ appinstance.parameters.credentials.secret_key }}" class="form-control">
                         {% endif %}
 
                     </div>
@@ -322,13 +364,14 @@
     </div>
 </div>
 
+{% if app.category.pk == 'serve' %}
 <div class="row pt-3">
 
     <div class="col-12 col-xl-6">
 
         <div class="card shadow border-0 p-3">
             <h3 class="card-title">Tags</h3>
-
+            <p>Add relevant keywords to help users find your app in our catalog of public apps.</p>
 
             <form method="POST" action="{% url 'apps:add_tag' request.user project.slug appinstance.pk %}">
 
@@ -372,8 +415,27 @@
             </div>
         </div>
     </div>
+{% endif %}
 </div>
+{% if app.slug == "customapp" %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var pvcField = document.getElementById('Persistent Volume');
+        var pathField = document.getElementById('path');
+        var pathDiv = document.querySelector('.path_div');
 
+        pvcField.addEventListener('change', function () {
+            if (pvcField.value !== 'None') {
+                pathField.setAttribute('required', 'required');
+                pathDiv.classList.add('validate-item');
+            } else {
+                pathField.removeAttribute('required');
+                pathDiv.classList.remove('validate-item');
+            }
+        });
+    });
+</script>
+{% endif %}
 <script>
     {
 
@@ -476,7 +538,7 @@
                     }
                     $('#rn').addClass('is-invalid');
                     if (data.available == "invalid") {
-                        $('#subdomain-invalid').text("Subdomain is invalid. Please choose another.");
+                        $('#subdomain-invalid').text("Subdomain is invalid. Only lowercase English letters (a-z), numbers (0-9) and hyphens (-) are allowed; hyphen cannot be the first or last character.");
                     } else {
                         $('#subdomain-invalid').text("Subdomain already exists. Please choose another.");
                     }

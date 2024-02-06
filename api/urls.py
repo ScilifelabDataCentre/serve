@@ -3,7 +3,7 @@ from django.conf.urls import include
 from django.urls import path
 from rest_framework_nested import routers
 
-from .public_views import get_studio_settings
+from .public_views import are_you_there, get_studio_settings
 from .views import (
     AppInstanceList,
     AppList,
@@ -21,6 +21,7 @@ from .views import (
     ReleaseNameList,
     ResourceList,
     S3List,
+    update_app_status,
 )
 
 app_name = "api"
@@ -50,6 +51,10 @@ urlpatterns = [
     path("", include(router_drf.urls)),
     path("", include(router.urls)),
     path("", include(models_router.urls)),
+    # Generic API endpoints
+    path("are-you-there/", are_you_there),
+    # Internal API endpoints
     path("token-auth/", CustomAuthToken.as_view(), name="api_token_auth"),
     path("settings/", get_studio_settings),
+    path("app-status/", update_app_status),
 ]

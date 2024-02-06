@@ -1,8 +1,11 @@
 import json
 import time
+from datetime import datetime
 
+import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import HttpResponse
 from django.utils.text import slugify
@@ -10,6 +13,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.mixins import (
     CreateModelMixin,
     ListModelMixin,
@@ -20,7 +24,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from apps.models import AppCategories, AppInstance, Apps
+from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
+from apps.models import AppCategories, AppInstance, Apps, AppStatus
 from apps.tasks import delete_resource
 from models.models import ObjectType
 from portal.models import PublishedModel
@@ -815,3 +820,97 @@ class ProjectTemplateList(
         except Exception as err:
             print(err)
         return HttpResponse("Created new template: {}.".format(name), status=200)
+
+
+@api_view(["GET", "POST"])
+@permission_classes(
+    (
+        IsAuthenticated,
+        AdminPermission,
+    )
+)
+def update_app_status(request):
+    """
+    Manages the app instance status.
+    Implemented as a DRF function based view.
+    Supports GET and POST verbs.
+
+    The service contract for the POST actions is as follows:
+    :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
+    :param new-status str: The new status code.
+    :param event-ts timestamp: A JSON-formatted timestamp, e.g. 2024-01-25T16:02:50.00Z.
+    :param event-msg json dict: An optional json dict containing pod-msg and/or container-msg.
+    :returns: An http status code and status text.
+    """
+
+    # POST verb
+    if request.method == "POST":
+        print("INFO: API method update_app_status called with POST verb.")
+
+        utc = pytz.UTC
+
+        try:
+            # Parse and validate the input
+
+            # Required input
+            release = request.data["release"]
+            new_status = request.data["new-status"]
+
+            event_ts = datetime.strptime(request.data["event-ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
+            event_ts = utc.localize(event_ts)
+
+            # Optional
+            event_msg = request.data.get("event-msg", None)
+
+        except KeyError as err:
+            print(f"API method called with invalid input. Missing required input parameter: {err}")
+            return Response(f"Invalid input. Missing required input parameter: {err}", 400)
+
+        except Exception as err:
+            print(f"API method called with invalid input:  {err}, {type(err)}")
+            return Response(f"Invalid input. {err}", 400)
+
+        print(f"DEBUG: API method update_app_status input: {release=}, {new_status=}, {event_ts=}, {event_msg=}")
+
+        try:
+            result = handle_update_status_request(release, new_status, event_ts, event_msg)
+
+            if result == HandleUpdateStatusResponseCode.NO_ACTION:
+                return Response(
+                    "OK. NO_ACTION. No action performed. Possibly the event time is older \
+                    than the currently stored time.",
+                    200,
+                )
+
+            elif result == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS:
+                return Response("OK. CREATED_FIRST_STATUS. Created a missing AppStatus.", 200)
+
+            elif result == HandleUpdateStatusResponseCode.UPDATED_STATUS:
+                return Response(
+                    "OK. UPDATED_STATUS. Updated the app status. \
+                    Determined that the submitted event was newer and different status.",
+                    200,
+                )
+
+            elif result == HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS:
+                return Response(
+                    "OK. UPDATED_TIME_OF_STATUS. Updated only the event time of the status. \
+                    Determined that the new and old status codes are the same.",
+                    200,
+                )
+
+            else:
+                print(f"Unknown return code from handle_update_status_request() = {result}")
+                return Response(f"Unknown return code from handle_update_status_request() = {result}", 500)
+
+        except ObjectDoesNotExist:
+            print(f"The specified app instance was not found {release=}.")
+            return Response(f"The specified app instance was not found {release=}.", 404)
+
+        except Exception as err:
+            print(f"Unable to update the status of the specified app instance {release=}. {err}, {type(err)}")
+            return Response(f"Unable to update the status of the specified app instance {release=}.", 500)
+
+    # GET verb
+    print("API method update_app_status called with GET verb.")
+    return Response({"message": "DEBUG: GET"})

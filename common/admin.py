@@ -21,7 +21,7 @@ class EmailVerificationTableInline(admin.StackedInline):
 
 class UserAdmin(DefaultUserAdmin):
     inlines = (UserProfileInline, EmailVerificationTableInline)
-    list_display = ("username", "email", "first_name", "last_name", "is_staff", "get_affiliation")
+    list_display = ("email", "first_name", "last_name", "is_active", "is_staff", "get_affiliation", "date_joined")
     list_select_related = ("userprofile",)
 
     def get_affiliation(self, instance):

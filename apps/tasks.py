@@ -4,12 +4,14 @@ import time
 
 import requests
 from celery import shared_task
+from celery.signals import worker_ready
 from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import EmptyResultSet
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+from kubernetes import client, config, watch
 
 from models.models import Model, ObjectType
 from projects.models import S3, BasicAuth, Environment, MLFlow
@@ -17,6 +19,13 @@ from studio.celery import app
 
 from . import controller
 from .models import AppInstance, Apps, AppStatus, ResourceData
+
+K8S_STATUS_MAP = {
+    "CrashLoopBackOff": "Error",
+    "Completed": "Retrying...",
+    "ContainerCreating": "Created",
+    "PodInitializing": "Pending",
+}
 
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
@@ -38,7 +47,7 @@ def post_create_hooks(instance):
     print("TASK - POST CREATE HOOK...")
     # hard coded hooks for now, we can make this dynamic
     # and loaded from the app specs
-    if instance.app.slug == "minio":
+    if instance.app.slug == "minio-admin":
         # Create project S3 object
         # TODO: If the instance is being updated,
         # update the existing S3 object.
@@ -173,77 +182,66 @@ def post_delete_hooks(instance):
 def delete_and_deploy_resource(instance_pk, new_release_name):
     appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
 
-    if appinstance and appinstance.state != "Deleted":
-        # The instance does exist.
-        parameters = appinstance.parameters
-        results = controller.delete(parameters)
+    if appinstance:
+        delete_resource(appinstance.pk)
 
-        if results.returncode == 0:
-            post_delete_hooks(appinstance)
-            parameters["release"] = new_release_name
-            appinstance.parameters.update(parameters)
-            appinstance.save()
-            deploy_resource(instance_pk)
-            try:
-                rel_name_obj = ReleaseName.objects.get(
-                    name=new_release_name, project=appinstance.project, status="active"
-                )
-                rel_name_obj.status = "in-use"
-                rel_name_obj.app = appinstance
-                rel_name_obj.save()
-            except Exception as e:
-                print("Error: Submitted release name not owned by project.")
-                print(e)
+        parameters = appinstance.parameters
+        parameters["release"] = new_release_name
+        appinstance.parameters.update(parameters)
+        appinstance.save(update_fields=["parameters", "table_field"])
+
+        try:
+            rel_name_obj = ReleaseName.objects.get(name=new_release_name, project=appinstance.project, status="active")
+            rel_name_obj.status = "in-use"
+            rel_name_obj.app = appinstance
+            rel_name_obj.save()
+        except Exception as e:
+            print("Error: Submitted release name not owned by project.")
+            print(e)
+
+        deploy_resource(appinstance.pk)
 
 
 @shared_task
 @transaction.atomic
 def deploy_resource(instance_pk, action="create"):
     print("TASK - DEPLOY RESOURCE...")
-    app_instance = AppInstance.objects.select_for_update().get(pk=instance_pk)
-    status = AppStatus(appinstance=app_instance)
+    appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
 
-    if (action == "create") or (action == "update"):
-        parameters = app_instance.parameters
-        status.status_type = "Created"
-        status.info = parameters["release"]
-
-        # For backwards-compatibility with old ingress spec:
-        if "ingress" not in parameters:
-            parameters["ingress"] = dict()
-
-        app_instance.parameters = parameters
-        print("App Instance paramenters: {}".format(app_instance))
-        app_instance.save()
-
-    results = controller.deploy(app_instance.parameters)
-    stdout, stderr = process_helm_result(results)
-
-    if results.returncode == 0:
-        print("Helm install succeeded")
-        status.status_type = "Installed"
-        app_instance.state = "Running"
-        helm_info = {
-            "success": True,
-            "info": {"stdout": stdout, "stderr": stderr},
-        }
-    else:
+    results = controller.deploy(appinstance.parameters)
+    if type(results) is str:
+        results = json.loads(results)
+        stdout = results["status"]
+        stderr = results["reason"]
         print("Helm install failed")
-        status.status_type = "Failed"
-        app_instance.state = "Failed"
         helm_info = {
             "success": False,
             "info": {"stdout": stdout, "stderr": stderr},
         }
-
-    app_instance.info["helm"] = helm_info
-    app_instance.save()
-    status.save()
-
-    if results.returncode != 0:
-        print(app_instance.info["helm"])
+        appinstance.info["helm"] = helm_info
+        appinstance.save()
     else:
-        post_create_hooks(app_instance)
+        stdout, stderr = process_helm_result(results)
+
+        if results.returncode == 0:
+            print("Helm install succeeded")
+
+            helm_info = {
+                "success": True,
+                "info": {"stdout": stdout, "stderr": stderr},
+            }
+        else:
+            print("Helm install failed")
+            helm_info = {
+                "success": False,
+                "info": {"stdout": stdout, "stderr": stderr},
+            }
+        appinstance.info["helm"] = helm_info
+        appinstance.save()
+        if results.returncode != 0:
+            print(appinstance.info["helm"])
+        else:
+            post_create_hooks(appinstance)
 
 
 @shared_task
@@ -266,7 +264,8 @@ def delete_resource(pk):
 
         if results.returncode == 0 or "release: not found" in results.stderr.decode("utf-8"):
             status = AppStatus(appinstance=appinstance)
-            status.status_type = "Terminated"
+            status.status_type = "Deleting..."
+            appinstance.state = "Deleting..."
             status.save()
             print("CALLING POST DELETE HOOKS")
             post_delete_hooks(appinstance)
@@ -275,6 +274,7 @@ def delete_resource(pk):
             status.status_type = "FailedToDelete"
             status.save()
             appinstance.state = "FailedToDelete"
+        appinstance.save(update_fields=["state"])
 
 
 @shared_task
@@ -294,148 +294,6 @@ def delete_resource_permanently(appinstance):
     release_name(appinstance)
 
     appinstance.delete()
-
-
-@app.task
-@transaction.atomic
-def check_status():
-    # TODO: Fix for multicluster setup.
-    args = [
-        "kubectl",
-        "-n",
-        settings.NAMESPACE,
-        "get",
-        "po",
-        "-l",
-        "type=app",
-        "-o",
-        "json",
-    ]
-    results = subprocess.run(
-        args,
-        capture_output=True,
-        check=True,
-        timeout=settings.KUBE_API_REQUEST_TIMEOUT,
-    )
-    res_json = json.loads(results.stdout.decode("utf-8"))
-    app_statuses = dict()
-    # TODO: Handle case of having many pods (could have many replicas,
-    # or could be right after update)
-    for item in res_json["items"]:
-        release = item["metadata"]["labels"]["release"]
-        phase = item["status"]["phase"]
-
-        deletion_timestamp = []
-        if "deletionTimestamp" in item["metadata"]:
-            deletion_timestamp = item["metadata"]["deletionTimestamp"]
-            phase = "Terminated"
-        num_containers = -1
-        try:
-            num_containers = len(item["status"]["containerStatuses"])
-        except:  # noqa E722 TODO: Add exception
-            print("Failed to get number of containers.")
-            pass
-        num_cont_ready = 0
-        if "containerStatuses" in item["status"]:
-            for container in item["status"]["containerStatuses"]:
-                if container["ready"]:
-                    num_cont_ready += 1
-        if phase == "Running" and num_cont_ready != num_containers:
-            phase = "Waiting"
-        app_statuses[release] = {
-            "phase": phase,
-            "num_cont": num_containers,
-            "num_cont_ready": num_cont_ready,
-            "deletion_status": deletion_timestamp,
-        }
-
-    # Fetch all app instances whose state is not "Deleted"
-    instances = AppInstance.objects.filter(~Q(state="Deleted"))
-
-    for instance in instances:
-        release = instance.parameters["release"]
-        if release in app_statuses:
-            current_status = app_statuses[release]["phase"]
-            try:
-                latest_status = AppStatus.objects.filter(appinstance=instance).latest("time").status_type
-            except:  # noqa E722 TODO: Add exception
-                latest_status = "Unknown"
-            if current_status != latest_status:
-                print("New status for release {}".format(release))
-                print("Current status: {}".format(current_status))
-                print("Previous status: {}".format(latest_status))
-                status = AppStatus(appinstance=instance)
-                # if app_statuses[release]['deletion_status']:
-                #     status.status_type = "Terminated"
-                # else:
-                status.status_type = app_statuses[release]["phase"]
-                # status.info = app_statuses[release]
-                status.save()
-            # else:
-            #     print("No update for release: {}".format(release))
-        else:
-            delete_exists = AppStatus.objects.filter(appinstance=instance, status_type="Terminated").exists()
-            if delete_exists:
-                status = AppStatus(appinstance=instance)
-                status.status_type = "Deleted"
-                status.save()
-                instance.state = "Deleted"
-                instance.deleted_on = timezone.now()
-                instance.save()
-
-    # Fetch all app instances whose state is "Deleted" and check whether
-    # there are related pods which are still running
-    pod_status = "None"
-    instances = AppInstance.objects.filter(state="Deleted")
-    for instance in instances:
-        if "url" in instance.table_field:
-            # Find the app instance release name
-            app_release = instance.parameters["release"]  # e.g 'rfc058c6f'
-            # Now check if there exists a pod with that release
-            cmd = f'kubectl -n {settings.NAMESPACE} get po -l release="{app_release}"'
-
-            try:
-                # returns a byte-like object
-                result = subprocess.run(
-                    cmd,
-                    shell=True,
-                    capture_output=True,
-                    timeout=settings.KUBE_API_REQUEST_TIMEOUT,
-                )
-                result_stdout = result.stdout.decode("utf-8")
-                result_stderr = result.stderr.decode("utf-8")
-            except subprocess.CalledProcessError:
-                print("Error running the command: {}".format(cmd))
-
-            if result_stdout != "" and "No resources found in default namespace." not in result_stderr:
-                # Extract the the status of the related release pod
-                cmd = (
-                    "kubectl"
-                    f" -n {settings.NAMESPACE}"
-                    f" get po -l release={app_release} "
-                    ' -o jsonpath="{.items[0].status.phase}"'
-                )
-                try:
-                    result = subprocess.run(
-                        cmd,
-                        shell=True,
-                        capture_output=True,
-                        timeout=settings.KUBE_API_REQUEST_TIMEOUT,
-                    )
-                    pod_status = result.stdout.decode("utf-8")
-                    print(pod_status)
-                except subprocess.CalledProcessError:
-                    print("Error running the command: {}".format(cmd))
-
-                if pod_status == "Running" and instance.state == "Deleted":
-                    print("INFO: running pod associated to app (Deleted)")
-                    print("INFO: DELETE RESOURCE with release: {}".format(app_release))
-                    cmd = "helm" + " delete " + app_release
-                    try:
-                        result = subprocess.run(cmd, shell=True, capture_output=True)
-                        print(result)
-                    except subprocess.CalledProcessError:
-                        print("Error running the command: {}".format(cmd))
 
 
 @app.task
@@ -643,9 +501,15 @@ def delete_old_objects():
 
     TODO: Make this a variable in settings.py and use the same number in templates
     """
-    threshold = 7
-    threshold_time = timezone.now() - timezone.timedelta(days=threshold)
 
-    old_apps = AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name="Develop")
-    for app_ in old_apps:
+    def get_old_apps(threshold, category):
+        threshold_time = timezone.now() - timezone.timedelta(days=threshold)
+        return AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name=category)
+
+    old_develop_apps = get_old_apps(threshold=7, category="Develop")
+    old_minio_apps = get_old_apps(threshold=1, category="Manage Files")
+    for app_ in old_develop_apps:
+        delete_resource.delay(app_.pk)
+
+    for app_ in old_minio_apps:
         delete_resource.delay(app_.pk)
