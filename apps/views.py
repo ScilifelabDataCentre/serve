@@ -77,10 +77,10 @@ class GetLogsView(View):
             try:
                 url = settings.LOKI_SVC + "/loki/api/v1/query_range"
                 app_params = app.parameters
-                if app.app.slug == "customapp":
-                    log_query = '{release="' + app_params["release"] + '",container="' + container + '"}'
+                if app.app.slug == "shinyproxyapp":
+                    log_query = '{release="' + app_params["release"] + '",container="' + "serve" + '"}'
                 else:
-                    log_query = '{release="' + app_params["release"] + '"}'
+                    log_query = '{release="' + app_params["release"] + '",container="' + container + '"}'
                 print(log_query)
                 query = {
                     "query": log_query,
