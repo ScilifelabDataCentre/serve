@@ -235,17 +235,21 @@ def handle_update_status_request(
     request should be performed or ignored.
 
     :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
-    :param new_status str: The new status code.
+    :param new_status str: The new status code. Trimmed to max 15 chars if needed.
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
     :returns: A value from the HandleUpdateStatusResponseCode enum.
               Raises an ObjectDoesNotExist exception if the app instance does not exist.
     """
 
+    if len(new_status) > 15:
+        new_status = new_status[:15]
+
     try:
         # Begin by verifying that the requested app instance exists
         # We wrap the select and update tasks in a select_for_update lock
         # to avoid race conditions.
+
         with transaction.atomic():
             app_instance = (
                 AppInstance.objects.select_for_update().filter(parameters__contains={"release": release}).last()
