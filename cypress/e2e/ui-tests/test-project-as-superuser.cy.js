@@ -112,10 +112,10 @@ describe("Test superuser access", () => {
         cy.log("Verifying that a project of a regular user is visible")
         cy.visit("/projects/")
         cy.get('h5.card-title').should('contain', project_name)
-        cy.get('.card-text').should('contain', project_description)
 
         cy.log("Verifying that can edit the description of a project of a regular user")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.get('.card-text').should('contain', project_description)
         cy.get('[data-cy="settings"]').click()
         cy.get('textarea[name=description]').clear().type(project_description_2)
         cy.get('button').contains('Save').click()
@@ -168,6 +168,7 @@ describe("Test superuser access", () => {
         cy.get('input[name=app_name]').type(volume_name)
         cy.get('button').contains('Create').click()
         cy.get('tr:contains("' + volume_name + '")').should('exist') // persistent volume has been created
+        cy.get('tr:contains("' + volume_name + '")').find('span').should('contain', 'Installed') // confirm the volume is working
 
         cy.log("Deleting the created persistent volume")
         cy.get('tr:contains("' + volume_name + '")').find('i.bi-three-dots-vertical').click()
