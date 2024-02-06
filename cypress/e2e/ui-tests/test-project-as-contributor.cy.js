@@ -298,7 +298,7 @@ describe("Test project contributor user functionality", () => {
             cy.loginViaUI(users.contributor_collaborator.email, users.contributor_collaborator.password)
         })
 
-        // get the second user's prokect URL
+        // get the second user's prokect's URL
         cy.log("Checking the second user's project URL")
         cy.visit('/projects/')
         cy.get('h5.card-title').should('contain', project_name) // check access to project
@@ -336,7 +336,7 @@ describe("Test project contributor user functionality", () => {
 
     it("can give and revoke access to a project to another user", () => {
         // Names of projects and apps to create
-        const project_name = "e2e-create-proj-test"
+        const project_name_access = "e2e-create-proj-test"
         const private_app_name = "e2e-private-app-test"
         const project_app_name = "e2e-project-app-test"
         const app_type = "Jupyter Lab"
@@ -349,7 +349,7 @@ describe("Test project contributor user functionality", () => {
         // Next click button to create a new blank project
         cy.get("a").contains('Create').first().click()
         // Fill in the options for creating a new blank project
-        cy.get('input[name=name]').type(project_name)
+        cy.get('input[name=name]').type(project_name_access)
         cy.get('textarea[name=description]').type("A test project created by an e2e test.")
         cy.get("input[name=save]").contains('Create project').click()
         cy.wait(5000) // sometimes it takes a while to create a project
@@ -396,7 +396,7 @@ describe("Test project contributor user functionality", () => {
         // Check that the contributor's collaborator user has correct access
         cy.log("Now checking access to project and apps")
         cy.visit('/projects/')
-        cy.get('h5.card-title').should('contain', project_name) // check access to project
+        cy.get('h5.card-title').should('contain', project_name_access) // check access to project
         cy.get('a.btn').contains('Open').click()
         cy.get('tr:contains("' + private_app_name + '")').should('not.exist') // private app not visible
         // to be added: go to URL and check that it does not open
@@ -466,6 +466,9 @@ describe("Test project contributor user functionality", () => {
         cy.get('button').contains("Activate").first().click()
         cy.get('#manage-files > .card > .row').should('contain', 'File managing is activated')
         cy.get('#manage-files > .card > .row').find('span').should('contain', 'Created')
+
+        // TO-DO: Checking that the created Minio instance is accessible and can log in with the provided credentials
+
     })
 
 })
