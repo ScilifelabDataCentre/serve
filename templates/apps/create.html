@@ -448,7 +448,9 @@
                         sessionStorage.setItem("flavor", flavor);
                         sessionStorage.setItem("image", image);
                         sessionStorage.setItem("port", port);
-                        sessionStorage.setItem("userid", userid);
+                        if ({{request.user.is_superuser|yesno:"true,false"}}) {
+                            sessionStorage.setItem("userid", userid);
+                        }
                         window.location.href = window.location.href.replace( /[\?#].*|$/, "?from=overview&rn="+data.rn );
                     }, 2000);
 
