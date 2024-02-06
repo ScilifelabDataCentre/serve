@@ -452,4 +452,20 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
+    it("can create a file management instance", () => {
+        const project_name = "e2e-create-proj-test"
+
+        cy.log("Creating a blank project")
+        cy.createBlankProject(project_name)
+
+        cy.log("Activating file managing tools")
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+        cy.get('div.card-body:contains("Activate file managing tools")').find('a:contains("Activate")').click()
+        cy.get('button').contains("Activate").first().click()
+        cy.get('#manage-files > .card > .row').should('contain', 'File managing is activated')
+        cy.get('#manage-files > .card > .row').find('span').should('contain', 'Created')
+    })
+
 })
