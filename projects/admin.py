@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.conf import settings
 
 from .models import (
     S3,
@@ -27,6 +28,11 @@ admin.site.register(ReleaseName)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ("name", "owner", "status", "updated_at")
     list_filter = ["owner", "status"]
+    actions = ["update_app_limits"]
+
+    @admin.action(description="Reset app limits")
+    def update_app_limits(self, request, queryset):
+        queryset.update(apps_per_project=settings.APPS_PER_PROJECT_LIMIT)
 
 
 @admin.register(Flavor)
