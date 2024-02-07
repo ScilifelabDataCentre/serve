@@ -155,15 +155,15 @@ describe("Test superuser access", () => {
 
     it("can create a persistent volume", () => {
         // Names of objects to create
-        const project_name = "e2e-create-proj-test"
+        const project_name_pvc = "e2e-superuser-pvc-test"
         const volume_name = "e2e-project-vol"
 
         cy.log("Creating a blank project")
-        cy.createBlankProject(project_name)
+        cy.createBlankProject(project_name_pvc)
 
         cy.log("Creating a persistent volume")
         cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.contains('.card-title', project_name_pvc).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
         cy.get('div.card-body:contains("Persistent Volume")').find('a:contains("Create")').click()
         cy.get('input[name=app_name]').type(volume_name)
@@ -183,12 +183,12 @@ describe("Test superuser access", () => {
 
         cy.log("Deleting the created project")
         cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
+        cy.contains('.card-title', project_name_pvc).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
         .then((href) => {
             cy.get('div#modalConfirmDelete').should('have.css', 'display', 'block')
             cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
                 cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
-                cy.contains(project_name).should('not.exist') // confirm the project has been deleted
+                cy.contains(project_name_pvc).should('not.exist') // confirm the project has been deleted
            })
         })
 

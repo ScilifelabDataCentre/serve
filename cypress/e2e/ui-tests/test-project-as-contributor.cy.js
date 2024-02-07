@@ -413,7 +413,7 @@ describe("Test project contributor user functionality", () => {
         // Remove access to the project
         cy.log("Now removing access from contributor's collaborator user")
         cy.visit('/projects/')
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.contains('.card-title', project_name_access).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('[data-cy="settings"]').click()
         cy.get('a[href="#access"]').click()
         cy.get('tr.user-with-access').find('button.btn-close').click()
@@ -444,10 +444,11 @@ describe("Test project contributor user functionality", () => {
         // Delete the created project
         cy.log("Now deleting the created project")
         cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
+        cy.contains('.card-title', project_name_access).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
             .then((href) => {
                 cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
                     cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
+                    cy.contains(project_name_access).should('not.exist') // confirm the project has been deleted
                })
             })
     })
