@@ -39,7 +39,7 @@ spec:
         image: {{ .Values.appconfig.image }}
         imagePullPolicy: Always
         ports:
-          - containerPort: {{ .Values.appconfig.port }}
+          - containerPort: {{ .Values.service.targetport }}
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
@@ -51,6 +51,8 @@ spec:
           mountPath: {{ $.Values.appconfig.path }}
         {{- end }}
         {{- end }}
+        - name: tmp-empty
+          mountPath: /tmp
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
       {{ if .Values.apps.volumeK8s }}
@@ -61,3 +63,5 @@ spec:
           claimName: {{ $value.release }}
       {{- end }}
       {{ end }}
+      - name: tmp-empty
+        emptyDir: {}

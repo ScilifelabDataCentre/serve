@@ -11,9 +11,9 @@ apps:
   volumek8s:
 
 appconfig:
-  port: 8050
-  image: ghcr.io/tissuumaps/tissuumaps:3 #docker.io/cavenel/tissuumaps:3
-  path: /
+  #port: 80 Instead uses the port and target port defined in the fixture
+  image: docker.io/cavenel/tissuumaps:3 # ghcr.io/tissuumaps/tissuumaps:3
+  path: /mnt/data/
 
 service:
   name: tissuumaps-svc
@@ -27,12 +27,12 @@ ingress:
 podSecurityContext:
   seccompProfile:
       type: RuntimeDefault
-  fsGroup: 1000
+  fsGroup: 1501
 
 securityContext:
   runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
+  runAsUser: 1501
+  runAsGroup: 1501
   allowPrivilegeEscalation: false
   privileged: false
   capabilities:

@@ -831,9 +831,12 @@
       "name": "TissUUmaps App",
       "priority": "400",
       "settings": {
+        "apps": {
+          "Persistent Volume": "one"
+        },
         "default_values": {
           "port": "80",
-          "targetport": "8050"
+          "targetport": "80"
         },
         "flavor": "one",
         "logs": [
