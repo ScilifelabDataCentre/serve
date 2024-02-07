@@ -48,7 +48,14 @@ spec:
         command:
           - /bin/sh
           - -c
-          - cp -r -n {{ $.Values.appconfig.path }}/* /tmp
+          - |
+            if [ -n "$(ls -A {{ $.Values.appconfig.path }})" ]; then
+              echo "Copying data..." && cp -r -n {{ $.Values.appconfig.path }}/* /tmp && echo "Done Copying";
+            elif [ -d "{{ $.Values.appconfig.path }}" ]; then
+              echo "Empty directory. Nothing to copy.";
+            else
+              echo "Directory does not exist" && cp -r -n {{ $.Values.appconfig.path }}/* /tmp;
+            fi
         volumeMounts:
         {{- range $key, $value := .Values.apps.volumeK8s }}
         - name: {{ $key }}

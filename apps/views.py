@@ -77,10 +77,10 @@ class GetLogsView(View):
             try:
                 url = settings.LOKI_SVC + "/loki/api/v1/query_range"
                 app_params = app.parameters
-                if app.app.slug == "customapp":
-                    log_query = '{release="' + app_params["release"] + '",container="' + container + '"}'
+                if app.app.slug == "shinyproxyapp":
+                    log_query = '{release="' + app_params["release"] + '",container="' + "serve" + '"}'
                 else:
-                    log_query = '{release="' + app_params["release"] + '"}'
+                    log_query = '{release="' + app_params["release"] + '",container="' + container + '"}'
                 print(log_query)
                 query = {
                     "query": log_query,
@@ -255,7 +255,6 @@ class AppSettingsView(View):
 
         app = appinstance.app
         app_settings = app.settings
-        print("SETTINGSSS: ", appinstance.parameters["appconfig"])
         body = request.POST.copy()
 
         if not app.user_can_edit:
@@ -307,6 +306,9 @@ class AppSettingsView(View):
         appinstance.app_dependencies.set(app_deps)
         appinstance.model_dependencies.set(model_deps)
         if "appconfig" in appinstance.parameters and appinstance.app.slug == "customapp":
+            # remove trailing / in all cases
+            if appinstance.parameters["appconfig"]["path"] != "/":
+                appinstance.parameters["appconfig"]["path"] = appinstance.parameters["appconfig"]["path"].rstrip("/")
             appinstance.parameters["created_by_admin"] = created_by_admin
             # if app is created by admin but admin user is not updating it dont change path.
             if created_by_admin:
