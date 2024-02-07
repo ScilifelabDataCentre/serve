@@ -192,6 +192,9 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     status.info = app_instance.parameters["release"]
     if "appconfig" in app_instance.parameters:
         if "path" in app_instance.parameters["appconfig"]:
+            # remove trailing / in all cases
+            if app_instance.parameters["appconfig"]["path"] != "/":
+                app_instance.parameters["appconfig"]["path"] = app_instance.parameters["appconfig"]["path"].rstrip("/")
             if app_deps:
                 if not created_by_admin:
                     app_instance.parameters["appconfig"]["path"] = (
