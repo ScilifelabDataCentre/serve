@@ -336,7 +336,7 @@ describe("Test project contributor user functionality", () => {
 
     it("can give and revoke access to a project to another user", () => {
         // Names of projects and apps to create
-        const project_name_access = "e2e-create-proj-test"
+        const project_name_access = "e2e-access-proj-test"
         const private_app_name = "e2e-private-app-test"
         const project_app_name = "e2e-project-app-test"
         const app_type = "Jupyter Lab"
@@ -397,7 +397,7 @@ describe("Test project contributor user functionality", () => {
         cy.log("Now checking access to project and apps")
         cy.visit('/projects/')
         cy.get('h5.card-title').should('contain', project_name_access) // check access to project
-        cy.get('a.btn').contains('Open').click()
+        cy.contains('.card-title', project_name_access).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('tr:contains("' + private_app_name + '")').should('not.exist') // private app not visible
         // to be added: go to URL and check that it does not open
         cy.get('tr:contains("' + project_app_name + '")').should('exist') // project app visible
@@ -431,7 +431,7 @@ describe("Test project contributor user functionality", () => {
         // Check that the contributor's collaborator user no longer has access to the project
         cy.log("Now checking that contributor's collaborator user no longer has access")
         cy.visit('/projects/')
-        cy.get('h5.card-title').should('not.exist') // check visibility of project
+        cy.contains('.card-title', project_name_access).should('not.exist') // check visibility of project
         // to-do: save the url of the project in a previous step and check if possible to open that with a direct link
 
         // Log back in as contributor user

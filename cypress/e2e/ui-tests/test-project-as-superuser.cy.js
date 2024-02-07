@@ -196,7 +196,7 @@ describe("Test superuser access", () => {
 
     it("can bypass N projects limit", () => {
         // Names of projects to create
-        const project_name = "e2e-create-proj-test"
+        const project_name = "e2e-superuser-proj-limits-test"
 
         cy.log("Create 5 projects (current limit for regular users)")
         Cypress._.times(5, () => {
