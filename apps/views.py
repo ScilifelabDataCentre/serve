@@ -89,13 +89,20 @@ class GetLogsView(View):
                 }
                 res = requests.get(url, params=query)
                 res_json = res.json()["data"]["result"]
-
+                #TODO: change timestamp logic. Timestamps are different in prod and dev
+                if settings.DEBUG == True:
+                    prod_timestamp = False
+                else:
+                    prod_timestamp = True
                 for item in res_json:
                     for log_line in reversed(item["values"]):
                         # separate timestamp and log
                         separated_log = log_line[1].split(None, 1)
                         # improve timestamp formatting for table
-                        formatted_time = datetime.strptime(separated_log[0][:-10], "%Y-%m-%dT%H:%M:%S.%f")
+                        if prod_timestamp:
+                            formatted_time = datetime.strptime(separated_log[0][:-10], "%Y-%m-%dT%H:%M:%S.%f")
+                        else:
+                            formatted_time = datetime.strptime(separated_log[0][:-4], "%Y-%m-%dT%H:%M:%S.%f")
                         separated_log[0] = datetime.strftime(formatted_time, "%Y-%m-%d, %H:%M:%S")
                         logs.append(separated_log)
 
