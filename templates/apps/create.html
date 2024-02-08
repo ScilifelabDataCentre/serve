@@ -39,13 +39,20 @@
 
                     {% if app.slug == "minio" %}
 
+
                     <div class="p-3 mb-3">
-                        <h4>Important information</h4>
-                    <p>You are about to activate file manager on SciLifeLab Serve. You can use it to upload or download files to a volume associated with this project. This service will be active for 24 hours and automatically terminated afterwards. The uploaded files will stay on the volume even after this service has been terminated. All credentials needed to use the service will be provided after activation.</p>
-                    <p>Click 'Activate' to activate file manager</p>
+
+                        <div role="alert" class="alert alert-warning text-center">
+                          <h4><i class="bi bi-exclamation-triangle px-2"></i>Important information</h4>
+                          This is an experimental functionality.<br>
+                          If you experience issues, please contact us as serve@scilifelab.se
+                      </div>
+
+                  <p>You are about to activate file manager on SciLifeLab Serve. You can use it to upload or download files to a volume associated with this project. This service will be active for 24 hours and automatically terminated afterwards. The uploaded files will stay on the volume even after this service has been terminated. All credentials needed to use the service will be provided after activation.</p>
+                  <p>Click 'Activate' to activate file manager</p>
 
 
-                    </div>
+                  </div>
                     <div class="card-body d-none">
                     {% else %}
                     <div class="card-body">
