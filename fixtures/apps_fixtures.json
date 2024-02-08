@@ -448,6 +448,11 @@
             "default": "8000",
             "title": "Port",
             "type": "number"
+          },
+          "userid": {
+            "default": "1000",
+            "title": "User ID",
+            "type": "number"
           }
         },
         "apps": {

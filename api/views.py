@@ -854,7 +854,12 @@ def update_app_status(request):
 
             # Required input
             release = request.data["release"]
+
             new_status = request.data["new-status"]
+
+            if len(new_status) > 15:
+                print(f"DEBUG: Status code is longer than 15 chars so shortening: {new_status}")
+                new_status = new_status[:15]
 
             event_ts = datetime.strptime(request.data["event-ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
             event_ts = utc.localize(event_ts)

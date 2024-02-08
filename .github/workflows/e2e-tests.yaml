@@ -42,7 +42,7 @@ jobs:
           whoami
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Prepare repository
         run: |
@@ -58,7 +58,7 @@ jobs:
           echo -e "UID=1001\nGID=127" > .env
 
       - name: A job to install MicroK8s
-        uses: balchua/microk8s-actions@v0.3.2
+        uses: balchua/microk8s-actions@v0.4.2
         with:
           channel: '1.28/stable'
           addons: '["dns", "rbac", "hostpath-storage", "ingress", "helm"]'
