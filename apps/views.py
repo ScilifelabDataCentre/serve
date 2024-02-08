@@ -95,7 +95,7 @@ class GetLogsView(View):
                         # separate timestamp and log
                         separated_log = log_line[1].split(None, 1)
                         # improve timestamp formatting for table
-                        formatted_time = datetime.strptime(separated_log[0][:-4], "%Y-%m-%dT%H:%M:%S.%f")
+                        formatted_time = datetime.strptime(separated_log[0][:-10], "%Y-%m-%dT%H:%M:%S.%f")
                         separated_log[0] = datetime.strftime(formatted_time, "%Y-%m-%d, %H:%M:%S")
                         logs.append(separated_log)
 
