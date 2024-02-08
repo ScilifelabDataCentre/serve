@@ -89,7 +89,7 @@ class GetLogsView(View):
                 }
                 res = requests.get(url, params=query)
                 res_json = res.json()["data"]["result"]
-                #TODO: change timestamp logic. Timestamps are different in prod and dev
+                # TODO: change timestamp logic. Timestamps are different in prod and dev
                 if settings.DEBUG == True:
                     prod_timestamp = False
                 else:
