@@ -232,7 +232,8 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("see correct statuses when deploying apps", {}, () => {
+    // this test is skipped now because app statuses do not work as expected in the CI; needs to be enabled when running against a running dev instance
+    it.skip("see correct statuses when deploying apps", {}, () => {
         // These tests are to check that the event listener works as expected
 
         const createResources = Cypress.env('create_resources');
