@@ -977,17 +977,6 @@ asgiref = ">=3.6"
 Django = ">=3.2"
 
 [[package]]
-name = "django-cors-middleware"
-version = "1.5.0"
-description = "django-cors-middleware is a Django application for handling the server headers required for Cross-Origin Resource Sharing (CORS). Fork of django-cors-headers."
-optional = false
-python-versions = "*"
-files = [
-    {file = "django-cors-middleware-1.5.0.tar.gz", hash = "sha256:856dbe4d7aae65844ccc68acb49c6da7dbf7cbacaf5bcf37019f4c0c60b3be84"},
-    {file = "django_cors_middleware-1.5.0-py3-none-any.whl", hash = "sha256:5bbdea85e22909d596e26f6e0dbc174d5521429fa3943ae02a2c6c48e76c88c7"},
-]
-
-[[package]]
 name = "django-crispy-forms"
 version = "2.0"
 description = "Best way to have Django DRY forms"
@@ -3844,4 +3833,4 @@ tests = ["hypothesis", "moto", "pytest", "pytest-cov", "pytest-django"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8.10"
-content-hash = "561ba6ef7bc1998f11caab540fe4f83387d407861e020601e7ba180ae97a099c"
+content-hash = "84f61c1af21cd66c3863c833b960ae432cf9f107d4c2fd88c9dafb09fd06b5f6"
