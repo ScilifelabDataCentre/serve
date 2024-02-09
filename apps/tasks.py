@@ -11,7 +11,6 @@ from django.core.exceptions import EmptyResultSet
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from kubernetes import client, config, watch
 
 from models.models import Model, ObjectType
 from projects.models import S3, BasicAuth, Environment, MLFlow

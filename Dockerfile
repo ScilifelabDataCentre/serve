@@ -1,11 +1,16 @@
-FROM python:3.8-alpine3.17 as base
-LABEL maintainer="fredrik@scaleoutsystems.com"
+FROM python:3.8-alpine3.19 as builder
+
+LABEL maintainer="serve@scilifelab.se"
 WORKDIR /app
-COPY requirements.txt .
+
+ARG DISABLE_EXTRAS=false
+
+COPY pyproject.toml ./
+COPY poetry.lock ./
+
 RUN apk add --update --no-cache \
     build-base \
     python3-dev \
-    py3-setuptools \
     postgresql-dev \
     libpq \
     tiff-dev \
@@ -21,23 +26,26 @@ RUN apk add --update --no-cache \
     fribidi-dev \
     libimagequant-dev \
     libxcb-dev libpng-dev \
-    && pip install --upgrade pip setuptools\
-    && pip install --no-cache-dir -r requirements.txt
+    gcc \
+    libffi-dev \
+    musl-dev \
+    curl
 
-# Installing Pillow separate from the packages in requirements
-# greatly speeds up the docker build.
-RUN python3 -m pip install --upgrade pip \
-    && python3 -m pip install Pillow==10.2.0 --global-option="build_ext" --global-option="--disable-tiff" --global-option="--disable-freetype" --global-option="--disable-lcms" --global-option="--disable-webp" --global-option="--disable-webpmux" --global-option="--disable-imagequant" --global-option="--disable-xcb"
+# Install Poetry, change configs and install packages.
+RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.7.1 python3 - \
+    && /root/.local/bin/poetry self add poetry-plugin-export \
+    && /root/.local/bin/poetry config virtualenvs.create false \
+    && /root/.local/bin/poetry config installer.max-workers 10 \
+    && if [ "$DISABLE_EXTRAS" = "true" ]; then \
+        /root/.local/bin/poetry install -n -q --no-cache --only main --no-root; \
+        else /root/.local/bin/poetry install -n -q --no-cache --all-extras --no-root; \
+        fi
 
-FROM bitnami/kubectl:1.28.2 as kubectl
-FROM alpine/helm:3.12.3 as helm
+FROM bitnami/kubectl:1.28.6 as kubectl
+FROM alpine/helm:3.14.0 as helm
+FROM python:3.8-alpine3.19 as runtime
 
-# Non-root user with sudo access
-FROM python:3.8-alpine3.17 as build
-COPY --from=base /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
-COPY --from=base /usr/local/bin/ /usr/local/bin/
-COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
-COPY --from=helm /usr/bin/helm /usr/local/bin/
+ARG DISABLE_EXTRAS=false
 
 RUN apk add --update --no-cache \
     sudo \
@@ -46,20 +54,32 @@ RUN apk add --update --no-cache \
     libpq \
     jpeg-dev \
     openjpeg-dev \
-    libpng-dev
+    libpng-dev \
+    && rm -rf /usr/local/lib/python3.8/site-packages/
 
+COPY --from=builder /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
+COPY --from=helm /usr/bin/helm /usr/local/bin/
 
 # Set working directory
 WORKDIR /app
 COPY . /app/
-ARG USER=stackn
-RUN adduser -D $USER \
-        && echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USER \
-        && chmod 0440 /etc/sudoers.d/$USER \
-        && if [ ! -d "/app/media" ]; then mkdir -p /app/media; fi \
-        && if [ ! -d "/app/charts/values" ]; then mkdir -p /app/charts/values; fi \
-        && if [ ! -d "/app/sent_emails" ]; then mkdir -p /app/sent_emails; fi \
-        && chown -R $USER /app/fixtures /app/media /app/charts /app/sent_emails /app/static \
-        && chgrp -R $USER /app/fixtures /app/media /app/charts /app/sent_emails /app/static
+
+ARG USER=serve
+
+
+# If build-args is set to DISABLE_EXTRA=true, delete all test files
+RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
+        rm -rf */tests cypress */tests.py pytest.ini cypress.config.js conftest.py docs */.github; \
+    fi \
+    && adduser -D $USER \
+    && echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USER \
+    && chmod 0440 /etc/sudoers.d/$USER \
+    && if [ ! -d "/app/media" ]; then mkdir -p /app/media; fi \
+    && if [ ! -d "/app/charts/values" ]; then mkdir -p /app/charts/values; fi \
+    && if [ ! -d "/app/sent_emails" ]; then mkdir -p /app/sent_emails; fi \
+    && chown -R $USER /app/fixtures /app/media /app/charts /app/sent_emails /app/static \
+    && chgrp -R $USER /app/fixtures /app/media /app/charts /app/sent_emails /app/static
 
 USER $USER
