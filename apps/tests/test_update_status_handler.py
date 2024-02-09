@@ -139,6 +139,25 @@ class UpdateAppStatusTestCase(TestCase):
         assert actual_appstatus.status_type == new_status
         assert actual_appstatus.time == newer_ts
 
+    def test_handle_long_status_text_should_trim_status(self):
+        newer_ts = self.INITIAL_EVENT_TS + timedelta(seconds=1)
+        new_status = "LongStatusText-ThisPartLongerThan15Chars"
+        expected_status_text = new_status[:15]
+        assert len(expected_status_text) == 15
+        actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, new_status, newer_ts)
+
+        assert actual == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
+
+        # Fetch the app instance and status objects and verify values
+        actual_app_instance = AppInstance.objects.filter(
+            parameters__contains={"release": self.ACTUAL_RELEASE_NAME}
+        ).last()
+
+        assert actual_app_instance.state == expected_status_text
+        actual_appstatus = actual_app_instance.status.latest()
+        assert actual_appstatus.status_type == expected_status_text
+        assert actual_appstatus.time == newer_ts
+
 
 @pytest.mark.skip(
     reason="This test requires a modification to the handle_update_status_request function to add a delay parameter."

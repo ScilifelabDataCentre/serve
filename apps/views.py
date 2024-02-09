@@ -77,10 +77,10 @@ class GetLogsView(View):
             try:
                 url = settings.LOKI_SVC + "/loki/api/v1/query_range"
                 app_params = app.parameters
-                if app.app.slug == "customapp":
-                    log_query = '{release="' + app_params["release"] + '",container="' + container + '"}'
+                if app.app.slug == "shinyproxyapp":
+                    log_query = '{release="' + app_params["release"] + '",container="' + "serve" + '"}'
                 else:
-                    log_query = '{release="' + app_params["release"] + '"}'
+                    log_query = '{release="' + app_params["release"] + '",container="' + container + '"}'
                 print(log_query)
                 query = {
                     "query": log_query,
@@ -89,13 +89,14 @@ class GetLogsView(View):
                 }
                 res = requests.get(url, params=query)
                 res_json = res.json()["data"]["result"]
-
+                # TODO: change timestamp logic. Timestamps are different in prod and dev
                 for item in res_json:
                     for log_line in reversed(item["values"]):
                         # separate timestamp and log
                         separated_log = log_line[1].split(None, 1)
                         # improve timestamp formatting for table
-                        formatted_time = datetime.strptime(separated_log[0][:-4], "%Y-%m-%dT%H:%M:%S.%f")
+                        filtered_log = separated_log[0][:-4] if settings.DEBUG else separated_log[0][:-10]
+                        formatted_time = datetime.strptime(filtered_log, "%Y-%m-%dT%H:%M:%S.%f")
                         separated_log[0] = datetime.strftime(formatted_time, "%Y-%m-%d, %H:%M:%S")
                         logs.append(separated_log)
 
@@ -214,6 +215,20 @@ class AppSettingsView(View):
         existing_app_description = appinstance.description
         if "release" in appinstance.parameters:
             existing_app_release_name = appinstance.parameters["release"]
+        # Settings for custom app
+        if "appconfig" in appinstance.parameters:
+            if "path" in appinstance.parameters["appconfig"]:
+                # check if app created by admin user then don't show path change option to normal user
+                if "created_by_admin" in appinstance.parameters and appinstance.parameters["created_by_admin"] is True:
+                    created_by_admin = True
+                else:
+                    created_by_admin = False
+                existing_path = appinstance.parameters["appconfig"]["path"]
+                if not created_by_admin:
+                    existing_path = existing_path.replace("/home/", "", 1)
+
+            if "userid" in appinstance.parameters["appconfig"]:
+                existing_userid = appinstance.parameters["appconfig"]["userid"]
         app = appinstance.app
         do_display_description_field = app.category.name is not None and app.category.name.lower() == "serve"
 
@@ -276,10 +291,36 @@ class AppSettingsView(View):
 
         appinstance.name = request.POST.get("app_name")
         appinstance.description = request.POST.get("app_description")
+        if "appconfig" in appinstance.parameters:
+            created_by_admin = False  # default created by admin
+            userid = "1000"  # default userid
+            if "path" in appinstance.parameters["appconfig"]:
+                # check if app created by admin user then don't show path change option to normal user
+                if "created_by_admin" in appinstance.parameters:
+                    if appinstance.parameters["created_by_admin"] is True:
+                        created_by_admin = True
+                existing_path = appinstance.parameters["appconfig"]["path"]
+            if "userid" in appinstance.parameters["appconfig"]:
+                userid = appinstance.parameters["appconfig"]["userid"]
         appinstance.parameters.update(parameters)
         appinstance.access = access
         appinstance.app_dependencies.set(app_deps)
         appinstance.model_dependencies.set(model_deps)
+        if "appconfig" in appinstance.parameters and appinstance.app.slug == "customapp":
+            # remove trailing / in all cases
+            if appinstance.parameters["appconfig"]["path"] != "/":
+                appinstance.parameters["appconfig"]["path"] = appinstance.parameters["appconfig"]["path"].rstrip("/")
+            appinstance.parameters["created_by_admin"] = created_by_admin
+            # if app is created by admin but admin user is not updating it dont change path.
+            if created_by_admin:
+                if not request.user.is_superuser:
+                    appinstance.parameters["appconfig"]["userid"] = userid
+                    appinstance.parameters["appconfig"]["path"] = existing_path
+            else:
+                appinstance.parameters["appconfig"]["path"] = "/home/" + appinstance.parameters["appconfig"]["path"]
+                if not request.user.is_superuser:
+                    appinstance.parameters["appconfig"]["userid"] = userid
+
         appinstance.save(update_fields=["flavor", "name", "description", "parameters", "access"])
         self.update_resource(request, appinstance, current_release_name)
 
