@@ -110,6 +110,7 @@ MIDDLEWARE = (
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "corsheaders.middleware.CorsMiddleware",
+        "studio.middleware.ExceptionLoggingMiddleware",
     ]
     + DJANGO_WIKI_MIDDLEWARE
     + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
