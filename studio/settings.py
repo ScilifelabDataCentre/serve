@@ -108,6 +108,7 @@ MIDDLEWARE = (
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "corsheaders.middleware.CorsMiddleware",
+        "studio.middleware.ExceptionLoggingMiddleware",
     ]
     + DJANGO_WIKI_MIDDLEWARE
     + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
@@ -440,7 +441,7 @@ LOGGING = {
         },
         "django.server": {
             "handlers": ["console"],
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "WARNING",
             "propagate": False,
         },
     },

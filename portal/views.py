@@ -116,6 +116,8 @@ class HomeView(View):
         logger.warning("This is a warning message")
         logger.error("This is an error message")
         logger.critical("This is a critical message")
+        q = 1 / 0
+
         published_apps, request = get_public_apps(request, id=id, get_all=False)
         published_models = PublishedModel.objects.all()
         news_objects = NewsObject.objects.all().order_by("-created_on")
