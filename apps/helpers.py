@@ -1,3 +1,4 @@
+import re
 import time
 import uuid
 from datetime import datetime
@@ -132,9 +133,12 @@ def handle_permissions(parameters, project):
 def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     app_name = data.get("app_name")
     app_description = data.get("app_description")
-
+    created_by_admin = False
+    # For custom apps, if admin user fills form, then data.get("admin") exists as hidden input
+    if data.get("created_by_admin"):
+        created_by_admin = True
     parameters_out, app_deps, model_deps = serialize_app(data, project, app_settings, user.username)
-
+    parameters_out["created_by_admin"] = created_by_admin
     authorized = can_access_app_instances(app_deps, user, project)
 
     if not authorized:
@@ -186,6 +190,18 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     status = AppStatus(appinstance=app_instance)
     status.status_type = "Created"
     status.info = app_instance.parameters["release"]
+    if "appconfig" in app_instance.parameters:
+        if "path" in app_instance.parameters["appconfig"]:
+            # remove trailing / in all cases
+            if app_instance.parameters["appconfig"]["path"] != "/":
+                app_instance.parameters["appconfig"]["path"] = app_instance.parameters["appconfig"]["path"].rstrip("/")
+            if app_deps:
+                if not created_by_admin:
+                    app_instance.parameters["appconfig"]["path"] = (
+                        "/home/" + app_instance.parameters["appconfig"]["path"]
+                    )
+        if "userid" not in app_instance.parameters["appconfig"]:
+            app_instance.parameters["appconfig"]["userid"] = "1000"
     app_instance.save()
     # Saving ReleaseName, permissions, status and
     # setting up dependencies
@@ -222,17 +238,21 @@ def handle_update_status_request(
     request should be performed or ignored.
 
     :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
-    :param new_status str: The new status code.
+    :param new_status str: The new status code. Trimmed to max 15 chars if needed.
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
     :returns: A value from the HandleUpdateStatusResponseCode enum.
               Raises an ObjectDoesNotExist exception if the app instance does not exist.
     """
 
+    if len(new_status) > 15:
+        new_status = new_status[:15]
+
     try:
         # Begin by verifying that the requested app instance exists
         # We wrap the select and update tasks in a select_for_update lock
         # to avoid race conditions.
+
         with transaction.atomic():
             app_instance = (
                 AppInstance.objects.select_for_update().filter(parameters__contains={"release": release}).last()

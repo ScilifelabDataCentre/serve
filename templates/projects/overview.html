@@ -73,7 +73,7 @@
                         <tr class="odd">
 
                             {% static 'images/logos/apps/' as static_url %}
-                            <td><img src="{{static_url}}{{obj.app.logo|default:'default-logo.png'}}" class="img-fluid "
+                            <td><img src="{{static_url}}{{obj.app.logo|default:'default-logo.svg'}}" class="img-fluid "
                                     alt="App Logo" style="max-height:25px;"></td>
                             <td class="d-none d-xxl-table-cell ">{{ obj.app.name }}</td>
                             {% if obj.table_field.url %}
@@ -126,12 +126,13 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </a>
                                     <div class="dropdown-menu dropdown-menu-end">
-                                        <a class="dropdown-item disabled default"
-                                            href="{% url 'apps:logs' request.user project.slug obj.pk %}">
+                                        {% if objs.title == "Serve" %}
+                                        <a class="dropdown-item default"
+                                            href="{% url 'apps:logs' request.user project.slug obj.pk %}?from=overview">
                                             <i class="bi bi-activity me-1"></i>
-                                            Logs (disabled)
+                                            Logs
                                         </a>
-
+                                        {% endif %}
                                         {% if obj.app.user_can_edit %}
 
                                         <a class="dropdown-item default"
@@ -233,7 +234,7 @@
                                 </div>
                                 <div class="col-4">
                                     {% static 'images/logos/apps/' as static_url %}
-                                    <img src="{{static_url}}{{app.logo|default:'default-logo.png'}}" class="img-fluid float-end w-75"
+                                    <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-75"
                                         alt="App Logo">
                                 </div>
                             </div>

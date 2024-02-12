@@ -66,3 +66,19 @@ label.required::before {
 .disabled-overlay p {
     text-align: center;
 }
+
+.truncate-logs {
+    max-width:150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .w-2 {
+    width: 2%;
+  }
+  .w-18 {
+    width: 18%;
+  }
+  .w-80 {
+    width: 80%;
+  }

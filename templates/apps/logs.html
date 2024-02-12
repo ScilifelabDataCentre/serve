@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Logs - {{ app.name }}{% endblock %}
+{% load static %}
+{% block content %}
+
+  <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ app.name }} Logs</li>
+    </ol>
+  </nav>
+  <div class="col-md-12">
+    <div class="row">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+      <h2>{{ app.name }} Logs</h2> <h5><span class="badge bg-secondary" id="status-{{ app.pk }}"> {{ app.status.latest.status_type }}</span></h5>
+    </div>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
+        <p> <span class="fw-bold"> Note:</span> Logs appear a few minutes after an app has been launched. The Status on the top right is an indication of the state of the app. {% if .sluapp.appg == 'customapp' and app.app_dependencies.all %} If the app is not running (due to an error) and you have a volume attached to the app, then you can switch between to the tabs below to see logs for the data copy process. This can give you hints if data copy failed.{% endif %} </p>
+      </div>
+    <div>
+      <nav>
+        <div class="nav nav-tabs" id="nav-tab" role="tablist">
+          <button class="nav-link active" id="nav-contianer1-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer1" type="button" role="tab" aria-controls="nav-contianer1" aria-selected="true" onclick="updateContainer('{{app.parameters.appname}}')">{{app.name}}</button>
+
+          {% if app.app.slug == 'customapp' and app.app_dependencies.all %}
+          <button class="nav-link {% if app.status.latest.status_type == 'Running' %}disabled{% endif %}" id="nav-contianer2-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer2" type="button" role="tab" aria-controls="nav-contianer2" aria-selected="false" onclick="updateContainer('copy-to-pvc')">Data Copy</button>
+          {% endif %}
+        </div>
+      </nav>
+    </div>
+    </div>
+    <div class="row pt-3">
+      <div class="table-responsive">
+        <table id="logs" class="table">
+          <thead class="table-light">
+            <tr>
+              <th></th>
+              <th>Time</th>
+              <th>Log</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+  </div>
+<script>
+const url = "{% url 'apps:get_logs' request.user project.slug %}"
+const csrftoken = getCookie('csrftoken');
+const app = JSON.parse("{{ app.id |escapejs }}")
+const body = {"app" : app, "container": '{{app.parameters.appname}}'}
+let table = new DataTable('#logs', {
+  ajax: {
+    url: url,
+    type: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'X-CSRFToken': csrftoken,
+    },
+    data: function ( d ) {
+      return  $.extend(d, body);
+    },
+    error: function (xhr, error, code) {
+    },
+  },
+  columns: [
+      {
+          className: 'dt-control w-2',
+          orderable: false,
+          data: null,
+          defaultContent: ''
+      },
+      {
+        className: 'fw-bold w-18',
+        data: '0'
+      },
+      {
+        className: 'log-column truncate-logs w-80',
+        data: '1'
+      }
+  ],
+  order: [[1, 'asc']],
+  language: {
+    "emptyTable": "No Logs found for the app. Logs are only available for 24h."
+  }
+});
+table.on('click', 'td.dt-control', function(e) {
+  let tr = e.target.closest('tr');
+  for (td of tr.children) {
+    if(td.classList && td.classList.contains('log-column')){
+      if(td.classList.contains('truncate-logs')){
+        tr.classList.add('dt-hasChild')
+        td.classList.remove('truncate-logs')
+      } else {
+        tr.classList.remove('dt-hasChild')
+        td.classList.add('truncate-logs')
+      }
+    }
+  }
+
+});
+setInterval( function () {
+  table.ajax.reload( null, false ); // user paging is not reset on reload
+}, 10000 );
+
+const updateContainer = (container) => {
+  body.container = container
+  table.clear().draw()
+  $(".dataTables_empty").text("Loading...")
+  table.ajax.reload();
+}
+</script>
+<script>
+{
+  const apps = JSON.parse("{{ app.pk |escapejs }}")
+  const body = new FormData()
+  body.append("apps", apps)
+
+  const url = "{% url 'apps:get_status' request.user project.slug %}"
+  const csrftoken = getCookie('csrftoken');
+
+  const updateStatus = async () => {
+
+      const response = await fetch(url, {
+          method: "POST",
+          headers: {
+              'Accept': 'application/json',
+              'X-CSRFToken': csrftoken,
+          },
+          body
+      })
+
+      const json = await response.json()
+      for (const key in json) {
+          if (Object.hasOwnProperty.call(json, key)) {
+
+              const { status, statusGroup } = json[key]
+              const querySelector = `#status-${key}`
+              const elements = document.querySelectorAll(querySelector);
+
+              elements.forEach(element => {
+                  const className = `badge bg-${statusGroup}`;
+                  element.className = className;
+                  element.innerText = status;
+              });
+          }
+      }
+  }
+
+  const loop = async () => {
+          await updateStatus()
+
+          setTimeout(() => {
+              loop()
+          }, 5000)
+  }
+
+  loop()
+}
+</script>
+{% endblock %}
