@@ -1,6 +1,5 @@
 import logging
 from typing import List
-
 import structlog
 from django.conf import settings
 
@@ -15,7 +14,6 @@ def get_logger(name: str):
         return logging.getLogger(name)
     else:
         return structlog.getLogger(name)
-
 
 def add_loggers(logging: dict, installed_apps: List[str]) -> dict:
     """

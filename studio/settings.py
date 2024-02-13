@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -69,6 +70,7 @@ DJANGO_WIKI_CONTEXT_PROCESSOR = [
 
 STRUCTLOG_MIDDLEWARE = ["django_structlog.middlewares.RequestMiddleware"]
 DJANGO_STRUCTLOG_CELERY_ENABLED = not DEBUG
+
 # Application definition
 
 
@@ -450,7 +452,6 @@ LOGGING = {
 }
 
 LOGGING = add_loggers(LOGGING, INSTALLED_APPS)
-
 
 if not DEBUG:
     structlog.configure(
