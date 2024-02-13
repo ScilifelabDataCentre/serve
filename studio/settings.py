@@ -10,9 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import logging
 import os
 import sys
 from pathlib import Path
+
+import colorlog
+import structlog
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,12 +29,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-t)9$8__a+vfsak+w30xf9ui9p8#rnyqb6p($!6ne8lin%&zf0h"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-if DEBUG:
-    ALLOWED_HOSTS = ["*"]
-else:
-    ALLOWED_HOSTS = ["localhost"]
+DEBUG = os.getenv("DEBUG", default="False").lower() in ("true", "1", "t")
+
+
+# Since this file is only used for development, we can have this set to all hosts.
+ALLOWED_HOSTS = ["*"]
+
 
 # For django-wiki
 SITE_ID = 1
@@ -61,6 +66,8 @@ DJANGO_WIKI_CONTEXT_PROCESSOR = [
     "sekizai.context_processors.sekizai",
 ]
 
+STRUCTLOG_MIDDLEWARE = ["django_structlog.middlewares.RequestMiddleware"]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -76,6 +83,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_extensions",  # for executing runscript among others
     "django_filters",
+    "django_structlog",
     "tagulous",
     "guardian",
     "crispy_forms",
@@ -90,16 +98,22 @@ INSTALLED_APPS = [
     "news",
 ] + DJANGO_WIKI_APPS
 
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-] + DJANGO_WIKI_MIDDLEWARE
+MIDDLEWARE = (
+    [
+        "django.middleware.security.SecurityMiddleware",
+        "django.contrib.sessions.middleware.SessionMiddleware",
+        "django.middleware.common.CommonMiddleware",
+        "django.middleware.csrf.CsrfViewMiddleware",
+        "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "django.contrib.messages.middleware.MessageMiddleware",
+        "django.middleware.clickjacking.XFrameOptionsMiddleware",
+        "corsheaders.middleware.CorsMiddleware",
+        "studio.middleware.ExceptionLoggingMiddleware",
+    ]
+    + DJANGO_WIKI_MIDDLEWARE
+    + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
+)
+
 
 ROOT_URLCONF = "studio.urls"
 CRISPY_TEMPLATE_PACK = "bootstrap"
@@ -292,12 +306,14 @@ STORAGECLASS = "microk8s-hostpath"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
-DOMAIN = "studio.127.0.0.1.nip.io"
-AUTH_DOMAIN = "10.0.144.239"
+IP = os.environ.get("IP", "127.0.0.1")
+
+DOMAIN = f"studio.{IP}.nip.io"
+AUTH_DOMAIN = IP
 AUTH_PROTOCOL = "http"
-STUDIO_URL = "http://studio.127.0.0.1.nip.io:8080"
+STUDIO_URL = f"http://studio.{IP}.nip.io:8080"
 # To enable sticky sessions for k8s ingress
-SESSION_COOKIE_DOMAIN = ".127.0.0.1.nip.io"
+SESSION_COOKIE_DOMAIN = f".{IP}.nip.io"
 
 # App statuses
 APPS_STATUS_SUCCESS = ["Running", "Succeeded", "Success"]
@@ -387,3 +403,65 @@ DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore
 # Specifically, apps.tests.test_user_has_no_access was failing.
 # Also anonymous access to pages was not working.
 ANONYMOUS_USER_NAME = None
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json_formatter": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.processors.JSONRenderer(),
+        },
+        "colored": {
+            "()": colorlog.ColoredFormatter,
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+            "log_colors": {
+                "DEBUG": "blue",
+                "INFO": "green",
+                "WARNING": "yellow",
+                "ERROR": "red",
+                "CRITICAL": "bold_red",
+            },
+            "format": "%(log_color)s%(asctime)s - %(levelname)s - %(name)s: %(message)s%(reset)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "colored",
+        },
+        "json": {
+            "class": "logging.StreamHandler",
+            "formatter": "json_formatter",
+        },
+    },
+    "loggers": {
+        "": {
+            "handlers": ["console" if DEBUG else "json"],
+            "level": "DEBUG" if DEBUG else "INFO",
+        },
+        "django.server": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}
+if not DEBUG:
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.stdlib.filter_by_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
+    )

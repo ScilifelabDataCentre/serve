@@ -742,6 +742,23 @@ files = [
 ]
 
 [[package]]
+name = "colorlog"
+version = "6.8.2"
+description = "Add colours to the output of Python's logging module."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "colorlog-6.8.2-py3-none-any.whl", hash = "sha256:4dcbb62368e2800cb3c5abd348da7e53f6c362dda502ec27c560b2e58a66bd33"},
+    {file = "colorlog-6.8.2.tar.gz", hash = "sha256:3e3e079a41feb5a1b64f978b5ea4f46040a94f11f0e8bbb8261e3dbbeca64d44"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "sys_platform == \"win32\""}
+
+[package.extras]
+development = ["black", "flake8", "mypy", "pytest", "types-colorama"]
+
+[[package]]
 name = "coverage"
 version = "7.4.1"
 description = "Code coverage measurement for Python"
@@ -1033,6 +1050,20 @@ files = [
 Django = ">=2.2"
 
 [[package]]
+name = "django-ipware"
+version = "6.0.4"
+description = "A Django application to retrieve user's IP address"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "django-ipware-6.0.4.tar.gz", hash = "sha256:614d0f0a911f8a765e55b6d358b1715bb85eeb63d1ebb77447d09d645f1343e8"},
+    {file = "django_ipware-6.0.4-py2.py3-none-any.whl", hash = "sha256:09c502ee3b1f8ae08d197d5e1f4397e965d0b201c83de7b5721db1fc460e6ab6"},
+]
+
+[package.dependencies]
+python-ipware = ">=2.0.0"
+
+[[package]]
 name = "django-js-asset"
 version = "2.2.0"
 description = "script tag with additional attributes for django.forms.Media"
@@ -1094,6 +1125,27 @@ files = [
 [package.dependencies]
 django = ">=3.2"
 django-classy-tags = ">=3.0"
+
+[[package]]
+name = "django-structlog"
+version = "7.1.0"
+description = "Structured Logging for Django"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "django-structlog-7.1.0.tar.gz", hash = "sha256:64d81553c97683f7c012744ef5c6dc515b58e2d7a658b7552ecb3879ac46f1a9"},
+    {file = "django_structlog-7.1.0-py3-none-any.whl", hash = "sha256:2139c94d13b800c5c1088ace438e12ca9bfe88182790f5776c58891e8cecc61c"},
+]
+
+[package.dependencies]
+asgiref = ">=3.6.0"
+django = ">=3.2"
+django-ipware = ">=6.0.2"
+structlog = ">=21.4.0"
+
+[package.extras]
+celery = ["celery (>=5.1)"]
+commands = ["django-extensions (>=1.4.9)"]
 
 [[package]]
 name = "django-tagulous"
@@ -2761,6 +2813,20 @@ files = [
 six = ">=1.5"
 
 [[package]]
+name = "python-ipware"
+version = "2.0.1"
+description = "A Python package to retrieve user's IP address"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "python-ipware-2.0.1.tar.gz", hash = "sha256:9ba4805152ebb85ad5b53797185cd1ce6231e1db60155834f326c8cd61e8af34"},
+    {file = "python_ipware-2.0.1-py3-none-any.whl", hash = "sha256:1992920ef553165dfa35e6ea5a90762f64f3b943cc22ee6b4ec02e2c86d31178"},
+]
+
+[package.extras]
+dev = ["coverage[toml]", "coveralls (>=3.3,<4.0)", "ruff", "twine"]
+
+[[package]]
 name = "python-jose"
 version = "3.3.0"
 description = "JOSE implementation in Python"
@@ -3305,18 +3371,18 @@ pbr = "*"
 
 [[package]]
 name = "setuptools"
-version = "69.0.3"
+version = "69.1.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "setuptools-69.0.3-py3-none-any.whl", hash = "sha256:385eb4edd9c9d5c17540511303e39a147ce2fc04bc55289c322b9e5904fe2c05"},
-    {file = "setuptools-69.0.3.tar.gz", hash = "sha256:be1af57fc409f93647f2e8e4573a142ed38724b8cdd389706a867bb4efcf1e78"},
+    {file = "setuptools-69.1.0-py3-none-any.whl", hash = "sha256:c054629b81b946d63a9c6e732bc8b2513a7c3ea645f11d0139a2191d735c60c6"},
+    {file = "setuptools-69.1.0.tar.gz", hash = "sha256:850894c4195f09c4ed30dba56213bf7c3f21d86ed6bdaafb5df5972593bfc401"},
 ]
 
 [package.extras]
 docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
-testing = ["build[virtualenv]", "filelock (>=3.4.0)", "flake8-2020", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pip (>=19.1)", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-ruff", "pytest-timeout", "pytest-xdist", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+testing = ["build[virtualenv]", "filelock (>=3.4.0)", "flake8-2020", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pip (>=19.1)", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-ruff (>=0.2.1)", "pytest-timeout", "pytest-xdist", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
 testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "packaging (>=23.1)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
 
 [[package]]
@@ -3385,6 +3451,23 @@ ecdsa = ">=0.13"
 
 [package.extras]
 dev = ["twine", "wheel", "yapf"]
+
+[[package]]
+name = "structlog"
+version = "24.1.0"
+description = "Structured Logging for Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "structlog-24.1.0-py3-none-any.whl", hash = "sha256:3f6efe7d25fab6e86f277713c218044669906537bb717c1807a09d46bca0714d"},
+    {file = "structlog-24.1.0.tar.gz", hash = "sha256:41a09886e4d55df25bdcb9b5c9674bccfab723ff43e0a86a1b7b236be8e57b16"},
+]
+
+[package.extras]
+dev = ["structlog[tests,typing]"]
+docs = ["furo", "myst-parser", "sphinx", "sphinx-notfound-page", "sphinxcontrib-mermaid", "sphinxext-opengraph", "twisted"]
+tests = ["freezegun (>=0.2.8)", "pretend", "pytest (>=6.0)", "pytest-asyncio (>=0.17)", "simplejson"]
+typing = ["mypy (>=1.4)", "rich", "twisted"]
 
 [[package]]
 name = "sympy"
@@ -3462,13 +3545,13 @@ files = [
 
 [[package]]
 name = "tzdata"
-version = "2023.4"
+version = "2024.1"
 description = "Provider of IANA time zone data"
 optional = false
 python-versions = ">=2"
 files = [
-    {file = "tzdata-2023.4-py2.py3-none-any.whl", hash = "sha256:aa3ace4329eeacda5b7beb7ea08ece826c28d761cda36e747cfbf97996d39bf3"},
-    {file = "tzdata-2023.4.tar.gz", hash = "sha256:dd54c94f294765522c77399649b4fefd95522479a664a0cec87f41bebc6148c9"},
+    {file = "tzdata-2024.1-py2.py3-none-any.whl", hash = "sha256:9068bc196136463f5245e51efda838afa15aaeca9903f49050dfa2679db4d252"},
+    {file = "tzdata-2024.1.tar.gz", hash = "sha256:2674120f8d891909751c38abcdfd386ac0a5a1127954fbc332af6b5ceae07efd"},
 ]
 
 [[package]]
@@ -3833,4 +3916,4 @@ tests = ["hypothesis", "moto", "pytest", "pytest-cov", "pytest-django"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8.10"
-content-hash = "84f61c1af21cd66c3863c833b960ae432cf9f107d4c2fd88c9dafb09fd06b5f6"
+content-hash = "fdf3ef5690abb458ef5ab858efe3345f9ea22d6d4357bfe2d3ce2d3fcc78dbaa"
