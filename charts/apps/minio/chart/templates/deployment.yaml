@@ -82,7 +82,7 @@ spec:
                 sleep 5
                 mc alias set local http://127.0.0.1:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
                 mc admin user add local {{ .Values.credentials.access_key }} {{ .Values.credentials.secret_key }}
-                mc mb /data/data-bucket
+                mc mb local/data-bucket || true
                 mc admin policy attach local readwrite --user {{ .Values.credentials.access_key }} || true
       hostname: {{ .Release.Name }}-minio
       restartPolicy: Always

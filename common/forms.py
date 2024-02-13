@@ -27,7 +27,7 @@ with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
 # Same regexp could be found in templates/registration/signup.html
 EMAIL_ALLOW_REGEX = re.compile(
     (
-        r"^(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*?"  # Subdomain part
+        r"^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*?"  # Subdomain part
         + f"({('|').join([l[0] for l in UNIVERSITIES if l[0] != 'other'])}"
         + r")\.se"  # End of the domain
     ),
@@ -182,7 +182,8 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
         widget=forms.Textarea(attrs={"class": "form-control", "style": "height: 70px"}),
         required=False,
         label="How do you plan to use Serve?",
-        help_text="Because you are not using a Swedish university email, please describe why you need an account."
+        help_text="Because you are not using a Swedish university researcher email, "
+        "please describe why you need an account."
         " Your request will be manually evaluated by the Serve team.",
     )
     note = forms.CharField(
@@ -252,8 +253,8 @@ class SignUpForm:
                 self.user.add_error(
                     "email",
                     ValidationError(
-                        "Email is not from a Swedish university. \n"
-                        "Please select 'Other' in affiliation or use your Swedish university email"
+                        "Email was not recognized as a researcher email from a Swedish university. \n"
+                        "Please select 'Other' in affiliation or use your Swedish university researcher email."
                     ),
                 )
                 self.profile.add_error("affiliation", ValidationError(""))

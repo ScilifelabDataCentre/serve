@@ -2,7 +2,6 @@
 {% block title %}Create {{ app.name }}{% endblock %}
 {% load static %}
 {% load custom_tags %}
-{% load get_dict_key %}
 
 {% block content %}
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
@@ -40,15 +39,20 @@
 
                     {% if app.slug == "minio" %}
 
+
                     <div class="p-3 mb-3">
-                        <h4>Important information</h4>
-                    <p>You are about to activate file manager on SciLifeLab Serve.
-                    This service will be active for 24 hours and automatically terminated afterwards.
-                    All credentials needed to use the service will be provided after activation.</p>
-                    <p>Click 'Activate' to activate file manager</p>
+
+                        <div role="alert" class="alert alert-warning text-center">
+                          <h4><i class="bi bi-exclamation-triangle px-2"></i>Important information</h4>
+                          This is an experimental feature.<br>
+                          If you experience issues, please contact us at serve@scilifelab.se
+                      </div>
+
+                  <p>You are about to activate file manager on SciLifeLab Serve. You can use it to upload or download files to a volume associated with this project. This service will be active for 24 hours and automatically terminated afterwards. The uploaded files will stay on the volume even after this service has been terminated. All credentials needed to use the service will be provided after activation.</p>
+                  <p>Click 'Activate' to activate file manager</p>
 
 
-                    </div>
+                  </div>
                     <div class="card-body d-none">
                     {% else %}
                     <div class="card-body">
@@ -60,7 +64,7 @@
                         <label class="form-label">Name</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Display name for the application. This is the name visible on the app catalogue if the app is public">
                         </span>
-                        <input type="text" id="app_name" name="app_name" value="{% if app.slug == "minio"%}{{ app.slug }}-{{ project.slug }}{% else %} {{ existing_app_name }} {% endif %}"
+                        <input type="text" id="app_name" name="app_name" value="{% if app.slug == "minio"%}{{ app.slug }}-{{ project.slug }}{% else %}{{ existing_app_name }}{% endif %}"
                             class="form-control" required>
                         <div class="invalid-feedback">
                             Please add a valid name!
@@ -198,10 +202,10 @@
 
                     <h6> {{ vals.meta_title }}</h6>
                     {% for subkey, subval in vals.items %}
-                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port"%}
+                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port" or subkey == "userid"%}
                     <div class="mb-3 form-group validate-item">
                     {% else %}
-                    <div class="mb-3 {% if subkey == "path" %}path_div{% endif %}">
+                    <div class="mb-3 validate-item {% if subkey == "path" %}path_div{% endif %}">
                     {% endif %}
                         {% if subval.type == "boolean" %}
                         <label class="form-label">{{ subval.title }}</label>
@@ -226,12 +230,24 @@
                             Please add a valid image name!
                         </div>
                         {% elif subkey == "path" %}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Specify the path inside the container that you want to be persistent (path to database or similar).">
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Specify the path inside the container that you want to be persistent (path to database or similar). If you follow our guide to build the container, then please include the username in the path as well.">
                         </span>
+                        {% if request.user.is_superuser  %}
+                        <input type="hidden" id="created_by_admin" name="created_by_admin" value="true">
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control">
                         <div class="invalid-feedback">
                             Please add a valid path!
                         </div>
+                        {% else %}
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon3">/home/</span>
+                            <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control">
+                            <div class="invalid-feedback">
+                                Please add a valid path!
+                            </div>
+                        </div>
+                        {% endif %}
+
                         {% else %}
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
                         {% endif %}
@@ -250,14 +266,24 @@
                         {% endif %}
 
                         {% if subval.type == "number" %}
-                        <label class="form-label">{{ subval.title }}</label>
-                        {% if subkey == "port"%}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on.">
-                        </span>
-                        <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" required>
-                         <div class="invalid-feedback">
-                            Please add a valid port!
-                        </div>
+                        {% if subkey == "port" or subkey == "userid" %}
+                            {% if subkey == "port" %}
+                                <label class="form-label">{{ subval.title }}</label>
+                                <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on. This should be an integer between 3000-9999.">
+                                </span>
+                                <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" min="3000" max="9999" required>
+                                <div class="invalid-feedback">
+                                    Please add a valid port!
+                                </div>
+                            {% elif subkey == "userid" and request.user.is_superuser %}
+                                <label class="form-label">{{ subval.title }}</label>
+                                <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="The UID for the user in the docker container. This can be any number between 999 and 1010.">
+                                </span>
+                                <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" min="999" max="1010" required>
+                                <div class="invalid-feedback">
+                                    Please add a valid User ID between 999 and 1010!
+                                </div>
+                            {% endif %}
                         {% else %}
                         <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">
                         {% endif %}
@@ -282,12 +308,12 @@
 
                         {% if subval.type == "minio-username" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ MINIO_USERNAME }}" class="form-control">
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_username }}" class="form-control">
                         {% endif %}
 
                         {% if subval.type == "minio-password" %}
                         <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ MINIO_PASSWORD }}" class="form-control">
+                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_password }}" class="form-control">
                         {% endif %}
 
 
@@ -351,7 +377,7 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
         })
-        for (item of ["app_name","app_description","permission","flavor","image", "port"]) {
+        for (item of ["app_name","app_description","permission","flavor","image", "port", "userid"]) {
             if (sessionStorage.getItem(item) != null) {
                 document.getElementById(item).value = sessionStorage.getItem(item)
                 sessionStorage.removeItem(item)
@@ -409,6 +435,9 @@
         if (document.getElementById('port') != null) {
             var port = document.getElementById('port').value
         }
+        if (document.getElementById('userid') != null) {
+            var userid = document.getElementById('userid').value
+        }
         $.ajax({
             type: "POST",
             url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
@@ -426,6 +455,9 @@
                         sessionStorage.setItem("flavor", flavor);
                         sessionStorage.setItem("image", image);
                         sessionStorage.setItem("port", port);
+                        if ({{request.user.is_superuser|yesno:"true,false"}}) {
+                            sessionStorage.setItem("userid", userid);
+                        }
                         window.location.href = window.location.href.replace( /[\?#].*|$/, "?from=overview&rn="+data.rn );
                     }, 2000);
 

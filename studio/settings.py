@@ -35,7 +35,7 @@ else:
 # For django-wiki
 SITE_ID = 1
 # wiki: Sign up, login and logout views should be accessible.
-WIKI_ACCOUNT_HANDLING = True
+WIKI_ACCOUNT_HANDLING = False
 # wiki: No user signup, but superusers can create new users.
 WIKI_ACCOUNT_SIGNUP_ALLOWED = False
 
@@ -252,7 +252,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.TokenAuthentication"],
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
-    "ALLOWED_VERSIONS": [None, "beta", "v1"],
+    "ALLOWED_VERSIONS": [None, "beta", "v1", "api", "api-v1"],
     "DEFAULT_VERSION": "v1",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_PARSER_CLASSES": ("rest_framework.parsers.JSONParser",),
