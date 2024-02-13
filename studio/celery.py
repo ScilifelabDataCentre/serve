@@ -1,7 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import os
-from logging.config import dictConfig  # noqa
+from logging.config import dictConfig
 
 from celery import Celery
 from celery.signals import setup_logging
