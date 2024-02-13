@@ -7,7 +7,6 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 
-
 class ExceptionLoggingMiddleware:
     """
     This middleware provides logging of exception in requests.
