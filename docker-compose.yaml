@@ -148,7 +148,7 @@ services:
   event-listener:
     user: "${UID}:${GID}"
     container_name: event-listener
-    image: ghcr.io/scilifelabdatacentre/serve-event-listener/event-listener:v0.1.3
+    image: ghcr.io/scilifelabdatacentre/serve-event-listener/event-listener:v0.1.5
     environment:
       - KUBECONFIG=/cluster.conf
       - DEBUG=True
