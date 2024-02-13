@@ -33,10 +33,10 @@ SECRET_KEY = "django-insecure-t)9$8__a+vfsak+w30xf9ui9p8#rnyqb6p($!6ne8lin%&zf0h
 
 DEBUG = os.getenv("DEBUG", default="False").lower() in ("true", "1", "t")
 
-if DEBUG:
-    ALLOWED_HOSTS = ["*"]
-else:
-    ALLOWED_HOSTS = ["localhost"]
+
+# Since this file is only used for development, we can have this set to all hosts.
+ALLOWED_HOSTS = ["*"]
+
 
 # For django-wiki
 SITE_ID = 1
@@ -307,12 +307,14 @@ STORAGECLASS = "microk8s-hostpath"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
-DOMAIN = "studio.127.0.0.1.nip.io"
-AUTH_DOMAIN = "10.0.144.239"
+IP = os.environ.get("IP", "127.0.0.1")
+
+DOMAIN = f"studio.{IP}.nip.io"
+AUTH_DOMAIN = IP
 AUTH_PROTOCOL = "http"
-STUDIO_URL = "http://studio.127.0.0.1.nip.io:8080"
+STUDIO_URL = f"http://studio.{IP}.nip.io:8080"
 # To enable sticky sessions for k8s ingress
-SESSION_COOKIE_DOMAIN = ".127.0.0.1.nip.io"
+SESSION_COOKIE_DOMAIN = f".{IP}.nip.io"
 
 # App statuses
 APPS_STATUS_SUCCESS = ["Running", "Succeeded", "Success"]
