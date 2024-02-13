@@ -17,7 +17,6 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 @setup_logging.connect
 def config_loggers(*args, **kwargs):
-    # noqa
     logger_config = settings.LOGGING
     dictConfig(logger_config)
 
