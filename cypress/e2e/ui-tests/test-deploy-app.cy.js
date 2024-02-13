@@ -1,7 +1,7 @@
 describe("Test deploying app", () => {
 
     // Tests performed as an authenticated user that
-    // creates and deletes objects.
+    // creates and deletes apps.
     // user: e2e_tests_deploy_app_user
 
     let users
@@ -227,6 +227,43 @@ describe("Test deploying app", () => {
             // check that the app was updated with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_3)
 
+        } else {
+            cy.log('Skipped because create_resources is not true');
+      }
+    })
+
+    // this test is skipped now because app statuses do not work as expected in the CI; needs to be enabled when running against a running dev instance
+    it.skip("see correct statuses when deploying apps", {}, () => {
+        // These tests are to check that the event listener works as expected
+
+        const createResources = Cypress.env('create_resources');
+        const project_name = "e2e-deploy-app-test"
+        const app_name_statuses = "e2e-app-statuses"
+        const app_description = "e2e-subdomain-description"
+        const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
+        const app_type = "Custom App"
+
+        if (createResources === true) {
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+            // Create an app with project permissions
+            cy.log("Now creating an app with a non-existent image reference - expecting Image Error")
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('input[name=app_name]').type(app_name_statuses)
+            cy.get('textarea[name=app_description]').type(app_description)
+            cy.get('#permission').select('project')
+            cy.get('input[name="appconfig.port"]').type("8501")
+            cy.get('input[name="appconfig.image"]').type("hkqxqxkhkqwxhkxwh") // input random string
+            cy.get('button').contains('Create').click()
+            // check that the app was created
+            cy.get('tr:contains("' + app_name_statuses + '")').find('span').should('contain', 'Image Error')
+            cy.log("Now updating the app to give a correct image reference - expecting Running")
+            cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
+            cy.get('input[name="appconfig.image"]').clear().type(image_name)
+            cy.get('button').contains('Update').click()
+            cy.get('tr:contains("' + app_name_statuses + '")').find('span').should('contain', 'Running')
         } else {
             cy.log('Skipped because create_resources is not true');
       }

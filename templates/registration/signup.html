@@ -92,7 +92,7 @@
 										{{ profile_form.affiliation }}
                                         <div class="form-text">{{profile_form.affiliation.help_text}}</div>
                                       {% if profile_form.affiliation.errors %}
-                                        <div id="validation_affilation" class="pt-1 invalid-feedback">
+                                        <div id="validation_affiliation" class="pt-1 invalid-feedback">
                                             {% for error in profile_form.affiliation.errors %}
                                             <p class="m-0">{{error|escape}}</p>
                                             {% endfor %}
