@@ -68,3 +68,9 @@ spec:
       {{ end }}
       - name: tmp-empty
         emptyDir: {}
+      - name: {{ .Release.Name }}-tissuumaps-configmap
+        configMap:
+          name: {{ .Release.Name }}-tissuumaps-configmap
+          items:
+          - key: tissuumaps.cfg
+            path: tissuumaps.cfg
