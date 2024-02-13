@@ -36,9 +36,9 @@ services:
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
       interval: 1s
-      timeout: 1s
-      start_period: 60s
-      retries: 100
+      timeout: 2s
+      start_period: 100s
+      retries: 120
 
   redis:
     image: redis
