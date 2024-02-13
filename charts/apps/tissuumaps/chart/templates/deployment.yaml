@@ -53,6 +53,9 @@ spec:
         {{- end }}
         - name: tmp-empty
           mountPath: /tmp
+        - name: {{ .Release.Name }}-tissuumaps-configmap
+          mountPath: /tissuumaps.cfg
+          subPath: tissuumaps.cfg
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
       {{ if .Values.apps.volumeK8s }}

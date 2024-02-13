@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-tissuumaps-configmap
+data:
+  tissuumaps.cfg: |-
+    READ_ONLY = True
+    PLUGIN_FOLDER = "/mnt/data/plugins/"
+    SLIDE_DIR = "/mnt/data/shared/"
+    DEFAULT_PROJECT = "project.tmap"
