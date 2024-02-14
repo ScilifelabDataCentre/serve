@@ -21,8 +21,11 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     username = userdata["username"]
     email = userdata["email"]
     pwd = userdata["password"]
-    user = User.objects.create_user(username, email, pwd)
-    user.save()
+
+    if not User.objects.filter(email=email).exists():
+        user = User.objects.create_user(username, email, pwd)
+    else:
+        user = User.objects.get(username=email)
 
     # Create a dummy project to be deleted by the contributor user
     Project.objects.create_project(name="e2e-delete-proj-test", owner=user, description="")
@@ -32,5 +35,6 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     co_username = co_userdata["username"]
     co_email = co_userdata["email"]
     co_pwd = co_userdata["password"]
-    co_user = User.objects.create_user(co_username, co_email, co_pwd)
-    co_user.save()
+
+    if not User.objects.filter(username=co_email).exists():
+        co_user = User.objects.create_user(co_username, co_email, co_pwd)

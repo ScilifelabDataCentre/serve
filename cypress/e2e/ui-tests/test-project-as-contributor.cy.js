@@ -278,8 +278,8 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.get("button").contains('New project').should('not.have.attr', 'href')
         // if accessing directly with the url, the request is not accepted
-        cy.request({url: "/projects/create", failOnStatusCode: false}).its('status').should('equal', 403)
-        cy.request({url: "/projects/templates", failOnStatusCode: false}).its('status').should('equal', 403)
+        cy.request({url: "/projects/create/", failOnStatusCode: false}).its('status').should('equal', 403)
+        cy.request({url: "/projects/templates/", failOnStatusCode: false}).its('status').should('equal', 403)
 
         // Now delete all created projects
         Cypress._.times(5, () => {

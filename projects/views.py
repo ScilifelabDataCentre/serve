@@ -148,10 +148,10 @@ class UpdatePatternView(View):
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def change_description(request, user, project_slug):
+def change_description(request, project_slug):
     project = Project.objects.filter(
-        Q(owner=request.user) | Q(authorized=request.user),
         Q(slug=project_slug),
+        Q(owner=request.user) | Q(authorized=request.user) if not request.user.is_superuser else Q(),
     ).first()
 
     if request.method == "POST":
@@ -171,14 +171,14 @@ def change_description(request, user, project_slug):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": request.user, "project_slug": project.slug},
+            kwargs={"project_slug": project.slug},
         )
     )
 
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def create_environment(request, user, project_slug):
+def create_environment(request, project_slug):
     # TODO: Ensure that user is allowed to create environment in this project.
     if request.method == "POST":
         project = Project.objects.get(slug=project_slug)
@@ -199,7 +199,7 @@ def create_environment(request, user, project_slug):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": user, "project_slug": project.slug},
+            kwargs={"project_slug": project.slug},
         )
     )
 
@@ -622,8 +622,8 @@ def delete(request, project_slug):
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def publish_project(request, user, project_slug):
-    owner = User.objects.filter(username=user).first()
+def publish_project(request, project_slug):
+    owner = User.objects.filter(username=request.user).first()
     project = Project.objects.filter(owner=owner, slug=project_slug).first()
 
     if request.method == "POST":
@@ -670,6 +670,6 @@ def publish_project(request, user, project_slug):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": user, "project_slug": project_slug},
+            kwargs={"project_slug": project_slug},
         )
     )
