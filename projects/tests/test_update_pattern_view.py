@@ -33,14 +33,14 @@ class UpdatePatternViewTestCase(TestCase):
         project = self.get_data()
 
         response = self.client.post(
-            f"/{self.user.username}/{project.slug}/pattern/update",
+            f"/{project.slug}/pattern/update/",
             {"pattern": "pattern-1"},
         )
 
         self.assertEqual(response.status_code, 200)
 
         response = self.client.post(
-            f"/{self.user.username}/{project.slug}/pattern/update",
+            f"/{project.slug}/pattern/update/",
             {"pattern": "pattern-0"},
         )
 
@@ -54,7 +54,7 @@ class UpdatePatternViewTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
 
         response = self.client.post(
-            f"/{user.username}/{project.slug}/pattern/update",
+            f"/{project.slug}/pattern/update/",
             {"pattern": "pattern-1"},
         )
 

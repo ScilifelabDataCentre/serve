@@ -28,7 +28,6 @@ class AppsViewForbidden(TestCase):
             reverse(
                 "apps:filtered",
                 kwargs={
-                    "user": owner,
                     "project": project.slug,
                     "category": "compute",
                 },
@@ -47,7 +46,6 @@ class AppsViewForbidden(TestCase):
             reverse(
                 "apps:filtered",
                 kwargs={
-                    "user": owner,
                     "project": project.slug,
                     "category": "serve",
                 },
@@ -66,7 +64,6 @@ class AppsViewForbidden(TestCase):
             reverse(
                 "apps:filtered",
                 kwargs={
-                    "user": owner,
                     "project": project.slug,
                     "category": "store",
                 },
@@ -85,7 +82,6 @@ class AppsViewForbidden(TestCase):
             reverse(
                 "apps:filtered",
                 kwargs={
-                    "user": owner,
                     "project": project.slug,
                     "category": "develop",
                 },
@@ -104,7 +100,6 @@ class AppsViewForbidden(TestCase):
             reverse(
                 "apps:create",
                 kwargs={
-                    "user": owner,
                     "project": project.slug,
                     "app_slug": "test",
                 },
@@ -122,7 +117,7 @@ class AppsViewForbidden(TestCase):
         response = self.client.get(
             reverse(
                 "apps:logs",
-                kwargs={"user": owner, "project": project.slug, "ai_id": "1"},
+                kwargs={"project": project.slug, "ai_id": "1"},
             )
         )
         self.assertTemplateUsed(response, "403.html")
@@ -137,7 +132,7 @@ class AppsViewForbidden(TestCase):
         response = self.client.get(
             reverse(
                 "apps:appsettings",
-                kwargs={"user": owner, "project": project.slug, "ai_id": "1"},
+                kwargs={"project": project.slug, "ai_id": "1"},
             )
         )
         self.assertTemplateUsed(response, "403.html")
@@ -153,7 +148,7 @@ class AppsViewForbidden(TestCase):
         response = self.client.get(
             reverse(
                 "apps:add_tag",
-                kwargs={"user": owner, "project": project.slug, "ai_id": "1"},
+                kwargs={"project": project.slug, "ai_id": "1"},
             )
         )
         self.assertTemplateUsed(response, "403.html")
@@ -169,7 +164,7 @@ class AppsViewForbidden(TestCase):
         response = self.client.get(
             reverse(
                 "apps:remove_tag",
-                kwargs={"user": owner, "project": project.slug, "ai_id": "1"},
+                kwargs={"project": project.slug, "ai_id": "1"},
             )
         )
         self.assertTemplateUsed(response, "403.html")
@@ -186,7 +181,6 @@ class AppsViewForbidden(TestCase):
             reverse(
                 "apps:delete",
                 kwargs={
-                    "user": owner,
                     "project": project.slug,
                     "ai_id": "1",
                     "category": "compute",
@@ -207,7 +201,6 @@ class AppsViewForbidden(TestCase):
             reverse(
                 "apps:publish",
                 kwargs={
-                    "user": owner,
                     "project": project.slug,
                     "ai_id": "1",
                     "category": "compute",
