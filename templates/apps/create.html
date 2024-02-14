@@ -7,7 +7,7 @@
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' project.slug %}">{{ project.name }}</a></li>
       <li class="breadcrumb-item active" aria-current="page">Create {{ app.name }}</li>
     </ol>
 </nav>
@@ -34,7 +34,7 @@
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
 
-                <form class="needs-validation" action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
+                <form class="needs-validation" action="{% url 'apps:create' project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
 
                     {% if app.slug == "minio" %}
@@ -440,7 +440,7 @@
         }
         $.ajax({
             type: "POST",
-            url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
+            url: '{% url "apps:create_releasename" project.slug app.slug %}',
             data: {"rn": rn,"csrfmiddlewaretoken": '{{ csrf_token }}'},
             success: function(data){
                 if (data.available == "true"){

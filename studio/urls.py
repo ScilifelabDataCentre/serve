@@ -36,7 +36,7 @@ urlpatterns = (
             "<user>/<project>/monitor/",
             include("monitor.urls", namespace="monitor"),
         ),
-        path("<user>/<project>/apps/", include("apps.urls", namespace="apps")),
+        path("<project>/apps/", include("apps.urls", namespace="apps")),
         # API paths using NamespaceVersioning
         path("openapi/beta/", include("api.openapi.urls", namespace="beta")),
         path("openapi/v1/", include("api.openapi.urls", namespace="v1")),

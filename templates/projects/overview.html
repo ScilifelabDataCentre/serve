@@ -17,7 +17,7 @@
 
 <div class="d-flex justify-content-between">
     <h3>{{ project.name }}</h3>
-    <a href="{%  url 'projects:settings' request.user project.slug %}" class="btn btn-primary ms-2" data-cy="settings">
+    <a href="{%  url 'projects:settings' project.slug %}" class="btn btn-primary ms-2" data-cy="settings">
         <i class="bi bi-gear me-1"></i>
         Settings
     </a>
@@ -128,7 +128,7 @@
                                     <div class="dropdown-menu dropdown-menu-end">
                                         {% if objs.title == "Serve" %}
                                         <a class="dropdown-item default"
-                                            href="{% url 'apps:logs' request.user project.slug obj.pk %}?from=overview">
+                                            href="{% url 'apps:logs' project.slug obj.pk %}?from=overview">
                                             <i class="bi bi-activity me-1"></i>
                                             Logs
                                         </a>
@@ -136,7 +136,7 @@
                                         {% if obj.app.user_can_edit %}
 
                                         <a class="dropdown-item default"
-                                            href="{% url 'apps:appsettings' request.user project.slug obj.pk %}?from=overview">
+                                            href="{% url 'apps:appsettings' project.slug obj.pk %}?from=overview">
                                             <i class="bi bi-sliders2-vertical me-1"></i>
                                             Settings
                                         </a>
@@ -151,7 +151,7 @@
                                         {% if obj.app.user_can_delete %}
 
                                         <a class="dropdown-item bg-danger text-white confirm-delete default"
-                                            href="{% url 'apps:delete' request.user project.slug obj.app.category.slug obj.pk %}?from=overview">
+                                            href="{% url 'apps:delete' project.slug obj.app.category.slug obj.pk %}?from=overview">
                                             <i class="bi bi-trash me-1"></i>
                                             Delete
                                         </a>
@@ -214,7 +214,7 @@
                                                                 {% else %}
                                                             <!-- To here -->
                                                                 <a class="btn btn-primary btn-sm"
-                                                                    href="{% url 'apps:create' request.user project.slug app.slug  %}?from=overview">Create</a>
+                                                                    href="{% url 'apps:create' project.slug app.slug  %}?from=overview">Create</a>
 
                                                             <!-- And here -->
                                                                 {% endif %}
@@ -464,7 +464,7 @@
                                             <button class="btn btn-success btn-sm" disabled>Activated</button>
                                             {% else %}
                                             <a class="btn btn-success btn-sm"
-                                            href="{% url 'apps:create' request.user project.slug "minio"  %}?from=overview">Activate</a>
+                                            href="{% url 'apps:create' project.slug "minio"  %}?from=overview">Activate</a>
                                             {% endif %}
 
                                         </div>
@@ -505,7 +505,7 @@
             const body = new FormData()
             body.append("apps", apps)
 
-            const url = "{% url 'apps:get_status' request.user project.slug %}"
+            const url = "{% url 'apps:get_status' project.slug %}"
             const csrftoken = getCookie('csrftoken');
 
             const updateStatus = async () => {
@@ -565,7 +565,7 @@
     <script>
         {
 
-            const url = "{% url 'projects:get_status' request.user project.slug %}"
+            const url = "{% url 'projects:get_status' project.slug %}"
             const csrftoken = getCookie('csrftoken');
 
             const getStatus = async () => {

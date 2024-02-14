@@ -10,7 +10,7 @@
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' project.slug %}">{{ project.name }}</a></li>
       <li class="breadcrumb-item active" aria-current="page">Settings</li>
     </ol>
 </nav>
@@ -68,7 +68,7 @@
                     <div class="card-header bg-light py-3">
                         <h5 class="card-title mb-0">Change project description</h5>
                     </div>
-                    <form action="{% url 'projects:change_description' request.user project.slug %}" method="post">
+                    <form action="{% url 'projects:change_description' project.slug %}" method="post">
                         {% csrf_token %}
                         <div class="card-body">
                             <div class="mb-3">
@@ -103,7 +103,7 @@
                     </div>
 
                     <div class="card-body">
-                        <form action="{% url 'projects:delete_flavor' request.user project.slug %}" method="post">
+                        <form action="{% url 'projects:delete_flavor' project.slug %}" method="post">
                             {% csrf_token %}
 
                             <div class="mb-3">
@@ -118,7 +118,7 @@
                         </form>
                         <div class="mt-2">
                             or create new flavor:
-                            <form action="{% url 'projects:create_flavor' request.user project.slug %}" method="post"
+                            <form action="{% url 'projects:create_flavor' project.slug %}" method="post"
                                 class="mt-2">
                                 {% csrf_token %}
                                 <div class="mb-3">
@@ -161,7 +161,7 @@
                     </div>
 
                     <div class="card-body">
-                        <form action="{% url 'projects:delete_environment' request.user project.slug %}" method="post">
+                        <form action="{% url 'projects:delete_environment' project.slug %}" method="post">
                             {% csrf_token %}
 
                             <div class="mb-3">
@@ -176,7 +176,7 @@
                         </form>
                         <div class="mt-2">
                             or create new Environment:
-                            <form action="{% url 'projects:create_environment' request.user project.slug %}"
+                            <form action="{% url 'projects:create_environment' project.slug %}"
                                 method="post" class="mt-2">
                                 {% csrf_token %}
                                 <div class="mb-3">
@@ -228,7 +228,7 @@
                     </div>
 
                     <div class="card-body">
-                        <form action="{% url 'projects:set_s3storage' request.user project.slug %}" method="post">
+                        <form action="{% url 'projects:set_s3storage' project.slug %}" method="post">
                             {% csrf_token %}
 
                             <div class="mb-3">
@@ -260,7 +260,7 @@
                     </div>
 
                     <div class="card-body">
-                        <form action="{% url 'projects:set_mlflow' request.user project.slug %}" method="post">
+                        <form action="{% url 'projects:set_mlflow' project.slug %}" method="post">
                             {% csrf_token %}
 
                             <div class="mb-3">
@@ -300,7 +300,7 @@
                             back.
                         </div>
                         <form class="row row-cols-md-auto align-items-center"
-                            action="{% url 'projects:delete' request.user project.slug %}" method="post">
+                            action="{% url 'projects:delete' project.slug %}" method="post">
                             {% csrf_token %}
 
                             <div class="col-12">
