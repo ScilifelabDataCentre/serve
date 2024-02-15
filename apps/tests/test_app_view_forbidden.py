@@ -22,7 +22,6 @@ class AppsViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /<category>=compute
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -40,7 +39,6 @@ class AppsViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /<category>=serve
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -58,7 +56,6 @@ class AppsViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /<category>=store
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -76,7 +73,6 @@ class AppsViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /<category>=develop
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -94,7 +90,6 @@ class AppsViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /create/<app_slug>=test
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -112,7 +107,6 @@ class AppsViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /logs/<ai_id>=1
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -127,7 +121,6 @@ class AppsViewForbidden(TestCase):
         """
         Test non-project member not allowed to access /seetings/<ai_id>=1
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -143,7 +136,6 @@ class AppsViewForbidden(TestCase):
         Test non-project member not allowed to access
         /settings/<ai_id>=1/add_tag
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -159,7 +151,6 @@ class AppsViewForbidden(TestCase):
         Test non-project member not allowed to access
         /settings/<ai_id>=1/remove_tag
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -175,7 +166,6 @@ class AppsViewForbidden(TestCase):
         Test non-project member not allowed to access
         /delete/<category>=compute/<ai_id>=1
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
@@ -195,7 +185,6 @@ class AppsViewForbidden(TestCase):
         Test non-project member not allowed to access
         /publish/<category>=compute/<ai_id>=1
         """
-        owner = User.objects.get(username=test_user["email"])
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
             reverse(
