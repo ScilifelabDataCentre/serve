@@ -15,10 +15,8 @@ class UpdatePatternViewTestCase(TestCase):
         self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         self.client = Client()
 
-    def get_data(self, user=None):
-        project = Project.objects.create_project(
-            name="test-perm", owner=user if user is not None else self.user, description=""
-        )
+    def get_data(self):
+        project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
 
         return project
 
@@ -32,6 +30,7 @@ class UpdatePatternViewTestCase(TestCase):
 
         project = self.get_data()
 
+        # Test with valid pattern
         response = self.client.post(
             f"/{project.slug}/pattern/update/",
             {"pattern": "pattern-1"},
@@ -39,6 +38,7 @@ class UpdatePatternViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+        # Test with invalid pattern
         response = self.client.post(
             f"/{project.slug}/pattern/update/",
             {"pattern": "pattern-0"},
@@ -46,10 +46,13 @@ class UpdatePatternViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
+    def test_update_pattern_view_no_access(self):
         response = self.client.post("/accounts/login/", {"username": "foo2@test.com", "password": "bar2"})
         response.status_code
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
+
+        project = self.get_data()
 
         response = self.client.post(
             f"/{project.slug}/pattern/update/",

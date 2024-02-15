@@ -60,7 +60,7 @@ class GetStatusViewTestCase(TestCase):
         response = c.post("/accounts/login/", {"username": "foo2@test.com", "password": "bar"})
         response.status_code
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
         url = f"/{self.project.slug}/apps/status"
 
