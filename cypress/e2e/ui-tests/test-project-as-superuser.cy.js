@@ -48,7 +48,7 @@ describe("Test superuser access", () => {
 
         // Next click button to create a new blank project
         cy.get("a").contains('Create').first().click()
-        cy.url().should("include", "projects/create?template=")
+        cy.url().should("include", "projects/create/?template=")
         cy.get('h3').should('contain', 'New project')
 
         // Fill in the options for creating a new blank project
