@@ -33,5 +33,10 @@
     "email": "no-reply-superuser@scilifelab.se",
     "password": "test12345",
     "username": "e2e_superuser_tester"
+  },
+  "superuser_testuser": {
+    "email": "no-reply-superuser-testuser@scilifelab.se",
+    "password": "test12345",
+    "username": "e2e_superuser_testuser_tester"
   }
 }

@@ -27,8 +27,9 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     else:
         user = User.objects.get(username=email)
 
-    # Create a dummy project to be deleted by the contributor user
-    Project.objects.create_project(name="e2e-delete-proj-test", owner=user, description="")
+    # Check if project exists, otherwise, create it
+    if not Project.objects.filter(name="e2e-delete-proj-test").exists():
+        _ = Project.objects.create_project(name="e2e-delete-proj-test", owner=user, description="")
 
     # Create the contributor's collaborator user
     co_userdata = testdata["contributor_collaborator"]
