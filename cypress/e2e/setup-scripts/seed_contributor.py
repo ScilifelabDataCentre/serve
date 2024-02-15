@@ -39,3 +39,7 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
 
     if not User.objects.filter(username=co_email).exists():
         co_user = User.objects.create_user(co_username, co_email, co_pwd)
+
+    # Check if project exists, otherwise, create it
+    if not Project.objects.filter(name="e2e-collaborator-proj-test").exists():
+        _ = Project.objects.create_project(name="e2e-collaborator-proj-test", owner=co_user, description="")
