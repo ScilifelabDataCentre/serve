@@ -24,7 +24,7 @@ class ProjectCreateViewTestCase(TestCase):
 
     def test_project_create_get(self):
         response = self.client.get(
-            "/projects/create?template=Template",
+            "/projects/create/?template=Template",
         )
 
         response.status_code
@@ -37,7 +37,7 @@ class ProjectCreateViewTestCase(TestCase):
     def test_project_create_post(self):
         with patch("projects.tasks.create_resources_from_template.delay") as mock_task:
             response = self.client.post(
-                "/projects/create?template=Template",
+                "/projects/create/?template=Template",
                 {
                     "name": "My Project",
                     "desciption": "My description",

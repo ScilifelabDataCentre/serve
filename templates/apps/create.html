@@ -7,7 +7,7 @@
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' project.slug %}">{{ project.name }}</a></li>
       <li class="breadcrumb-item active" aria-current="page">Create {{ app.name }}</li>
     </ol>
 </nav>
@@ -22,6 +22,8 @@
         <p>This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/dash/">documentation page on Dash apps</a> for step-by-step instructions.</p>
         {% elif app.slug in 'shinyapp,shinyproxyapp' %}
         <p>This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.</p>
+        {% elif app.slug == 'tissuumaps' %}
+        <p>This form allows you to start hosting your own TissUUmaps instance at SciLifeLab Serve. After your app has been created you will need to upload the data to your project. We suggest that you create the app with Permissions initially set to private, upload the data, and then edit the app settings to change the Permissions to public. Please read our <a href="/docs/application-hosting/tissuumaps/" target="_blank">documentation page on TissUUmaps apps</a> for step-by-step instructions.</p>
         {% endif %}
         {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
         <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
@@ -34,7 +36,7 @@
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
 
-                <form class="needs-validation" action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
+                <form class="needs-validation" action="{% url 'apps:create' project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
 
                     {% if app.slug == "minio" %}
@@ -223,7 +225,7 @@
                         {% if subval.type == "string" %}
                         <label class="form-label">{{ subval.title }}</label>
                         {% if subkey == "image" %}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="DockerHub or Github Docker Image for the app">
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Docker Image for the app uploaded to DockerHub or GitHub. Each version of your app should have a unique tag.">
                         </span>
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control" required>
                         <div class="invalid-feedback">
@@ -440,7 +442,7 @@
         }
         $.ajax({
             type: "POST",
-            url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
+            url: '{% url "apps:create_releasename" project.slug app.slug %}',
             data: {"rn": rn,"csrfmiddlewaretoken": '{{ csrf_token }}'},
             success: function(data){
                 if (data.available == "true"){

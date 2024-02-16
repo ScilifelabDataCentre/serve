@@ -39,10 +39,38 @@ spec:
         image: {{ .Values.appconfig.image }}
         imagePullPolicy: IfNotPresent
         ports:
-          - containerPort: {{ .Values.appconfig.port }}
+          - containerPort: {{ .Values.service.targetport }}
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
           {{- toYaml .Values.flavor | nindent 10 }}
+         {{- if .Values.apps.volumeK8s }}
+        volumeMounts:
+        {{- range $key, $value := .Values.apps.volumeK8s }}
+        - name: {{ $key }}
+          mountPath: {{ $.Values.appconfig.path }}
+        {{- end }}
+        {{- end }}
+        - name: tmp-empty
+          mountPath: /tmp
+        - name: {{ .Release.Name }}-tissuumaps-configmap
+          mountPath: /tissuumaps.cfg
+          subPath: tissuumaps.cfg
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
+      {{ if .Values.apps.volumeK8s }}
+      volumes:
+      {{- range $key, $value := .Values.apps.volumeK8s }}
+      - name: {{ $key }}
+        persistentVolumeClaim:
+          claimName: {{ $value.release }}
+      {{- end }}
+      {{ end }}
+      - name: tmp-empty
+        emptyDir: {}
+      - name: {{ .Release.Name }}-tissuumaps-configmap
+        configMap:
+          name: {{ .Release.Name }}-tissuumaps-configmap
+          items:
+          - key: tissuumaps.cfg
+            path: tissuumaps.cfg

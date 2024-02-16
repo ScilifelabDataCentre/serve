@@ -42,7 +42,7 @@ class GetStatusViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        url = f"/{self.user.username}/{self.project.slug}/apps/status"
+        url = f"/{self.project.slug}/apps/status"
 
         response = c.post(url, {"apps": [self.app_instance.id]})
 
@@ -51,20 +51,18 @@ class GetStatusViewTestCase(TestCase):
     def test_user_has_no_access(self):
         c = Client()
 
-        url = f"/{self.user.username}/{self.project.slug}/apps/status"
+        url = f"/{self.project.slug}/apps/status"
 
         response = c.post(url, {"apps": [self.app_instance.id]})
 
         self.assertEqual(response.status_code, 403)
 
-        user = User.objects.create_user("foo2@test.com", "foo2@test.com", "bar")
-
         response = c.post("/accounts/login/", {"username": "foo2@test.com", "password": "bar"})
         response.status_code
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
-        url = f"/{user.username}/{self.project.slug}/apps/status"
+        url = f"/{self.project.slug}/apps/status"
 
         response = c.post(url, {"apps": [self.app_instance.id]})
 
@@ -78,7 +76,7 @@ class GetStatusViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        url = f"/{self.user.username}/{self.project.slug}/apps/status"
+        url = f"/{self.project.slug}/apps/status"
 
         response = c.post(url, {"apps": []})
 

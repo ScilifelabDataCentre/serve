@@ -32,10 +32,6 @@ describe("Test project contributor user functionality", () => {
         })
     })
 
-
-    it("can run the test setup", () => {
-    })
-
     it("can create a new project with default template, open settings, change description, delete from settings", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
@@ -47,6 +43,7 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.get("title").should("have.text", "My projects | SciLifeLab Serve (beta)")
 
+        cy.log("Create a new project")
         // Click button for UI to create a new project
         cy.get("a").contains('New project').click()
         cy.url().should("include", "projects/templates")
@@ -54,7 +51,7 @@ describe("Test project contributor user functionality", () => {
 
         // Next click button to create a new blank project
         cy.get("a").contains('Create').first().click()
-        cy.url().should("include", "projects/create?template=")
+        cy.url().should("include", "projects/create/?template=")
         cy.get('h3').should('contain', 'New project')
 
         // Fill in the options for creating a new blank project
@@ -67,32 +64,32 @@ describe("Test project contributor user functionality", () => {
         cy.get('h3').should('contain', project_name)
         cy.get('.card-text').should('contain', project_description)
 
-        // Check that the correct deployment options are available
+        cy.log("Check that the correct deployment options are available")
         cy.get('.card-header').find('h5').should('contain', 'Develop')
         cy.get('.card-header').find('h5').should('contain', 'Serve')
         cy.get('.card-header').find('h5').should('not.contain', 'Models')
         cy.get('.card-header').find('h5').should('not.contain', 'Additional options [admins only]')
 
-        // Check that project settings are available
+        cy.log("Check that project settings are available")
         cy.get('[data-cy="settings"]').click()
         cy.url().should("include", "settings")
         cy.get('h3').should('contain', 'Project settings')
 
-        // Check that the correct project settings are visible (i.e. no extra settings)
+        cy.log("Check that the correct project settings are visible (i.e. no extra settings)")
         cy.get('.list-group').find('a').should('contain', 'Access')
         cy.get('.list-group').find('a').should('not.contain', 'S3 storage')
         cy.get('.list-group').find('a').should('not.contain', 'MLFlow')
         cy.get('.list-group').find('a').should('not.contain', 'Flavors')
         cy.get('.list-group').find('a').should('not.contain', 'Environments')
 
-        // Change project description
+        cy.log("Change project description")
         cy.get('textarea[name=description]').clear().type(project_description_2)
         cy.get('button').contains('Save').click()
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('.card-text').should('contain', project_description_2)
 
-        // Delete the project from the settings menu
+        cy.log("Delete the project from the settings menu")
         cy.get('[data-cy="settings"]').click()
         cy.get('a').contains("Delete").click()
         .then((href) => {
@@ -126,7 +123,7 @@ describe("Test project contributor user functionality", () => {
 
         // Next click button to create a new blank project
         cy.get(".card-footer").last().contains("Create").click()
-        cy.url().should("include", "projects/create?template=")
+        cy.url().should("include", "projects/create/?template=")
         cy.get('h3').should('contain', 'New project')
 
         // Fill in the options for creating a new blank project
@@ -186,9 +183,6 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
-    it.skip("can create a new mlflow project", () => {
-    })
-
     it("can delete a project from projects overview", { defaultCommandTimeout: 100000 }, () => {
 
         // Names of objects to create
@@ -245,7 +239,7 @@ describe("Test project contributor user functionality", () => {
                         projectURL = url
                     });
                 cy.then(() =>
-                    cy.request({url: projectURL + "/apps/create/jupyter-lab?from=overview", failOnStatusCode: false}).its('status').should('equal', 403)
+                    cy.request({url: projectURL + "apps/create/jupyter-lab?from=overview", failOnStatusCode: false}).its('status').should('equal', 403)
                     )
                 })
 
@@ -278,8 +272,8 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.get("button").contains('New project').should('not.have.attr', 'href')
         // if accessing directly with the url, the request is not accepted
-        cy.request({url: "/projects/create", failOnStatusCode: false}).its('status').should('equal', 403)
-        cy.request({url: "/projects/templates", failOnStatusCode: false}).its('status').should('equal', 403)
+        cy.request({url: "/projects/create/", failOnStatusCode: false}).its('status').should('equal', 403)
+        cy.request({url: "/projects/templates/", failOnStatusCode: false}).its('status').should('equal', 403)
 
         // Now delete all created projects
         Cypress._.times(5, () => {
@@ -293,9 +287,56 @@ describe("Test project contributor user functionality", () => {
         });
     })
 
+    it("cannot see a project of another user without appropriate access", () => {
+        const project_name = "e2e-collaborator-proj-test" // from seed_contributor.py
+
+        // First we need to get a URL of the second user's project
+        // log in as second user
+        cy.log("Now logging in as the second user")
+        cy.fixture('users.json').then(function (data) {
+            users = data
+            cy.loginViaUI(users.contributor_collaborator.email, users.contributor_collaborator.password)
+        })
+
+        // get the second user's prokect's URL
+        cy.log("Checking the second user's project URL")
+        cy.visit('/projects/')
+        cy.get('h5.card-title').should('contain', project_name) // check access to project
+        cy.get('a.btn').contains('Open').click()
+        .then((href) => {
+            cy.log(href)
+            let projectURL
+                cy.url().then(url => {
+                    projectURL = url
+                });
+            // Now we can check if the contributor user has access to this project
+            // log back in as contributor user
+            cy.log("Now logging back in as contributor user")
+            cy.fixture('users.json').then(function (data) {
+                users = data
+                cy.loginViaApi(users.contributor.email, users.contributor.password)
+            })
+            cy.log("Checking that can't see the project in the list of projects")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).should('not.exist') // cannot see the project
+            cy.log("Checking that can't open the project using direct URL")
+            cy.then(() =>
+                cy.request({url: projectURL, failOnStatusCode: false}).its('status').should('equal', 403) // cannot open the project using a direct link
+                )
+            // Finally, unauthenticated user
+            cy.log("Logging out the contributor user and testing as an unauthenticated user")
+            cy.clearCookies();
+            cy.clearLocalStorage();
+            Cypress.session.clearAllSavedSessions()
+            cy.then(() =>
+            cy.request({url: projectURL, failOnStatusCode: false}).its('status').should('equal', 403) // cannot open the project using a direct link
+            )
+            })
+    })
+
     it("can give and revoke access to a project to another user", () => {
         // Names of projects and apps to create
-        const project_name = "e2e-create-proj-test"
+        const project_name_access = "e2e-access-proj-test"
         const private_app_name = "e2e-private-app-test"
         const project_app_name = "e2e-project-app-test"
         const app_type = "Jupyter Lab"
@@ -308,7 +349,7 @@ describe("Test project contributor user functionality", () => {
         // Next click button to create a new blank project
         cy.get("a").contains('Create').first().click()
         // Fill in the options for creating a new blank project
-        cy.get('input[name=name]').type(project_name)
+        cy.get('input[name=name]').type(project_name_access)
         cy.get('textarea[name=description]').type("A test project created by an e2e test.")
         cy.get("input[name=save]").contains('Create project').click()
         cy.wait(5000) // sometimes it takes a while to create a project
@@ -355,8 +396,8 @@ describe("Test project contributor user functionality", () => {
         // Check that the contributor's collaborator user has correct access
         cy.log("Now checking access to project and apps")
         cy.visit('/projects/')
-        cy.get('h5.card-title').should('contain', project_name) // check access to project
-        cy.get('a.btn').contains('Open').click()
+        cy.get('h5.card-title').should('contain', project_name_access) // check access to project
+        cy.contains('.card-title', project_name_access).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('tr:contains("' + private_app_name + '")').should('not.exist') // private app not visible
         // to be added: go to URL and check that it does not open
         cy.get('tr:contains("' + project_app_name + '")').should('exist') // project app visible
@@ -372,7 +413,7 @@ describe("Test project contributor user functionality", () => {
         // Remove access to the project
         cy.log("Now removing access from contributor's collaborator user")
         cy.visit('/projects/')
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.contains('.card-title', project_name_access).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('[data-cy="settings"]').click()
         cy.get('a[href="#access"]').click()
         cy.get('tr.user-with-access').find('button.btn-close').click()
@@ -390,7 +431,7 @@ describe("Test project contributor user functionality", () => {
         // Check that the contributor's collaborator user no longer has access to the project
         cy.log("Now checking that contributor's collaborator user no longer has access")
         cy.visit('/projects/')
-        cy.get('h5.card-title').should('not.exist') // check visibility of project
+        cy.contains('.card-title', project_name_access).should('not.exist') // check visibility of project
         // to-do: save the url of the project in a previous step and check if possible to open that with a direct link
 
         // Log back in as contributor user
@@ -403,11 +444,34 @@ describe("Test project contributor user functionality", () => {
         // Delete the created project
         cy.log("Now deleting the created project")
         cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
+        cy.contains('.card-title', project_name_access).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
             .then((href) => {
                 cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
                     cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
+                    cy.contains(project_name_access).should('not.exist') // confirm the project has been deleted
                })
             })
     })
+
+    it("can create a file management instance", () => {
+        const project_name = "e2e-create-proj-test"
+
+        cy.log("Creating a blank project")
+        cy.createBlankProject(project_name)
+
+        cy.log("Activating file managing tools")
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+        cy.get('div.card-body:contains("Activate file managing tools")').find('a:contains("Activate")').click()
+        cy.get('button').contains("Activate").first().click()
+        cy.get('#manage-files > .card > .row').should('contain', 'File managing is activated')
+
+        // change the command to check for Created OR Running
+        cy.get('#manage-files > .card > .row').find('span').should('contain', 'Created');
+
+        // TO-DO: Checking that the created Minio instance is accessible and can log in with the provided credentials
+
+    })
+
 })

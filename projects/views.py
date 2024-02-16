@@ -71,7 +71,7 @@ class IndexView(View):
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def settings(request, user, project_slug):
+def settings(request, project_slug):
     try:
         projects = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status="active").distinct(
             "pk"
@@ -129,7 +129,7 @@ class UpdatePatternView(View):
 
         return pattern in _valid_patterns
 
-    def post(self, request, user, project_slug, *args, **kwargs):
+    def post(self, request, project_slug, *args, **kwargs):
         pattern = request.POST["pattern"]
 
         valid = self.validate(pattern)
@@ -148,10 +148,10 @@ class UpdatePatternView(View):
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def change_description(request, user, project_slug):
+def change_description(request, project_slug):
     project = Project.objects.filter(
-        Q(owner=request.user) | Q(authorized=request.user),
         Q(slug=project_slug),
+        Q(owner=request.user) | Q(authorized=request.user) if not request.user.is_superuser else Q(),
     ).first()
 
     if request.method == "POST":
@@ -171,14 +171,14 @@ def change_description(request, user, project_slug):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": request.user, "project_slug": project.slug},
+            kwargs={"project_slug": project.slug},
         )
     )
 
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def create_environment(request, user, project_slug):
+def create_environment(request, project_slug):
     # TODO: Ensure that user is allowed to create environment in this project.
     if request.method == "POST":
         project = Project.objects.get(slug=project_slug)
@@ -199,14 +199,14 @@ def create_environment(request, user, project_slug):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": user, "project_slug": project.slug},
+            kwargs={"project_slug": project.slug},
         )
     )
 
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def delete_environment(request, user, project_slug):
+def delete_environment(request, project_slug):
     if request.method == "POST":
         project = Project.objects.get(slug=project_slug)
         pk = request.POST.get("environment_pk")
@@ -217,14 +217,14 @@ def delete_environment(request, user, project_slug):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": user, "project_slug": project.slug},
+            kwargs={"project_slug": project.slug},
         )
     )
 
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def create_flavor(request, user, project_slug):
+def create_flavor(request, project_slug):
     # TODO: Ensure that user is allowed to create flavor in this project.
     if request.method == "POST":
         # TODO: Check input
@@ -249,14 +249,14 @@ def create_flavor(request, user, project_slug):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": user, "project_slug": project.slug},
+            kwargs={"project_slug": project.slug},
         )
     )
 
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def delete_flavor(request, user, project_slug):
+def delete_flavor(request, project_slug):
     if request.method == "POST":
         project = Project.objects.get(slug=project_slug)
         pk = request.POST.get("flavor_pk")
@@ -267,14 +267,14 @@ def delete_flavor(request, user, project_slug):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": user, "project_slug": project.slug},
+            kwargs={"project_slug": project.slug},
         )
     )
 
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def set_s3storage(request, user, project_slug, s3storage=[]):
+def set_s3storage(request, project_slug, s3storage=[]):
     # TODO: Ensure that the user has the correct permissions to set
     # this specific
     # s3 object to storage in this project (need to check that
@@ -301,14 +301,14 @@ def set_s3storage(request, user, project_slug, s3storage=[]):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": user, "project_slug": project.slug},
+            kwargs={"project_slug": project.slug},
         )
     )
 
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def set_mlflow(request, user, project_slug, mlflow=[]):
+def set_mlflow(request, project_slug, mlflow=[]):
     # TODO: Ensure that the user has the correct permissions
     # to set this specific
     # MLFlow object to MLFlow Server in this project (need to check
@@ -332,7 +332,7 @@ def set_mlflow(request, user, project_slug, mlflow=[]):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": user, "project_slug": project.slug},
+            kwargs={"project_slug": project.slug},
         )
     )
 
@@ -342,7 +342,7 @@ def set_mlflow(request, user, project_slug, mlflow=[]):
     name="dispatch",
 )
 class ProjectStatusView(View):
-    def get(self, request, user, project_slug):
+    def get(self, request, project_slug):
         project = Project.objects.get(slug=project_slug)
 
         return JsonResponse({"status": project.status})
@@ -353,7 +353,7 @@ class ProjectStatusView(View):
     name="dispatch",
 )
 class GrantAccessToProjectView(View):
-    def post(self, request, user, project_slug):
+    def post(self, request, project_slug):
         selected_username = request.POST["selected_user"]
         qs = User.objects.filter(username=selected_username)
 
@@ -373,7 +373,7 @@ class GrantAccessToProjectView(View):
 
             log.save()
 
-        return HttpResponseRedirect(f"/{user}/{project_slug}/settings?template=access")
+        return HttpResponseRedirect(f"/{project_slug}/settings?template=access")
 
 
 @method_decorator(
@@ -397,7 +397,7 @@ class RevokeAccessToProjectView(View):
 
         return [True, selected_user]
 
-    def post(self, request, user, project_slug):
+    def post(self, request, project_slug):
         selected_username = request.POST["selected_user"]
         project = Project.objects.get(slug=project_slug)
 
@@ -425,7 +425,7 @@ class RevokeAccessToProjectView(View):
         return HttpResponseRedirect(
             reverse(
                 "projects:settings",
-                kwargs={"user": user, "project_slug": project_slug},
+                kwargs={"project_slug": project_slug},
             )
         )
 
@@ -513,7 +513,7 @@ class CreateProjectView(View):
             )
             l2.save()
 
-        next_page = request.POST.get("next", "/{}/{}".format(request.user, project.slug))
+        next_page = request.POST.get("next", "/{}".format(project.slug))
 
         return HttpResponseRedirect(next_page, {"message": "Created project"})
 
@@ -525,7 +525,7 @@ class CreateProjectView(View):
 class DetailsView(View):
     template_name = "projects/overview.html"
 
-    def get(self, request, user, project_slug):
+    def get(self, request, project_slug):
         resources = list()
         models = Model.objects.none()
         app_ids = []
@@ -592,11 +592,11 @@ class DetailsView(View):
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def delete(request, user, project_slug):
+def delete(request, project_slug):
     next_page = request.GET.get("next", "/projects/")
 
     if not request.user.is_superuser:
-        users = User.objects.filter(username=user)
+        users = User.objects.filter(username=request.user)
 
         if len(users) != 1:
             return HttpResponseBadRequest()
@@ -622,8 +622,8 @@ def delete(request, user, project_slug):
 
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def publish_project(request, user, project_slug):
-    owner = User.objects.filter(username=user).first()
+def publish_project(request, project_slug):
+    owner = User.objects.filter(username=request.user).first()
     project = Project.objects.filter(owner=owner, slug=project_slug).first()
 
     if request.method == "POST":
@@ -670,6 +670,6 @@ def publish_project(request, user, project_slug):
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
-            kwargs={"user": user, "project_slug": project_slug},
+            kwargs={"project_slug": project_slug},
         )
     )

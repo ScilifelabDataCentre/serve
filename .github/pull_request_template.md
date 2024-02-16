@@ -21,7 +21,6 @@ This is simply a reminder of what we are going to look for before merging your c
 - [ ] I have included migration files (if there are changes to the model classes)
 - [ ] I have included, reviewed and executed tests (unit and end2end) to complement my changes
 - [ ] I have updated the related documentation (if necessary)
-- [ ] I have updated the release notes (releasenotes.md)
 - [ ] I have added a reviewer for this pull request
 - [ ] I have added myself as an author for this pull request
 - [ ] In the case I have modified settings.py, then I have also updated the studio-settings-configmap.yaml file in serve-charts
