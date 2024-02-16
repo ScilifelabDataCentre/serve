@@ -37,7 +37,7 @@ spec:
       containers:
       - name: {{ .Values.appname }}
         image: {{ .Values.appconfig.image }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
           - containerPort: {{ .Values.service.targetport }}
         securityContext:
