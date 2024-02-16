@@ -1,11 +1,11 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.urls import path, reverse
-from django.views.generic import RedirectView
 
-# This is an temporary import - should be removed. it is used to redirect from old urls to new ones.
-from django.views.generic.base import RedirectView
+# These import are temporary and should be removed once the new urls are used everywhere by users.
+from django.http import HttpResponseRedirect
+from django.urls import path
+from django.views import View
 
 from . import views
 from .views import (
@@ -14,6 +14,9 @@ from .views import (
     RevokeAccessToProjectView,
     UpdatePatternView,
 )
+
+#############################################
+
 
 app_name = "projects"
 User = get_user_model()
@@ -108,9 +111,6 @@ else:
 # Everying below this comment should be removed once the new urls are used everywhere by users.
 # This was written on 2024-02-16
 
-from django.http import HttpResponseRedirect
-from django.views import View
-
 
 class CustomRedirectView(View):
     def get_redirect_url(self, *args, **kwargs):
@@ -159,3 +159,4 @@ urlpatterns += [
         name="redirect_get_status",
     ),
 ]
+# End of temporary code
