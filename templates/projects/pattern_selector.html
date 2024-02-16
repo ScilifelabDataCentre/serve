@@ -54,7 +54,7 @@ params:
 
 <script>
     {
-        const url = "{% url 'projects:update_pattern' request.user project.slug %}"
+        const url = "{% url 'projects:update_pattern' project.slug %}"
         const csrftoken = getCookie('csrftoken');
 
         let initialPattern = "{{ project.pattern }}"

@@ -21,19 +21,27 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     username = userdata["username"]
     email = userdata["email"]
     pwd = userdata["password"]
-    user = User.objects.create_user(username, email, pwd)
-    user.save()
 
-    # Create a dummy project to be deleted by the contributor user
-    Project.objects.create_project(name="e2e-delete-proj-test", owner=user, description="")
+    if not User.objects.filter(email=email).exists():
+        user = User.objects.create_user(username, email, pwd)
+    else:
+        user = User.objects.get(username=email)
 
-    # Create a second user (the contributor's collaborator user)
+    # Check if project exists, otherwise, create it
+    if not Project.objects.filter(name="e2e-delete-proj-test").exists():
+        _ = Project.objects.create_project(name="e2e-delete-proj-test", owner=user, description="")
+
+    # Create the contributor's collaborator user
     co_userdata = testdata["contributor_collaborator"]
     co_username = co_userdata["username"]
     co_email = co_userdata["email"]
     co_pwd = co_userdata["password"]
-    co_user = User.objects.create_user(co_username, co_email, co_pwd)
-    co_user.save()
 
-    # Create a dummy project for the second user
-    Project.objects.create_project(name="e2e-collaborator-proj-test", owner=co_user, description="")
+    if not User.objects.filter(username=co_email).exists():
+        co_user = User.objects.create_user(co_username, co_email, co_pwd)
+    else:
+        co_user = User.objects.get(username=co_email)
+
+    # Check if project exists, otherwise, create it
+    if not Project.objects.filter(name="e2e-collaborator-proj-test").exists():
+        _ = Project.objects.create_project(name="e2e-collaborator-proj-test", owner=co_user, description="")
