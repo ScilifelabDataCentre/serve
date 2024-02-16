@@ -365,6 +365,7 @@ APPS_PER_PROJECT_LIMIT = {
     "vscode": 3,
     "jupyter-lab": 3,
     "mlflow": 1,
+    "tissuumaps": 1,
     "volumeK8s": 0,
     "minio": 1,
     "mongo-express": 0,
