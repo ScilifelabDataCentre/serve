@@ -225,7 +225,7 @@
                         {% if subval.type == "string" %}
                         <label class="form-label">{{ subval.title }}</label>
                         {% if subkey == "image" %}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="DockerHub or Github Docker Image for the app">
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Docker Image for the app uploaded to DockerHub or GitHub. Each version of your app should have a unique tag.">
                         </span>
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control" required>
                         <div class="invalid-feedback">
