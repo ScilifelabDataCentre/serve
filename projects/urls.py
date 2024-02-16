@@ -105,6 +105,7 @@ else:
     urlpatterns = basicpatterns
 
 
+# Related to SS-861
 # Everying below this comment should be removed once the new urls are used everywhere by users.
 # This was written on 2024-02-16
 
