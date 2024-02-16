@@ -66,7 +66,7 @@ class AppSettingsViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        url = f"/{self.user.username}/{self.project.slug}/" + f"apps/settings/{self.app_instance.id}"
+        url = f"/{self.project.slug}/" + f"apps/settings/{self.app_instance.id}"
 
         response = c.get(url)
 
@@ -83,7 +83,7 @@ class AppSettingsViewTestCase(TestCase):
         self.app.user_can_edit = True
         self.app.save()
 
-        url = f"/{self.user.username}/{self.project.slug}/" + f"apps/settings/{self.app_instance.id}"
+        url = f"/{self.project.slug}/" + f"apps/settings/{self.app_instance.id}"
 
         response = c.get(url)
 

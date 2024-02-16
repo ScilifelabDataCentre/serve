@@ -8,7 +8,7 @@
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' project.slug %}">{{ project.name }}</a></li>
       <li class="breadcrumb-item active" aria-current="page">Update {{ app.name }}</li>
     </ol>
 </nav>
@@ -373,7 +373,7 @@
             <h3 class="card-title">Tags</h3>
             <p>Add relevant keywords to help users find your app in our catalog of public apps.</p>
 
-            <form method="POST" action="{% url 'apps:add_tag' request.user project.slug appinstance.pk %}">
+            <form method="POST" action="{% url 'apps:add_tag' project.slug appinstance.pk %}">
 
                 {% csrf_token %}
 
@@ -400,7 +400,7 @@
                 {% with appinstance.tags|split:"," as tags %}
                 {% for tag in tags %}
                 <div class="col-3 d-flex">
-                    <form action="{% url 'apps:remove_tag' request.user project.slug appinstance.pk %}" method="post">
+                    <form action="{% url 'apps:remove_tag' project.slug appinstance.pk %}" method="post">
                         {% csrf_token %}
                         <span class="badge bg-primary d-flex align-items-center m-1">
                             {{tag}} <button type="submit" class="btn-close btn-close-white ms-1" name="tag" value="{{tag}}"
@@ -520,7 +520,7 @@
         var rn = document.getElementById('rn').value
         $.ajax({
             type: "POST",
-            url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
+            url: '{% url "apps:create_releasename" project.slug app.slug %}',
             data: {"rn": rn,"csrfmiddlewaretoken": '{{ csrf_token }}'},
             success: function(data){
                 if (data.available == "true"){

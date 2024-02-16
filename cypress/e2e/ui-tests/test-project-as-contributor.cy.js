@@ -51,7 +51,7 @@ describe("Test project contributor user functionality", () => {
 
         // Next click button to create a new blank project
         cy.get("a").contains('Create').first().click()
-        cy.url().should("include", "projects/create?template=")
+        cy.url().should("include", "projects/create/?template=")
         cy.get('h3').should('contain', 'New project')
 
         // Fill in the options for creating a new blank project
@@ -123,7 +123,7 @@ describe("Test project contributor user functionality", () => {
 
         // Next click button to create a new blank project
         cy.get(".card-footer").last().contains("Create").click()
-        cy.url().should("include", "projects/create?template=")
+        cy.url().should("include", "projects/create/?template=")
         cy.get('h3').should('contain', 'New project')
 
         // Fill in the options for creating a new blank project
@@ -239,7 +239,7 @@ describe("Test project contributor user functionality", () => {
                         projectURL = url
                     });
                 cy.then(() =>
-                    cy.request({url: projectURL + "/apps/create/jupyter-lab?from=overview", failOnStatusCode: false}).its('status').should('equal', 403)
+                    cy.request({url: projectURL + "apps/create/jupyter-lab?from=overview", failOnStatusCode: false}).its('status').should('equal', 403)
                     )
                 })
 
@@ -272,8 +272,8 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.get("button").contains('New project').should('not.have.attr', 'href')
         // if accessing directly with the url, the request is not accepted
-        cy.request({url: "/projects/create", failOnStatusCode: false}).its('status').should('equal', 403)
-        cy.request({url: "/projects/templates", failOnStatusCode: false}).its('status').should('equal', 403)
+        cy.request({url: "/projects/create/", failOnStatusCode: false}).its('status').should('equal', 403)
+        cy.request({url: "/projects/templates/", failOnStatusCode: false}).its('status').should('equal', 403)
 
         // Now delete all created projects
         Cypress._.times(5, () => {
@@ -466,7 +466,9 @@ describe("Test project contributor user functionality", () => {
         cy.get('div.card-body:contains("Activate file managing tools")').find('a:contains("Activate")').click()
         cy.get('button').contains("Activate").first().click()
         cy.get('#manage-files > .card > .row').should('contain', 'File managing is activated')
-        cy.get('#manage-files > .card > .row').find('span').should('contain', 'Created')
+
+        // change the command to check for Created OR Running
+        cy.get('#manage-files > .card > .row').find('span').should('contain', 'Created');
 
         // TO-DO: Checking that the created Minio instance is accessible and can log in with the provided credentials
 
