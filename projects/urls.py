@@ -2,10 +2,11 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 
-# These import are temporary and should be removed once the new urls are used everywhere by users.
 from django.http import HttpResponseRedirect
 from django.urls import path
+# This import are temporary and should be removed once the new urls are used everywhere by users.
 from django.views import View
+
 
 from . import views
 from .views import (
@@ -14,9 +15,6 @@ from .views import (
     RevokeAccessToProjectView,
     UpdatePatternView,
 )
-
-#############################################
-
 
 app_name = "projects"
 User = get_user_model()
