@@ -3,7 +3,9 @@ kind: Ingress
 metadata:
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "10000M"
-  name: {{ .Release.Name }}-minio
+    nginx.ingress.kubernetes.io/auth-url: "{{ .Values.global.protocol }}://{{ .Values.global.auth_domain }}:8080/auth/?release={{ .Values.release }}"
+    nginx.ingress.kubernetes.io/auth-signin: "https://{{ .Values.global.domain }}/accounts/login/?next=$scheme%3A%2F%2F$host"
+  name: {{ .Release.Name }}-filemanager-ingress
   namespace: {{ .Values.namespace }}
 spec:
   rules:
@@ -15,17 +17,7 @@ spec:
             service:
               name: {{ .Values.service.name }}
               port:
-                name: console
-          pathType: ImplementationSpecific
-    - host: api-{{ .Release.Name }}.{{ .Values.global.domain }}
-      http:
-        paths:
-        - path: /
-          backend:
-            service:
-              name: {{ .Values.service.name }}
-              port:
-                name: api
+                number: {{ .Values.service.port }}
           pathType: ImplementationSpecific
 
   tls:
