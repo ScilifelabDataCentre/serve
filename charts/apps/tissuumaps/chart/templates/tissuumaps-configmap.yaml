@@ -9,3 +9,5 @@ data:
     PLUGIN_FOLDER = "/mnt/data/plugins/"
     SLIDE_DIR = "/mnt/data/shared/"
     DEFAULT_PROJECT = "project.tmap"
+    COLLAPSE_TOP_MENU = True
+    PROJECT_LIST = True
