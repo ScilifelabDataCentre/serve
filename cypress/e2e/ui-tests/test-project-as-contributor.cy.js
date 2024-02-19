@@ -463,7 +463,7 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
-        cy.get('div.card-body:contains("Activate file managing tools")').find('a:contains("Activate")').click()
+        cy.get('div.card-body:contains("Activate File Manager")').find('a:contains("Activate")').click()
         cy.get('button').contains("Activate").first().click()
         cy.get('#manage-files > .card > .row').should('contain', 'File managing is activated')
 

@@ -583,6 +583,8 @@ class DetailsView(View):
                 timedelta = datetime.timedelta(hours=24)
                 hours = timedelta - age
                 hours = round(hours.total_seconds() / 3600)
+            else:
+                hours = 0
 
         context = {
             "resources": resources,
