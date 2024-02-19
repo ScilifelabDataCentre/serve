@@ -182,9 +182,6 @@ def post_delete_hooks(appinstance):
         status.status_type = "Deleted"
         appinstance.save()
         status.save()
-        
-        
-        
 
 
 @shared_task
