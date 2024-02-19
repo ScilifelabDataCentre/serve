@@ -1,4 +1,5 @@
 import base64
+import datetime
 import logging
 
 import requests as r
@@ -575,12 +576,21 @@ class DetailsView(View):
                 user=request.user, project=project, filter_func=filter_app_slug(slug="filemanager")
             ).first()
 
+            if filemanager_instance:
+                creation_date = filemanager_instance.created_on
+                now = datetime.datetime.now(datetime.timezone.utc)
+                age = now - creation_date
+                timedelta = datetime.timedelta(hours=24)
+                hours = timedelta - age
+                hours = round(hours.total_seconds() / 3600)
+
         context = {
             "resources": resources,
             "models": models,
             "project": project,
             "app_ids": app_ids,
             "filemanager_instance": filemanager_instance,
+            "hours": hours,
         }
 
         return render(
