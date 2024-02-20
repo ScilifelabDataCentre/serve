@@ -400,10 +400,12 @@
                 style="min-height: 3rem;">
                 <h5 class="card-title mb-0">Manage Files</h5>
                 <div>
+                    {% if filemanager_instance %}
                     <strong>Status:</strong>
                     <span class="badge bg-secondary" id="status-{{ filemanager_instance.pk }}">
                         {{ filemanager_instance.status.latest.status_type }}
                     </span>
+                    {% endif %}
                 </div>
             </div>
             {% if filemanager_instance %}
@@ -435,13 +437,8 @@
                                             {% if filemanager_instance %}
                                             <button class="btn btn-profile btn-sm" disabled>Activated</button>
                                             {% else %}
-<<<<<<< HEAD
                                             <a class="btn btn-profile btn-sm"
                                             href="{% url 'apps:create' project.slug "filemanager"  %}?from=overview">Activate</a>
-=======
-                                            <a class="btn btn-success btn-sm"
-                                            href="{% url 'apps:create' project.slug "minio"  %}?from=overview">Activate</a>
->>>>>>> d109c924ec1e8a33b9591e380d0970321575030b
                                             {% endif %}
 
                                         </div>
