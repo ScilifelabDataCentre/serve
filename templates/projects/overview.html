@@ -435,8 +435,13 @@
                                             {% if filemanager_instance %}
                                             <button class="btn btn-profile btn-sm" disabled>Activated</button>
                                             {% else %}
+<<<<<<< HEAD
                                             <a class="btn btn-profile btn-sm"
                                             href="{% url 'apps:create' project.slug "filemanager"  %}?from=overview">Activate</a>
+=======
+                                            <a class="btn btn-success btn-sm"
+                                            href="{% url 'apps:create' project.slug "minio"  %}?from=overview">Activate</a>
+>>>>>>> d109c924ec1e8a33b9591e380d0970321575030b
                                             {% endif %}
 
                                         </div>
