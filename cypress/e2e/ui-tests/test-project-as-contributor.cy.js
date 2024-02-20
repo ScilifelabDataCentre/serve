@@ -465,7 +465,7 @@ describe("Test project contributor user functionality", () => {
 
         cy.get('div.card-body:contains("Activate File Manager")').find('a:contains("Activate")').click()
         cy.get('button').contains("Activate").first().click()
-        cy.get('#manage-files > .card > .row').should('contain', 'File managing is activated')
+        cy.get('#manage-files > .card > .row').should('contain', 'File Manager is activated')
 
         // change the command to check for Created OR Running
         cy.get('#manage-files > .card > .row').find('span').should('contain', 'Created');
