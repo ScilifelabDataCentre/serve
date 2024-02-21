@@ -55,31 +55,19 @@
   {
     "fields": {
       "category": "manage-files",
-      "chart": "apps/minio/chart",
+      "chart": "apps/filemanager/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "minio-logo.svg",
-      "name": "Minio",
+      "logo": "filemanager-logo.svg",
+      "name": "File Manager",
       "priority": "200",
       "settings": {
         "apps": {
           "Persistent Volume": "one"
         },
-        "credentials": {
-          "access_key": {
-            "default": "accesskey",
-            "title": "Username",
-            "type": "minio-username"
-          },
-          "secret_key": {
-            "default": "secretkey123",
-            "title": "Password",
-            "type": "minio-password"
-          }
-        },
         "default_values": {
-          "port": "9000",
-          "targetport": "9000"
+          "port": "8080",
+          "targetport": "8080"
         },
         "permissions": {
           "private": {
@@ -100,11 +88,11 @@
           }
         }
       },
-      "slug": "minio",
+      "slug": "filemanager",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
-      "updated_on": "2021-03-10T19:45:03.927Z"
+      "updated_on": "2024-02-10T19:45:03.927Z"
     },
     "model": "apps.apps",
     "pk": 9
@@ -831,31 +819,19 @@
   {
     "fields": {
       "category": "admin-apps",
-      "chart": "apps/minio/chart",
+      "chart": "apps/filemanager/chart",
       "created_on": "2023-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "minio-logo.svg",
-      "name": "Minio Admin",
+      "logo": "filemanager-logo.svg",
+      "name": "File Manager Admin",
       "priority": "200",
       "settings": {
         "apps": {
           "Persistent Volume": "one"
         },
-        "credentials": {
-          "access_key": {
-            "default": "accesskey",
-            "title": "Username",
-            "type": "minio-username"
-          },
-          "secret_key": {
-            "default": "secretkey123",
-            "title": "Password",
-            "type": "minio-password"
-          }
-        },
         "default_values": {
-          "port": "9000",
-          "targetport": "9000"
+          "port": "8080",
+          "targetport": "8080"
         },
         "flavor": "one",
         "permissions": {
@@ -877,7 +853,7 @@
           }
         }
       },
-      "slug": "minio-admin",
+      "slug": "filemanager-admin",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
@@ -891,7 +867,7 @@
       "category": "serve",
       "chart": "apps/tissuumaps/chart",
       "created_on": "2023-08-25T21:34:37.815Z",
-      "description": "Apps built with the TissUUmaps image.",
+      "description": "App to visualise and explore data using TissUUmaps.",
       "logo": "tissuumaps-logo.svg",
       "name": "TissUUmaps App",
       "priority": "400",
@@ -910,14 +886,14 @@
         "permissions": {
           "private": {
             "option": "true",
-            "value": "false"
+            "value": "true"
           },
           "project": {
             "option": "true",
-            "value": "true"
+            "value": "false"
           },
           "public": {
-            "option": "false",
+            "option": "true",
             "value": "false"
           }
         },

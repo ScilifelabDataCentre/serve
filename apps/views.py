@@ -1,6 +1,4 @@
 import re
-import secrets
-import string
 from datetime import datetime
 
 import requests
@@ -10,7 +8,6 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
-from django.utils.crypto import get_random_string
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
@@ -159,7 +156,7 @@ class FilteredView(View):
     name="dispatch",
 )
 class GetStatusView(View):
-    def post(self, request, user, project):
+    def post(self, request, project):
         body = request.POST.get("apps", "")
 
         result = {}
@@ -203,7 +200,7 @@ class AppSettingsView(View):
 
         return [project, appinstance]
 
-    def get(self, request, user, project, ai_id):
+    def get(self, request, project, ai_id):
         project, appinstance = self.get_shared_data(project, ai_id)
         domain = DOMAIN
         all_tags = AppInstance.tags.tag_model.objects.all()
@@ -250,7 +247,7 @@ class AppSettingsView(View):
 
         return render(request, template, locals())
 
-    def post(self, request, user, project, ai_id):
+    def post(self, request, project, ai_id):
         project, appinstance = self.get_shared_data(project, ai_id)
 
         app = appinstance.app
@@ -266,7 +263,6 @@ class AppSettingsView(View):
             reverse(
                 "projects:details",
                 kwargs={
-                    "user": request.user,
                     "project_slug": str(project.slug),
                 },
             )
@@ -343,7 +339,7 @@ class AppSettingsView(View):
 
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
-def create_releasename(request, user, project, app_slug):
+def create_releasename(request, project, app_slug):
     pattern = re.compile("^[a-z0-9][a-z0-9-]+[a-z0-9]$")
     available = "invalid"
     system_subdomains = ["keycloak", "grafana", "prometheus", "studio"]
@@ -367,7 +363,7 @@ def create_releasename(request, user, project, app_slug):
 
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
-def add_tag(request, user, project, ai_id):
+def add_tag(request, project, ai_id):
     appinstance = AppInstance.objects.get(pk=ai_id)
     if request.method == "POST":
         new_tags = request.POST.get("tag", "")
@@ -379,13 +375,13 @@ def add_tag(request, user, project, ai_id):
     return HttpResponseRedirect(
         reverse(
             "apps:appsettings",
-            kwargs={"user": user, "project": project, "ai_id": ai_id},
+            kwargs={"project": project, "ai_id": ai_id},
         )
     )
 
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
-def remove_tag(request, user, project, ai_id):
+def remove_tag(request, project, ai_id):
     appinstance = AppInstance.objects.get(pk=ai_id)
     if request.method == "POST":
         print(request.POST)
@@ -397,7 +393,7 @@ def remove_tag(request, user, project, ai_id):
     return HttpResponseRedirect(
         reverse(
             "apps:appsettings",
-            kwargs={"user": user, "project": project, "ai_id": ai_id},
+            kwargs={"project": project, "ai_id": ai_id},
         )
     )
 
@@ -450,7 +446,7 @@ class CreateView(View):
 
         return [project, app, app_settings]
 
-    def get(self, request, user, project, app_slug, data=[], wait=False, call=False):
+    def get(self, request, project, app_slug, data=[], wait=False, call=False):
         template = "apps/create.html"
         project, app, app_settings = self.get_shared_data(project, app_slug)
 
@@ -470,17 +466,13 @@ class CreateView(View):
         if not user_can_create:
             return HttpResponseForbidden()
 
-        if app.slug == "minio":
-            minio_username = get_random_string(8)
-            minio_password = get_random_string(8)
-
         do_display_description_field = app.category is not None and app.category.name.lower() == "serve"
 
         form = generate_form(app_settings, project, app, user, [])
 
         return render(request, template, locals())
 
-    def post(self, request, user, project, app_slug, data=[], wait=False):
+    def post(self, request, project, app_slug, data=[], wait=False):
         project, app, app_settings = self.get_shared_data(project, app_slug)
         data = request.POST
         user = request.user
@@ -504,7 +496,6 @@ class CreateView(View):
                 reverse(
                     "projects:details",
                     kwargs={
-                        "user": request.user,
                         "project_slug": str(project.slug),
                     },
                 )
@@ -517,7 +508,6 @@ class CreateView(View):
                     reverse(
                         "projects:details",
                         kwargs={
-                            "user": request.user,
                             "project_slug": str(project_slug),
                         },
                     )
@@ -527,7 +517,6 @@ class CreateView(View):
             reverse(
                 "apps:filtered",
                 kwargs={
-                    "user": request.user,
                     "project": str(project_slug),
                     "category": app_category_slug,
                 },
@@ -594,7 +583,7 @@ def unpublish(request, user, project, category, ai_id):
 
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
-def delete(request, user, project, category, ai_id):
+def delete(request, project, category, ai_id):
     if "from" in request.GET:
         from_page = request.GET.get("from")
     else:
@@ -617,7 +606,6 @@ def delete(request, user, project, category, ai_id):
                 reverse(
                     "projects:details",
                     kwargs={
-                        "user": request.user,
                         "project_slug": str(project),
                     },
                 )
@@ -627,7 +615,6 @@ def delete(request, user, project, category, ai_id):
                 reverse(
                     "apps:filtered",
                     kwargs={
-                        "user": request.user,
                         "project": str(project),
                         "category": category,
                     },
@@ -638,7 +625,6 @@ def delete(request, user, project, category, ai_id):
                 reverse(
                     "apps:filtered",
                     kwargs={
-                        "user": request.user,
                         "project": str(project),
                         "category": category,
                     },
@@ -649,7 +635,6 @@ def delete(request, user, project, category, ai_id):
         reverse(
             "apps:filtered",
             kwargs={
-                "user": request.user,
                 "project": str(project),
                 "category": category,
             },

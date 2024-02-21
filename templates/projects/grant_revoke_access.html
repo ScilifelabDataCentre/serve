@@ -3,7 +3,7 @@
     <div class="card-header bg-light py-3">
         <h5 class="card-title mb-0">Grant or revoke access</h5>
     </div>
-    <form autocomplete="off" action="{% url 'projects:grant_access' request.user project.slug %}" method="post">
+    <form autocomplete="off" action="{% url 'projects:grant_access' project.slug %}" method="post">
         {% csrf_token %}
         <div class="card-body">
 
@@ -78,7 +78,7 @@
 
         <script>
 
-            const url = "{% url 'projects:revoke_access' request.user project.slug %}"
+            const url = "{% url 'projects:revoke_access' project.slug %}"
             const csrftoken = getCookie('csrftoken');
             const elements = document.querySelectorAll(".confirm-revoke-access")
 

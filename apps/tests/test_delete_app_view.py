@@ -65,7 +65,7 @@ class DeleteAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        url = f"/{self.user.username}/{self.project.slug}/apps/delete/" + f"{self.category.slug}/{self.app_instance.id}"
+        url = f"/{self.project.slug}/apps/delete/" + f"{self.category.slug}/{self.app_instance.id}"
 
         response = c.get(url)
 
@@ -83,10 +83,7 @@ class DeleteAppViewTestCase(TestCase):
         self.app.save()
 
         with patch("apps.tasks.delete_resource.delay") as mock_task:
-            url = (
-                f"/{self.user.username}/{self.project.slug}/apps/delete/"
-                + f"{self.category.slug}/{self.app_instance.id}"
-            )
+            url = f"/{self.project.slug}/apps/delete/" + f"{self.category.slug}/{self.app_instance.id}"
 
             response = c.get(url)
 

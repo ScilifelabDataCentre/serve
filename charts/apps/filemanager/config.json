@@ -1,35 +1,15 @@
 {
   "category": "store",
   "description": "",
-  "name": "Minio",
+  "name": "File Manager",
   "priority": "200",
   "settings": {
     "apps": {
       "Persistent Volume": "one"
     },
-    "credentials": {
-      "access_key": {
-        "default": "accesskey",
-        "title": "Access Key",
-        "type": "string"
-      },
-      "secret_key": {
-        "default": "secretkey123",
-        "title": "Secret Key",
-        "type": "string"
-      }
-    },
     "default_values": {
-      "port": "9000",
-      "targetport": "9000"
-    },
-    "keycloak-config": {
-      "default-roles": [
-        "readwrite"
-      ],
-      "roles": [
-        "readwrite"
-      ]
+      "port": "8080",
+      "targetport": "8080"
     },
     "permissions": {
       "link": {
@@ -50,7 +30,7 @@
       }
     }
   },
-  "slug": "minio",
+  "slug": "filemanager",
   "table_field": {
     "url": "https://{{ release }}.{{ global.domain }}"
   }
