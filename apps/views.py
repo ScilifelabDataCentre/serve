@@ -1,6 +1,4 @@
 import re
-import secrets
-import string
 from datetime import datetime
 
 import requests
@@ -10,7 +8,6 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
-from django.utils.crypto import get_random_string
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
@@ -469,10 +466,6 @@ class CreateView(View):
 
         if not user_can_create:
             return HttpResponseForbidden()
-
-        if app.slug == "minio":
-            minio_username = get_random_string(8)
-            minio_password = get_random_string(8)
 
         do_display_description_field = app.category is not None and app.category.name.lower() == "serve"
 

@@ -1,4 +1,5 @@
 import base64
+import datetime
 import logging
 
 import requests as r
@@ -530,7 +531,7 @@ class DetailsView(View):
         models = Model.objects.none()
         app_ids = []
         project = None
-        minio_instance = None
+        filemanager_instance = None
 
         if request.user.is_authenticated:
             project = Project.objects.get(slug=project_slug)
@@ -571,16 +572,27 @@ class DetailsView(View):
             def filter_app_slug(slug):
                 return Q(app__slug=slug)
 
-            minio_instance = AppInstance.objects.get_app_instances_of_project(
-                user=request.user, project=project, filter_func=filter_app_slug(slug="minio")
+            filemanager_instance = AppInstance.objects.get_app_instances_of_project(
+                user=request.user, project=project, filter_func=filter_app_slug(slug="filemanager")
             ).first()
+
+            if filemanager_instance:
+                creation_date = filemanager_instance.created_on
+                now = datetime.datetime.now(datetime.timezone.utc)
+                age = now - creation_date
+                timedelta = datetime.timedelta(hours=24)
+                hours = timedelta - age
+                hours = round(hours.total_seconds() / 3600)
+            else:
+                hours = 0
 
         context = {
             "resources": resources,
             "models": models,
             "project": project,
             "app_ids": app_ids,
-            "minio_instance": minio_instance,
+            "filemanager_instance": filemanager_instance,
+            "hours": hours,
         }
 
         return render(

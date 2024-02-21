@@ -399,51 +399,25 @@
             <div class="card-header border-bottom-0 d-flex align-items-center justify-content-between py-3"
                 style="min-height: 3rem;">
                 <h5 class="card-title mb-0">Manage Files</h5>
+                <div>
+                    {% if filemanager_instance %}
+                    <strong>Status:</strong>
+                    <span class="badge bg-secondary" id="status-{{ filemanager_instance.pk }}">
+                        {{ filemanager_instance.status.latest.status_type }}
+                    </span>
+                    {% endif %}
+                </div>
             </div>
-            {% if minio_instance %}
+            {% if filemanager_instance %}
             <div class="row p-3">
                <div class="col-12 col-sm-6">
-                    <p>File managing is activated and was created on {{ minio_instance.created_on }}</p>
-                    <p>You can reach the console by clicking the button below</p>
-                    <a class="btn btn-primary mb-3" href="{{ minio_instance.table_field.url }}" target="_blank">
+
+                    <p>File Manager is activated and will be closed in {{ hours }} hours</p>
+                    <p>You can reach the manager by clicking the button below</p>
+                    <a class="btn btn-primary mb-3" href="{{ filemanager_instance.table_field.url }}" target="_blank">
                         Open File Manager <i class="bi bi-box-arrow-up-right"></i>
                     </a>
-                    <p>To use the S3-API - Read the  <a href="https://serve.scilifelab.se/docs/files/">instructions here</a></p>
                </div>
-                <div class="col-12 col-sm-6">
-                    <h5 class="text-center">Credentials - Click to reveal and copy</h5>
-                    <ul class="list-group list-group-flush">
-                    <li class="list-group-item">
-                        <strong>Status:</strong>
-                        <span class="badge bg-secondary" id="status-{{ minio_instance.pk }}">
-                            {{ minio_instance.status.latest.status_type }}
-                        </span>
-
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Username:</strong>
-                        <span onclick="revealCredential('minio-username'); copyClip('{{ minio_instance.parameters.credentials.access_key }}', event)">
-                            <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.access_key }}" id="minio-username" disabled style="pointer-events: none;">
-                        </span>
-
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Password:</strong>
-                        <span onclick="revealCredential('minio-password'); copyClip('{{ minio_instance.parameters.credentials.secret_key }}', event)">
-                            <input class="border-0 text-dark" type="password" value="{{ minio_instance.parameters.credentials.secret_key }}" id="minio-password" disabled style="pointer-events: none;">
-                        </span>
-
-                    </li>
-                    <li class="list-group-item">
-                        <strong>API Endpoint:</strong>
-                        <span onclick="copyClip('{{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }}', event)">
-                            {{ minio_instance.table_field.url|slice:":8"|add:"api-" }}{{ minio_instance.table_field.url|slice:"8:" }}
-                        </span>
-                    </li>
-                    </ul>
-                </div>
-
-
 
             </div>
             {% else %}
@@ -456,22 +430,22 @@
                             <div class="row g-0 w-100 h-100">
                                 <div class="col-8 d-flex align-items-bottom flex-column">
                                     <div class="pt-2">
-                                        <h5>Activate file managing tools. </h5>
+                                        <h5>Activate File Manager</h5>
                                     </div>
                                     <div class="align-items-end d-flex h-100">
                                         <div>
-                                            {% if minio_instance %}
-                                            <button class="btn btn-success btn-sm" disabled>Activated</button>
+                                            {% if filemanager_instance %}
+                                            <button class="btn btn-profile btn-sm" disabled>Activated</button>
                                             {% else %}
-                                            <a class="btn btn-success btn-sm"
-                                            href="{% url 'apps:create' project.slug "minio"  %}?from=overview">Activate</a>
+                                            <a class="btn btn-profile btn-sm"
+                                            href="{% url 'apps:create' project.slug "filemanager"  %}?from=overview">Activate</a>
                                             {% endif %}
 
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-4">
-                                    <img src="/static/images/logos/apps/minio-logo.svg" class="img-fluid float-end w-75" alt="App Logo">
+                                    <img src="/static/images/logos/apps/filemanager-logo.svg" class="img-fluid float-end w-75" alt="App Logo">
                                 </div>
                             </div>
                         </div>

@@ -463,12 +463,12 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
-        cy.get('div.card-body:contains("Activate file managing tools")').find('a:contains("Activate")').click()
+        cy.get('div.card-body:contains("Activate File Manager")').find('a:contains("Activate")').click()
         cy.get('button').contains("Activate").first().click()
-        cy.get('#manage-files > .card > .row').should('contain', 'File managing is activated')
+        cy.get('#manage-files > .card > .row').should('contain', 'File Manager is activated')
 
-        // change the command to check for Created OR Running
-        cy.get('#manage-files > .card > .row').find('span').should('contain', 'Created');
+        // change the command to check for Created
+        cy.get('#manage-files .card-header').find('span.badge').should('contain', 'Created');
 
         // TO-DO: Checking that the created Minio instance is accessible and can log in with the provided credentials
 
