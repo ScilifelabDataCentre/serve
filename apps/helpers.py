@@ -166,6 +166,7 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
         parameters=parameters_out,
         owner=user,
         flavor=flavor,
+        note_on_linkonly_privacy=data.get("link_privacy_type_note"),
     )
 
     create_instance_params(app_instance, "create")

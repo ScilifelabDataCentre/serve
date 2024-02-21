@@ -174,6 +174,7 @@ class AppInstance(models.Model):
     table_field = models.JSONField(blank=True, null=True)
     tags = TagField(blank=True)
     updated_on = models.DateTimeField(auto_now=True)
+    note_on_linkonly_privacy = models.TextField(blank=True, null=True, default="")
 
     class Meta:
         permissions = [("can_access_app", "Can access app service")]
