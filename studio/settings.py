@@ -180,6 +180,14 @@ LOGOUT_URL = "logout"
 # Make new user inactive by default
 INACTIVE_USERS = True
 
+# Session settings for managing automatic login expiration.
+# The age of session cookies, in seconds. Set to 1 day = 86400 seconds:
+SESSION_COOKIE_AGE = 86400
+# Whether to save the session data on every request. For sliding expiration:
+SESSION_SAVE_EVERY_REQUEST = True
+# Whether to expire the session when the user closes their browser:
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
 # Django guardian 403 templates
 GUARDIAN_RENDER_403 = True
 GUARDIAN_TEMPLATE_403 = "403.html"
@@ -340,7 +348,8 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-VERSION = "dev"
+# 2024-02-21: Removed because this is not used.
+# VERSION = "dev"
 
 MIGRATION_MODULES = {
     "apps": "studio.migrations.apps",
