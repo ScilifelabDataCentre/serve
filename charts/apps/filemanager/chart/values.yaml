@@ -6,7 +6,7 @@ ingress:
   secretName: prod-ingress
 
 appconfig:
-  image: ghcr.io/scilifelabdatacentre/serve-filemanager:240219-1411
+  image: ghcr.io/scilifelabdatacentre/serve-filemanager:240221-0930
 
 podSecurityContext:
   seccompProfile:
