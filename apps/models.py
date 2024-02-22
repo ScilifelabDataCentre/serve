@@ -66,7 +66,7 @@ class AppInstanceManager(models.Manager):
                 q &= ~Q(state="Deleted") | Q(deleted_on__gte=time_threshold)
 
         q &= Q(owner=user) | Q(
-            access__in=["project", "public", "private"] if user.is_superuser else ["project", "public"]
+            access__in=["project", "public", "private", "link"] if user.is_superuser else ["project", "public", "link"]
         )
         q &= Q(project=project)
 
