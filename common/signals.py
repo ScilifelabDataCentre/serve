@@ -1,8 +1,20 @@
+import logging
+import time
+
 from django.contrib.auth.models import User
+from django.contrib.auth.signals import user_logged_in, user_login_failed
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from common.models import EmailVerificationTable, UserProfile
+
+logger = logging.getLogger(__name__)
+
+
+@receiver(user_login_failed)
+def log_failed_attempt(sender, credentials: dict, request=None, **kwargs):
+    logger.debug("User login attempt failed. Sleeping for 1 sec.")
+    time.sleep(1)
 
 
 @receiver(pre_save, sender=User)
