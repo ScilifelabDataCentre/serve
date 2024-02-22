@@ -144,7 +144,12 @@ def get_form_permission(aset, project, appinstance=[]):
     }
     dep_permissions = True
     if "permissions" in aset:
-        form_permissions = aset["permissions"]
+        form_permissions["project"] = aset["permissions"]["project"]
+        form_permissions["public"] = aset["permissions"]["public"]
+        form_permissions["link"] = aset["permissions"]["link"]
+        form_permissions["private"] = aset["permissions"]["private"]
+
+        # I don't really know why we keep this
         # if not form_permissions:
         #     dep_permissions = False
 
