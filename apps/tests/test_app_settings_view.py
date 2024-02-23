@@ -33,6 +33,7 @@ class AppSettingsViewTestCase(TestCase):
                     "public": {"value": "false", "option": "false"},
                     "project": {"value": "true", "option": "true"},
                     "private": {"value": "false", "option": "true"},
+                    "link": {"value": "false", "option": "true"},
                 },
                 "export-cli": "True",
             },
