@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Locked out{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="card border-0 shadow-lg my-5">
+            <div class="card-body p-0">
+                <!-- Nested Row within Card Body -->
+                <div class="row">
+                    <div class="col-lg-2 d-none d-lg-block"></div>
+                        <div class="col-lg-8">
+                            <div class="p-5">
+                                <div class="text-center alert alert-warning">
+                                    <h1 class="h2 text-dark mb-4">
+                                        Your account has been locked
+                                    </h1>
+
+                                    <p>
+                                        As a security precaution, the user account has been locked because there were too
+                                        many failed login attempts with the username {{ username }}
+                                    </p>
+
+                                    <p>Please wait a while before trying again.</p>
+
+                                    <p>To receive help from the Serve administrators, please email <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
