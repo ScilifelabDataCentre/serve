@@ -471,6 +471,8 @@ class CreateProjectView(View):
         success = True
 
         template_id = request.POST.get("template_id")
+        project_template = ProjectTemplate.objects.get(pk=template_id)
+
         name = request.POST.get("name", "default")[:200]
         description = request.POST.get("description", "")
 
@@ -481,6 +483,7 @@ class CreateProjectView(View):
                 owner=request.user,
                 description=description,
                 status="created",
+                project_template=project_template,
             )
         except ProjectCreationException:
             print("ERROR: Failed to create project database object.")
@@ -488,7 +491,7 @@ class CreateProjectView(View):
 
         try:
             # Create resources from the chosen template
-            project_template = ProjectTemplate.objects.get(pk=template_id)
+
             create_resources_from_template.delay(request.user.username, project.slug, project_template.template)
 
         except ProjectCreationException:
