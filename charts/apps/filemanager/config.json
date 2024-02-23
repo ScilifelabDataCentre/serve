@@ -12,6 +12,10 @@
       "targetport": "8080"
     },
     "permissions": {
+      "link": {
+        "option": "false",
+        "value": "false"
+      },
       "private": {
         "option": "true",
         "value": "false"

@@ -19,6 +19,10 @@
       "object_type": "pytorch"
     },
     "permissions": {
+      "link": {
+        "option": "true",
+        "value": "false"
+      },
       "private": {
         "option": "true",
         "value": "false"

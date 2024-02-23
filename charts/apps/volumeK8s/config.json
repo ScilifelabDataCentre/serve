@@ -9,6 +9,10 @@
       "targetport": "targetport"
     },
     "permissions": {
+      "link": {
+        "option": "true",
+        "value": "true"
+      },
       "private": {
         "option": "true",
         "value": "false"
