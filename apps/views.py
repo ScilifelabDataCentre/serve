@@ -34,7 +34,6 @@ def get_status_defs():
 
 
 # Create your views here.
-# TODO: Is this view used?
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
 def index(request, user, project):
     category = "store"
@@ -287,6 +286,7 @@ class AppSettingsView(View):
 
         appinstance.name = request.POST.get("app_name")
         appinstance.description = request.POST.get("app_description")
+        appinstance.note_on_linkonly_privacy = body.get("link_privacy_type_note", "")
         if "appconfig" in appinstance.parameters:
             created_by_admin = False  # default created by admin
             userid = "1000"  # default userid
@@ -317,7 +317,9 @@ class AppSettingsView(View):
                 if not request.user.is_superuser:
                     appinstance.parameters["appconfig"]["userid"] = userid
 
-        appinstance.save(update_fields=["flavor", "name", "description", "parameters", "access"])
+        appinstance.save(
+            update_fields=["flavor", "name", "description", "parameters", "access", "note_on_linkonly_privacy"]
+        )
         self.update_resource(request, appinstance, current_release_name)
 
     def update_resource(self, request, appinstance, current_release_name):
@@ -483,6 +485,10 @@ class CreateView(View):
         if not user_can_create:
             return HttpResponseForbidden()
 
+        # Nikita Churikov @ nikita.churikov@scilifelab.uu.se on 25.01.2024
+        # TODO: This is questionable but I won't touch it for now
+        # 1. We should not be throwing just a generic Exception
+        # 2. Couldn't we add this to the check above?
         if not app.user_can_create:
             raise Exception("User not allowed to create app")
 
@@ -532,6 +538,7 @@ def publish(request, user, project, category, ai_id):
                 "public": True,
                 "project": False,
                 "private": False,
+                "link": False,
             }
 
         app.save()
