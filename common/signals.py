@@ -1,14 +1,8 @@
-import logging
-import time
-
 from django.contrib.auth.models import User
-from django.contrib.auth.signals import user_logged_in, user_login_failed
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from common.models import EmailVerificationTable, UserProfile
-
-logger = logging.getLogger(__name__)
 
 
 @receiver(pre_save, sender=User)
