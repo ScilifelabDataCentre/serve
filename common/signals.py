@@ -11,12 +11,6 @@ from common.models import EmailVerificationTable, UserProfile
 logger = logging.getLogger(__name__)
 
 
-@receiver(user_login_failed)
-def log_failed_attempt(sender, credentials: dict, request=None, **kwargs):
-    logger.debug("User login attempt failed. Sleeping for 1 sec.")
-    time.sleep(1)
-
-
 @receiver(pre_save, sender=User)
 def custom_save(sender, instance, **kwargs):
     """
