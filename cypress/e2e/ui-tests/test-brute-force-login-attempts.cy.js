@@ -41,7 +41,7 @@ describe("Test brute force login attempts are blocked", () => {
         cy.get("title").should("have.text", "Logout | SciLifeLab Serve (beta)")
 
         // Repeatedly perform failing login attempts
-        let n_remaining_attempts = 2
+        let n_remaining_attempts = 4
 
         while (n_remaining_attempts > 0) {
             n_remaining_attempts--

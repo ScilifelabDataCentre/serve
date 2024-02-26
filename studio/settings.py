@@ -185,7 +185,7 @@ INACTIVE_USERS = True
 
 # Settings for the Django Axes brute force login protection
 # Number of allowed login failures before action is taken
-AXES_FAILURE_LIMIT = 3
+AXES_FAILURE_LIMIT = 5
 # Duration in hourse after which old failed login attempts will be cleared
 AXES_COOLOFF_TIME = 0.05
 # Reset the number of failed attempts to 0 after a successful login
