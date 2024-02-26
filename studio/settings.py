@@ -191,7 +191,7 @@ AXES_COOLOFF_TIME = 0.05
 # Reset the number of failed attempts to 0 after a successful login
 AXES_RESET_ON_SUCCESS = True
 # Block failed attempts based on IP and username combination
-AXES_LOCKOUT_PARAMETERS = ["ip_address", ["username"]]
+AXES_LOCKOUT_PARAMETERS = [["ip_address", "username"]]
 # Do not prolong the lock duration upon correct credentials entered during a lock period
 AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
 # Do not save all login and logout attempts to the database
