@@ -4,5 +4,5 @@ from django.test import override_settings
 
 @pytest.fixture(scope="session", autouse=True)
 def set_django_settings():
-    with override_settings(INACTIVE_USERS=False):
+    with override_settings(INACTIVE_USERS=False, AXES_ENABLED=False):
         yield
