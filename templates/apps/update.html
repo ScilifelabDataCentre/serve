@@ -91,7 +91,7 @@
                     </div>
                     {% endif %}
                     {% if form.dep_permissions %}
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item">
                         <label class="form-label">Permissions</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to them. Project apps can only be accessed by project members. Private apps are only accessible by users that create the apps.">
                         </span>
@@ -107,6 +107,20 @@
                             {% endif %}
                             {% endfor %}
                         </select>
+												<div id="id_link_only_note" class="rollable">
+												<div class="row pb-3">
+													<div class="col-12 ">
+															<label class="form-label">Describe, why you want to make the app accessible only via a link</label>
+															<span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip"
+																					 title="" data-bs-placement="right" data-bs-original-title="We ask users to
+																									tell us why they want to make an app accesisble only via a link.
+																									Please consider using it only if you really need it."></span>
+
+												<textarea type="hidden" id="link_privacy_type_note" name="link_privacy_type_note" class="form-control" rows="2">{{form.link_privacy_type_note}}</textarea>
+													</div>
+												</div>
+                    </div>
+
                     </div>
                     {% endif %}
 
@@ -417,6 +431,7 @@
     </div>
 {% endif %}
 </div>
+<script src="{% static 'js/apps_form.js' %}"></script>
 {% if app.slug == "customapp" %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {

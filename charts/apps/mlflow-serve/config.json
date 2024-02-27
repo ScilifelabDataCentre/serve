@@ -27,6 +27,10 @@
       "quantity": "one"
     },
     "permissions": {
+      "link": {
+        "option": "false",
+        "value": "false"
+      },
       "private": {
         "option": "true",
         "value": "false"

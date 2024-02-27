@@ -912,6 +912,25 @@ files = [
 django = "*"
 
 [[package]]
+name = "django-axes"
+version = "6.3.0"
+description = "Keep track of failed login attempts in Django-powered sites."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "django-axes-6.3.0.tar.gz", hash = "sha256:8e415193d7881a3e517734a5ebfde92a0b00a919a0777cbae52c7f0246b30ad1"},
+    {file = "django_axes-6.3.0-py3-none-any.whl", hash = "sha256:86e2444ad024610e6cb8520e88f34a3b4cd042b1234c5c86ecb1d1629b841701"},
+]
+
+[package.dependencies]
+django = ">=3.2"
+django-ipware = {version = ">=3", optional = true, markers = "extra == \"ipware\""}
+setuptools = "*"
+
+[package.extras]
+ipware = ["django-ipware (>=3)"]
+
+[[package]]
 name = "django-celery-beat"
 version = "2.5.0"
 description = "Database-backed Periodic Tasks."
@@ -1031,6 +1050,20 @@ files = [
 
 [package.dependencies]
 Django = ">=2.2"
+
+[[package]]
+name = "django-ipware"
+version = "6.0.4"
+description = "A Django application to retrieve user's IP address"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "django-ipware-6.0.4.tar.gz", hash = "sha256:614d0f0a911f8a765e55b6d358b1715bb85eeb63d1ebb77447d09d645f1343e8"},
+    {file = "django_ipware-6.0.4-py2.py3-none-any.whl", hash = "sha256:09c502ee3b1f8ae08d197d5e1f4397e965d0b201c83de7b5721db1fc460e6ab6"},
+]
+
+[package.dependencies]
+python-ipware = ">=2.0.0"
 
 [[package]]
 name = "django-js-asset"
@@ -2798,6 +2831,20 @@ files = [
 six = ">=1.5"
 
 [[package]]
+name = "python-ipware"
+version = "2.0.1"
+description = "A Python package to retrieve user's IP address"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "python-ipware-2.0.1.tar.gz", hash = "sha256:9ba4805152ebb85ad5b53797185cd1ce6231e1db60155834f326c8cd61e8af34"},
+    {file = "python_ipware-2.0.1-py3-none-any.whl", hash = "sha256:1992920ef553165dfa35e6ea5a90762f64f3b943cc22ee6b4ec02e2c86d31178"},
+]
+
+[package.extras]
+dev = ["coverage[toml]", "coveralls (>=3.3,<4.0)", "ruff", "twine"]
+
+[[package]]
 name = "python-jose"
 version = "3.3.0"
 description = "JOSE implementation in Python"
@@ -3344,7 +3391,7 @@ pbr = "*"
 name = "setuptools"
 version = "69.1.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "setuptools-69.1.0-py3-none-any.whl", hash = "sha256:c054629b81b946d63a9c6e732bc8b2513a7c3ea645f11d0139a2191d735c60c6"},
@@ -3870,4 +3917,4 @@ tests = ["hypothesis", "moto", "pytest", "pytest-cov", "pytest-django", "pytest-
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8.10"
-content-hash = "9b9da9e080062b9151fe9d6520a115c9f7a81dca7d16960a04af951702a9aae0"
+content-hash = "9e9296322f3350723dca7705f441367805bb6d4c9c8d3fcfeb5f9ec10d580c57"

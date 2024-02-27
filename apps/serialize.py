@@ -15,6 +15,7 @@ from .models import AppInstance, Apps
 
 User = get_user_model()
 
+# TODO: minor-refactor: make upper case
 key_words = [
     "appobj",
     "model",
@@ -182,6 +183,7 @@ def serialize_apps(form_selection, project):
 def serialize_primitives(form_selection):
     print("SERIALIZING PRIMITIVES")
     parameters = dict()
+    # TODO: minor-refactor: do for loop over form_selection without new variable
     keys = form_selection.keys()
     for key in keys:
         if key not in key_words and "app:" not in key:
@@ -195,12 +197,22 @@ def serialize_primitives(form_selection):
 
 
 def serialize_permissions(form_selection):
+    """
+    Serialize permissions from form selection into a dictionary (and later into a JSON object)
+
+    To achieve this we first create a dictionary with all permissions set to False.
+    Then we set the permission that was selected (or typed in admin panel) to True.
+
+    :param form_selection: form selection from request.POST
+    :return: dictionary of permissions
+    """
     print("SERIALIZING PERMISSIONS")
     parameters = dict()
     parameters["permissions"] = {
         "public": False,
         "project": False,
         "private": False,
+        "link": False,
     }
 
     permission = form_selection.get("permission", None)
