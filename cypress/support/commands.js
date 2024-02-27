@@ -25,6 +25,9 @@
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 
 Cypress.Commands.add('loginViaUI', (username, password) => {
+
+    // Login via the UI login form and verifies that the login was successful
+
     cy.session(
       username,
       () => {
@@ -42,6 +45,19 @@ Cypress.Commands.add('loginViaUI', (username, password) => {
       }
     )
   })
+
+
+  Cypress.Commands.add('loginViaUINoValidation', (username, password) => {
+
+    // A simpler version of Login via the UI login form that does not verify login success.
+    // It can be used to perform failed login attempts
+
+    cy.visit('/accounts/login/')
+    cy.get('input[name=username]').type(username)
+    cy.get('input[name=password]').type(`${password}{enter}`, { log: false })
+
+  })
+
 
 Cypress.Commands.add('loginViaApi', (username, password) => {
 

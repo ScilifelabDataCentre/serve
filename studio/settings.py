@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     "api",
     "customtags",
     "news",
+    "axes",  # django-axes for brute force login protection
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = [
@@ -99,6 +100,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "axes.middleware.AxesMiddleware",
 ] + DJANGO_WIKI_MIDDLEWARE
 
 ROOT_URLCONF = "studio.urls"
@@ -168,6 +170,7 @@ else:
     }
 
 AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
     "django.contrib.auth.backends.ModelBackend",
     "guardian.backends.ObjectPermissionBackend",
 ]
@@ -187,6 +190,22 @@ SESSION_COOKIE_AGE = 86400
 SESSION_SAVE_EVERY_REQUEST = True
 # Whether to expire the session when the user closes their browser:
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Settings for the Django Axes brute force login protection
+# Number of allowed login failures before action is taken
+AXES_FAILURE_LIMIT = 5
+# Duration in hours after which old failed login attempts will be cleared
+AXES_COOLOFF_TIME = 0.05
+# Reset the number of failed attempts to 0 after a successful login
+AXES_RESET_ON_SUCCESS = True
+# Block failed attempts based on IP and username combination
+AXES_LOCKOUT_PARAMETERS = [["ip_address", "username"]]
+# Do not prolong the lock duration upon correct credentials entered during a lock period
+AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
+# Do not save all login and logout attempts to the database
+AXES_DISABLE_ACCESS_LOG = True
+# The custom view template to display on locked out event
+AXES_LOCKOUT_TEMPLATE = "registration/locked_out.html"
 
 # Django guardian 403 templates
 GUARDIAN_RENDER_403 = True
