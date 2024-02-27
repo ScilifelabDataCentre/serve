@@ -183,7 +183,7 @@
             {% endif %}
                 <div class="row g-2 py-2 mx-2">
                 {% for app in objs.apps %}
-                {% if project.s3storage == None and app.slug in 'mlflow,mlflow-serve,pytorch-serve,tensorflow-serve,python-serve' %}
+                {% if project.project_template.pk == 2 and app.slug in 'mlflow,mlflow-serve,pytorch-serve,tensorflow-serve,python-serve' %}
                 {% elif app.slug == "shinyapp" and not request.user.is_superuser %}
                 {% else %}
                 <div class="col-12 col-sm-6 col-md-4 col-xl-3">
@@ -254,7 +254,7 @@
     {% endif %}
     {% endfor %}
 
-    {% if project.s3storage %}
+    {% if project.project_template.pk == 2 %}
     <div id="models" class="col-12 d-flex">
         <div class="card w-100 border-0 shadow">
             <div class="card-header border-bottom-0 d-flex align-items-center justify-content-between py-3"
