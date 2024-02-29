@@ -39,7 +39,7 @@
                 <form class="needs-validation" action="{% url 'apps:create' project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
 
-                    {% if app.slug == "minio" %}
+                    {% if app.slug == "filemanager" %}
 
 
                     <div class="p-3 mb-3">
@@ -66,7 +66,7 @@
                         <label class="form-label">Name</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Display name for the application. This is the name visible on the app catalogue if the app is public">
                         </span>
-                        <input type="text" id="app_name" name="app_name" value="{% if app.slug == "minio"%}{{ app.slug }}-{{ project.slug }}{% else %}{{ existing_app_name }}{% endif %}"
+                        <input type="text" id="app_name" name="app_name" value="{% if app.slug == "filemanager"%}{{ app.slug }}-{{ project.slug }}{% else %}{{ existing_app_name }}{% endif %}"
                             class="form-control" required>
                         <div class="invalid-feedback">
                             Please add a valid name!
@@ -126,6 +126,19 @@
                             {% endif %}
                             {% endfor %}
                         </select>
+                    <div id="id_link_only_note" class="rollable">
+                      <div class="row pb-3">
+                        <div class="col-12 ">
+                            <label class="form-label">Describe, why you want to make the app accessible only via a link</label>
+                            <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip"
+                                         title="" data-bs-placement="right" data-bs-original-title="We ask users to
+                                                tell us why they want to make an app accesisble only via a link.
+                                                Please consider using it only if you really need it."></span>
+
+                      <textarea type="hidden" id="link_privacy_type_note" name="link_privacy_type_note" class="form-control" rows="2"></textarea>
+                        </div>
+                      </div>
+                    </div>
                     </div>
                     {% endif %}
 
@@ -189,9 +202,13 @@
                     <div class="mb-3">
                         <label class="form-label">{{ app_name }}</label>
                         <select name="app:{{ app_name }}" id="{{ app_name }}" class="form-control" {{
-                            appinstances.option_type }} required>
+                            appinstances.option_type }} required {% if app.slug == "filemanager" %}multiple{% endif %}>
                             {% for appinstance in appinstances.instances %}
-                            <option value="{{ appinstance.pk }}" {{ appinstance.selected }}>{{ appinstance.name }}
+                            <option value="{{ appinstance.pk }}"
+                                {% if app.slug == "filemanager" %} selected="selected"
+                                {% else %} {{ appinstance.selected }}
+                                {% endif %}>
+                                {{ appinstance.name }}
                             </option>
                             {% endfor %}
                             <option value="None" {% if app.slug == "customapp" %}selected="selected"{% endif %}>None</option>
@@ -308,17 +325,6 @@
 
                         {% endif %}
 
-                        {% if subval.type == "minio-username" %}
-                        <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_username }}" class="form-control">
-                        {% endif %}
-
-                        {% if subval.type == "minio-password" %}
-                        <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_password }}" class="form-control">
-                        {% endif %}
-
-
                     </div>
                     {% endfor %}
 
@@ -342,7 +348,7 @@
                         onclick="window.location='{{ request.headers.referer }}' ; return false;">
                         Cancel
                     </button>
-                    {% if app.slug == "minio" %}
+                    {% if app.slug == "filemanager" %}
                     <button class="btn btn-success" type="submit">Activate</button>
                     {% else %}
                     <button class="btn btn-primary" type="submit">Create</button>
@@ -352,6 +358,7 @@
         </div>
     </div>
 </div>
+<script src="{% static 'js/apps_form.js' %}"></script>
 {# In the custom app creation form, make the path a required field if a persistent volumet is selected #}
 {% if app.slug == "customapp" %}
 <script>

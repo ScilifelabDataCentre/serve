@@ -26,13 +26,20 @@ admin.site.register(ReleaseName)
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "owner", "status", "updated_at")
-    list_filter = ["owner", "status"]
-    actions = ["update_app_limits"]
+    list_display = ("name", "owner", "status", "updated_at", "project_template")
+    list_filter = ["owner", "status", "project_template"]
+    actions = ["update_app_limits", "update_project_template"]
 
     @admin.action(description="Reset app limits")
     def update_app_limits(self, request, queryset):
         queryset.update(apps_per_project=settings.APPS_PER_PROJECT_LIMIT)
+
+    # 2024-02-16 - This was added as a temporary method to simplify adding a project template to a project
+    # Should be removed if all projects have a linked template.
+    @admin.action(description="Change project template to default")
+    def update_project_template(self, request, queryset):
+        project_template = ProjectTemplate.objects.get(slug="blank")
+        queryset.update(project_template=project_template)
 
 
 @admin.register(Flavor)

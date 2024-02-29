@@ -11,6 +11,9 @@ PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
 NewsObject = apps.get_model(app_label="news.NewsObject")
 
 
+# TODO minor refactor
+# 1. Change id to app_id as it's anti-pattern to override language reserved function names
+# 2. add type annotations
 def get_public_apps(request, id=0, get_all=True):
     try:
         projects = Project.objects.filter(
@@ -59,7 +62,7 @@ def get_public_apps(request, id=0, get_all=True):
             app.latest_status = app.status.latest().status_type
 
             app.status_group = "success" if app.latest_status in settings.APPS_STATUS_SUCCESS else "warning"
-        except:  # noqa E722 TODO: Add exception
+        except:  # noqa E722 TODO refactor: Add exception
             app.latest_status = "unknown"
             app.status_group = "unknown"
 

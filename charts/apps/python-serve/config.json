@@ -25,6 +25,10 @@
       "object_type": "python-model"
     },
     "permissions": {
+      "link": {
+        "option": "true",
+        "value": "false"
+      },
       "private": {
         "option": "true",
         "value": "false"

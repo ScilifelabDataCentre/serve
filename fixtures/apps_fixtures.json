@@ -36,6 +36,10 @@
           "public": {
             "option": "false",
             "value": "false"
+          },
+          "link": {
+            "option": "false",
+            "value": "false"
           }
         }
       },
@@ -51,31 +55,19 @@
   {
     "fields": {
       "category": "manage-files",
-      "chart": "apps/minio/chart",
+      "chart": "apps/filemanager/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "minio-logo.svg",
-      "name": "Minio",
+      "logo": "filemanager-logo.svg",
+      "name": "File Manager",
       "priority": "200",
       "settings": {
         "apps": {
           "Persistent Volume": "one"
         },
-        "credentials": {
-          "access_key": {
-            "default": "accesskey",
-            "title": "Username",
-            "type": "minio-username"
-          },
-          "secret_key": {
-            "default": "secretkey123",
-            "title": "Password",
-            "type": "minio-password"
-          }
-        },
         "default_values": {
-          "port": "9000",
-          "targetport": "9000"
+          "port": "8080",
+          "targetport": "8080"
         },
         "permissions": {
           "private": {
@@ -89,14 +81,18 @@
           "public": {
             "option": "false",
             "value": "false"
+          },
+          "link": {
+            "option": "false",
+            "value": "false"
           }
         }
       },
-      "slug": "minio",
+      "slug": "filemanager",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
-      "updated_on": "2021-03-10T19:45:03.927Z"
+      "updated_on": "2024-02-10T19:45:03.927Z"
     },
     "model": "apps.apps",
     "pk": 9
@@ -140,6 +136,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "false",
             "value": "false"
           }
@@ -196,6 +196,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "false",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -242,6 +246,10 @@
             "value": "true"
           },
           "public": {
+            "option": "true",
+            "value": "false"
+          },
+          "link": {
             "option": "true",
             "value": "false"
           }
@@ -292,6 +300,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "true",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -328,6 +340,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "false",
             "value": "false"
           }
@@ -385,6 +401,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "false",
             "value": "false"
           }
@@ -478,6 +498,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "true",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -519,6 +543,10 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "false",
             "value": "false"
           }
@@ -576,6 +604,10 @@
             "value": "true"
           },
           "public": {
+            "option": "true",
+            "value": "false"
+          },
+          "link": {
             "option": "true",
             "value": "false"
           }
@@ -636,6 +668,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "true",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -692,6 +728,10 @@
             "value": "true"
           },
           "public": {
+            "option": "true",
+            "value": "false"
+          },
+          "link": {
             "option": "true",
             "value": "false"
           }
@@ -759,6 +799,10 @@
           "public": {
             "option": "true",
             "value": "false"
+          },
+          "link": {
+            "option": "true",
+            "value": "false"
           }
         },
         "publishable": "true"
@@ -775,31 +819,19 @@
   {
     "fields": {
       "category": "admin-apps",
-      "chart": "apps/minio/chart",
+      "chart": "apps/filemanager/chart",
       "created_on": "2023-02-19T21:34:37.815Z",
       "description": "",
-      "logo": "minio-logo.svg",
-      "name": "Minio Admin",
+      "logo": "filemanager-logo.svg",
+      "name": "File Manager Admin",
       "priority": "200",
       "settings": {
         "apps": {
           "Persistent Volume": "one"
         },
-        "credentials": {
-          "access_key": {
-            "default": "accesskey",
-            "title": "Username",
-            "type": "minio-username"
-          },
-          "secret_key": {
-            "default": "secretkey123",
-            "title": "Password",
-            "type": "minio-password"
-          }
-        },
         "default_values": {
-          "port": "9000",
-          "targetport": "9000"
+          "port": "8080",
+          "targetport": "8080"
         },
         "flavor": "one",
         "permissions": {
@@ -812,12 +844,16 @@
             "value": "true"
           },
           "public": {
+            "option": "false",
+            "value": "false"
+          },
+          "link": {
             "option": "true",
             "value": "false"
           }
         }
       },
-      "slug": "minio-admin",
+      "slug": "filemanager-admin",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
       },
@@ -857,6 +893,10 @@
             "value": "false"
           },
           "public": {
+            "option": "true",
+            "value": "false"
+          },
+          "link": {
             "option": "true",
             "value": "false"
           }
