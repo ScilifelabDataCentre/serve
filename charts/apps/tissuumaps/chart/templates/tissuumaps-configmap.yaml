@@ -7,7 +7,7 @@ data:
   tissuumaps.cfg: |-
     READ_ONLY = True
     PLUGIN_FOLDER = "/mnt/data/plugins/"
-    SLIDE_DIR = "/mnt/data/shared/"
+    SLIDE_DIR = "/mnt/data/tissuumaps-shared/"
     DEFAULT_PROJECT = "project.tmap"
     COLLAPSE_TOP_MENU = True
     PROJECT_LIST = True
