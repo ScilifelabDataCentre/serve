@@ -7,7 +7,7 @@
   <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' project.slug %}">{{ project.name }}</a></li>
       <li class="breadcrumb-item active" aria-current="page">{{ app.name }} Logs</li>
     </ol>
   </nav>
@@ -46,7 +46,7 @@
     </div>
   </div>
 <script>
-const url = "{% url 'apps:get_logs' request.user project.slug %}"
+const url = "{% url 'apps:get_logs' project.slug %}"
 const csrftoken = getCookie('csrftoken');
 const app = JSON.parse("{{ app.id |escapejs }}")
 const body = {"app" : app, "container": '{{app.parameters.appname}}'}
@@ -117,7 +117,7 @@ const updateContainer = (container) => {
   const body = new FormData()
   body.append("apps", apps)
 
-  const url = "{% url 'apps:get_status' request.user project.slug %}"
+  const url = "{% url 'apps:get_status' project.slug %}"
   const csrftoken = getCookie('csrftoken');
 
   const updateStatus = async () => {
