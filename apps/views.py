@@ -55,13 +55,13 @@ def index(request, user, project):
     name="dispatch",
 )
 class GetLogsView(View):
-    def get(self, request, user, project, ai_id):
+    def get(self, request, project, ai_id):
         template = "apps/logs.html"
         app = AppInstance.objects.get(pk=ai_id)
         project = Project.objects.get(slug=project)
         return render(request, template, locals())
 
-    def post(self, request, user, project):
+    def post(self, request, project):
         body = request.POST.get("app", "")
         container = request.POST.get("container", "")
         app = AppInstance.objects.get(pk=body)
