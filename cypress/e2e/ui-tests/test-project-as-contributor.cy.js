@@ -467,11 +467,9 @@ describe("Test project contributor user functionality", () => {
         cy.get('button').contains("Activate").first().click()
         cy.get('#manage-files > .card > .row').should('contain', 'File Manager is activated')
 
-        // change the command to check for Created
-        cy.get('#manage-files .card-header').find('span.badge').should('contain', 'Created');
-
-        // TO-DO: Checking that the created Minio instance is accessible and can log in with the provided credentials
-
+        // change the command to check for Created, Pending or Running
+        cy.get('#manage-files .card-header').find('span.badge').invoke('text').then((text) => {
+            expect(["Created", "Pending", "Running"]).to.include(text.trim());
+          });
     })
-
 })

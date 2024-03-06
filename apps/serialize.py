@@ -15,8 +15,7 @@ from .models import AppInstance, Apps
 
 User = get_user_model()
 
-# TODO: minor-refactor: make upper case
-key_words = [
+KEYWORDS = [
     "appobj",
     "model",
     "flavor",
@@ -181,17 +180,26 @@ def serialize_apps(form_selection, project):
 
 
 def serialize_primitives(form_selection):
+    """
+    This function serializes all values that are not part of the KEYWORDS list at the top.
+    """
     print("SERIALIZING PRIMITIVES")
     parameters = dict()
     # TODO: minor-refactor: do for loop over form_selection without new variable
     keys = form_selection.keys()
     for key in keys:
-        if key not in key_words and "app:" not in key:
+        if key not in KEYWORDS and "app:" not in key:
             parameters[key] = form_selection[key].replace("\r\n", "\n")
+
+            # Turn string booleans to python booleans
             if parameters[key] == "False":
                 parameters[key] = False
             elif parameters[key] == "True":
                 parameters[key] = True
+
+            # Slugify app_name so that users can use special chars in their app names.
+            elif key == "app_name":
+                parameters[key] = slugify(parameters[key])
     print(parameters)
     return flatten_json.unflatten(parameters, ".")
 

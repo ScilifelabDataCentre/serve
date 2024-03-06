@@ -23,7 +23,7 @@
         {% elif app.slug in 'shinyapp,shinyproxyapp' %}
         <p>This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.</p>
         {% elif app.slug == 'tissuumaps' %}
-        <p>This form allows you to start hosting your own TissUUmaps instance at SciLifeLab Serve. After your app has been created you will need to upload the data to your project. We suggest that you create the app with Permissions initially set to private, upload the data, and then edit the app settings to change the Permissions to public. Please read our <a href="/docs/application-hosting/tissuumaps/" target="_blank">documentation page on TissUUmaps apps</a> for step-by-step instructions.</p>
+        <p>This form allows you to start hosting your own TissUUmaps instance at SciLifeLab Serve. After your app has been created you will need to upload the data to your project. We suggest that you create the app with Permissions initially set to <i>private</i>, upload the data, and then edit the app settings to change the Permissions to <i>public</i>. Please read our <a href="/docs/application-hosting/tissuumaps/" target="_blank">documentation page on TissUUmaps apps</a> for step-by-step instructions.</p>
         {% endif %}
         {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
         <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
@@ -42,19 +42,10 @@
                     {% if app.slug == "filemanager" %}
 
 
-                    <div class="p-3 mb-3">
-
-                        <div role="alert" class="alert alert-warning text-center">
-                          <h4><i class="bi bi-exclamation-triangle px-2"></i>Important information</h4>
-                          This is an experimental feature.<br>
-                          If you experience issues, please contact us at serve@scilifelab.se
-                      </div>
-
-                  <p>You are about to activate file manager on SciLifeLab Serve. You can use it to upload or download files to a volume associated with this project. This service will be active for 24 hours and automatically terminated afterwards. The uploaded files will stay on the volume even after this service has been terminated. All credentials needed to use the service will be provided after activation.</p>
-                  <p>Click 'Activate' to activate file manager</p>
-
-
-                  </div>
+                    <div class="p-3 my-3">
+                        <p>You are about to activate file manager on SciLifeLab Serve. You can use it to upload or download files to a volume associated with this project. This service will be active for 24 hours and automatically terminated afterwards. The uploaded files will stay on the volume even after this service has been terminated.</p>
+                        <p>Click 'Activate' to activate file manager</p>
+                    </div>
                     <div class="card-body d-none">
                     {% else %}
                     <div class="card-body">
