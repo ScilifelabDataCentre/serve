@@ -183,8 +183,10 @@
             {% endif %}
                 <div class="row g-2 py-2 mx-2">
                 {% for app in objs.apps %}
-                {% if project.project_template.pk == 2 and app.slug in 'mlflow,mlflow-serve,pytorch-serve,tensorflow-serve,python-serve' %}
+                {% if project.project_template.pk == 1 and app.slug in 'mlflow,mlflow-serve,pytorch-serve,tensorflow-serve,python-serve' %}
+                <!-- Do no render app-->
                 {% elif app.slug == "shinyapp" and not request.user.is_superuser %}
+                <!-- Do no render app-->
                 {% else %}
                 <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                     <div class="card h-100" data-cy="create-app-card">
