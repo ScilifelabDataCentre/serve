@@ -18,7 +18,7 @@ class IsTokenAuthenticated(BasePermission):
 
         # Set the expiration duration in seconds for the authentication tokens
         # TODO: move to settings file
-        AUTH_TOKEN_EXPIRATION = 60 * 2
+        AUTH_TOKEN_EXPIRATION = 60 * 20
 
         # If the existing token is older than AUTH_TOKEN_EXPIRATION, then recreate the object
         token_expiry = request.auth.created + timedelta(seconds=AUTH_TOKEN_EXPIRATION)
