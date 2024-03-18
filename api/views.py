@@ -1,6 +1,7 @@
 import json
+import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import pytz
 from django.conf import settings
@@ -40,7 +41,7 @@ from projects.models import (
 )
 from projects.tasks import create_resources_from_template, delete_project_apps
 
-from .APIpermissions import AdminPermission, ProjectPermission
+from .APIpermissions import AdminPermission, IsTokenAuthenticated, ProjectPermission
 from .serializers import (
     AppInstanceSerializer,
     AppSerializer,
@@ -62,6 +63,8 @@ from .serializers import (
     UserSerializer,
 )
 
+logger = logging.getLogger(__name__)
+
 
 # A customized version of the obtain_auth_token view
 # It will either create or fetch the user token
@@ -71,8 +74,23 @@ class CustomAuthToken(ObtainAuthToken):
         serializer = self.serializer_class(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
+
         token, created = Token.objects.get_or_create(user=user)
-        return Response({"token": token.key, "user_id": user.pk, "email": user.email})
+
+        # Set the expiration duration in seconds for the authentication tokens
+        # TODO: move to settings file
+        AUTH_TOKEN_EXPIRATION = 60 * 2
+
+        # If the existing token is older than AUTH_TOKEN_EXPIRATION, then recreate the object
+        token_expiry = token.created + timedelta(seconds=AUTH_TOKEN_EXPIRATION)
+
+        if datetime.now(timezone.utc) > token_expiry:
+            print(f"Token expired as of {token_expiry}. Now generating a new token.   ")
+            token.delete()
+            token, created = Token.objects.get_or_create(user=user)
+            token_expiry = token.created + timedelta(seconds=AUTH_TOKEN_EXPIRATION)
+
+        return Response({"token": token.key, "user_id": user.pk, "email": user.email, "expires": token_expiry})
 
 
 class ObjectTypeList(
@@ -825,6 +843,7 @@ class ProjectTemplateList(
 @api_view(["GET", "POST"])
 @permission_classes(
     (
+        IsTokenAuthenticated,
         IsAuthenticated,
         AdminPermission,
     )
