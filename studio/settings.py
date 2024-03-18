@@ -192,7 +192,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # The expiration duration in seconds for authentication tokens
-AUTH_TOKEN_EXPIRATION = 60 * 10
+AUTH_TOKEN_EXPIRATION = 60 * 20
 
 # Settings for the Django Axes brute force login protection
 # Number of allowed login failures before action is taken

@@ -703,6 +703,7 @@ class AppList(
     ListModelMixin,
 ):
     permission_classes = (
+        IsTokenAuthenticated,
         IsAuthenticated,
         AdminPermission,
     )
@@ -792,6 +793,7 @@ class ProjectTemplateList(
     ListModelMixin,
 ):
     permission_classes = (
+        IsTokenAuthenticated,
         IsAuthenticated,
         AdminPermission,
     )
