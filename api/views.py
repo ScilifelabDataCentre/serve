@@ -77,18 +77,14 @@ class CustomAuthToken(ObtainAuthToken):
 
         token, created = Token.objects.get_or_create(user=user)
 
-        # Set the expiration duration in seconds for the authentication tokens
-        # TODO: move to settings file
-        AUTH_TOKEN_EXPIRATION = 60 * 20
-
         # If the existing token is older than AUTH_TOKEN_EXPIRATION, then recreate the object
-        token_expiry = token.created + timedelta(seconds=AUTH_TOKEN_EXPIRATION)
+        token_expiry = token.created + timedelta(seconds=settings.AUTH_TOKEN_EXPIRATION)
 
         if datetime.now(timezone.utc) > token_expiry:
-            print(f"Token expired as of {token_expiry}. Now generating a new token.   ")
+            print(f"INFO - Token expired as of {token_expiry}. Now generating a new token.")
             token.delete()
             token, created = Token.objects.get_or_create(user=user)
-            token_expiry = token.created + timedelta(seconds=AUTH_TOKEN_EXPIRATION)
+            token_expiry = token.created + timedelta(seconds=settings.AUTH_TOKEN_EXPIRATION)
 
         return Response({"token": token.key, "user_id": user.pk, "email": user.email, "expires": token_expiry})
 

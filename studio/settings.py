@@ -191,6 +191,9 @@ SESSION_SAVE_EVERY_REQUEST = True
 # Whether to expire the session when the user closes their browser:
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
+# The expiration duration in seconds for authentication tokens
+AUTH_TOKEN_EXPIRATION = 60 * 10
+
 # Settings for the Django Axes brute force login protection
 # Number of allowed login failures before action is taken
 AXES_FAILURE_LIMIT = 5
@@ -320,7 +323,7 @@ STORAGECLASS = "microk8s-hostpath"
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
 DOMAIN = "studio.127.0.0.1.nip.io"
-AUTH_DOMAIN = "10.0.144.239"
+AUTH_DOMAIN = "192.168.0.107"
 AUTH_PROTOCOL = "http"
 STUDIO_URL = "http://studio.127.0.0.1.nip.io:8080"
 # To enable sticky sessions for k8s ingress

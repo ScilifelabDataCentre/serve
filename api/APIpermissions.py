@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+from django.conf import settings
 from rest_framework.permissions import BasePermission
 
 from .serializers import Project
@@ -13,15 +14,14 @@ class IsTokenAuthenticated(BasePermission):
         """
         Denies requests for users who lack a valid authentication token.
         Similar to DRF:s own IsAuthenticated permission class.
-        Returns boolean true or false which DRF will convert to an exception.
+        Returns a boolean value that DRF will convert to an exception.
         """
 
-        # Set the expiration duration in seconds for the authentication tokens
-        # TODO: move to settings file
-        AUTH_TOKEN_EXPIRATION = 60 * 20
-
         # If the existing token is older than AUTH_TOKEN_EXPIRATION, then recreate the object
-        token_expiry = request.auth.created + timedelta(seconds=AUTH_TOKEN_EXPIRATION)
+        # Give a small 10 second grace duration to give the CustomAuthToken class a change to renew the token
+        token_expiry = request.auth.created + timedelta(seconds=settings.AUTH_TOKEN_EXPIRATION + 10)
+
+        print(f"DEBUG - Token expires = {token_expiry}, has expired = {datetime.now(timezone.utc) < token_expiry}")
 
         # The user has permission if the token is still valid (has not expired)
         return datetime.now(timezone.utc) < token_expiry
