@@ -80,7 +80,6 @@ def get_public_apps(request, id=0, get_all=True):
     elif "tag_count" not in request.GET:
         tag = ""
         request.session["app_tag_filters"] = []
-    print("app_tag_filters: ", request.session["app_tag_filters"])
 
     # changed list of published model only if tag filters are present
     if request.session["app_tag_filters"]:
