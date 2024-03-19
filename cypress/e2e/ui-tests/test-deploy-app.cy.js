@@ -65,7 +65,6 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('input[name="appconfig.path"]').clear().type("/home")
-            cy.get('input[name="appconfig.userid"]').clear().type("1000")
             cy.get('button').contains('Create').click()
             // check that the app was created
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
@@ -101,7 +100,6 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('input[name="appconfig.path"]').clear().type("/home")
-            cy.get('input[name="appconfig.userid"]').clear().type("1000")
             cy.get('button').contains('Create').click()
 
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
@@ -188,7 +186,6 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('input[name="appconfig.path"]').clear().type("/home")
-            cy.get('input[name="appconfig.userid"]').clear().type("1000")
             // fill out subdomain field
             cy.get('[id="subdomain"]').find('button').click()
             cy.get('[id="subdomain-add"]').find('[id="rn"]').type(subdomain)
@@ -257,7 +254,6 @@ describe("Test deploying app", () => {
             cy.get('textarea[name=app_description]').type(app_description)
             cy.get('#permission').select('project')
             cy.get('input[name="appconfig.port"]').type("8501")
-            cy.get('input[name="appconfig.userid"]').clear().type("1000")
             cy.get('input[name="appconfig.image"]').type("hkqxqxkhkqwxhkxwh") // input random string
             cy.get('button').contains('Create').click()
             // check that the app was created
