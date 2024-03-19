@@ -31,7 +31,6 @@ class Apps(models.Model):
         null=True,
     )
     chart = models.CharField(max_length=512)
-    chart_archive = models.FileField(upload_to="apps/", null=True, blank=True)
     created_on = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True, null=True, default="")
     logo = models.CharField(max_length=512, null=True, blank=True)
