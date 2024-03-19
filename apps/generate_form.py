@@ -3,8 +3,11 @@ from django.db.models import Case, IntegerField, Q, Value, When
 
 from models.models import Model
 from projects.models import S3, Environment, Flavor, ReleaseName
+from studio.utils import get_logger
 
 from .models import AppInstance, Apps
+
+logger = get_logger(__name__)
 
 key_words = [
     "appobj",
@@ -28,7 +31,7 @@ def get_form_models(aset, project, appinstance=[]):
     dep_model = False
     models = []
     if "model" in aset:
-        print("app requires a model")
+        logger.info("app requires a model")
         dep_model = True
         if "object_type" in aset["model"]:
             object_type = aset["model"]["object_type"]
@@ -38,7 +41,7 @@ def get_form_models(aset, project, appinstance=[]):
 
         for model in models:
             if appinstance and model.appinstance_set.filter(pk=appinstance.pk).exists():
-                print(model)
+                logger.info(model)
                 model.selected = "selected"
             else:
                 model.selected = ""
@@ -53,12 +56,12 @@ def get_form_apps(aset, project, myapp, user, appinstance=[]):
         app_deps = dict()
         apps = aset["apps"]
         for app_name, option_type in apps.items():
-            print(">>>>>")
-            print(app_name)
+            logger.info(">>>>>")
+            logger.info(app_name)
             # .order_by('-revision').first()
             app_obj = Apps.objects.filter(name=app_name)
-            print(app_obj)
-            print(">>>>>")
+            logger.info(app_obj)
+            logger.info(">>>>>")
             # TODO: Only get app instances that we have permission to list.
 
             app_instances = AppInstance.objects.get_available_app_dependencies(
@@ -127,7 +130,7 @@ def get_form_primitives(app_settings, appinstance=[]):
                     if not is_meta_key:
                         parameters_of_key = appinstance.parameters[key]
 
-                        print(f"_key: {_key}")
+                        logger.info(f"_key: {_key}")
 
                         if _key in parameters_of_key.keys():
                             primitives[key][_key]["default"] = parameters_of_key[_key]
@@ -150,34 +153,34 @@ def get_form_permission(aset, project, appinstance=[]):
         if appinstance:
             try:
                 ai_vals = appinstance.parameters
-                print(ai_vals["permissions"])
+                logger.info(ai_vals["permissions"])
                 form_permissions["public"]["value"] = ai_vals["permissions"]["public"]
                 form_permissions["project"]["value"] = ai_vals["permissions"]["project"]
                 form_permissions["private"]["value"] = ai_vals["permissions"]["private"]
-                print(form_permissions)
-            except Exception as err:
-                print(err)
-                print("Permissions not set for app instance, using default.")
+                logger.info(form_permissions)
+            except Exception:
+                logger.error("Permissions not set for app instance, using default.", exc_info=True)
     return dep_permissions, form_permissions
 
 
+# TODO: refactor. Change default value to immutable
 def get_form_appobj(aset, project, appinstance=[]):
-    print("CHECKING APP OBJ")
+    logger.info("CHECKING APP OBJ")
     dep_appobj = False
     appobjs = dict()
     if "appobj" in aset:
-        print("NEEDS APP OBJ")
+        logger.info("NEEDS APP OBJ")
         dep_appobj = True
         appobjs["objs"] = Apps.objects.all()
         appobjs["title"] = aset["appobj"]["title"]
         appobjs["type"] = aset["appobj"]["type"]
 
-    print(appobjs)
+    logger.info(appobjs)
     return dep_appobj, appobjs
 
 
 def get_form_environments(aset, project, app, appinstance=[]):
-    print("CHECKING ENVIRONMENT")
+    logger.info("CHECKING ENVIRONMENT")
     dep_environment = False
     environments = dict()
     if "environment" in aset:
@@ -227,7 +230,7 @@ def get_form_environments(aset, project, app, appinstance=[]):
 
 
 def get_form_S3(aset, project, app, appinstance=[]):
-    print("CHECKING S3")
+    logger.info("CHECKING S3")
     dep_S3 = False
     s3stores = []
     if "S3" in aset:

@@ -21,15 +21,18 @@ from rest_framework.views import APIView
 from apps.models import AppInstance
 from common.models import UserProfile
 from projects.models import Project
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 @receiver(pre_save, sender=User)
 def set_new_user_inactive(sender, instance, **kwargs):
     if instance._state.adding and settings.INACTIVE_USERS and not instance.is_superuser:
-        print("Creating Inactive User")
+        logger.info("Creating Inactive User")
         instance.is_active = False
     else:
-        print("Updating User Record")
+        logger.info("Updating User Record")
 
 
 # Since this is a production feature, it will only work if DEBUG is set to False
@@ -96,10 +99,10 @@ def profile(request):
         # such as the admin superuser
         user_profile = UserProfile.objects.get(user_id=request.user.id)
     except ObjectDoesNotExist as e:
-        print(f"ObjectDoesNotExist exception: {e}")
+        logger.error(str(e), exc_info=True)
         user_profile = UserProfile()
     except Exception as e:
-        print(f"Exception: {e}")
+        logger.error(str(e), exc_info=True)
         user_profile = UserProfile()
 
     return render(request, "user/profile.html", {"user_profile": user_profile})
@@ -115,7 +118,7 @@ def __get_university_name(request, code):
     # Note that reversing the url of openapi-v1 was not working
     host = request.build_absolute_uri("/")
     api_url = host + reverse("v1:openapi-lookups-universities")
-    print(f"Making an API request to URL {api_url}")
+    logger.info(f"Making an API request to URL {api_url}")
     response = requests.get(api_url, params={"code": code})
 
     if response.status_code == 200:

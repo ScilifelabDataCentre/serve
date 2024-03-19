@@ -12,18 +12,21 @@ from django.db import transaction
 from django.template import engines
 
 from projects.models import Flavor
+from studio.utils import get_logger
 
 from .models import AppInstance, AppStatus
 from .serialize import serialize_app
 from .tasks import deploy_resource
 
+logger = get_logger(__name__)
+
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
 
 def create_instance_params(instance, action="create"):
-    print("HELPER - CREATING INSTANCE PARAMS")
+    logger.info("HELPER - CREATING INSTANCE PARAMS")
     RELEASE_NAME = "r" + uuid.uuid4().hex[0:8]
-    print("RELEASE_NAME: " + RELEASE_NAME)
+    logger.info("RELEASE_NAME: " + RELEASE_NAME)
 
     SERVICE_NAME = RELEASE_NAME + "-" + instance.app.slug
     # TODO: Fix for multicluster setup, look at e.g. labs
@@ -172,9 +175,8 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
             rel_name_obj.status = "in-use"
             rel_name_obj.save()
             app_instance.parameters["release"] = submitted_rn
-        except Exception as e:
-            print("Error: Submitted release name not owned by project.")
-            print(e)
+        except Exception:
+            logger.error("Submitted release name not owned by project.", exc_info=True)
             return [False, None, None]
 
     # Add fields for apps table:
@@ -258,22 +260,22 @@ def handle_update_status_request(
                 AppInstance.objects.select_for_update().filter(parameters__contains={"release": release}).last()
             )
             if app_instance is None:
-                print(f"The specified app instance was not found {release=}.")
+                logger.info("The specified app instance was not found release=%s.", release)
                 raise ObjectDoesNotExist
 
-            print(f"DEBUG: The app instance exists. name={app_instance.name}, state={app_instance.state}")
+            logger.debug("The app instance exists. name=%s, state=%s", app_instance.name, app_instance.state)
 
             # Also get the latest app status object for this app instance
             if app_instance.status is None or app_instance.status.count() == 0:
                 # Missing app status so create one now
-                print(f"AppInstance {release} does not have an associated AppStatus. Creating one now.")
+                logger.info("AppInstance %s does not have an associated AppStatus. Creating one now.", release)
                 status_object = AppStatus(appinstance=app_instance)
                 update_status(app_instance, status_object, new_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
             else:
                 app_status = app_instance.status.latest()
 
-            print(f"DEBUG: AppStatus {app_status.status_type=}, {app_status.time=}, {app_status.info=}.")
+            logger.debug("AppStatus %s, %s, %s.", app_status.staus.status_type, app_status.time, app_status.info)
 
             # Now determine whether to update the state and status
 
@@ -284,25 +286,25 @@ def handle_update_status_request(
                 msg += (
                     f"event_ts={event_ts.strftime(time_ftm)}, app_status.time={str(app_status.time.strftime(time_ftm))}"
                 )
-                print(f"DEBUG: {msg}")
+                logger.debug(msg)
                 return HandleUpdateStatusResponseCode.NO_ACTION
 
             # The event is newer than the existing persisted object
 
             if new_status == app_instance.state:
                 # The same status. Simply update the time.
-                print("DEBUG: The same status. Simply update the time.")
+                logger.debug("The same status. Simply update the time.")
                 update_status_time(app_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
 
             # Different status and newer time
-            print("DEBUG: Different status and newer time.")
+            logger.debug("Different status and newer time.")
             status_object = AppStatus(appinstance=app_instance)
             update_status(app_instance, status_object, new_status, event_ts, event_msg)
             return HandleUpdateStatusResponseCode.UPDATED_STATUS
 
     except Exception as err:
-        print(f"Unable to fetch or update the specified app instance {release=}. {err}, {type(err)}")
+        logger.error("Unable to fetch or update the specified app instance %s. %s, %s", release, err, type(err))
         raise
 
 

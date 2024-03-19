@@ -9,6 +9,9 @@ import pathlib
 import tomli
 
 from .singleton import Singleton
+from .utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class SystemVersion(metaclass=Singleton):
@@ -65,13 +68,13 @@ class SystemVersion(metaclass=Singleton):
                 self.__imagetag = toml_dict["tool"].get("serve").get("imagetag")
             self.__pyproject_is_parsed = True
         except tomli.TOMLDecodeError:
-            print("Unable to parse pyproject.toml file. The toml file is invalid.")
+            logger.error("Unable to parse pyproject.toml file. The toml file is invalid.")
             err_message = "parsing error"
         except Exception as e:
-            print("Unable to parse pyproject.toml file. Caught general exception.")
+            logger.error("Unable to parse pyproject.toml file. Caught general exception.")
             err_message = f"error {str(e)}"
         else:
-            print("Unable to parse pyproject.toml file. Using default values for system version attributes.")
-            self.__build_date == err_message
-            self.__gitref == err_message
-            self.__imagetag == err_message
+            logger.error("Unable to parse pyproject.toml file. Using default values for system version attributes.")
+        self.__build_date = err_message
+        self.__gitref = err_message
+        self.__imagetag = err_message

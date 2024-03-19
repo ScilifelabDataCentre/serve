@@ -4,6 +4,10 @@ import os
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
 
 class OpenApiTests(APITestCase):
     """Tests for the Open API generic base endpoints"""
@@ -25,7 +29,7 @@ class OpenApiTests(APITestCase):
         response = self.client.get(url, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        print(response.content)
+        logger.info(response.content)
         actual = json.loads(response.content)
         assert actual["system-version"] == ""
         assert actual["build-date"] == ""
@@ -37,7 +41,7 @@ class OpenApiTests(APITestCase):
         response = self.client.get(url, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        print(response.content)
+        logger.info(response.content)
         actual = json.loads(response.content)
         self.assertEqual(actual["apiName"], "SciLifeLab Serve OpenAPI")
         self.assertEqual(actual["apiVersion"], "1.0.0")

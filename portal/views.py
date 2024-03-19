@@ -20,7 +20,7 @@ def get_public_apps(request, id=0, get_all=True):
         projects = Project.objects.filter(
             Q(owner=request.user) | Q(authorized=request.user), status="active"
         )  # noqa: F841 local var assigned but never used
-        print(len(projects))
+        logger.info(len(projects))
     except Exception:
         logger.debug(
             "User not logged in.",
