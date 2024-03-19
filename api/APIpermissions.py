@@ -17,8 +17,9 @@ class IsTokenAuthenticated(BasePermission):
         Returns a boolean value that DRF will convert to an exception.
         """
 
-        # If the existing token is older than AUTH_TOKEN_EXPIRATION, then recreate the object
-        # Give a small 10 second grace duration to give the CustomAuthToken class a change to renew the token
+        # If the user token is older than AUTH_TOKEN_EXPIRATION, then consider it expired
+        # Give a small 10 second grace duration to give the CustomAuthToken class a chance to renew the token
+        # The request.auth.created field contains a datetime value
         token_expiry = request.auth.created + timedelta(seconds=settings.AUTH_TOKEN_EXPIRATION + 10)
 
         print(f"DEBUG - Token expires = {token_expiry}, has expired = {datetime.now(timezone.utc) < token_expiry}")

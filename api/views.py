@@ -1,5 +1,4 @@
 import json
-import logging
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -63,8 +62,6 @@ from .serializers import (
     UserSerializer,
 )
 
-logger = logging.getLogger(__name__)
-
 
 # A customized version of the obtain_auth_token view
 # It will either create or fetch the user token
@@ -78,9 +75,10 @@ class CustomAuthToken(ObtainAuthToken):
         token, created = Token.objects.get_or_create(user=user)
 
         # If the existing token is older than AUTH_TOKEN_EXPIRATION, then recreate the object
+        # The token.created field contains a datetime value
         token_expiry = token.created + timedelta(seconds=settings.AUTH_TOKEN_EXPIRATION)
 
-        if datetime.now(timezone.utc) > token_expiry:
+        if not created and datetime.now(timezone.utc) > token_expiry:
             print(f"INFO - Token expired as of {token_expiry}. Now generating a new token.")
             token.delete()
             token, created = Token.objects.get_or_create(user=user)
