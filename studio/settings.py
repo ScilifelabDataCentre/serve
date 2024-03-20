@@ -18,6 +18,8 @@ from pathlib import Path
 import colorlog
 import structlog
 
+from studio.utils import add_loggers
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -67,8 +69,10 @@ DJANGO_WIKI_CONTEXT_PROCESSOR = [
 ]
 
 STRUCTLOG_MIDDLEWARE = ["django_structlog.middlewares.RequestMiddleware"]
+DJANGO_STRUCTLOG_CELERY_ENABLED = not DEBUG
 
 # Application definition
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -113,7 +117,6 @@ MIDDLEWARE = (
     + DJANGO_WIKI_MIDDLEWARE
     + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
 )
-
 
 ROOT_URLCONF = "studio.urls"
 CRISPY_TEMPLATE_PACK = "bootstrap"
@@ -404,7 +407,6 @@ DISABLED_APP_INSTANCE_FIELDS = []  # type: ignore
 # Also anonymous access to pages was not working.
 ANONYMOUS_USER_NAME = None
 
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -439,15 +441,18 @@ LOGGING = {
     "loggers": {
         "": {
             "handlers": ["console" if DEBUG else "json"],
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "WARNING" if DEBUG else "INFO",
         },
         "django.server": {
-            "handlers": ["console"],
-            "level": "WARNING",
+            "handlers": ["console" if DEBUG else "json"],
+            "level": "DEBUG" if DEBUG else "INFO",
             "propagate": False,
         },
     },
 }
+
+LOGGING = add_loggers(LOGGING, INSTALLED_APPS)
+
 if not DEBUG:
     structlog.configure(
         processors=[
