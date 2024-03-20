@@ -118,6 +118,15 @@ jobs:
           docker exec celery-worker kubectl version
           docker exec celery-worker helm version
 
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        with:
+          ## If no one connects after 2 minutes, shut down server.
+          wait-timeout-minutes: 2
+          ## limits ssh access and adds the ssh public key for the user which triggered the workflow
+          limit-access-to-actor: true
+          ## limits ssh access and adds the ssh public keys of the listed GitHub users
+          limit-access-to-users: sandstromviktor,churnikov,hamzaimran08,alfredeen,akochari
 
       - name: Cypress run e2e tests
         uses: cypress-io/github-action@v5
@@ -138,12 +147,3 @@ jobs:
           name: cypress-videos
           path: cypress/videos
 
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        with:
-          ## If no one connects after 2 minutes, shut down server.
-          wait-timeout-minutes: 2
-          ## limits ssh access and adds the ssh public key for the user which triggered the workflow
-          limit-access-to-actor: true
-          ## limits ssh access and adds the ssh public keys of the listed GitHub users
-          limit-access-to-users: sandstromviktor,churnikov,hamzaimran08,alfredeen,akochari
