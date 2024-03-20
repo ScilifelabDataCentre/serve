@@ -1,5 +1,0 @@
-apiVersion: v1
-appVersion: "0.1"
-description: A Helm chart for the serve File Manager
-name: File Manager
-version: 0.0.1

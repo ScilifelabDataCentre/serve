@@ -1,9 +1,0 @@
-{
-  "category": "network",
-  "description": "",
-  "name": "Network Policy",
-  "priority": "600",
-  "settings": {},
-  "slug": "netpolicy",
-  "table_field": {}
-}
