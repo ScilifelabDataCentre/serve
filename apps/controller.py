@@ -87,6 +87,8 @@ def deploy(options):
     if version:
         args.append("--version")
         args.append(version)
+        args.append("--repository-cache"),
+        args.append("/app/charts/.cache/helm/repository")
 
     print("CONTROLLER: RUNNING HELM COMMAND... ")
     result = subprocess.run(args, capture_output=True)
