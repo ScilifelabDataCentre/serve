@@ -117,7 +117,6 @@ jobs:
         run: |
           docker exec celery-worker kubectl version
           docker exec celery-worker helm version
-          docker exec celery-worker helm pull oci://ghcr.io/scilifelabdatacentre/serve-charts/custom-app --version 1.0.0
 
       - name: Cypress run e2e tests
         uses: cypress-io/github-action@v5
