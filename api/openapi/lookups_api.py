@@ -10,6 +10,10 @@ from rest_framework.exceptions import (
     ValidationError,
 )
 
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
 
 class UniversityLookupAPI(viewsets.GenericViewSet):
     """
@@ -31,12 +35,12 @@ class UniversityLookupAPI(viewsets.GenericViewSet):
 
         :returns list of dict or dict: The dict contains attributes code and name.
         """
-        print("UniversityLookupAPI. Entered list_or_single")
+        logger.info("UniversityLookupAPI. Entered list_or_single")
 
         try:
             universities = self.__get_universities()
         except Exception as e:
-            print(f"Exception: {e}")
+            logger.exception("Exception: %s", str(e), exc_info=True)
             raise APIException("Server error. Unable to retrieve list of universities from json file.")
 
         if len(request.GET) >= 1:
@@ -82,12 +86,12 @@ class DepartmentLookupAPI(viewsets.GenericViewSet):
 
     def list(self, request):
         """Gets a list of departments."""
-        print("DepartmentLookupAPI. Entered list")
+        logger.info("DepartmentLookupAPI. Entered list")
 
         try:
             departments = self.__get_departments()
         except Exception as e:
-            print(f"Exception: {e}")
+            logger.exception("Exception: %s", str(e), exc_info=True)
             raise APIException("Server error. Unable to retrieve list of departments from json file.")
 
         data = {"data": departments}

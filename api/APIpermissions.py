@@ -3,7 +3,11 @@ from datetime import datetime, timedelta, timezone
 from django.conf import settings
 from rest_framework.permissions import BasePermission
 
+from studio.utils import get_logger
+
 from .serializers import Project
+
+logger = get_logger(__name__)
 
 
 class IsTokenAuthenticated(BasePermission):
@@ -41,7 +45,7 @@ class ProjectPermission(BasePermission):
             is_authorized = True
         elif request.user in project.authorized.all():
             is_authorized = True
-        print("Is authorized: {}".format(is_authorized))
+        logger.info("Is authorized: %s", is_authorized)
         return is_authorized
 
 
@@ -54,5 +58,5 @@ class AdminPermission(BasePermission):
 
         if request.user.is_superuser:
             is_authorized = True
-        print("Is authorized: {}".format(is_authorized))
+        logger.info("Is authorized: %s", is_authorized)
         return is_authorized

@@ -7,14 +7,18 @@ from django.apps import apps
 from django.conf import settings
 from minio import Minio
 
+from studio.utils import get_logger
+
 from .models import Model
+
+logger = get_logger(__name__)
 
 PublicModelObject = apps.get_model(app_label=settings.PUBLICMODELOBJECT_MODEL)
 
 
 def add_pmo_to_publish(mdl, pmodel):
-    print(mdl.name)
-    print(mdl.version)
+    logger.info(mdl.name)
+    logger.info(mdl.version)
 
     host = mdl.s3.host
     access_key = mdl.s3.access_key
@@ -33,8 +37,8 @@ def add_pmo_to_publish(mdl, pmodel):
             client_kwargs={"endpoint_url": "http://" + host},
         )
     except Exception as err:
-        print(err)
-    print("Created S3 fs")
+        logger.error(err, exc_info=True)
+    logger.info("Created S3 fs")
     try:
         # if e.g tensorflow model, the object is already compressed
         if path == filename:
@@ -52,17 +56,17 @@ def add_pmo_to_publish(mdl, pmodel):
             # open tar for later read
             fobj = open("./charts/model.tar", "rb")
 
-        print("Opened s3 file.")
+        logger.info("Opened s3 file.")
 
         pmo = PublicModelObject(model=mdl)
         pmo.save()
         pmo.obj.save(filename, fobj)
         fobj.close()
     except Exception as err:
+        logger.error(str(err), exc_info=True)
         raise err
-        print(err)
 
-    print("Created public model object")
+    logger.info("Created public model object")
     pmodel.model_obj.add(pmo)
 
 
@@ -92,7 +96,7 @@ def get_download_url(model_id):
 
         download_url = client.presigned_get_object(bucket, path + uid)
     except Exception as e:
-        print(e, flush=True)
+        logger.error(str(e), exc_info=True)
 
     return download_url
 
@@ -103,12 +107,12 @@ def create_client(S3_storage, secure_mode=True):
     try:
         access_key = S3_storage.access_key
     except Exception:
-        print(("No access key could be found with " "the current S3 storage instance: {}").format(S3_storage))
+        logger.error("No access key could be found with the current S3 storage instance: %s", S3_storage)
         return []
     try:
         secret_key = S3_storage.secret_key
     except Exception:
-        print(("No secret key could be found with " "the current S3 storage instance: {}").format(S3_storage))
+        logger.error("No secret key could be found with the current S3 storage instance: %s", S3_storage)
         return []
 
     # API connection does not want scheme in the minio URL
@@ -149,25 +153,22 @@ def set_artifact(
 
     try:
         found = client.bucket_exists(bucket)
-    except Exception as err:
-        print(err)
-        print("EXCEPTION LOG: Client could not verify if bucket exists")
+    except Exception:
+        logger.error("Client could not verify if bucket exists", exc_info=True)
         return False
 
     if not found:
         try:
             client.make_bucket(bucket)
-        except Exception as err:
-            print(err)
-            print("Bucket does not exist, and failed to create bucket.")
+        except Exception:
+            logger.error("Bucket does not exist, and failed to create bucket.", exc_info=True)
             return False
 
     if is_file:
         try:
             client.fput_object(bucket, artifact_name, artifact_file)
-        except Exception as err:
-            print(err)
-            print("Client method fput_object failed")
+        except Exception:
+            logger.error("Client method fput_object failed", exc_info=True)
             return False
     else:
         try:
@@ -177,9 +178,8 @@ def set_artifact(
                 io.BytesIO(artifact_file),
                 len(artifact_file),
             )
-        except Exception as err:
-            print(err)
-            print("Client method put_object failed")
+        except Exception:
+            logger.error("Client method put_object failed", exc_info=True)
             return False
 
     return True
