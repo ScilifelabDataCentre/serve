@@ -284,7 +284,7 @@ def handle_update_status_request(
             else:
                 app_status = app_instance.status.latest()
 
-            logger.debug("AppStatus %s, %s, %s.", app_status.staus.status_type, app_status.time, app_status.info)
+            logger.debug("AppStatus %s, %s, %s.", app_status.status.status_type, app_status.time, app_status.info)
 
             # Now determine whether to update the state and status
 
