@@ -15,6 +15,10 @@ from django.utils import timezone
 from django.utils.text import slugify
 from guardian.shortcuts import assign_perm
 
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
 
 class BasicAuth(models.Model):
     name = models.CharField(max_length=512)
@@ -307,7 +311,7 @@ class Project(models.Model):
 @receiver(pre_delete, sender=Project)
 def on_project_delete(sender, instance, **kwargs):
     Model = apps.get_model(app_label=settings.MODELS_MODEL)
-    print("ARCHIVING PROJECT MODELS")
+    logger.info("ARCHIVING PROJECT MODELS")
     models = Model.objects.filter(project=instance)
 
     for model in models:

@@ -8,6 +8,10 @@ from django.utils.module_loading import import_string
 from minio import Minio
 from tagulous.models import TagField
 
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
 
 def compare_version(v1, v2):
     VERSION_CLASS = import_string(settings.VERSION_BACKEND)
@@ -37,7 +41,7 @@ class ModelManager(models.Manager):
             # Sort by version
             models = sorted(models, key=cmp_to_key(compare_version))
             for model in models:
-                print("{}-{}".format(model.name, model.version))
+                logger.info("%s-%s", model.name, model.version)
             return models[0]
 
         return []
@@ -183,7 +187,7 @@ def pre_save_model(sender, instance, using, **kwargs):
             new_version = VERSION_CLASS(model.version)
 
         release_status, instance.version = new_version.release(release_type)
-        print("New version: " + instance.version)
+        logger.info("New version: " + instance.version)
         if not release_status:
             raise Exception(
                 ("Failed to create new release for " "model {}-{}, release type {}.").format(
@@ -204,4 +208,4 @@ def pre_delete_model(sender, instance, using, **kwargs):
         )
         client.remove_object("models", instance.uid)
     except Exception:
-        print("Failed to delete model object {} from minio store.".format(instance.uid))
+        logger.error("Failed to delete model object %s from minio store.", instance.uid)
