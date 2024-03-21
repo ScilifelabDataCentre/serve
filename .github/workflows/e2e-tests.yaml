@@ -89,11 +89,11 @@ jobs:
           echo "Deploying serve"
           docker compose up -d --build
 
-      - name: Determine and set Serve URL
+      - name: Set Serve URL
         working-directory: ${{env.working-directory}}
         run: |
           curl --version | head -n 1
-          STUDIO_URL=`awk -F '= ' -v replace="'" '/STUDIO_URL/{gsub(replace, "", $NF); print $NF}' studio/settings.py`
+          STUDIO_URL=http://studio.127.0.0.1.nip.io:8080
           echo "STUDIO_URL=$STUDIO_URL" >> $GITHUB_ENV
           echo "The Serve URL is $STUDIO_URL"
 
