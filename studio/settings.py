@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     "api",
     "customtags",
     "news",
+    "axes",  # django-axes for brute force login protection
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = (
@@ -112,6 +113,7 @@ MIDDLEWARE = (
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "corsheaders.middleware.CorsMiddleware",
+        "axes.middleware.AxesMiddleware",
         "studio.middleware.ExceptionLoggingMiddleware",
     ]
     + DJANGO_WIKI_MIDDLEWARE
@@ -185,6 +187,7 @@ else:
     }
 
 AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
     "django.contrib.auth.backends.ModelBackend",
     "guardian.backends.ObjectPermissionBackend",
 ]
@@ -196,6 +199,33 @@ LOGOUT_URL = "logout"
 
 # Make new user inactive by default
 INACTIVE_USERS = True
+
+# Session settings for managing automatic login expiration.
+# The age of session cookies, in seconds. Set to 1 day = 86400 seconds:
+SESSION_COOKIE_AGE = 86400
+# Whether to save the session data on every request. For sliding expiration:
+SESSION_SAVE_EVERY_REQUEST = True
+# Whether to expire the session when the user closes their browser:
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# The expiration duration in seconds for authentication tokens
+AUTH_TOKEN_EXPIRATION = 60 * 20
+
+# Settings for the Django Axes brute force login protection
+# Number of allowed login failures before action is taken
+AXES_FAILURE_LIMIT = 5
+# Duration in hours after which old failed login attempts will be cleared
+AXES_COOLOFF_TIME = 0.05
+# Reset the number of failed attempts to 0 after a successful login
+AXES_RESET_ON_SUCCESS = True
+# Block failed attempts based on IP and username combination
+AXES_LOCKOUT_PARAMETERS = [["ip_address", "username"]]
+# Do not prolong the lock duration upon correct credentials entered during a lock period
+AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
+# Do not save all login and logout attempts to the database
+AXES_DISABLE_ACCESS_LOG = True
+# The custom view template to display on locked out event
+AXES_LOCKOUT_TEMPLATE = "registration/locked_out.html"
 
 # Django guardian 403 templates
 GUARDIAN_RENDER_403 = True
@@ -359,7 +389,8 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-VERSION = "dev"
+# 2024-02-21: Removed because this is not used.
+# VERSION = "dev"
 
 MIGRATION_MODULES = {
     "apps": "studio.migrations.apps",
@@ -384,6 +415,7 @@ APPS_PER_PROJECT_LIMIT = {
     "vscode": 3,
     "jupyter-lab": 3,
     "mlflow": 1,
+    "tissuumaps": 1,
     "volumeK8s": 0,
     "minio": 1,
     "mongo-express": 0,

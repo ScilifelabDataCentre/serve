@@ -19,7 +19,7 @@ data:
       kubernetes:
         internal-networking: true
         namespace: {{ .Values.namespace }}
-        image-pull-policy: Always
+        image-pull-policy: IfNotPresent
       hide-navbar: true
       landing-page: /app/{{ .Release.Name }}
       livenessProbe: {}

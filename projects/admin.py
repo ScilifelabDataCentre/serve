@@ -26,8 +26,8 @@ admin.site.register(ReleaseName)
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "owner", "status", "updated_at")
-    list_filter = ["owner", "status"]
+    list_display = ("name", "owner", "status", "updated_at", "project_template")
+    list_filter = ["owner", "status", "project_template"]
     actions = ["update_app_limits"]
 
     @admin.action(description="Reset app limits")

@@ -29,15 +29,7 @@ if $INIT; then
     # However for testing and developement purpose, activate them when not using a post-install job
 
     echo "Loading Studio Fixtures..."
-    # Related to Projects (including project meta-resources such as flavours, environments, etc...)
-    python manage.py loaddata fixtures/projects_templates.json
-    #Related to Apps (including celery tasks and intervals)
-    python manage.py loaddata fixtures/intervals_fixtures.json
-    python manage.py loaddata fixtures/periodic_tasks_fixtures.json
-    python manage.py loaddata fixtures/appcats_fixtures.json
-    python manage.py loaddata fixtures/apps_fixtures.json
-    # Related to Models
-    python manage.py loaddata fixtures/objecttype_fixtures.json
+    python manage.py install_fixtures
 
     # This script goes through all app instances and assigns/removes permissions to users based on the instance access level
     python manage.py runscript app_instance_permissions

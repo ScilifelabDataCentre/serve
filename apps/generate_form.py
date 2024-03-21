@@ -140,13 +140,19 @@ def get_form_primitives(app_settings, appinstance=[]):
 
 def get_form_permission(aset, project, appinstance=[]):
     form_permissions = {
-        "public": {"value": "false", "option": "false"},
         "project": {"value": "false", "option": "false"},
+        "public": {"value": "false", "option": "false"},
+        "link": {"value": "false", "option": "false"},
         "private": {"value": "true", "option": "true"},
     }
     dep_permissions = True
     if "permissions" in aset:
-        form_permissions = aset["permissions"]
+        form_permissions["project"] = aset["permissions"]["project"]
+        form_permissions["public"] = aset["permissions"]["public"]
+        form_permissions["link"] = aset["permissions"]["link"]
+        form_permissions["private"] = aset["permissions"]["private"]
+
+        # I don't really know why we keep this
         # if not form_permissions:
         #     dep_permissions = False
 
@@ -160,6 +166,7 @@ def get_form_permission(aset, project, appinstance=[]):
                 logger.info(form_permissions)
             except Exception:
                 logger.error("Permissions not set for app instance, using default.", exc_info=True)
+
     return dep_permissions, form_permissions
 
 
@@ -239,6 +246,12 @@ def get_form_S3(aset, project, app, appinstance=[]):
     return dep_S3, s3stores
 
 
+def get_link_privacy_type_note(aset, project, appinstance=tuple()):
+    if appinstance:
+        return appinstance.note_on_linkonly_privacy
+    return ""
+
+
 def generate_form(aset, project, app, user, appinstance=[]):
     form = dict()
     form["dep_model"], form["models"] = get_form_models(aset, project, appinstance)
@@ -262,4 +275,5 @@ def generate_form(aset, project, app, user, appinstance=[]):
     form["dep_permissions"], form["form_permissions"] = get_form_permission(aset, project, appinstance)
     release_names = ReleaseName.objects.filter(project=project, status="active")
     form["release_names"] = release_names
+    form["link_privacy_type_note"] = get_link_privacy_type_note(aset, project, appinstance)
     return form

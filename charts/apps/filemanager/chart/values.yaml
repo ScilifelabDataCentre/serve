@@ -1,0 +1,24 @@
+namespace: default
+volumes: {}
+
+ingress:
+  v1beta1: false
+  secretName: prod-ingress
+
+appconfig:
+  image: ghcr.io/scilifelabdatacentre/serve-filemanager:240221-0930
+
+podSecurityContext:
+  seccompProfile:
+      type: RuntimeDefault
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+  privileged: false
+  capabilities:
+    drop:
+      - all

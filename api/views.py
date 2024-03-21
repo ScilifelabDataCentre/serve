@@ -1,6 +1,6 @@
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import pytz
 from django.conf import settings
@@ -41,7 +41,7 @@ from projects.models import (
 from projects.tasks import create_resources_from_template, delete_project_apps
 from studio.utils import get_logger
 
-from .APIpermissions import AdminPermission, ProjectPermission
+from .APIpermissions import AdminPermission, IsTokenAuthenticated, ProjectPermission
 from .serializers import (
     AppInstanceSerializer,
     AppSerializer,
@@ -74,8 +74,20 @@ class CustomAuthToken(ObtainAuthToken):
         serializer = self.serializer_class(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
+
         token, created = Token.objects.get_or_create(user=user)
-        return Response({"token": token.key, "user_id": user.pk, "email": user.email})
+
+        # If the existing token is older than AUTH_TOKEN_EXPIRATION, then recreate the object
+        # The token.created field contains a datetime value
+        token_expiry = token.created + timedelta(seconds=settings.AUTH_TOKEN_EXPIRATION)
+
+        if not created and datetime.now(timezone.utc) > token_expiry:
+            print(f"INFO - Token expired as of {token_expiry}. Now generating a new token.")
+            token.delete()
+            token, created = Token.objects.get_or_create(user=user)
+            token_expiry = token.created + timedelta(seconds=settings.AUTH_TOKEN_EXPIRATION)
+
+        return Response({"token": token.key, "user_id": user.pk, "email": user.email, "expires": token_expiry})
 
 
 class ObjectTypeList(
@@ -690,6 +702,7 @@ class AppList(
     ListModelMixin,
 ):
     permission_classes = (
+        IsTokenAuthenticated,
         IsAuthenticated,
         AdminPermission,
     )
@@ -777,6 +790,7 @@ class ProjectTemplateList(
     ListModelMixin,
 ):
     permission_classes = (
+        IsTokenAuthenticated,
         IsAuthenticated,
         AdminPermission,
     )
@@ -824,6 +838,7 @@ class ProjectTemplateList(
 @api_view(["GET", "POST"])
 @permission_classes(
     (
+        IsTokenAuthenticated,
         IsAuthenticated,
         AdminPermission,
     )

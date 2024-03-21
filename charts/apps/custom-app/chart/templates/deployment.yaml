@@ -44,7 +44,7 @@ spec:
       initContainers:
       - name: copy-to-pvc
         image: {{ .Values.appconfig.image }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         command:
           - /bin/sh
           - -c
@@ -65,7 +65,7 @@ spec:
       containers:
       - name: {{ .Values.appname }}
         image: {{ .Values.appconfig.image }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         command:
           - /bin/sh
           - -c
