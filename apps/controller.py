@@ -26,19 +26,11 @@ def delete(options):
 def deploy(options):
     logger.info("STARTING DEPLOY FROM CONTROLLER")
 
-    app = Apps.objects.get(slug=options["app_slug"], revision=options["app_revision"])
-    if app.chart_archive and app.chart_archive != "":
-        try:
-            chart_file = settings.MEDIA_ROOT + app.chart_archive.name
-            tar = tarfile.open(chart_file, "r:gz")
-            extract_path = "/app/extracted_charts/" + app.slug + "/" + str(app.revision)
-            tar.extractall(extract_path)
-            tar.close()
-            chart = extract_path
-        except Exception as err:
-            logger.error(err, exc_info=True)
-            chart = "charts/" + options["chart"]
+    if "ghcr" in options["chart"]:
+        version = options["chart"].split(":")[-1]
+        chart = "oci://" + options["chart"].split(":")[0]
     else:
+        version = None
         chart = "charts/" + options["chart"]
 
     if "release" not in options:
@@ -92,7 +84,16 @@ def deploy(options):
         "-f",
         unique_filename,
     ]
+
+    # Append version if deploying via ghcr
+    if version:
+        args.append("--version")
+        args.append(version)
+        args.append("--repository-cache"),
+        args.append("/app/charts/.cache/helm/repository")
+
     logger.info("CONTROLLER: RUNNING HELM COMMAND... ")
+
     result = subprocess.run(args, capture_output=True)
 
     # remove file

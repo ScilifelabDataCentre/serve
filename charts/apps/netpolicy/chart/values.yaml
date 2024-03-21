@@ -1,6 +1,0 @@
-namespace: default
-
-appname: netpolicy
-project:
-  name: project
-  slug: project-slug
