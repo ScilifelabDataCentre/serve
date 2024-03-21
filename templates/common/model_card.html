@@ -1,0 +1,74 @@
+{% load static %}
+{% load custom_tags %}
+
+<div class="card h-100 border-0 shadow">
+    <div class="card-body d-flex flex-column">
+        <h5 class="card-title">{{ model.name }}</h5>
+        <div class="card-text">
+            <p>{{model.model_description|default_if_none:""}}</p>
+            <ul class="list-unstyled">
+                <li class="list-group-item row">
+                    <div class="col-3"><span class="value-label">Owner:</span></div>
+                    <div class="col-9">{{ model.owner.first_name }} {{ model.owner.last_name }}</div>
+                </li>
+            </ul>
+        </div>
+        <div class="pb-4">
+            {% if request.session.model_tags|exists:model.id %}
+            {% for model_objs in model.model_obj|sort_by:'-model__version' %}
+            {% with model_objs.model.tags|split:"," as tags %}
+            {% for tag in tags %}
+            <a class="tag {% if tag in request.session.tag_filters%}disabled{% endif %}"
+                href="{% url 'models:index' %}?tf_add={{ tag | urlencode }}">
+                <div class="tag-ico fas fa-tag fa-sm"></div><span class="badge text-bg-primary">{{ tag }}</span>
+            </a>
+            {% endfor %}
+            <a href="{% url 'models:index' %}?model_id_remove={{ model.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
+                style="display: inline-flex;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-circle tag-count">
+                    -
+                </button>
+            </a>
+            {% endwith %}
+            {% endfor %}
+            {% else %}
+            {% for model_objs in model.model_obj|sort_by:'-model__version' %}
+            {% with model_objs.model.tags|split:"," as tags %}
+            {% with tags|count_str as tag_limit %}
+            {% for tag in tags|slice:tag_limit %}
+            <a class="tag {% if tag in request.session.tag_filters%}disabled{% endif %}"
+                href="{% url 'models:index' %}?tf_add={{ tag | urlencode }}">
+                <div class="tag-ico fas fa-tag fa-sm "></div><span class="badge text-bg-primary">{{ tag }}</span>
+            </a>
+            {% endfor %}
+            {% if tags.count > tag_limit %}
+            <a href="{% url 'models:index' %}?model_id_add={{ model.id | urlencode }}&tag_count={{ tags.count | urlencode }}"
+                style="display: inline-flex;">
+                {% csrf_token %}
+                <button style="font-weight: 600;" type="submit" class="btn btn-light tag-count">+{{
+                    tags.count|subtract:tag_limit }}</button>
+            </a>
+            {% endif %}
+            {% endwith %}
+            {% endwith %}
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="row mt-auto">
+            <div class="col-6">
+                <a href="{% url 'models:details_public' model.pk %}" class="btn btn-primary">Open</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-footer d-flex text-muted card-footer-text justify-content-between  bg-teal-075">
+        <div class="text-start">
+            <span>ML Model</span>
+        </div>
+        <div class="text-end">
+            <span>Last updated: {{ model.updated_on|date:"d M, Y" }}</span>
+        </div>
+    </div>
+</div>
