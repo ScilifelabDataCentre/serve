@@ -55,7 +55,8 @@ jobs:
           sudo chgrp -R 127 media
           sudo chmod -R g+rwx media
           ls -al
-          echo -e "UID=1001\nGID=127" > .env
+          sed -i 's/UID=1000/UID=1001/g' .env
+          sed -i 's/GID=1000/GID=127/g' .env
 
       - name: A job to install MicroK8s
         uses: balchua/microk8s-actions@v0.4.2
