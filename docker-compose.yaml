@@ -145,7 +145,7 @@ services:
     image: stackn:develop
     volumes:
     - .:/app:cached
-    command: ["pytest"]
+    command: ["pytest", "-n", "auto"]
     profiles:
       - donotstart
     networks:

@@ -1,4 +1,4 @@
-describe("Test of the home page", () => {
+describe("Tests of the public pages of the website", () => {
 
     beforeEach(() => {
 

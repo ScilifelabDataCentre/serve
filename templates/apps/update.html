@@ -8,7 +8,7 @@
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' project.slug %}">{{ project.name }}</a></li>
       <li class="breadcrumb-item active" aria-current="page">Update {{ app.name }}</li>
     </ol>
 </nav>
@@ -22,6 +22,8 @@
         <p>This form allows you to host a Dash app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/dash/">documentation page on Dash apps</a> for step-by-step instructions.</p>
         {% elif app.slug in 'shinyapp,shinyproxyapp' %}
         <p>This form allows you to host a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.</p>
+        {% elif app.slug == 'tissuumaps' %}
+        <p>You are editing a TissUUmaps app. Remember to upload the data to your project and then edit the app settings to change the Permissions to <i>public</i>. Please read our <a href="/docs/application-hosting/tissuumaps/" target="_blank">documentation page on TissUUmaps apps</a> for step-by-step instructions.</p>
         {% endif %}
         {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
         <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
@@ -91,7 +93,7 @@
                     </div>
                     {% endif %}
                     {% if form.dep_permissions %}
-                    <div class="mb-3">
+                    <div class="mb-3 validate-item">
                         <label class="form-label">Permissions</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to them. Project apps can only be accessed by project members. Private apps are only accessible by users that create the apps.">
                         </span>
@@ -107,6 +109,20 @@
                             {% endif %}
                             {% endfor %}
                         </select>
+												<div id="id_link_only_note" class="rollable">
+												<div class="row pb-3">
+													<div class="col-12 ">
+															<label class="form-label">Describe, why you want to make the app accessible only via a link</label>
+															<span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip"
+																					 title="" data-bs-placement="right" data-bs-original-title="We ask users to
+																									tell us why they want to make an app accesisble only via a link.
+																									Please consider using it only if you really need it."></span>
+
+												<textarea type="hidden" id="link_privacy_type_note" name="link_privacy_type_note" class="form-control" rows="2">{{form.link_privacy_type_note}}</textarea>
+													</div>
+												</div>
+                    </div>
+
                     </div>
                     {% endif %}
 
@@ -230,7 +246,7 @@
                         {% if subval.type == "string" %}
                         <label class="form-label">{{ subval.title }}</label>
                         {% if subkey == "image" %}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="DockerHub or Github Docker Image for the app">
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Docker Image for the app uploaded to DockerHub or GitHub. The image needs to be publicly available. Each version of your app should have a unique tag.">
                         </span>
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control" required>
                         <div class="invalid-feedback">
@@ -373,7 +389,7 @@
             <h3 class="card-title">Tags</h3>
             <p>Add relevant keywords to help users find your app in our catalog of public apps.</p>
 
-            <form method="POST" action="{% url 'apps:add_tag' request.user project.slug appinstance.pk %}">
+            <form method="POST" action="{% url 'apps:add_tag' project.slug appinstance.pk %}">
 
                 {% csrf_token %}
 
@@ -400,7 +416,7 @@
                 {% with appinstance.tags|split:"," as tags %}
                 {% for tag in tags %}
                 <div class="col-3 d-flex">
-                    <form action="{% url 'apps:remove_tag' request.user project.slug appinstance.pk %}" method="post">
+                    <form action="{% url 'apps:remove_tag' project.slug appinstance.pk %}" method="post">
                         {% csrf_token %}
                         <span class="badge bg-primary d-flex align-items-center m-1">
                             {{tag}} <button type="submit" class="btn-close btn-close-white ms-1" name="tag" value="{{tag}}"
@@ -417,6 +433,7 @@
     </div>
 {% endif %}
 </div>
+<script src="{% static 'js/apps_form.js' %}"></script>
 {% if app.slug == "customapp" %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -520,7 +537,7 @@
         var rn = document.getElementById('rn').value
         $.ajax({
             type: "POST",
-            url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
+            url: '{% url "apps:create_releasename" project.slug app.slug %}',
             data: {"rn": rn,"csrfmiddlewaretoken": '{{ csrf_token }}'},
             success: function(data){
                 if (data.available == "true"){
