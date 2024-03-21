@@ -51,8 +51,7 @@ def serialize_model(form_selection):
         if len(object_type) == 1:
             logger.info("OK")
         else:
-            logger.info("Currently only supports one object type per model")
-            logger.info("Will assume first in list.")
+            logger.info("Currently only supports one object type per model. Will assume first in list.")
         model_json = {
             "model": {
                 "name": obj[0].name,
@@ -167,8 +166,7 @@ def serialize_apps(form_selection, project):
                 logger.info("App not found: %s", app_name)
 
             parameters["apps"][app.slug] = dict()
-            logger.info(app_name)
-            logger.info("id: " + str(form_selection[key]))
+            logger.info("app: %s id: %s", app_name, str(form_selection[key]))
             try:
                 objs = AppInstance.objects.filter(pk__in=form_selection.getlist(key))
             except:  # noqa E722 TODO: Add exception

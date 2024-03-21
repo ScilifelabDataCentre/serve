@@ -327,10 +327,9 @@ class MembersList(
         user_id = self.kwargs["pk"]
         logger.info(user_id)
         user = User.objects.get(pk=user_id)
-        logger.info("user")
-        logger.info(user)
+        logger.info("user: %s", str(user))
         if user.username != project.owner.username:
-            logger.info("username" + user.username)
+            logger.info("username " + user.username)
             project.authorized.remove(user)
             for role in settings.PROJECT_ROLES:
                 return HttpResponse("Successfully removed members.", status=200)
