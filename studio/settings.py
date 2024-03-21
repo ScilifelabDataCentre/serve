@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     "customtags",
     "news",
     "axes",  # django-axes for brute force login protection
+    "collections_module",
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = [
@@ -378,6 +379,7 @@ MIGRATION_MODULES = {
     "projects": "studio.migrations.projects",
     "common": "common.migrations",
     "news": "news.migrations",
+    "collections_module": "collections_module.migrations",
 }
 
 # Defines how many apps a user is allowed to create within one project

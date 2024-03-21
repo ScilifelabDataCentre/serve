@@ -40,6 +40,7 @@ urlpatterns = (
         path("", include("models.urls", namespace="models")),
         path("", include("portal.urls", namespace="portal")),
         path("", include("news.urls", namespace="news")),
+        path("", include("collections_module.urls", namespace="collections_module")),
         path("", include("projects.urls", namespace="projects")),
         path(
             "<user>/<project>/monitor/",

@@ -175,6 +175,7 @@ class AppInstance(models.Model):
     tags = TagField(blank=True)
     updated_on = models.DateTimeField(auto_now=True)
     note_on_linkonly_privacy = models.TextField(blank=True, null=True, default="")
+    collections = models.ManyToManyField("collections_module.Collection", blank=True, related_name="app_instances")
 
     class Meta:
         permissions = [("can_access_app", "Can access app service")]
