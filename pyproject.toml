@@ -36,7 +36,7 @@ wiki = "==0.10"
 flower = "==2.0.1"
 requests = "==2.31.0"
 amqp = "==5.1.1"
-psycopg2-binary = "==2.9.7"
+psycopg2-binary = "==2.9.9"
 redis = "==5.0.1"
 watchdog = "==3.0.0"
 drf-nested-routers = "==0.93.4"
@@ -61,15 +61,18 @@ black = { version = "==23.3.0", optional = true }
 isort = { version = "==5.12.0", optional = true }
 flake8 = { version = "==6.0.0", optional = true }
 mypy = { version = "==1.4.1", optional = true }
-pytest-django = { version = "==4.5.2", optional = true }
-pytest-cov = { version = "==4.1.0", optional = true }
 hypothesis = { version = "==6.86.1", optional = true }
 moto = { version = "==4.*", extras = ["ec2", "s3", "all"], optional = true }
-pytest = { version = "~7.4.2", optional = true }
+pytest = { version = "~8.0.1", optional = true }
+pytest-django = { version = "==4.8.0",  optional = true }
+pytest-cov = { version = "==4.1.0", optional = true }
+pytest-xdist = { version = "^3.5.0", optional = true }
+django-axes = {extras = ["ipware"], version = "^6.3.0"}
+
 
 [tool.poetry.extras]
 linters = ["black", "isort", "flake8", "mypy"]
-tests = ["pytest-django", "pytest-cov", "hypothesis", "pytest", "moto"]
+tests = ["pytest-django", "pytest-cov", "pytest-xdist", "hypothesis", "pytest", "moto"]
 
 
 [build-system]

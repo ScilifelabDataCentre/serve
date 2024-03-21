@@ -84,14 +84,12 @@
             "volume.size": "1Gi",
             "volume.storageClass": "microk8s-hostpath"
           },
-          "project-minio": {
+          "project-filemanager": {
             "app:volumeK8s": [
               "project-vol"
             ],
-            "credentials.access_key": "accesskey",
-            "credentials.secret_key": "secretkey123",
             "permission": "project",
-            "slug": "minio-admin"
+            "slug": "filemanager-admin"
           }
         },
         "environments": {
@@ -130,9 +128,6 @@
               "requirement": "1Gi"
             }
           }
-        },
-        "settings": {
-          "project-S3": "project-minio"
         }
       }
     },

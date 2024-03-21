@@ -151,7 +151,7 @@ def create_mlflow(sender, instance, created, **kwargs):
 
 # it will become the default objects attribute for a Project model
 class ProjectManager(models.Manager):
-    def create_project(self, name, owner, description, status="active"):
+    def create_project(self, name, owner, description, status="active", project_template=None):
         user_can_create = self.user_can_create(owner)
 
         if not user_can_create:
@@ -172,6 +172,7 @@ class ProjectManager(models.Manager):
             project_secret=secret,
             description=description,
             status=status,
+            project_template=project_template,
         )
 
         assign_perm("can_view_project", owner, project)
@@ -230,6 +231,26 @@ def get_default_apps_per_project_limit():
     return apps_per_project_limit
 
 
+class ProjectTemplate(models.Model):
+    description = models.TextField(null=True, blank=True)
+    image = models.ImageField(upload_to="projecttemplates/images/", blank=True, null=True)
+    name = models.CharField(max_length=512)
+    revision = models.IntegerField(default=1)
+    slug = models.CharField(max_length=512, default="")
+    template = models.TextField(null=True, blank=True)
+
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = (
+            "slug",
+            "revision",
+        )
+
+    def __str__(self):
+        return "{} ({})".format(self.name, self.revision)
+
+
 class Project(models.Model):
     authorized = models.ManyToManyField(get_user_model(), blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -268,6 +289,9 @@ class Project(models.Model):
     project_key = models.CharField(max_length=512)
     project_secret = models.CharField(max_length=512)
     # ----------------------
+
+    # Is needed to determine project template
+    project_template = models.ForeignKey(ProjectTemplate, on_delete=models.DO_NOTHING, null=True)
 
     class Meta:
         permissions = [("can_view_project", "Can view project")]
@@ -338,26 +362,6 @@ class ProjectLog(models.Model):
     headline = models.CharField(max_length=256)
     module = models.CharField(max_length=2, choices=MODULE_CHOICES, default="UN")
     project = models.ForeignKey(settings.PROJECTS_MODEL, on_delete=models.CASCADE)
-
-
-class ProjectTemplate(models.Model):
-    description = models.TextField(null=True, blank=True)
-    image = models.ImageField(upload_to="projecttemplates/images/", blank=True, null=True)
-    name = models.CharField(max_length=512)
-    revision = models.IntegerField(default=1)
-    slug = models.CharField(max_length=512, default="")
-    template = models.TextField(null=True, blank=True)
-
-    enabled = models.BooleanField(default=True)
-
-    class Meta:
-        unique_together = (
-            "slug",
-            "revision",
-        )
-
-    def __str__(self):
-        return "{} ({})".format(self.name, self.revision)
 
 
 class ReleaseName(models.Model):

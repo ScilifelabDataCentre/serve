@@ -7,7 +7,7 @@
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'projects:details' request.user project.slug %}">{{ project.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'projects:details' project.slug %}">{{ project.name }}</a></li>
       <li class="breadcrumb-item active" aria-current="page">Create {{ app.name }}</li>
     </ol>
 </nav>
@@ -22,6 +22,8 @@
         <p>This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/dash/">documentation page on Dash apps</a> for step-by-step instructions.</p>
         {% elif app.slug in 'shinyapp,shinyproxyapp' %}
         <p>This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.</p>
+        {% elif app.slug == 'tissuumaps' %}
+        <p>This form allows you to start hosting your own TissUUmaps instance at SciLifeLab Serve. After your app has been created you will need to upload the data to your project. We suggest that you create the app with Permissions initially set to <i>private</i>, upload the data, and then edit the app settings to change the Permissions to <i>public</i>. Please read our <a href="/docs/application-hosting/tissuumaps/" target="_blank">documentation page on TissUUmaps apps</a> for step-by-step instructions.</p>
         {% endif %}
         {% if app.slug in 'jupyter-lab,rstudio,vscode' %}
         <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
@@ -34,25 +36,16 @@
     <div class="col-12 col-xl-6">
         <div class="card shadow border-0">
 
-                <form class="needs-validation" action="{% url 'apps:create' request.user project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
+                <form class="needs-validation" action="{% url 'apps:create' project.slug app.slug %}?from={{ from_page }}" method="post" novalidate>
                     {% csrf_token %}
 
-                    {% if app.slug == "minio" %}
+                    {% if app.slug == "filemanager" %}
 
 
-                    <div class="p-3 mb-3">
-
-                        <div role="alert" class="alert alert-warning text-center">
-                          <h4><i class="bi bi-exclamation-triangle px-2"></i>Important information</h4>
-                          This is an experimental feature.<br>
-                          If you experience issues, please contact us at serve@scilifelab.se
-                      </div>
-
-                  <p>You are about to activate file manager on SciLifeLab Serve. You can use it to upload or download files to a volume associated with this project. This service will be active for 24 hours and automatically terminated afterwards. The uploaded files will stay on the volume even after this service has been terminated. All credentials needed to use the service will be provided after activation.</p>
-                  <p>Click 'Activate' to activate file manager</p>
-
-
-                  </div>
+                    <div class="p-3 my-3">
+                        <p>You are about to activate file manager on SciLifeLab Serve. You can use it to upload or download files to a volume associated with this project. This service will be active for 24 hours and automatically terminated afterwards. The uploaded files will stay on the volume even after this service has been terminated.</p>
+                        <p>Click 'Activate' to activate file manager</p>
+                    </div>
                     <div class="card-body d-none">
                     {% else %}
                     <div class="card-body">
@@ -64,7 +57,7 @@
                         <label class="form-label">Name</label>
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Display name for the application. This is the name visible on the app catalogue if the app is public">
                         </span>
-                        <input type="text" id="app_name" name="app_name" value="{% if app.slug == "minio"%}{{ app.slug }}-{{ project.slug }}{% else %}{{ existing_app_name }}{% endif %}"
+                        <input type="text" id="app_name" name="app_name" value="{% if app.slug == "filemanager"%}{{ app.slug }}-{{ project.slug }}{% else %}{{ existing_app_name }}{% endif %}"
                             class="form-control" required>
                         <div class="invalid-feedback">
                             Please add a valid name!
@@ -124,6 +117,19 @@
                             {% endif %}
                             {% endfor %}
                         </select>
+                    <div id="id_link_only_note" class="rollable">
+                      <div class="row pb-3">
+                        <div class="col-12 ">
+                            <label class="form-label">Describe, why you want to make the app accessible only via a link</label>
+                            <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip"
+                                         title="" data-bs-placement="right" data-bs-original-title="We ask users to
+                                                tell us why they want to make an app accesisble only via a link.
+                                                Please consider using it only if you really need it."></span>
+
+                      <textarea type="hidden" id="link_privacy_type_note" name="link_privacy_type_note" class="form-control" rows="2"></textarea>
+                        </div>
+                      </div>
+                    </div>
                     </div>
                     {% endif %}
 
@@ -187,9 +193,13 @@
                     <div class="mb-3">
                         <label class="form-label">{{ app_name }}</label>
                         <select name="app:{{ app_name }}" id="{{ app_name }}" class="form-control" {{
-                            appinstances.option_type }} required>
+                            appinstances.option_type }} required {% if app.slug == "filemanager" %}multiple{% endif %}>
                             {% for appinstance in appinstances.instances %}
-                            <option value="{{ appinstance.pk }}" {{ appinstance.selected }}>{{ appinstance.name }}
+                            <option value="{{ appinstance.pk }}"
+                                {% if app.slug == "filemanager" %} selected="selected"
+                                {% else %} {{ appinstance.selected }}
+                                {% endif %}>
+                                {{ appinstance.name }}
                             </option>
                             {% endfor %}
                             <option value="None" {% if app.slug == "customapp" %}selected="selected"{% endif %}>None</option>
@@ -223,7 +233,7 @@
                         {% if subval.type == "string" %}
                         <label class="form-label">{{ subval.title }}</label>
                         {% if subkey == "image" %}
-                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="DockerHub or Github Docker Image for the app">
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Docker Image for the app uploaded to DockerHub or GitHub. Each version of your app should have a unique tag.">
                         </span>
                         <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="" placeholder="{{ subval.default }}" class="form-control" required>
                         <div class="invalid-feedback">
@@ -306,17 +316,6 @@
 
                         {% endif %}
 
-                        {% if subval.type == "minio-username" %}
-                        <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_username }}" class="form-control">
-                        {% endif %}
-
-                        {% if subval.type == "minio-password" %}
-                        <label class="form-label">{{ subval.title }}</label>
-                        <input type="text" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ minio_password }}" class="form-control">
-                        {% endif %}
-
-
                     </div>
                     {% endfor %}
 
@@ -340,7 +339,7 @@
                         onclick="window.location='{{ request.headers.referer }}' ; return false;">
                         Cancel
                     </button>
-                    {% if app.slug == "minio" %}
+                    {% if app.slug == "filemanager" %}
                     <button class="btn btn-success" type="submit">Activate</button>
                     {% else %}
                     <button class="btn btn-primary" type="submit">Create</button>
@@ -350,6 +349,7 @@
         </div>
     </div>
 </div>
+<script src="{% static 'js/apps_form.js' %}"></script>
 {# In the custom app creation form, make the path a required field if a persistent volumet is selected #}
 {% if app.slug == "customapp" %}
 <script>
@@ -440,7 +440,7 @@
         }
         $.ajax({
             type: "POST",
-            url: '{% url "apps:create_releasename" request.user project.slug app.slug %}',
+            url: '{% url "apps:create_releasename" project.slug app.slug %}',
             data: {"rn": rn,"csrfmiddlewaretoken": '{{ csrf_token }}'},
             success: function(data){
                 if (data.available == "true"){

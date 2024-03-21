@@ -171,14 +171,22 @@ def release_name(instance):
         rel_name.save()
 
 
-def post_delete_hooks(instance):
+def post_delete_hooks(appinstance):
     logger.info("TASK - POST DELETE HOOK...")
-    release_name(instance)
-    project = instance.project
-    if project.s3storage and project.s3storage.app == instance:
+    release_name(appinstance)
+    project = appinstance.project
+    if project.s3storage and project.s3storage.app == appinstance:
         project.s3storage.delete()
-    elif project.mlflow and project.mlflow.app == instance:
+    elif project.mlflow and project.mlflow.app == appinstance:
         project.mlflow.delete()
+    elif appinstance.app.slug in ("volumeK8s", "netpolicy"):
+        # Handle volumeK8s and netpolicy deletion
+        appinstance.state = "Deleted"
+        appinstance.deleted_on = timezone.now()
+        status = AppStatus(appinstance=appinstance)
+        status.status_type = "Deleted"
+        appinstance.save()
+        status.save()
 
 
 @shared_task

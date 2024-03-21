@@ -48,3 +48,11 @@ class EmailVerificationTable(models.Model):
             fail_silently=False,
             html_message=html_message,
         )
+
+
+class FixtureVersion(models.Model):
+    filename = models.CharField(max_length=255, unique=True)
+    hash = models.CharField(max_length=64)  # Length of a SHA-256 hash
+
+    def __str__(self):
+        return f"{self.filename} - {self.hash}"
