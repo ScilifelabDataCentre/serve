@@ -149,7 +149,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                 os.chdir(temp_folder_path)
                 os.getcwd()
             except OSError as error:
-                print(error)
+                logger.error(str(error), exc_info=True)
             # Note: default namespace is assumed here
             cmd = (
                 f"kubectl cp -n {settings.NAMESPACE} "
@@ -165,8 +165,8 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             )
             try:
                 result = subprocess.check_output(cmd, shell=True)
-                print(
-                    "LOG INFO SUBPROCESS - FOLDER COPY WITH KUBECTL: ",
+                logger.info(
+                    "SUBPROCESS - FOLDER COPY WITH KUBECTL: %s",
                     result.decode("utf-8"),
                 )
             except (subprocess.CalledProcessError, FileNotFoundError):
@@ -196,7 +196,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                         stdout=subprocess.PIPE,
                         check=True,
                     )
-                    print("LOG INFO SUBPROCESS - ARCHIVE CREATION: ", result)
+                    logger.info("SUBPROCESS - ARCHIVE CREATION: %s", result)
                 except (subprocess.CalledProcessError, FileNotFoundError):
                     messages.error(
                         request,
@@ -257,7 +257,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                     os.system("rm -rf {}".format(temp_folder_path))
                     os.chdir(settings.BASE_DIR)
             except OSError as error:
-                print(error)
+                logger.error(error, exc_info=True)
 
             # Finally, we redirect
             return redirect(redirect_url)
@@ -272,7 +272,7 @@ def index(request, user=None, project=None, id=0):
     try:
         projects = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status="active")
     except Exception:
-        print("User not logged in.")
+        logger.error("User not logged in.")
 
     if project:
         project = Project.objects.filter(slug=project).first()
@@ -323,7 +323,7 @@ def index(request, user=None, project=None, id=0):
         elif "tag_count" not in request.GET:
             tag = ""
             request.session["tag_filters"] = []
-        print("tag_filters: ", request.session["tag_filters"])
+        logger.info("tag_filters: %s", request.session["tag_filters"])
 
         # changed list of published model only if tag filters are present
         if request.session["tag_filters"]:
@@ -376,12 +376,13 @@ def unpublish_model(request, user, project, id):
     model = Model.objects.get(pk=id)
 
     try:
+        # TODO: refactoring. Shouldn't this be transaction?
         pmodel = PublishedModel.objects.get(name=model.name, project=model.project)
         pmos = pmodel.model_obj.all()
         pmos.delete()
         pmodel.delete()
     except Exception as err:
-        print(err)
+        logger.error(err)
     model.access = "PR"
     model.save()
     return HttpResponseRedirect(reverse("models:list", kwargs={"user": user, "project": project}))
@@ -390,7 +391,7 @@ def unpublish_model(request, user, project, id):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
 def publish_model(request, user, project, id):
-    print("PUBLISHING MODEL")
+    logger.info("PUBLISHING MODEL")
 
     # TODO: Check that user has access to this particular model.
     model = Model.objects.get(pk=id)
@@ -442,7 +443,7 @@ def add_tag(request, published_id, id):
     _ = model.get_access_display()
     if request.method == "POST":
         new_tag = request.POST.get("tag", "")
-        print("New Tag: ", new_tag)
+        logger.info("New Tag: %s", new_tag)
         model.tags.add(new_tag)
         model.save()
     return HttpResponseRedirect(reverse("models:details_public", kwargs={"id": published_id}))
@@ -453,9 +454,9 @@ def remove_tag(request, published_id, id):
     model = Model.objects.filter(pk=id).first()
     _ = model.get_access_display()
     if request.method == "POST":
-        print(request.POST)
+        logger.info(request.POST)
         new_tag = request.POST.get("tag", "")
-        print("Remove Tag: ", new_tag)
+        logger.info("Remove Tag: %s", new_tag)
         model.tags.remove(new_tag)
         model.save()
 
@@ -469,7 +470,7 @@ def add_tag_private(request, user, project, id):
     _ = model.get_access_display()
     if request.method == "POST":
         new_tag = request.POST.get("tag", "")
-        print("New Tag: ", new_tag)
+        logger.info("New Tag: %s", new_tag)
         model.tags.add(new_tag)
         model.save()
 
@@ -487,9 +488,9 @@ def remove_tag_private(request, user, project, id):
     model = Model.objects.filter(pk=id).first()
     _ = model.get_access_display()
     if request.method == "POST":
-        print(request.POST)
+        logger.info(request.POST)
         new_tag = request.POST.get("tag", "")
-        print("Remove Tag: ", new_tag)
+        logger.info("Remove Tag: %s", new_tag)
         model.tags.remove(new_tag)
         model.save()
 
@@ -667,7 +668,7 @@ def get_chart_data(md_objects):
 
 
 def import_model(request, id):
-    print("IMPORTING MODEL")
+    logger.info("IMPORTING MODEL")
 
 
 @login_required
@@ -676,7 +677,7 @@ def details_private(request, user, project, id):
     try:
         projects = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status="active")
     except Exception:
-        print("User not logged in.")
+        logger.error("User not logged in.")
     base_template = "base.html"
 
     project_slug = project
@@ -691,7 +692,7 @@ def details_private(request, user, project, id):
         base_template = "base.html"
     except Exception as err:
         project = []
-        print(err)
+        logger.error(str(err), exc_info=True)
     if not project:
         base_template = "base.html"
 
@@ -701,7 +702,7 @@ def details_private(request, user, project, id):
     model = Model.objects.get(pk=id)
     all_tags = Model.tags.tag_model.objects.all()
     private = True
-    print("MY TAGS: ", model.tags, user)
+    logger.info("MY TAGS: %s %s", model.tags, user)
     # published_model = PublishedModel(pk=id)
     # model_objs = published_model.model_obj.order_by('-model__version')
     # latest_model_obj = model_objs[0]
@@ -717,11 +718,11 @@ def details_private(request, user, project, id):
 def details_public(request, id):
     private = False
     all_tags = Model.tags.tag_model.objects.all()
-    print("Details tag ID:", id)
+    logger.info("Details tag ID:%s", id)
     try:
         projects = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status="active")
     except Exception:
-        print("User not logged in.")
+        logger.error("User not logged in.", exc_info=True)
     base_template = "base.html"
     if "project" in request.session:
         project_slug = request.session["project"]
@@ -737,21 +738,21 @@ def details_public(request, id):
                 base_template = "base.html"
             except Exception as err:
                 project = []
-                print(err)
+                logger.error(str(err), exc_info=True)
             if not project:
                 base_template = "base.html"
     else:
         base_template = "base.html"
 
     media_url = settings.MEDIA_URL
-    print(media_url, flush=True)
+    logger.info(media_url)
     published_model = PublishedModel(pk=id)
-    print(published_model, flush=True)
+    logger.info(published_model)
     model_objs = published_model.model_obj.order_by("-model__version")
     latest_model_obj = model_objs[0]
     model = latest_model_obj.model
-    print(model_objs, flush=True)
-    print(latest_model_obj, flush=True)
+    logger.info(model_objs)
+    logger.info(latest_model_obj)
 
     return render(request, "models/models_details_public.html", locals())
 

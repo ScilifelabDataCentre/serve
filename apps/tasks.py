@@ -20,6 +20,8 @@ from studio.utils import get_logger
 from . import controller
 from .models import AppInstance, Apps, AppStatus, ResourceData
 
+logger = get_logger(__name__)
+
 K8S_STATUS_MAP = {
     "CrashLoopBackOff": "Error",
     "Completed": "Retrying...",
@@ -46,7 +48,7 @@ def process_helm_result(results):
 
 
 def post_create_hooks(instance):
-    print("TASK - POST CREATE HOOK...")
+    logger.info("TASK - POST CREATE HOOK...")
     # hard coded hooks for now, we can make this dynamic
     # and loaded from the app specs
     if instance.app.slug == "minio-admin":
@@ -70,7 +72,7 @@ def post_create_hooks(instance):
             minio_host_url = result.stdout.decode("utf-8")
             minio_host_url += ":9000"
         except subprocess.CalledProcessError:
-            print("Oops, something went wrong running the command: {}".format(cmd))
+            logger.error("Oops, something went wrong running the command: %s", cmd)
 
         try:
             s3obj = instance.s3obj
@@ -132,7 +134,7 @@ def post_create_hooks(instance):
             mlflow_host_ip = result.stdout.decode("utf-8")
             mlflow_host_ip += ":{}".format(instance.parameters["service"]["port"])
         except subprocess.CalledProcessError:
-            print("Oops, something went wrong running the command: {}".format(cmd))
+            logger.error("Oops, something went wrong running the command: %s", cmd)
 
         s3 = S3.objects.get(pk=instance.parameters["s3"]["pk"])
         basic_auth = BasicAuth(
@@ -170,7 +172,7 @@ def release_name(instance):
 
 
 def post_delete_hooks(appinstance):
-    print("TASK - POST DELETE HOOK...")
+    logger.info("TASK - POST DELETE HOOK...")
     release_name(appinstance)
     project = appinstance.project
     if project.s3storage and project.s3storage.app == appinstance:
@@ -205,9 +207,8 @@ def delete_and_deploy_resource(instance_pk, new_release_name):
             rel_name_obj.status = "in-use"
             rel_name_obj.app = appinstance
             rel_name_obj.save()
-        except Exception as e:
-            print("Error: Submitted release name not owned by project.")
-            print(e)
+        except Exception:
+            logger.error("Error: Submitted release name not owned by project.", exc_info=True)
 
         deploy_resource(appinstance.pk)
 
@@ -215,7 +216,7 @@ def delete_and_deploy_resource(instance_pk, new_release_name):
 @shared_task
 @transaction.atomic
 def deploy_resource(instance_pk, action="create"):
-    print("TASK - DEPLOY RESOURCE...")
+    logger.info("TASK - DEPLOY RESOURCE...")
     appinstance = AppInstance.objects.select_for_update().get(pk=instance_pk)
 
     results = controller.deploy(appinstance.parameters)
@@ -223,7 +224,7 @@ def deploy_resource(instance_pk, action="create"):
         results = json.loads(results)
         stdout = results["status"]
         stderr = results["reason"]
-        print("Helm install failed")
+        logger.info("Helm install failed")
         helm_info = {
             "success": False,
             "info": {"stdout": stdout, "stderr": stderr},
@@ -234,14 +235,14 @@ def deploy_resource(instance_pk, action="create"):
         stdout, stderr = process_helm_result(results)
 
         if results.returncode == 0:
-            print("Helm install succeeded")
+            logger.info("Helm install succeeded")
 
             helm_info = {
                 "success": True,
                 "info": {"stdout": stdout, "stderr": stderr},
             }
         else:
-            print("Helm install failed")
+            logger.error("Helm install failed")
             helm_info = {
                 "success": False,
                 "info": {"stdout": stdout, "stderr": stderr},
@@ -249,7 +250,7 @@ def deploy_resource(instance_pk, action="create"):
         appinstance.info["helm"] = helm_info
         appinstance.save()
         if results.returncode != 0:
-            print(appinstance.info["helm"])
+            logger.info(appinstance.info["helm"])
         else:
             post_create_hooks(appinstance)
 
@@ -277,7 +278,7 @@ def delete_resource(pk):
             status.status_type = "Deleting..."
             appinstance.state = "Deleting..."
             status.save()
-            print("CALLING POST DELETE HOOKS")
+            logger.info("CALLING POST DELETE HOOKS")
             post_delete_hooks(appinstance)
         else:
             status = AppStatus(appinstance=appinstance)
@@ -355,8 +356,7 @@ def get_resource_usage():
                     try:
                         cpu += int(cpun.replace("n", "")) / 1e6
                     except:  # noqa E722 TODO: Add exception
-                        print("Failed to parse CPU usage:")
-                        print(cpun)
+                        logger.error("Failed to parse CPU usage: %s", cpun)
                     if "Ki" in memki:
                         mem += int(memki.replace("Ki", "")) / 1000
                     elif "Mi" in memki:
@@ -368,6 +368,7 @@ def get_resource_usage():
                 resources[podname]["memory"] = mem
     except:  # noqa E722 TODO: Add exception
         pass
+    # TODO minor refactor: remove unnecessary comments
     # print(json.dumps(resources, indent=2))
 
     for key in resources.keys():
@@ -387,7 +388,7 @@ def get_resource_usage():
             )
             datapoint.save()
         except:  # noqa E722 TODO: Add exception
-            print("Didn't find corresponding AppInstance: {}".format(key))
+            logger.error("Didn't find corresponding AppInstance: %s", key, exc_info=True)
 
     # print(timestamp)
     # print(json.dumps(resources, indent=2))
@@ -414,13 +415,12 @@ def sync_mlflow_models():
         res = False
         try:
             res = requests.get(url)
-        except Exception as err:
-            print("Call to MLFlow Server failed.")
-            print(err, flush=True)
+        except Exception:
+            logger.error("Call to MLFlow Server failed.", exc_info=True)
 
         if res:
             models = res.json()
-            print(models)
+            logger.info(models)
             if len(models) > 0:
                 for item in models["model_versions"]:
                     # print(item)
@@ -463,7 +463,7 @@ def sync_mlflow_models():
                             stackn_model.status = "CR"
                             stackn_model.save()
         else:
-            print("WARNING: Failed to fetch info from MLflow Server: {}".format(url))
+            logger.warning("WARNING: Failed to fetch info from MLflow Server: %s", url)
 
 
 @app.task
@@ -475,16 +475,15 @@ def clean_resource_usage():
 @app.task
 def remove_deleted_app_instances():
     apps = AppInstance.objects.filter(state="Deleted")
-    print("NUMBER OF APPS TO DELETE: {}".format(len(apps)))
+    logger.info("NUMBER OF APPS TO DELETE: %s", len(apps))
     for instance in apps:
         try:
             name = instance.name
-            print("Deleting app instance: {}".format(name))
+            logger.info("Deleting app instance: %s", name)
             instance.delete()
-            print("Deleted app instance: {}".format(name))
-        except Exception as err:
-            print("Failed to delete app instances.")
-            print(err)
+            logger.info("Deleted app instance: %s", name)
+        except Exception:
+            logger.error("Failed to delete app instances.", exc_info=True)
 
 
 @app.task

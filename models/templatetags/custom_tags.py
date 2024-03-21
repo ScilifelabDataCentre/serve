@@ -1,6 +1,10 @@
 from django import template
 from django.db.models.functions import Length
 
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
 register = template.Library()
 
 
@@ -34,7 +38,7 @@ def count_str(value):
         num_tags += 1
     if num_tags == 0:
         num_tags = 1
-    print("LIMITS: ", num_tags, total_length)
+    logger.info("LIMITS: %s %s", num_tags, total_length)
     return num_tags
 
 

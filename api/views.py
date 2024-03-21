@@ -39,6 +39,7 @@ from projects.models import (
     ReleaseName,
 )
 from projects.tasks import create_resources_from_template, delete_project_apps
+from studio.utils import get_logger
 
 from .APIpermissions import AdminPermission, IsTokenAuthenticated, ProjectPermission
 from .serializers import (
@@ -61,6 +62,8 @@ from .serializers import (
     S3serializer,
     UserSerializer,
 )
+
+logger = get_logger(__name__)
 
 
 # A customized version of the obtain_auth_token view
@@ -139,16 +142,16 @@ class ModelList(
 
     def create(self, request, *args, **kwargs):
         project = Project.objects.get(id=self.kwargs["project_pk"])
-        print(project)
+        logger.info(str(project))
 
         try:
             model_name = request.data["name"]
             prev_model = Model.objects.filter(name=model_name, project=project).order_by("-version")
-            print("INFO - Previous Model Objects: {}".format(prev_model))
+            logger.info("Previous Model Objects: %s", prev_model)
             if len(prev_model) > 0:
-                print("ACCESS")
+                logger.info("ACCESS")
                 access = prev_model[0].access
-                print(access)
+                logger.info(access)
 
             else:
                 access = "PR"
@@ -160,7 +163,7 @@ class ModelList(
             object_type_slug = request.data["object_type"]
             object_type = ObjectType.objects.get(slug=object_type_slug)
         except Exception as err:
-            print(err)
+            logger.exception(err, exc_info=True)
             return HttpResponse("Failed to create object: incorrect input data.", 400)
 
         try:
@@ -188,7 +191,7 @@ class ModelList(
                 add_pmo_to_publish(new_model, pmodel)
 
         except Exception as err:
-            print(err)
+            logger.exception(err, exc_info=True)
             return HttpResponse("Failed to create object: failed to save object.", 400)
         return HttpResponse("ok", 200)
 
@@ -227,7 +230,7 @@ class ModelLogList(
             cpu_details = request.data["cpu_details"]
             training_status = request.data["training_status"]
         except Exception as e:
-            print(e, flush=True)
+            logger.exception(e, exc_info=True)
             return HttpResponse("Failed to create training session log.", 400)
 
         new_log = ModelLog(
@@ -272,7 +275,7 @@ class MetadataList(
             parameters = request.data["parameters"]
             metrics = request.data["metrics"]
         except Exception as e:
-            print(e, flush=True)
+            logger.exception(e, exc_info=True)
             return HttpResponse("Failed to create metadata log.", 400)
 
         new_md = Metadata(
@@ -310,16 +313,15 @@ class MembersList(
         proj = Project.objects.filter(pk=self.kwargs["project_pk"])
         owner = proj[0].owner
         auth_users = proj[0].authorized.all()
-        print(owner)
-        print(auth_users)
+        logger.info(owner)
+        logger.info(auth_users)
         ids = set()
         ids.add(owner.pk)
         for user in auth_users:
             ids.add(user.pk)
-        # return [owner, authorized]
-        print(ids)
+        logger.info(ids)
         users = User.objects.filter(pk__in=ids)
-        print(users)
+        logger.info(users)
         return users
 
     def create(self, request, *args, **kwargs):
@@ -332,15 +334,14 @@ class MembersList(
         return HttpResponse("Successfully added members.", status=200)
 
     def destroy(self, request, *args, **kwargs):
-        print("removing user")
+        logger.info("removing user")
         project = Project.objects.get(id=self.kwargs["project_pk"])
         user_id = self.kwargs["pk"]
-        print(user_id)
+        logger.info(user_id)
         user = User.objects.get(pk=user_id)
-        print("user")
-        print(user)
+        logger.info("user: %s", str(user))
         if user.username != project.owner.username:
-            print("username" + user.username)
+            logger.info("username " + user.username)
             project.authorized.remove(user)
             for role in settings.PROJECT_ROLES:
                 return HttpResponse("Successfully removed members.", status=200)
@@ -376,11 +377,11 @@ class ProjectList(
     def destroy(self, request, *args, **kwargs):
         project = self.get_object()
         if (request.user == project.owner or request.user.is_superuser) and project.status.lower() != "deleted":
-            print("Delete project")
-            print("SCHEDULING DELETION OF ALL INSTALLED APPS")
+            logger.info("Delete project")
+            logger.info("SCHEDULING DELETION OF ALL INSTALLED APPS")
             delete_project_apps(project.slug)
 
-            print("ARCHIVING PROJECT Object")
+            logger.info("ARCHIVING PROJECT Object")
             objects = Model.objects.filter(project=project)
             for obj in objects:
                 obj.status = "AR"
@@ -388,7 +389,7 @@ class ProjectList(
             project.status = "archived"
             project.save()
         else:
-            print("User is not allowed to delete project (must be owner).")
+            logger.info("User is not allowed to delete project (must be owner).")
             return HttpResponse(
                 "User is not allowed to delete project (must be owner).",
                 status=403,
@@ -418,10 +419,9 @@ class ProjectList(
                 request.session["oidc_id_token_expiration"] = time.time() - 100
                 request.session.save()
             else:
-                print("No token to reset.")
-        except Exception as e:
-            print("ERROR: could not create project resources")
-            print(e)
+                logger.info("No token to reset.")
+        except Exception:
+            logger.error("could not create project resources", exc_info=True)
             success = False
 
         if not success:
@@ -469,7 +469,7 @@ class ResourceList(
         # template = {
         #     "apps": request.data
         # }
-        print(template)
+        logger.info(template)
         project = Project.objects.get(id=self.kwargs["project_pk"])
         create_resources_from_template.delay(request.user.username, project.slug, json.dumps(template))
         return HttpResponse("Submitted request to create app.", status=200)
@@ -516,7 +516,7 @@ class AppInstanceList(
         )
 
         if not successful:
-            print("create_app_instance failed")
+            logger.info("create_app_instance failed")
             return HttpResponse("App creation faild", status=400)
 
         return HttpResponse("App created.", status=200)
@@ -561,7 +561,7 @@ class FlavorsList(
         try:
             obj = self.get_object()
         except Exception as e:
-            print(e, flush=True)
+            logger.error(e, exc_info=True)
             return HttpResponse("No such object.", status=400)
         obj.delete()
         return HttpResponse("Deleted object.", status=200)
@@ -589,7 +589,7 @@ class EnvironmentList(
         try:
             obj = self.get_object()
         except Exception as e:
-            print(e, flush=True)
+            logger.error(e, exc_info=True)
             return HttpResponse("No such object.", status=400)
         obj.delete()
         return HttpResponse("Deleted object.", status=200)
@@ -617,7 +617,7 @@ class S3List(
         try:
             obj = self.get_object()
         except Exception as e:
-            print(e, flush=True)
+            logger.error(e, exc_info=True)
             return HttpResponse("No such object.", status=400)
         obj.delete()
         return HttpResponse("Deleted object.", status=200)
@@ -645,7 +645,7 @@ class MLflowList(
         try:
             obj = self.get_object()
         except Exception as e:
-            print(e, flush=True)
+            logger.error(e, exc_info=True)
             return HttpResponse("No such object.", status=400)
         obj.delete()
         return HttpResponse("Deleted object.", status=200)
@@ -674,7 +674,7 @@ class ReleaseNameList(
         project = Project.objects.get(id=self.kwargs["project_pk"])
         if ReleaseName.objects.filter(name=name).exists():
             if project.status != "archived":
-                print("ReleaseName already in use.")
+                logger.info("ReleaseName already in use.")
                 return HttpResponse("Release name already in use.", status=200)
         status = "active"
 
@@ -686,7 +686,7 @@ class ReleaseNameList(
         try:
             obj = self.get_object()
         except Exception as e:
-            print(e, flush=True)
+            logger.error(e, exc_info=True)
             return HttpResponse("No such object.", status=400)
         obj.delete()
         return HttpResponse("Deleted object.", status=200)
@@ -713,7 +713,7 @@ class AppList(
         return Apps.objects.all()
 
     def create(self, request, *args, **kwargs):
-        print("IN CREATE")
+        logger.info("IN CREATE")
         try:
             name = request.data["name"]
             slug = request.data["slug"]
@@ -732,22 +732,20 @@ class AppList(
                         for proj in projs:
                             tmp = Project.objects.get(slug=proj)
                             proj_list.append(tmp)
-                except Exception as e:
-                    print("Invalid access field")
-                    print(e, flush=True)
+                except Exception:
+                    logger.error("Invalid access field", exc_info=True)
                     return HttpResponse("Invalid access field.", status=400)
 
-            print(request.data)
-            print("SETTINGS")
-            print(settings)
-            print(table_field)
-        except Exception as err:
-            print(request.data)
-            print(err)
+            logger.info(request.data)
+            logger.info("SETTINGS")
+            logger.info(settings)
+            logger.info(table_field)
+        except Exception:
+            logger.error(request.data, exc_info=True)
             return HttpResponse("Invalid app specification.", status=400)
-        print("ADD APP")
-        print(name)
-        print(slug)
+        logger.info("ADD APP")
+        logger.info(name)
+        logger.info(slug)
         try:
             app_latest_rev = Apps.objects.filter(slug=slug).order_by("-revision")
             if app_latest_rev:
@@ -769,14 +767,14 @@ class AppList(
             app.save()
             app.projects.add(*proj_list)
         except Exception as err:
-            print(err)
+            logger.error(err, exc_info=True)
         return HttpResponse("Created new app.", status=200)
 
     def destroy(self, request, *args, **kwargs):
         try:
             obj = self.get_object()
         except Exception as e:
-            print(e, flush=True)
+            logger.error(e, exc_info=True)
             return HttpResponse("No such object.", status=400)
         obj.delete()
         return HttpResponse("Deleted object.", status=200)
@@ -803,7 +801,8 @@ class ProjectTemplateList(
         return ProjectTemplate.objects.all()
 
     def create(self, request, *args, **kwargs):
-        print(request.data)
+        logger.info(request.data)
+        name = "KEY_NAME_MISSING"
         try:
             settings = json.loads(request.data["settings"])
             name = settings["name"]
@@ -811,9 +810,8 @@ class ProjectTemplateList(
             description = settings["description"]
             template = settings["template"]
             image = request.FILES["image"]
-        except Exception as err:
-            print(request.data)
-            print(err)
+        except Exception:
+            logger.error(request.data, exc_info=True)
             return HttpResponse("Failed to create new template: {}".format(name), status=400)
 
         try:
@@ -832,7 +830,7 @@ class ProjectTemplateList(
             )
             template.save()
         except Exception as err:
-            print(err)
+            logger.error(err, exc_info=True)
         return HttpResponse("Created new template: {}.".format(name), status=200)
 
 
@@ -860,7 +858,7 @@ def update_app_status(request):
 
     # POST verb
     if request.method == "POST":
-        print("INFO: API method update_app_status called with POST verb.")
+        logger.info("API method update_app_status called with POST verb.")
 
         utc = pytz.UTC
 
@@ -873,7 +871,7 @@ def update_app_status(request):
             new_status = request.data["new-status"]
 
             if len(new_status) > 15:
-                print(f"DEBUG: Status code is longer than 15 chars so shortening: {new_status}")
+                logger.debug("Status code is longer than 15 chars so shortening: %s", new_status)
                 new_status = new_status[:15]
 
             event_ts = datetime.strptime(request.data["event-ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -883,14 +881,20 @@ def update_app_status(request):
             event_msg = request.data.get("event-msg", None)
 
         except KeyError as err:
-            print(f"API method called with invalid input. Missing required input parameter: {err}")
+            logger.error("API method called with invalid input. Missing required input parameter: %s", err)
             return Response(f"Invalid input. Missing required input parameter: {err}", 400)
 
         except Exception as err:
-            print(f"API method called with invalid input:  {err}, {type(err)}")
+            logger.error("API method called with invalid input:  %s, %s", err, type(err))
             return Response(f"Invalid input. {err}", 400)
 
-        print(f"DEBUG: API method update_app_status input: {release=}, {new_status=}, {event_ts=}, {event_msg=}")
+        logger.debug(
+            "API method update_app_status input: release=%s, new_status=%s, event_ts=%s, event_msg=%s",
+            release,
+            new_status,
+            event_ts,
+            event_msg,
+        )
 
         try:
             result = handle_update_status_request(release, new_status, event_ts, event_msg)
@@ -920,17 +924,19 @@ def update_app_status(request):
                 )
 
             else:
-                print(f"Unknown return code from handle_update_status_request() = {result}")
+                logger.error("Unknown return code from handle_update_status_request() = %s", result, exc_info=True)
                 return Response(f"Unknown return code from handle_update_status_request() = {result}", 500)
 
         except ObjectDoesNotExist:
-            print(f"The specified app instance was not found {release=}.")
+            logger.error("The specified app instance was not found release=%s.", release)
             return Response(f"The specified app instance was not found {release=}.", 404)
 
         except Exception as err:
-            print(f"Unable to update the status of the specified app instance {release=}. {err}, {type(err)}")
+            logger.error(
+                "Unable to update the status of the specified app instance %s. %s, %s", release, err, type(err)
+            )
             return Response(f"Unable to update the status of the specified app instance {release=}.", 500)
 
     # GET verb
-    print("API method update_app_status called with GET verb.")
+    logger.info("API method update_app_status called with GET verb.")
     return Response({"message": "DEBUG: GET"})
