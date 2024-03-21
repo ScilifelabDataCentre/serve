@@ -67,14 +67,14 @@ class SystemVersion(metaclass=Singleton):
                 self.__gitref = toml_dict["tool"].get("serve").get("gitref")
                 self.__imagetag = toml_dict["tool"].get("serve").get("imagetag")
             self.__pyproject_is_parsed = True
+            return
         except tomli.TOMLDecodeError:
             logger.error("Unable to parse pyproject.toml file. The toml file is invalid.")
             err_message = "parsing error"
         except Exception as e:
             logger.error("Unable to parse pyproject.toml file. Caught general exception.")
             err_message = f"error {str(e)}"
-        else:
-            logger.error("Unable to parse pyproject.toml file. Using default values for system version attributes.")
+        logger.error("Unable to parse pyproject.toml file. Using default values for system version attributes.")
         self.__build_date = err_message
         self.__gitref = err_message
         self.__imagetag = err_message
