@@ -5,6 +5,7 @@
 {% load custom_tags %}
 
 {% block content %}
+
 <div class="row">
     <div class="col">
         <h3 class="h3 mb-3 me-5">
@@ -13,6 +14,10 @@
             <small class="ghost-number">{{ published_models|length }}</small>
             {% endif %}
         </h3>
+
+        <div class="alert alert-warning small" role="alert">
+            This section of SciLifeLab Serve is currently under reconstruction.
+        </div>
 
         <div class="tag-list">
             {% for tf in request.session.tag_filters %}
