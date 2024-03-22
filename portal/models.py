@@ -20,6 +20,7 @@ class PublishedModel(models.Model):
     pattern = models.CharField(max_length=255, default="")
     updated_on = models.DateTimeField(auto_now=True)
     created_on = models.DateTimeField(auto_now_add=True)
+    collections = models.ManyToManyField("collections_module.Collection", related_name="published_models", blank=True)
 
     @property
     def model_description(self):
