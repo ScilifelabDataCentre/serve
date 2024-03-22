@@ -7,13 +7,16 @@ import uuid
 import yaml
 from django.conf import settings
 
+from studio.utils import get_logger
+
 from .models import Apps
 
 KUBEPATH = settings.KUBECONFIG
+logger = get_logger(__name__)
 
 
 def delete(options):
-    print("DELETE FROM CONTROLLER")
+    logger.info("DELETE FROM CONTROLLER")
     # building args for the equivalent of helm uninstall command
     args = ["helm", "-n", options["namespace"], "delete", options["release"]]
     result = subprocess.run(args, capture_output=True)
@@ -21,42 +24,33 @@ def delete(options):
 
 
 def deploy(options):
-    print("STARTING DEPLOY FROM CONTROLLER")
+    logger.info("STARTING DEPLOY FROM CONTROLLER")
 
-    app = Apps.objects.get(slug=options["app_slug"], revision=options["app_revision"])
-    if app.chart_archive and app.chart_archive != "":
-        try:
-            chart_file = settings.MEDIA_ROOT + app.chart_archive.name
-            tar = tarfile.open(chart_file, "r:gz")
-            extract_path = "/app/extracted_charts/" + app.slug + "/" + str(app.revision)
-            tar.extractall(extract_path)
-            tar.close()
-            chart = extract_path
-        except Exception as err:
-            print(err)
-            chart = "charts/" + options["chart"]
+    if "ghcr" in options["chart"]:
+        version = options["chart"].split(":")[-1]
+        chart = "oci://" + options["chart"].split(":")[0]
     else:
+        version = None
         chart = "charts/" + options["chart"]
 
     if "release" not in options:
-        print("Release option not specified.")
+        logger.info("Release option not specified.")
         return json.dumps({"status": "failed", "reason": "Option release not set."})
     if "appconfig" in options:
         # check if path is root path
         if "path" in options["appconfig"]:
             if "/" == options["appconfig"]["path"]:
-                print("Root path cannot be copied.")
+                logger.info("Root path cannot be copied.")
                 return json.dumps({"status": "failed", "reason": "Cannot copy / root path."})
         # check if valid userid
         if "userid" in options["appconfig"]:
             try:
                 userid = int(options["appconfig"]["userid"])
-            except Exception as ex:
-                print("Userid not a number.")
-                print(ex)
+            except Exception:
+                logger.error("Userid not a number.", exc_info=True)
                 return json.dumps({"status": "failed", "reason": "Userid not an integer."})
             if userid > 1010 or userid < 999:
-                print("Userid outside of allowed range.")
+                logger.info("Userid outside of allowed range.")
                 return json.dumps({"status": "failed", "reason": "Userid outside of allowed range."})
         else:
             # if no userid, then add default id of 1000
@@ -65,12 +59,11 @@ def deploy(options):
         if "port" in options["appconfig"]:
             try:
                 port = int(options["appconfig"]["port"])
-            except Exception as ex:
-                print("Userid not a number.")
-                print(ex)
+            except Exception:
+                logger.error("Userid not a number.", exc_info=True)
                 return json.dumps({"status": "failed", "reason": "Port not an integer."})
             if port > 9999 or port < 3000:
-                print("Port outside of allowed range.")
+                logger.info("Port outside of allowed range.")
                 return json.dumps({"status": "failed", "reason": "Port outside of allowed range."})
 
     # Save helm values file for internal reference
@@ -91,7 +84,16 @@ def deploy(options):
         "-f",
         unique_filename,
     ]
-    print("CONTROLLER: RUNNING HELM COMMAND... ")
+
+    # Append version if deploying via ghcr
+    if version:
+        args.append("--version")
+        args.append(version)
+        args.append("--repository-cache"),
+        args.append("/app/charts/.cache/helm/repository")
+
+    logger.info("CONTROLLER: RUNNING HELM COMMAND... ")
+
     result = subprocess.run(args, capture_output=True)
 
     # remove file

@@ -5,6 +5,10 @@ from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.views.generic import View
 
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
 AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
@@ -19,9 +23,11 @@ def get_public_apps(request, id=0, get_all=True):
         projects = Project.objects.filter(
             Q(owner=request.user) | Q(authorized=request.user), status="active"
         )  # noqa: F841 local var assigned but never used
-        print(len(projects))
+        logger.info(len(projects))
     except Exception:
-        print("User not logged in.")
+        logger.debug(
+            "User not logged in.",
+        )
     if "project" in request.session:
         project_slug = request.session["project"]  # noqa: F841 local var assigned but never used
 
@@ -105,6 +111,14 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, id=0):
+        logger.debug(
+            "This is a debug message",
+        )
+        logger.info("This is an info message")
+        logger.warning("This is a warning message")
+        logger.error("This is an error message")
+        logger.critical("This is a critical message")
+
         published_apps, request = get_public_apps(request, id=id, get_all=False)
         published_models = PublishedModel.objects.all()
         news_objects = NewsObject.objects.all().order_by("-created_on")

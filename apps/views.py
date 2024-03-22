@@ -14,12 +14,16 @@ from guardian.decorators import permission_required_or_403
 
 from projects.models import Flavor
 from studio.settings import DOMAIN
+from studio.utils import get_logger
 
 from .generate_form import generate_form
 from .helpers import can_access_app_instances, create_app_instance, handle_permissions
 from .models import AppCategories, AppInstance, Apps
 from .serialize import serialize_app
 from .tasks import delete_and_deploy_resource, delete_resource, deploy_resource
+
+logger = get_logger(__name__)
+
 
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
@@ -77,7 +81,7 @@ class GetLogsView(View):
                     log_query = '{release="' + app_params["release"] + '",container="' + "serve" + '"}'
                 else:
                     log_query = '{release="' + app_params["release"] + '",container="' + container + '"}'
-                print(log_query)
+                logger.info(log_query)
                 query = {
                     "query": log_query,
                     "limit": 500,
@@ -97,7 +101,7 @@ class GetLogsView(View):
                         logs.append(separated_log)
 
             except Exception as e:
-                print(e)
+                logger.error(str(e), exc_info=True)
 
         return JsonResponse({"data": logs})
 
@@ -356,7 +360,7 @@ def create_releasename(request, project, app_slug):
             release.status = "active"
             release.project = Project.objects.get(slug=project)
             release.save()
-        print("RELEASE_NAME: ", request.POST.get("rn"), count_rn)
+        logger.info("RELEASE_NAME: %s %s", request.POST.get("rn"), count_rn)
     return JsonResponse(
         {
             "available": available,
@@ -371,7 +375,7 @@ def add_tag(request, project, ai_id):
     if request.method == "POST":
         new_tags = request.POST.get("tag", "")
         for new_tag in new_tags.split(","):
-            print("New Tag: ", new_tag)
+            logger.info("New Tag: %s", new_tag)
             appinstance.tags.add(new_tag.strip().lower().replace('"', ""))
         appinstance.save()
 
@@ -387,9 +391,9 @@ def add_tag(request, project, ai_id):
 def remove_tag(request, project, ai_id):
     appinstance = AppInstance.objects.get(pk=ai_id)
     if request.method == "POST":
-        print(request.POST)
+        logger.info(request.POST)
         new_tag = request.POST.get("tag", "")
-        print("Remove Tag: ", new_tag)
+        logger.info("Remove Tag: %s", new_tag)
         appinstance.tags.remove(new_tag)
         appinstance.save()
 
@@ -543,7 +547,7 @@ def publish(request, user, project, category, ai_id):
 
         app.save()
     except Exception as err:
-        print(err)
+        logger.error(err, exc_info=True)
 
     return HttpResponseRedirect(
         reverse(
@@ -572,7 +576,7 @@ def unpublish(request, user, project, category, ai_id):
 
         app.save()
     except Exception as err:
-        print(err)
+        logger.error(err, exc_info=True)
 
     return HttpResponseRedirect(
         reverse(

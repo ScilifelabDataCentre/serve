@@ -11,9 +11,12 @@ from django.contrib.auth import get_user_model
 import apps.tasks as apptasks
 from apps.controller import delete
 from apps.helpers import create_app_instance
+from studio.utils import get_logger
 
 from .exceptions import ProjectCreationException
 from .models import S3, Environment, Flavor, MLFlow, Project
+
+logger = get_logger(__name__)
 
 Apps = apps.get_model(app_label=settings.APPS_MODEL)
 AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
@@ -23,18 +26,19 @@ User = get_user_model()
 
 @shared_task
 def create_resources_from_template(user, project_slug, template):
-    print("Create Resources From Project Template...")
+    logger.info("Create Resources From Project Template...")
     decoder = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
     parsed_template = template.replace("'", '"')
     template = decoder.decode(parsed_template)
     alphabet = string.ascii_letters + string.digits
     project = Project.objects.get(slug=project_slug)
-    print("Parsing template...")
+    logger.info("Parsing template...")
     for key, item in template.items():
-        print("Key {}".format(key))
+        logger.info("Key %s", key)
         if "flavors" == key:
             flavors = item
-            print("Flavors: {}".format(flavors))
+            logger.info("Flavors: %s", flavors)
+            # TODO: potential bug. This for statement overrides variables in the outer loop.
             for key, item in flavors.items():
                 flavor = Flavor(
                     name=key,
@@ -51,16 +55,19 @@ def create_resources_from_template(user, project_slug, template):
                 flavor.save()
         elif "environments" == key:
             environments = item
-            print("Environments: {}".format(environments))
+            logger.info("Environments: %s", environments)
             for key, item in environments.items():
                 try:
                     app = Apps.objects.filter(slug=item["app"]).order_by("-revision")[0]
                 except Exception as err:
-                    print("App for environment not found.")
-                    print(item["app"])
-                    print(project_slug)
-                    print(user)
-                    print(err)
+                    logger.error(
+                        ("App for environment not found. item.app=%s project_slug=%s " "user=%s err=%s"),
+                        item["app"],
+                        project_slug,
+                        user,
+                        err,
+                        exc_info=True,
+                    )
                     raise
                 try:
                     environment = Environment(
@@ -72,16 +79,29 @@ def create_resources_from_template(user, project_slug, template):
                     )
                     environment.save()
                 except Exception as err:
-                    print("Failed to create new environment: {}".format(key))
-                    print(project)
-                    print(item["repository"])
-                    print(item["image"])
-                    print(app)
-                    print(user)
-                    print(err)
+                    logger.error(
+                        (
+                            "Failed to create new environment: "
+                            "key=%s "
+                            "project=%s "
+                            "item.repository=%s "
+                            "image=%s "
+                            "app=%s "
+                            "user%s "
+                            "err=%s"
+                        ),
+                        key,
+                        project,
+                        item["repository"],
+                        item["image"],
+                        app,
+                        user,
+                        err,
+                        exc_info=True,
+                    )
         elif "apps" == key:
             apps = item
-            print("Apps: {}".format(apps))
+            logger.info("Apps: %s", apps)
             for key, item in apps.items():
                 app_name = key
                 data = {"app_name": app_name, "app_action": "Create"}
@@ -95,8 +115,8 @@ def create_resources_from_template(user, project_slug, template):
                     item["credentials.password"] = "".join(secrets.choice(alphabet) for i in range(14))
 
                 data = {**data, **item}
-                print("DATA TEMPLATE")
-                print(data)
+                logger.info("DATA TEMPLATE")
+                logger.info(data)
 
                 user_obj = User.objects.get(username=user)
 
@@ -116,14 +136,14 @@ def create_resources_from_template(user, project_slug, template):
                 )
 
                 if not successful:
-                    print("create_app_instance failed")
-                    raise (ProjectCreationException)
+                    logger.error("create_app_instance failed")
+                    raise ProjectCreationException
 
         elif "settings" == key:
-            print("PARSING SETTINGS")
-            print("Settings: {}".format(settings))
+            logger.info("PARSING SETTINGS")
+            logger.info("Settings: %s", settings)
             if "project-S3" in item:
-                print("SETTING DEFAULT S3")
+                logger.info("SETTING DEFAULT S3")
                 s3storage = item["project-S3"]
                 # Add logics: here it is referring to minio basically.
                 # It is assumed that minio exist, but if it doesn't
@@ -132,14 +152,14 @@ def create_resources_from_template(user, project_slug, template):
                 project.s3storage = s3obj
                 project.save()
             if "project-MLflow" in item:
-                print("SETTING DEFAULT MLflow")
+                logger.info("SETTING DEFAULT MLflow")
                 mlflow = item["project-MLflow"]
                 mlflowobj = MLFlow.objects.get(name=mlflow, project=project)
                 project.mlflow = mlflowobj
                 project.save()
         else:
-            print("Template has either not valid or unknown keys")
-            raise (ProjectCreationException)
+            logger.error("Template has either not valid or unknown keys")
+            raise ProjectCreationException
 
     project.status = "active"
     project.save()
@@ -155,7 +175,7 @@ def delete_project_apps(project_slug):
 
 @shared_task
 def delete_project(project_pk):
-    print("SCHEDULING DELETION OF ALL INSTALLED APPS")
+    logger.info("SCHEDULING DELETION OF ALL INSTALLED APPS")
     project = Project.objects.get(pk=project_pk)
     delete_project_apps_permanently(project)
 
@@ -168,4 +188,4 @@ def delete_project_apps_permanently(project):
 
     for app in apps:
         helm_output = delete(app.parameters)
-        print(helm_output.stderr.decode("utf-8"))
+        logger.info(helm_output.stderr.decode("utf-8"))

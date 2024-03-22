@@ -3,6 +3,9 @@ from rest_framework import generics, viewsets
 from rest_framework.response import Response
 
 from studio.system_version import SystemVersion
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class OpenAPI(generics.GenericAPIView):
@@ -11,7 +14,7 @@ class OpenAPI(generics.GenericAPIView):
     """
 
     def get(self, request):
-        print(f"Entered OpenAPI.get. Requested API version {request.version}")
+        logger.info("Entered OpenAPI.get. Requested API version %s", request.version)
         return Response({"hello": "world"})
 
 
@@ -23,7 +26,7 @@ class APIInfo(viewsets.GenericViewSet):
     """
 
     def get_api_info(self, request):
-        print(f"Entered OpenAPI.get_api_info. Requested API version {request.version}")
+        logger.info("Entered OpenAPI.get_api_info. Requested API version %s", request.version)
 
         if request.version == "beta":
             data = {

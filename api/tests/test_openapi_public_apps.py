@@ -8,6 +8,10 @@ from rest_framework.test import APITestCase
 
 from apps.models import AppInstance, Apps
 from projects.models import Project
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
 
 User = get_user_model()
 
@@ -43,7 +47,7 @@ class PublicAppsApiTests(APITestCase):
         response = self.client.get(url, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        print(response.content)
+        logger.info(response.content)
         actual = json.loads(response.content)["data"]
         self.assertEqual(len(actual), 1)
 
@@ -64,9 +68,9 @@ class PublicAppsApiTests(APITestCase):
         response = self.client.get(url, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        print(response.content)
+        logger.info(response.content)
         actual = json.loads(response.content)["app"]
-        print(type(actual))
+        logger.info(type(actual))
 
         self.assertEqual(actual["id"], self.app_instance.id)
         self.assertIsNotNone(actual["name"])

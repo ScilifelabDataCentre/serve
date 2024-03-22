@@ -56,7 +56,7 @@ class IndexView(View):
                 ).distinct("pk")
         except TypeError as err:
             projects = []
-            print(err)
+            logger.error(str(err), exc_info=True)
 
         request.session["next"] = "/projects/"
 
@@ -79,7 +79,7 @@ def settings(request, project_slug):
         )
     except TypeError as err:
         projects = []
-        print(err)
+        logger.error(str(err), exc_info=True)
 
     template = "projects/settings.html"
     if request.user.is_superuser:
@@ -230,7 +230,7 @@ def create_flavor(request, project_slug):
     if request.method == "POST":
         # TODO: Check input
         project = Project.objects.get(slug=project_slug)
-        print(request.POST)
+        logger.info(request.POST)
         name = request.POST.get("flavor_name")
         cpu_req = request.POST.get("cpu_req")
         mem_req = request.POST.get("mem_req")
@@ -486,7 +486,7 @@ class CreateProjectView(View):
                 project_template=project_template,
             )
         except ProjectCreationException:
-            print("ERROR: Failed to create project database object.")
+            logger.error("Failed to create project database object.")
             success = False
 
         try:
@@ -495,7 +495,7 @@ class CreateProjectView(View):
             create_resources_from_template.delay(request.user.username, project.slug, project_template.template)
 
         except ProjectCreationException:
-            print("ERROR: could not create project resources")
+            logger.error("Could not create project resources")
             success = False
 
         if not success:
@@ -627,7 +627,7 @@ def delete(request, project_slug):
     else:
         project = Project.objects.filter(slug=project_slug).first()
 
-    print("SCHEDULING DELETION OF ALL INSTALLED APPS")
+    logger.info("SCHEDULING DELETION OF ALL INSTALLED APPS")
     project.status = "deleted"
     project.save()
     delete_project.delay(project.pk)
