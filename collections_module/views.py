@@ -10,10 +10,9 @@ from .models import Collection
 PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
 
 
-def collection(request, slug):
+def collection(request, slug, id=0):
     collection = get_object_or_404(Collection, slug=slug)
-    published_apps, request = get_public_apps(request)
-    collection_published_apps = published_apps.filter(collections__slug=slug)
+    collection_published_apps, request = get_public_apps(request, id=id, collection=slug)
     collection_published_models = PublishedModel.objects.all().filter(collections__slug=slug)
     return render(
         request,
