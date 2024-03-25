@@ -1,0 +1,45 @@
+<div class="modal fade" id="dockerInfoModal" tabindex="-1" aria-labelledby="dockerInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="dockerInfoModalLabel">Running this app locally.</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body small">
+            <p>As an alternative to running this app on the SciLifeLab Serve servers you can run it on your own computer. This is possible because all apps on our service are packaged as Docker containers. Docker containers include everything that is needed to run a particular piece of software and are easy to run on any machine.</p>
+            <h6>Step 1. Install Docker</h6>
+            <p>You will need Docker Engine or Docker Desktop running on your computer. Follow <a href="https://docs.docker.com/engine/install/">official instructions for your operating system</a> to do that.</p>
+            <h6>Step 2. Download the Docker image of this app</h6>
+            <p>Navigate to Terminal (or Windows Terminal) window and run the following command in order to download the Docker image of this app.</p>
+            <p><code>docker pull ...</code></p>
+            <p>If the image was successfully downloaded you show now be able to see it in the list of images by running the following command.</p>
+            <p><code>docker image ls</code></p>
+            <h6>Step 3. Launch the app</h6>
+            <p>You can now launch the app by running the following command in your Terminal (or Windows Terminal) window.</p>
+            <p><code>docker run ...</code></p>
+            <p>Navigate to .... to open the app.</p>
+            <h6>Step 4. Stop the app</h6>
+            <p>In order to stop the running app you can ...</p>
+
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const dockerInfoModal = document.getElementById('dockerInfoModal')
+dockerInfoModal.addEventListener('show.bs.modal', event => {
+  const button = event.relatedTarget
+  const recipient = button.getAttribute('data-bs-app-name')
+
+  const modalTitle = dockerInfoModal.querySelector('.modal-title')
+  const modalBodyInput = dockerInfoModal.querySelector('.modal-body input')
+
+  modalTitle.textContent = `Running ${recipient} locally.`
+  modalBodyInput.value = recipient
+})
+</script>

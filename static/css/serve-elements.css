@@ -174,3 +174,14 @@ a.tag::after {
 .nav .nav-item .nav-link.active {
     color: var(--serve-teal);
 }
+
+/* icons */
+
+.icon-external {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+a.icon-external:hover::after, a:focus::after, a.active::after {
+    width: 0;
+}
