@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load custom_tags %}
+{% block title %}REMEDi4ALL | Communities {% endblock %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">Collections</li>
+      <li class="breadcrumb-item active" aria-current="page">{{ collection.name }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-12 ">
+        <h3 class="h3 mb-3 me-5">
+            <i>{{ collection.name }}</i> collection <span class="bi bi-question-circle fs-6" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Collections are groups of apps and models published on SciLifeLab Serve belonging to a research community, organisation, or topic.">
+            </span>
+        </h3>
+        </div>
+</div>
+
+<div class="row border rounded bg-light pt-3">
+    {% if collection.logo %}
+    <div class="col-6 mb-3 col-md-3 mb-md-0">
+        <img class="img-fluid" src="{{ collection.logo.url }}" alt="{{ collection.logo }}">
+    </div>
+    <div class="col-md-8">
+    {% else %}
+    <div class="col">
+    {% endif %}
+        {% if collection.description %}<p><b>Description:</b><br>{{ collection.description }}</p>{% endif %}
+        {% if collection.website %}<p><b>External website:</b><br><a href="{{ collection.website }}">{{ collection.website }}</a></p>{% endif %}
+        <p><b>Maintainer:</b><br>{{ collection.maintainer.first_name }} {{ collection.maintainer.last_name }}, {{ collection.maintainer.email }}</p>
+    </div>
+</div>
+
+{% if not collection_published_apps and not collection_published_models %}
+<div class="row mt-4">
+    There are no public apps or model cards associated with this collection.
+</div>
+{% endif %}
+
+{% if collection_published_apps %}
+<div class="row mt-4 border-bottom pb-4">
+    <div class="row">
+    <div class="col-12">
+        <h4 class="mb-3 me-5" id="models">
+            Public apps
+            <span class="ghost-number">{{ collection_published_apps|length }}</span>
+        </h4>
+    </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-3">
+        {% for app in collection_published_apps %}
+        <div class="col mb-4">
+            {% include 'common/app_card.html' %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if collection_published_models %}
+<div class="row mt-4 border-bottom pb-4">
+    <div class="row">
+    <div class="col-12">
+        <h4 class="mb-3 me-5" id="models">
+            Public model cards
+            <span class="ghost-number">{{ collection_published_models|length }}</span>
+        </h4>
+    </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-3">
+        {% for model in collection_published_models %}
+        <div class="col mb-4">
+            {% include 'common/model_card.html' %}
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endif %}
+
+{% endblock %}

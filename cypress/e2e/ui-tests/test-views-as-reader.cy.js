@@ -43,7 +43,7 @@ describe("Test views as authenticated user", () => {
 
     cy.visit("/models/")
 
-    cy.get('h3').should('contain', 'Models')
+    cy.get('h3').should('contain', 'Model cards')
   })
 
   it("can view the Projects view", () => {
