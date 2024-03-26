@@ -15,8 +15,16 @@
                             </div>
                         </div>
 
-                        <div class="card-text">
-                            <p>{{app.description|default_if_none:""}}</p>
+                        <div id="app-{{ app.id }}" class="card-text">
+                            <p><div id="app-{{ app.id }}" class="description-app">
+                                {% if app.description|length > 349 %}
+                                    <span class="description-short">{{ app.description|slice:':349'}}<span class="description-dots">...</span><span class="description-more" style="display:none;">{{ app.description|slice:'349:' }}</span>
+                                    <button onclick="toggleDescription('app-{{ app.id }}')">[see more]</button>
+                                {% else %}
+                                    {{ app.description|default_if_none:""}}
+                                {% endif %}
+                                </p>
+                            </div></p>
                             <ul class="list-unstyled">
                                 <li class="list-group-item row">
                                     <div class="col-3"><span class="value-label">Owner:</span></div>

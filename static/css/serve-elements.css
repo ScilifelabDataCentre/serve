@@ -175,7 +175,7 @@ a.tag::after {
     color: var(--serve-teal);
 }
 
-/* icons */
+/* app cards styling */
 
 .icon-external {
     padding-left: 0.5rem;
@@ -184,4 +184,17 @@ a.tag::after {
 
 a.icon-external:hover::after, a:focus::after, a.active::after {
     width: 0;
+}
+
+.description-more {
+    display: none;
+}
+
+.description-app button {
+    display: inline;
+    background-color: transparent;
+    border: 0;
+    padding:0;
+    font-family: inherit;
+    color: var(--serve-teal);
 }
