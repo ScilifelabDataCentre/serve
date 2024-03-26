@@ -101,6 +101,7 @@ INSTALLED_APPS = [
     "customtags",
     "news",
     "axes",  # django-axes for brute force login protection
+    "django_password_validators",  # django-password-validators for password validation
     "collections_module",
 ] + DJANGO_WIKI_APPS
 
@@ -241,12 +242,28 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",  # noqa: E501
+        "OPTIONS": {
+            "min_length": 10,
+        },
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",  # noqa: E501
     },
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",  # noqa: E501
+    },
+    {
+        "NAME": (
+            "django_password_validators.password_character_requirements.password_validation.PasswordCharacterValidator"
+        ),
+        "OPTIONS": {
+            "min_length_digit": 1,
+            "min_length_alpha": 2,
+            "min_length_special": 1,
+            "min_length_lower": 1,
+            "min_length_upper": 1,
+            "special_characters": "~!@#$%^&*()_+{}\":;'[]",
+        },
     },
 ]
 

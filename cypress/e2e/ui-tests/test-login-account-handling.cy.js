@@ -65,8 +65,8 @@ describe("Test login, profile page view, password change, password reset", () =>
         cy.url().should("include", "accounts/password_change/")
 
         cy.get('input[name=old_password]').type(users.login_user.password)
-        cy.get('input[name=new_password1]').type("newpass12345")
-        cy.get('input[name=new_password2]').type("newpass12345")
+        cy.get('input[name=new_password1]').type(users.login_user.reset_password)
+        cy.get('input[name=new_password2]').type(users.login_user.reset_password)
         cy.get('button.btn-primary').contains("Change").click()
 
         cy.url().should("include", "accounts/password_change/done/")
@@ -85,7 +85,7 @@ describe("Test login, profile page view, password change, password reset", () =>
         // check that the new password works
         cy.visit('/accounts/login/')
         cy.get('input[name=username]').type(users.login_user.email)
-        cy.get('input[name=password]').type("newpass12345")
+        cy.get('input[name=password]').type(users.login_user.reset_password)
         cy.get('button.btn-primary').contains('Login').click()
         cy.visit('/projects/')
         cy.get('h3').should('contain', 'My projects')
