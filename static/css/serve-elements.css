@@ -174,3 +174,27 @@ a.tag::after {
 .nav .nav-item .nav-link.active {
     color: var(--serve-teal);
 }
+
+/* app cards styling */
+
+.icon-external {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+a.icon-external:hover::after, a:focus::after, a.active::after {
+    width: 0;
+}
+
+.description-more {
+    display: none;
+}
+
+.description-app button {
+    display: inline;
+    background-color: transparent;
+    border: 0;
+    padding:0;
+    font-family: inherit;
+    color: var(--serve-teal);
+}

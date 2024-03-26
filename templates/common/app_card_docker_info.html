@@ -1,0 +1,43 @@
+<div class="modal modal-lg fade" id="dockerInfoModal" tabindex="-1" aria-labelledby="dockerInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="dockerInfoModalLabel">Running this app locally.</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body small">
+            <p>As an alternative to running this app on the SciLifeLab Serve servers you can run a copy of it on your own computer. This is possible because all apps on our service are packaged as <a target="_blank" href="https://en.wikipedia.org/wiki/Docker_(software)">Docker containers</a>. Docker containers include everything that is needed to run a particular piece of software and are easy to run on any machine. Note that your computer may need to have significant CPU and RAM resources to be able to run some of the apps locally.</p>
+            <h6>Step 1. Install Docker</h6>
+            <p>You will need Docker Engine or Docker Desktop running on your computer. Follow <a href="https://docs.docker.com/engine/install/">official instructions</a> for your operating system to do that.</p>
+            <h6>Step 2. Launch the app</h6>
+            <p>Navigate to Terminal (or Windows Terminal) window and run the following command. This will download the Docker image of this app and subsequently launch it.</p>
+            <p><code>docker run --rm -p <span class="app-port"></span>:<span class="app-port"></span> <span class="app-image"></span></code></p>
+            <p>Navigate to <i>http://localhost:<span class="app-port"></span>/</i> to open the app.</p>
+            <h6>Step 3. Stop the app</h6>
+            <p>In order to stop the running app you can press Control+C. Keep in mind that your session will not be saved when you stop the app. Every time you start the app it will be starting from the same default state. See <a target="_blank" href="https://docs.docker.com/reference/cli/docker/image/rm/">this documentation page</a> for how to remove a downloaded image from your computer.</p>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const dockerInfoModal = document.getElementById('dockerInfoModal')
+dockerInfoModal.addEventListener('show.bs.modal', event => {
+  const button = event.relatedTarget
+  const app_name = button.getAttribute('data-app-name')
+  const app_image = button.getAttribute('data-app-image')
+  const app_port = button.getAttribute('data-app-port')
+
+  const modalTitle = dockerInfoModal.querySelector('.modal-title')
+  const appImage = dockerInfoModal.querySelectorAll('.app-image')
+  const appPort = dockerInfoModal.querySelectorAll('.app-port')
+
+  modalTitle.textContent = `Running ${app_name} locally.`
+  appImage.forEach(inst => {inst.innerHTML=`${app_image}`;});
+  appPort.forEach(inst => {inst.innerHTML=`${app_port}`;});
+});
+</script>

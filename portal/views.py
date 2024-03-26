@@ -78,6 +78,13 @@ def get_public_apps(request, id=0, get_all=True, collection=None):
             app.latest_status = "unknown"
             app.status_group = "unknown"
 
+    # Extract app config for use in Django templates
+    for app in published_apps:
+        app.image = app.parameters.get("appconfig", {}).get("image", "Not available")
+        app.port = app.parameters.get("appconfig", {}).get("port", "Not available")
+        app.userid = app.parameters.get("appconfig", {}).get("userid", "Not available")
+        app.pvc = app.parameters.get("apps", {}).get("volumeK8s") or None
+
     # create session object to store ids for tag seacrh if it does not exist
     if "app_tag_filters" not in request.session:
         request.session["app_tag_filters"] = []
