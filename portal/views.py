@@ -18,7 +18,7 @@ NewsObject = apps.get_model(app_label="news.NewsObject")
 # TODO minor refactor
 # 1. Change id to app_id as it's anti-pattern to override language reserved function names
 # 2. add type annotations
-def get_public_apps(request, id=0, get_all=True):
+def get_public_apps(request, id=0, get_all=True, collection=None):
     try:
         projects = Project.objects.filter(
             Q(owner=request.user) | Q(authorized=request.user), status="active"
@@ -56,7 +56,13 @@ def get_public_apps(request, id=0, get_all=True):
         if "tf_add" not in request.GET and "tf_remove" not in request.GET:
             request.session["app_tags"] = {}
 
-    published_apps = AppInstance.objects.filter(~Q(state="Deleted"), access="public").order_by("-updated_on")
+    if collection:
+        published_apps = AppInstance.objects.filter(
+            ~Q(state="Deleted"), access="public", collections__slug=collection
+        ).order_by("-updated_on")
+    else:
+        published_apps = AppInstance.objects.filter(~Q(state="Deleted"), access="public").order_by("-updated_on")
+
     if published_apps.count() >= 3 and not get_all:
         published_apps = published_apps[:3]
     else:
