@@ -108,6 +108,32 @@ def profile(request):
     return render(request, "user/profile.html", {"user_profile": user_profile})
 
 
+@login_required
+def delete_account(request):
+    logger.debug("Rendering page delete a user account.")
+    logger.info(f"User views page to delete their user account. User {request.user}")
+
+    account_can_be_deleted = False
+
+    # Check if the user owns any projects
+    try:
+        projects = Project.objects.filter(owner=request.user)
+
+        if len(projects) == 0:
+            account_can_be_deleted = True
+            logger.debug("User account CAN be deleted. The user does not own any projects.")
+        else:
+            account_can_be_deleted = False
+            logger.info(f"User account cannot be deleted. The user owns {len(projects)} projects.")
+    except TypeError as err:
+        account_can_be_deleted = False
+        logger.error(str(err), exc_info=True)
+
+    # Then POST, and verify csrf
+
+    return render(request, "user/account_delete_form.html", {"account_can_be_deleted": account_can_be_deleted})
+
+
 def __get_university_name(request, code):
     """Gets the university name by making an API call.
     :param request: The request object.

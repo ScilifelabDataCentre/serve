@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}My user profile{% endblock title %}
+
+{% block content %}
+<!-- Begin Page Content -->
+<div class="container-sm py-5">
+    <!-- Main Content Here -->
+    <div class="card border-0 shadow p-4">
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title mb-0">Delete Account</h5>
+
+                        <div class="row pt-4">
+                            <p class="alert alert-warning" role="alert">
+                                When you delete your account, you lose access to SciLifeLab Serve account services.
+                                To delete you account, you must no longer own any projects or apps in Serve.
+                            </p>
+                        </div>
+
+                        <div>
+                            Check requirements.
+                        </div>
+
+                        <div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
+                                <label class="form-check-label" for="flexCheckDefault">
+                                  I have understood the consequences of deleting my account.
+                                </label>
+                              </div>
+                        </div>
+
+                    </div>
+                </div>
+          </div>
+
+          <div class="card-footer d-flex justify-content-between">
+            <a class="btn btn-outline-secondary" href="{% url 'user-profile' %}">Cancel</a>
+            <button type="submit" class="btn btn-danger" disabled>Warning! Delete your account</button>
+          </div>
+        </form>
+
+    </div>
+</div>
+{% endblock content %}

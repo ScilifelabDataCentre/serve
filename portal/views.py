@@ -25,9 +25,8 @@ def get_public_apps(request, id=0, get_all=True, collection=None):
         )  # noqa: F841 local var assigned but never used
         logger.info(len(projects))
     except Exception:
-        logger.debug(
-            "User not logged in.",
-        )
+        # logger.debug("User not logged in.")
+        pass
     if "project" in request.session:
         project_slug = request.session["project"]  # noqa: F841 local var assigned but never used
 
@@ -124,14 +123,6 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, id=0):
-        logger.debug(
-            "This is a debug message",
-        )
-        logger.info("This is an info message")
-        logger.warning("This is a warning message")
-        logger.error("This is an error message")
-        logger.critical("This is a critical message")
-
         published_apps, request = get_public_apps(request, id=id, get_all=False)
         published_models = PublishedModel.objects.all()
         news_objects = NewsObject.objects.all().order_by("-created_on")
