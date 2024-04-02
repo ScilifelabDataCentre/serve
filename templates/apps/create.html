@@ -122,14 +122,24 @@
                         <div class="col-12 ">
                             <label class="form-label">Describe, why you want to make the app accessible only via a link</label>
                             <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip"
-                                         title="" data-bs-placement="right" data-bs-original-title="We ask users to
-                                                tell us why they want to make an app accesisble only via a link.
-                                                Please consider using it only if you really need it."></span>
-
+                                         title="" data-bs-placement="right" data-bs-original-title="This option can be used only for a limited amount of time, for example while under development or during peer review."></span>
                       <textarea type="hidden" id="link_privacy_type_note" name="link_privacy_type_note" class="form-control" rows="2"></textarea>
                         </div>
                       </div>
                     </div>
+                    </div>
+                    {% endif %}
+
+                    {% if app.slug in 'customapp,dashapp,shinyapp,shinyproxyapp' %}
+                    <div class="mb-3 validate-item">
+                        <label class="form-label">Source code URL</label>
+                        <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Provide a URL where the full source code of your app can be accessed (for example, to a GitHub repository or a Figshare or Zenodo entry).">
+                        </span>
+                        <input type="url" id="source_code_url" name="source_code_url" value="{{ existing_source_code_url }}"
+                            class="form-control">
+                        <div class="invalid-feedback">
+                            Please add a valid URL!
+                        </div>
                     </div>
                     {% endif %}
 
@@ -377,7 +387,7 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
         })
-        for (item of ["app_name","app_description","permission","flavor","image", "port", "userid"]) {
+        for (item of ["app_name","app_description","permission","source_code_url","flavor","image", "port", "userid"]) {
             if (sessionStorage.getItem(item) != null) {
                 document.getElementById(item).value = sessionStorage.getItem(item)
                 sessionStorage.removeItem(item)
@@ -426,6 +436,9 @@
         if (document.getElementById('permission') != null) {
             var permission = document.getElementById('permission').value
         }
+        if (document.getElementById('source_code_url') != null) {
+            var source_code_url = document.getElementById('source_code_url').value
+        }
         if (document.getElementById('flavor') != null) {
             var flavor = document.getElementById('flavor').value
         }
@@ -452,6 +465,7 @@
                         sessionStorage.setItem("app_name",app_name);
                         sessionStorage.setItem("app_description", app_description);
                         sessionStorage.setItem("permission", permission);
+                        sessionStorage.setItem("source_code_url", source_code_url);
                         sessionStorage.setItem("flavor", flavor);
                         sessionStorage.setItem("image", image);
                         sessionStorage.setItem("port", port);

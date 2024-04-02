@@ -457,7 +457,7 @@
             "type": "string"
           },
           "meta": {
-            "title": "Configurations"
+            "title": "Docker image configurations"
           },
           "path": {
             "default": "",
@@ -578,7 +578,7 @@
             "type": "string"
           },
           "meta": {
-            "title": "Configurations"
+            "title": "Docker image onfigurations"
           },
           "port": {
             "default": "8000",
@@ -640,7 +640,7 @@
             "type": "string"
           },
           "meta": {
-            "title": "Configurations"
+            "title": "Docker image configurations"
           },
           "port": {
             "default": "3838",
@@ -702,7 +702,7 @@
             "type": "string"
           },
           "meta": {
-            "title": "Configurations"
+            "title": "Docker image configurations"
           },
           "port": {
             "default": "3838",
@@ -759,7 +759,7 @@
       "settings": {
         "appconfig": {
           "meta": {
-            "title": "Configurations"
+            "title": "Docker image configurations"
           },
           "port": {
             "default": "8000",
