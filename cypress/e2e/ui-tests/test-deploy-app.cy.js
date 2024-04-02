@@ -51,6 +51,7 @@ describe("Test deploying app", () => {
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
+        const app_source_code_public = "https://source.ode/"
 
         if (createResources === true) {
             cy.visit("/projects/")
@@ -72,7 +73,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').should('not.exist')
+            cy.get('h5.card-title').contains(app_name_project).should('not.exist')
 
             // make this app public as an update and check that it works
             cy.log("Now making the project app public")
@@ -81,6 +82,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
             cy.get('#permission').select('public')
+            cy.get('input[name=source_code_url]').type(app_source_code_public)
             cy.get('button').contains('Update').click()
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'public')
@@ -97,6 +99,7 @@ describe("Test deploying app", () => {
             cy.get('input[name=app_name]').type(app_name_public)
             cy.get('textarea[name=app_description]').type(app_description)
             cy.get('#permission').select('public')
+            cy.get('input[name=source_code_url]').type(app_source_code_public)
             cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('input[name="appconfig.path"]').clear().type("/home")
@@ -155,7 +158,7 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').should('not.exist')
+            cy.get('h5.card-title').contains(app_name_public_2).should('not.exist')
 
         } else {
             cy.log('Skipped because create_resources is not true');
