@@ -2,8 +2,8 @@ from django.contrib import admin, messages
 
 from studio.utils import get_logger
 
-from .controller import deploy
 from .models import AppCategories, AppInstance, Apps, AppStatus, ResourceData
+from .tasks import deploy_resource
 
 logger = get_logger(__name__)
 
@@ -43,7 +43,7 @@ class AppInstanceAdmin(admin.ModelAdmin):
         failure_count = 0
 
         for appinstance in queryset:
-            result = deploy(appinstance.parameters)
+            result = deploy_resource(appinstance.pk)
             if result.returncode == 0:
                 success_count += 1
             else:

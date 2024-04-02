@@ -42,6 +42,7 @@ def post_create_hooks(instance):
     logger.info("TASK - POST CREATE HOOK...")
     # hard coded hooks for now, we can make this dynamic
     # and loaded from the app specs
+
     if instance.app.slug == "minio-admin":
         # Create project S3 object
         # TODO: If the instance is being updated,
@@ -150,6 +151,14 @@ def post_create_hooks(instance):
             owner=instance.owner,
         )
         obj.save()
+    elif instance.app.slug in ("volumeK8s", "netpolicy"):
+        # Handle volumeK8s and netpolicy creation/recreation
+        instance.state = "Created"
+        instance.deleted_on = None
+        status = AppStatus(appinstance=instance)
+        status.status_type = "Created"
+        instance.save()
+        status.save()
 
 
 def release_name(instance):
@@ -244,6 +253,7 @@ def deploy_resource(instance_pk, action="create"):
             logger.info(appinstance.info["helm"])
         else:
             post_create_hooks(appinstance)
+    return results
 
 
 @shared_task
