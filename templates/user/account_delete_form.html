@@ -8,7 +8,7 @@
     <!-- Main Content Here -->
     <div class="card border-0 shadow p-4">
 
-        <form method="POST">
+        <form action="{% url 'do_delete_account' user.id %}" method="POST">
             {% csrf_token %}
             <div class="card-body">
                 <div class="row">
@@ -22,15 +22,26 @@
                             </p>
                         </div>
 
-                        <div>
-                            Check requirements.
+                        <div class="row pt-4">
+                            {% if account_can_be_deleted == True %}
+                            <p class="alert alert-info" role="alert">
+                            You do not own any project in Serve and this user account can be deleted.
+                            </p>
+                            {% else %}
+                            <p class="alert alert-danger" role="alert">
+                            This user user account cannot be deleted because you are the owner of at least one Serve project.
+                            Please delete or transfer ownership to another user account.
+                            </p>
+                            {% endif %}
                         </div>
 
-                        <div>
+                        <div class="row py-4">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-                                <label class="form-check-label" for="flexCheckDefault">
-                                  I have understood the consequences of deleting my account.
+                                <input class="form-check-input" type="checkbox" value="" id="checkDeleteAccount"
+                                {% if account_can_be_deleted == False %}disabled{% endif %} >
+
+                                <label class="form-check-label" for="checkDeleteAccount">
+                                I have understood the consequences of deleting my user account.
                                 </label>
                               </div>
                         </div>
@@ -41,10 +52,19 @@
 
           <div class="card-footer d-flex justify-content-between">
             <a class="btn btn-outline-secondary" href="{% url 'user-profile' %}">Cancel</a>
-            <button type="submit" class="btn btn-danger" disabled>Warning! Delete your account</button>
+            <button type="submit" class="btn btn-danger" id="buttonDoDeleteAccount" disabled>Warning! Delete your account</button>
           </div>
         </form>
 
     </div>
 </div>
+<script>
+    $("#checkDeleteAccount").change(function() {
+    if ($(this).prop("checked") == true) {
+        $("#buttonDoDeleteAccount").prop('disabled', false)
+    } else {
+        $("#buttonDoDeleteAccount").prop('disabled', true)
+    }
+    })
+</script>
 {% endblock content %}

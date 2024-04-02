@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 import requests
 from django.conf import settings
@@ -7,7 +8,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, reverse
 from rest_framework.authentication import (
     BasicAuthentication,
@@ -132,6 +133,50 @@ def delete_account(request):
     # Then POST, and verify csrf
 
     return render(request, "user/account_delete_form.html", {"account_can_be_deleted": account_can_be_deleted})
+
+
+@login_required
+def do_delete_account(request, user_id):
+    if request.method == "POST":
+        logger.info(f"POST action to do_delete_account with User {request.user.id}, input {user_id=}")
+        logger.debug(request.POST)
+
+        logger.debug(f"POST action to do_delete_account with User {request.user}")
+
+        # Verify that the current session user account id = user_id
+        if user_id != request.user.id:
+            logger.error(f"Unable to delete user. Invalid input parameter {user_id=} unequal {request.user.id=}")
+            return HttpResponse("Unable to delete user account. Server error.", status=500)
+
+        user = User.objects.get(pk=user_id)
+
+        user_account_deleted = False
+
+        # TODO: Try catch
+        # Set user Active = false
+        user.is_active = False
+        # user.deleted_date = datetime.now(timezone.utc)
+        # user.save(update_fields=["deleted_date"])
+
+        user_account_deleted = True
+        # Remove cookie session
+        # Logg info
+
+        if user_account_deleted is True:
+            # Send email
+            logger.debug(f"User account was deleted (set to inactive). Now sending email to user email {user.email}")
+
+    # Redirect to new view
+    return HttpResponseRedirect(
+        reverse(
+            "account_deleted",
+            kwargs={"user_id": user_id},
+        )
+    )
+
+
+def account_deleted(request, user_id):
+    return render(request, "user/account_deleted.html", {"user_id": user_id})
 
 
 def __get_university_name(request, code):

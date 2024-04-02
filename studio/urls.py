@@ -27,6 +27,8 @@ urlpatterns = (
         path("accounts/", include("django.contrib.auth.urls")),
         path("user/profile/", views.profile, name="user-profile"),
         path("user/delete-account/", views.delete_account, name="delete_account"),
+        path("user/do-delete-account/<int:user_id>", views.do_delete_account, name="do_delete_account"),
+        path("user/account-deleted/<int:user_id>", views.account_deleted, name="account_deleted"),
         path("auth/", views.AuthView.as_view()),
         # API paths using NamespaceVersioning
         path("openapi/beta/", include("api.openapi.urls", namespace="beta")),
