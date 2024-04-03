@@ -237,10 +237,8 @@ class AppSettingsView(View):
 
         # This handles the volume cases. If the app is mounted, then that volume should be pre-selected and vice-versa.
         # Note that this assumes only ONE volume per app.
-
-        current_volume = AppInstance.objects.get_available_app_dependencies(
-            user=request.user, project=project, app_name="Persistent Volume"
-        ).first()
+        current_volumes = appinstance.parameters.get("apps", {}).get("volumeK8s", {}).keys()
+        current_volume = AppInstance.objects.filter(project=project, name__in=current_volumes).first()
 
         def filter_func():
             name = current_volume.name if current_volume else None
