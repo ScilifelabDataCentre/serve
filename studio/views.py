@@ -6,6 +6,7 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.mail import send_mail
 from django.db.models import Q
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
@@ -139,6 +140,7 @@ def delete_account_post_handler(request, user_id):
     """
     Handles a POST action request by a user to delete their account.
     """
+
     if request.method == "POST":
         # Verify that the current session user account id = user_id
         if user_id != request.user.id:
@@ -151,15 +153,25 @@ def delete_account_post_handler(request, user_id):
         user_account_deleted = do_delete_account(user_id)
 
         if user_account_deleted:
-            # Remove cookie session
-            logout(request)
-
-            # Log info
-
-            if user_account_deleted is True:
-                # TODO: Send email
-                email = request.user
+            try:
+                # Send email
+                email = request.user.email
                 logger.debug(f"User account was deleted (set to inactive). Now sending email to user email {email}")
+
+                send_mail(
+                    "User account deleted from SciLifeLab Serve",
+                    f"The user account {request.user.username} was deleted from SciLifeLab Serve as requested.",
+                    settings.EMAIL_HOST_USER,
+                    [email],
+                    fail_silently=False,
+                )
+
+                # Remove cookie session
+                logout(request)
+
+            except Exception as err:
+                logger.exception(f"Unable to delete user: {user_id=}. {err}", exc_info=True)
+                return HttpResponse("Unable to delete user account.", status=500)
 
             # Redirect to new view
             return HttpResponseRedirect(
