@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timezone
 
 import requests
 from django.conf import settings
@@ -7,7 +6,6 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import transaction
 from django.db.models import Q
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
@@ -26,6 +24,8 @@ from apps.models import AppInstance
 from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
+
+from .helpers import do_delete_account
 
 logger = get_logger(__name__)
 
@@ -135,53 +135,43 @@ def delete_account(request):
 
 
 @login_required
-def do_delete_account(request, user_id):
+def delete_account_post_handler(request, user_id):
     """
     Handles a POST action request by a user to delete their account.
-    Sets user.is_active = False and userprofile.deleted_on to now.
-    Also sends an email to the user email adress on record.
     """
     if request.method == "POST":
-        logger.info(f"POST action to do_delete_account with User {request.user.id}, input {user_id=}")
-        logger.debug(request.POST)
-
-        logger.debug(f"POST action to do_delete_account with User {request.user}")
-
         # Verify that the current session user account id = user_id
         if user_id != request.user.id:
             logger.error(f"Unable to delete user. Invalid input parameter {user_id=} unequal {request.user.id=}")
             return HttpResponse("Unable to delete user account. Server error.", status=500)
 
-        user = User.objects.get(pk=user_id)
+        logger.info(f"POST action to do_delete_account with User {request.user.id}, input {user_id=}")
+        logger.debug(request.POST)
 
-        user_account_deleted = False
+        user_account_deleted = do_delete_account(user_id)
 
-        # TODO: Try catch
-        # Set user is_active = false and deleted_on fields
-        with transaction.atomic():
-            user.is_active = False
-            user.userprofile.deleted_on = datetime.now(timezone.utc)
+        if user_account_deleted:
+            # Remove cookie session
+            logout(request)
 
-            user.save(update_fields=["is_active"])
-            user.userprofile.save(update_fields=["deleted_on"])
+            # Log info
 
-            user_account_deleted = True
+            if user_account_deleted is True:
+                # TODO: Send email
+                email = request.user
+                logger.debug(f"User account was deleted (set to inactive). Now sending email to user email {email}")
 
-        # Remove cookie session
-        logout(request)
-        # Log info
+            # Redirect to new view
+            return HttpResponseRedirect(
+                reverse(
+                    "account_deleted",
+                    kwargs={"user_id": user_id},
+                )
+            )
 
-        if user_account_deleted is True:
-            # Send email
-            logger.debug(f"User account was deleted (set to inactive). Now sending email to user email {user.email}")
-
-    # Redirect to new view
-    return HttpResponseRedirect(
-        reverse(
-            "account_deleted",
-            kwargs={"user_id": user_id},
-        )
-    )
+        else:
+            logger.error(f"Unable to delete user: {user_id=}")
+            return HttpResponse("Unable to delete user account.", status=500)
 
 
 def account_deleted(request, user_id):

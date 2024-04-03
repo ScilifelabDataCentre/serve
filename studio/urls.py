@@ -27,7 +27,11 @@ urlpatterns = (
         path("accounts/", include("django.contrib.auth.urls")),
         path("user/profile/", views.profile, name="user-profile"),
         path("user/delete-account/", views.delete_account, name="delete_account"),
-        path("user/do-delete-account/<int:user_id>", views.do_delete_account, name="do_delete_account"),
+        path(
+            "user/delete-account-action/<int:user_id>",
+            views.delete_account_post_handler,
+            name="delete_account_post_handler",
+        ),
         path("user/account-deleted/<int:user_id>", views.account_deleted, name="account_deleted"),
         path("auth/", views.AuthView.as_view()),
         # API paths using NamespaceVersioning

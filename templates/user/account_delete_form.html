@@ -8,7 +8,7 @@
     <!-- Main Content Here -->
     <div class="card border-0 shadow p-4">
 
-        <form action="{% url 'do_delete_account' user.id %}" method="POST">
+        <form action="{% url 'delete_account_post_handler' user.id %}" method="POST">
             {% csrf_token %}
             <div class="card-body">
                 <div class="row">
