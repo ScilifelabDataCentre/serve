@@ -51,7 +51,7 @@ describe("Test deploying app", () => {
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
-        const app_source_code_public = "https://source.ode/"
+        const app_source_code_public = "https://source.code/"
 
         if (createResources === true) {
             cy.visit("/projects/")

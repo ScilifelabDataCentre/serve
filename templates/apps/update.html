@@ -129,7 +129,7 @@
                         <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Provide a URL where the full source code of your app can be accessed (for example, to a GitHub repository or a Figshare or Zenodo entry).">
                         </span>
                         <input type="url" id="source_code_url" name="source_code_url" value="{{ existing_source_code_url }}"
-                            class="form-control" required>
+                            class="form-control" pattern="https?://([a-zA-Z0-9]+\.)*[a-zA-Z0-9]+\.[a-zA-Z]{2,}[^\s]*">
                         <div class="invalid-feedback">
                             Please add a valid URL!
                         </div>
