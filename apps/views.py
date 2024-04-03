@@ -252,7 +252,7 @@ class AppSettingsView(View):
             filter_func=filter_func(),
         )
 
-        show_permissions = request.user.id == appinstance.owner.id and request.user.is_superuser
+        show_permissions = request.user.id == appinstance.owner.id or request.user.is_superuser
 
         context = {
             "app": app,
