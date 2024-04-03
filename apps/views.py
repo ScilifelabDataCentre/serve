@@ -212,11 +212,12 @@ class AppSettingsView(View):
         existing_app_name = appinstance.name
         existing_app_description = appinstance.description
         existing_app_release_name = appinstance.parameters.get("release", None)
+        existing_userid = None
 
         # Settings for custom app
         if "appconfig" in appinstance.parameters:
             appconfig = appinstance.parameters["appconfig"]
-
+            existing_userid = appconfig.get("userid", None)
             if "path" in appconfig:
                 # check if app created by admin user then don't show path change option to normal user
                 created_by_admin = appinstance.parameters.get("created_by_admin") is True
@@ -224,9 +225,6 @@ class AppSettingsView(View):
 
                 if not created_by_admin:
                     existing_path = existing_path.replace("/home/", "", 1)
-
-            if "userid" in appconfig:
-                existing_userid = appconfig["userid"]
 
         app = appinstance.app
         do_display_description_field = app.category.name is not None and app.category.name.lower() == "serve"
