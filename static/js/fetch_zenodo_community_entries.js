@@ -1,10 +1,12 @@
 document.addEventListener('DOMContentLoaded', function() {
     const communityId = document.getElementById('zenodo-entries').getAttribute('data-community-id');
     const apiUrl = `https://zenodo.org/api/records?communities=${communityId}&sort=mostrecent&size=30`;
+    const entriesLoading = document.getElementById('zenodo-entries-loading');
 
     fetch(apiUrl)
         .then(response => {
             if (!response.ok) {
+                entriesLoading.style.display = "none";
                 throw new Error(`HTTP error, status: ${response.status}`);
             }
             return response.json();
@@ -41,8 +43,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 container.appendChild(card);
             });
+            entriesLoading.style.display = "none";
         })
         .catch(error => {
+            entriesLoading.style.display = "none";
             document.getElementById('zenodo-entries').innerHTML = `<div class="alert alert-danger" role="alert">Fetching Zenodo entries failed. ${error.message}</div>`;
         });
 });
