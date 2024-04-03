@@ -3,9 +3,12 @@ from datetime import datetime, timezone
 
 import requests
 from django.conf import settings
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
+from django.db.models import Q
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.http import HttpResponse, HttpResponseRedirect
@@ -111,32 +114,33 @@ def profile(request):
 
 @login_required
 def delete_account(request):
+    """
+    Renders a form that allows a user to delete their user account.
+    Verifies that the user does not own any Serve projects.
+    """
     logger.debug("Rendering page delete a user account.")
     logger.info(f"User views page to delete their user account. User {request.user}")
 
-    account_can_be_deleted = False
-
     # Check if the user owns any projects
-    try:
-        projects = Project.objects.filter(owner=request.user)
+    n_projects = Project.objects.filter(Q(owner=request.user), status="active").count()
 
-        if len(projects) == 0:
-            account_can_be_deleted = True
-            logger.debug("User account CAN be deleted. The user does not own any projects.")
-        else:
-            account_can_be_deleted = False
-            logger.info(f"User account cannot be deleted. The user owns {len(projects)} projects.")
-    except TypeError as err:
+    if n_projects == 0:
+        account_can_be_deleted = True
+        logger.debug("User account CAN be deleted. The user does not own any projects.")
+    else:
         account_can_be_deleted = False
-        logger.error(str(err), exc_info=True)
-
-    # Then POST, and verify csrf
+        logger.info(f"User account cannot be deleted. The user owns {n_projects} projects.")
 
     return render(request, "user/account_delete_form.html", {"account_can_be_deleted": account_can_be_deleted})
 
 
 @login_required
 def do_delete_account(request, user_id):
+    """
+    Handles a POST action request by a user to delete their account.
+    Sets user.is_active = False and userprofile.deleted_on to now.
+    Also sends an email to the user email adress on record.
+    """
     if request.method == "POST":
         logger.info(f"POST action to do_delete_account with User {request.user.id}, input {user_id=}")
         logger.debug(request.POST)
@@ -153,14 +157,19 @@ def do_delete_account(request, user_id):
         user_account_deleted = False
 
         # TODO: Try catch
-        # Set user Active = false
-        user.is_active = False
-        # user.deleted_date = datetime.now(timezone.utc)
-        # user.save(update_fields=["deleted_date"])
+        # Set user is_active = false and deleted_on fields
+        with transaction.atomic():
+            user.is_active = False
+            user.userprofile.deleted_on = datetime.now(timezone.utc)
 
-        user_account_deleted = True
+            user.save(update_fields=["is_active"])
+            user.userprofile.save(update_fields=["deleted_on"])
+
+            user_account_deleted = True
+
         # Remove cookie session
-        # Logg info
+        logout(request)
+        # Log info
 
         if user_account_deleted is True:
             # Send email
@@ -176,6 +185,7 @@ def do_delete_account(request, user_id):
 
 
 def account_deleted(request, user_id):
+    """Renders a view shown to users at the end of deletion of their account."""
     return render(request, "user/account_deleted.html", {"user_id": user_id})
 
 
