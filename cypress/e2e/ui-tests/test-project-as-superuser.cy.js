@@ -100,6 +100,100 @@ describe("Test superuser access", () => {
         })
     })
 
+    it("can create a new flavor and a regular user can subsequently use it", () => {
+
+        // Names of objects to create
+        const project_name = "e2e-proj-flavor-test"
+        const new_flavor_name = "4 CPU, 8 GB RAM"
+
+        cy.log("Logging in as a regular user and creating a project")
+        cy.fixture('users.json').then(function (data) {
+            users = data
+            cy.loginViaUI(users.superuser_testuser.email, users.superuser_testuser.password)
+        })
+        cy.visit("/projects/")
+        cy.get("a").contains('New project').click()
+        cy.get("a").contains('Create').first().click()
+        cy.get('input[name=name]').type(project_name)
+        cy.get("input[name=save]").contains('Create project').click()
+        cy.wait(5000) // sometimes it takes a while to create a project
+        cy.get('h3').should('contain', project_name)
+
+        cy.log("Logging in as a superuser and creating a new flavor in the regular user's project")
+        cy.fixture('users.json').then(function (data) {
+            users = data
+            cy.loginViaUI(users.superuser.email, users.superuser.password)
+        })
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.get('[data-cy="settings"]').click()
+        cy.get('.list-group').find('a').contains('Flavors').click()
+        cy.get('input[name="flavor_name"]').type(new_flavor_name)
+        cy.get('input[name="cpu_req"]').clear().type("500m")
+        cy.get('input[name="cpu_lim"]').clear().type("4000m")
+        cy.get('input[name="mem_req"]').clear().type("2Gi")
+        cy.get('input[name="mem_lim"]').clear().type("8Gi")
+        cy.get('button').contains("Create").click()
+
+        cy.log("Logging back in as a regular user and using the new flavor for an app")
+        const createResources = Cypress.env('create_resources');
+
+        if (createResources === true) {
+
+            const app_type = "Dash App"
+            const app_name = "e2e-dash-example"
+            const app_description = "e2e-dash-description"
+            const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
+            const image_port = "8000"
+
+            cy.fixture('users.json').then(function (data) {
+                users = data
+                cy.loginViaUI(users.superuser_testuser.email, users.superuser_testuser.password)
+            })
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('input[name=app_name]').type(app_name)
+            cy.get('textarea[name=app_description]').type(app_description)
+            cy.get('#permission').select('project')
+            cy.get('#flavor').select('2 vCPU, 4 GB RAM')
+            cy.get('input[name="appconfig.image"]').clear().type(image_name)
+            cy.get('input[name="appconfig.port"]').clear().type(image_port)
+            cy.get('button').contains('Create').click()
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
+
+            cy.log("Changing the flavor setting")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('#flavor').find(':selected').should('contain', '2 vCPU, 4 GB RAM')
+            cy.get('#flavor').select(new_flavor_name)
+            cy.get('button').contains('Update').click()
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
+
+            cy.log("Checking that the new flavor setting was saved in the database")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('#flavor').find(':selected').should('contain', new_flavor_name)
+
+        } else {
+            cy.log('Skipped because create_resources is not true');
+        }
+
+        cy.log("Deleting the created project")
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
+        .then((href) => {
+            cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
+                cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
+                cy.contains(project_name).should('not.exist') // confirm the project has been deleted
+           })
+        })
+    })
+
     it("can see and manipulate other users' projects and apps", () => {
 
         // Names of objects
