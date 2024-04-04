@@ -119,8 +119,6 @@ def delete_account(request):
     Renders a form that allows a user to delete their user account.
     Verifies that the user does not own any Serve projects.
     """
-    logger.debug("Rendering page delete a user account.")
-    logger.info(f"User views page to delete their user account. User {request.user}")
 
     # Check if the user owns any projects
     n_projects = Project.objects.filter(Q(owner=request.user), status="active").count()

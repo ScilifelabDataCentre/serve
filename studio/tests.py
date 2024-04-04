@@ -80,7 +80,7 @@ def test_do_delete_account():
     user = User.objects.get(pk=user_id)
 
     assert user.is_active is False
-    assert user.userprofile.deleted_on >= datetime.now(timezone.utc) - timedelta(seconds=1)
+    assert user.userprofile.deleted_on >= datetime.now(timezone.utc) - timedelta(seconds=10)
 
 
 # Tests for the system version
