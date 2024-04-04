@@ -57,7 +57,7 @@ describe("Test deploying app", () => {
         const link_privacy_type_note = "some-text-on-link-only-app"
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
-        const app_source_code_public = "https://source.code/"
+        const app_source_code_public = "https://doi.org/example"
 
         if (createResources === true) {
             cy.visit("/projects/")
@@ -214,10 +214,9 @@ describe("Test deploying app", () => {
         const app_type = "Shiny App"
 
         if (createResources === true) {
+            cy.log("Creating a shiny app")
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-
-            cy.log("Creating a shiny app")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('input[name=app_name]').type(app_name)
             cy.get('textarea[name=app_description]').type(app_description)
@@ -229,6 +228,17 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
+            cy.log("Checking that all shiny app settings were saved")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('input[name=app_name]').should('have.value', app_name)
+            cy.get('textarea[name=app_description]').should('have.value', app_description)
+            cy.get('#permission').find(':selected').should('contain', 'public')
+            cy.get('input[name="appconfig.image"]').should('have.value', image_name)
+            cy.get('input[name="appconfig.port"]').should('have.value', image_port)
+
             cy.log("Checking that the shiny app is displayed on the public apps page")
             cy.visit("/apps")
             cy.get('h5.card-title').should('contain', app_name)
@@ -239,9 +249,11 @@ describe("Test deploying app", () => {
             cy.get('div#dockerInfoModal').should('be.visible')
             cy.get('code').first().should('contain', image_name)
             cy.get('code').first().should('contain', image_port)
+            cy.get('div.modal-footer').find('button').contains('Close').click()
 
             cy.log("Checking that source code URL is displayed on the public apps page")
-            // TODO TODO TODO
+            cy.visit("/apps")
+            cy.get('a#source-code-url').should('have.attr', 'href', source_code_url)
 
             cy.log("Deleting the shiny app")
             cy.visit("/projects/")
@@ -254,7 +266,107 @@ describe("Test deploying app", () => {
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
             cy.get('h5.card-title').should('not.exist')
+        } else {
+            cy.log('Skipped because create_resources is not true');
+      }
+    })
 
+    it("can deploy a dash app", { defaultCommandTimeout: 100000 }, () => {
+        // Names of objects to create
+        const project_name = "e2e-deploy-app-test"
+        const app_name = "e2e-dash-example"
+        const app_description = "e2e-dash-description"
+        const source_code_url = "https://doi.org/example"
+        const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
+        const image_port = "8000"
+        const createResources = Cypress.env('create_resources');
+        const app_type = "Dash App"
+
+        if (createResources === true) {
+            cy.log("Creating a dash app")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('input[name=app_name]').type(app_name)
+            cy.get('textarea[name=app_description]').type(app_description)
+            cy.get('input[name=source_code_url]').type(source_code_url)
+            cy.get('#permission').select('public')
+            cy.get('input[name="appconfig.image"]').clear().type(image_name)
+            cy.get('input[name="appconfig.port"]').clear().type(image_port)
+            cy.get('button').contains('Create').click()
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
+
+            cy.log("Checking that all dash app settings were saved")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('input[name=app_name]').should('have.value', app_name)
+            cy.get('textarea[name=app_description]').should('have.value', app_description)
+            cy.get('#permission').find(':selected').should('contain', 'public')
+            cy.get('input[name="appconfig.image"]').should('have.value', image_name)
+            cy.get('input[name="appconfig.port"]').should('have.value', image_port)
+
+            cy.log("Deleting the dash app")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
+            cy.visit("/apps")
+            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public apps')
+            cy.get('h5.card-title').should('not.exist')
+        } else {
+            cy.log('Skipped because create_resources is not true');
+      }
+    })
+
+    it("can deploy a tissuumaps app", { defaultCommandTimeout: 100000 }, () => {
+        // Names of objects to create
+        const project_name = "e2e-deploy-app-test"
+        const app_name = "e2e-tissuumaps-example"
+        const app_description = "e2e-tissuumaps-description"
+        const createResources = Cypress.env('create_resources');
+        const app_type = "TissUUmaps App"
+
+        if (createResources === true) {
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+            cy.log("Creating a tisuumaps app")
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('input[name=app_name]').type(app_name)
+            cy.get('textarea[name=app_description]').type(app_description)
+            cy.get('#permission').select('public')
+            cy.get('#Persistent\\ Volume').select('project-vol')
+            cy.get('button').contains('Create').click()
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
+
+            cy.log("Checking that all tissuumaps app settings were saved")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('input[name=app_name]').should('have.value', app_name)
+            cy.get('textarea[name=app_description]').should('have.value', app_description)
+            cy.get('#permission').find(':selected').should('contain', 'public')
+            cy.get('#Persistent\\ Volume').find(':selected').should('contain', 'project-vol')
+
+            cy.log("Deleting the tissuumaps app")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
+            cy.visit("/apps")
+            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public apps')
+            cy.get('h5.card-title').should('not.exist')
         } else {
             cy.log('Skipped because create_resources is not true');
       }
