@@ -16,7 +16,7 @@ class Collection(models.Model):
     website = models.URLField(max_length=200, blank=True)
     logo = models.ImageField(upload_to="collections/logos/", null=True, blank=True)
     slug = models.SlugField(unique=True, blank=True)
-    # datasets source would be another field
+    zenodo_community_id = models.CharField(max_length=200, null=True, blank=True)
     # repositories source would be another field
 
     def __str__(self):
