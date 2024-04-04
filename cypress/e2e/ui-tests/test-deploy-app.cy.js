@@ -19,7 +19,7 @@ describe("Test deploying app", () => {
         // seed the db with a user
         cy.visit("/")
         cy.log("Running seed-deploy-app-user.py")
-       // cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
+        cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
         // username in fixture must match username in db-reset.sh
         cy.fixture('users.json').then(function (data) {
             users = data
@@ -40,7 +40,7 @@ describe("Test deploying app", () => {
         })
     })
 
-    it.skip("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: 100000 }, () => {
+    it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name_project = "e2e-streamlit-example-project"
@@ -218,12 +218,12 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('input[name=app_name]').type(app_name)
             cy.get('textarea[name=app_description]').type(app_description)
-         //   cy.get('input[name=source_code_url]').type(source_code_url)
+            cy.get('input[name=source_code_url]').type(source_code_url)
             cy.get('#permission').select('public')
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('input[name="appconfig.port"]').clear().type(image_port)
             cy.get('button').contains('Create').click()
-         //   cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             cy.log("Checking that the shiny app is displayed on the public apps page")
@@ -246,7 +246,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-           // cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
@@ -257,7 +257,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it.skip("can set and change custom subdomain", { defaultCommandTimeout: 100000 }, () => {
+    it("can set and change custom subdomain", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-subdomain-example"
