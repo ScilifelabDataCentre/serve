@@ -2,12 +2,15 @@ import json
 
 import requests
 from django.conf import settings
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.mail import send_mail
+from django.db.models import Q
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, reverse
 from rest_framework.authentication import (
     BasicAuthentication,
@@ -22,6 +25,8 @@ from apps.models import AppInstance
 from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
+
+from .helpers import do_delete_account
 
 logger = get_logger(__name__)
 
@@ -106,6 +111,82 @@ def profile(request):
         user_profile = UserProfile()
 
     return render(request, "user/profile.html", {"user_profile": user_profile})
+
+
+@login_required
+def delete_account(request):
+    """
+    Renders a form that allows a user to delete their user account.
+    Verifies that the user does not own any Serve projects.
+    """
+
+    # Check if the user owns any projects
+    n_projects = Project.objects.filter(Q(owner=request.user), status="active").count()
+
+    if n_projects == 0:
+        account_can_be_deleted = True
+        logger.debug("User account CAN be deleted. The user does not own any projects.")
+    else:
+        account_can_be_deleted = False
+        logger.info(f"User account cannot be deleted. The user owns {n_projects} projects.")
+
+    return render(request, "user/account_delete_form.html", {"account_can_be_deleted": account_can_be_deleted})
+
+
+@login_required
+def delete_account_post_handler(request, user_id):
+    """
+    Handles a POST action request by a user to delete their account.
+    """
+
+    if request.method == "POST":
+        # Verify that the current session user account id = user_id
+        if user_id != request.user.id:
+            logger.error(f"Unable to delete user. Invalid input parameter {user_id=} unequal {request.user.id=}")
+            return HttpResponse("Unable to delete user account. Server error.", status=500)
+
+        logger.info(f"POST action to do_delete_account with User {request.user.id}, input {user_id=}")
+        logger.debug(request.POST)
+
+        user_account_deleted = do_delete_account(user_id)
+
+        if user_account_deleted:
+            try:
+                # Send email
+                email = request.user.email
+                logger.debug(f"User account was deleted (set to inactive). Now sending email to user email {email}")
+
+                send_mail(
+                    "User account deleted from SciLifeLab Serve",
+                    f"The user account {request.user.username} was deleted from SciLifeLab Serve as requested.",
+                    settings.EMAIL_HOST_USER,
+                    [email],
+                    fail_silently=False,
+                )
+
+                # Remove cookie session
+                logout(request)
+
+            except Exception as err:
+                logger.exception(f"Unable to delete user: {user_id=}. {err}", exc_info=True)
+                return HttpResponse("Unable to delete user account.", status=500)
+
+            # Redirect to new view
+            return HttpResponseRedirect(
+                reverse(
+                    "account_deleted",
+                    kwargs={"user_id": user_id},
+                )
+            )
+
+        else:
+            logger.error(f"Unable to delete user: {user_id=}")
+            return HttpResponse("Unable to delete user account.", status=500)
+
+
+def account_deleted(request, user_id):
+    """Renders a view shown to users at the end of deletion of their account."""
+    return render(request, "user/account_deleted.html", {"user_id": user_id})
 
 
 def __get_university_name(request, code):
