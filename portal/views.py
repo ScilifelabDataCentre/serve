@@ -124,14 +124,6 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, id=0):
-        logger.debug(
-            "This is a debug message",
-        )
-        logger.info("This is an info message")
-        logger.warning("This is a warning message")
-        logger.error("This is an error message")
-        logger.critical("This is a critical message")
-
         published_apps, request = get_public_apps(request, id=id, get_all=False)
         published_models = PublishedModel.objects.all()
         news_objects = NewsObject.objects.all().order_by("-created_on")

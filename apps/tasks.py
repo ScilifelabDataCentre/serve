@@ -22,16 +22,7 @@ from .models import AppInstance, Apps, AppStatus, ResourceData
 
 logger = get_logger(__name__)
 
-K8S_STATUS_MAP = {
-    "CrashLoopBackOff": "Error",
-    "Completed": "Retrying...",
-    "ContainerCreating": "Created",
-    "PodInitializing": "Pending",
-}
-
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
-
-logger = get_logger(__name__)
 
 
 def get_URI(parameters):
@@ -51,6 +42,7 @@ def post_create_hooks(instance):
     logger.info("TASK - POST CREATE HOOK...")
     # hard coded hooks for now, we can make this dynamic
     # and loaded from the app specs
+
     if instance.app.slug == "minio-admin":
         # Create project S3 object
         # TODO: If the instance is being updated,
@@ -159,6 +151,14 @@ def post_create_hooks(instance):
             owner=instance.owner,
         )
         obj.save()
+    elif instance.app.slug in ("volumeK8s", "netpolicy"):
+        # Handle volumeK8s and netpolicy creation/recreation
+        instance.state = "Created"
+        instance.deleted_on = None
+        status = AppStatus(appinstance=instance)
+        status.status_type = "Created"
+        instance.save()
+        status.save()
 
 
 def release_name(instance):
@@ -253,6 +253,7 @@ def deploy_resource(instance_pk, action="create"):
             logger.info(appinstance.info["helm"])
         else:
             post_create_hooks(appinstance)
+    return results
 
 
 @shared_task
@@ -396,13 +397,6 @@ def get_resource_usage():
 
 @app.task
 def sync_mlflow_models():
-    logger.debug(
-        "This is a debug message",
-    )
-    logger.info("This is an info message")
-    logger.warning("This is a warning message")
-    logger.error("This is an error message")
-    logger.critical("This is a critical message")
     mlflow_apps = AppInstance.objects.filter(~Q(state="Deleted"), project__status="active", app__slug="mlflow")
     for mlflow_app in mlflow_apps:
         if mlflow_app.project is None or mlflow_app.project.mlflow is None:
