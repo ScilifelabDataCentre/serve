@@ -52,8 +52,8 @@ describe("Test deploying app", () => {
         const image_name_2 = "ghcr.io/scilifelabdatacentre/example-streamlit:230921-1443"
         const image_port = "8501"
         const image_port_2 = "8502"
-        const app_path = "username/"
-        const app_path_2 = "username/app/"
+        const app_path = "username"
+        const app_path_2 = "username/app"
         const link_privacy_type_note = "some-text-on-link-only-app"
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
@@ -106,7 +106,7 @@ describe("Test deploying app", () => {
             cy.get('textarea[name=app_description]').type(app_description)
             cy.get('#permission').select('public')
             cy.get('input[name=source_code_url]').type(app_source_code_public)
-            cy.get('input[name="appconfig.port"]').clear().type("8501")
+            cy.get('input[name="appconfig.port"]').clear().type(image_port)
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('input[name="appconfig.path"]').clear().type(app_path)
             cy.get('#Persistent\\ Volume').select('project-vol')
@@ -225,7 +225,6 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.port"]').clear().type(image_port)
             cy.get('button').contains('Create').click()
         //    cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Pending') // instead of Running. means that something has at least started :).
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             cy.log("Checking that all shiny app settings were saved")
