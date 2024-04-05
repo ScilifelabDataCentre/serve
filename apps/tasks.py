@@ -20,8 +20,6 @@ from studio.utils import get_logger
 from . import controller
 from .models import AppInstance, Apps, AppStatus, ResourceData
 
-logger = get_logger(__name__)
-
 K8S_STATUS_MAP = {
     "CrashLoopBackOff": "Error",
     "Completed": "Retrying...",
@@ -396,13 +394,6 @@ def get_resource_usage():
 
 @app.task
 def sync_mlflow_models():
-    logger.debug(
-        "This is a debug message",
-    )
-    logger.info("This is an info message")
-    logger.warning("This is a warning message")
-    logger.error("This is an error message")
-    logger.critical("This is a critical message")
     mlflow_apps = AppInstance.objects.filter(~Q(state="Deleted"), project__status="active", app__slug="mlflow")
     for mlflow_app in mlflow_apps:
         if mlflow_app.project is None or mlflow_app.project.mlflow is None:
