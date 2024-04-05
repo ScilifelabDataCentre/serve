@@ -55,8 +55,8 @@ def handle_deleted_users():
             )
 
         else:
-            # The user was deleted too recently to be handled. Simply log
-            logger.info(f"User {user.id} was deleted less than {threshold_days} days ago. Leaving.")
+            # The user was deleted too recently to be handled. Simply log and exit.
+            logger.info(f"User {user.id} was deleted less than {threshold_days} days ago. Exiting.")
 
 
 @app.task

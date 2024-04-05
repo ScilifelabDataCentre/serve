@@ -115,7 +115,7 @@
     "fields": {
       "args": "[]",
       "clocked": null,
-      "crontab": 1,
+      "crontab": 4,
       "date_changed": "2021-02-26T14:03:40.168Z",
       "description": "Handles deleted user accounts",
       "enabled": true,
