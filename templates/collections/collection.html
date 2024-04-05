@@ -86,9 +86,24 @@
 </div>
 {% endif %}
 
+{% if collection.zenodo_community_id %}
+<div class="row mt-4 pb-4">
+    <div class="col-12">
+        <h4 class="mb-3 me-5">
+            Public datasets (Zenodo) <span id="zenodo-entries-total" class="ghost-number"></span>
+        </h4>
+        <p><i>Source: <a href="https://zenodo.org/communities/{{ collection.zenodo_community_id }}">Zenodo community</a></i></p>
+    </div>
+    <div id="zenodo-entries-loading" class="col fst-italic">Loading information about the datasets...</div>
+    <div id="zenodo-entries" class="col" data-community-id="{{ collection.zenodo_community_id }}"></div>
+</div>
+{% endif %}
+
 {# Including code for modals displaying Docker info #}
 {% include 'common/app_card_docker_info.html' %}
 {# Including code hiding and showing longer app descriptions #}
 {% include 'common/app_card_description.html' %}
+
+<script src="{% static 'js/fetch_zenodo_community_entries.js' %}"></script>
 
 {% endblock %}

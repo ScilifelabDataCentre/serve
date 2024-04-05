@@ -1,21 +1,26 @@
 $(document).ready(function() {
-  function toggleLinkNoteVisibility() {
-    if ($('#permission').val() == 'link') {
-      $('#id_link_only_note').show();
-      $('#link_privacy_type_note').attr('required', true);
-      $('#link_privacy_type_note').addClass('validate-item');
-      $('#link_privacy_type_note').attr('type', 'text'); // Make it visible
+  const $permission = $('#permission');
+  const $idLinkOnlyNote = $('#id_link_only_note');
+  const $linkPrivacyTypeNote = $('#link_privacy_type_note');
+  const $sourceCodeUrl = $('#source_code_url');
+
+  function updatePermissionReqs() {
+    // Toggle link note visibility and attributes
+    if ($permission.val() === 'link') {
+      $idLinkOnlyNote.show();
+      $linkPrivacyTypeNote.attr({'required': true, 'type': 'text'}).addClass('validate-item');
     } else {
-      $('#id_link_only_note').hide();
-      $('#link_privacy_type_note').removeAttr('required');
-      $('#link_privacy_type_note').removeClass('validate-item');
-      $('#link_privacy_type_note').attr('type', 'hidden'); // Hide it
+      $idLinkOnlyNote.hide();
+      $linkPrivacyTypeNote.removeAttr('required').removeClass('validate-item').attr('type', 'hidden');
     }
+
+    // Change source URL required attribute
+    $sourceCodeUrl.attr('required', $permission.val() === 'public');
   }
 
   // Initial check on document ready
-  toggleLinkNoteVisibility();
+  updatePermissionReqs();
 
-  // Setup change event handler
-  $('#permission').change(toggleLinkNoteVisibility);
+  // On every change for 'permission' dropdown
+  $permission.change(updatePermissionReqs);
 });

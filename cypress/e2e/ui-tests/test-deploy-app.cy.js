@@ -51,6 +51,7 @@ describe("Test deploying app", () => {
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
+        const app_source_code_public = "https://source.code/"
 
         if (createResources === true) {
             cy.visit("/projects/")
@@ -81,6 +82,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
             cy.get('#permission').select('public')
+            cy.get('input[name=source_code_url]').type(app_source_code_public)
             cy.get('button').contains('Update').click()
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'public')
@@ -97,6 +99,7 @@ describe("Test deploying app", () => {
             cy.get('input[name=app_name]').type(app_name_public)
             cy.get('textarea[name=app_description]').type(app_description)
             cy.get('#permission').select('public')
+            cy.get('input[name=source_code_url]').type(app_source_code_public)
             cy.get('input[name="appconfig.port"]').clear().type("8501")
             cy.get('input[name="appconfig.image"]').clear().type(image_name)
             cy.get('input[name="appconfig.path"]').clear().type("/home")

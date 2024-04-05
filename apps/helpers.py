@@ -159,6 +159,7 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     flavor_id = data.get("flavor", None)
     flavor = Flavor.objects.get(pk=flavor_id, project=project) if flavor_id else None
 
+    source_code_url = data.get("source_code_url")
     app_instance = AppInstance(
         name=app_name,
         description=app_description,
@@ -170,6 +171,7 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
         owner=user,
         flavor=flavor,
         note_on_linkonly_privacy=data.get("link_privacy_type_note"),
+        source_code_url=source_code_url,
     )
 
     create_instance_params(app_instance, "create")
