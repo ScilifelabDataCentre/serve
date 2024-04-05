@@ -1,11 +1,16 @@
+from datetime import datetime, timedelta, timezone
+
+import pytest
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from guardian.shortcuts import assign_perm, remove_perm
 
 from apps.models import AppInstance, Apps
+from common.models import UserProfile
 from projects.models import Project
 from scripts.app_instance_permissions import run
 
+from .helpers import do_delete_account
 from .system_version import SystemVersion
 
 User = get_user_model()
@@ -51,6 +56,31 @@ class AppInstancePermissionScriptTestCase(TestCase):
         has_perm = user.has_perm("can_access_app", app_instance)
 
         self.assertFalse(has_perm)
+
+
+@pytest.mark.django_db
+def test_do_delete_account():
+    """
+    Test function helpers.do_delete_account()
+    """
+    test_user = {"username": "foo@test.com", "email": "foo@test.com", "password": "bar"}
+    user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
+    assert user is not None and user.id > 0
+    assert user.is_active is True
+
+    profile = UserProfile(user=user, is_approved=True)
+    profile.save()
+    assert profile.deleted_on is None
+
+    user_id = user.id
+    user_account_deleted = do_delete_account(user_id)
+
+    assert user_account_deleted is True
+
+    user = User.objects.get(pk=user_id)
+
+    assert user.is_active is False
+    assert user.userprofile.deleted_on >= datetime.now(timezone.utc) - timedelta(seconds=10)
 
 
 # Tests for the system version

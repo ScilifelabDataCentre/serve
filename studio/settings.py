@@ -492,11 +492,11 @@ LOGGING = {
     "loggers": {
         "": {
             "handlers": ["console" if DEBUG else "json"],
-            "level": "WARNING" if DEBUG else "INFO",
+            "level": "DEBUG" if DEBUG else "INFO",
         },
         "django.server": {
             "handlers": ["console" if DEBUG else "json"],
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "WARNING",
             "propagate": False,
         },
     },
