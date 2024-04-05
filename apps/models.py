@@ -176,6 +176,7 @@ class AppInstance(models.Model):
     updated_on = models.DateTimeField(auto_now=True)
     note_on_linkonly_privacy = models.TextField(blank=True, null=True, default="")
     collections = models.ManyToManyField("collections_module.Collection", blank=True, related_name="app_instances")
+    source_code_url = models.URLField(blank=True, null=True)
 
     class Meta:
         permissions = [("can_access_app", "Can access app service")]
