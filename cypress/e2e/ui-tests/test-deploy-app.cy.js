@@ -170,7 +170,7 @@ describe("Test deploying app", () => {
             cy.get('input[name="appconfig.path"]').clear().type(app_path_2)
             cy.get('button').contains('Update').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'link')
-            cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running') // NB: it will get status "Running" but it won't work because the new port is incorrect
+            cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'Running') // NB: it will get status "Running" but it won't work because the new port is incorrect
             // Check that the changes were saved
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
