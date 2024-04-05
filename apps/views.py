@@ -213,6 +213,7 @@ class AppSettingsView(View):
         from_page = request.GET.get("from") if "from" in request.GET else "filtered"
         existing_app_name = appinstance.name
         existing_app_description = appinstance.description
+        existing_source_code_url = appinstance.source_code_url
         if "release" in appinstance.parameters:
             existing_app_release_name = appinstance.parameters["release"]
         # Settings for custom app
@@ -306,6 +307,7 @@ class AppSettingsView(View):
         appinstance.access = access
         appinstance.app_dependencies.set(app_deps)
         appinstance.model_dependencies.set(model_deps)
+        appinstance.source_code_url = request.POST.get("source_code_url")
         if "appconfig" in appinstance.parameters and appinstance.app.slug == "customapp":
             # remove trailing / in all cases
             if appinstance.parameters["appconfig"]["path"] != "/":
@@ -322,7 +324,15 @@ class AppSettingsView(View):
                     appinstance.parameters["appconfig"]["userid"] = userid
 
         appinstance.save(
-            update_fields=["flavor", "name", "description", "parameters", "access", "note_on_linkonly_privacy"]
+            update_fields=[
+                "flavor",
+                "name",
+                "description",
+                "parameters",
+                "access",
+                "note_on_linkonly_privacy",
+                "source_code_url",
+            ]
         )
         self.update_resource(request, appinstance, current_release_name)
 

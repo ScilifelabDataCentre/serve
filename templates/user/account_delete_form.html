@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}My user profile{% endblock title %}
+
+{% block content %}
+<!-- Begin Page Content -->
+<div class="container-sm py-5">
+    <!-- Main Content Here -->
+    <div class="col-12 col-xl-6">
+        <div class="card border-0 shadow">
+
+            <form action="{% url 'delete_account_post_handler' user.id %}" method="POST">
+                {% csrf_token %}
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="card-title mb-0">Delete Account</h5>
+
+                            <div class="row pt-4">
+                                <p class="alert alert-danger" role="alert">
+                                    When you delete your account, you lose access to SciLifeLab Serve account services.
+                                    To delete you account, you must no longer own any projects or apps in Serve.
+                                </p>
+                            </div>
+
+                            <div class="row pt-4">
+                                {% if account_can_be_deleted == False %}
+                                <p class="alert alert-warning" role="alert">
+                                This user user account cannot be deleted because you are the owner of at least one Serve project.
+                                Please delete or transfer ownership to another user account.
+                                </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="row py-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="checkDeleteAccount"
+                                    {% if account_can_be_deleted == False %}disabled{% endif %} >
+
+                                    <label class="form-check-label" for="checkDeleteAccount">
+                                    I have understood the consequences of deleting my user account.
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+            </div>
+
+            <div class="card-footer d-flex justify-content-between">
+                <a class="btn btn-outline-secondary" href="{% url 'user-profile' %}">Cancel</a>
+                <button type="submit" class="btn btn-danger" id="buttonDoDeleteAccount" disabled>Warning! Delete your account</button>
+            </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+<script>
+    $("#checkDeleteAccount").change(function() {
+    if ($(this).prop("checked") == true) {
+        $("#buttonDoDeleteAccount").prop('disabled', false)
+    } else {
+        $("#buttonDoDeleteAccount").prop('disabled', true)
+    }
+    })
+</script>
+{% endblock content %}
