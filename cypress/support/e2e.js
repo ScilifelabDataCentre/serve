@@ -20,3 +20,5 @@ import './commands'
 // require('./commands')
 
 require('cypress-terminal-report/src/installLogsCollector')();
+
+Cypress.Screenshot.defaults({ capture: 'fullPage' }); // capture the screenshot of the whole page on failure
