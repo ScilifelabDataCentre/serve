@@ -18,7 +18,7 @@ describe("Test superuser access", () => {
         // seed the db with a user
         cy.visit("/")
         cy.log("Running seed_superuser.py")
-       // cy.exec("./cypress/e2e/db-seed-superuser.sh")
+        cy.exec("./cypress/e2e/db-seed-superuser.sh")
     })
 
     beforeEach(() => {
@@ -31,7 +31,7 @@ describe("Test superuser access", () => {
         })
     })
 
-    it.skip("can see extra deployment options and extra settings in a project", () => {
+    it("can see extra deployment options and extra settings in a project", () => {
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
         const project_description = "A test project created by an e2e test."
@@ -196,7 +196,7 @@ describe("Test superuser access", () => {
         })
     })
 
-    it.skip("can see and manipulate other users' projects and apps", () => {
+    it("can see and manipulate other users' projects and apps", () => {
 
         // Names of objects
         const project_name = "e2e-superuser-testuser-proj-test" // from seed_superuser.py
@@ -249,7 +249,7 @@ describe("Test superuser access", () => {
 
     })
 
-    it.skip("can create a persistent volume", () => {
+    it("can create a persistent volume", () => {
         // Names of objects to create
         const project_name_pvc = "e2e-superuser-pvc-test"
         const volume_name = "e2e-project-vol"
@@ -290,7 +290,7 @@ describe("Test superuser access", () => {
 
     })
 
-    it.skip("can bypass N projects limit", () => {
+    it("can bypass N projects limit", () => {
         // Names of projects to create
         const project_name = "e2e-superuser-proj-limits-test"
 
@@ -326,7 +326,7 @@ describe("Test superuser access", () => {
         });
     })
 
-    it.skip("can bypass N apps limit", () => {
+    it("can bypass N apps limit", () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test-apps-limit"
         const app_name = "e2e-create-jl"
