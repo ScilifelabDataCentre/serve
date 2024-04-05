@@ -42,11 +42,20 @@
                         <div class="col-8 fw-bold">{{user_profile.department}}</div>
                     </div>
 
+                    <div class="row pt-5">
+                        <h5>Delete Account</h5>
+                        <p>
+                            To delete your account, <a href="{% url 'delete_account' %}">visit this page</a>
+                        </p>
+                    </div>
+
                     <div class="row mt-5 p-3 small text-white bg-teal">
                         <p>Last login: {{user.last_login}} </p>
                         <p>Account created: {{user.date_joined.date}}</p>
                     </div>
+
                 </div>
+
             </div>
 
         </div>
