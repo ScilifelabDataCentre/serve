@@ -2,12 +2,15 @@ import time
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
 from django.utils import timezone
 
 from studio.celery import app
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
+
+ADMIN_EMAIL = "serve@scilifelab.se"
 
 
 @app.task
@@ -25,24 +28,31 @@ def handle_deleted_users():
     threshold_days = 365
     threshold_time = timezone.now() - timezone.timedelta(days=threshold_days)
 
-    logger.info(f"Running task common.handle_deleted_users using threshold {threshold_days} days")
+    logger.info(f"Running task handle_deleted_users using threshold {threshold_days} days")
 
     # Get all inactive users
     inactive_users = User.objects.filter(is_active=False)
 
     for user in inactive_users:
-        logger.debug(f"Task common.handle_deleted_users. Found inactive user {user}")
-
         if user.userprofile.deleted_on is None:
             # This user was not deleted. It is inactive for another reason.
             continue
 
         if user.userprofile.deleted_on <= threshold_time:
-            # The user was deleted over threshold ago
+            # The user was deleted over threshold days ago
+            # Send an email to Serve admins
             logger.warn(
                 f"User {user.id} was deleted over {threshold_days} days ago. Now sending email to Serve admins."
             )
-            # TODO: send email
+
+            send_mail(
+                "Remove deleted user from SciLifeLab Serve",
+                f"The user with id {user.id} deleted their account over {threshold_days} days ago. "
+                "Please permanently remove the user from SciLifeLab Serve according to the routines.",
+                settings.EMAIL_HOST_USER,
+                [ADMIN_EMAIL],
+                fail_silently=False,
+            )
 
         else:
             # The user was deleted too recently to be handled. Simply log
