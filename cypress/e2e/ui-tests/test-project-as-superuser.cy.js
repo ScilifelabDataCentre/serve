@@ -95,13 +95,66 @@ describe("Test superuser access", () => {
                 cy.get('div#deleteModal').should('have.css', 'display', 'block')
                 cy.get('div#deleteModal').find('button').contains('Confirm').click()
             })
+        cy.visit("/projects/")
         cy.contains(project_name).should('not.exist')
 
         })
     })
 
-    it("can create a new flavor and a regular user can subsequently use it", () => {
+    it("can see and manipulate other users' projects and apps", () => {
 
+        // Names of objects
+        const project_name = "e2e-superuser-testuser-proj-test" // from seed_superuser.py
+        const project_description ="Description by regular user" // from seed_superuser.py
+        const project_description_2 = "An alternative project description created by an e2e test."
+        const private_app_name = "Regular user's private app" // from seed_superuser.py
+        const private_app_name_2 = "App renamed by superuser"
+
+        cy.log("Verifying that a project of a regular user is visible")
+        cy.visit("/projects/")
+        cy.get('h5.card-title').should('contain', project_name)
+
+        cy.log("Verifying that can edit the description of a project of a regular user")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.get('.card-text').should('contain', project_description)
+        cy.get('[data-cy="settings"]').click()
+        cy.get('textarea[name=description]').clear().type(project_description_2)
+        cy.get('button').contains('Save').click()
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.get('.card-text').should('contain', project_description_2)
+
+        cy.log("Verifying that a private app of a regular user is visible")
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.get('tr:contains("' + private_app_name + '")').should('exist') // regular user's private app visible
+
+        cy.log("Verifying that can edit the private app of a regular user")
+        cy.get('tr:contains("' + private_app_name + '")').find('i.bi-three-dots-vertical').click()
+        cy.get('tr:contains("' + private_app_name + '")').find('a').contains('Settings').click()
+        cy.get('input[name=app_name]').clear().type(private_app_name_2) // change name
+        cy.get('button').contains('Update').click()
+        cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
+
+        cy.log("Deleting a regular user's private app")
+        cy.get('tr:contains("' + private_app_name_2 + '")').find('i.bi-three-dots-vertical').click()
+        cy.get('tr:contains("' + private_app_name_2 + '")').find('a.confirm-delete').click()
+        cy.get('button').contains('Delete').click()
+        cy.wait(5000)
+        cy.get('tr:contains("' + private_app_name_2 + '")').find('span').should('contain', 'Deleted')
+
+        cy.log("Deleting a regular user's project")
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
+            .then((href) => {
+                cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
+                    cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
+               })
+            })
+
+    })
+
+    it("can create a new flavor and a regular user can subsequently use it", () => {
         // Names of objects to create
         const project_name = "e2e-proj-flavor-test"
         const new_flavor_name = "4 CPU, 8 GB RAM"
@@ -194,59 +247,6 @@ describe("Test superuser access", () => {
                 cy.contains(project_name).should('not.exist') // confirm the project has been deleted
            })
         })
-    })
-
-    it("can see and manipulate other users' projects and apps", () => {
-
-        // Names of objects
-        const project_name = "e2e-superuser-testuser-proj-test" // from seed_superuser.py
-        const project_description ="Description by regular user" // from seed_superuser.py
-        const project_description_2 = "An alternative project description created by an e2e test."
-        const private_app_name = "Regular user's private app" // from seed_superuser.py
-        const private_app_name_2 = "App renamed by superuser"
-
-        cy.log("Verifying that a project of a regular user is visible")
-        cy.visit("/projects/")
-        cy.get('h5.card-title').should('contain', project_name)
-
-        cy.log("Verifying that can edit the description of a project of a regular user")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-        cy.get('.card-text').should('contain', project_description)
-        cy.get('[data-cy="settings"]').click()
-        cy.get('textarea[name=description]').clear().type(project_description_2)
-        cy.get('button').contains('Save').click()
-        cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-        cy.get('.card-text').should('contain', project_description_2)
-
-        cy.log("Verifying that a private app of a regular user is visible")
-        cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-        cy.get('tr:contains("' + private_app_name + '")').should('exist') // regular user's private app visible
-
-        cy.log("Verifying that can edit the private app of a regular user")
-        cy.get('tr:contains("' + private_app_name + '")').find('i.bi-three-dots-vertical').click()
-        cy.get('tr:contains("' + private_app_name + '")').find('a').contains('Settings').click()
-        cy.get('input[name=app_name]').type(private_app_name_2) // change name
-        cy.get('button').contains('Update').click()
-        cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
-
-        cy.log("Deleting a regular user's private app")
-        cy.get('tr:contains("' + private_app_name_2 + '")').find('i.bi-three-dots-vertical').click()
-        cy.get('tr:contains("' + private_app_name_2 + '")').find('a.confirm-delete').click()
-        cy.get('button').contains('Delete').click()
-        cy.wait(5000)
-        cy.get('tr:contains("' + private_app_name_2 + '")').find('span').should('contain', 'Deleted')
-
-        cy.log("Deleting a regular user's project")
-        cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
-            .then((href) => {
-                cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
-                    cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
-               })
-            })
-
     })
 
     it("can create a persistent volume", () => {

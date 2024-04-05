@@ -79,7 +79,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name_project).should('not.exist')
+            cy.get('h5.card-title').should('not.exist')
 
             // make this app public as an update and check that it works
             cy.log("Now making the project app public")
@@ -195,7 +195,7 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name_public_2).should('not.exist')
+            cy.get('h5.card-title').should('not.exist')
         } else {
             cy.log('Skipped because create_resources is not true');
       }
@@ -264,7 +264,7 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name).should('not.exist')
+            cy.get('h5.card-title').should('not.exist')
         } else {
             cy.log('Skipped because create_resources is not true');
       }
@@ -317,7 +317,7 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name).should('not.exist')
+            cy.get('h5.card-title').should('not.exist')
         } else {
             cy.log('Skipped because create_resources is not true');
       }
@@ -365,7 +365,7 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name).should('not.exist')
+            cy.get('h5.card-title').should('not.exist')
         } else {
             cy.log('Skipped because create_resources is not true');
       }
