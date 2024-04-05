@@ -110,5 +110,33 @@
     },
     "model": "django_celery_beat.periodictask",
     "pk": 6
+  },
+  {
+    "fields": {
+      "args": "[]",
+      "clocked": null,
+      "crontab": 1,
+      "date_changed": "2021-02-26T14:03:40.168Z",
+      "description": "Handles deleted user accounts",
+      "enabled": true,
+      "exchange": null,
+      "expire_seconds": null,
+      "expires": null,
+      "headers": "{}",
+      "interval": null,
+      "kwargs": "{}",
+      "last_run_at": "2021-02-26T14:03:37.169Z",
+      "name": "handle_deleted_users",
+      "one_off": false,
+      "priority": null,
+      "queue": null,
+      "routing_key": null,
+      "solar": null,
+      "start_time": null,
+      "task": "common.tasks.handle_deleted_users",
+      "total_run_count": 174
+    },
+    "model": "django_celery_beat.periodictask",
+    "pk": 7
   }
 ]
