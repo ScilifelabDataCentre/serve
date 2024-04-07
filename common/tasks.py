@@ -35,7 +35,7 @@ def send_verification_email(email, token):
         message=(
             f"You registered an account on SciLifeLab Serve ({DOMAIN}).\n"
             "Please click this link to verify your email address:"
-            f" https://{DOMAIN}/verify/?token=token"
+            f" https://{DOMAIN}/verify/?token={token}"
             "\n\n"
             "SciLifeLab Serve team"
         ),

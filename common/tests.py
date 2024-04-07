@@ -127,7 +127,7 @@ class TestEmailSending(TransactionTestCase):
         assert is_val, (form.user.errors, form.profile.errors)
 
         # Explicitly set form approval to False
-        # This is required, becuase emails that are being generated are from university,
+        # This is required, because emails that are being generated are from university,
         # which sets the form to approved
         # But we need to test the case when the email is not from university,
         # which is essentially when is_approved is False
