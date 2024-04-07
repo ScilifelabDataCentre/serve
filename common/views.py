@@ -66,7 +66,7 @@ class SignUpView(CreateView):
                     (
                         "Please check your email for a verification link."
                         " If you don’t see it, please contact us at "
-                        "<a href=serve@scilifelab.se>serve@scilifelab.se</a>."
+                        "serve@scilifelab.se"
                     ),
                 )
             else:
