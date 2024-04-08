@@ -60,15 +60,40 @@ def handle_deleted_users():
 
 
 @app.task
-def alert_pause_inactive_users():
+def alert_pause_dormant_users():
     """
-    Handles inactive user accounts.
+    Handles dormant user accounts.
+    The term dormant is used rather than inactive because of the overuse of the term inactive.
 
-    Inactive means that the user has not logged into Serve for x months.
-    Users inactive for 12 months will trigger an email sent to the user.
-    Users inactive for 13 months will be paused (setting user is_active = false)
+    Dormant user means that the user has not logged into Serve for 2 years.
+    One month before this duration, the user is sent an email with instructions to login.
+    After the 2 year duration has passed, the user account is deactivated.
 
-    TODO: Make these variables in settings.py
+    TODO: Make threshold_days a variable in settings.py
     """
 
-    pass
+    threshold_days = 2 * 365
+
+    # The cutoff date for pausing dormant users
+    threshold_pause = timezone.now() - timezone.timedelta(days=threshold_days + 30)
+
+    # The cutoff date for emailing and warning dormant users
+    # threshold_alert = timezone.now() - timezone.timedelta(days=threshold_days)
+
+    logger.info(f"Running task alert_pause_dormant_users using threshold {threshold_days} days")
+
+    # Get users set as active and who have not logged in since threshold_alert
+    dormant_users = User.objects.filter(last_login__lte=threshold_pause, is_active=True)
+
+    for user in dormant_users:
+        if user.email_verification_table is not None:
+            # This user has not verified their email. Skip.
+            logger.debug(f"Skipping user {user.id} who has not verified their email")
+            continue
+
+        if user.last_login > threshold_pause:
+            # This user has logged in since threshold_pause
+            # TODO: consider instead adding a group and using it to track alerts to users
+            # Users pending being paused
+            # Group: PendingPausing
+            pass
