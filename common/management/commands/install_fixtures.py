@@ -18,6 +18,7 @@ class Command(BaseCommand):
             "appcats_fixtures.json",
             "apps_fixtures.json",
             "objecttype_fixtures.json",
+            "groups_fixtures.json",
         ]
         fixture_files = ["fixtures/" + file for file in files]
 
