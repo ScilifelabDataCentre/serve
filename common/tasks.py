@@ -6,6 +6,7 @@ from django.core.mail import send_mail
 from django.utils import timezone
 
 from studio.celery import app
+from studio.helpers import do_pause_account
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
@@ -73,17 +74,18 @@ def alert_pause_dormant_users():
     """
 
     threshold_days = 2 * 365
+    threshold_alert_days = threshold_days - 30
 
     # The cutoff date for pausing dormant users
-    threshold_pause = timezone.now() - timezone.timedelta(days=threshold_days + 30)
+    threshold_pause = timezone.now() - timezone.timedelta(days=threshold_days)
 
     # The cutoff date for emailing and warning dormant users
-    # threshold_alert = timezone.now() - timezone.timedelta(days=threshold_days)
+    threshold_alert = timezone.now() - timezone.timedelta(days=threshold_alert_days)
 
     logger.info(f"Running task alert_pause_dormant_users using threshold {threshold_days} days")
 
     # Get users set as active and who have not logged in since threshold_alert
-    dormant_users = User.objects.filter(last_login__lte=threshold_pause, is_active=True)
+    dormant_users = User.objects.filter(last_login__lte=threshold_alert, is_active=True)
 
     for user in dormant_users:
         if user.email_verification_table is not None:
@@ -91,9 +93,33 @@ def alert_pause_dormant_users():
             logger.debug(f"Skipping user {user.id} who has not verified their email")
             continue
 
-        if user.last_login > threshold_pause:
-            # This user has logged in since threshold_pause
-            # TODO: consider instead adding a group and using it to track alerts to users
-            # Users pending being paused
-            # Group: PendingPausing
-            pass
+        # Now check if this user should be sent a warning email or be deactivated
+
+        if user.groups.filter(name="pending_dormant_users").exists():
+            # The user has been added to the pending_dormant_users group
+            # The user has been warned, so if the full threshold duration has passed,
+            # then pause the user account
+            logger.debug(f"User {user.id} has previously been warned (belongs to the pending_dormant_users group).")
+
+            if user.last_login < threshold_pause:
+                # This user has not logged in since threshold_pause so pause the account
+                logger.info(
+                    f"User {user.id} has been warned but not logged in since threshold_pause, so pausing the account."
+                )
+                do_pause_account(user.id)
+
+        else:
+            # The user has not been sent a warning email
+            # Send it now
+            logger.info(
+                f"User {user.id} has not logged in since {threshold_alert_days} days ago. Warning the user by email."
+            )
+
+            send_mail(
+                "Please sign in to SciLifeLab Serve to keep your account active",
+                "Your user account at SciLifeLab Serve has not been signed into for a long time. "
+                "Please sign in to SciLifeLab Serve to keep your user account active.",
+                settings.EMAIL_HOST_USER,
+                [user.email],
+                fail_silently=False,
+            )
