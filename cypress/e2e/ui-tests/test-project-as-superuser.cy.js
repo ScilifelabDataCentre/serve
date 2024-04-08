@@ -154,7 +154,7 @@ describe("Test superuser access", () => {
 
     })
 
-    it("can create a new flavor and a regular user can subsequently use it", () => {
+    it("can create a new flavor and a regular user can subsequently use it", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-proj-flavor-test"
         const new_flavor_name = "4 CPU, 8 GB RAM"

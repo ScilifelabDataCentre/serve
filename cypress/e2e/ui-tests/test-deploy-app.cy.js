@@ -201,7 +201,8 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can deploy a shiny app", { defaultCommandTimeout: 100000 }, () => {
+    // This test is skipped because it will only work against a Serve instance running on our cluster. should be switched on for the e2e tests against remote.
+    it.skip("can deploy a shiny app", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-shiny-example"
