@@ -90,7 +90,7 @@ def send_email_task(subject, message, html_message, recipient_list):
     )
 
 
-def send_verification_email(email, token):
+def send_verification_email_task(email, token):
     html_message = render_to_string(
         "registration/verify_email.html",
         {
