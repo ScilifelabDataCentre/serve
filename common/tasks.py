@@ -3,10 +3,12 @@ import time
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from studio.celery import app
 from studio.helpers import do_pause_account
+from studio.settings import DOMAIN
 from studio.utils import get_logger
 
 from .models import EmailVerificationTable
@@ -96,8 +98,8 @@ def alert_pause_dormant_users():
     dormant_users = (
         User.objects.filter(is_active=True)
         .exclude(last_login__gte=threshold_alert)
-        .exclude(is_staff=True)
         .exclude(date_joined__gte=threshold_alert)
+        .exclude(is_staff=True)
     )
 
     logger.info(f"Found {len(dormant_users)} dormant users to process")
@@ -147,3 +149,38 @@ def alert_pause_dormant_users():
             # Add the user to the group
             group = Group.objects.get(name="pending_dormant_users")
             user.groups.add(group)
+
+
+@app.task(ignore_result=True)
+def send_email_task(subject, message, html_message, recipient_list):
+    logger.info("Sending email to %s", recipient_list)
+    send_mail(
+        subject,
+        message,
+        settings.EMAIL_HOST_USER,
+        recipient_list,
+        html_message=html_message,
+        fail_silently=False,
+    )
+
+
+def send_verification_email_task(email, token):
+    html_message = render_to_string(
+        "registration/verify_email.html",
+        {
+            "token": token,
+        },
+    )
+    logger.info("Sending verification email %s", email)
+    send_email_task(
+        subject="Verify your email address on SciLifeLab Serve",
+        message=(
+            f"You registered an account on SciLifeLab Serve ({DOMAIN}).\n"
+            "Please click this link to verify your email address:"
+            f" https://{DOMAIN}/verify/?token={token}"
+            "\n\n"
+            "SciLifeLab Serve team"
+        ),
+        html_message=html_message,
+        recipient_list=[email],
+    )

@@ -39,7 +39,7 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     )
     project.save()
 
-    # Create a private app belonging to the reular user to be inspected by the superuser
+    # Create a private app belonging to the regular user to be inspected by the superuser
     # create resources inside the project
     project_template = ProjectTemplate.objects.get(pk=1)
     create_resources_from_template(user.username, project.slug, project_template.template)
