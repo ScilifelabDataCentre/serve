@@ -197,6 +197,12 @@
             <div class="col-md-3 my-2">
                 <p class="text-start small">Collections are groups of apps and models published on SciLifeLab Serve belonging to a research community, organisation, or topic. <a href="/docs/collections/">Start a new collection?</a></p>
             </div>
+
+            {% if link_all_collections %}
+            <div class="col-12 text-center">
+                <a class="text-muted" href="{% url 'collections_module:index' %}" target="_self" title="News">See all collections</a>
+            </div>
+            {% endif %}
     </div>
 
 

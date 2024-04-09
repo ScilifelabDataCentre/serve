@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load custom_tags %}
+{% block title %}Collections {% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h3 class="h3 mb-3 me-5">
+            Collections
+            {% if collection_objects|length > 0 %}
+            <span class="ghost-number">{{ collection_objects|length }}</span>
+            {% endif %}
+        </h3>
+    </div>
+</div>
+
+{% if not collection_objects %}
+<p>No collections available.</p>
+{% endif %}
+
+{% if collection_objects %}
+<div class="row text-center">
+{% for collection in collection_objects %}
+<div class="col-sm-6 col-md-3 my-2">
+    <a href="/collections/{{ collection.slug }}" class="collection-logo">
+    {% if collection.logo %}
+        <img src="{{ collection.logo.url }}" alt="{{ collection.name }} logo" title="{{ collection.name }} logo" height="100px">
+    {% else %}
+        <span class="fs-5 fst-italic">{{ collection.name }}</span>
+    {% endif %}
+    </a>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

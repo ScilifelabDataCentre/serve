@@ -142,9 +142,11 @@ class HomeView(View):
             news_objects = news_objects
 
         collection_objects = Collection.objects.all().order_by("-created_on")
+        link_all_collections = False
 
         if collection_objects.count() >= 3:
             collection_objects = collection_objects[:3]
+            link_all_collections = True
         else:
             collection_objects = collection_objects
 
@@ -154,6 +156,7 @@ class HomeView(View):
             "news_objects": news_objects,
             "link_all_news": link_all_news,
             "collection_objects": collection_objects,
+            "link_all_collections": link_all_collections,
         }
 
         return render(request, self.template, context=context)
