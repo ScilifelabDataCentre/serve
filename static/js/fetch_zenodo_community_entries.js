@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => {
             if (!response.ok) {
                 entriesLoading.style.display = "none";
-                throw new Error(`HTTP error, status: ${response.status}`);
+                throw new Error(`Fetching Zenodo entries failed. HTTP error, status: ${response.status}`);
             }
             return response.json();
         })
