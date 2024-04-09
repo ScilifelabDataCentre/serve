@@ -22,6 +22,13 @@ from .models import AppInstance, Apps, AppStatus, ResourceData
 
 logger = get_logger(__name__)
 
+K8S_STATUS_MAP = {
+    "CrashLoopBackOff": "Error",
+    "Completed": "Retrying...",
+    "ContainerCreating": "Created",
+    "PodInitializing": "Pending",
+}
+
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
 

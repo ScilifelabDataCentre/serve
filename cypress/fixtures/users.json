@@ -4,6 +4,11 @@
     "password": "tesT12345@",
     "username": "e2e_tests_brute_force_login_user"
   },
+  "collections_user": {
+    "email": "no-reply-collections-user@scilifelab.se",
+    "password": "tesT12345@",
+    "username": "e2e_collections_tester"
+  },
   "contributor": {
     "email": "no-reply-contributor@scilifelab.uu.se",
     "password": "tesT12345@",

@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block title %}Forbidden{% endblock %}
+
+{% load static %}
+
+{% block content %}
+  <h1>Page cannot be <i>served</i> 🥁 (404 error)</h1>
+  <p style="font-size: x-large">It's okay, don't worry. Just go to the <a href="{% url 'portal:home' %}">home page</a>
+    and try what you wanted to do again.</p>
+{% endblock %}

@@ -1,11 +1,11 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, User
-from django.core.mail import send_mail
 from django.db import models
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
 
-from studio.settings import DOMAIN
+from common.tasks import send_verification_email_task
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class UserProfile(models.Model):
@@ -29,26 +29,7 @@ class EmailVerificationTable(models.Model):
     token = models.CharField(max_length=100)
 
     def send_verification_email(self):
-        html_message = render_to_string(
-            "registration/verify_email.html",
-            {
-                "token": self.token,
-            },
-        )
-        send_mail(
-            "Verify your email address on SciLifeLab Serve",
-            (
-                f"You registered an account on SciLifeLab Serve ({DOMAIN}).\n"
-                "Please click this link to verify your email address:"
-                f" https://{DOMAIN}/verify/?token={self.token}"
-                "\n\n"
-                "SciLifeLab Serve team"
-            ),
-            settings.EMAIL_HOST_USER,
-            [self.user.email],
-            fail_silently=False,
-            html_message=html_message,
-        )
+        send_verification_email_task(self.user.email, self.token)
 
 
 class FixtureVersion(models.Model):
