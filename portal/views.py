@@ -135,7 +135,7 @@ class HomeView(View):
         else:
             published_models = published_models
 
-        if news_objects.count() >= 3:
+        if news_objects.count() > 3:
             news_objects = news_objects[:3]
             link_all_news = True
         else:
@@ -144,7 +144,7 @@ class HomeView(View):
         collection_objects = Collection.objects.all().order_by("-created_on")
         link_all_collections = False
 
-        if collection_objects.count() >= 3:
+        if collection_objects.count() > 3:
             collection_objects = collection_objects[:3]
             link_all_collections = True
         else:
