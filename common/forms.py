@@ -14,6 +14,10 @@ from django.db import transaction
 from django.utils.safestring import mark_safe
 
 from common.models import EmailVerificationTable, UserProfile
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
 
 with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
     DEPARTMENTS = json.load(f).get("departments", [])
@@ -136,6 +140,10 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
             "username",
         ]
 
+    def is_unique_email(self) -> bool:
+        email: str = self.cleaned_data["email"].lower()
+        return not User.objects.filter(email=email).exists()
+
     def clean_email(self) -> str:
         """
         Validate that the supplied email address is unique.
@@ -143,8 +151,9 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
         This runs after the basic `UserCreationForm` validation.
         """
         email: str = self.cleaned_data["email"].lower()
-        if User.objects.filter(email=email).exists():
-            self.add_error("email", ValidationError("Email already exists"))
+        # See SS-920 to understand why we are doing this
+        if not self.is_unique_email():
+            logger.error("Attempting to create an account with email %s that is already in use", email)
         return email
 
     def add_error_classes(self) -> None:
