@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load custom_tags %}
+{% block title %}Collections {% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h3 class="h3 mb-3 me-5">
+            Collections
+            {% if collection_objects|length > 0 %}
+            <span class="ghost-number">{{ collection_objects|length }}</span>
+            {% endif %}
+        </h3>
+        <p>Collections are groups of apps and models published on SciLifeLab Serve belonging to a research community, organisation, or topic. You can find out more <a href="/docs/collections">about collections and how to start a new collection</a> in our user documentation.</p>
+    </div>
+</div>
+
+{% if not collection_objects %}
+<p>No collections available.</p>
+{% endif %}
+
+{% if collection_objects %}
+<div class="row text-center">
+{% for collection in collection_objects %}
+<div class="col-sm-6 col-md-3 my-2">
+    <a href="/collections/{{ collection.slug }}" class="collection-logo">
+    {% if collection.logo %}
+        <img src="{{ collection.logo.url }}" alt="{{ collection.name }} logo" title="{{ collection.name }} logo" height="100px">
+    {% else %}
+        <span class="fs-5 fst-italic">{{ collection.name }}</span>
+    {% endif %}
+    </a>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}
