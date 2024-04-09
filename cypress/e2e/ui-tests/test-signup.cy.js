@@ -36,7 +36,11 @@ describe("Test sign up", () => {
         cy.get("input#submit-id-save").click();
 
         cy.url().should("include", "accounts/login");
-        cy.get('.alert-success').should('contain', ' Please check your email to verify your account!');
+        cy.get('.alert-success').should(
+            'contain',
+            'Please check your email for a verification link.' +
+            ' If you don’t see it, please contact us at serve@scilifelab.se'
+        );
 
         // TO-DO: add steps to check that email was sent, get token from email, go to email verification page, submit token there, then log in with new account
     })

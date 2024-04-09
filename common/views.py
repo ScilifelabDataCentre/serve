@@ -54,10 +54,21 @@ class SignUpView(CreateView):
         profile_form = context["profile_form"]
         form_ = SignUpForm(user=form, profile=profile_form)
         if form_.is_valid():
-            form_.save()
+            # If the email is unique, save the form
+            if form_.user.is_unique_email():
+                form_.save()
+            # Otherwise, we will see in the logs that the email is not unique, but users will not see this.
+            # See SS-920 for more information.
             redirect_name = "login"
             if settings.INACTIVE_USERS:
-                messages.success(self.request, "Please check your email to verify your account!")
+                messages.success(
+                    self.request,
+                    (
+                        "Please check your email for a verification link."
+                        " If you don’t see it, please contact us at "
+                        "serve@scilifelab.se"
+                    ),
+                )
             else:
                 messages.success(self.request, "Account created successfully!")
             return HttpResponseRedirect(reverse_lazy(redirect_name))
