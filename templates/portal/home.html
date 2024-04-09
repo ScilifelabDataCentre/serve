@@ -176,7 +176,8 @@
             {% endif %}
     </div>
 
-    <div class="row text-center mt-5 align-items-center">
+    {% if collection_objects %}
+    <div class="row text-center mt-5 align-items-center" id="collections">
         <div class="col-12 text-center">
             <h3>Collections
             </h3>
@@ -204,6 +205,7 @@
             </div>
             {% endif %}
     </div>
+    {% endif %}
 
 
 
