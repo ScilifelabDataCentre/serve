@@ -13,6 +13,7 @@ AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
 NewsObject = apps.get_model(app_label="news.NewsObject")
+Collection = apps.get_model(app_label="collections_module.Collection")
 
 
 # TODO minor refactor
@@ -140,7 +141,22 @@ class HomeView(View):
         else:
             news_objects = news_objects
 
-        return render(request, self.template, locals())
+        collection_objects = Collection.objects.all().order_by("-created_on")
+
+        if collection_objects.count() >= 3:
+            collection_objects = collection_objects[:3]
+        else:
+            collection_objects = collection_objects
+
+        context = {
+            "published_apps": published_apps,
+            "published_models": published_models,
+            "news_objects": news_objects,
+            "link_all_news": link_all_news,
+            "collection_objects": collection_objects,
+        }
+
+        return render(request, self.template, context=context)
 
 
 class HomeViewDynamic(View):
