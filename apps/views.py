@@ -268,6 +268,7 @@ class AppSettingsView(View):
             "existing_app_description": existing_app_description,
             "existing_app_release_name": existing_app_release_name,
             "existing_userid": existing_userid,
+            "existing_source_code_url": existing_source_code_url,
         }
 
         return render(request, template, context)
