@@ -298,7 +298,7 @@ describe("Test project contributor user functionality", () => {
             cy.loginViaUI(users.contributor_collaborator.email, users.contributor_collaborator.password)
         })
 
-        // get the second user's prokect's URL
+        // get the second user's project's URL
         cy.log("Checking the second user's project URL")
         cy.visit('/projects/')
         cy.get('h5.card-title').should('contain', project_name) // check access to project
