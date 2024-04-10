@@ -53,7 +53,7 @@ urlpatterns = (
             "<user>/<project>/monitor/",
             include("monitor.urls", namespace="monitor"),
         ),
-        path("<project>/apps/", include("apps.urls", namespace="apps")),
+        path("projects/<project>/apps/", include("apps.urls", namespace="apps")),
     ]
     + staticfiles_urlpatterns()
     + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
