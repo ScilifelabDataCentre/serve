@@ -197,3 +197,9 @@ a.icon-external:hover::after, a:focus::after, a.active::after {
     font-family: inherit;
     color: var(--serve-teal);
 }
+
+/* collections */
+
+a.collection-logo:hover::after, a:focus::after, a.active::after {
+    width: 0;
+}

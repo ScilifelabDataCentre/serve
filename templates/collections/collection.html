@@ -8,7 +8,7 @@
 
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
-      <li class="breadcrumb-item">Collections</li>
+      <li class="breadcrumb-item"><a href="{% url 'collections_module:index' %}">Collections</a></li>
       <li class="breadcrumb-item active" aria-current="page">{{ collection.name }}</li>
     </ol>
 </nav>
@@ -22,10 +22,10 @@
         </div>
 </div>
 
-<div class="row border rounded bg-light pt-3">
+<div class="row border rounded bg-light py-3">
     {% if collection.logo %}
-    <div class="col-6 mb-3 col-md-3 mb-md-0">
-        <img class="img-fluid" src="{{ collection.logo.url }}" alt="{{ collection.logo }}">
+    <div class="col-4 mb-3 col-md-3 mb-md-0 text-center">
+        <img class="img-fluid" src="{{ collection.logo.url }}" alt="{{ collection.name }} logo">
     </div>
     <div class="col-md-8">
     {% else %}
@@ -39,7 +39,9 @@
 
 {% if not collection_published_apps and not collection_published_models %}
 <div class="row mt-4">
+    <div class="col">
     There are no public apps or model cards associated with this collection.
+    </div>
 </div>
 {% endif %}
 

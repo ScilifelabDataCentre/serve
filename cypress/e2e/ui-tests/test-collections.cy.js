@@ -56,6 +56,15 @@ describe("Test collections functionality", () => {
         cy.get('input[name=_save]').click()
         cy.get('li.success').should('contain', "was changed successfully") // confirm app name has been added to the collection
 
+        cy.log("Can see the collection listed on the homepage")
+        cy.visit('/home/')
+        cy.get('#collections').find('a').should('contain', collection_name)
+        cy.get('#collections').find('a').should('have.attr', 'href', "/collections/" + collection_slug)
+
+        cy.log("Can see the collection listed on the collections overview page")
+        cy.visit('/collections')
+        cy.get('a.collection-logo').should('have.attr', 'href', "/collections/" + collection_slug)
+
         cy.log("Can see the created collection page")
         cy.visit("/collections/" + collection_slug)
         cy.get('h3').should('contain', collection_name)
