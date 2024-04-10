@@ -213,6 +213,7 @@ class AppSettingsView(View):
         existing_app_description = appinstance.description
         existing_app_release_name = appinstance.parameters.get("release", None)
         existing_userid = None
+        existing_path = None
         existing_source_code_url = appinstance.source_code_url
 
         # Settings for custom app
@@ -265,6 +266,7 @@ class AppSettingsView(View):
             "all_tags": all_tags,
             "show_permissions": show_permissions,
             "existing_app_name": existing_app_name,
+            "existing_path": existing_path,
             "existing_app_description": existing_app_description,
             "existing_app_release_name": existing_app_release_name,
             "existing_userid": existing_userid,
