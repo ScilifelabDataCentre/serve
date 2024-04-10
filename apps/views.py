@@ -265,6 +265,7 @@ class AppSettingsView(View):
             "all_tags": all_tags,
             "show_permissions": show_permissions,
             "existing_app_name": existing_app_name,
+            "existing_path": existing_path,
             "existing_app_description": existing_app_description,
             "existing_app_release_name": existing_app_release_name,
             "existing_userid": existing_userid,
