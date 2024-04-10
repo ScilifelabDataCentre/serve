@@ -60,7 +60,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
 
@@ -75,11 +75,11 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
-        response = c.post(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.post(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
@@ -96,11 +96,11 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
-        response = c.post(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.post(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
@@ -119,7 +119,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
 
@@ -134,7 +134,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
 
@@ -153,13 +153,13 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
 
         project = self.get_data()
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
 
@@ -171,7 +171,7 @@ class CreateAppViewTestCase(TestCase):
             project=project,
         )
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
@@ -186,7 +186,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
@@ -202,7 +202,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.user = User.objects.get(username=test_user["email"])
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
 
@@ -217,7 +217,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
 
@@ -226,7 +226,7 @@ class CreateAppViewTestCase(TestCase):
         project.authorized.add(user2)
         project.save()
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
 
@@ -238,11 +238,11 @@ class CreateAppViewTestCase(TestCase):
             project=project,
         )
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
@@ -261,7 +261,7 @@ class CreateAppViewTestCase(TestCase):
 
         project.save()
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
@@ -276,7 +276,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
 
@@ -288,7 +288,7 @@ class CreateAppViewTestCase(TestCase):
             project=project,
         )
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 403)
 
@@ -296,6 +296,6 @@ class CreateAppViewTestCase(TestCase):
 
         project.save()
 
-        response = c.get(f"/{project.slug}/apps/create/jupyter-lab")
+        response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
