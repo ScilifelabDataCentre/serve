@@ -206,30 +206,27 @@ class AppSettingsView(View):
 
     def get(self, request, project, ai_id):
         project, appinstance = self.get_shared_data(project, ai_id)
-        domain = DOMAIN
         all_tags = AppInstance.tags.tag_model.objects.all()
         template = "apps/update.html"
-        show_permissions = True
-        from_page = request.GET.get("from") if "from" in request.GET else "filtered"
+
         existing_app_name = appinstance.name
         existing_app_description = appinstance.description
+        existing_app_release_name = appinstance.parameters.get("release", None)
+        existing_userid = None
         existing_source_code_url = appinstance.source_code_url
-        if "release" in appinstance.parameters:
-            existing_app_release_name = appinstance.parameters["release"]
+
         # Settings for custom app
         if "appconfig" in appinstance.parameters:
-            if "path" in appinstance.parameters["appconfig"]:
+            appconfig = appinstance.parameters["appconfig"]
+            existing_userid = appconfig.get("userid", None)
+            if "path" in appconfig:
                 # check if app created by admin user then don't show path change option to normal user
-                if "created_by_admin" in appinstance.parameters and appinstance.parameters["created_by_admin"] is True:
-                    created_by_admin = True
-                else:
-                    created_by_admin = False
-                existing_path = appinstance.parameters["appconfig"]["path"]
+                created_by_admin = appinstance.parameters.get("created_by_admin") is True
+                existing_path = appconfig["path"]
+
                 if not created_by_admin:
                     existing_path = existing_path.replace("/home/", "", 1)
 
-            if "userid" in appinstance.parameters["appconfig"]:
-                existing_userid = appinstance.parameters["appconfig"]["userid"]
         app = appinstance.app
         do_display_description_field = app.category.name is not None and app.category.name.lower() == "serve"
 
@@ -243,14 +240,38 @@ class AppSettingsView(View):
         # Note that this assumes only ONE volume per app.
         current_volumes = appinstance.parameters.get("apps", {}).get("volumeK8s", {}).keys()
         current_volume = AppInstance.objects.filter(project=project, name__in=current_volumes).first()
-        available_volumes = AppInstance.objects.filter(project=project, app__name="Persistent Volume").exclude(
-            name=current_volume.name if current_volume else None
+
+        def filter_func():
+            name = current_volume.name if current_volume else None
+            return Q(app__name="Persistent Volume") & ~Q(state="Deleted") & ~Q(name=name)
+
+        available_volumes = AppInstance.objects.get_app_instances_of_project(
+            user=request.user,
+            project=project,
+            filter_func=filter_func(),
         )
 
-        if request.user.id != appinstance.owner.id and not request.user.is_superuser:
-            show_permissions = False
+        show_permissions = request.user.id == appinstance.owner.id or request.user.is_superuser
 
-        return render(request, template, locals())
+        context = {
+            "app": app,
+            "do_display_description_field": do_display_description_field,
+            "form": form,
+            "current_volume": current_volume,
+            "available_volumes": available_volumes,
+            "appinstance": appinstance,
+            "project": project,
+            "domain": DOMAIN,
+            "all_tags": all_tags,
+            "show_permissions": show_permissions,
+            "existing_app_name": existing_app_name,
+            "existing_app_description": existing_app_description,
+            "existing_app_release_name": existing_app_release_name,
+            "existing_userid": existing_userid,
+            "existing_source_code_url": existing_source_code_url,
+        }
+
+        return render(request, template, context)
 
     def post(self, request, project, ai_id):
         project, appinstance = self.get_shared_data(project, ai_id)
