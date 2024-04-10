@@ -2,7 +2,6 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, User
 from django.db import models
 
-from common.tasks import send_verification_email_task
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
@@ -29,6 +28,8 @@ class EmailVerificationTable(models.Model):
     token = models.CharField(max_length=100)
 
     def send_verification_email(self):
+        from .tasks import send_verification_email_task
+
         send_verification_email_task(self.user.email, self.token)
 
 

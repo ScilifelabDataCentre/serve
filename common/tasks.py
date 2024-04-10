@@ -1,17 +1,19 @@
 import time
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 from studio.celery import app
+from studio.helpers import do_pause_account
 from studio.settings import DOMAIN
 from studio.utils import get_logger
 
-logger = get_logger(__name__)
+from .models import EmailVerificationTable
 
+logger = get_logger(__name__)
 
 ADMIN_EMAIL = "serve@scilifelab.se"
 
@@ -63,18 +65,90 @@ def handle_deleted_users():
 
 
 @app.task
-def alert_pause_inactive_users():
+def alert_pause_dormant_users():
     """
-    Handles inactive user accounts.
+    Handles dormant user accounts.
+    The term dormant is used rather than inactive because of the overuse of the term inactive.
 
-    Inactive means that the user has not logged into Serve for x months.
-    Users inactive for 12 months will trigger an email sent to the user.
-    Users inactive for 13 months will be paused (setting user is_active = false)
+    Dormant user means that the user has not logged into Serve for 2 years.
+    Two weeks before this duration, the user is sent an email with instructions to login.
+    After the 2 year duration has passed, the user account is deactivated.
 
-    TODO: Make these variables in settings.py
+    TODO: Make threshold_days a variable in settings.py
     """
 
-    pass
+    threshold_days = 2 * 365
+    threshold_alert_days = threshold_days - 14
+
+    # The cutoff date for pausing dormant users
+    threshold_pause = timezone.now() - timezone.timedelta(days=threshold_days)
+
+    # The cutoff date for emailing and warning dormant users
+    threshold_alert = timezone.now() - timezone.timedelta(days=threshold_alert_days)
+
+    logger.info(
+        f"Running task alert_pause_dormant_users using thresholds alert after {threshold_alert_days} days, pause after \
+        {threshold_days} days"
+    )
+
+    # Get users set as active and who have not logged in since threshold_alert
+    # Because new registered users who have verified their emails are set to active but without
+    # a last login date, we do this by excluding users who have logged in after threshold_alert
+    # We also exclude staff members
+    dormant_users = (
+        User.objects.filter(is_active=True)
+        .exclude(last_login__gte=threshold_alert)
+        .exclude(date_joined__gte=threshold_alert)
+        .exclude(is_staff=True)
+    )
+
+    logger.info(f"Found {len(dormant_users)} dormant users to process")
+
+    for user in dormant_users:
+        email_verification_table = EmailVerificationTable.objects.filter(user_id=user.id).first()
+
+        if email_verification_table is not None:
+            # This user has not verified their email. Skip.
+            logger.debug(f"Skipping user {user.id} who has not verified their email")
+            continue
+
+        # Now check if this user should be sent a warning email or be deactivated
+
+        if user.groups.filter(name="pending_dormant_users").exists():
+            # The user has been added to the pending_dormant_users group
+            # The user has been warned, so if the full threshold duration has passed,
+            # then pause the user account
+            logger.info(f"User {user.id} has previously been warned (belongs to the pending_dormant_users group)")
+
+            if user.last_login is None or user.last_login < threshold_pause:
+                # This user has been warned and has not logged in since threshold_pause (or never logged in)
+                # so pause the account
+                logger.info(
+                    f"User {user.id} has been warned but not logged in since {threshold_pause=}, so pausing the user."
+                )
+                do_pause_account(user.id)
+
+        else:
+            # The user has not been sent a warning email. Sending it now
+            logger.info(
+                f"User {user.id} has not logged in since the limit {threshold_alert_days} days ago \
+                    ({threshold_alert}). Sending a warning email."
+            )
+
+            send_mail(
+                "Please sign in to SciLifeLab Serve to keep your account active",
+                "Your user account at SciLifeLab Serve (https://serve.scilifelab.se) has not been signed into for "
+                "a long time. Please sign in to SciLifeLab Serve to keep your user account active. Otherwise your "
+                "account will be paused after 2 weeks. If you want to access it again, you will need to get in touch "
+                "with our support team to reactivate it.",
+                settings.EMAIL_HOST_USER,
+                [user.email],
+                fail_silently=False,
+            )
+
+            # Add the user to the group
+            group = Group.objects.get(name="pending_dormant_users")
+            user.groups.add(group)
 
 
 @app.task(ignore_result=True)

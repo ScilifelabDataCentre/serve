@@ -3,11 +3,13 @@ from datetime import datetime, timezone
 from django.contrib.auth.models import User
 from django.db import transaction
 
+from common.models import EmailVerificationTable
+
 
 def do_delete_account(user_id):
     """
+    Deletes a user account.
     Sets user.is_active = False and userprofile.deleted_on to now.
-    Also sends an email to the user email adress on record.
     :param int user_id: The user id.
     :returns bool user_account_deleted: Indicates whether the user account was deleted.
     """
@@ -25,3 +27,27 @@ def do_delete_account(user_id):
         user_account_deleted = True
 
     return user_account_deleted
+
+
+def do_pause_account(user_id):
+    """
+    Sets a user account to pause (on hold).
+    Sets user.is_active = False and deletes the user verification token if it exists.
+    :param int user_id: The user id.
+    :returns bool user_account_paused: Indicates whether the user account was paused.
+    """
+    user = User.objects.get(pk=user_id)
+    email_verification_table = EmailVerificationTable.objects.filter(user_id=user_id).first()
+
+    user_account_paused = False
+
+    with transaction.atomic():
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+
+        if email_verification_table is not None:
+            email_verification_table.delete()
+
+        user_account_paused = True
+
+    return user_account_paused
