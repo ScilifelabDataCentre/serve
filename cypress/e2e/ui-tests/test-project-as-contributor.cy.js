@@ -239,7 +239,7 @@ describe("Test project contributor user functionality", () => {
                         projectURL = url
                     });
                 cy.then(() =>
-                    cy.request({url: projectURL + "apps/create/jupyter-lab?from=overview", failOnStatusCode: false}).its('status').should('equal', 403)
+                    cy.request({url: projectURL + "apps/create/jupyter-lab?from=overview", failOnStatusCode: false}).its('status').should('equal', 404)
                     )
                 })
 

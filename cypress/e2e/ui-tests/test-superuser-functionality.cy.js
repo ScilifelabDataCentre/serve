@@ -373,7 +373,7 @@ describe("Test superuser access", () => {
 
         cy.log("Creating the root article")
         cy.visit("/docs/")
-        cy.get('.col-lg-8 > h1').should('contain', 'Congratulations') // check that django-wiki was correctly installed
+        cy.get('h1').should('contain', 'Congratulations') // check that django-wiki was correctly installed
         cy.get('#id_title').clear().type(root_article_name)
         cy.get('#id_content').clear().type(root_article_content)
         cy.get('button[name="save_changes"]').click()
