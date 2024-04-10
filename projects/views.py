@@ -374,7 +374,7 @@ class GrantAccessToProjectView(View):
 
             log.save()
 
-        return HttpResponseRedirect(f"projects/{project_slug}/settings?template=access")
+        return HttpResponseRedirect(f"/projects/{project_slug}/settings?template=access")
 
 
 @method_decorator(
