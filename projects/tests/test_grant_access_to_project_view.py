@@ -39,7 +39,7 @@ class GrantAccessToProjectViewTestCase(TestCase):
         project = self.get_data()
 
         response = self.client.post(
-            f"/{project.slug}/project/access/grant/",
+            f"/projects/{project.slug}/project/access/grant/",
             {"selected_user": test_user_2["email"]},
         )
 
@@ -72,7 +72,7 @@ class GrantAccessToProjectViewTestCase(TestCase):
         project = self.get_data(user=self.user2)
 
         response = self.client.post(
-            f"/{project.slug}/project/access/grant/",
+            f"/projects/{project.slug}/project/access/grant/",
             {"selected_user": test_user_2["email"]},
         )
 
@@ -89,7 +89,7 @@ class GrantAccessToProjectViewTestCase(TestCase):
         project = self.get_data()
 
         response = self.client.post(
-            f"/{project.slug}/project/access/grant/",
+            f"/projects/{project.slug}/project/access/grant/",
             {"selected_user": "non_existing_user"},
         )
 

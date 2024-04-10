@@ -32,7 +32,7 @@ class UpdatePatternViewTestCase(TestCase):
 
         # Test with valid pattern
         response = self.client.post(
-            f"/{project.slug}/pattern/update/",
+            f"/projects/{project.slug}/pattern/update/",
             {"pattern": "pattern-1"},
         )
 
@@ -40,7 +40,7 @@ class UpdatePatternViewTestCase(TestCase):
 
         # Test with invalid pattern
         response = self.client.post(
-            f"/{project.slug}/pattern/update/",
+            f"/projects/{project.slug}/pattern/update/",
             {"pattern": "pattern-0"},
         )
 
@@ -55,7 +55,7 @@ class UpdatePatternViewTestCase(TestCase):
         project = self.get_data()
 
         response = self.client.post(
-            f"/{project.slug}/pattern/update/",
+            f"/projects/{project.slug}/pattern/update/",
             {"pattern": "pattern-1"},
         )
 
