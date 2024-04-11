@@ -363,4 +363,35 @@ describe("Test superuser access", () => {
 
     })
 
+    it("can add pages to user docs", () => {
+
+        const root_article_name = "user-documentation"
+        const root_article_content = "user-documentation-homepage"
+        const regular_article_name ="regular-article"
+        const regular_article_slug ="regular-article"
+        const regular_article_content = "regular-article-content"
+
+        cy.log("Creating the root article")
+        cy.visit("/docs/")
+        cy.get('h1').should('contain', 'Congratulations') // check that django-wiki was correctly installed
+        cy.get('#id_title').clear().type(root_article_name)
+        cy.get('#id_content').clear().type(root_article_content)
+        cy.get('button[name="save_changes"]').click()
+        cy.log("Checking that the root article was successfully created")
+        cy.get('h1#article-title').contains(root_article_name)
+        cy.get('div.wiki-article').contains(root_article_content)
+
+        cy.log("Adding a regular article")
+        cy.get(".btn-group").get(".btn").contains("Add a new article").click()
+        cy.get(".btn-group").get("a.dropdown-item").contains("New article below").click()
+        cy.url().should("include", "/docs/_create/")
+        cy.get('#id_title').clear().type(regular_article_name)
+        cy.get('#id_content').clear().type(regular_article_content)
+        cy.get('button[name="save_changes"]').click()
+        cy.log("Checking that the regular article was successfully created")
+        cy.url().should("include", regular_article_slug)
+        cy.get('h1#article-title').contains(regular_article_name)
+        cy.get('div.wiki-article').contains(regular_article_content)
+    })
+
 })

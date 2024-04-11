@@ -374,7 +374,7 @@ class GrantAccessToProjectView(View):
 
             log.save()
 
-        return HttpResponseRedirect(f"/{project_slug}/settings?template=access")
+        return HttpResponseRedirect(f"/projects/{project_slug}/settings?template=access")
 
 
 @method_decorator(
@@ -517,7 +517,7 @@ class CreateProjectView(View):
             )
             l2.save()
 
-        next_page = request.POST.get("next", "/{}".format(project.slug))
+        next_page = request.POST.get("next", "/projects/{}".format(project.slug))
 
         return HttpResponseRedirect(next_page, {"message": "Created project"})
 

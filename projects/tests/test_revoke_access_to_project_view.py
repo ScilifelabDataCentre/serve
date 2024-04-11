@@ -42,7 +42,7 @@ class RevokeAccessToProjectViewTestCase(TestCase):
         project = self.get_data()
 
         response = self.client.post(
-            f"/{project.slug}/project/access/revoke/",
+            f"/projects/{project.slug}/project/access/revoke/",
             {"selected_user": test_user_2["email"]},
         )
 
@@ -71,7 +71,7 @@ class RevokeAccessToProjectViewTestCase(TestCase):
         project = self.get_data()
 
         response = self.client.post(
-            f"/{project.slug}/project/access/revoke/",
+            f"/projects/{project.slug}/project/access/revoke/",
             {"selected_user": "non_existing_user"},
         )
 
@@ -88,7 +88,7 @@ class RevokeAccessToProjectViewTestCase(TestCase):
         project = self.get_data()
 
         response = self.client.post(
-            f"/{project.slug}/project/access/revoke/",
+            f"/projects/{project.slug}/project/access/revoke/",
             {"selected_user": test_user_3["email"]},
         )
 
@@ -107,7 +107,7 @@ class RevokeAccessToProjectViewTestCase(TestCase):
         project.authorized.add(self.user3)
 
         response = self.client.post(
-            f"/{project.slug}/project/access/revoke/",
+            f"/projects/{project.slug}/project/access/revoke/",
             {"selected_user": test_user_3["email"]},
         )
 
