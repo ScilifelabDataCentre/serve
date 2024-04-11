@@ -1,0 +1,9 @@
+[
+    {
+      "model": "auth.Group",
+      "pk": 1,
+      "fields": {
+        "name": "pending_dormant_users"
+      }
+    }
+  ]
