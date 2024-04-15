@@ -6,7 +6,18 @@
 {% get_setting "DEBUG" as debug_mode %}
 
 <div class="footer border-top bg-light text-muted small pt-4 mt-auto">
+
     <div class="container">
+
+    {# In case we want to display a maintenance message or similar#}
+    {% for obj in maintenance_mode %}
+    {% if obj.message_in_footer %}
+        <div class="alert alert-warning small" role="alert">
+            {{ obj.message_in_footer }}
+          </div>
+    {% endif %}
+    {% endfor %}
+
     <div class="row pb-2">
             <div class="col-lg-2">
                 <ul class="list-unstyled">
