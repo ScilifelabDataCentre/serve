@@ -3,7 +3,7 @@
 {% block title %}Register{% endblock %}
 
 {% load static %}
-{% load is_disabled %}
+{% load is_login_signup_disabled %}
 {% block extra_scripts %}
 	<script src="{% static 'js/form-helpers.js' %}"></script>
 {% endblock %}
@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container">
-    {% if not maintenance_mode|is_disabled %}
+    {% if not maintenance_mode|is_login_signup_disabled %}
     <div class="card border-0 shadow-lg my-5">
         <div class="card-body p-0">
             <!-- Nested Row within Card Body -->
