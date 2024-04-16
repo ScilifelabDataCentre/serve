@@ -1,5 +1,5 @@
 {% load static %}
-
+{% load is_disabled %}
 <nav class="bg-light shadow-sm mb-3 py-2">
     <div class="container">
         <div class="row">
@@ -53,10 +53,10 @@
                     {% else %}
 
                     <li class="nav-item flex-wrap">
-                        <a class="btn btn-profile order-lg-2 order-1 mx-2" href="{% url 'common:signup' %}">
+                        <a class="btn btn-profile order-lg-2 order-1 mx-2 {% if maintenance_mode|is_disabled %}disabled{% endif %}" href="{% url 'common:signup' %}">
                             <i class="bi bi-person-plus"></i> Register
                         </a>
-                        <a class="btn btn-profile order-lg-1 order-2 mx-2" href="{% url 'login' %}">
+                        <a class="btn btn-profile order-lg-1 order-2 mx-2 {% if maintenance_mode|is_disabled %}disabled{% endif %}" href="{% url 'login' %}">
                             <i class="bi bi-box-arrow-in-right"></i> Log in
                         </a>
                     </li>
@@ -71,9 +71,14 @@
 {% for obj in maintenance_mode %}
 {% if obj.message_in_header %}
 <div class="container">
-    <div class="alert alert-warning small" role="alert">
-        {{ obj.message_in_header }}
-      </div>
+    <div class="row d-flex justify-content-center">
+        <div class="col-12 col-md-8 text-center">
+            <div class="alert alert-warning border" role="alert">
+                <h2 class="mb-0"><i class="bi-exclamation-triangle"></i></h2><br>
+                <p>{{ obj.message_in_header | safe }}</p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endif %}
 {% endfor %}
