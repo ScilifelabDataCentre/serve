@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 {% load static %}
-
+{% load is_login_signup_disabled %}
 {% block title %}Login{% endblock %}
 
 {% block content %}
 
 <div class="container">
   <!-- Outer Row -->
+{% if not maintenance_mode|is_login_signup_disabled %}
   <div class="row justify-content-center">
     <div class="col-12 col-md-9">
       {% include 'common/flash_messages.html' %}
@@ -14,6 +15,7 @@
         <div class="card-body">
           <!-- Nested Row within Card Body -->
           <div class="col-lg-6 offset-lg-3">
+
             <div class="col text-center">
               <h2 class="text-dark mb-4">Log in</h2>
             </div>
@@ -35,6 +37,8 @@
                 {% endif %}
               </div>
             {% endif %}
+
+
 
             <div class="py-4 d-flex justify-content-center">
 
@@ -61,11 +65,13 @@
             <div class="text-center">
               <a href="{% url 'common:signup' %}">Don't have an account? Sign up here</a>
             </div>
+
           </div>
         </div>
       </div>
     </div>
   </div>
+{% endif %}
 </div>
 
 

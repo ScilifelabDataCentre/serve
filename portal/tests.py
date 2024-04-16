@@ -44,6 +44,7 @@ def test_home_view_class():
     assert "<title>Home | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
+@pytest.mark.django_db
 def test_about_view():
     # Get correct request
     request = RequestFactory().get(reverse("portal:about"))
@@ -54,6 +55,7 @@ def test_about_view():
     assert "<title>About | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
+@pytest.mark.django_db
 def test_teaching_view():
     # Get correct request
     request = RequestFactory().get(reverse("portal:teaching"))
@@ -64,6 +66,7 @@ def test_teaching_view():
     assert "<title>Teaching | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
+@pytest.mark.django_db
 def test_privacy_view():
     # Get correct request
     request = RequestFactory().get(reverse("portal:privacy"))

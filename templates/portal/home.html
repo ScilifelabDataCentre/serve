@@ -143,6 +143,7 @@
         </div>
     </div>
 
+    {% if news_objects %}
     <div class="row text-center mt-5">
         <div class="col-12 text-center">
             <h3>News
@@ -175,6 +176,7 @@
             </div>
             {% endif %}
     </div>
+    {% endif %}
 
     {% if collection_objects %}
     <div class="row text-center mt-5 align-items-center" id="collections">
