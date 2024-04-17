@@ -160,10 +160,10 @@ def get_form_permission(aset, project, appinstance=[]):
             try:
                 ai_vals = appinstance.parameters
                 logger.info(ai_vals["permissions"])
-                form_permissions["public"]["value"] = ai_vals["permissions"]["public"]
-                form_permissions["project"]["value"] = ai_vals["permissions"]["project"]
-                form_permissions["private"]["value"] = ai_vals["permissions"]["private"]
-                form_permissions["link"]["value"] = ai_vals["permissions"]["link"]
+                form_permissions["public"]["value"] = ai_vals["permissions"].get("public", False)
+                form_permissions["project"]["value"] = ai_vals["permissions"].get("project", False)
+                form_permissions["private"]["value"] = ai_vals["permissions"].get("private", False)
+                form_permissions["link"]["value"] = ai_vals["permissions"].get("link", False)
                 logger.info(form_permissions)
             except Exception:
                 logger.error("Permissions not set for app instance, using default.", exc_info=True)
