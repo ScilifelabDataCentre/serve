@@ -27,12 +27,12 @@ def login_view(request):
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-    return redirect("portal:home")
+    return render("portal:home")
 
 
 def logout_view(request):
     logout(request)
-    return redirect("portal:home")
+    return render(request, "registration/logged_out.html")
 
 
 # Sign Up View
