@@ -143,6 +143,37 @@
         </div>
     </div>
 
+    {% if collection_objects %}
+    <div class="row text-center mt-5 align-items-center" id="collections">
+        <div class="col-12 text-center">
+            <h3>Collections
+            </h3>
+            <hr class="m-0 bg-teal border-0 mb-1" style="height: 2px;">
+        </div>
+
+            {% for collection in collection_objects %}
+            <div class="col-md-3 my-2">
+                <a href="/collections/{{ collection.slug }}" class="collection-logo">
+                {% if collection.logo %}
+                    <img src="{{ collection.logo.url }}" alt="{{ collection.name }} logo" title="{{ collection.name }} logo" height="100px">
+                {% else %}
+                    <span class="fs-5 fst-italic">{{ collection.name }}</span>
+                {% endif %}
+                </a>
+            </div>
+            {% endfor %}
+            <div class="col-md-3 my-2">
+                <p class="text-start small">Collections are groups of apps and models published on SciLifeLab Serve belonging to a research community, organisation, or topic. <a href="/docs/collections/">Start a new collection?</a></p>
+            </div>
+
+            {% if link_all_collections %}
+            <div class="col-12 text-center">
+                <a class="text-muted" href="{% url 'collections_module:index' %}" target="_self" title="News">See all collections</a>
+            </div>
+            {% endif %}
+    </div>
+    {% endif %}
+
     {% if news_objects %}
     <div class="row text-center mt-5">
         <div class="col-12 text-center">
@@ -177,38 +208,6 @@
             {% endif %}
     </div>
     {% endif %}
-
-    {% if collection_objects %}
-    <div class="row text-center mt-5 align-items-center" id="collections">
-        <div class="col-12 text-center">
-            <h3>Collections
-            </h3>
-            <hr class="m-0 bg-teal border-0 mb-1" style="height: 2px;">
-        </div>
-
-            {% for collection in collection_objects %}
-            <div class="col-md-3 my-2">
-                <a href="/collections/{{ collection.slug }}" class="collection-logo">
-                {% if collection.logo %}
-                    <img src="{{ collection.logo.url }}" alt="{{ collection.name }} logo" title="{{ collection.name }} logo" height="100px">
-                {% else %}
-                    <span class="fs-5 fst-italic">{{ collection.name }}</span>
-                {% endif %}
-                </a>
-            </div>
-            {% endfor %}
-            <div class="col-md-3 my-2">
-                <p class="text-start small">Collections are groups of apps and models published on SciLifeLab Serve belonging to a research community, organisation, or topic. <a href="/docs/collections/">Start a new collection?</a></p>
-            </div>
-
-            {% if link_all_collections %}
-            <div class="col-12 text-center">
-                <a class="text-muted" href="{% url 'collections_module:index' %}" target="_self" title="News">See all collections</a>
-            </div>
-            {% endif %}
-    </div>
-    {% endif %}
-
 
 
 </div>
