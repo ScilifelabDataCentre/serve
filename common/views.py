@@ -21,20 +21,6 @@ class RegistrationCompleteView(TemplateView):
     template_name = "registration/registration_complete.html"
 
 
-def login_view(request):
-    username = request.POST["username"]
-    password = request.POST["password"]
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        login(request, user)
-    return render("portal:home")
-
-
-def logout_view(request):
-    logout(request)
-    return render(request, "registration/logged_out.html")
-
-
 # Sign Up View
 class SignUpView(CreateView):
     """
