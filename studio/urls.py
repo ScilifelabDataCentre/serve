@@ -24,6 +24,7 @@ from . import views
 urlpatterns = (
     [
         path("admin/", admin.site.urls),
+        path("", include("common.urls", namespace="common")),
         path("accounts/", include("django.contrib.auth.urls")),
         path("user/profile/", views.profile, name="user-profile"),
         path("user/delete-account/", views.delete_account, name="delete_account"),
@@ -44,7 +45,6 @@ urlpatterns = (
         path("docs/notifications/", include("django_nyt.urls")),
         path("docs/", include("wiki.urls")),
         path("projects/", include("projects.urls", namespace="projects")),
-        path("", include("common.urls", namespace="common")),
         path("", include("models.urls", namespace="models")),
         path("", include("portal.urls", namespace="portal")),
         path("", include("news.urls", namespace="news")),

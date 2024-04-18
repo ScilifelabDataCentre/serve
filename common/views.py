@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
 from django.core.mail import send_mail
 from django.db import transaction
 from django.http.response import HttpResponseRedirect
@@ -20,9 +21,21 @@ class RegistrationCompleteView(TemplateView):
     template_name = "registration/registration_complete.html"
 
 
+def login_view(request):
+    username = request.POST["username"]
+    password = request.POST["password"]
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+    return redirect("portal:home")
+
+
+def logout_view(request):
+    logout(request)
+    return redirect("portal:home")
+
+
 # Sign Up View
-
-
 class SignUpView(CreateView):
     """
     View for user registration

@@ -102,7 +102,7 @@
 									</div>
 										<div class="col-12 col-md-6 pb-3 pb-md-0">
                                         <label class="form-label">{{profile_form.department.label_tag}}</label>
-										{{ profile_form.department }}
+										{{ profile_form.department | safe }}
                                         <div class="form-text">{{profile_form.department.help_text}}</div>
                                       {% if profile_form.department.errors %}
                                         <div id="validation_department" class="pt-1 invalid-feedback">
