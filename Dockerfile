@@ -1,4 +1,4 @@
-FROM python:3.8-alpine3.19 as builder
+FROM python:3.12.2-alpine3.19 as builder
 
 LABEL maintainer="serve@scilifelab.se"
 WORKDIR /app
@@ -32,7 +32,7 @@ RUN apk add --update --no-cache \
     curl
 
 # Install Poetry, change configs and install packages.
-RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.8.0 python3 - \
+RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.8.2 python3 - \
     && /root/.local/bin/poetry self add poetry-plugin-export \
     && /root/.local/bin/poetry config virtualenvs.create false \
     && /root/.local/bin/poetry config installer.max-workers 10 \
@@ -43,7 +43,7 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.8.0 python3 -
 
 FROM bitnami/kubectl:1.28.6 as kubectl
 FROM alpine/helm:3.14.0 as helm
-FROM python:3.8-alpine3.19 as runtime
+FROM python:3.12.2-alpine3.19 as runtime
 
 ARG DISABLE_EXTRAS=false
 
@@ -55,9 +55,9 @@ RUN apk add --update --no-cache \
     jpeg-dev \
     openjpeg-dev \
     libpng-dev \
-    && rm -rf /usr/local/lib/python3.8/site-packages/
+    && rm -rf /usr/local/lib/python3.12/site-packages/
 
-COPY --from=builder /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
+COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
 COPY --from=helm /usr/bin/helm /usr/local/bin/
