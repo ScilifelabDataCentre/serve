@@ -12,18 +12,49 @@
 <div class="row">
     <div class="col">
         <h3>
-            Using SciLifeLab Serve in teaching
+            Teaching through SciLifeLab Serve
         </h3>
-        <p>While it is not the primary purpose of SciLifeLab Serve the functionality that we have can be useful in workshops, seminars,
-          courses, and other training events where students need to perform hands-on tasks in computational environments.
-          Specifically, using the SciLifeLab Serve participants in training events can get access to individual
-          instances of browser-based notebooks: JupyterLab, RStudio, or VS Code. In addition, they can launch a custom Docker
-          image prepared by the instructors beforehand. This negates the need for instructors to spend
-          time ensuring that the software and dependencies needed to complete tasks are correctly installed on each
-          machine. This will both save time and help to ensure the course/workshop can run smoothly.</p>
-          <p>You can use the form below to submit a teaching request. Please read our
-          <a href="https://serve.scilifelab.se/docs/teaching/">user guide page on using SciLifeLab Serve for teaching</a>
-          before submitting the form below.</p>
+        <p>Users will not currently gain access to cloud-based JupyterLab Notebooks or RStudio by default. However,
+            users can request access to these resources and use them for teaching courses and workshops. It is
+            possible to establish individual instances of JupyterLab notebook and RStudio for each student/attendee,
+            they can be granted access to those instances via unique URLs. This negates the need for teachers to spend
+            time ensuring that the software and dependencies needed to complete tasks are correctly installed on each
+            machine. This will both save time and help to ensure the course/workshop can run smoothly. Python modules
+            and R packages can be installed as usual in student instances, and a terminal window will also be
+            available.</p>
+          <p>As with all other resources available through SciLifeLab Serve, JupyterLab
+            notebooks and Rstudio are provided free of charge. Whilst still in the <b>beta testing phase</b>,
+            SciLifeLab Serve has already been used for teaching classes (of around 30 students) with great success.
+            Should any issues arise though, we will work with you to resolve them as quickly as possible.</p>
+          <h5>How do I request to use SciLifeLab Serve for teaching?</h5>
+          <p>To ensure that the functionality intended for teaching is not used for other purposes, and that only one
+            course is running at any given time, we have established a specific <a href="#application">application
+              form</a> for access to this functionality. The <a href="#application">form</a>, found below, enables you
+            to provide details about yourself and your planned course/workshop. Upon approval of your application,
+            your SciLifeLab Serve account will be granted permission to create multiple instances of JupyterLab
+            notebook and/or RStudio. Each instance that you create will be assigned a unique URL that you can assign
+            to a given student/attendee.</p>
+          <h5>Who is eligible to apply?</h5>
+          <p>We accept applications for courses, workshops, and webinars that are organised by Swedish universities or
+            SciLifeLab infrastructure units. The courses/workshops/webinars should be aimed life science researchers
+            at the doctoral level or above.</p>
+          <h5>What kind of compute and storage capacity will we receive? Is there a limit to participant number?</h5>
+          <p>We will discuss your individual requirements for CPUs and memory with you. We expect to be able to cover
+            the needs of most courses. For reference, SciLifeLab Serve has previously been used to teach courses
+            involving up to 30 paticipants without issue.</p>
+          <h5>What support will be provided?</h5>
+          <p>Before the course, we will be available to answer any questions that you might have regarding features of
+            SciLifeLab Serve, setting up the required instances for students, and the interface of SciLifeLab Serve.
+            During the course, we will be on hand to answer any questions as quickly as possible and will monitor our
+            servers throughout. In the event of a server issue, we will do all we can to resolve it quickly. We
+            recommend having a backup plan in case there are unforeseen issues that cannot be resolved promptly.</p>
+          <h5>How is SciLifeLab Serve funded?</h5>
+          <p>SciLifeLab Serve is supported by a grant from the Knut and Alice Wallenberg Foundation given to
+            SciLifeLab for the purpose of supporting research in data-driven life science in Sweden. SciLifeLab Serve
+            is available free of charge to researchers affiliated with Swedish research institutions, regardless of an
+            affiliation with SciLifeLab. It is also offered to ScLifeLab infrastructure units. Refer to our <a
+              href="{% url 'portal:about' %}">'about' page</a> for more information.</p>
+
         <h4 id="application">Application form</h4>
 
         <div class="container">
@@ -50,7 +81,6 @@
                 <div class="mb-3">
                   <label for="course_description" class="form-label">Description of couse/workshop/webinar*:</label>
                   <textarea class="form-control" name="course_description" id="course_description" rows="4" required></textarea>
-                  <div id="course_description_help" class="form-text">Please provide information about what computational tools you will need for your training event, what hardware requirements you have, how many participants you expect, for how long the computational tools will need to stay available.</div>
                 </div>
                 <div class="mb-3">
                   <button class="btn btn-primary" type="submit">Submit application</button>
