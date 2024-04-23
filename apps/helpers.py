@@ -216,6 +216,12 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
                     )
         if "userid" not in app_instance.parameters["appconfig"]:
             app_instance.parameters["appconfig"]["userid"] = "1000"
+        if "proxyheartbeatrate" not in app_instance.parameters["appconfig"]:
+            app_instance.parameters["appconfig"]["proxyheartbeatrate"] = "10000"
+        if "proxyheartbeattimeout" not in app_instance.parameters["appconfig"]:
+            app_instance.parameters["appconfig"]["proxyheartbeattimeout"] = "60000"
+        if "proxycontainerwaittime" not in app_instance.parameters["appconfig"]:
+            app_instance.parameters["appconfig"]["proxycontainerwaittime"] = "30000"
     app_instance.save()
     # Saving ReleaseName, status and setting up dependencies
     if rel_name_obj:

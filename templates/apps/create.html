@@ -222,7 +222,7 @@
 
                     <h6> {{ vals.meta_title }}</h6>
                     {% for subkey, subval in vals.items %}
-                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port" or subkey == "userid"%}
+                    {% if subval.type != "boolean" and  subkey == "image" or subkey == "port" or subkey == "userid" or subkey == "proxyheartbeatrate" or subkey == "proxyheartbeattimeout" or subkey == "proxycontainerwaittime" %}
                     <div class="mb-3 form-group validate-item">
                     {% else %}
                     <div class="mb-3 validate-item {% if subkey == "path" %}path_div{% endif %}">
@@ -286,7 +286,7 @@
                         {% endif %}
 
                         {% if subval.type == "number" %}
-                        {% if subkey == "port" or subkey == "userid" %}
+                        {% if subkey == "port" or subkey == "userid" or subkey == "proxyheartbeatrate" or subkey == "proxyheartbeattimeout" or subkey == "proxycontainerwaittime" %}
                             {% if subkey == "port" %}
                                 <label class="form-label">{{ subval.title }}</label>
                                 <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="Port that the docker container exposes and the application runs on. This should be an integer between 3000-9999.">
@@ -299,10 +299,34 @@
                                 <label class="form-label">{{ subval.title }}</label>
                                 <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="The UID for the user in the docker container. This can be any number between 999 and 1010.">
                                 </span>
-                                <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="" class="form-control" min="999" max="1010" required>
+                                <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="{{ subval.default }}" class="form-control" min="999" max="1010" required>
                                 <div class="invalid-feedback">
                                     Please add a valid User ID between 999 and 1010!
                                 </div>
+                            {% elif subkey == "proxyheartbeatrate" and request.user.is_superuser %}
+                            <label class="form-label">{{ subval.title }}</label>
+                            <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="The heartbeat rate set for the ShinyProxy instance. The user's browser will send a heartbeat call every heartbeat-rate milliseconds; default value is 10000 (10 seconds).">
+                            </span>
+                            <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="{{ subval.default }}" class="form-control" min="1" required>
+                            <div class="invalid-feedback">
+                                Please add a number, needs to be above 1.
+                            </div>
+                            {% elif subkey == "proxyheartbeattimeout" and request.user.is_superuser %}
+                            <label class="form-label">{{ subval.title }}</label>
+                            <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="The heartbeat timeout set for the ShinyProxy instance. The time in milliseconds that the server must receive no heartbeat in order to stop the app. The default value is 60000 (60 seconds). Apps automatically send heartbeats while the app is opened in a browser. Therefore, by default ShinyProxy stops the app if the browser tab has been closed for 60 seconds. Can be set to -1 in order to disable timeout.">
+                            </span>
+                            <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="{{ subval.default }}" class="form-control" min="-1" required>
+                            <div class="invalid-feedback">
+                                Please add a number. Cannot be lower than 0 except for '-1' to set no timeout.
+                            </div>
+                            {% elif subkey == "proxycontainerwaittime" and request.user.is_superuser %}
+                            <label class="form-label">{{ subval.title }}</label>
+                            <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="The container wait time set for the ShinyProxy instance. Timeout for the container to be available to ShinyProxy; defaults to 20s (20000). I.e. if the container with the app is not in ready status within this time ShinyProxy will give up trying to reach it.">
+                            </span>
+                            <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" placeholder="{{ subval.default }}" value="{{ subval.default }}" class="form-control" min="20000" required>
+                            <div class="invalid-feedback">
+                                Please add a number, needs to be above 20000.
+                            </div>
                             {% endif %}
                         {% else %}
                         <input type="number" id="{{ subkey }}" name="{{ key }}.{{ subkey }}" value="{{ subval.default }}" class="form-control">

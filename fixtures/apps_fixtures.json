@@ -708,6 +708,21 @@
             "default": "3838",
             "title": "Port",
             "type": "number"
+          },
+          "proxyheartbeatrate": {
+            "default": "10000",
+            "title": "Proxy heartbeat rate",
+            "type": "number"
+          },
+          "proxyheartbeattimeout": {
+            "default": "60000",
+            "title": "Proxy heartbeat timeout",
+            "type": "number"
+          },
+          "proxycontainerwaittime": {
+            "default": "30000",
+            "title": "Proxy container wait time",
+            "type": "number"
           }
         },
         "default_values": {
