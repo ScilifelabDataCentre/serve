@@ -50,11 +50,6 @@ basicpatterns = [
         name="update_pattern",
     ),
     path(
-        "<project_slug>/project/publish/",
-        views.publish_project,
-        name="publish_project",
-    ),
-    path(
         "<project_slug>/project/access/grant/",
         GrantAccessToProjectView.as_view(),
         name="grant_access",
