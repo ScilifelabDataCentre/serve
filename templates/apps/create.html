@@ -411,7 +411,7 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
         })
-        for (item of ["app_name","app_description","permission","source_code_url","flavor","image", "port", "userid"]) {
+        for (item of ["app_name","app_description","permission","source_code_url","flavor","image", "port"]) {
             if (sessionStorage.getItem(item) != null) {
                 document.getElementById(item).value = sessionStorage.getItem(item)
                 sessionStorage.removeItem(item)
@@ -472,9 +472,6 @@
         if (document.getElementById('port') != null) {
             var port = document.getElementById('port').value
         }
-        if (document.getElementById('userid') != null) {
-            var userid = document.getElementById('userid').value
-        }
         $.ajax({
             type: "POST",
             url: '{% url "apps:create_releasename" project.slug app.slug %}',
@@ -493,9 +490,6 @@
                         sessionStorage.setItem("flavor", flavor);
                         sessionStorage.setItem("image", image);
                         sessionStorage.setItem("port", port);
-                        if ({{request.user.is_superuser|yesno:"true,false"}}) {
-                            sessionStorage.setItem("userid", userid);
-                        }
                         window.location.href = window.location.href.replace( /[\?#].*|$/, "?from=overview&rn="+data.rn );
                     }, 2000);
 
