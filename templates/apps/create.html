@@ -359,7 +359,7 @@
         </div>
     </div>
 </div>
-<script src="{% static 'js/apps_form.js' %}"></script>
+<script src="{% static 'js/apps_form.js' %}" defer></script>
 {# In the custom app creation form, make the path a required field if a persistent volumet is selected #}
 {% if app.slug == "customapp" %}
 <script>
