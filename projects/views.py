@@ -159,15 +159,17 @@ def change_description(request, project_slug):
         description = request.POST.get("description", "")
         if description != "":
             project.description = description
-            project.save()
+        else:
+            project.description = None
+        project.save()
 
-            log = ProjectLog(
-                project=project,
-                module="PR",
-                headline="Project description",
-                description="Changed description for project",
-            )
-            log.save()
+        log = ProjectLog(
+            project=project,
+            module="PR",
+            headline="Project description",
+            description="Changed description for project",
+        )
+        log.save()
 
     return HttpResponseRedirect(
         reverse(
