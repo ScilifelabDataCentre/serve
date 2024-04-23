@@ -74,7 +74,9 @@ def deploy(options):
                 return json.dumps({"status": "failed", "reason": "Proxyheartbeatrate not an integer."})
             if proxyheartbeatrate < 1:
                 logger.info("Heartbeat rate outside of allowed range, must be at least 1.")
-                return json.dumps({"status": "failed", "reason": "Heartbeat rate outside of allowed range, must be at least 1."})
+                return json.dumps(
+                    {"status": "failed", "reason": "Heartbeat rate outside of allowed range, must be at least 1."}
+                )
         else:
             options["appconfig"]["proxyheartbeatrate"] = "10000"
         # check if valid proxyheartbeattimeout
@@ -86,7 +88,12 @@ def deploy(options):
                 return json.dumps({"status": "failed", "reason": "Proxyheartbeattimeout not an integer."})
             if proxyheartbeattimeout < -1 or proxyheartbeattimeout == 0:
                 logger.info("Heartbeat timeout outside of allowed range, cannot be lower than 0 except for -1.")
-                return json.dumps({"status": "failed", "reason": "Heartbeat timeout outside of allowed range, , cannot be lower than 0 except for -1."})
+                return json.dumps(
+                    {
+                        "status": "failed",
+                        "reason": "Heartbeat timeout outside of allowed range, , cannot be lower than 0 except for -1.",
+                    }
+                )
         else:
             options["appconfig"]["proxyheartbeattimeout"] = "60000"
         # check if valid proxycontainerwaittime
@@ -98,7 +105,12 @@ def deploy(options):
                 return json.dumps({"status": "failed", "reason": "Proxycontainerwaittime not an integer."})
             if proxycontainerwaittime < 20000:
                 logger.info("Proxy container wait time outside of allowed range, must be at least 20000.")
-                return json.dumps({"status": "failed", "reason": "Proxycontainerwaittime outside of allowed range, must be at least 20000."})
+                return json.dumps(
+                    {
+                        "status": "failed",
+                        "reason": "Proxycontainerwaittime outside of allowed range, must be at least 20000.",
+                    }
+                )
         else:
             options["appconfig"]["proxycontainerwaittime"] = "30000"
 
