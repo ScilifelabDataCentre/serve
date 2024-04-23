@@ -160,7 +160,9 @@ class ProjectManager(models.Manager):
         key = self.generate_passkey()
         letters = string.ascii_lowercase
         secret = self.generate_passkey(40)
-        slug = slugify(name)
+        slug = slugify(name[:47])
+        if len(slug) < 3:
+            slug = "".join(random.choice(letters) for i in range(3))
         slug_extension = "".join(random.choice(letters) for i in range(3))
         slug = "{}-{}".format(slugify(slug), slug_extension)
 
