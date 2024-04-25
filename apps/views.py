@@ -215,8 +215,11 @@ class AppSettingsView(View):
         existing_userid = None
         existing_path = None
         existing_source_code_url = appinstance.source_code_url
+        existing_proxyheartbeatrate = None
+        existing_proxyheartbeattimeout = None
+        existing_proxycontainerwaittime = None
 
-        # Settings for custom app
+        # Settings for custom app and shinyproxy
         if "appconfig" in appinstance.parameters:
             appconfig = appinstance.parameters["appconfig"]
             existing_userid = appconfig.get("userid", None)
@@ -227,6 +230,9 @@ class AppSettingsView(View):
 
                 if not created_by_admin:
                     existing_path = existing_path.replace("/home/", "", 1)
+            existing_proxyheartbeatrate = appconfig.get("proxyheartbeatrate", None)
+            existing_proxyheartbeattimeout = appconfig.get("proxyheartbeattimeout", None)
+            existing_proxycontainerwaittime = appconfig.get("proxycontainerwaittime", None)
 
         app = appinstance.app
         do_display_description_field = app.category.name is not None and app.category.name.lower() == "serve"
@@ -271,6 +277,9 @@ class AppSettingsView(View):
             "existing_app_release_name": existing_app_release_name,
             "existing_userid": existing_userid,
             "existing_source_code_url": existing_source_code_url,
+            "existing_proxyheartbeatrate": existing_proxyheartbeatrate,
+            "existing_proxyheartbeattimeout": existing_proxyheartbeattimeout,
+            "existing_proxycontainerwaittime": existing_proxycontainerwaittime,
         }
 
         return render(request, template, context)

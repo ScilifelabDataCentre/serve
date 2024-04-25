@@ -5,17 +5,17 @@
 {% load static %}
 
 {% block content %}
-	<h1>FORBIDDEN 403</h1>
-	<p>You don't have access to that site! Contact project admin to grant you access.</p>
+	<h1>Access to page forbidden. Error 403.</h1>
+	<p>You don't have access to this project! Log in or ask the project owner to grant you access.</p>
 	<p>
 		Is this your project?
 		{% if request.user.is_authenticated %}
 			<a class="btn btn-warning" href="{% url 'logout' %}">
-				<i class="bi bi-box-arrow-right me-1"></i>Sign out
+				<i class="bi bi-box-arrow-right me-1"></i> Sign out
 			</a>
 		{% else %}
-			<a class="btn btn-success" href="{% url 'login' %}">
-					<i class="bi bi-box-arrow-in-right"></i> Log in
+			<a class="btn btn-profile" href="{% url 'login' %}">
+				<i class="bi bi-box-arrow-in-right"></i> Log in
 			</a>
 		{% endif %}
 	</p>
