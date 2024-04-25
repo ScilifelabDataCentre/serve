@@ -1,4 +1,4 @@
-FROM python:3.12.2-alpine3.19 as builder
+FROM python:3.12.3-alpine3.19 as builder
 
 LABEL maintainer="serve@scilifelab.se"
 WORKDIR /app
@@ -43,7 +43,7 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.8.2 python3 -
 
 FROM bitnami/kubectl:1.28.6 as kubectl
 FROM alpine/helm:3.14.0 as helm
-FROM python:3.12.2-alpine3.19 as runtime
+FROM python:3.12.3-alpine3.19 as runtime
 
 ARG DISABLE_EXTRAS=false
 
