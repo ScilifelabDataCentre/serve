@@ -79,7 +79,7 @@
                             <div class="mb-3">
                                 <label for="description" class="form-label">Description</label>
                                 <textarea class="form-control" rows="5" id="description" name="description"
-                                    contenteditable="true">{{ project.description }}</textarea>
+                                    contenteditable="true">{% if project.description %}{{ project.description }}{% endif %}</textarea>
                             </div>
                         </div>
                         <div class="card-footer d-flex justify-content-end">
