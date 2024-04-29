@@ -35,13 +35,7 @@ class BasicAuth(models.Model):
 
 class Environment(models.Model):
     app = models.ForeignKey(settings.APPS_MODEL, on_delete=models.CASCADE, null=True)
-    appenv = models.ForeignKey(
-        settings.APPINSTANCE_MODEL,
-        related_name="envobj",
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     image = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
@@ -51,13 +45,7 @@ class Environment(models.Model):
         null=True,
         blank=True,
     )
-    registry = models.ForeignKey(
-        settings.APPINSTANCE_MODEL,
-        related_name="environments",
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-    )
+
     repository = models.CharField(max_length=100, blank=True, null=True)
     slug = models.CharField(max_length=100, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)

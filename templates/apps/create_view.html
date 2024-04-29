@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Create {{ app.name }}{% endblock %}
+{% load static %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<h1 class="h3 mb-3">Create {{ app.name }}</h1>
+<div class="row">
+    <div class="col-12 mt-2 mb-4">
+
+        <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
+        <p>Each {{ app.name }} instance can get access to the persistent volume (folder) associated with this project, called 'project-vol'. Please make sure to save all your data files, script files, output from computations, etc. inside 'project-vol'; the files located elsewhere can be deleted at any point. The files saved inside 'project-vol' will be available across all instances of {{ app.name }} (as well as other apps) within this project.</p>
+
+    </div>
+</div>
+<div class="row">
+    <div class="col-12 col-xl-6">
+        <div class="card shadow border-0">
+                    {% crispy form %}
+                    
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}

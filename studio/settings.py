@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     "tagulous",
     "guardian",
     "crispy_forms",
+    "crispy_bootstrap5",
     "common",
     "portal",
     "projects",
@@ -123,7 +124,9 @@ MIDDLEWARE = (
 )
 
 ROOT_URLCONF = "studio.urls"
-CRISPY_TEMPLATE_PACK = "bootstrap"
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 TEMPLATES = [
     {
@@ -519,3 +522,5 @@ if not DEBUG:
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
+
+

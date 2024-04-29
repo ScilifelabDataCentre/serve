@@ -487,7 +487,7 @@ class CreateServeView(View):
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
 )
-class CreateView(View):
+class CreateViewz(View):
     def get_shared_data(self, project_slug, app_slug):
         project = Project.objects.get(slug=project_slug)
         app = Apps.objects.filter(slug=app_slug).order_by("-revision")[0]
@@ -690,3 +690,89 @@ def delete(request, project, category, ai_id):
             },
         )
     )
+
+
+from django.shortcuts import render
+ 
+# relative import of forms
+#from .models import JupyterInstance
+from .forms import JupyterForm
+from .models import JupyterInstance
+from django.views.generic.detail import DetailView
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class CreateJupyterApp(View):
+    template_name = "apps/create_view.html"
+    
+    def get(self, request, project, app_slug):
+        project_slug = project # TODO CHANGE THIS
+        form = self.get_form(request, project_slug)
+        
+        return render(request, self.template_name, {"form": form})
+    
+    def post(self, request, project, app_slug):
+        project_slug = project # TODO CHANGE THIS
+        
+        
+        form = self.get_form(request, project)
+        
+        app = Apps.objects.get(slug=app_slug)
+        
+        if form.is_valid():
+            print("FORM IS VALID", flush=True)
+            
+            instance = form.save(commit=False)
+            
+            instance.app = app
+            instance.project = project
+            instance.save()
+                
+            # If your model form uses many-to-many fields, you might need to call save_m2m()
+            form.save_m2m()
+            
+        return HttpResponseRedirect(
+            reverse(
+                "projects:details",
+                kwargs={
+                    "project_slug": str(project_slug),
+                },
+            )
+        )
+
+    def get_form(self, request, project_slug):
+        project = Project.objects.get(slug=project_slug)
+        return JupyterForm(request.POST or None, project_pk=project.pk)
+        
+        
+        
+'''
+async def create_view(request, project, app_slug):
+    # dictionary for initial data with 
+    # field names as keys
+    context ={}
+
+    app = Apps.objects.get(slug="jupyter-lab")
+    project = Project.objects.all().first()
+
+    # add the dictionary during initialization
+    form = JupyterForm(request.POST or None, project_pk=project.pk)
+
+    if form.is_valid():
+        print("FORM IS VALID", flush=True)
+        
+        instance = form.save(commit=False)
+        
+        instance.app = app
+        instance.project = project
+        instance.save()
+            
+            # If your model form uses many-to-many fields, you might need to call save_m2m()
+        form.save_m2m()     
+        
+    context['form']= form
+
+    return render(request, "apps/create_view.html", context)'''

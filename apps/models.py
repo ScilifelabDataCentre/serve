@@ -221,3 +221,78 @@ class ResourceData(models.Model):
     gpu = models.IntegerField()
     mem = models.IntegerField()
     time = models.IntegerField()
+
+
+
+
+
+##################################
+from projects.models import Project, Flavor
+
+
+class Social(models.Model):
+    tags = TagField(blank=True)
+    note_on_linkonly_privacy = models.TextField(blank=True, null=True, default="")
+    #collections = models.ManyToManyField("collections_module.Collection", blank=True, related_name="app_instances")
+    source_code_url = models.URLField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True, default="")
+    
+    class Meta:
+        abstract = True
+
+
+
+class AbstractAppInstance(models.Model):
+    objects = AppInstanceManager()
+
+    access = models.CharField(max_length=20, default="private", null=True, blank=True)
+    app = models.ForeignKey(Apps, on_delete=models.CASCADE, related_name="%(app_label)s_%(class)s_related")
+    #app_dependencies = models.ManyToManyField("apps.AppInstance", blank=True)
+    created_on = models.DateTimeField(auto_now_add=True)
+    deleted_on = models.DateTimeField(null=True, blank=True)
+    info = models.JSONField(blank=True, null=True)
+    #model_dependencies = models.ManyToManyField("models.Model", blank=True)
+    name = models.CharField(max_length=512, default="app_name")
+    owner = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.CASCADE,
+        related_name="%(class)s",
+        null=True,
+    )
+    parameters = models.JSONField(blank=True, null=True)
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="%(class)s",
+    )
+    flavor = models.ForeignKey(
+        Flavor,
+        on_delete=models.RESTRICT,
+        related_name="%(class)s",
+        null=True,
+    )
+    state = models.CharField(max_length=50, null=True, blank=True)
+    table_field = models.JSONField(blank=True, null=True)
+    updated_on = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        permissions = [("can_access_app", "Can access app service")]
+        abstract = True
+
+    def __str__(self):
+        return str(self.name) + " ({})-{}-{}-{}".format(self.state, self.owner, self.app.name, self.project)
+
+
+class JupyterInstance(AbstractAppInstance, Social):
+    ACCESS_TYPES = (
+        ("PROJECT", "Project"),
+        ("PRIVATE", "Private"),
+    )
+    app_dependencies = models.ManyToManyField("self", blank=True) 
+    access = models.CharField(max_length=20, default="PRIVATE", choices=ACCESS_TYPES)
+    '''environment = models.ForeignKey(
+        "projects.Environment",
+        on_delete=models.RESTRICT,
+        related_name="environment",
+        null=True,
+    )'''
