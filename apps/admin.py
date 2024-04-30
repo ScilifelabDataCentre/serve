@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 
 from studio.utils import get_logger
 
-from .models import AppCategories, AppInstance, Apps, AppStatus, ResourceData, JupyterInstance
+from .models import AppCategories, AppInstance, Apps, AppStatus, ResourceData, JupyterInstance, Subdomain, AppStatusNew
 from .tasks import deploy_resource
 
 logger = get_logger(__name__)
@@ -103,6 +103,7 @@ class AppStatusAdmin(admin.ModelAdmin):
 
 
 admin.site.register(JupyterInstance)
+admin.site.register(Subdomain)
 admin.site.register(AppCategories)
 admin.site.register(ResourceData)
-admin.site.register(AppStatus, AppStatusAdmin)
+admin.site.register(AppStatusNew)#, AppStatusAdmin)

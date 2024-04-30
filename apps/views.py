@@ -697,7 +697,7 @@ from django.shortcuts import render
 # relative import of forms
 #from .models import JupyterInstance
 from .forms import JupyterForm
-from .models import JupyterInstance
+from .models import JupyterInstance, Subdomain, AppStatusNew
 from django.views.generic.detail import DetailView
 
 
@@ -705,34 +705,39 @@ from django.views.generic.detail import DetailView
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
 )
-class CreateJupyterApp(View):
+class CreateApp(View):
     template_name = "apps/create_view.html"
     
     def get(self, request, project, app_slug):
-        project_slug = project # TODO CHANGE THIS
-        form = self.get_form(request, project_slug)
+        project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
+        project = Project.objects.get(slug=project_slug)
+        
+        form = self.get_form(request, project, app_slug)
         
         return render(request, self.template_name, {"form": form})
     
     def post(self, request, project, app_slug):
-        project_slug = project # TODO CHANGE THIS
+        project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
+        project = Project.objects.get(slug=project_slug)
         
-        
-        form = self.get_form(request, project)
-        
-        app = Apps.objects.get(slug=app_slug)
+        form = self.get_form(request, project, app_slug)
         
         if form.is_valid():
-            print("FORM IS VALID", flush=True)
+            subdomain = Subdomain.objects.create(subdomain=form.cleaned_data.get("subdomain"), project=project)
+            status = AppStatusNew.objects.create()
             
             instance = form.save(commit=False)
-            
-            instance.app = app
+            instance.app = Apps.objects.get(slug=app_slug)
             instance.project = project
+            instance.subdomain = subdomain
+            instance.app_status = status
             instance.save()
                 
             # If your model form uses many-to-many fields, you might need to call save_m2m()
             form.save_m2m()
+            
+        else:
+            return render(request, self.template_name, {"form": form})
             
         return HttpResponseRedirect(
             reverse(
@@ -743,36 +748,14 @@ class CreateJupyterApp(View):
             )
         )
 
-    def get_form(self, request, project_slug):
-        project = Project.objects.get(slug=project_slug)
-        return JupyterForm(request.POST or None, project_pk=project.pk)
+    def get_form(self, request, project, app_slug):
+        # This function could fetch forms based on app_slug
         
+        # Check if user is allowed
+        user_can_create = JupyterInstance.objects.user_can_create(request.user, project, app_slug)
+        if not user_can_create:
+            # Maybe this makes typing hard.
+            return HttpResponseForbidden()
+        else:
+            return JupyterForm(request.POST or None, project_pk=project.pk)
         
-        
-'''
-async def create_view(request, project, app_slug):
-    # dictionary for initial data with 
-    # field names as keys
-    context ={}
-
-    app = Apps.objects.get(slug="jupyter-lab")
-    project = Project.objects.all().first()
-
-    # add the dictionary during initialization
-    form = JupyterForm(request.POST or None, project_pk=project.pk)
-
-    if form.is_valid():
-        print("FORM IS VALID", flush=True)
-        
-        instance = form.save(commit=False)
-        
-        instance.app = app
-        instance.project = project
-        instance.save()
-            
-            # If your model form uses many-to-many fields, you might need to call save_m2m()
-        form.save_m2m()     
-        
-    context['form']= form
-
-    return render(request, "apps/create_view.html", context)'''

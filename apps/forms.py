@@ -1,18 +1,26 @@
+import uuid
+from typing import Any
 from django import forms
 from django.utils.safestring import mark_safe
+from django.core.exceptions import ValidationError
 
-from .models import AbstractAppInstance, JupyterInstance, Social
-from projects.models import Flavor
+from .models import AbstractAppInstance, JupyterInstance, Social, Subdomain
+from projects.models import Flavor, Project
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Button, Div, HTML, Field, Hidden
 
 
-class AppInstanceForm(forms.ModelForm):
+class BaseForm(forms.ModelForm):
+
+    subdomain = forms.CharField(required=False)
+    
     def __init__(self, *args, **kwargs):
-        project_pk = kwargs.pop('project_pk', None)
+        self.project_pk = kwargs.pop('project_pk', None)
+        self.project = Project.objects.get(pk=self.project_pk) if self.project_pk else None
+        
         super().__init__(*args, **kwargs)
         
-        flavor_queryset = Flavor.objects.filter(project__pk=project_pk) if project_pk else Flavor.objects.none()
+        flavor_queryset = Flavor.objects.filter(project__pk=self.project_pk) if self.project_pk else Flavor.objects.none()
         
         # Handle Flavor field
         self.fields["flavor"].label = "Hardware"
@@ -28,9 +36,32 @@ class AppInstanceForm(forms.ModelForm):
         
         # Create a footer for submit form or cancel
         self.footer = Div(
-            Submit('submit', 'Submit'),
             Button('cancel', 'Cancel', css_class='btn-danger', onclick='window.history.back()'),
-            css_class="card-footer d-flex justify-content-between")
+            Submit('submit', 'Submit'),
+            css_class="card-footer d-flex justify-content-between"
+            )
+        
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'post'
+
+
+    def clean(self) -> dict[str, Any]:
+        cleaned_data = super().clean()
+        
+        # Handle subdomain
+        subdomain = cleaned_data.get("subdomain", None)
+        # Raise validation error if subdomain exists
+        print("SUBDOMAIN IN CLEAN FUNCTION IS:", subdomain, flush=True)
+        if subdomain and Subdomain.objects.filter(subdomain=subdomain).exists():
+            raise ValidationError(
+                    "Subdomain already exists. Please choose another one."
+                )       
+        elif not subdomain: 
+            # If user did not input subdomain, set it to our standard release name
+            subdomain = "r" + uuid.uuid4().hex[0:8]
+            cleaned_data["subdomain"] = subdomain
+            print("RANDOM SUBDOMAIN IN CLEAN FUNCTION IS:", subdomain, flush=True)
+        return cleaned_data
 
     class Meta:
         # Specify model to be used
@@ -38,16 +69,14 @@ class AppInstanceForm(forms.ModelForm):
         fields = "__all__"
 
 
-class JupyterForm(AppInstanceForm):
+class JupyterForm(BaseForm):
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.helper = FormHelper(self)
-        self.helper.form_method = 'post'
-        #self.helper.form_action = "{% url 'apps:create' %}"
-        
         body = Div(
             Field("name", placeholder="Name your app"),
+            Field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
             Field("flavor"),
             Field("description", rows="3", placeholder="Provide a detailed description of your app"),
             Field("access"),
@@ -59,11 +88,9 @@ class JupyterForm(AppInstanceForm):
             body,
             self.footer
             )
-        
 
     # create meta class
     class Meta:
-        # specify model to be used
         model = JupyterInstance
         fields = ["name", "flavor", "tags", "description", "access", "note_on_linkonly_privacy"]  
-        
+    
