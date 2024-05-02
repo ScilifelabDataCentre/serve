@@ -261,6 +261,11 @@ class Subdomain(models.Model):
 
     def __str__(self):
         return str(self.subdomain) + " ({})".format(self.project.name)
+    
+    def to_dict(self):
+        return {
+            "subdomain": self.subdomain,
+        }
 
 
 
@@ -352,13 +357,13 @@ class AppInstanceManagerNew(models.Manager):
 
         return limit is None or limit > num_of_app_instances or has_perm
 
-
-
+        
+        
 class AbstractAppInstance(models.Model):
     objects = AppInstanceManagerNew()
     
     app = models.ForeignKey(Apps, on_delete=models.CASCADE, related_name="%(app_label)s_%(class)s_related")
-    #app_dependencies = models.ManyToManyField("apps.AppInstance", blank=True)
+    chart = models.CharField(max_length=512, )
     created_on = models.DateTimeField(auto_now_add=True)
     deleted_on = models.DateTimeField(null=True, blank=True)
     info = models.JSONField(blank=True, null=True)
@@ -370,7 +375,7 @@ class AbstractAppInstance(models.Model):
         related_name="%(class)s",
         null=True,
     )
-    parameters = models.JSONField(blank=True, null=True)
+    k8s_values = models.JSONField(blank=True, null=True)
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
@@ -398,6 +403,58 @@ class AbstractAppInstance(models.Model):
 
     def __str__(self):
         return str(self.name) + " ({})-{}-{}-{}".format(self.app_status.status, self.owner, self.app.name, self.project)
+    
+    def to_k8s_values(self):
+        k8s_values = {}
+        
+
+        
+        def serialize_default_values():
+            default_values_dict = dict()
+            app_settings = self.app.settings
+            if "default_values" in app_settings:
+                default_values_dict["default_values"] = app_settings["default_values"]
+                for key in default_values_dict["default_values"].keys():
+                    if default_values_dict["default_values"][key] == "False":
+                        default_values_dict["default_values"][key] = False
+                    elif default_values_dict["default_values"][key] == "True":
+                        default_values_dict["default_values"][key] = True
+
+            return default_values_dict
+        
+
+            
+        def serialize_permissions():
+            """
+            Serialize permissions from form selection into a dictionary (and later into a JSON object)
+
+            To achieve this we first create a dictionary with all permissions set to False.
+            Then we set the permission that was selected (or typed in admin panel) to True.
+
+            :param form_selection: form selection from request.POST
+            :return: dictionary of permissions
+            """
+
+            permissions_dict = dict()
+            permissions_dict["permissions"] = {
+                "public": False,
+                "project": False,
+                "private": False,
+                "link": False,
+            }
+
+            permission = self.access
+            permissions_dict["permissions"][permission] = True
+
+            return permissions_dict
+        
+        
+        k8s_values.update(serialize_flavor())
+        k8s_values.update(serialize_default_values())
+        k8s_values.update(serialize_subdomain())
+        k8s_values.update(serialize_permissions())
+        
+        self.k8s_values = k8s_values
 
 
 
@@ -407,11 +464,11 @@ class JupyterInstanceManager(AppInstanceManagerNew):
 class JupyterInstance(AbstractAppInstance, Social):
     objects = JupyterInstanceManager()
     ACCESS_TYPES = (
-        ("PROJECT", "Project"),
-        ("PRIVATE", "Private"),
+        ("project", "Project"),
+        ("private", "Private"),
     )
     app_dependencies = models.ManyToManyField("self", blank=True) 
-    access = models.CharField(max_length=20, default="PRIVATE", choices=ACCESS_TYPES)
+    access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
 
     '''environment = models.ForeignKey(
         "projects.Environment",
@@ -419,3 +476,5 @@ class JupyterInstance(AbstractAppInstance, Social):
         related_name="environment",
         null=True,
     )'''
+    
+    

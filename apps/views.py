@@ -723,15 +723,22 @@ class CreateApp(View):
         form = self.get_form(request, project, app_slug)
         
         if form.is_valid():
-            subdomain = Subdomain.objects.create(subdomain=form.cleaned_data.get("subdomain"), project=project)
+            subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
             status = AppStatusNew.objects.create()
             
             instance = form.save(commit=False)
             instance.app = Apps.objects.get(slug=app_slug)
+            instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
             instance.project = project
+            instance.owner = request.user
             instance.subdomain = subdomain
             instance.app_status = status
+            
+            instance.serialize()
+            
             instance.save()
+            
+            
                 
             # If your model form uses many-to-many fields, you might need to call save_m2m()
             form.save_m2m()
@@ -753,9 +760,13 @@ class CreateApp(View):
         
         # Check if user is allowed
         user_can_create = JupyterInstance.objects.user_can_create(request.user, project, app_slug)
-        if not user_can_create:
+        
+        if user_can_create:
+            instance = JupyterInstance.objects.get(pk=11)
+            return JupyterForm(request.POST or None, project_pk=project.pk, instance=instance)
             # Maybe this makes typing hard.
-            return HttpResponseForbidden()
         else:
-            return JupyterForm(request.POST or None, project_pk=project.pk)
+            return HttpResponseForbidden()
+        
+            
         

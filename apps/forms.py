@@ -20,6 +20,10 @@ class BaseForm(forms.ModelForm):
         
         super().__init__(*args, **kwargs)
         
+        # Populate subdomain field with instance subdomain if it exists
+        if self.instance and self.instance.pk:
+            self.fields["subdomain"].initial = self.instance.subdomain.subdomain
+        
         flavor_queryset = Flavor.objects.filter(project__pk=self.project_pk) if self.project_pk else Flavor.objects.none()
         
         # Handle Flavor field
@@ -47,21 +51,33 @@ class BaseForm(forms.ModelForm):
 
     def clean(self) -> dict[str, Any]:
         cleaned_data = super().clean()
-        
+
         # Handle subdomain
-        subdomain = cleaned_data.get("subdomain", None)
-        # Raise validation error if subdomain exists
-        print("SUBDOMAIN IN CLEAN FUNCTION IS:", subdomain, flush=True)
-        if subdomain and Subdomain.objects.filter(subdomain=subdomain).exists():
-            raise ValidationError(
-                    "Subdomain already exists. Please choose another one."
-                )       
-        elif not subdomain: 
-            # If user did not input subdomain, set it to our standard release name
+        subdomain_input = cleaned_data.get("subdomain")
+        
+        # If user did not input subdomain, set it to our standard release name
+        if not subdomain_input:
             subdomain = "r" + uuid.uuid4().hex[0:8]
+            if Subdomain.objects.filter(subdomain=subdomain_input).exists():
+                error_message = "Wow, you just won the lottery. Contact us for a free chocolate bar."
+                raise ValidationError(error_message)
             cleaned_data["subdomain"] = subdomain
-            print("RANDOM SUBDOMAIN IN CLEAN FUNCTION IS:", subdomain, flush=True)
+            return cleaned_data
+        
+        # Check if the instance has an existing subdomain
+        current_subdomain = getattr(self.instance, 'subdomain', None)
+        
+        # Validate if the subdomain input matches the instance's current subdomain
+        if current_subdomain and current_subdomain.subdomain == subdomain_input:
+            return cleaned_data
+        
+        # Check for subdomain availability
+        if Subdomain.objects.filter(subdomain=subdomain_input).exists():
+            error_message = "Subdomain already exists. Please choose another one."
+            raise ValidationError(error_message)
+
         return cleaned_data
+
 
     class Meta:
         # Specify model to be used

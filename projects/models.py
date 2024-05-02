@@ -72,6 +72,27 @@ class Flavor(models.Model):
 
     def __str__(self):
         return str(self.name)
+    
+    def to_dict(self):
+        flavor_dict = dict()
+        flavor = self.flavor
+        flavor_dict["flavor"] = {
+            "requests": {
+                "cpu": flavor.cpu_req,
+                "memory": flavor.mem_req,
+                "ephemeral-storage": flavor.ephmem_req,
+            },
+            "limits": {
+                "cpu": flavor.cpu_lim,
+                "memory": flavor.mem_lim,
+                "ephemeral-storage": flavor.ephmem_lim,
+            },
+        }
+        if flavor.gpu_req and int(flavor.gpu_req) > 0:
+            flavor_dict["flavor"]["requests"]["nvidia.com/gpu"] = (flavor.gpu_req,)
+            flavor_dict["flavor"]["limits"]["nvidia.com/gpu"] = flavor.gpu_lim
+
+        return flavor_dict
 
 
 class S3(models.Model):
