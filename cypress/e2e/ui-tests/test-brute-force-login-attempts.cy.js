@@ -37,7 +37,8 @@ describe("Test brute force login attempts are blocked", () => {
 
         // Sign out before logging in again
         cy.log("Sign out before logging in again")
-        cy.visit("accounts/logout/")
+        cy.get('button.btn-profile').click()
+        cy.get('li.btn-group').find('button').contains("Sign out").click()
         cy.get("title").should("have.text", "Logout | SciLifeLab Serve (beta)")
 
         // Repeatedly perform failing login attempts
