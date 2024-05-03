@@ -4,7 +4,7 @@ from django import forms
 from django.utils.safestring import mark_safe
 from django.core.exceptions import ValidationError
 
-from .models import AbstractAppInstance, JupyterInstance, Social, Subdomain
+from .models import AbstractAppInstance, JupyterInstance, Social, Subdomain, VolumeInstance
 from projects.models import Flavor, Project
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Button, Div, HTML, Field, Hidden
@@ -35,8 +35,7 @@ class BaseForm(forms.ModelForm):
         self.fields["name"].label = mark_safe('Name: <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="The container wait time set for the ShinyProxy instance. Timeout for the container to be available to ShinyProxy; defaults to 20s (20000). I.e. if the container with the app is not in ready status within this time ShinyProxy will give up trying to reach it."></span>')
         self.fields["name"].initial = ""
         
-        # Handle Access field
-        self.fields["access"].label = "Permission"
+
         
         # Create a footer for submit form or cancel
         self.footer = Div(
@@ -87,14 +86,25 @@ class BaseForm(forms.ModelForm):
 
 class JupyterForm(BaseForm):
     
+    volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), widget=forms.CheckboxSelectMultiple, required=False)
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Handle Volume field
+        volume_queryset = VolumeInstance.objects.filter(project__pk=self.project_pk) if self.project_pk else VolumeInstance.objects.none()
+        self.fields["volume"].queryset = volume_queryset
+        
+
+        # Handle Access field
+        self.fields["access"].label = "Permission"
+
         body = Div(
             Field("name", placeholder="Name your app"),
-            Field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
-            Field("flavor"),
             Field("description", rows="3", placeholder="Provide a detailed description of your app"),
+            Field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
+            Field("volume"),
+            Field("flavor"),
             Field("access"),
             Field("note_on_linkonly_privacy", rows="3"),
             Field("tags"),
@@ -108,5 +118,26 @@ class JupyterForm(BaseForm):
     # create meta class
     class Meta:
         model = JupyterInstance
-        fields = ["name", "flavor", "tags", "description", "access", "note_on_linkonly_privacy"]  
+        fields = ["name", "volume", "flavor", "tags", "description", "access", "note_on_linkonly_privacy"]  
     
+
+class VolumeForm(BaseForm):
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        body = Div(
+            Field("name", placeholder="Name your app"),
+            Field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
+            Field("flavor"),
+            css_class="card-body")
+
+        self.helper.layout = Layout(
+            body,
+            self.footer
+            )
+
+    # create meta class
+    class Meta:
+        model = VolumeInstance
+        fields = ["name", "flavor"]  

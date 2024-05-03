@@ -1,3 +1,8 @@
+import subprocess
+import uuid
+import yaml
+import json
+
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -8,7 +13,11 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
 from tagulous.models import TagField
+from studio.utils import get_logger
 
+
+
+logger = get_logger(__name__)
 
 class AppCategories(models.Model):
     name = models.CharField(max_length=512)
@@ -52,6 +61,9 @@ class Apps(models.Model):
 
     def __str__(self):
         return str(self.name) + "({})".format(self.revision)
+
+    def to_dict(self):
+        pass
 
 
 class AppInstanceManager(models.Manager):
@@ -404,57 +416,105 @@ class AbstractAppInstance(models.Model):
     def __str__(self):
         return str(self.name) + " ({})-{}-{}-{}".format(self.app_status.status, self.owner, self.app.name, self.project)
     
-    def to_k8s_values(self):
-        k8s_values = {}
+    def set_k8s_values(self):
         
-
+        k8s_values = dict(name = self.name,
+                          appname = self.subdomain.subdomain,
+                          project = dict(
+                              name = self.project.name,
+                              slug = self.project.slug),
+                          service = dict(
+                            name = self.subdomain.subdomain + "-" + self.app.slug,
+                          ),
+                          **self.subdomain.to_dict(),
+                          **self.flavor.to_dict(),
+                          storageclass = settings.STORAGECLASS,
+                          namespace = settings.NAMESPACE
+        )
         
-        def serialize_default_values():
-            default_values_dict = dict()
-            app_settings = self.app.settings
-            if "default_values" in app_settings:
-                default_values_dict["default_values"] = app_settings["default_values"]
-                for key in default_values_dict["default_values"].keys():
-                    if default_values_dict["default_values"][key] == "False":
-                        default_values_dict["default_values"][key] = False
-                    elif default_values_dict["default_values"][key] == "True":
-                        default_values_dict["default_values"][key] = True
-
-            return default_values_dict
-        
-
-            
-        def serialize_permissions():
-            """
-            Serialize permissions from form selection into a dictionary (and later into a JSON object)
-
-            To achieve this we first create a dictionary with all permissions set to False.
-            Then we set the permission that was selected (or typed in admin panel) to True.
-
-            :param form_selection: form selection from request.POST
-            :return: dictionary of permissions
-            """
-
-            permissions_dict = dict()
-            permissions_dict["permissions"] = {
-                "public": False,
-                "project": False,
-                "private": False,
-                "link": False,
-            }
-
-            permission = self.access
-            permissions_dict["permissions"][permission] = True
-
-            return permissions_dict
-        
-        
-        k8s_values.update(serialize_flavor())
-        k8s_values.update(serialize_default_values())
-        k8s_values.update(serialize_subdomain())
-        k8s_values.update(serialize_permissions())
+        # Add global values
+        k8s_values["global"] = dict(
+            domain = settings.DOMAIN,
+            auth_domain = settings.AUTH_DOMAIN,
+            protocol = settings.AUTH_PROTOCOL,
+        )
         
         self.k8s_values = k8s_values
+        
+
+    def deploy_resource(self):
+        
+        values = self.k8s_values
+        if "ghcr" in self.chart:
+            version = self.chart.split(":")[-1]
+            chart = "oci://" + self.chart.split(":")[0]
+            # Save helm values file for internal reference
+        unique_filename = "charts/values/{}-{}.yaml".format(str(uuid.uuid4()), str(values["name"]))
+        f = open(unique_filename, "w")
+        f.write(yaml.dump(values))
+        f.close()
+
+        # building args for the equivalent of helm install command
+        args = [
+            "helm",
+            "upgrade",
+            "--install",
+            "-n",
+            values["namespace"],
+            values["subdomain"],
+            chart,
+            "-f",
+            unique_filename,
+        ]
+
+        # Append version if deploying via ghcr
+        if version:
+            args.append("--version")
+            args.append(version)
+            args.append("--repository-cache"),
+            args.append("/app/charts/.cache/helm/repository")
+
+        results = subprocess.run(args, capture_output=True)
+        # remove file
+        rm_args = ["rm", unique_filename]
+        subprocess.run(rm_args)
+        
+        if type(results) is str:
+            results = json.loads(results)
+            stdout = results["status"]
+            stderr = results["reason"]
+            success = False
+            #logger.info("Helm install failed")  # Uncomment this if you want to log the failure here.
+        else:
+            stdout = results.stdout.decode("utf-8")
+            stderr = results.stderr.decode("utf-8")
+            success = results.returncode == 0
+
+            if success:
+                logger.info("Helm install succeeded")
+            else:
+                logger.error("Helm install failed")
+
+        helm_info = {
+            "success": success,
+            "info": {"stdout": stdout, "stderr": stderr}
+        }
+
+        self.info = dict(helm = helm_info)
+
+    def delete_resource(self):
+        values = self.k8s_values
+        logger.info("DELETE FROM CONTROLLER")
+        args = ["helm", "-n", values["namespace"], "delete", values["subdomain"]]
+        result = subprocess.run(args, capture_output=True)
+        if result.returncode == 0 or "release: not found" in result.stderr.decode("utf-8"):
+            if self.app.slug in ("volumeK8s", "netpolicy"):
+                self.app_status.status = "Deleted"
+                self.deleted_on = datetime.now()
+            else: 
+                status = self.app_status.status = "Deleting..."
+        else:
+            self.app_status.status = "FailedToDelete"
 
 
 
@@ -467,14 +527,21 @@ class JupyterInstance(AbstractAppInstance, Social):
         ("project", "Project"),
         ("private", "Private"),
     )
-    app_dependencies = models.ManyToManyField("self", blank=True) 
+    volume = models.ManyToManyField("VolumeInstance", blank=True)
     access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
 
-    '''environment = models.ForeignKey(
-        "projects.Environment",
-        on_delete=models.RESTRICT,
-        related_name="environment",
-        null=True,
-    )'''
+    def set_k8s_values(self):
+        super().set_k8s_values()
+        
+        self.k8s_values["permission"] = self.access,
+
+
+class VolumeInstanceManager(AppInstanceManagerNew):
+    model_type = "volumeinstance"
+
+class VolumeInstance(AbstractAppInstance):
+    objects = VolumeInstanceManager()
     
+    def __str__(self):
+        return str(self.name)
     

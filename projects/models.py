@@ -74,23 +74,23 @@ class Flavor(models.Model):
         return str(self.name)
     
     def to_dict(self):
-        flavor_dict = dict()
-        flavor = self.flavor
-        flavor_dict["flavor"] = {
-            "requests": {
-                "cpu": flavor.cpu_req,
-                "memory": flavor.mem_req,
-                "ephemeral-storage": flavor.ephmem_req,
-            },
-            "limits": {
-                "cpu": flavor.cpu_lim,
-                "memory": flavor.mem_lim,
-                "ephemeral-storage": flavor.ephmem_lim,
-            },
-        }
-        if flavor.gpu_req and int(flavor.gpu_req) > 0:
-            flavor_dict["flavor"]["requests"]["nvidia.com/gpu"] = (flavor.gpu_req,)
-            flavor_dict["flavor"]["limits"]["nvidia.com/gpu"] = flavor.gpu_lim
+        flavor_dict = dict(
+            flavor = dict(
+                requests = {
+                    "cpu": self.cpu_req,
+                    "memory": self.mem_req,
+                    "ephemeral-storage": self.ephmem_req,
+                },
+                limits = {
+                    "cpu": self.cpu_lim,
+                    "memory": self.mem_lim,
+                    "ephemeral-storage": self.ephmem_lim,
+                }
+            )
+        )
+        if self.gpu_req and int(self.gpu_req) > 0:
+            flavor_dict["flavor"]["requests"]["nvidia.com/gpu"] = (self.gpu_req,)
+            flavor_dict["flavor"]["limits"]["nvidia.com/gpu"] = self.gpu_lim
 
         return flavor_dict
 
