@@ -37,17 +37,19 @@ def create_resources_from_template(user, project_slug, template):
     from django.core import serializers
     
     data = {
-        "name": "project-vol"
+        "name": "project-vol",
+        "size": 5
     }
     form = VolumeForm(data)
     if form.is_valid():
         logger.critical("FORM IS VALID YEEHOOO")
         
         instance = form.save(commit=False)
+        
+        # THIS COULD ALL BE A FUNCTION I GUESS
         subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
         status = AppStatusNew.objects.create()
         
-        instance = form.save(commit=False)
         instance.app = Apps.objects.get(slug="volumeK8s")
         instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
         instance.project = project
@@ -61,7 +63,7 @@ def create_resources_from_template(user, project_slug, template):
         form.save_m2m()
         
         instance.set_k8s_values()
-        
+        ####
         
         # If your model form uses many-to-many fields, you might need to call save_m2m()
         
