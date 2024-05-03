@@ -12,7 +12,7 @@ from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
 from tagulous.models import TagField
 from studio.utils import get_logger
-
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 
 logger = get_logger(__name__)
@@ -425,7 +425,7 @@ class AbstractAppInstance(models.Model):
                             name = self.subdomain.subdomain + "-" + self.app.slug,
                           ),
                           **self.subdomain.to_dict(),
-                          **self.flavor.to_dict(),
+                          **self.flavor.to_dict() if self.flavor else {},
                           storageClass = settings.STORAGECLASS,
                           namespace = settings.NAMESPACE
         )
@@ -480,7 +480,11 @@ class VolumeInstanceManager(AppInstanceManagerNew):
 
 class VolumeInstance(AbstractAppInstance):
     objects = VolumeInstanceManager()
+    size = models.IntegerField(default=1, help_text="Size in GB", validators=[MinValueValidator(1), MaxValueValidator(100)])
     
     def __str__(self):
         return str(self.name)
     
+    def set_k8s_values(self):
+        super().set_k8s_values()
+        self.k8s_values["volume"] = dict(size = f"{str(self.size)}Gi")

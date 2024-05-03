@@ -730,10 +730,13 @@ class CreateApp(View):
         form = self.get_form(request, project, app_slug)
         
         if form.is_valid():
+            
             subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
             status = AppStatusNew.objects.create()
             
             instance = form.save(commit=False)
+            
+            
             instance.app = Apps.objects.get(slug=app_slug)
             instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
             instance.project = project

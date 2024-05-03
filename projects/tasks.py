@@ -27,12 +27,60 @@ User = get_user_model()
 @shared_task
 def create_resources_from_template(user, project_slug, template):
     logger.info("Create Resources From Project Template...")
+    
+    ## THIS IS JUST FOR TESTING PURPOSES
+    project = Project.objects.get(slug=project_slug)
+    logger.critical("CREATING A VOLUME FROM FORM")
+    from apps.forms import VolumeForm
+    from apps.models import Subdomain, AppStatusNew
+    from apps.tasks import deploy_resource_new
+    from django.core import serializers
+    
+    data = {
+        "name": "project-vol"
+    }
+    form = VolumeForm(data)
+    if form.is_valid():
+        logger.critical("FORM IS VALID YEEHOOO")
+        
+        instance = form.save(commit=False)
+        subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
+        status = AppStatusNew.objects.create()
+        
+        instance = form.save(commit=False)
+        instance.app = Apps.objects.get(slug="volumeK8s")
+        instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
+        instance.project = project
+        
+        user_obj = User.objects.get(username=user)
+        instance.owner = user_obj
+        instance.subdomain = subdomain
+        instance.app_status = status
+        instance.save()
+
+        form.save_m2m()
+        
+        instance.set_k8s_values()
+        
+        
+        # If your model form uses many-to-many fields, you might need to call save_m2m()
+        
+
+        serialized_instance = serializers.serialize("json", [instance])
+        
+        deploy_resource_new.delay(serialized_instance)
+        
+        
+    else:
+        logger.critical("FORM IS INVALID NOOOOOOOOOOOOOOOOOOOOO!!!!!")             
+    
     decoder = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
     parsed_template = template.replace("'", '"')
     template = decoder.decode(parsed_template)
     alphabet = string.ascii_letters + string.digits
-    project = Project.objects.get(slug=project_slug)
+    
     logger.info("Parsing template...")
+    count = 0
     for key, item in template.items():
         logger.info("Key %s", key)
         if "flavors" == key:
@@ -99,6 +147,7 @@ def create_resources_from_template(user, project_slug, template):
                         err,
                         exc_info=True,
                     )
+                    
         elif "apps" == key:
             apps = item
             logger.info("Apps: %s", apps)

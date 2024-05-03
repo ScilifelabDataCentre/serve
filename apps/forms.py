@@ -24,12 +24,6 @@ class BaseForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             self.fields["subdomain"].initial = self.instance.subdomain.subdomain
         
-        flavor_queryset = Flavor.objects.filter(project__pk=self.project_pk) if self.project_pk else Flavor.objects.none()
-        
-        # Handle Flavor field
-        self.fields["flavor"].label = "Hardware"
-        self.fields["flavor"].queryset = flavor_queryset
-        self.fields["flavor"].initial = flavor_queryset.first() if flavor_queryset else None
 
         # Handle Name field
         self.fields["name"].label = mark_safe('Name: <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip" title="" data-bs-placement="right" data-bs-original-title="The container wait time set for the ShinyProxy instance. Timeout for the container to be available to ShinyProxy; defaults to 20s (20000). I.e. if the container with the app is not in ready status within this time ShinyProxy will give up trying to reach it."></span>')
@@ -77,16 +71,30 @@ class BaseForm(forms.ModelForm):
 
         return cleaned_data
 
-
     class Meta:
         # Specify model to be used
         model = AbstractAppInstance
         fields = "__all__"
 
 
-class JupyterForm(BaseForm):
+class BaseFormExtended(BaseForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        flavor_queryset = Flavor.objects.filter(project__pk=self.project_pk) if self.project_pk else Flavor.objects.none()
+        
+        # Handle Flavor field
+        self.fields["flavor"].label = "Hardware"
+        self.fields["flavor"].queryset = flavor_queryset
+        self.fields["flavor"].initial = flavor_queryset.first() if flavor_queryset else None
+        
+        # Handle Access field
+        self.fields["access"].label = "Permission"
+        
+
+class JupyterForm(BaseFormExtended):
     
     volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), widget=forms.CheckboxSelectMultiple, required=False)
+    flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), widget=forms.RadioSelect, required=False)
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -96,8 +104,6 @@ class JupyterForm(BaseForm):
         self.fields["volume"].queryset = volume_queryset
         
 
-        # Handle Access field
-        self.fields["access"].label = "Permission"
 
         body = Div(
             Field("name", placeholder="Name your app"),
@@ -128,8 +134,8 @@ class VolumeForm(BaseForm):
 
         body = Div(
             Field("name", placeholder="Name your app"),
+            Field("size"),
             Field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
-            Field("flavor"),
             css_class="card-body")
 
         self.helper.layout = Layout(
@@ -140,4 +146,4 @@ class VolumeForm(BaseForm):
     # create meta class
     class Meta:
         model = VolumeInstance
-        fields = ["name", "flavor"]  
+        fields = ["name", "size"]  
