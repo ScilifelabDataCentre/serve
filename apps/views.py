@@ -722,45 +722,39 @@ class CreateApp(View):
         form = self.get_form(request, project, app_slug)
         
         return render(request, self.template_name, {"form": form})
-    
+
+    @transaction.atomic
     def post(self, request, project, app_slug):
         project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
         project = Project.objects.get(slug=project_slug)
         
         form = self.get_form(request, project, app_slug)
-        
-        if form.is_valid():
-            
-            subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
-            status = AppStatusNew.objects.create()
-            
-            instance = form.save(commit=False)
-            
-            
-            instance.app = Apps.objects.get(slug=app_slug)
-            instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
-            instance.project = project
-            instance.owner = request.user
-            instance.subdomain = subdomain
-            instance.app_status = status
-            
-            instance.save()
-            form.save_m2m()
-            
-            instance.set_k8s_values()
-          
-            
-            # If your model form uses many-to-many fields, you might need to call save_m2m()
-            
-
-            serialized_instance = serializers.serialize("json", [instance])
-            
-            deploy_resource_new.delay(serialized_instance)
-            
-            
-        else:
+        if not form.is_valid():
             return render(request, self.template_name, {"form": form})
-            
+        # Otherwise we can create the instance
+
+        subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
+        status = AppStatusNew.objects.create()
+
+        instance = form.save(commit=False)
+        instance.app = Apps.objects.get(slug=app_slug)
+        instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
+        instance.project = project
+        instance.owner = request.user
+        instance.subdomain = subdomain
+        instance.app_status = status
+
+        instance.save()
+        # If your model form uses many-to-many fields, you might need to call save_m2m()
+        form.save_m2m()
+
+        instance.set_k8s_values()
+        instance.save(update_fields=["k8s_values"])
+
+        serialized_instance = serializers.serialize("json", [instance])
+
+        deploy_resource_new.delay(serialized_instance)
+
         return HttpResponseRedirect(
             reverse(
                 "projects:details",

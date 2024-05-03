@@ -15,10 +15,10 @@
             "app_release_name": "",
             "permission": "project",
             "slug": "volumeK8s",
-            "storageClass": "microk8s-hostpath",
-            "volume.accessModes": "ReadWriteMany",
+            "storageClass": "local-path",
+            "volume.accessModes": "",
             "volume.size": "1Gi",
-            "volume.storageClass": "microk8s-hostpath"
+            "volume.storageClass": "local-path"
           }
         },
         "environments": {
@@ -79,10 +79,10 @@
             "app_release_name": "",
             "permission": "project",
             "slug": "volumeK8s",
-            "storageClass": "microk8s-hostpath",
-            "volume.accessModes": "ReadWriteMany",
+            "storageClass": "local-path",
+            "volume.accessModes": "",
             "volume.size": "1Gi",
-            "volume.storageClass": "microk8s-hostpath"
+            "volume.storageClass": "local-path"
           },
           "project-filemanager": {
             "app:volumeK8s": [

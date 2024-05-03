@@ -350,7 +350,7 @@
         },
         "volume": {
           "accessModes": {
-            "default": "ReadWriteMany",
+            "default": "",
             "title": "AccessModes",
             "type": "string"
           },

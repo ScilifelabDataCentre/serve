@@ -354,7 +354,7 @@ EXTERNAL_KUBECONF = True
 KUBECONFIG = "/app/cluster.conf"
 NAMESPACE = "default"
 KUBE_API_REQUEST_TIMEOUT = 1
-STORAGECLASS = "microk8s-hostpath"
+STORAGECLASS = "local-path"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
@@ -381,7 +381,7 @@ APPS_STATUS_WARNING = [
 
 # Apps
 APPS_MODEL = "apps.Apps"
-APPINSTANCE_MODEL = "apps.AppInstance"
+APPINSTANCE_MODEL = "apps.AbstractAppInstance"
 APPCATEGORIES_MODEL = "apps.AppCategories"
 
 # Models
