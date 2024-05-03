@@ -701,36 +701,11 @@ from django.shortcuts import render
 from .forms import JupyterForm, VolumeForm
 from .models import JupyterInstance, Subdomain, AppStatusNew, VolumeInstance
 from django.views.generic.detail import DetailView
-
-from django.core import serializers 
-
-
-@shared_task
-@transaction.atomic
-def celery_wrapper(serialized_instance, method_name, *args, **kwargs):
-    # Deserialize the input to check if the iterable has exactly one element
-    deserialized_objects = list(serializers.deserialize("json", serialized_instance))
-    
-    # Check if the length of the deserialized objects is exactly 1
-    if len(deserialized_objects) != 1:
-        raise ValueError("Expected exactly one serialized object, but got {}".format(len(deserialized_objects)))
-    
-    # Get the actual instance from the list
-    instance = deserialized_objects[0].object
-
-    # Dynamically call the method on the instance with the given args and kwargs
-    method = getattr(instance, method_name, None)
-    if method is None:
-        raise AttributeError(f"The method {method_name} does not exist on the instance of type {type(instance).__name__}")
-    
-    # Execute the method
-    method(*args, **kwargs)
-    
-    # Save the instance if changes to the database are made
-    instance.save()
+from .tasks import deploy_resource_new
 
 
-        
+
+
 
 
 @method_decorator(
@@ -766,16 +741,19 @@ class CreateApp(View):
             instance.subdomain = subdomain
             instance.app_status = status
             
-            instance.set_k8s_values()
-            
             instance.save()
+            form.save_m2m()
+            
+            instance.set_k8s_values()
+          
             
             # If your model form uses many-to-many fields, you might need to call save_m2m()
-            form.save_m2m()
+            
 
             serialized_instance = serializers.serialize("json", [instance])
             
-            celery_wrapper.delay(serialized_instance, 'deploy_resource')
+            deploy_resource_new.delay(serialized_instance)
+            
             
         else:
             return render(request, self.template_name, {"form": form})

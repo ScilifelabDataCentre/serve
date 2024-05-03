@@ -1,8 +1,6 @@
 import subprocess
 import uuid
 import yaml
-import json
-
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -428,7 +426,7 @@ class AbstractAppInstance(models.Model):
                           ),
                           **self.subdomain.to_dict(),
                           **self.flavor.to_dict(),
-                          storageclass = settings.STORAGECLASS,
+                          storageClass = settings.STORAGECLASS,
                           namespace = settings.NAMESPACE
         )
         
@@ -439,83 +437,9 @@ class AbstractAppInstance(models.Model):
             protocol = settings.AUTH_PROTOCOL,
         )
         
+
         self.k8s_values = k8s_values
         
-
-    def deploy_resource(self):
-        
-        values = self.k8s_values
-        if "ghcr" in self.chart:
-            version = self.chart.split(":")[-1]
-            chart = "oci://" + self.chart.split(":")[0]
-            # Save helm values file for internal reference
-        unique_filename = "charts/values/{}-{}.yaml".format(str(uuid.uuid4()), str(values["name"]))
-        f = open(unique_filename, "w")
-        f.write(yaml.dump(values))
-        f.close()
-
-        # building args for the equivalent of helm install command
-        args = [
-            "helm",
-            "upgrade",
-            "--install",
-            "-n",
-            values["namespace"],
-            values["subdomain"],
-            chart,
-            "-f",
-            unique_filename,
-        ]
-
-        # Append version if deploying via ghcr
-        if version:
-            args.append("--version")
-            args.append(version)
-            args.append("--repository-cache"),
-            args.append("/app/charts/.cache/helm/repository")
-
-        results = subprocess.run(args, capture_output=True)
-        # remove file
-        rm_args = ["rm", unique_filename]
-        subprocess.run(rm_args)
-        
-        if type(results) is str:
-            results = json.loads(results)
-            stdout = results["status"]
-            stderr = results["reason"]
-            success = False
-            #logger.info("Helm install failed")  # Uncomment this if you want to log the failure here.
-        else:
-            stdout = results.stdout.decode("utf-8")
-            stderr = results.stderr.decode("utf-8")
-            success = results.returncode == 0
-
-            if success:
-                logger.info("Helm install succeeded")
-            else:
-                logger.error("Helm install failed")
-
-        helm_info = {
-            "success": success,
-            "info": {"stdout": stdout, "stderr": stderr}
-        }
-
-        self.info = dict(helm = helm_info)
-
-    def delete_resource(self):
-        values = self.k8s_values
-        logger.info("DELETE FROM CONTROLLER")
-        args = ["helm", "-n", values["namespace"], "delete", values["subdomain"]]
-        result = subprocess.run(args, capture_output=True)
-        if result.returncode == 0 or "release: not found" in result.stderr.decode("utf-8"):
-            if self.app.slug in ("volumeK8s", "netpolicy"):
-                self.app_status.status = "Deleted"
-                self.deleted_on = datetime.now()
-            else: 
-                status = self.app_status.status = "Deleting..."
-        else:
-            self.app_status.status = "FailedToDelete"
-
 
 
 class JupyterInstanceManager(AppInstanceManagerNew):
@@ -534,6 +458,21 @@ class JupyterInstance(AbstractAppInstance, Social):
         super().set_k8s_values()
         
         self.k8s_values["permission"] = self.access,
+        
+        # Not the nicest perhaps, but it works since the charts assume that the volumes are on this form
+        # {apps: 
+        #   {volumeK8s: 
+        #       {project-vol: 
+        #           {release: r1582t9h9 
+
+        volumeK8s_dict = {"volumeK8s": {}}
+        for object in self.volume.all():
+            volumeK8s_dict["volumeK8s"][object.name] = dict(
+                release = object.subdomain.subdomain
+            )
+        self.k8s_values["apps"] = volumeK8s_dict
+        self.save(update_fields=["k8s_values"])
+        
 
 
 class VolumeInstanceManager(AppInstanceManagerNew):
