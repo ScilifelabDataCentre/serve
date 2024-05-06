@@ -716,11 +716,11 @@ from .tasks import deploy_resource_new
 class CreateApp(View):
     template_name = "apps/create_view.html"
     
-    def get(self, request, project, app_slug):
+    def get(self, request, project, app_slug, app_id=None):
         project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
         project = Project.objects.get(slug=project_slug)
         
-        form = self.get_form(request, project, app_slug)
+        form = self.get_form(request, project, app_slug, app_id)
         
         return render(request, self.template_name, {"form": form})
 
@@ -747,7 +747,7 @@ class CreateApp(View):
             )
         )
 
-    def get_form(self, request, project, app_slug):
+    def get_form(self, request, project, app_slug, app_id):
 
         model_class = SLUG_MODEL_FORM_MAP.get(app_slug)["model"]
         form_class = SLUG_MODEL_FORM_MAP.get(app_slug)["form"]
@@ -758,11 +758,11 @@ class CreateApp(View):
         user_can_create = model_class.objects.user_can_create(request.user, project, app_slug)
         
         if user_can_create:
-            return form_class(request.POST or None, project_pk=project.pk)
+            instance = model_class.objects.get(pk=app_id) if app_id else None
+            
+            return form_class(request.POST or None, project_pk=project.pk, instance=instance)
             # Maybe this makes typing hard.
         else:
             return HttpResponseForbidden()
 
 
-
-        

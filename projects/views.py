@@ -34,6 +34,7 @@ from .models import (
     ProjectTemplate,
 )
 from .tasks import create_resources_from_template, delete_project
+from apps.models import AbstractAppInstance
 
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
@@ -532,68 +533,70 @@ class DetailsView(View):
     template_name = "projects/overview.html"
 
     def get(self, request, project_slug):
-        resources = list()
-        models = Model.objects.none()
+        
+        project = Project.objects.get(slug=project_slug)
+        resources = []
         app_ids = []
-        project = None
-        filemanager_instance = None
+        if request.user.is_superuser:
+            categories = AppCategories.objects.all().order_by("-priority")
+        else:
+            categories = AppCategories.objects.all().exclude(slug__in=["admin-apps"]).order_by("-priority")
 
-        if request.user.is_authenticated:
-            project = Project.objects.get(slug=project_slug)
-            if request.user.is_superuser:
-                categories = AppCategories.objects.all().order_by("-priority")
-            else:
-                categories = AppCategories.objects.all().exclude(slug__in=["admin-apps"]).order_by("-priority")
-            # models = Model.objects.filter(project=project).order_by("-uploaded_at")[:10]
-            models = Model.objects.filter(project=project).order_by("-uploaded_at")
 
-            def filter_func(slug):
-                return Q(app__category__slug=slug)
+        def filter_func(slug):
+            return Q(app__category__slug=slug)
 
-            for category in categories:
-                app_instances_of_category = AppInstance.objects.get_app_instances_of_project(
+        for category in categories:
+            # Get all subclasses of Base
+        
+            for subclass in AbstractAppInstance.__subclasses__():
+            # Filter instances of each subclass by project, user and status. See the get_app_instances_of_project_filter method in base.py
+
+                instances_per_category = subclass.objects.get_app_instances_of_project(
                     user=request.user,
                     project=project,
                     filter_func=filter_func(slug=category.slug),
-                    # limit=5,
+
                 )
+                if instances_per_category:
+                    app_ids += [obj.id for obj in instances_per_category]
+                    break
+                
+            
+            apps_per_category = (
+                Apps.objects.filter(category=category, user_can_create=True)
+                .order_by("slug", "-revision")
+                .distinct("slug")
+            )
 
-                app_ids += [obj.id for obj in app_instances_of_category]
+            resources.append(
+                {
+                    "title": category.name,
+                    "objs": instances_per_category,
+                    "apps": apps_per_category,
+                }
+            )
 
-                apps_of_category = (
-                    Apps.objects.filter(category=category, user_can_create=True)
-                    .order_by("slug", "-revision")
-                    .distinct("slug")
-                )
+        def filter_app_slug(slug):
+            return Q(app__slug=slug)
 
-                resources.append(
-                    {
-                        "title": category.name,
-                        "objs": app_instances_of_category,
-                        "apps": apps_of_category,
-                    }
-                )
+        filemanager_instance = AppInstance.objects.get_app_instances_of_project(
+            user=request.user, project=project, filter_func=filter_app_slug(slug="filemanager")
+        ).first()
+        filemanager_instance = None
 
-            def filter_app_slug(slug):
-                return Q(app__slug=slug)
-
-            filemanager_instance = AppInstance.objects.get_app_instances_of_project(
-                user=request.user, project=project, filter_func=filter_app_slug(slug="filemanager")
-            ).first()
-
-            if filemanager_instance:
-                creation_date = filemanager_instance.created_on
-                now = datetime.datetime.now(datetime.timezone.utc)
-                age = now - creation_date
-                timedelta = datetime.timedelta(hours=24)
-                hours = timedelta - age
-                hours = round(hours.total_seconds() / 3600)
-            else:
-                hours = 0
+        if filemanager_instance:
+            creation_date = filemanager_instance.created_on
+            now = datetime.datetime.now(datetime.timezone.utc)
+            age = now - creation_date
+            timedelta = datetime.timedelta(hours=24)
+            hours = timedelta - age
+            hours = round(hours.total_seconds() / 3600)
+        else:
+            hours = 0
 
         context = {
             "resources": resources,
-            "models": models,
             "project": project,
             "app_ids": app_ids,
             "filemanager_instance": filemanager_instance,
