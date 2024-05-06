@@ -16,6 +16,8 @@ from studio.utils import get_logger
 from .exceptions import ProjectCreationException
 from .models import S3, Environment, Flavor, MLFlow, Project
 
+from apps.helpers import SLUG_MODEL_FORM_MAP
+
 logger = get_logger(__name__)
 
 Apps = apps.get_model(app_label=settings.APPS_MODEL)
@@ -31,50 +33,8 @@ def create_resources_from_template(user, project_slug, template):
     ## THIS IS JUST FOR TESTING PURPOSES
     project = Project.objects.get(slug=project_slug)
     logger.critical("CREATING A VOLUME FROM FORM")
-    from apps.forms import VolumeForm
-    from apps.models import Subdomain, AppStatus
-    from apps.tasks import deploy_resource_new
-    from django.core import serializers
-    from apps.helpers import SLUG_MODEL_FORM_MAP
-    data = {
-        "name": "project-vol",
-        "size": 5
-    }
-    form = VolumeForm(data)
-    if form.is_valid():
-        logger.critical("FORM IS VALID YEEHOOO")
-        
-        instance = form.save(commit=False)
-        
-        # THIS COULD ALL BE A FUNCTION I GUESS
-        subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
-        status = AppStatus.objects.create()
-        
-        instance.app = Apps.objects.get(slug="volumeK8s")
-        instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
-        instance.project = project
-        
-        user_obj = User.objects.get(username=user)
-        instance.owner = user_obj
-        instance.subdomain = subdomain
-        instance.app_status = status
-        instance.save()
 
-        form.save_m2m()
-        
-        instance.set_k8s_values()
-        ####
-        
-        # If your model form uses many-to-many fields, you might need to call save_m2m()
-        
-
-        serialized_instance = serializers.serialize("json", [instance])
-        
-        deploy_resource_new.delay(serialized_instance)
-        
-        
-    else:
-        logger.critical("FORM IS INVALID NOOOOOOOOOOOOOOOOOOOOO!!!!!")             
+         
     
     decoder = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
     parsed_template = template.replace("'", '"')
@@ -94,7 +54,8 @@ def create_resources_from_template(user, project_slug, template):
             "size": int(volumes.get("size", 5))
         }
         form = SLUG_MODEL_FORM_MAP[volume_slug]["form"](data)
-        create_instance_from_form(form, project, volume_slug)
+        if form.is_valid():
+            create_instance_from_form(form, project, volume_slug)
     
     logger.info("Parsing template...")
     flavor_dict = template.get("flavors", {})
