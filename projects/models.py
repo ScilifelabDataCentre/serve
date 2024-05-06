@@ -262,6 +262,7 @@ class ProjectTemplate(models.Model):
         return "{} ({})".format(self.name, self.revision)
 
 
+
 class Project(models.Model):
     authorized = models.ManyToManyField(get_user_model(), blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

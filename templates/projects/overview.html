@@ -98,7 +98,7 @@
                             <td class="d-none d-xxl-table-cell">{{ obj.created_on | date:"d/n/y H:i" }}</td>
                             <td>
                                 <span class="badge bg-secondary" id="status-{{ obj.pk }}">
-                                    {{ obj.status.latest.status_type }}
+                                    {{ obj.app_status.status }}
                                 </span>
                                 {% if obj.access %}
                                     {% if obj.access == 'public' %}
@@ -113,11 +113,7 @@
                                 {% endif %}
                             </td>
                             <td class="d-none d-xxl-table-cell" id="tags-{{ obj.pk }}">
-                            {% with obj.tags|split:"," as tags %}
-                            {% for tag in tags %}
-                                <span class="badge text-bg-primary">{{ tag }}</span>
-                            {% endfor %}
-                            {% endwith %}
+
                             </td>
 
                             <td class="table-action text-center">
@@ -136,7 +132,7 @@
                                         {% if obj.app.user_can_edit %}
 
                                         <a class="dropdown-item default"
-                                            href="{% url 'apps:appsettings' project.slug obj.pk %}?from=overview">
+                                            href="{% url 'apps:appsettings' project.slug obj.app.slug obj.pk %}?from=overview">
                                             <i class="bi bi-sliders2-vertical me-1"></i>
                                             Settings
                                         </a>
@@ -392,71 +388,10 @@
         </div>
 
     {% endif %}
+    
+    {% include "projects/categories/manage_files.html" %}
 
 
-
-
-    <div id="manage-files" class="col-12 d-flex">
-        <div class="card w-100 border-0 shadow">
-            <div class="card-header border-bottom-0 d-flex align-items-center justify-content-between py-3"
-                style="min-height: 3rem;">
-                <h5 class="card-title mb-0">Manage Files</h5>
-                <div>
-                    {% if filemanager_instance %}
-                    <strong>Status:</strong>
-                    <span class="badge bg-secondary" id="status-{{ filemanager_instance.pk }}">
-                        {{ filemanager_instance.status.latest.status_type }}
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-            {% if filemanager_instance %}
-            <div class="row p-3">
-               <div class="col-12 col-sm-6">
-
-                    <p>File Manager is activated and will be closed in {{ hours }} hours</p>
-                    <p>You can reach the manager by clicking the button below</p>
-                    <a class="btn btn-primary mb-3" href="{{ filemanager_instance.table_field.url }}" target="_blank">
-                        Open File Manager <i class="bi bi-box-arrow-up-right"></i>
-                    </a>
-               </div>
-
-            </div>
-            {% else %}
-
-
-            <div class="row g-2 py-2 mx-2">
-                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <div class="row g-0 w-100 h-100">
-                                <div class="col-8 d-flex align-items-bottom flex-column">
-                                    <div class="pt-2">
-                                        <h5>Activate File Manager</h5>
-                                    </div>
-                                    <div class="align-items-end d-flex h-100">
-                                        <div>
-                                            {% if filemanager_instance %}
-                                            <button class="btn btn-profile btn-sm" disabled>Activated</button>
-                                            {% else %}
-                                            <a class="btn btn-profile btn-sm"
-                                            href="{% url 'apps:create' project.slug "filemanager"  %}?from=overview">Activate</a>
-                                            {% endif %}
-
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <img src="/static/images/logos/apps/filemanager-logo.svg" class="img-fluid float-end w-75" alt="App Logo">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
 </div>
 
     <script>
