@@ -1,7 +1,5 @@
 import json
-import os
 import subprocess
-import tarfile
 import uuid
 
 import yaml
@@ -9,9 +7,6 @@ from django.conf import settings
 
 from studio.utils import get_logger
 
-from .models import Apps
-
-KUBEPATH = settings.KUBECONFIG
 logger = get_logger(__name__)
 
 

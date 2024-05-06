@@ -16,7 +16,7 @@ from studio.utils import get_logger
 from .exceptions import ProjectCreationException
 from .models import S3, Environment, Flavor, MLFlow, Project
 
-from apps.helpers import SLUG_MODEL_FORM_MAP
+from apps.constants import SLUG_MODEL_FORM_MAP
 
 logger = get_logger(__name__)
 
@@ -54,7 +54,7 @@ def create_resources_from_template(user, project_slug, template):
             "size": int(volumes.get("size", 5))
         }
         logger.info(f"Creating persistent volume of size {data['size']}")
-        form = SLUG_MODEL_FORM_MAP["volumeK8s"]["form"](data)
+        form = SLUG_MODEL_FORM_MAP["volumeK8s"].form(data)
         if form.is_valid():
             create_instance_from_form(form, project, "volumeK8s")
     

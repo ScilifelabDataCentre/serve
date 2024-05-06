@@ -18,8 +18,9 @@ from django.core import serializers
 from celery import shared_task
 from django.db import transaction
 
+from .constants import SLUG_MODEL_FORM_MAP
 from .generate_form import generate_form
-from .helpers import can_access_app_instances, create_app_instance, handle_permissions, SLUG_MODEL_FORM_MAP, create_instance_from_form
+from .helpers import can_access_app_instances, create_app_instance, handle_permissions, create_instance_from_form
 from .models import AppCategories, AppInstance, Apps
 from .serialize import serialize_app
 from .tasks import delete_and_deploy_resource, delete_resource, deploy_resource

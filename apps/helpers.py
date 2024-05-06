@@ -16,19 +16,12 @@ from projects.models import Flavor
 from studio.utils import get_logger
 
 from .models import AppInstance, AppStatus, JupyterInstance, VolumeInstance, Apps, Subdomain
-from .forms import JupyterForm, VolumeForm
 from .serialize import serialize_app
 from .tasks import deploy_resource, deploy_resource_new
-
 
 logger = get_logger(__name__)
 
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
-
-SLUG_MODEL_FORM_MAP = {
-    'jupyter-lab': {'model': JupyterInstance, 'form': JupyterForm},
-    'volumeK8s': {'model': VolumeInstance, 'form': VolumeForm},
-}
 
 
 def create_instance_params(instance, action="create"):
