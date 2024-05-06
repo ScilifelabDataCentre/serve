@@ -54,7 +54,7 @@ def create_resources_from_template(user, project_slug, template):
             "size": int(volumes.get("size", 5))
         }
         logger.info(f"Creating persistent volume of size {data['size']}")
-        form = SLUG_MODEL_FORM_MAP["volumeK8s"].form(data)
+        form = SLUG_MODEL_FORM_MAP["volumeK8s"].Form(data)
         if form.is_valid():
             create_instance_from_form(form, project, "volumeK8s")
     

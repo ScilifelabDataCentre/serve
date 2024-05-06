@@ -5,5 +5,5 @@ from apps.models import AbstractAppInstance
 
 
 class ModelFormTuple(NamedTuple):
-    model: Type[AbstractAppInstance]
-    form: Type[BaseForm]
+    Model: Type[AbstractAppInstance]
+    Form: Type[BaseForm]
