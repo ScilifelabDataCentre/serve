@@ -729,7 +729,7 @@ class CreateApp(View):
         project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
         project = Project.objects.get(slug=project_slug)
         
-        form = self.get_form(request, project, app_slug)
+        form = self.get_form(request, project, app_slug, None)
         if not form.is_valid():
             return render(request, self.template_name, {"form": form})
         # Otherwise we can create the instance
@@ -749,9 +749,8 @@ class CreateApp(View):
 
     def get_form(self, request, project, app_slug, app_id):
 
-        model_class = SLUG_MODEL_FORM_MAP.get(app_slug)["model"]
-        form_class = SLUG_MODEL_FORM_MAP.get(app_slug)["form"]
-        
+        model_class, form_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
+
         #TODO: Add check here
         
         # Check if user is allowed

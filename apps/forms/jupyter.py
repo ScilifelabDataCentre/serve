@@ -1,6 +1,5 @@
 from crispy_forms.layout import Layout, Div, Field
 from django import forms
-from django.shortcuts import get_object_or_404
 
 from apps.forms.base import AppBaseForm
 from apps.models import VolumeInstance, JupyterInstance
@@ -19,7 +18,7 @@ class JupyterForm(AppBaseForm):
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
-        volume_queryset = get_object_or_404(VolumeInstance, project__pk=self.project_pk) if self.project_pk else VolumeInstance.objects.none()
+        volume_queryset = VolumeInstance.objects.filter(project__pk=self.project_pk) if self.project_pk else VolumeInstance.objects.none()
         self.fields["volume"].queryset = volume_queryset
 
     def _setup_form_helper(self):
