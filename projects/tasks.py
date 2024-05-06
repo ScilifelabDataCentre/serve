@@ -46,20 +46,23 @@ def create_resources_from_template(user, project_slug, template):
     
     # Handle volume
     #TODO: Handle other stuff
-    volume_slug = "volumeK8s"
-    volumes = apps_dict.get(volume_slug, None)
+    volumes = apps_dict.get("project-vol", None)
     if volumes:
+        
         data = {
             "name": "project-vol",
             "size": int(volumes.get("size", 5))
         }
-        form = SLUG_MODEL_FORM_MAP[volume_slug]["form"](data)
+        logger.info(f"Creating persistent volume of size {data['size']}")
+        form = SLUG_MODEL_FORM_MAP["volumeK8s"]["form"](data)
         if form.is_valid():
-            create_instance_from_form(form, project, volume_slug)
+            create_instance_from_form(form, project, "volumeK8s")
     
     logger.info("Parsing template...")
     flavor_dict = template.get("flavors", {})
     for flavor_name, resources in flavor_dict.items():
+        logger.info("Creating flavor ")
+        logger.info(f"Creating flavor: {flavor_name}")
         flavor = Flavor(
             name=flavor_name,
             cpu_req=resources["cpu"]["requirement"],

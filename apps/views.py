@@ -748,8 +748,8 @@ class CreateApp(View):
 
     def get_form(self, request, project, app_slug):
 
-        # This function could fetch forms based on app_slug
-        form_class, model_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
+        model_class = SLUG_MODEL_FORM_MAP.get(app_slug)["model"]
+        form_class = SLUG_MODEL_FORM_MAP.get(app_slug)["form"]
         
         #TODO: Add check here
         
