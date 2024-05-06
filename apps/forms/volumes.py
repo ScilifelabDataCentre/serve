@@ -7,11 +7,11 @@ __all__ = [
     "VolumeForm"
 ]
 
+
 class VolumeForm(BaseForm):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    def _setup_form_helper(self):
+        super()._setup_form_helper()
         body = Div(
             Field("name", placeholder="Name your app"),
             Field("size"),
@@ -22,6 +22,7 @@ class VolumeForm(BaseForm):
             body,
             self.footer
         )
+
 
     # create meta class
     class Meta:

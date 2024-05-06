@@ -1,5 +1,6 @@
 from crispy_forms.layout import Layout, Div, Field
 from django import forms
+from django.shortcuts import get_object_or_404
 
 from apps.forms.base import AppBaseForm
 from apps.models import VolumeInstance, JupyterInstance
@@ -15,14 +16,14 @@ class JupyterForm(AppBaseForm):
                                             required=False)
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), widget=forms.RadioSelect, required=False)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    def _setup_form_fields(self):
         # Handle Volume field
-        volume_queryset = VolumeInstance.objects.filter(
-            project__pk=self.project_pk) if self.project_pk else VolumeInstance.objects.none()
+        super()._setup_form_fields()
+        volume_queryset = get_object_or_404(VolumeInstance, project__pk=self.project_pk) if self.project_pk else VolumeInstance.objects.none()
         self.fields["volume"].queryset = volume_queryset
 
+    def _setup_form_helper(self):
+        super()._setup_form_helper()
         body = Div(
             Field("name", placeholder="Name your app"),
             Field("description", rows="3", placeholder="Provide a detailed description of your app"),
@@ -39,7 +40,6 @@ class JupyterForm(AppBaseForm):
             self.footer
         )
 
-    # create meta class
     class Meta:
         model = JupyterInstance
         fields = ["name", "volume", "flavor", "tags", "description", "access", "note_on_linkonly_privacy"]
