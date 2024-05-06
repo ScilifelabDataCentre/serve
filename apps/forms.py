@@ -4,7 +4,7 @@ from django import forms
 from django.utils.safestring import mark_safe
 from django.core.exceptions import ValidationError
 
-from .models import AbstractAppInstance, JupyterInstance, Social, Subdomain, VolumeInstance
+from .models import AbstractAppInstance, Social, Subdomain, VolumeInstance, JupyterInstance
 from projects.models import Flavor, Project
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Button, Div, HTML, Field, Hidden

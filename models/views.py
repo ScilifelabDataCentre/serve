@@ -27,7 +27,7 @@ new_data = defaultdict(list)  # type: ignore
 logger = logging.getLogger(__name__)
 
 Apps = apps.get_model(app_label=settings.APPS_MODEL)
-AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
+AppInstance = apps.get_model(app_label="apps.AppInstance")
 
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 ProjectLog = apps.get_model(app_label=settings.PROJECTLOG_MODEL)

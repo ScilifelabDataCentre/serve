@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 
 import apps.tasks as apptasks
 from apps.controller import delete
-from apps.helpers import create_app_instance
+from apps.helpers import create_app_instance, create_instance_from_form
 from studio.utils import get_logger
 
 from .exceptions import ProjectCreationException
@@ -19,7 +19,7 @@ from .models import S3, Environment, Flavor, MLFlow, Project
 logger = get_logger(__name__)
 
 Apps = apps.get_model(app_label=settings.APPS_MODEL)
-AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
+AppInstance = apps.get_model(app_label="apps.AppInstance")
 
 User = get_user_model()
 
@@ -32,10 +32,10 @@ def create_resources_from_template(user, project_slug, template):
     project = Project.objects.get(slug=project_slug)
     logger.critical("CREATING A VOLUME FROM FORM")
     from apps.forms import VolumeForm
-    from apps.models import Subdomain, AppStatusNew
+    from apps.models import Subdomain, AppStatus
     from apps.tasks import deploy_resource_new
     from django.core import serializers
-    
+    from apps.helpers import SLUG_MODEL_FORM_MAP
     data = {
         "name": "project-vol",
         "size": 5
@@ -48,7 +48,7 @@ def create_resources_from_template(user, project_slug, template):
         
         # THIS COULD ALL BE A FUNCTION I GUESS
         subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
-        status = AppStatusNew.objects.create()
+        status = AppStatus.objects.create()
         
         instance.app = Apps.objects.get(slug="volumeK8s")
         instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
@@ -81,137 +81,83 @@ def create_resources_from_template(user, project_slug, template):
     template = decoder.decode(parsed_template)
     alphabet = string.ascii_letters + string.digits
     
+    
+    apps_dict = template.get("apps", {})
+    
+    # Handle volume
+    #TODO: Handle other stuff
+    volume_slug = "volumeK8s"
+    volumes = apps_dict.get(volume_slug, None)
+    if volumes:
+        data = {
+            "name": "project-vol",
+            "size": int(volumes.get("size", 5))
+        }
+        form = SLUG_MODEL_FORM_MAP[volume_slug]["form"](data)
+        create_instance_from_form(form, project, volume_slug)
+    
     logger.info("Parsing template...")
-    count = 0
-    for key, item in template.items():
-        logger.info("Key %s", key)
-        if "flavors" == key:
-            flavors = item
-            logger.info("Flavors: %s", flavors)
-            # TODO: potential bug. This for statement overrides variables in the outer loop.
-            for key, item in flavors.items():
-                flavor = Flavor(
-                    name=key,
-                    cpu_req=item["cpu"]["requirement"],
-                    cpu_lim=item["cpu"]["limit"],
-                    mem_req=item["mem"]["requirement"],
-                    mem_lim=item["mem"]["limit"],
-                    gpu_req=item["gpu"]["requirement"],
-                    gpu_lim=item["gpu"]["limit"],
-                    ephmem_req=item["ephmem"]["requirement"],
-                    ephmem_lim=item["ephmem"]["limit"],
-                    project=project,
-                )
-                flavor.save()
-        elif "environments" == key:
-            environments = item
-            logger.info("Environments: %s", environments)
-            for key, item in environments.items():
-                try:
-                    app = Apps.objects.filter(slug=item["app"]).order_by("-revision")[0]
-                except Exception as err:
-                    logger.error(
-                        ("App for environment not found. item.app=%s project_slug=%s " "user=%s err=%s"),
-                        item["app"],
-                        project_slug,
-                        user,
-                        err,
-                        exc_info=True,
-                    )
-                    raise
-                try:
-                    environment = Environment(
-                        name=key,
-                        project=project,
-                        repository=item["repository"],
-                        image=item["image"],
-                        app=app,
-                    )
-                    environment.save()
-                except Exception as err:
-                    logger.error(
-                        (
-                            "Failed to create new environment: "
-                            "key=%s "
-                            "project=%s "
-                            "item.repository=%s "
-                            "image=%s "
-                            "app=%s "
-                            "user%s "
-                            "err=%s"
-                        ),
-                        key,
-                        project,
-                        item["repository"],
-                        item["image"],
-                        app,
-                        user,
-                        err,
-                        exc_info=True,
-                    )
-                    
-        elif "apps" == key:
-            apps = item
-            logger.info("Apps: %s", apps)
-            for key, item in apps.items():
-                app_name = key
-                data = {"app_name": app_name, "app_action": "Create"}
-                if "credentials.access_key" in item:
-                    item["credentials.access_key"] = "".join(secrets.choice(alphabet) for i in range(8))
-                if "credentials.secret_key" in item:
-                    item["credentials.secret_key"] = "".join(secrets.choice(alphabet) for i in range(14))
-                if "credentials.username" in item:
-                    item["credentials.username"] = "admin"
-                if "credentials.password" in item:
-                    item["credentials.password"] = "".join(secrets.choice(alphabet) for i in range(14))
-
-                data = {**data, **item}
-                logger.info("DATA TEMPLATE")
-                logger.info(data)
-
-                user_obj = User.objects.get(username=user)
-
-                app = Apps.objects.filter(slug=item["slug"]).order_by("-revision")[0]
-
+    flavor_dict = template.get("flavors", {})
+    for flavor_name, resources in flavor_dict.items():
+        flavor = Flavor(
+            name=flavor_name,
+            cpu_req=resources["cpu"]["requirement"],
+            cpu_lim=resources["cpu"]["limit"],
+            mem_req=resources["mem"]["requirement"],
+            mem_lim=resources["mem"]["limit"],
+            gpu_req=resources["gpu"]["requirement"],
+            gpu_lim=resources["gpu"]["limit"],
+            ephmem_req=resources["ephmem"]["requirement"],
+            ephmem_lim=resources["ephmem"]["limit"],
+            project=project,
+        )
+        flavor.save()
+    
+    env_dict = template.get("environments", {})
+    for name, settings in env_dict.items():
+        try:
+            app = Apps.objects.filter(slug=settings["app"]).order_by("-revision")[0]
+        except Exception as err:
+            logger.error(
+                ("App for environment not found. item.app=%s project_slug=%s " "user=%s err=%s"),
+                settings["app"],
+                project_slug,
+                user,
+                err,
+                exc_info=True,
+            )
+            raise
+        try:
+            environment = Environment(
+                name=name,
+                project=project,
+                repository=settings["repository"],
+                image=settings["image"],
+                app=app,
+            )
+            environment.save()
+        except Exception as err:
+            logger.error(
                 (
-                    successful,
-                    _,
-                    _,
-                ) = create_app_instance(
-                    user=user_obj,
-                    project=project,
-                    app=app,
-                    app_settings=app.settings,
-                    data=data,
-                    wait=True,
-                )
-
-                if not successful:
-                    logger.error("create_app_instance failed")
-                    raise ProjectCreationException
-
-        elif "settings" == key:
-            logger.info("PARSING SETTINGS")
-            logger.info("Settings: %s", settings)
-            if "project-S3" in item:
-                logger.info("SETTING DEFAULT S3")
-                s3storage = item["project-S3"]
-                # Add logics: here it is referring to minio basically.
-                # It is assumed that minio exist, but if it doesn't
-                # then it blows up of course
-                s3obj = S3.objects.get(name=s3storage, project=project)
-                project.s3storage = s3obj
-                project.save()
-            if "project-MLflow" in item:
-                logger.info("SETTING DEFAULT MLflow")
-                mlflow = item["project-MLflow"]
-                mlflowobj = MLFlow.objects.get(name=mlflow, project=project)
-                project.mlflow = mlflowobj
-                project.save()
-        else:
-            logger.error("Template has either not valid or unknown keys")
-            raise ProjectCreationException
-
+                    "Failed to create new environment: "
+                    "key=%s "
+                    "project=%s "
+                    "item.repository=%s "
+                    "image=%s "
+                    "app=%s "
+                    "user%s "
+                    "err=%s"
+                ),
+                name,
+                project,
+                settings["repository"],
+                settings["image"],
+                app,
+                user,
+                err,
+                exc_info=True,
+            )
+          
     project.status = "active"
     project.save()
 

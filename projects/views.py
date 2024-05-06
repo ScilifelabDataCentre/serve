@@ -37,7 +37,7 @@ from .tasks import create_resources_from_template, delete_project
 
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
-AppInstance = apps.get_model(app_label=django_settings.APPINSTANCE_MODEL)
+AppInstance = apps.get_model(app_label="apps.AppInstance")
 AppCategories = apps.get_model(app_label=django_settings.APPCATEGORIES_MODEL)
 Model = apps.get_model(app_label=django_settings.MODELS_MODEL)
 User = get_user_model()

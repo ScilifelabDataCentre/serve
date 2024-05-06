@@ -8,19 +8,27 @@ from typing import Optional
 from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.core import serializers 
 from django.db import transaction
 from django.template import engines
 
 from projects.models import Flavor
 from studio.utils import get_logger
 
-from .models import AppInstance, AppStatus
+from .models import AppInstance, AppStatus, JupyterInstance, VolumeInstance, Apps, Subdomain
+from .forms import JupyterForm, VolumeForm
 from .serialize import serialize_app
-from .tasks import deploy_resource
+from .tasks import deploy_resource, deploy_resource_new
+
 
 logger = get_logger(__name__)
 
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
+
+SLUG_MODEL_FORM_MAP = {
+    'jupyter-lab': {'model': JupyterInstance, 'form': JupyterForm},
+    'volumeK8s': {'model': VolumeInstance, 'form': VolumeForm},
+}
 
 
 def create_instance_params(instance, action="create"):
@@ -201,9 +209,9 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
         app_instance.table_field = {}
 
     # Setting status fields before saving app instance
-    status = AppStatus(appinstance=app_instance)
-    status.status_type = "Created"
-    status.info = app_instance.parameters["release"]
+    status_object = AppStatus()
+    status_object.status = "Created"
+    status_object.info = app_instance.parameters["release"]
     if "appconfig" in app_instance.parameters:
         if "path" in app_instance.parameters["appconfig"]:
             # remove trailing / in all cases
@@ -227,7 +235,7 @@ def create_app_instance(user, project, app, app_settings, data=[], wait=False):
     if rel_name_obj:
         rel_name_obj.app = app_instance
         rel_name_obj.save()
-    status.save()
+    status_object.save()
     app_instance.app_dependencies.set(app_deps)
     app_instance.model_dependencies.set(model_deps)
 
@@ -362,3 +370,28 @@ def update_status_time(status_object, status_ts, event_msg=None):
     else:
         status_object.info = event_msg
         status_object.save(update_fields=["time", "info"])
+
+
+
+def create_instance_from_form(form, project, app_slug):
+    subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
+    status = AppStatus.objects.create()
+
+    instance = form.save(commit=False)
+    instance.app = Apps.objects.get(slug=app_slug)
+    instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
+    instance.project = project
+    instance.owner = project.owner
+    instance.subdomain = subdomain
+    instance.app_status = status
+
+    instance.save()
+    # If your model form uses many-to-many fields, you might need to call save_m2m()
+    form.save_m2m()
+
+    instance.set_k8s_values()
+    instance.save(update_fields=["k8s_values"])
+
+    serialized_instance = serializers.serialize("json", [instance])
+
+    deploy_resource_new.delay(serialized_instance)

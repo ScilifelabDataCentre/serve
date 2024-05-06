@@ -1,7 +1,6 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, AbstractAppInstance
-from apps.models.base import Social
+from apps.models import AppInstanceManager, AbstractAppInstance, Social
 
 
 class JupyterInstanceManager(AppInstanceManager):

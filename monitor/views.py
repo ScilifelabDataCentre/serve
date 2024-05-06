@@ -8,7 +8,7 @@ from django.db.models import F, Q, Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, reverse
 
-from apps.models import ResourceData
+
 from models.models import Model
 from projects.models import Project
 
@@ -236,32 +236,3 @@ def cpuchart(request, user, project, resource_type):
         }
     )
 
-
-def usage(request, user, project):
-    curr_timestamp = time.time()
-    points = ResourceData.objects.filter(
-        time__gte=curr_timestamp - 2 * 3600, appinstance__project__slug=project
-    ).order_by("time")
-    all_cpus = list()
-    for point in points:
-        all_cpus.append(point.cpu)
-    total = points.annotate(timeP=F("time")).values("timeP").annotate(total_cpu=Sum("cpu"), total_mem=Sum("mem"))
-
-    labels = list(total.values_list("timeP"))
-    labels = list(itertools.chain.from_iterable(labels))
-    step = 1
-    np = 200
-    if len(labels) > np:
-        step = round(len(labels) / np)
-    labels = labels[::step]
-    x_data = list()
-    for label in labels:
-        x_data.append(datetime.fromtimestamp(label).strftime("%H:%M:%S"))
-
-    total_mem = list(total.values_list("total_mem"))
-    total_mem = list(itertools.chain.from_iterable(total_mem))[::step]
-
-    total_cpu = list(total.values_list("total_cpu"))
-    total_cpu = list(itertools.chain.from_iterable(total_cpu))[::step]
-
-    return JsonResponse(data={"labels": x_data, "data_cpu": total_cpu, "data_mem": total_mem})

@@ -312,7 +312,7 @@ def serialize_env_variables(username, project, aset):
     logger.info("Creating template engine")
     django_engine = engines["django"]
     # TODO: refactor potential bug. If there is an exception thrown by query statement above, then `apps` is not defined
-    logger.info(apps)
+    #logger.info(apps)
     for app in apps:
         params = app.parameters
         appsettings = app.app.settings
@@ -363,7 +363,7 @@ def serialize_app(form_selection, project, aset, username):
     cli_values = serialize_cli(username, project, aset)
     parameters.update(cli_values)
 
-    env_variables = serialize_env_variables(username, project, aset)
-    parameters.update(env_variables)
+    #env_variables = serialize_env_variables(username, project, aset)
+    #parameters.update(env_variables)
 
     return parameters, app_deps, model_deps

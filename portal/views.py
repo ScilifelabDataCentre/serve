@@ -9,7 +9,7 @@ from studio.utils import get_logger
 
 logger = get_logger(__name__)
 
-AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
+AppInstance = apps.get_model(app_label="apps.AppInstance",)
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
 NewsObject = apps.get_model(app_label="news.NewsObject")

@@ -20,7 +20,7 @@ from studio.celery import app
 from studio.utils import get_logger
 
 from . import controller
-from .models import AppInstance, Apps, AppStatus, ResourceData, AbstractAppInstance
+from .models import AppInstance, Apps, AppStatus, AbstractAppInstance
 
 logger = get_logger(__name__)
 
@@ -311,92 +311,6 @@ def delete_resource_permanently(appinstance):
     appinstance.delete()
 
 
-@app.task
-def get_resource_usage():
-    timestamp = time.time()
-
-    args = ["kubectl", "get", "--raw", "/apis/metrics.k8s.io/v1beta1/pods"]
-    results = subprocess.run(args, capture_output=True)
-
-    pods = []
-    try:
-        res_json = json.loads(results.stdout.decode("utf-8"))
-        pods = res_json["items"]
-    except:  # noqa E722 TODO: Add exception
-        pass
-
-    resources = dict()
-
-    args_pod = ["kubectl", "-n", f"{settings.NAMESPACE}" "get", "po", "-o", "json"]
-    results_pod = subprocess.run(args_pod, capture_output=True)
-    results_pod_json = json.loads(results_pod.stdout.decode("utf-8"))
-    try:
-        for pod in results_pod_json["items"]:
-            if (
-                "metadata" in pod
-                and "labels" in pod["metadata"]
-                and "release" in pod["metadata"]["labels"]
-                and "project" in pod["metadata"]["labels"]
-            ):
-                pod_name = pod["metadata"]["name"]
-                resources[pod_name] = dict()
-                resources[pod_name]["labels"] = pod["metadata"]["labels"]
-                resources[pod_name]["cpu"] = 0.0
-                resources[pod_name]["memory"] = 0.0
-                resources[pod_name]["gpu"] = 0
-    except:  # noqa E722 TODO: Add exception
-        pass
-
-    try:
-        for pod in pods:
-            podname = pod["metadata"]["name"]
-            if podname in resources:
-                containers = pod["containers"]
-                cpu = 0
-                mem = 0
-                for container in containers:
-                    cpun = container["usage"]["cpu"]
-                    memki = container["usage"]["memory"]
-                    try:
-                        cpu += int(cpun.replace("n", "")) / 1e6
-                    except:  # noqa E722 TODO: Add exception
-                        logger.error("Failed to parse CPU usage: %s", cpun)
-                    if "Ki" in memki:
-                        mem += int(memki.replace("Ki", "")) / 1000
-                    elif "Mi" in memki:
-                        mem += int(memki.replace("Mi", ""))
-                    elif "Gi" in memki:
-                        mem += int(memki.replace("Mi", "")) * 1000
-
-                resources[podname]["cpu"] = cpu
-                resources[podname]["memory"] = mem
-    except:  # noqa E722 TODO: Add exception
-        pass
-    # TODO minor refactor: remove unnecessary comments
-    # print(json.dumps(resources, indent=2))
-
-    for key in resources.keys():
-        entry = resources[key]
-        # print(entry['labels']['release'])
-        try:
-            appinstance = AppInstance.objects.get(parameters__contains={"release": entry["labels"]["release"]})
-            # print(timestamp)
-            # print(appinstance)
-            # print(entry)
-            datapoint = ResourceData(
-                appinstance=appinstance,
-                cpu=entry["cpu"],
-                mem=entry["memory"],
-                gpu=entry["gpu"],
-                time=timestamp,
-            )
-            datapoint.save()
-        except:  # noqa E722 TODO: Add exception
-            logger.error("Didn't find corresponding AppInstance: %s", key, exc_info=True)
-
-    # print(timestamp)
-    # print(json.dumps(resources, indent=2))
-
 
 @app.task
 def sync_mlflow_models():
@@ -462,11 +376,6 @@ def sync_mlflow_models():
         else:
             logger.warning("WARNING: Failed to fetch info from MLflow Server: %s", url)
 
-
-@app.task
-def clean_resource_usage():
-    curr_timestamp = time.time()
-    ResourceData.objects.filter(time__lte=curr_timestamp - 48 * 3600).delete()
 
 
 @app.task

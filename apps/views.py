@@ -19,7 +19,7 @@ from celery import shared_task
 from django.db import transaction
 
 from .generate_form import generate_form
-from .helpers import can_access_app_instances, create_app_instance, handle_permissions
+from .helpers import can_access_app_instances, create_app_instance, handle_permissions, SLUG_MODEL_FORM_MAP, create_instance_from_form
 from .models import AppCategories, AppInstance, Apps
 from .serialize import serialize_app
 from .tasks import delete_and_deploy_resource, delete_resource, deploy_resource
@@ -699,7 +699,7 @@ from django.shortcuts import render
 # relative import of forms
 #from .models import JupyterInstance
 from .forms import JupyterForm, VolumeForm
-from .models import JupyterInstance, Subdomain, AppStatusNew, VolumeInstance
+from .models import JupyterInstance, VolumeInstance, Subdomain, AppStatus
 from django.views.generic.detail import DetailView
 from .tasks import deploy_resource_new
 
@@ -733,27 +733,9 @@ class CreateApp(View):
             return render(request, self.template_name, {"form": form})
         # Otherwise we can create the instance
 
-        subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
-        status = AppStatusNew.objects.create()
 
-        instance = form.save(commit=False)
-        instance.app = Apps.objects.get(slug=app_slug)
-        instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
-        instance.project = project
-        instance.owner = request.user
-        instance.subdomain = subdomain
-        instance.app_status = status
-
-        instance.save()
-        # If your model form uses many-to-many fields, you might need to call save_m2m()
-        form.save_m2m()
-
-        instance.set_k8s_values()
-        instance.save(update_fields=["k8s_values"])
-
-        serialized_instance = serializers.serialize("json", [instance])
-
-        deploy_resource_new.delay(serialized_instance)
+            
+        create_instance_from_form(form, project, app_slug)
 
         return HttpResponseRedirect(
             reverse(
@@ -765,12 +747,9 @@ class CreateApp(View):
         )
 
     def get_form(self, request, project, app_slug):
-        slug_to_form_mapping = {
-            "jupyter-lab": (JupyterForm, JupyterInstance),
-            "volumeK8s": (VolumeForm, VolumeInstance)
-        }
+
         # This function could fetch forms based on app_slug
-        form_class, model_class = slug_to_form_mapping.get(app_slug, (None, None))
+        form_class, model_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
         
         #TODO: Add check here
         

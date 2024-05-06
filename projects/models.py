@@ -98,7 +98,7 @@ class Flavor(models.Model):
 class S3(models.Model):
     access_key = models.CharField(max_length=512)
     app = models.OneToOneField(
-        settings.APPINSTANCE_MODEL,
+        "apps.AppInstance",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -123,7 +123,7 @@ class S3(models.Model):
 
 class MLFlow(models.Model):
     app = models.OneToOneField(
-        settings.APPINSTANCE_MODEL,
+        "apps.AppInstance",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -377,7 +377,7 @@ class ProjectLog(models.Model):
 
 class ReleaseName(models.Model):
     app = models.ForeignKey(
-        settings.APPINSTANCE_MODEL,
+        "apps.AppInstance",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
