@@ -11,14 +11,7 @@
             "slug": "netpolicy"
           },
           "project-vol": {
-            "app_id": "",
-            "app_release_name": "",
-            "permission": "project",
-            "slug": "volumeK8s",
-            "storageClass": "local-path",
-            "volume.accessModes": "",
-            "volume.size": "1Gi",
-            "volume.storageClass": "local-path"
+            "size": "1"
           }
         },
         "environments": {
