@@ -168,3 +168,7 @@ class AbstractAppInstance(models.Model):
 
     def set_k8s_values(self):
         self.k8s_values = self.get_k8s_values()
+
+    def serialize(self):
+        from django.core import serializers
+        return serializers.serialize("json", [self])

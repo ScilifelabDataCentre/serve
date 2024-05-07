@@ -542,7 +542,6 @@ class DetailsView(View):
         else:
             categories = AppCategories.objects.all().exclude(slug__in=["admin-apps"]).order_by("-priority")
 
-
         def filter_func(slug):
             return Q(app__category__slug=slug)
 

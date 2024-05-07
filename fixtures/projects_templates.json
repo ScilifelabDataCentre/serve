@@ -6,12 +6,16 @@
       "slug": "blank",
       "template": {
         "apps": {
-          "project-netpolicy": {
-            "permission": "private",
-            "slug": "netpolicy"
-          },
-          "project-vol": {
+          "volumeK8s": {
+            "name": "project-vol",
             "size": "1"
+          },
+          "jupyter-lab": {
+            "name": "My Jupyter Lab",
+            "description": "Deployed via project template",
+            "volume": "project-vol",
+            "access": "private",
+            "flavor": "2 vCPU, 4 GB RAM"
           }
         },
         "environments": {

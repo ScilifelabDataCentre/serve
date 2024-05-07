@@ -523,7 +523,7 @@ def deploy_resource_new(serialized_instance):
         version = instance.chart.split(":")[-1]
         chart = "oci://" + instance.chart.split(":")[0]
     # Save helm values file for internal reference
-    values_file = "charts/values/{}-{}.yaml".format(str(uuid.uuid4()), str(values["name"]))
+    values_file = f"charts/values/{str(uuid.uuid4())}.yaml"
     with open(values_file, "w") as f:
         f.write(yaml.dump(values))
 

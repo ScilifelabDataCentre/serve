@@ -369,14 +369,13 @@ def update_status_time(status_object, status_ts, event_msg=None):
 def create_instance_from_form(form, project, app_slug, app_id=None):
     subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
     
-
     status = AppStatus.objects.create()
 
     instance = form.save(commit=False)
     
     # If subdomain is changed, we must delete the old helm release
     if app_id and instance.subdomain.subdomain != form.cleaned_data.get("subdomain"):
-        serialized_instance = serializers.serialize("json", [instance])
+        serialized_instance = instance.serialize()
         delete_resource_new.delay(serialized_instance)
 
     instance.app = Apps.objects.get(slug=app_slug)
@@ -393,6 +392,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     instance.set_k8s_values()
     instance.save(update_fields=["k8s_values"])
 
-    serialized_instance = serializers.serialize("json", [instance])
+    serialized_instance = instance.serialize()
 
     deploy_resource_new.delay(serialized_instance)

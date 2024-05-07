@@ -17,6 +17,9 @@ from .exceptions import ProjectCreationException
 from .models import S3, Environment, Flavor, MLFlow, Project
 
 from apps.constants import SLUG_MODEL_FORM_MAP
+from apps.models import VolumeInstance, AbstractAppInstance
+
+from apps.tasks import delete_resource_new
 
 logger = get_logger(__name__)
 
@@ -42,23 +45,9 @@ def create_resources_from_template(user, project_slug, template):
     alphabet = string.ascii_letters + string.digits
     
     
-    apps_dict = template.get("apps", {})
     
-    # Handle volume
-    #TODO: Handle other stuff
-    volumes = apps_dict.get("project-vol", None)
-    if volumes:
-        
-        data = {
-            "name": "project-vol",
-            "size": int(volumes.get("size", 5))
-        }
-        logger.info(f"Creating persistent volume of size {data['size']}")
-        form = SLUG_MODEL_FORM_MAP["volumeK8s"].Form(data)
-        if form.is_valid():
-            create_instance_from_form(form, project, "volumeK8s")
     
-    logger.info("Parsing template...")
+    logger.info("Creating Project Flavors...")
     flavor_dict = template.get("flavors", {})
     for flavor_name, resources in flavor_dict.items():
         logger.info("Creating flavor ")
@@ -77,7 +66,39 @@ def create_resources_from_template(user, project_slug, template):
         )
         flavor.save()
     
+    
+    
+    apps_dict = template.get("apps", {})
+    logger.info("Initiate Creation of Project Apps...")
+    for app_slug, data in apps_dict.items():
+        logger.info(f"Creating {app_slug} using {data}")
+        
+        # Handle mounting of volumes
+        if "volume" in data:
+            try:
+                volumes = VolumeInstance.objects.filter(project__pk=project.pk, name=data["volume"])
+                data["volume"] = volumes
+                logger.info(f"using {data}")
+            except VolumeInstance.DoesNotExist:
+                raise ProjectCreationException(f"Volume {data['volume']} not found")
+            
+        if "flavor" in data:
+            try:
+                flavor = Flavor.objects.filter(project__pk=project.pk, name=data["flavor"]).first()
+                data["flavor"] = flavor
+                logger.info(f"using {data}")
+            except Flavor.DoesNotExist:
+                raise ProjectCreationException(f"Flavor {data['flavor']} not found")
+            
+        form = SLUG_MODEL_FORM_MAP[app_slug].Form(data, project_pk=project.pk)
+        logger.info(form.errors.as_data())
+        if form.is_valid():
+            logger.info("Form is valid - Creating app instance")
+            create_instance_from_form(form, project, app_slug)
+    
+    
     env_dict = template.get("environments", {})
+    logger.info("Creating Project Environments...")
     for name, settings in env_dict.items():
         try:
             app = Apps.objects.filter(slug=settings["app"]).order_by("-revision")[0]
@@ -145,8 +166,9 @@ def delete_project(project_pk):
 
 @shared_task
 def delete_project_apps_permanently(project):
-    apps = AppInstance.objects.filter(project=project)
-
-    for app in apps:
-        helm_output = delete(app.parameters)
-        logger.info(helm_output.stderr.decode("utf-8"))
+    
+    for subclass in AbstractAppInstance.__subclasses__():
+        queryset = subclass.objects.filter(project=project)
+        for instance in queryset:
+            serialized_instance = instance.serialize()
+            delete_resource_new(serialized_instance)

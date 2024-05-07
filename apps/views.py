@@ -664,7 +664,7 @@ def delete(request, project, app_slug, app_id):
 
 
     
-    serialized_instance = serializers.serialize("json", [instance])
+    serialized_instance = instance.serialize()
     
     delete_resource_new.delay(serialized_instance)
     # fix: in case appinstance is public swich to private
@@ -703,7 +703,7 @@ class CreateApp(View):
     @transaction.atomic
     def post(self, request, project, app_slug, app_id=None):
         # App id is used when updataing an instance
-        
+
         project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
         project = Project.objects.get(slug=project_slug)
         
