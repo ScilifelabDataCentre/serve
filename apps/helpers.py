@@ -16,54 +16,11 @@ from projects.models import Flavor
 from studio.utils import get_logger
 
 from .models import AppInstance, AppStatus, JupyterInstance, VolumeInstance, Apps, Subdomain
-from .serialize import serialize_app
-from .tasks import deploy_resource, deploy_resource_new, delete_resource_new
+from .tasks import deploy_resource, deploy_resource, delete_resource
 
 logger = get_logger(__name__)
 
 ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
-
-
-def create_instance_params(instance, action="create"):
-    logger.info("HELPER - CREATING INSTANCE PARAMS")
-    RELEASE_NAME = "r" + uuid.uuid4().hex[0:8]
-    logger.info("RELEASE_NAME: " + RELEASE_NAME)
-
-    SERVICE_NAME = RELEASE_NAME + "-" + instance.app.slug
-    # TODO: Fix for multicluster setup, look at e.g. labs
-    HOST = settings.DOMAIN
-    AUTH_HOST = settings.AUTH_DOMAIN
-    AUTH_PROTOCOL = settings.AUTH_PROTOCOL
-    NAMESPACE = settings.NAMESPACE
-
-    # Add some generic parameters.
-    parameters = {
-        "release": RELEASE_NAME,
-        "chart": str(instance.app.chart),
-        "namespace": NAMESPACE,
-        "app_slug": str(instance.app.slug),
-        "app_revision": str(instance.app.revision),
-        "appname": RELEASE_NAME,
-        "global": {
-            "domain": HOST,
-            "auth_domain": AUTH_HOST,
-            "protocol": AUTH_PROTOCOL,
-        },
-        "s3sync": {"image": "scaleoutsystems/s3-sync:latest"},
-        "service": {
-            "name": SERVICE_NAME,
-            "port": instance.parameters["default_values"]["port"],
-            "targetport": instance.parameters["default_values"]["targetport"],
-        },
-        "storageClass": settings.STORAGECLASS,
-    }
-
-    instance.parameters.update(parameters)
-
-    if "project" not in instance.parameters:
-        instance.parameters["project"] = dict()
-
-    instance.parameters["project"].update({"name": instance.project.name, "slug": instance.project.slug})
 
 
 def can_access_app_instance(app_instance, user, project):
@@ -136,111 +93,6 @@ def handle_permissions(parameters, project):
     return access
 
 
-# TODO: refactor
-# 1. data=[]. This is bad as this is not a list, but a dict and secondly,
-#    it is not a good practice to use mutable as default
-# 2. Use some type annotations
-# 3. Use tuple as return type instead of list
-def create_app_instance(user, project, app, app_settings, data=[], wait=False):
-    app_name = data.get("app_name")
-    app_description = data.get("app_description")
-    created_by_admin = False
-    # For custom apps, if admin user fills form, then data.get("admin") exists as hidden input
-    if data.get("created_by_admin"):
-        created_by_admin = True
-    parameters_out, app_deps, model_deps = serialize_app(data, project, app_settings, user.username)
-    parameters_out["created_by_admin"] = created_by_admin
-    authorized = can_access_app_instances(app_deps, user, project)
-
-    if not authorized:
-        raise Exception("Not authorized to use specified app dependency")
-
-    access = handle_permissions(parameters_out, project)
-
-    flavor_id = data.get("flavor", None)
-    flavor = Flavor.objects.get(pk=flavor_id, project=project) if flavor_id else None
-
-    source_code_url = data.get("source_code_url")
-    app_instance = AppInstance(
-        name=app_name,
-        description=app_description,
-        access=access,
-        app=app,
-        project=project,
-        info={},
-        parameters=parameters_out,
-        owner=user,
-        flavor=flavor,
-        note_on_linkonly_privacy=data.get("link_privacy_type_note"),
-        source_code_url=source_code_url,
-    )
-
-    create_instance_params(app_instance, "create")
-
-    # Attempt to create a ReleaseName model object
-    rel_name_obj = []
-    if "app_release_name" in data and data.get("app_release_name") != "":
-        submitted_rn = data.get("app_release_name")
-        try:
-            rel_name_obj = ReleaseName.objects.get(name=submitted_rn, project=project, status="active")
-            rel_name_obj.status = "in-use"
-            rel_name_obj.save()
-            app_instance.parameters["release"] = submitted_rn
-        except Exception:
-            logger.error("Submitted release name not owned by project.", exc_info=True)
-            return [False, None, None]
-
-    # Add fields for apps table:
-    # to be displayed as app details in views
-    if app_instance.app.table_field and app_instance.app.table_field != "":
-        django_engine = engines["django"]
-        info_field = django_engine.from_string(app_instance.app.table_field).render(app_instance.parameters)
-        # Nikita Churikov @ 2024-01-25
-        # TODO: this seems super bad and exploitable
-        app_instance.table_field = eval(info_field)
-    else:
-        app_instance.table_field = {}
-
-    # Setting status fields before saving app instance
-    status_object = AppStatus()
-    status_object.status = "Created"
-    status_object.info = app_instance.parameters["release"]
-    if "appconfig" in app_instance.parameters:
-        if "path" in app_instance.parameters["appconfig"]:
-            # remove trailing / in all cases
-            if app_instance.parameters["appconfig"]["path"] != "/":
-                app_instance.parameters["appconfig"]["path"] = app_instance.parameters["appconfig"]["path"].rstrip("/")
-            if app_deps:
-                if not created_by_admin:
-                    app_instance.parameters["appconfig"]["path"] = (
-                        "/home/" + app_instance.parameters["appconfig"]["path"]
-                    )
-        if "userid" not in app_instance.parameters["appconfig"]:
-            app_instance.parameters["appconfig"]["userid"] = "1000"
-        if "proxyheartbeatrate" not in app_instance.parameters["appconfig"]:
-            app_instance.parameters["appconfig"]["proxyheartbeatrate"] = "10000"
-        if "proxyheartbeattimeout" not in app_instance.parameters["appconfig"]:
-            app_instance.parameters["appconfig"]["proxyheartbeattimeout"] = "60000"
-        if "proxycontainerwaittime" not in app_instance.parameters["appconfig"]:
-            app_instance.parameters["appconfig"]["proxycontainerwaittime"] = "30000"
-    app_instance.save()
-    # Saving ReleaseName, status and setting up dependencies
-    if rel_name_obj:
-        rel_name_obj.app = app_instance
-        rel_name_obj.save()
-    status_object.save()
-    app_instance.app_dependencies.set(app_deps)
-    app_instance.model_dependencies.set(model_deps)
-
-    # Finally, attempting to create apps resources
-    res = deploy_resource.delay(app_instance.pk, "create")
-
-    # wait is passed as a function parameter
-    if wait:
-        while not res.ready():
-            time.sleep(0.1)
-
-    return [True, project.slug, app_instance.app.category.slug]
 
 
 class HandleUpdateStatusResponseCode(Enum):
@@ -249,7 +101,7 @@ class HandleUpdateStatusResponseCode(Enum):
     UPDATED_TIME_OF_STATUS = 2
     CREATED_FIRST_STATUS = 3
 
-
+#TODO: Need to be updated to adhere to new logic
 def handle_update_status_request(
     release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
 ) -> HandleUpdateStatusResponseCode:
@@ -325,7 +177,7 @@ def handle_update_status_request(
         logger.error("Unable to fetch or update the specified app instance %s. %s, %s", release, err, type(err))
         raise
 
-
+#TODO: Need to be updated to adhere to new logic
 @transaction.atomic
 def update_status(appinstance, status_object, status, status_ts=None, event_msg=None):
     """
@@ -364,7 +216,7 @@ def update_status_time(status_object, status_ts, event_msg=None):
         status_object.info = event_msg
         status_object.save(update_fields=["time", "info"])
 
-
+#TODO: Add docstring
 @transaction.atomic
 def create_instance_from_form(form, project, app_slug, app_id=None):
     subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
@@ -376,7 +228,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     # If subdomain is changed, we must delete the old helm release
     if app_id and instance.subdomain.subdomain != form.cleaned_data.get("subdomain"):
         serialized_instance = instance.serialize()
-        delete_resource_new.delay(serialized_instance)
+        delete_resource.delay(serialized_instance)
 
     instance.app = Apps.objects.get(slug=app_slug)
     instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
@@ -394,4 +246,4 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
     serialized_instance = instance.serialize()
 
-    deploy_resource_new.delay(serialized_instance)
+    deploy_resource.delay(serialized_instance)

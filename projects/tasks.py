@@ -1,6 +1,5 @@
 import collections
 import json
-import secrets
 import string
 
 from celery import shared_task
@@ -8,18 +7,17 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
-import apps.tasks as apptasks
-from apps.controller import delete
-from apps.helpers import create_app_instance, create_instance_from_form
+
+from apps.helpers import create_instance_from_form
 from studio.utils import get_logger
 
 from .exceptions import ProjectCreationException
-from .models import S3, Environment, Flavor, MLFlow, Project
+from .models import Environment, Flavor, Project
 
 from apps.constants import SLUG_MODEL_FORM_MAP
 from apps.models import VolumeInstance, AbstractAppInstance
 
-from apps.tasks import delete_resource_new
+from apps.tasks import delete_resource
 
 logger = get_logger(__name__)
 
@@ -148,27 +146,19 @@ def create_resources_from_template(user, project_slug, template):
 
 
 @shared_task
-def delete_project_apps(project_slug):
-    project = Project.objects.get(slug=project_slug)
-    apps = AppInstance.objects.filter(project=project)
-    for app in apps:
-        apptasks.delete_resource.delay(app.pk)
-
-
-@shared_task
 def delete_project(project_pk):
     logger.info("SCHEDULING DELETION OF ALL INSTALLED APPS")
     project = Project.objects.get(pk=project_pk)
-    delete_project_apps_permanently(project)
+    delete_project_apps(project)
 
     project.delete()
 
 
 @shared_task
-def delete_project_apps_permanently(project):
+def delete_project_apps(project):
     
     for subclass in AbstractAppInstance.__subclasses__():
         queryset = subclass.objects.filter(project=project)
         for instance in queryset:
             serialized_instance = instance.serialize()
-            delete_resource_new(serialized_instance)
+            delete_resource(serialized_instance)

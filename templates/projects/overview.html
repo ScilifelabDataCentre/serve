@@ -113,7 +113,9 @@
                                 {% endif %}
                             </td>
                             <td class="d-none d-xxl-table-cell" id="tags-{{ obj.pk }}">
-
+                                {% for tag in obj.tags.all %}
+                                <span class="badge bg-primary">{{ tag.name }}</span>
+                                {% endfor %}
                             </td>
 
                             <td class="table-action text-center">

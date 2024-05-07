@@ -38,7 +38,6 @@ from apps.models import AbstractAppInstance
 
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
-AppInstance = apps.get_model(app_label="apps.AppInstance")
 AppCategories = apps.get_model(app_label=django_settings.APPCATEGORIES_MODEL)
 Model = apps.get_model(app_label=django_settings.MODELS_MODEL)
 User = get_user_model()
@@ -52,7 +51,7 @@ class IndexView(View):
                 projects = Project.objects.filter(status="active").distinct("pk")
             else:
                 projects = Project.objects.filter(
-                    Q(owner=request.user) | Q(authorized=request.user),
+                    Q(owner=request.user.id) | Q(authorized=request.user.id),
                     status="active",
                 ).distinct("pk")
         except TypeError as err:
@@ -579,9 +578,7 @@ class DetailsView(View):
         def filter_app_slug(slug):
             return Q(app__slug=slug)
 
-        filemanager_instance = AppInstance.objects.get_app_instances_of_project(
-            user=request.user, project=project, filter_func=filter_app_slug(slug="filemanager")
-        ).first()
+        #TODO: Handle the filemanager case later
         filemanager_instance = None
 
         if filemanager_instance:
