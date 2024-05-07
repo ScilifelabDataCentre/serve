@@ -17,7 +17,7 @@ from studio.utils import get_logger
 
 from .models import AppInstance, AppStatus, JupyterInstance, VolumeInstance, Apps, Subdomain
 from .serialize import serialize_app
-from .tasks import deploy_resource, deploy_resource_new
+from .tasks import deploy_resource, deploy_resource_new, delete_resource_new
 
 logger = get_logger(__name__)
 
@@ -365,12 +365,20 @@ def update_status_time(status_object, status_ts, event_msg=None):
         status_object.save(update_fields=["time", "info"])
 
 
-
-def create_instance_from_form(form, project, app_slug):
+@transaction.atomic
+def create_instance_from_form(form, project, app_slug, app_id=None):
     subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
+    
+
     status = AppStatus.objects.create()
 
     instance = form.save(commit=False)
+    
+    # If subdomain is changed, we must delete the old helm release
+    if app_id and instance.subdomain.subdomain != form.cleaned_data.get("subdomain"):
+        serialized_instance = serializers.serialize("json", [instance])
+        delete_resource_new.delay(serialized_instance)
+
     instance.app = Apps.objects.get(slug=app_slug)
     instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
     instance.project = project

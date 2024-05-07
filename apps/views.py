@@ -635,64 +635,7 @@ def unpublish(request, user, project, category, ai_id):
     )
 
 
-@permission_required_or_403("can_view_project", (Project, "slug", "project"))
-def delete(request, project, category, ai_id):
-    if "from" in request.GET:
-        from_page = request.GET.get("from")
-    else:
-        from_page = "filtered"
-
-    app_instance = AppInstance.objects.get(pk=ai_id)
-
-    if not app_instance.app.user_can_delete:
-        return HttpResponseForbidden()
-
-    delete_resource.delay(ai_id)
-    # fix: in case appinstance is public swich to private
-    app_instance.access = "private"
-    app_instance.save()
-
-    if "from" in request.GET:
-        from_page = request.GET.get("from")
-        if from_page == "overview":
-            return HttpResponseRedirect(
-                reverse(
-                    "projects:details",
-                    kwargs={
-                        "project_slug": str(project),
-                    },
-                )
-            )
-        elif from_page == "filtered":
-            return HttpResponseRedirect(
-                reverse(
-                    "apps:filtered",
-                    kwargs={
-                        "project": str(project),
-                        "category": category,
-                    },
-                )
-            )
-        else:
-            return HttpResponseRedirect(
-                reverse(
-                    "apps:filtered",
-                    kwargs={
-                        "project": str(project),
-                        "category": category,
-                    },
-                )
-            )
-
-    return HttpResponseRedirect(
-        reverse(
-            "apps:filtered",
-            kwargs={
-                "project": str(project),
-                "category": category,
-            },
-        )
-    )
+    
 
 
 from django.shortcuts import render
@@ -702,9 +645,42 @@ from django.shortcuts import render
 from .forms import JupyterForm, VolumeForm
 from .models import JupyterInstance, VolumeInstance, Subdomain, AppStatus
 from django.views.generic.detail import DetailView
-from .tasks import deploy_resource_new
+from .tasks import deploy_resource_new, delete_resource_new
 
 
+@permission_required_or_403("can_view_project", (Project, "slug", "project"))
+def delete(request, project, app_slug, app_id):
+
+    model_class, _ = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
+    logger.info(f"Deleting app type {model_class} with id {app_id}")
+
+
+    instance = model_class.objects.get(pk=app_id) if app_id else None
+    
+    #TODO: Add check here and redirect if instance is not found
+    
+    if not instance.app.user_can_delete:
+        return HttpResponseForbidden()
+
+
+    
+    serialized_instance = serializers.serialize("json", [instance])
+    
+    delete_resource_new.delay(serialized_instance)
+    # fix: in case appinstance is public swich to private
+    instance.access = "private"
+    instance.save()
+
+ 
+
+    return HttpResponseRedirect(
+        reverse(
+            "projects:details",
+            kwargs={
+                "project_slug": str(project),
+            },
+        )
+    )
 
 
 
@@ -725,18 +701,18 @@ class CreateApp(View):
         return render(request, self.template_name, {"form": form})
 
     @transaction.atomic
-    def post(self, request, project, app_slug):
+    def post(self, request, project, app_slug, app_id=None):
+        # App id is used when updataing an instance
+        
         project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
         project = Project.objects.get(slug=project_slug)
         
-        form = self.get_form(request, project, app_slug, None)
+        form = self.get_form(request, project, app_slug, app_id)
         if not form.is_valid():
             return render(request, self.template_name, {"form": form})
         # Otherwise we can create the instance
-
-
             
-        create_instance_from_form(form, project, app_slug)
+        create_instance_from_form(form, project, app_slug, app_id)
 
         return HttpResponseRedirect(
             reverse(

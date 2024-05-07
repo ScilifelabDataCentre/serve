@@ -1,4 +1,4 @@
-from crispy_forms.layout import Layout, Div, Field
+from crispy_forms.layout import Layout, Div, Field, HTML
 from django import forms
 
 from apps.forms.base import AppBaseForm

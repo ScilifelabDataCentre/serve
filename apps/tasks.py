@@ -564,6 +564,7 @@ def delete_resource_new(serialized_instance):
     }
 
     instance.info = dict(helm = helm_info)
+    instance.app_status.save()
     instance.save()
 
 

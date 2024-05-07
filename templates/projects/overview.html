@@ -147,7 +147,7 @@
                                         {% if obj.app.user_can_delete %}
 
                                         <a class="dropdown-item bg-danger text-white confirm-delete default"
-                                            href="{% url 'apps:delete' project.slug obj.app.category.slug obj.pk %}?from=overview">
+                                            href="{% url 'apps:delete' project.slug obj.app.slug obj.pk %}?from=overview">
                                             <i class="bi bi-trash me-1"></i>
                                             Delete
                                         </a>
