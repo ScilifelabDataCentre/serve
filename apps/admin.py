@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 
 from studio.utils import get_logger
 
-from .models import AppInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance
+from .models import AppInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance
 
 from .tasks import deploy_resource
 
@@ -105,6 +105,7 @@ class AppStatusAdmin(admin.ModelAdmin):
 
 admin.site.register(JupyterInstance)
 admin.site.register(VolumeInstance)
+admin.site.register(DashInstance)
 admin.site.register(Subdomain)
 admin.site.register(AppCategories)
 admin.site.register(AppStatus)#, AppStatusAdmin)

@@ -19,8 +19,8 @@ class JupyterInstance(AbstractAppInstance, Social):
     def set_k8s_values(self):
         super().set_k8s_values()
 
-        self.k8s_values["permission"] = self.access,
-
+        self.k8s_values["permission"] = str(self.access)
+        
         # Not the nicest perhaps, but it works since the charts assume that the volumes are on this form
         # {apps:
         #   {volumeK8s:
