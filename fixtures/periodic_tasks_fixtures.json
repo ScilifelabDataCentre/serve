@@ -27,62 +27,7 @@
     "model": "django_celery_beat.periodictask",
     "pk": 1
   },
-  {
-    "fields": {
-      "args": "[]",
-      "clocked": null,
-      "crontab": null,
-      "date_changed": "2021-02-26T14:03:40.168Z",
-      "description": "",
-      "enabled": false,
-      "exchange": null,
-      "expire_seconds": null,
-      "expires": null,
-      "headers": "{}",
-      "interval": 1,
-      "kwargs": "{}",
-      "last_run_at": "2021-02-26T14:03:37.169Z",
-      "name": "sync_mlflow_models",
-      "one_off": false,
-      "priority": null,
-      "queue": null,
-      "routing_key": null,
-      "solar": null,
-      "start_time": null,
-      "task": "apps.tasks.sync_mlflow_models",
-      "total_run_count": 174
-    },
-    "model": "django_celery_beat.periodictask",
-    "pk": 4
-  },
-  {
-    "fields": {
-      "args": "[]",
-      "clocked": null,
-      "crontab": 1,
-      "date_changed": "2021-02-26T14:03:40.168Z",
-      "description": "",
-      "enabled": true,
-      "exchange": null,
-      "expire_seconds": null,
-      "expires": null,
-      "headers": "{}",
-      "interval": null,
-      "kwargs": "{}",
-      "last_run_at": "2021-02-26T14:03:37.169Z",
-      "name": "purge_tasks",
-      "one_off": false,
-      "priority": null,
-      "queue": null,
-      "routing_key": null,
-      "solar": null,
-      "start_time": null,
-      "task": "apps.tasks.purge_tasks",
-      "total_run_count": 174
-    },
-    "model": "django_celery_beat.periodictask",
-    "pk": 5
-  },
+
   {
     "fields": {
       "args": "[]",

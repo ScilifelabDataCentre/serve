@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.utils.safestring import mark_safe
 
-from apps.models import AbstractAppInstance, Subdomain
+from apps.models import AbstractAppInstance, Subdomain, VolumeInstance
 from projects.models import Flavor, Project
 
 
@@ -86,18 +86,33 @@ class AppBaseForm(BaseForm):
     Generic form for apps that require some compute power,
     so you can treat this form as an actual base form for the most of the apps
     """
+    volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), widget=forms.CheckboxSelectMultiple,
+                                            required=False, help_text="Select the volume(s) to mount to JupyterLab")
+    flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), 
+                                    required=True,
+                                    empty_label=None)
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def _setup_form_fields(self):
+        super()._setup_form_fields()
         flavor_queryset = Flavor.objects.filter(
             project__pk=self.project_pk) if self.project_pk else Flavor.objects.none()
-
         # Handle Flavor field
         self.fields["flavor"].label = "Hardware"
         self.fields["flavor"].queryset = flavor_queryset
-        self.fields["flavor"].initial = flavor_queryset.first() if flavor_queryset else None
+        self.fields["flavor"].initial = flavor_queryset.first()# if flavor_queryset else None
 
         # Handle Access field
         self.fields["access"].label = "Permission"
+        
+        # Handle Volume field
+        volume_queryset = VolumeInstance.objects.filter(
+            project__pk=self.project_pk) if self.project_pk else VolumeInstance.objects.none()
+        
+        self.fields["volume"].queryset = volume_queryset
+        self.fields["volume"].initial = volume_queryset.first() if volume_queryset else None
 
 
 

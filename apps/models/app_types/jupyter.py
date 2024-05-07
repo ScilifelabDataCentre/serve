@@ -7,7 +7,7 @@ class JupyterInstanceManager(AppInstanceManager):
     model_type = "jupyterinstance"
 
 
-class JupyterInstance(AbstractAppInstance, Social):
+class JupyterInstance(AbstractAppInstance):
     objects = JupyterInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),
