@@ -1,4 +1,5 @@
 import json
+from typing import Any, cast
 
 import requests
 from django.conf import settings
@@ -32,7 +33,7 @@ logger = get_logger(__name__)
 
 
 @receiver(pre_save, sender=User)
-def set_new_user_inactive(sender, instance, **kwargs):
+def set_new_user_inactive(sender: object, instance: Any, **kwargs: Any) -> None:
     if instance._state.adding and settings.INACTIVE_USERS and not instance.is_superuser:
         logger.info("Creating Inactive User")
         instance.is_active = False
@@ -43,12 +44,12 @@ def set_new_user_inactive(sender, instance, **kwargs):
 # Since this is a production feature, it will only work if DEBUG is set to False
 
 
-def handle_page_not_found(request, exception):
+def handle_page_not_found(request: Response, exception: object) -> HttpResponseRedirect:
     return HttpResponseRedirect("/")
 
 
 class AccessPermission(BasePermission):
-    def has_permission(self, request, view):
+    def has_permission(self, request: Response, view: object) -> bool:
         """
         Should simply return, or raise a 403 response.
         """
@@ -60,12 +61,12 @@ class AccessPermission(BasePermission):
         except:  # noqa: E722
             project_slug = request.GET.get("project")
             project = Project.objects.get(slug=project_slug)
-            return request.user.has_perm("can_view_project", project)
+            return cast(bool, request.user.has_perm("can_view_project", project))
 
         if app_instance.access == "private":
-            return app_instance.owner == request.user
+            return cast(bool, app_instance.owner == request.user)
         elif app_instance.access == "project":
-            return request.user.has_perm("can_view_project", project)
+            return cast(bool, request.user.has_perm("can_view_project", project))
         else:
             return True
 
@@ -80,7 +81,7 @@ class ModifiedSessionAuthentication(SessionAuthentication):
     header can be retrieved and the response code is automatically set to 401 in case of unauthenticated requests.
     """
 
-    def authenticate_header(self, request):
+    def authenticate_header(self, request: Response) -> str:
         return "Session"
 
 
@@ -88,7 +89,7 @@ class AuthView(APIView):
     authentication_classes = [ModifiedSessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated, AccessPermission]
 
-    def get(self, request, format=None):
+    def get(self, request: Response, format: str | None = None) -> Response:
         content = {
             "user": str(request.user),
             "auth": str(request.auth),
@@ -97,7 +98,7 @@ class AuthView(APIView):
 
 
 @login_required
-def profile(request):
+def profile(request: Response) -> Response:
     # Get the user profile
     try:
         # Note that not all users have a user profile object
@@ -114,7 +115,7 @@ def profile(request):
 
 
 @login_required
-def delete_account(request):
+def delete_account(request: Response) -> Response:
     """
     Renders a form that allows a user to delete their user account.
     Verifies that the user does not own any Serve projects.
@@ -134,7 +135,7 @@ def delete_account(request):
 
 
 @login_required
-def delete_account_post_handler(request, user_id):
+def delete_account_post_handler(request: Response, user_id: int) -> Response:
     """
     Handles a POST action request by a user to delete their account.
     """
@@ -184,12 +185,12 @@ def delete_account_post_handler(request, user_id):
             return HttpResponse("Unable to delete user account.", status=500)
 
 
-def account_deleted(request, user_id):
+def account_deleted(request: Response, user_id: int) -> Response:
     """Renders a view shown to users at the end of deletion of their account."""
     return render(request, "user/account_deleted.html", {"user_id": user_id})
 
 
-def __get_university_name(request, code):
+def __get_university_name(request: Response, code: str) -> str:
     """Gets the university name by making an API call.
     :param request: The request object.
     :param str code: The university code.
@@ -204,6 +205,6 @@ def __get_university_name(request, code):
 
     if response.status_code == 200:
         data = response.json()["data"]
-        return data["name"]
+        return cast(str, data["name"])
     else:
         raise Exception("API did not return status 200")

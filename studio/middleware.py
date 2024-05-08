@@ -1,6 +1,7 @@
 import logging
 import sys
 import traceback
+from typing import Any
 
 from studio.utils import get_logger
 
@@ -12,14 +13,14 @@ class ExceptionLoggingMiddleware:
     This middleware provides logging of exception in requests.
     """
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Any):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: object) -> Any:
         response = self.get_response(request)
         return response
 
-    def process_exception(self, request, exception):
+    def process_exception(self, request: Any, exception: Any) -> None:
         """
         Processes exceptions during handling of a http request.
         Logs them with ERROR level.

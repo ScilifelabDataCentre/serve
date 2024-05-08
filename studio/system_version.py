@@ -25,39 +25,39 @@ class SystemVersion(metaclass=Singleton):
     __pyproject_is_parsed = False
     __init_counter = 0
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         self.__init_counter += 1
         self.__set_values_from_toml()
 
-    def get_version_text(self):
+    def get_version_text(self) -> str:
         """Gets a formatted text of the deployed system in format <date> (v0.0.0)."""
         if self.__build_date == "" or self.__gitref == "":
             return "unset"
         return f"{self.__build_date} ({self.__gitref})"
 
-    def get_build_date(self):
+    def get_build_date(self) -> str | None:
         """Gets the deployed system build date."""
         return self.__build_date
 
-    def get_gitref(self):
+    def get_gitref(self) -> str | None:
         """Gets the deployed system git reference, e.g. develop or v1.0.0."""
         return self.__gitref
 
-    def get_imagetag(self):
+    def get_imagetag(self) -> str | None:
         """Gets the deployed image tag as e.g. main-20230912"""
         return self.__imagetag
 
-    def get_debug_info(self):
+    def get_debug_info(self) -> str:
         debug_info = f"toml has been parsed:{self.__pyproject_is_parsed}, init:{self.__init_counter}"
         return debug_info
 
-    def get_init_counter(self):
+    def get_init_counter(self) -> int:
         return self.__init_counter
 
-    def get_pyproject_is_parsed(self):
+    def get_pyproject_is_parsed(self) -> bool:
         return self.__pyproject_is_parsed
 
-    def __set_values_from_toml(self):
+    def __set_values_from_toml(self) -> None:
         err_message = ""
         try:
             proj_path = pathlib.Path(__file__).parents[1] / "pyproject.toml"
