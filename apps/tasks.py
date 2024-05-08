@@ -112,6 +112,8 @@ def deploy_resource(serialized_instance):
 
     instance.info = dict(helm = helm_info)
     instance.app_status.status = "Created" if success else "Failed"
+    
+    instance.app_status.save()
     instance.save()
 
 

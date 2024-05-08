@@ -121,7 +121,7 @@ class GetStatusView(View):
                         "statusGroup": status_group,
                     }
 
-                    result[f"{instance.pk}"] = obj
+                    result[f"{instance.app.slug}-{instance.pk}"] = obj
 
             return JsonResponse(result)
 
