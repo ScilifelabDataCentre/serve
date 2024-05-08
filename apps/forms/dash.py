@@ -29,7 +29,7 @@ class DashForm(AppBaseForm):
             
             Field("flavor"),
             Field("access"),
-            Field("source_code_url", rows="3"),
+            Field("source_code_url", placeholder="Provide a link to the public source code"),
             Field("port", placeholder="8000"),
             Field("image", placeholder="registry/repository/image:tag"),
             Field("tags"),
