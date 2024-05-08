@@ -4,7 +4,7 @@ from django.conf import settings
 
 class Subdomain(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    subdomain = models.CharField(max_length=512, unique=True)
+    subdomain = models.CharField(max_length=30, unique=True)
     project = models.ForeignKey(settings.PROJECTS_MODEL, on_delete=models.CASCADE, null=True)
 
     def __str__(self):

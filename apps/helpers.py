@@ -22,11 +22,11 @@ logger = get_logger(__name__)
 
 
 
-def can_access_app_instance(app_instance, user, project):
+def can_access_app_instance(instance, user, project):
     """Checks if a user has access to an app instance
 
     Args:
-        app_instance (AppInstance): app instance object
+        instance (subclass of AbstractAppInstance): instance object
         user (User): user object
         project (Project): project object
 
@@ -35,32 +35,32 @@ def can_access_app_instance(app_instance, user, project):
     """
     authorized = False
 
-    if app_instance.access in ("public", "link"):
+    if instance.access in ("public", "link"):
         authorized = True
-    elif app_instance.access == "project":
+    elif instance.access == "project":
         if user.has_perm("can_view_project", project):
             authorized = True
     else:
-        if user.has_perm("can_access_app", app_instance):
+        if user.has_perm("can_access_app", instance):
             authorized = True
 
     return authorized
 
 
-def can_access_app_instances(app_instances, user, project):
+def can_access_app_instances(instances, user, project):
     """Checks if user has access to all app instances provided
 
     Args:
-        app_instances (Queryset<AppInstace>): list of app instances
+        instances (Queryset<AbstractAppInstance>): list of instances
         user (User): user object
         project (Project): project object
 
     Returns:
         Boolean: returns False if user lacks
-        permission to any of the app instances provided
+        permission to any of the instances provided
     """
-    for app_instance in app_instances:
-        authorized = can_access_app_instance(app_instance, user, project)
+    for instance in instances:
+        authorized = can_access_app_instance(instance, user, project)
 
         if not authorized:
             return False

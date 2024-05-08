@@ -12,7 +12,7 @@ __all__ = [
 
 class DashForm(AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), widget=forms.RadioSelect, required=False)
-    port = forms.IntegerField(min_value=1024, max_value=65535, required=True)
+    port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     image = forms.CharField(max_length=255, required=True)
 
 

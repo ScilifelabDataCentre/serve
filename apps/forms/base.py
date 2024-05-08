@@ -4,13 +4,12 @@ from typing import Any
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Button, Div
 from django import forms
-from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.utils.safestring import mark_safe
 
 from apps.models import AbstractAppInstance, Subdomain, VolumeInstance
 from projects.models import Flavor, Project
-
+from django.core.validators import RegexValidator
 
 __all__ = [
     "BaseForm",
@@ -20,7 +19,10 @@ __all__ = [
 
 class BaseForm(forms.ModelForm):
     """The most generic form for apps running on serve. Current intended use is for VolumesK8S type apps"""
-    subdomain = forms.CharField(required=False)
+    subdomain = forms.CharField(required=False,
+                min_length=3,
+                max_length=30,
+               )
 
     def __init__(self, *args, **kwargs):
         self.project_pk = kwargs.pop('project_pk', None)
@@ -49,10 +51,21 @@ class BaseForm(forms.ModelForm):
         self.helper.form_method = 'post'
 
     def clean_subdomain(self):
-        subdomain_input = self.cleaned_data.get("subdomain")
+        cleaned_data = super().clean()
+        subdomain_input = cleaned_data.get("subdomain")
         return self.validate_subdomain(subdomain_input)
 
+
     def validate_subdomain(self, subdomain_input):
+        # First, check if the subdomain adheres to helm rules
+        regex_validator=RegexValidator(
+            regex=r'^[a-zA-Z0-9]*$',
+        )
+        try:
+            regex_validator(subdomain_input)
+        except forms.ValidationError as e:
+            raise forms.ValidationError("Subdomain must be alphanumeric characters without space")
+        
         # If user did not input subdomain, set it to our standard release name
         if not subdomain_input:
             subdomain = "r" + uuid.uuid4().hex[0:8]
