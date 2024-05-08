@@ -244,7 +244,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     instance = form.save(commit=False)
     
     # Handle status creation or retrieval
-    status = instance.status if app_id else AppStatus.objects.create()
+    status = instance.app_status if app_id else AppStatus.objects.create()
     
     # Retrieve or create the subdomain
     subdomain, created = Subdomain.objects.get_or_create(subdomain=subdomain_name, project=project)
