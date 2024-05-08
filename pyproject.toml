@@ -110,6 +110,7 @@ python_version = "3.12"
 disallow_subclassing_any = false
 ignore_missing_imports = false
 warn_return_any = true
+untyped_calls_exclude = ["apps.helpers","projects.models"]
 exclude = ["venv", ".venv", "examples"]
 #plugins = ["mypy_django_plugin.main"]
 
@@ -129,27 +130,50 @@ strict = false
 check_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_subclassing_any = false
+disallow_untyped_decorators = false
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = [
 	"*.tests.*",
 	"*.tests",
+	"conftest",
 	"cypress.*"
 ]
-strict = false
 check_untyped_defs = false
 disallow_incomplete_defs = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = "*.migrations.*"
 ignore_errors = true
 
-# A temporary section
+# A temporary section to ease the transition of mypy into the codebase
 [[tool.mypy.overrides]]
-module = "common.tasks"
+module = [
+	"api.*",
+	"apps.*",
+	"collections_module.*",
+	"common.*",
+	"customtags.*",
+	"models.*",
+	"monitor.*",
+	"news.*",
+	"portal.*",
+	"projects.*",
+	"scripts.*",
+]
+strict = false
+check_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
 disallow_untyped_decorators = false
+disallow_untyped_defs = false
+no_implicit_reexport = false
 
 [[tool.mypy.overrides]]
 module = [
