@@ -27,3 +27,8 @@ class DashInstance(AbstractAppInstance, Social):
             port = self.port,
             image = self.image
         )
+    
+    class Meta:
+        verbose_name = "Dash Instance"
+        verbose_name_plural = "Dash Instances"
+        permissions = [("can_access_app", "Can access app service")]

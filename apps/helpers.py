@@ -15,12 +15,11 @@ from django.template import engines
 from projects.models import Flavor
 from studio.utils import get_logger
 
-from .models import AppInstance, AppStatus, JupyterInstance, VolumeInstance, Apps, Subdomain
+from .models import AbstractAppInstance, AppStatus, JupyterInstance, VolumeInstance, Apps, Subdomain
 from .tasks import deploy_resource, deploy_resource, delete_resource
 
 logger = get_logger(__name__)
 
-ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
 
 def can_access_app_instance(app_instance, user, project):
@@ -109,7 +108,7 @@ def handle_update_status_request(
     Helper function to handle update app status requests by determining if the
     request should be performed or ignored.
 
-    :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
+    :param release str: The release id of the app instance, stored in the AppInstance.k8s_values dict in the subdomain.
     :param new_status str: The new status code. Trimmed to max 15 chars if needed.
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
@@ -124,28 +123,48 @@ def handle_update_status_request(
         # Begin by verifying that the requested app instance exists
         # We wrap the select and update tasks in a select_for_update lock
         # to avoid race conditions.
-
+        
+        def find_related_model(subdomain):
+            # Get all immediate subclasses of AbstractBase
+            # This is needed since the SubModel is not known in advance
+            #TODO: Add an app-slug to the event listener to avoid this loop
+ 
+            for model_class in AbstractAppInstance.__subclasses__():
+                model_name = model_class.__name__.lower()
+                try:
+                    # Try to access the reverse relation from SubModel to the concrete model
+                    related_object = getattr(subdomain, model_name)
+                    logger.info(f"The Subdomain instance is related to {model_name.capitalize()}.")
+                    return model_class
+                except ObjectDoesNotExist:
+                    continue
+            print("The Subdomain instance is not related to any known subclass of AbstractBase.")
+            return None
+        
+        subdomain = Subdomain.objects.get(subdomain=release)
+        model_class = find_related_model(subdomain)
+        
         with transaction.atomic():
-            app_instance = (
-                AppInstance.objects.select_for_update().filter(parameters__contains={"release": release}).last()
+            instance = (
+                model_class.objects.select_for_update().filter(subdomain=subdomain).last()
             )
-            if app_instance is None:
+            if instance is None:
                 logger.info("The specified app instance was not found release=%s.", release)
                 raise ObjectDoesNotExist
 
-            logger.debug("The app instance exists. name=%s, state=%s", app_instance.name, app_instance.state)
+            logger.debug("The app instance exists. name=%s", instance.name)
 
             # Also get the latest app status object for this app instance
-            if app_instance.status is None or app_instance.status.count() == 0:
+            if instance.app_status is None:
                 # Missing app status so create one now
                 logger.info("AppInstance %s does not have an associated AppStatus. Creating one now.", release)
-                status_object = AppStatus(appinstance=app_instance)
-                update_status(app_instance, status_object, new_status, event_ts, event_msg)
+                status_object = AppStatus.objects.create() 
+                update_status(instance, status_object, new_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
             else:
-                app_status = app_instance.status.latest()
+                app_status = instance.app_status
 
-            logger.debug("AppStatus %s, %s, %s.", app_status.status_type, app_status.time, app_status.info)
+            logger.debug("AppStatus %s, %s, %s.", app_status.status, app_status.time, app_status.info)
 
             # Now determine whether to update the state and status
 
@@ -161,7 +180,7 @@ def handle_update_status_request(
 
             # The event is newer than the existing persisted object
 
-            if new_status == app_instance.state:
+            if new_status == instance.app_status.status:
                 # The same status. Simply update the time.
                 logger.debug("The same status. Simply update the time.")
                 update_status_time(app_status, event_ts, event_msg)
@@ -169,8 +188,8 @@ def handle_update_status_request(
 
             # Different status and newer time
             logger.debug("Different status and newer time.")
-            status_object = AppStatus(appinstance=app_instance)
-            update_status(app_instance, status_object, new_status, event_ts, event_msg)
+            status_object = instance.app_status
+            update_status(instance, status_object, new_status, event_ts, event_msg)
             return HandleUpdateStatusResponseCode.UPDATED_STATUS
 
     except Exception as err:
@@ -184,7 +203,7 @@ def update_status(appinstance, status_object, status, status_ts=None, event_msg=
     Helper function to update the status of an appinstance and a status object.
     """
     # Persist a new app statuss object
-    status_object.status_type = status
+    status_object.status = status
     status_object.time = status_ts
     status_object.info = event_msg
     status_object.save()
@@ -199,8 +218,8 @@ def update_status(appinstance, status_object, status, status_ts=None, event_msg=
         status_object.save(update_fields=["time", "info"])
 
     # Update the app instance object
-    appinstance.state = status
-    appinstance.save(update_fields=["state"])
+    appinstance.app_status = status_object
+    appinstance.save(update_fields=["app_status"])
 
 
 @transaction.atomic
@@ -215,6 +234,14 @@ def update_status_time(status_object, status_ts, event_msg=None):
     else:
         status_object.info = event_msg
         status_object.save(update_fields=["time", "info"])
+
+
+def get_URI(values):
+    URI = "https://" + values["subdomain"] + "." + values["global"]["domain"]
+
+    URI = URI.strip("/")
+    return URI
+
 
 
 @transaction.atomic
@@ -278,10 +305,12 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     instance.owner = project.owner
     instance.app_status = status
 
+
     # Save instance and handle many-to-many fields
     instance.save()
     form.save_m2m()
     instance.set_k8s_values()
-    instance.save(update_fields=["k8s_values"])
+    instance.url = get_URI(instance.k8s_values)
+    instance.save(update_fields=["k8s_values", "url"])
 
     deploy_resource.delay(instance.serialize())

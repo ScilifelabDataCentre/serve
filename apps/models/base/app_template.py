@@ -32,6 +32,8 @@ class Apps(models.Model):
             "slug",
             "revision",
         )
+        verbose_name = "App Template"
+        verbose_name_plural = "App Templates"
 
     def __str__(self):
         return str(self.name) + "({})".format(self.revision)

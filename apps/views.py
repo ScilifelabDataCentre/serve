@@ -17,7 +17,7 @@ from django.db import transaction
 from .tasks import delete_resource
 from .constants import SLUG_MODEL_FORM_MAP
 from .helpers import create_instance_from_form
-from .models import AppInstance
+from .models import AppInstance, AbstractAppInstance
 from .tasks import delete_resource
 
 logger = get_logger(__name__)
@@ -101,24 +101,27 @@ class GetStatusView(View):
             arr = body.split(",")
             status_success, status_warning = get_status_defs()
 
-            app_instances = AppInstance.objects.filter(pk__in=arr)
+            for model_class in AbstractAppInstance.__subclasses__():
+                instances = model_class.objects.filter(pk__in=arr)
 
-            for instance in app_instances:
-                try:
-                    status = instance.status.latest().status_type
-                except:  # noqa E722 TODO: Add exception
-                    status = instance.state
+                for instance in instances:
+                    status_object = instance.app_status
+                    if status_object:
+                        status = status_object.status
+                    else:
+                        status = None
 
-                status_group = (
-                    "success" if status in status_success else "warning" if status in status_warning else "danger"
-                )
 
-                obj = {
-                    "status": status,
-                    "statusGroup": status_group,
-                }
+                    status_group = (
+                        "success" if status in status_success else "warning" if status in status_warning else "danger"
+                    )
 
-                result[f"{instance.pk}"] = obj
+                    obj = {
+                        "status": status,
+                        "statusGroup": status_group,
+                    }
+
+                    result[f"{instance.pk}"] = obj
 
             return JsonResponse(result)
 

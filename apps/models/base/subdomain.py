@@ -14,3 +14,7 @@ class Subdomain(models.Model):
         return {
             "subdomain": self.subdomain,
         }
+        
+    class Meta:
+        verbose_name = "Subdomain"
+        verbose_name_plural = "Subdomains"

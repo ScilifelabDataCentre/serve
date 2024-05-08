@@ -133,7 +133,7 @@ class AbstractAppInstance(models.Model):
     )
     app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
 
-    table_field = models.JSONField(blank=True, null=True)
+    url = models.URLField(blank=True, null=True)
     updated_on = models.DateTimeField(auto_now=True)
 
     class Meta:

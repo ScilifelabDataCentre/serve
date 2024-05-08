@@ -33,3 +33,8 @@ class JupyterInstance(AbstractAppInstance):
                 release=object.subdomain.subdomain
             )
         self.k8s_values["apps"] = volumeK8s_dict
+        
+    class Meta:
+        verbose_name = "JupyterLab Instance"
+        verbose_name_plural = "JupyterLab Instances"
+        permissions = [("can_access_app", "Can access app service")]

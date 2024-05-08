@@ -37,3 +37,8 @@ class VolumeInstance(AbstractAppInstance):
     def set_k8s_values(self):
         super().set_k8s_values()
         self.k8s_values["volume"] = dict(size=f"{str(self.size)}Gi")
+    
+    class Meta:
+        verbose_name = "Persistent Volume"
+        verbose_name_plural = "Persistent Volumes"
+        permissions = [("can_access_app", "Can access app service")]

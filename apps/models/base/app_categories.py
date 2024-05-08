@@ -8,3 +8,7 @@ class AppCategories(models.Model):
 
     def __str__(self):
         return str(self.name)
+    
+    class Meta:
+        verbose_name = "App Category"
+        verbose_name_plural = "App Categories"

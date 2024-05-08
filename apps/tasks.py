@@ -1,37 +1,20 @@
-import json
+
 import subprocess
-import time
 import uuid
 import yaml
-from datetime import datetime, timedelta
-import requests
+from datetime import datetime
+
 from celery import shared_task
-from celery.signals import worker_ready
-from django.apps import apps
-from django.conf import settings
-from django.core.exceptions import EmptyResultSet
 from django.db import transaction
-from django.db.models import Q
+from django.core import serializers 
 from django.utils import timezone
 
-from models.models import Model, ObjectType
-from projects.models import S3, BasicAuth, Environment, MLFlow
 from studio.celery import app
 from studio.utils import get_logger
 
-from .models import AppInstance, Apps, AppStatus, AbstractAppInstance
+from .models import AbstractAppInstance
 
 logger = get_logger(__name__)
-
-
-ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
-
-
-def get_URI(parameters):
-    URI = "https://" + parameters["release"] + "." + parameters["global"]["domain"]
-
-    URI = URI.strip("/")
-    return URI
 
 
 
@@ -39,58 +22,27 @@ def get_URI(parameters):
 @app.task
 def delete_old_objects():
     """
-    Deletes apps of category Develop (e.g., jupyter-lab, vscode etc)
+    This function retrieves the old apps based on the given threshold, category, and model class.
+    It then iterates through the subclasses of AbstractAppInstance and deletes the old apps
+    for both the "Develop" and "Manage Files" categories.
 
-    Setting the threshold to 7 days. If any app is older than this, it will be deleted.
-    The deleted resource will still exist in the database, but with status "Deleted"
-
-    TODO: Make this a variable in settings.py and use the same number in templates
     """
 
-    def get_old_apps(threshold, category):
+    def get_old_apps(threshold, category, model_class):
         threshold_time = timezone.now() - timezone.timedelta(days=threshold)
-        return AppInstance.objects.filter(created_on__lt=threshold_time, app__category__name=category)
+        return model_class.objects.filter(created_on__lt=threshold_time, app__category__name=category)
 
-    old_develop_apps = get_old_apps(threshold=7, category="Develop")
-    old_minio_apps = get_old_apps(threshold=1, category="Manage Files")
-    for app_ in old_develop_apps:
-        delete_resource.delay(app_.pk)
+    for subclass in AbstractAppInstance.__subclasses__():
+        old_develop_apps = get_old_apps(threshold=7, category="Develop", model_class=subclass)
+        old_file_manager_apps = get_old_apps(threshold=1, category="Manage Files", model_class=subclass)
+        for app_ in old_develop_apps:
+            delete_resource.delay(app_.pk)
 
-    for app_ in old_minio_apps:
-        delete_resource.delay(app_.pk)
-
-######################################################
-from django.core import serializers 
+        for app_ in old_file_manager_apps:
+            delete_resource.delay(app_.pk)
 
 
-
-@shared_task
-@transaction.atomic
-def celery_wrapper(serialized_instance, method_name, *args, **kwargs):
-    # Deserialize the input to check if the iterable has exactly one element
-    logger.info("TASK - CELERY WRAPPER...")
-    deserialized_objects = list(serializers.deserialize("json", serialized_instance))
-    
-    # Check if the length of the deserialized objects is exactly 1
-    if len(deserialized_objects) != 1:
-        raise ValueError("Expected exactly one serialized object, but got {}".format(len(deserialized_objects)))
-    
-    # Get the actual instance from the list
-    instance = deserialized_objects[0].object
-    logger.info("Instance: %s", instance)     
-    # Dynamically call the method on the instance with the given args and kwargs
-    method = getattr(instance, method_name, None)
-    if method is None:
-        raise AttributeError(f"The method {method_name} does not exist on the instance of type {type(instance).__name__}")
-    
-    # Execute the method
-    method(*args, **kwargs)
-    
-    # Save the instance if changes to the database are made
-    instance.save()
-
-
-def helm_install(instance, release_name, chart, namespace="default", values_file=None, version=None):
+def helm_install(release_name, chart, namespace="default", values_file=None, version=None):
     """
     Run a Helm install command.
     
@@ -123,7 +75,7 @@ def helm_install(instance, release_name, chart, namespace="default", values_file
     
 
 
-def helm_delete(self, release_name, namespace="default"):
+def helm_delete(release_name, namespace="default"):
     # Base command
     command = f"helm uninstall {release_name} --namespace {namespace}"
     # Execute the command
@@ -150,7 +102,7 @@ def deploy_resource(serialized_instance):
     with open(values_file, "w") as f:
         f.write(yaml.dump(values))
 
-    output, error = helm_install(instance, values["subdomain"], chart, values["namespace"], values_file, version)
+    output, error = helm_install(values["subdomain"], chart, values["namespace"], values_file, version)
     success = not error
 
     helm_info = {
@@ -159,6 +111,7 @@ def deploy_resource(serialized_instance):
     }
 
     instance.info = dict(helm = helm_info)
+    instance.app_status.status = "Created" if success else "Failed"
     instance.save()
 
 
@@ -169,7 +122,7 @@ def delete_resource(serialized_instance):
     instance = deserialize(serialized_instance)
     
     values = instance.k8s_values
-    output, error = helm_delete(instance, values["subdomain"], values["namespace"])
+    output, error = helm_delete(values["subdomain"], values["namespace"])
     success = not error
     
     if success:
