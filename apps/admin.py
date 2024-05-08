@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 
 from studio.utils import get_logger
 
-from .models import AppInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance
+from .models import AppInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance
 
 from .tasks import deploy_resource
 
@@ -142,6 +142,11 @@ class VolumeInstanceAdmin(AbstractAppInstanceAdmin):
 @admin.register(DashInstance)
 class DashInstanceAdmin(AbstractAppInstanceAdmin):
     list_display = AbstractAppInstanceAdmin.list_display + ("image",)
+
+@admin.register(CustomAppInstance)
+class CustomAppInstanceAdmin(AbstractAppInstanceAdmin):
+    list_display = AbstractAppInstanceAdmin.list_display + ("image", "port", "user_id")
+
 
 admin.site.register(Subdomain)
 admin.site.register(AppCategories)

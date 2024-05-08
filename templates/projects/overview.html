@@ -76,7 +76,7 @@
                             <td><img src="{{static_url}}{{obj.app.logo|default:'default-logo.svg'}}" class="img-fluid "
                                     alt="App Logo" style="max-height:25px;"></td>
                             <td class="d-none d-xxl-table-cell ">{{ obj.app.name }}</td>
-                            {% if obj.table_field.url %}
+                            {% if obj.url %}
                             <td class="sorting_1">
                                 {% if "Serv" in obj.app.name or obj.app.name == "Python Model Deployment" %}
                                     <a onclick="copyClip('{{obj.table_field.url}}')">
@@ -87,7 +87,7 @@
                                         </svg>
                                     </a>
                                 {% else %}
-                                <a href="{{ obj.table_field.url }}" target="_blank">
+                                <a href="{{ obj.url }}" target="_blank">
                                     {{obj.name}} <i class="bi bi-box-arrow-up-right"></i>
                                 </a>
                                 {% endif %}
