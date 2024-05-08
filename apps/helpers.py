@@ -216,34 +216,72 @@ def update_status_time(status_object, status_ts, event_msg=None):
         status_object.info = event_msg
         status_object.save(update_fields=["time", "info"])
 
-#TODO: Add docstring
+
 @transaction.atomic
 def create_instance_from_form(form, project, app_slug, app_id=None):
-    subdomain, created = Subdomain.objects.get_or_create(subdomain=form.cleaned_data.get("subdomain"), project=project)
-    
-    status = AppStatus.objects.create()
+    """
+    Create or update an instance from a form. This function handles both the creation of new instances
+    and the updating of existing ones based on the presence of an app_id.
 
+    Parameters:
+    - form: The form instance containing validated data.
+    - project: The project to which this instance belongs.
+    - app_slug: Slug of the app associated with this instance.
+    - app_id: Optional ID of an existing instance to update. If None, a new instance is created.
+
+    Returns:
+    - The newly created or updated instance.
+
+    Raises:
+    - ValueError: If the form does not have a 'subdomain' or if the specified app cannot be found.
+    """
+
+    subdomain_name = form.cleaned_data.get("subdomain")
+
+    if not subdomain_name:
+        raise ValueError("Subdomain is required")
+    
     instance = form.save(commit=False)
     
-    # If subdomain is changed, we must delete the old helm release
-    if app_id and instance.subdomain.subdomain != form.cleaned_data.get("subdomain"):
-        serialized_instance = instance.serialize()
-        delete_resource.delay(serialized_instance)
+    # Handle status creation or retrieval
+    status = instance.status if app_id else AppStatus.objects.create()
+    
+    # Retrieve or create the subdomain
+    subdomain, created = Subdomain.objects.get_or_create(subdomain=subdomain_name, project=project)
+    
+    if app_id:
+        # Handle the update subdomain case
+        if instance.subdomain.subdomain != subdomain_name:
+            # Need to clean up old resources if subdomain has changed
+            delete_resource.delay(instance.serialize())
 
-    instance.app = Apps.objects.get(slug=app_slug)
+            # Replace old subdomain with new
+            old_subdomain = instance.subdomain
+            instance.subdomain = subdomain
+            
+            # Must save the instance before deleting the old subdomain due to cascade delete
+            instance.save(update_fields=["subdomain"])
+
+            # Clean up old subdomain
+            if old_subdomain:
+                old_subdomain.delete()
+    # Set up related app details
+    try:
+        app = Apps.objects.get(slug=app_slug)
+    except Apps.DoesNotExist:
+        raise ValueError(f"App with slug {app_slug} not found")
+    
+    instance.subdomain = subdomain
+    instance.app = app
     instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
     instance.project = project
     instance.owner = project.owner
-    instance.subdomain = subdomain
     instance.app_status = status
 
+    # Save instance and handle many-to-many fields
     instance.save()
-    # If your model form uses many-to-many fields, you might need to call save_m2m()
     form.save_m2m()
-
     instance.set_k8s_values()
     instance.save(update_fields=["k8s_values"])
 
-    serialized_instance = instance.serialize()
-
-    deploy_resource.delay(serialized_instance)
+    deploy_resource.delay(instance.serialize())
