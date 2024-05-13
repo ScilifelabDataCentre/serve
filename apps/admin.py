@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 
 from studio.utils import get_logger
 
-from .models import ShinyInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance
+from .models import ShinyInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance, NetpolicyInstance
 
 from .tasks import deploy_resource
 
@@ -138,6 +138,10 @@ class VolumeInstanceAdmin(AbstractAppInstanceAdmin):
     def display_size(self, obj):
         return f"{str(obj.size)} GB"
     display_size.short_description = "Size"
+    
+@admin.register(NetpolicyInstance)
+class NetpolicyInstanceAdmin(AbstractAppInstanceAdmin):
+    list_display = AbstractAppInstanceAdmin.list_display
 
 @admin.register(DashInstance)
 class DashInstanceAdmin(AbstractAppInstanceAdmin):

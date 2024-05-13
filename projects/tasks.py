@@ -68,6 +68,7 @@ def create_resources_from_template(user, project_slug, template):
     
     apps_dict = template.get("apps", {})
     logger.info("Initiate Creation of Project Apps...")
+    form_dict = {}
     for app_slug, data in apps_dict.items():
         logger.info(f"Creating {app_slug} using {data}")
         
@@ -88,12 +89,23 @@ def create_resources_from_template(user, project_slug, template):
             except Flavor.DoesNotExist:
                 raise ProjectCreationException(f"Flavor {data['flavor']} not found")
             
-        form = SLUG_MODEL_FORM_MAP[app_slug].Form(data, project_pk=project.pk)
+        model_form_tuple = SLUG_MODEL_FORM_MAP.get(app_slug, None)
+        if not model_form_tuple:
+            logger.error(f"App {app_slug} not found")
+            raise ProjectCreationException(f"App {app_slug} not found")
+        
+        form = model_form_tuple.Form(data, project_pk=project.pk)
         logger.info(form.errors.as_data())
         if form.is_valid():
-            logger.info("Form is valid - Creating app instance")
+            logger.info("Form is valid - Appending form to list")
+            form_dict[app_slug] = form   
+        else:
+            logger.error(f"Form is invalid: {form.errors.as_data()}")
+            raise ProjectCreationException(f"Form is invalid: {form.errors.as_data()}")
+
+        logger.info("All forms valid, creating apps...")
+        for app_slug, form in form_dict.items():
             create_instance_from_form(form, project, app_slug)
-    
     
     env_dict = template.get("environments", {})
     logger.info("Creating Project Environments...")

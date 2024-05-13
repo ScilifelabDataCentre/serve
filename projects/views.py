@@ -541,24 +541,23 @@ class DetailsView(View):
         else:
             categories = AppCategories.objects.all().exclude(slug__in=["admin-apps"]).order_by("-priority")
 
-        def filter_func(slug):
-            return Q(app__category__slug=slug)
-
         for category in categories:
             # Get all subclasses of Base
         
+            instances_per_category_list = []
             for subclass in AbstractAppInstance.__subclasses__():
             # Filter instances of each subclass by project, user and status. See the get_app_instances_of_project_filter method in base.py
-
-                instances_per_category = subclass.objects.get_app_instances_of_project(
+                
+                queryset_per_category = subclass.objects.get_app_instances_of_project(
                     user=request.user,
                     project=project,
-                    filter_func=filter_func(slug=category.slug),
-
+                    filter_func=Q(app__category__slug=category.slug)
                 )
-                if instances_per_category:
-                    app_ids += [obj.id for obj in instances_per_category]
-                    break
+                
+                if queryset_per_category:
+                    app_ids += [obj.id for obj in queryset_per_category]
+                    instances_per_category_list.extend([instance for instance in queryset_per_category])
+                    
                 
             
             apps_per_category = (
@@ -570,7 +569,7 @@ class DetailsView(View):
             resources.append(
                 {
                     "title": category.name,
-                    "objs": instances_per_category,
+                    "objs": instances_per_category_list,
                     "apps": apps_per_category,
                 }
             )

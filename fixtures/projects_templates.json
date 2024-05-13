@@ -16,6 +16,9 @@
             "volume": "project-vol",
             "access": "private",
             "flavor": "2 vCPU, 4 GB RAM"
+          },
+          "netpolicy": {
+            "name": "project-netpolicy"
           }
         },
         "environments": {
