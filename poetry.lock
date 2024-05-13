@@ -3493,7 +3493,7 @@ test = ["flake8", "isort", "pytest"]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
@@ -3890,4 +3890,4 @@ tests = ["hypothesis", "moto", "pytest", "pytest-cov", "pytest-django", "pytest-
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "8176ac21c510accca756a2bb7aeb54873cf3bb1d3de6250145ddba405d43cba5"
+content-hash = "bc1d95695bc909991adce066e68c4a36770a7074a4f653b472930826cec4776b"

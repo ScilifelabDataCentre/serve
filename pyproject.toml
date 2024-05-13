@@ -45,7 +45,6 @@ minio = "==7.1.17"
 celery = "==5.3.4"
 uvicorn = "==0.20.0"
 flask-cors = "==4.0.0"
-tomli = "==2.0.1"
 Pillow = "10.2.0"
 
 flatten-json = "==0.1.13"
@@ -203,7 +202,6 @@ module = [
 	"s3fs.*",
 	"setuptools.*",
 	"structlog.*",
-	"tomli.*",
 	"yaml.*",
 	]
 ignore_missing_imports = true

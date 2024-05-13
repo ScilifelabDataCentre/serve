@@ -3,10 +3,8 @@
     This singleton class would be appropriate to add to a cache and kept in memory.
 """
 
-# Using tomli library. When python>=3.11 then can instead use importlib.metadata
 import pathlib
-
-import tomli
+import tomllib
 
 from .singleton import Singleton
 from .utils import get_logger
@@ -62,13 +60,13 @@ class SystemVersion(metaclass=Singleton):
         try:
             proj_path = pathlib.Path(__file__).parents[1] / "pyproject.toml"
             with open(proj_path, "rb") as f:
-                toml_dict = tomli.load(f)
+                toml_dict = tomllib.load(f)
                 self.__build_date = toml_dict["tool"].get("serve").get("build-date")
                 self.__gitref = toml_dict["tool"].get("serve").get("gitref")
                 self.__imagetag = toml_dict["tool"].get("serve").get("imagetag")
             self.__pyproject_is_parsed = True
             return
-        except tomli.TOMLDecodeError:
+        except tomllib.TOMLDecodeError:
             logger.error("Unable to parse pyproject.toml file. The toml file is invalid.")
             err_message = "parsing error"
         except Exception as e:
