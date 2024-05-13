@@ -15,7 +15,7 @@ repository = "https://github.com/ScilifelabDataCentre/stackn"
 keywords = ["machine learning", "life science", "research", "django", "python"]
 
 [tool.poetry.dependencies]
-python = "^3.12.2"
+python = "^3.10.0"
 
 django = "==5.0.2"
 django-celery-beat = "==2.6.0"
@@ -92,7 +92,7 @@ profile = 'black'
 
 [tool.black]
 line-length = 120
-target-version = ['py38']
+target-version = ['py311']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -203,6 +203,7 @@ module = [
 	"s3fs.*",
 	"setuptools.*",
 	"structlog.*",
+	"tomli.*",
 	"yaml.*",
 	]
 ignore_missing_imports = true
