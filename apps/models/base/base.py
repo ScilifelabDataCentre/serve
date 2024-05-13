@@ -125,6 +125,7 @@ class AbstractAppInstance(models.Model):
         on_delete=models.RESTRICT,
         related_name="%(class)s",
         null=True,
+        blank=True
     )
     subdomain = models.OneToOneField(
         Subdomain,

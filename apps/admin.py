@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 
 from studio.utils import get_logger
 
-from .models import ShinyInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance, NetpolicyInstance
+from .models import ShinyInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance, NetpolicyInstance, TissuumapsInstance
 
 from .tasks import deploy_resource
 
@@ -154,6 +154,10 @@ class CustomAppInstanceAdmin(AbstractAppInstanceAdmin):
 @admin.register(ShinyInstance)
 class ShinyInstanceAdmin(AbstractAppInstanceAdmin):
     list_display = AbstractAppInstanceAdmin.list_display + ("image", "port",)
+    
+@admin.register(TissuumapsInstance)
+class TissuumapsInstanceAdmin(AbstractAppInstanceAdmin):
+    list_display = AbstractAppInstanceAdmin.list_display
 
 admin.site.register(Subdomain)
 admin.site.register(AppCategories)

@@ -86,7 +86,6 @@ class GetLogsView(View):
         return JsonResponse({"data": logs})
 
 
-#TODO: Need to be updated to adhere to new logic
 @method_decorator(
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",

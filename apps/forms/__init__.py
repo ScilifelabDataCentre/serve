@@ -7,3 +7,4 @@ from .netpolicy import *
 from .dash import *
 from .custom import *
 from .shinyproxy import *
+from .tissuumaps import *
