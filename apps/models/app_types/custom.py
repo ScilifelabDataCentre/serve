@@ -4,7 +4,7 @@ from apps.models import AppInstanceManager, AbstractAppInstance, Social
 
 
 class CustomAppInstanceManager(AppInstanceManager):
-    model_type = "jupyterinstance"
+    model_type = "customappinstance"
 
 
 class CustomAppInstance(AbstractAppInstance, Social):
@@ -31,6 +31,12 @@ class CustomAppInstance(AbstractAppInstance, Social):
             path = self.path,
             userid = self.user_id
         )
+        volumeK8s_dict = {"volumeK8s": {}}
+        for object in self.volume.all():
+            volumeK8s_dict["volumeK8s"][object.name] = dict(
+                release=object.subdomain.subdomain
+            )
+        self.k8s_values["apps"] = volumeK8s_dict
     
     class Meta:
         verbose_name = "Custom App Instance"

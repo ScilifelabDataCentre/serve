@@ -21,7 +21,8 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.models import AppInstance
+from apps.models import AppInstance, Subdomain
+from apps.helpers import find_related_model
 from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
@@ -52,19 +53,24 @@ class AccessPermission(BasePermission):
         """
         Should simply return, or raise a 403 response.
         """
+        release = request.GET.get("release", None)
         try:
-            release = request.GET.get("release")
-            app_instance = AppInstance.objects.filter(parameters__contains={"release": release}).last()
-            project = app_instance.project
+            # Must fetch the subdomain and reverse to the related model.
+            subdomain = Subdomain.objects.get(subdomain=release)
+            model_class = find_related_model(subdomain)
+            instance = (
+            model_class.objects.filter(subdomain=subdomain).last()
+            )
+            project = instance.project
         # TODO: Make it an explicit exception. At least catch `Exception`
         except:  # noqa: E722
             project_slug = request.GET.get("project")
             project = Project.objects.get(slug=project_slug)
             return request.user.has_perm("can_view_project", project)
 
-        if app_instance.access == "private":
-            return app_instance.owner == request.user
-        elif app_instance.access == "project":
+        if instance.access == "private":
+            return instance.owner == request.user
+        elif instance.access == "project":
             return request.user.has_perm("can_view_project", project)
         else:
             return True

@@ -100,7 +100,7 @@ class HandleUpdateStatusResponseCode(Enum):
     UPDATED_TIME_OF_STATUS = 2
     CREATED_FIRST_STATUS = 3
 
-#TODO: Need to be updated to adhere to new logic
+
 def handle_update_status_request(
     release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
 ) -> HandleUpdateStatusResponseCode:
@@ -123,24 +123,7 @@ def handle_update_status_request(
         # Begin by verifying that the requested app instance exists
         # We wrap the select and update tasks in a select_for_update lock
         # to avoid race conditions.
-        
-        def find_related_model(subdomain):
-            # Get all immediate subclasses of AbstractBase
-            # This is needed since the SubModel is not known in advance
-            #TODO: Add an app-slug to the event listener to avoid this loop
- 
-            for model_class in AbstractAppInstance.__subclasses__():
-                model_name = model_class.__name__.lower()
-                try:
-                    # Try to access the reverse relation from SubModel to the concrete model
-                    related_object = getattr(subdomain, model_name)
-                    logger.info(f"The Subdomain instance is related to {model_name.capitalize()}.")
-                    return model_class
-                except ObjectDoesNotExist:
-                    continue
-            print("The Subdomain instance is not related to any known subclass of AbstractBase.")
-            return None
-        
+
         subdomain = Subdomain.objects.get(subdomain=release)
         model_class = find_related_model(subdomain)
         
@@ -196,7 +179,7 @@ def handle_update_status_request(
         logger.error("Unable to fetch or update the specified app instance %s. %s, %s", release, err, type(err))
         raise
 
-#TODO: Need to be updated to adhere to new logic
+
 @transaction.atomic
 def update_status(appinstance, status_object, status, status_ts=None, event_msg=None):
     """
@@ -314,3 +297,21 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     instance.save(update_fields=["k8s_values", "url"])
 
     deploy_resource.delay(instance.serialize())
+    
+
+def find_related_model(subdomain: Subdomain) -> Optional[AbstractAppInstance]:
+    # Get all immediate subclasses of AbstractBase
+    # This is needed since the SubModel is not known in advance
+    #TODO: Add an app-slug to the event listener to avoid this loop
+
+    for model_class in AbstractAppInstance.__subclasses__():
+        model_name = model_class.__name__.lower()
+        try:
+            # Try to access the reverse relation from SubModel to the concrete model
+            related_object = getattr(subdomain, model_name)
+            logger.info(f"The Subdomain instance is related to {model_name.capitalize()}.")
+            return model_class
+        except ObjectDoesNotExist:
+            continue
+    print("The Subdomain instance is not related to any known subclass of AbstractBase.")
+    return None
