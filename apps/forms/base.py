@@ -27,6 +27,7 @@ class BaseForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.project_pk = kwargs.pop('project_pk', None)
         self.project = get_object_or_404(Project, pk=self.project_pk) if self.project_pk else None
+        self.model_name = self._meta.model._meta.verbose_name.replace("Instance", "")
         super().__init__(*args, **kwargs)
         self._setup_form_fields()
         self._setup_form_helper()
@@ -100,7 +101,7 @@ class AppBaseForm(BaseForm):
     so you can treat this form as an actual base form for the most of the apps
     """
     volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), widget=forms.CheckboxSelectMultiple,
-                                            required=False, help_text="Select the volume(s) to mount to JupyterLab")
+                                            required=False)
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), 
                                     required=True,
                                     empty_label=None)
@@ -119,13 +120,14 @@ class AppBaseForm(BaseForm):
 
         # Handle Access field
         self.fields["access"].label = "Permission"
-        
+
         # Handle Volume field
         volume_queryset = VolumeInstance.objects.filter(
             project__pk=self.project_pk) if self.project_pk else VolumeInstance.objects.none()
         
         self.fields["volume"].queryset = volume_queryset
         self.fields["volume"].initial = volume_queryset.first() if volume_queryset else None
+        self.fields['volume'].help_text = f"Select volume(s) to mount to your {self.model_name}."
 
 
 

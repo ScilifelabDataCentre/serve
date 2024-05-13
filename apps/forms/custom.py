@@ -16,7 +16,6 @@ class CustomAppForm(AppBaseForm):
     image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
     
-    
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -29,7 +28,7 @@ class CustomAppForm(AppBaseForm):
             Field("description", rows="3", placeholder="Provide a detailed description of your app"),
             Field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
             Field("volume"),
-            Field("path"),
+            Field("path", placeholder="/home/..."),
             Field("flavor"),
             Field("access"),
             Field("source_code_url", placeholder="Provide a link to the public source code"),
@@ -42,14 +41,25 @@ class CustomAppForm(AppBaseForm):
             body,
             self.footer
         )
-    
+
     def clean(self):
         cleaned_data = super().clean()
-        access = cleaned_data.get('access')
-        source_code_url = cleaned_data.get('source_code_url')
+        access = cleaned_data.get('access', None)
+        source_code_url = cleaned_data.get('source_code_url', None)
+        path = cleaned_data.get('path', None)
+        volume = cleaned_data.get('volume', None)
 
         if access == 'public' and not source_code_url:
             self.add_error('source_code_url', 'Source is required when access is public.')
+
+        if path:
+            path = path.strip('/')
+            if not path.startswith('/home'):
+                self.add_error('path', 'Path must start with "/home"')
+        
+        if volume and not path:
+            self.add_error('path', 'Path is required when volume is selected.')
+        
 
         return cleaned_data
 

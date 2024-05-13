@@ -29,6 +29,6 @@ class DashInstance(AbstractAppInstance, Social):
         )
     
     class Meta:
-        verbose_name = "Dash Instance"
-        verbose_name_plural = "Dash Instances"
+        verbose_name = "Dash App Instance"
+        verbose_name_plural = "Dash App Instances"
         permissions = [("can_access_app", "Can access app service")]
