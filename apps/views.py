@@ -186,6 +186,7 @@ class CreateApp(View):
         
         form = self.get_form(request, project, app_slug, app_id)
         if not form.is_valid():
+            print(form.errors.as_data(), flush=True)
             return render(request, self.template_name, {"form": form})
         # Otherwise we can create the instance
             
