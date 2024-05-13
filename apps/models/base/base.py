@@ -155,7 +155,8 @@ class AbstractAppInstance(models.Model):
                           **self.subdomain.to_dict(),
                           **self.flavor.to_dict() if self.flavor else {},
                           storageClass=settings.STORAGECLASS,
-                          namespace=settings.NAMESPACE
+                          namespace=settings.NAMESPACE,
+                          release=self.subdomain.subdomain #This is legacy and should be changed
                           )
 
         # Add global values

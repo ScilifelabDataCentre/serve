@@ -103,9 +103,9 @@ def create_resources_from_template(user, project_slug, template):
             logger.error(f"Form is invalid: {form.errors.as_data()}")
             raise ProjectCreationException(f"Form is invalid: {form.errors.as_data()}")
 
-        logger.info("All forms valid, creating apps...")
-        for app_slug, form in form_dict.items():
-            create_instance_from_form(form, project, app_slug)
+    logger.info("All forms valid, creating apps...")
+    for app_slug, form in form_dict.items():
+        create_instance_from_form(form, project, app_slug)
     
     env_dict = template.get("environments", {})
     logger.info("Creating Project Environments...")

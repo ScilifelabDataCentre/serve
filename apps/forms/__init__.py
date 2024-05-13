@@ -1,5 +1,7 @@
 from .base import *
 from .jupyter import *
+from .rstudio import *
+from .vscode import *
 from .volumes import *
 from .netpolicy import *
 from .dash import *

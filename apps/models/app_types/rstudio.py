@@ -1,14 +1,14 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, AbstractAppInstance, Social
+from apps.models import AppInstanceManager, AbstractAppInstance
 
 
-class JupyterInstanceManager(AppInstanceManager):
-    model_type = "jupyterinstance"
+class RStudioInstanceManager(AppInstanceManager):
+    model_type = "rstudioinstance"
 
 
-class JupyterInstance(AbstractAppInstance):
-    objects = JupyterInstanceManager()
+class RStudioInstance(AbstractAppInstance):
+    objects = RStudioInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),
         ("private", "Private"),
@@ -33,13 +33,12 @@ class JupyterInstance(AbstractAppInstance):
                 release=object.subdomain.subdomain
             )
         self.k8s_values["apps"] = volumeK8s_dict
-        print(self.k8s_values, flush=True)
+        
         # This is just do fix a legacy. 
-        #TODO: Change the jupyter chart to fetch port from appconfig as other apps
-        self.k8s_values["service"]["targetport"] = 8888
-        print(self.k8s_values, flush=True)
+        #TODO: Change the rstdio chart to fetch port from appconfig as other apps
+        self.k8s_values["service"]["targetport"] = 8787
         
     class Meta:
-        verbose_name = "JupyterLab Instance"
-        verbose_name_plural = "JupyterLab Instances"
+        verbose_name = "RStudio Instance"
+        verbose_name_plural = "RStudio Instances"
         permissions = [("can_access_app", "Can access app service")]
