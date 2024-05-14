@@ -558,7 +558,7 @@ class DetailsView(View):
                     app_ids += [obj.id for obj in queryset_per_category]
                     instances_per_category_list.extend([instance for instance in queryset_per_category])
                     
-                
+            # Filter the available apps specified in the project template
             available_apps = [app.pk for app in project.project_template.available_apps.all()]
 
             apps_per_category = (
@@ -575,28 +575,10 @@ class DetailsView(View):
                 }
             )
 
-        def filter_app_slug(slug):
-            return Q(app__slug=slug)
-
-        #TODO: Handle the filemanager case later
-        filemanager_instance = None
-
-        if filemanager_instance:
-            creation_date = filemanager_instance.created_on
-            now = datetime.datetime.now(datetime.timezone.utc)
-            age = now - creation_date
-            timedelta = datetime.timedelta(hours=24)
-            hours = timedelta - age
-            hours = round(hours.total_seconds() / 3600)
-        else:
-            hours = 0
-
         context = {
             "resources": resources,
             "project": project,
             "app_ids": app_ids,
-            "filemanager_instance": filemanager_instance,
-            "hours": hours,
         }
 
         return render(
