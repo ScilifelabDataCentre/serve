@@ -4,7 +4,7 @@
       "description": "Use this template if you intend to only deploy apps or use integrated development environments (IDEs).",
       "name": "Default project",
       "slug": "blank",
-      "available_apps": [8, 19, 21, 22, 23, 24, 25, 28],
+      "available_apps": [8, 19, 21, 22, 23, 24, 28],
       "template": {
         "apps": {
           "jupyter-lab": {

@@ -383,11 +383,8 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.1.0",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.0.0",
       "created_on": "2023-08-25T21:34:37.815Z",
-      "user_can_create": false,
-      "user_can_delete": false,
-      "user_can_edit": false,
       "description": "",
       "logo": "shinyapp-logo.svg",
       "name": "ShinyProxy App",

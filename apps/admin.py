@@ -1,11 +1,13 @@
+import time
 from django.contrib import admin, messages
 
 from studio.utils import get_logger
 
 from .models import ShinyInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance, NetpolicyInstance, TissuumapsInstance, FilemanagerInstance, RStudioInstance, VSCodeInstance
 
-from .tasks import deploy_resource
+from .tasks import deploy_resource, delete_resource
 
+from .helpers import get_URI
 logger = get_logger(__name__)
 
 
@@ -35,7 +37,7 @@ class AbstractAppInstanceAdmin(admin.ModelAdmin):
     list_display = ("name", "display_owner", "display_project", "display_status", "display_subdomain", "chart")
 
     list_filter = ["owner", "project", "app_status__status", "chart"]
-    actions = ["redeploy_apps", "update_chart"]
+    actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
     
 
     def display_status(self, obj):
@@ -67,13 +69,18 @@ class AbstractAppInstanceAdmin(admin.ModelAdmin):
         return [volume.name for volume in obj.volume.all()]
     display_volumes.short_description = "Volumes" 
 
-    @admin.action(description="Redeploy apps")
-    def redeploy_apps(self, request, queryset):
+    @admin.action(description="(Re)deploy resources")
+    def deploy_resources(self, request, queryset):
         success_count = 0
         failure_count = 0
 
         for instance in queryset:
+            instance.set_k8s_values()
+            instance.url = get_URI(instance.k8s_values)
+            instance.save(update_fields=["k8s_values", "url"])
+            
             deploy_resource.delay(instance.serialize())
+            time.sleep(2)
             info_dict = instance.info
             if info_dict:
                 success = info_dict["helm"].get("success", False)
@@ -85,46 +92,37 @@ class AbstractAppInstanceAdmin(admin.ModelAdmin):
                 failure_count += 1
 
         if success_count:
-            self.message_user(request, f"{success_count} apps successfully redeployed.", messages.SUCCESS)
+            self.message_user(request, f"{success_count} apps successfully (re)deployed.", messages.SUCCESS)
         if failure_count:
             self.message_user(
                 request, f"Failed to redeploy {failure_count} apps. Check logs for details.", messages.ERROR
             )
-
-    @admin.action(description="Update helm chart definition in parameters")
-    def update_chart(self, request, queryset):
+    
+    @admin.action(description="Delete resources")
+    def delete_resources(self, request, queryset):
         success_count = 0
         failure_count = 0
-        for appinstance in queryset:
-            # First, update charts for the app
-            try:
-                k8s_values = appinstance.k8s_values
-                app = Apps.objects.get(slug=k8s_values["app_slug"])
-                k8s_values.update({"chart": app.chart})
 
-                # Secondly, update charts for the dependencies
-                app_deps = k8s_values.get("apps")
-                # Loop through the outer dictionary
-                for app_key, app_dict in app_deps.items():
-                    # Loop through each project in the projects dictionary
-                    for key, details in app_dict.items():
-                        slug = details["slug"]
-                        app = Apps.objects.get(slug=slug)
-                        # Update the chart value
-                        details["chart"] = app.chart
-                        app_deps[app_key][key] = details
-                k8s_values.update({"apps": app_deps})
-                appinstance.save(update_fields=["parameters"])
-                success_count += 1
-            except Exception as e:
-                logger.error(f"Failed to update app {appinstance.name}. Error: {e}")
+        for instance in queryset:
+            instance.set_k8s_values()
+            delete_resource.delay(instance.serialize())
+            info_dict = instance.info
+            if info_dict:
+                success = info_dict["helm"].get("success", False)
+                if success:
+                    success_count += 1
+                else:
+                    failure_count += 1
+            else:
                 failure_count += 1
+
         if success_count:
-            self.message_user(request, f"{success_count} apps successfully updated.", messages.SUCCESS)
+            self.message_user(request, f"{success_count} apps successfully deleted.", messages.SUCCESS)
         if failure_count:
             self.message_user(
-                request, f"Failed to update {failure_count} apps. Check logs for details.", messages.ERROR
+                request, f"Failed to delete {failure_count} apps. Check logs for details.", messages.ERROR
             )
+
 
 @admin.register(RStudioInstance)
 class RStudioInstanceAdmin(AbstractAppInstanceAdmin):
@@ -137,6 +135,9 @@ class VSCodeInstanceAdmin(AbstractAppInstanceAdmin):
 @admin.register(JupyterInstance)
 class JupyterInstanceAdmin(AbstractAppInstanceAdmin):
     list_display = AbstractAppInstanceAdmin.list_display + ("access", "display_volumes")
+    
+    
+    
 
 @admin.register(VolumeInstance)
 class VolumeInstanceAdmin(AbstractAppInstanceAdmin):
