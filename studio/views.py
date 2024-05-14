@@ -24,6 +24,7 @@ from rest_framework.views import APIView
 
 from apps.models import AppInstance
 from common.models import UserProfile
+from models.models import Model
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -33,7 +34,7 @@ logger = get_logger(__name__)
 
 
 @receiver(pre_save, sender=User)
-def set_new_user_inactive(sender: object, instance: Any, **kwargs: Any) -> None:
+def set_new_user_inactive(sender: Model, instance: User, **kwargs: dict[str, Any]) -> None:
     if instance._state.adding and settings.INACTIVE_USERS and not instance.is_superuser:
         logger.info("Creating Inactive User")
         instance.is_active = False
@@ -44,7 +45,7 @@ def set_new_user_inactive(sender: object, instance: Any, **kwargs: Any) -> None:
 # Since this is a production feature, it will only work if DEBUG is set to False
 
 
-def handle_page_not_found(request: Response, exception: object) -> HttpResponseRedirect:
+def handle_page_not_found(request: Response, exception: Exception) -> HttpResponseRedirect:
     return HttpResponseRedirect("/")
 
 
