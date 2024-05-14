@@ -1,5 +1,4 @@
 import time
-from typing import List
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
@@ -153,8 +152,7 @@ def alert_pause_dormant_users() -> None:
 
 
 @app.task(ignore_result=True)
-def send_email_task(subject: str, message: str, html_message: str, recipient_list: List[str]) -> None:
-    logger.info("Sending email to %s", recipient_list)
+def send_email_task(subject: str, message: str, html_message: str, recipient_list: list[str]) -> None:
     send_mail(
         subject,
         message,
