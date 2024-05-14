@@ -10,6 +10,7 @@ SLUG_MODEL_FORM_MAP = {
     'netpolicy': ModelFormTuple(NetpolicyInstance, NetpolicyForm),
     "dashapp": ModelFormTuple(DashInstance, DashForm),
     "customapp": ModelFormTuple(CustomAppInstance, CustomAppForm),
+    "shinyapp": ModelFormTuple(ShinyInstance, ShinyForm),
     "shinyproxyapp": ModelFormTuple(ShinyInstance, ShinyForm),
     "tissuumaps": ModelFormTuple(TissuumapsInstance, TissuumapsForm),
     "filemanager": ModelFormTuple(FilemanagerInstance, FilemanagerForm),

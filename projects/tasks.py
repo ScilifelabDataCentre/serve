@@ -64,38 +64,55 @@ def create_resources_from_template(user, project_slug, template):
         )
         flavor.save()
     
+    logger.info("Creating Project Volumes...")
+    volume_dict = template.get("volumes", {})
+    for volume_name, data in volume_dict.items():
+        data["name"] = volume_name
+        logger.info(f"Creating volume using {data}")
+        form = SLUG_MODEL_FORM_MAP.get("volumeK8s", None).Form(data, project_pk=project.pk)
+        if form.is_valid():
+            create_instance_from_form(form, project, "volumeK8s")
+        else:
+            logger.error(f"Form is invalid: {form.errors.as_data()}")
+            raise ProjectCreationException(f"Form is invalid: {form.errors.as_data()}")
     
     
     apps_dict = template.get("apps", {})
     logger.info("Initiate Creation of Project Apps...")
     form_dict = {}
     for app_slug, data in apps_dict.items():
-        logger.info(f"Creating {app_slug} using {data}")
+        logger.info(f"Creating {app_slug} using raw data {data}")
         
         # Handle mounting of volumes
         if "volume" in data:
             try:
-                volumes = VolumeInstance.objects.filter(project__pk=project.pk, name=data["volume"])
+                volumes = VolumeInstance.objects.filter(project=project, name=data["volume"])
                 data["volume"] = volumes
-                logger.info(f"using {data}")
+                logger.info(f"Modified data with specified volume: {data}")
             except VolumeInstance.DoesNotExist:
                 raise ProjectCreationException(f"Volume {data['volume']} not found")
-            
+        
+        # Handle flavor selection
         if "flavor" in data:
             try:
+                # Get the only flavor that matches the project and the name
                 flavor = Flavor.objects.filter(project__pk=project.pk, name=data["flavor"]).first()
                 data["flavor"] = flavor
-                logger.info(f"using {data}")
+                logger.info(f"Modified data with specified flavor: {data}")
             except Flavor.DoesNotExist:
                 raise ProjectCreationException(f"Flavor {data['flavor']} not found")
             
         model_form_tuple = SLUG_MODEL_FORM_MAP.get(app_slug, None)
+        
+        # Check if the model form tuple exists
         if not model_form_tuple:
             logger.error(f"App {app_slug} not found")
             raise ProjectCreationException(f"App {app_slug} not found")
         
+        # Create form
         form = model_form_tuple.Form(data, project_pk=project.pk)
-        logger.info(form.errors.as_data())
+
+        # Handle validation
         if form.is_valid():
             logger.info("Form is valid - Appending form to list")
             form_dict[app_slug] = form   
@@ -103,9 +120,11 @@ def create_resources_from_template(user, project_slug, template):
             logger.error(f"Form is invalid: {form.errors.as_data()}")
             raise ProjectCreationException(f"Form is invalid: {form.errors.as_data()}")
 
+    # All forms are valid, lets create apps.
     logger.info("All forms valid, creating apps...")
     for app_slug, form in form_dict.items():
         create_instance_from_form(form, project, app_slug)
+    
     
     env_dict = template.get("environments", {})
     logger.info("Creating Project Environments...")

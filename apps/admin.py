@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 
 from studio.utils import get_logger
 
-from .models import ShinyInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance, NetpolicyInstance, TissuumapsInstance
+from .models import ShinyInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance, NetpolicyInstance, TissuumapsInstance, FilemanagerInstance, RStudioInstance, VSCodeInstance
 
 from .tasks import deploy_resource
 
@@ -61,7 +61,11 @@ class AbstractAppInstanceAdmin(admin.ModelAdmin):
 
     def display_project(self, obj):
         return obj.project.name
-    display_project.short_description = "Project"    
+    display_project.short_description = "Project"
+    
+    def display_volumes(self, obj):
+        return [volume.name for volume in obj.volume.all()]
+    display_volumes.short_description = "Volumes" 
 
     @admin.action(description="Redeploy apps")
     def redeploy_apps(self, request, queryset):
@@ -122,14 +126,17 @@ class AbstractAppInstanceAdmin(admin.ModelAdmin):
                 request, f"Failed to update {failure_count} apps. Check logs for details.", messages.ERROR
             )
 
+@admin.register(RStudioInstance)
+class RStudioInstanceAdmin(AbstractAppInstanceAdmin):
+    list_display = AbstractAppInstanceAdmin.list_display + ("access", "display_volumes")
+    
+@admin.register(VSCodeInstance)
+class VSCodeInstanceAdmin(AbstractAppInstanceAdmin):
+    list_display = AbstractAppInstanceAdmin.list_display + ("access", "display_volumes")
+    
 @admin.register(JupyterInstance)
 class JupyterInstanceAdmin(AbstractAppInstanceAdmin):
     list_display = AbstractAppInstanceAdmin.list_display + ("access", "display_volumes")
-    
-    def display_volumes(self, obj):
-        return [volume.name for volume in obj.volume.all()]
-    display_volumes.short_description = "Volumes"
-
 
 @admin.register(VolumeInstance)
 class VolumeInstanceAdmin(AbstractAppInstanceAdmin):
@@ -149,7 +156,7 @@ class DashInstanceAdmin(AbstractAppInstanceAdmin):
 
 @admin.register(CustomAppInstance)
 class CustomAppInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display + ("image", "port", "user_id",)
+    list_display = AbstractAppInstanceAdmin.list_display + ("display_volumes", "image", "port", "user_id",)
 
 @admin.register(ShinyInstance)
 class ShinyInstanceAdmin(AbstractAppInstanceAdmin):
@@ -157,7 +164,12 @@ class ShinyInstanceAdmin(AbstractAppInstanceAdmin):
     
 @admin.register(TissuumapsInstance)
 class TissuumapsInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display
+    list_display = AbstractAppInstanceAdmin.list_display + ("display_volumes", )
+    
+@admin.register(FilemanagerInstance)
+class FilemanagerInstanceAdmin(AbstractAppInstanceAdmin):
+
+    list_display = AbstractAppInstanceAdmin.list_display + ("display_volumes", "persistent",)
 
 admin.site.register(Subdomain)
 admin.site.register(AppCategories)

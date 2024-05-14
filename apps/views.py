@@ -174,6 +174,9 @@ class CreateApp(View):
         project = Project.objects.get(slug=project_slug)
         
         form = self.get_form(request, project, app_slug, app_id)
+                
+        if form is None or not getattr(form, "is_valid", False):
+            return render(request, "404.html")
         
         return render(request, self.template_name, {"form": form})
 
@@ -185,11 +188,11 @@ class CreateApp(View):
         project = Project.objects.get(slug=project_slug)
         
         form = self.get_form(request, project, app_slug, app_id)
+        
         if not form.is_valid():
-            print(form.errors.as_data(), flush=True)
             return render(request, self.template_name, {"form": form})
-        # Otherwise we can create the instance
-            
+        
+        # Otherwise we can create the instance    
         create_instance_from_form(form, project, app_slug, app_id)
 
         return HttpResponseRedirect(
@@ -205,7 +208,10 @@ class CreateApp(View):
 
         model_class, form_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
 
-        #TODO: Add check here
+        logger.info(f"Creating app type {model_class}")
+        if not model_class or not form_class:
+            logger.error(f"Could not fetch model or form")
+            return None
         
         # Check if user is allowed
         user_can_create = model_class.objects.user_can_create(request.user, project, app_slug)
@@ -216,6 +222,6 @@ class CreateApp(View):
             return form_class(request.POST or None, project_pk=project.pk, instance=instance)
             # Maybe this makes typing hard.
         else:
-            return HttpResponseForbidden()
+            return None
 
 

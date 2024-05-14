@@ -246,58 +246,87 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     - ValueError: If the form does not have a 'subdomain' or if the specified app cannot be found.
     """
 
-    subdomain_name = form.cleaned_data.get("subdomain")
+    subdomain_name = get_subdomain_name(form)
 
-    if not subdomain_name:
-        raise ValueError("Subdomain is required")
-    
     instance = form.save(commit=False)
     
     # Handle status creation or retrieval
-    status = instance.app_status if app_id else AppStatus.objects.create()
+    status = get_or_create_status(instance, app_id)
+    
     
     # Retrieve or create the subdomain
     subdomain, created = Subdomain.objects.get_or_create(subdomain=subdomain_name, project=project)
     
     if app_id:
-        # Handle the update subdomain case
-        if instance.subdomain.subdomain != subdomain_name:
-            # Need to clean up old resources if subdomain has changed
-            delete_resource.delay(instance.serialize())
+        handle_subdomain_change(instance, subdomain, subdomain_name)
 
-            # Replace old subdomain with new
-            old_subdomain = instance.subdomain
-            instance.subdomain = subdomain
-            
-            # Must save the instance before deleting the old subdomain due to cascade delete
-            instance.save(update_fields=["subdomain"])
+    app_slug = handle_shiny_proxy_case(instance, app_slug, app_id)
 
-            # Clean up old subdomain
-            if old_subdomain:
-                old_subdomain.delete()
-    # Set up related app details
-    try:
-        app = Apps.objects.get(slug=app_slug)
-    except Apps.DoesNotExist:
-        raise ValueError(f"App with slug {app_slug} not found")
+    app = get_app(app_slug)        
+
+    setup_instance(instance, subdomain, app, project, status)
+    save_instance_and_related_data(instance, form)
     
+    deploy_resource.delay(instance.serialize())
+ 
+
+def get_subdomain_name(form):
+    subdomain_name = form.cleaned_data.get("subdomain")
+    if not subdomain_name:
+        raise ValueError("Subdomain is required")
+    return subdomain_name
+
+def get_or_create_status(instance, app_id):
+    return instance.app_status if app_id else AppStatus.objects.create()
+
+
+def handle_subdomain_change(instance, subdomain, subdomain_name):
+    if instance.subdomain.subdomain != subdomain_name:
+        delete_resource.delay(instance.serialize())
+        old_subdomain = instance.subdomain
+        instance.subdomain = subdomain
+        instance.save(update_fields=["subdomain"])
+        if old_subdomain:
+            old_subdomain.delete()
+
+
+def handle_shiny_proxy_case(instance, app_slug, app_id):
+    conditions = {
+        ("shinyapp", True): "shinyproxyapp",
+        ("shinyproxyapp", False): "shinyapp"
+    }
+    
+    proxy_status = getattr(instance, 'proxy', False)
+    new_slug = conditions.get((app_slug, proxy_status), app_slug)
+    
+    return new_slug
+
+
+
+def get_app(app_slug):
+    try:
+        return Apps.objects.get(slug=app_slug)
+    except Apps.DoesNotExist:
+        logger.error("App with slug %s not found during instance creation", app_slug)
+        raise ValueError(f"App with slug {app_slug} not found")
+
+
+def setup_instance(instance, subdomain, app, project, status):
     instance.subdomain = subdomain
     instance.app = app
-    instance.chart = instance.app.chart # Keep history of the chart used, since it can change in App.
+    instance.chart = instance.app.chart
     instance.project = project
     instance.owner = project.owner
     instance.app_status = status
 
 
-    # Save instance and handle many-to-many fields
+def save_instance_and_related_data(instance, form):
     instance.save()
     form.save_m2m()
     instance.set_k8s_values()
     instance.url = get_URI(instance.k8s_values)
     instance.save(update_fields=["k8s_values", "url"])
 
-    deploy_resource.delay(instance.serialize())
-    
 
 def find_related_model(subdomain: Subdomain) -> Optional[AbstractAppInstance]:
     # Get all immediate subclasses of AbstractBase

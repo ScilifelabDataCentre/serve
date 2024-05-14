@@ -4,7 +4,7 @@ from apps.models import AppInstanceManager, AbstractAppInstance, Social
 
 
 class ShinyInstanceManager(AppInstanceManager):
-    model_type = "shinyproxyinstance"
+    model_type = "shinyinstance"
 
 
 class ShinyInstance(AbstractAppInstance, Social):
@@ -16,8 +16,9 @@ class ShinyInstance(AbstractAppInstance, Social):
         ("link", "Link"),
     )
     access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
-    port = models.IntegerField(default=8000)
+    port = models.IntegerField(default=3838)
     image = models.CharField(max_length=255)
+    proxy = models.BooleanField(default=True)
     container_waittime = models.IntegerField(default=20000)
     heartbeat_timeout = models.IntegerField(default=60000)
     heartbeat_rate = models.IntegerField(default=10000)

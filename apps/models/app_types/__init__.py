@@ -5,6 +5,6 @@ from .volume import VolumeInstance, VolumeInstanceManager
 from .netpolicy import NetpolicyInstance, NetpolicyInstanceManager
 from .dash import DashInstance, DashInstanceManager
 from .custom import CustomAppInstance, CustomAppInstanceManager
-from .shinyproxy import ShinyInstance, ShinyInstanceManager
+from .shiny import ShinyInstance, ShinyInstanceManager
 from .tissuumaps import TissuumapsInstance, TissuumapsInstanceManager
 from .filemanager import FilemanagerInstance, FilemanagerInstanceManager

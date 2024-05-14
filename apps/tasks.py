@@ -2,6 +2,7 @@
 import subprocess
 import uuid
 import yaml
+import time
 from datetime import datetime
 
 from celery import shared_task
@@ -12,7 +13,7 @@ from django.utils import timezone
 from studio.celery import app
 from studio.utils import get_logger
 
-from .models import AbstractAppInstance
+from .models import AbstractAppInstance, FilemanagerInstance
 
 logger = get_logger(__name__)
 
@@ -28,18 +29,23 @@ def delete_old_objects():
 
     """
 
-    def get_old_apps(threshold, category, model_class):
-        threshold_time = timezone.now() - timezone.timedelta(days=threshold)
-        return model_class.objects.filter(created_on__lt=threshold_time, app__category__name=category)
+    def get_threshold(threshold):
+        return timezone.now() - timezone.timedelta(days=threshold)
+ 
 
+    # Handle deletion of apps in the "Develop" category
     for subclass in AbstractAppInstance.__subclasses__():
-        old_develop_apps = get_old_apps(threshold=7, category="Develop", model_class=subclass)
-        old_file_manager_apps = get_old_apps(threshold=1, category="Manage Files", model_class=subclass)
+        old_develop_apps = subclass.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
+        
         for app_ in old_develop_apps:
             delete_resource.delay(app_.pk)
 
-        for app_ in old_file_manager_apps:
-            delete_resource.delay(app_.pk)
+    # Handle deletion of non persistent file managers
+    old_file_managers = FilemanagerInstance.objects.filter(
+        created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False
+        )
+    for app_ in old_file_managers:
+        delete_resource.delay(app_.pk)
 
 
 def helm_install(release_name, chart, namespace="default", values_file=None, version=None):
@@ -56,7 +62,7 @@ def helm_install(release_name, chart, namespace="default", values_file=None, ver
     tuple: Output message and any errors from the Helm command.
     """
     # Base command
-    command = f"helm upgrade --install {release_name} {chart} --namespace {namespace}"
+    command = f"helm upgrade --force --install {release_name} {chart} --namespace {namespace}"
     
     if values_file:
         command += f" -f {values_file}"

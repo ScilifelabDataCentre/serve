@@ -6,10 +6,7 @@
       "slug": "blank",
       "template": {
         "apps": {
-          "volumeK8s": {
-            "name": "project-vol",
-            "size": "1"
-          },
+
           "jupyter-lab": {
             "name": "My Jupyter Lab",
             "description": "Deployed via project template",
@@ -19,6 +16,13 @@
           },
           "netpolicy": {
             "name": "project-netpolicy"
+          },
+          "filemanager": {
+            "name": "project-filemanager",
+            "volume": "project-vol",
+            "persistent": "True",
+            "flavor": "2 vCPU, 4 GB RAM",
+            "access": "private"
           }
         },
         "environments": {
@@ -36,6 +40,14 @@
             "app": "python-serve",
             "image": "serve-python:latest",
             "repository": "ghcr.io/scilifelabdatacentre"
+          }
+        },
+        "volumes": {
+          "project-vol": {
+            "size": "1"
+          },
+          "extra-vol": {
+            "size": "2"
           }
         },
         "flavors": {
