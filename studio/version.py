@@ -29,7 +29,7 @@ class Version:
 
     # Implement comparison operators to allow for sorting
     # of models
-    def __gt__(self, other: Any) -> bool:
+    def __gt__(self, other: "Version") -> bool:
         if self.major > other.major:
             return True
         elif other.major > self.major:
@@ -53,14 +53,14 @@ class Version:
 
         return False
 
-    def __lt__(self, other: Any) -> bool:
+    def __lt__(self, other: "Version") -> bool:
         if other.__gt__(self) or self.__eq__(other):
             return False
 
         return True
 
-    def release_types(self) -> List[str]:
+    def release_types(self) -> list[str]:
         return ["major", "minor", "patch"]
 
     def __str__(self) -> str:
-        return "v{}.{}.{}".format(self.major, self.minor, self.patch)
+        return f"v{self.major}.{self.minor}.{self.patch}"

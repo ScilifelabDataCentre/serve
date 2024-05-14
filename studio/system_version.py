@@ -5,6 +5,7 @@
 
 import pathlib
 import tomllib
+from typing import Any
 
 from .singleton import Singleton
 from .utils import get_logger
@@ -23,7 +24,7 @@ class SystemVersion(metaclass=Singleton):
     __pyproject_is_parsed = False
     __init_counter = 0
 
-    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+    def __init__(self, *args: Any, **kwargs: Any):
         self.__init_counter += 1
         self.__set_values_from_toml()
 
