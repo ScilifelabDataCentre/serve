@@ -1,0 +1,28 @@
+<div id="{{ objs.title|lower }}" class="col-12 d-flex">
+    <div class="card w-100 border-0 shadow">
+        <div class="card-header border-bottom-0 d-flex align-items-center justify-content-between py-3"
+            style="min-height: 3rem;">
+            <h5 class="card-title mb-0">{{ objs.title }}</h5>
+        </div>
+
+        {% block top_content %}
+        
+        {% endblock %}
+
+        {% if objs.instances %}
+            <div class="no-footer mx-4 mt-4">
+                {% include "projects/partials/app_instances_table.html" %}
+            </div>
+
+            {% block bottom_content %}
+            {% endblock %}
+
+        {% else %}
+            <div class="h-100 p-4 d-flex align-items-center justify-content-center border-bottom">
+                <p>No instances.</p>
+            </div>
+        {% endif %}
+        
+        {% include "projects/partials/app_templates.html" %}
+    </div>
+</div>

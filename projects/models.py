@@ -249,6 +249,7 @@ class ProjectTemplate(models.Model):
     revision = models.IntegerField(default=1)
     slug = models.CharField(max_length=512, default="")
     template = models.TextField(null=True, blank=True)
+    available_apps = models.ManyToManyField("apps.Apps", blank=True, related_name="available_apps")
 
     enabled = models.BooleanField(default=True)
 

@@ -559,9 +559,10 @@ class DetailsView(View):
                     instances_per_category_list.extend([instance for instance in queryset_per_category])
                     
                 
-            
+            available_apps = [app.pk for app in project.project_template.available_apps.all()]
+
             apps_per_category = (
-                Apps.objects.filter(category=category, user_can_create=True)
+                Apps.objects.filter(category=category, user_can_create=True, pk__in=available_apps)
                 .order_by("slug", "-revision")
                 .distinct("slug")
             )
@@ -569,7 +570,7 @@ class DetailsView(View):
             resources.append(
                 {
                     "title": category.name,
-                    "objs": instances_per_category_list,
+                    "instances": instances_per_category_list,
                     "apps": apps_per_category,
                 }
             )

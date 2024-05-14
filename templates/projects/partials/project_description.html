@@ -1,0 +1,11 @@
+<div class="row my-2">
+    <div class="col">
+       {% if project.description %}
+           <p class="card-text"><b>Description:</b> {{ project.description }}</p>
+           {% endif %}
+           <p><b>Project owner:</b> {{ project.owner.email }}</p>
+           {% if project.authorized.all %}
+           <p><b>Project members:</b> {{ project.authorized.all|join:"; " }}</p>
+           {% endif %}
+   </div>
+</div>
