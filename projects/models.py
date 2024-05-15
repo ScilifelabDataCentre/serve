@@ -95,69 +95,6 @@ class Flavor(models.Model):
         return flavor_dict
 
 
-class S3(models.Model):
-    access_key = models.CharField(max_length=512)
-    app = models.OneToOneField(
-        "apps.AppInstance",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="s3obj",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    host = models.CharField(max_length=512)
-    name = models.CharField(max_length=512)
-    owner = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING)
-    project = models.ForeignKey(
-        settings.PROJECTS_MODEL,
-        on_delete=models.CASCADE,
-        related_name="s3_project",
-    )
-    region = models.CharField(max_length=512, blank=True, default="")
-    secret_key = models.CharField(max_length=512)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return "{} ({})".format(self.name, self.project.slug)
-
-
-class MLFlow(models.Model):
-    app = models.OneToOneField(
-        "apps.AppInstance",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="mlflowobj",
-    )
-    basic_auth = models.ForeignKey(BasicAuth, on_delete=models.DO_NOTHING, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    mlflow_url = models.CharField(max_length=512)
-    host = models.CharField(max_length=512, blank=True, default="")
-    name = models.CharField(max_length=512)
-    owner = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING)
-    project = models.ForeignKey(
-        settings.PROJECTS_MODEL,
-        on_delete=models.CASCADE,
-        related_name="mlflow_project",
-    )
-    s3 = models.ForeignKey(S3, on_delete=models.DO_NOTHING, blank=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return "{} ({})".format(self.name, self.project.slug)
-
-
-"""Post save signal when creating an mlflow object"""
-
-
-@receiver(post_save, sender=MLFlow)
-def create_mlflow(sender, instance, created, **kwargs):
-    if created:
-        if instance.project and not instance.project.mlflow:
-            instance.project.mlflow = instance
-            instance.project.save()
-
-
 # it will become the default objects attribute for a Project model
 class ProjectManager(models.Manager):
     def create_project(self, name, owner, description, status="active", project_template=None):
@@ -269,13 +206,7 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     clone_url = models.CharField(max_length=512, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
-    mlflow = models.OneToOneField(
-        MLFlow,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="project_mlflow",
-    )
+
     name = models.CharField(max_length=512)
     objects = ProjectManager()
     owner = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, related_name="owner")
@@ -284,13 +215,6 @@ class Project(models.Model):
 
     pattern = models.CharField(max_length=255, default="")
 
-    s3storage = models.OneToOneField(
-        S3,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="project_s3",
-    )
     slug = models.CharField(max_length=512, unique=True)
     status = models.CharField(max_length=20, null=True, blank=True, default="active")
     updated_at = models.DateTimeField(auto_now=True)
@@ -376,18 +300,3 @@ class ProjectLog(models.Model):
     module = models.CharField(max_length=2, choices=MODULE_CHOICES, default="UN")
     project = models.ForeignKey(settings.PROJECTS_MODEL, on_delete=models.CASCADE)
 
-
-class ReleaseName(models.Model):
-    app = models.ForeignKey(
-        "apps.AppInstance",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    name = models.CharField(max_length=512)
-    status = models.CharField(max_length=10)
-    project = models.ForeignKey(settings.PROJECTS_MODEL, on_delete=models.CASCADE, null=True)
-
-    def __str__(self):
-        return "{}-{}-{}".format(self.name, self.project, self.app)

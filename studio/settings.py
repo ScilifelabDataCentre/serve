@@ -96,7 +96,6 @@ INSTALLED_APPS = [
     "portal",
     "projects",
     "models",
-    "monitor",
     "apps",
     "api",
     "customtags",
@@ -414,7 +413,6 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 MIGRATION_MODULES = {
     "apps": "studio.migrations.apps",
     "models": "studio.migrations.models",
-    "monitor": "studio.migrations.monitor",
     "portal": "studio.migrations.portal",
     "projects": "studio.migrations.projects",
     "common": "common.migrations",
@@ -443,6 +441,7 @@ APPS_PER_PROJECT_LIMIT = {
     "combiner": 0,
     "mongodb": 0,
     "netpolicy": 0,
+    "filemanager": 1
 }
 
 PROJECTS_PER_USER_LIMIT = 5

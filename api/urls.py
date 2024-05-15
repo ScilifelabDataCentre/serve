@@ -12,15 +12,12 @@ from .views import (
     FlavorsList,
     MembersList,
     MetadataList,
-    MLflowList,
     ModelList,
     ModelLogList,
     ObjectTypeList,
     ProjectList,
     ProjectTemplateList,
-    ReleaseNameList,
     ResourceList,
-    S3List,
     update_app_status,
 )
 
@@ -40,9 +37,6 @@ models_router.register(r"resources", ResourceList, basename="resources")
 models_router.register(r"appinstances", AppInstanceList, basename="appinstances")
 models_router.register(r"flavors", FlavorsList, basename="flavors")
 models_router.register(r"environments", EnvironmentList, basename="environment")
-models_router.register(r"s3", S3List, basename="s3")
-models_router.register(r"mlflow", MLflowList, basename="mlflow")
-models_router.register(r"releasenames", ReleaseNameList, basename="releasenames")
 models_router.register(r"modellogs", ModelLogList, basename="modellog")
 models_router.register(r"metadata", MetadataList, basename="metadata")
 models_router.register(r"apps", AppList, basename="apps")

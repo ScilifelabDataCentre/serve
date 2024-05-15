@@ -21,7 +21,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.models import AppInstance, Subdomain
+from apps.models import Subdomain
 from apps.helpers import find_related_model
 from common.models import UserProfile
 from projects.models import Project

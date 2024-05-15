@@ -25,10 +25,8 @@ from guardian.shortcuts import assign_perm, remove_perm
 from .exceptions import ProjectCreationException
 from .forms import PublishProjectToGitHub
 from .models import (
-    S3,
     Environment,
     Flavor,
-    MLFlow,
     Project,
     ProjectLog,
     ProjectTemplate,
@@ -110,9 +108,7 @@ def settings(request, project_slug):
     environments = Environment.objects.filter(project=project)
     apps = Apps.objects.all().order_by("slug", "-revision").distinct("slug")
 
-    s3instances = S3.objects.filter(Q(project=project), Q(app__state="Running"))
     flavors = Flavor.objects.filter(project=project)
-    mlflows = MLFlow.objects.filter(Q(project=project), Q(app__state="Running"))
 
     return render(request, template, locals())
 
@@ -266,71 +262,6 @@ def delete_flavor(request, project_slug):
         # TODO: Check that the user has permission to delete this flavor.
         flavor = Flavor.objects.get(pk=pk, project=project)
         flavor.delete()
-
-    return HttpResponseRedirect(
-        reverse(
-            "projects:settings",
-            kwargs={"project_slug": project.slug},
-        )
-    )
-
-
-@login_required
-@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def set_s3storage(request, project_slug, s3storage=[]):
-    # TODO: Ensure that the user has the correct permissions to set
-    # this specific
-    # s3 object to storage in this project (need to check that
-    # the user has access to the
-    # project as well.)
-    if request.method == "POST" or s3storage:
-        project = Project.objects.get(slug=project_slug)
-
-        if s3storage:
-            s3obj = S3.objects.get(name=s3storage, project=project)
-        else:
-            pk = request.POST.get("s3storage")
-            if pk == "blank":
-                s3obj = None
-            else:
-                s3obj = S3.objects.get(pk=pk)
-
-        project.s3storage = s3obj
-        project.save()
-
-        if s3storage:
-            return JsonResponse({"status": "ok"})
-
-    return HttpResponseRedirect(
-        reverse(
-            "projects:settings",
-            kwargs={"project_slug": project.slug},
-        )
-    )
-
-
-@login_required
-@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def set_mlflow(request, project_slug, mlflow=[]):
-    # TODO: Ensure that the user has the correct permissions
-    # to set this specific
-    # MLFlow object to MLFlow Server in this project (need to check
-    #  that the user has access to the
-    # project as well.)
-    if request.method == "POST" or mlflow:
-        project = Project.objects.get(slug=project_slug)
-
-        if mlflow:
-            mlflowobj = MLFlow.objects.get(name=mlflow, project=project)
-        else:
-            pk = request.POST.get("mlflow")
-            mlflowobj = MLFlow.objects.get(pk=pk)
-
-        project.mlflow = mlflowobj
-        project.save()
-
-        if mlflow:
-            return JsonResponse({"status": "ok"})
 
     return HttpResponseRedirect(
         reverse(

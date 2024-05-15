@@ -1,16 +1,13 @@
 from django.contrib.auth.models import User
 from rest_framework.serializers import ModelSerializer
 
-from apps.models import AppCategories, AppInstance, Apps, AppStatus
+from apps.models import AppCategories,AbstractAppInstance, Apps, AppStatus
 from models.models import Metadata, Model, ModelLog, ObjectType
 from projects.models import (
-    S3,
     Environment,
     Flavor,
-    MLFlow,
     Project,
     ProjectTemplate,
-    ReleaseName,
 )
 
 
@@ -72,22 +69,8 @@ class MetadataSerializer(ModelSerializer):
         )
 
 
-class S3serializer(ModelSerializer):
-    class Meta:
-        model = S3
-        fields = ("name", "access_key", "secret_key", "host", "region")
-
-
-class MLflowSerializer(ModelSerializer):
-    s3 = S3serializer()
-
-    class Meta:
-        model = MLFlow
-        fields = ("name", "mlflow_url", "s3")
-
 
 class ProjectSerializer(ModelSerializer):
-    s3storage = S3serializer()
 
     class Meta:
         model = Project
@@ -124,15 +107,13 @@ class AppStatusSerializer(ModelSerializer):
         model = AppStatus
         fields = ("id", "status_type")
 
-
 class AppInstanceSerializer(ModelSerializer):
     app = AppSerializer()
     status = AppStatusSerializer(many=True)
 
     class Meta:
-        model = AppInstance
+        model = AbstractAppInstance
         fields = ("id", "name", "app", "table_field", "state", "status")
-
 
 class UserSerializer(ModelSerializer):
     class Meta:
@@ -154,12 +135,6 @@ class EnvironmentSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class ReleaseNameSerializer(ModelSerializer):
-    app = AppInstanceSerializer()
-
-    class Meta:
-        model = ReleaseName
-        fields = "__all__"
 
 
 class ProjectTemplateSerializer(ModelSerializer):

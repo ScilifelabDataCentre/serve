@@ -81,7 +81,6 @@ class AppInstanceManager(models.Manager):
         apps_per_project = {} if project.apps_per_project is None else project.apps_per_project
 
         limit = apps_per_project[app_slug] if app_slug in apps_per_project else None
-
         app = Apps.objects.get(slug=app_slug)
 
         if not app.user_can_create:

@@ -30,13 +30,10 @@ from apps.tasks import delete_resource
 from models.models import ObjectType
 from portal.models import PublishedModel
 from projects.models import (
-    S3,
     Environment,
     Flavor,
-    MLFlow,
     ProjectLog,
     ProjectTemplate,
-    ReleaseName,
 )
 from projects.tasks import create_resources_from_template, delete_project_apps
 from studio.utils import get_logger
@@ -49,7 +46,6 @@ from .serializers import (
     FlavorsSerializer,
     Metadata,
     MetadataSerializer,
-    MLflowSerializer,
     MLModelSerializer,
     Model,
     ModelLog,
@@ -58,8 +54,6 @@ from .serializers import (
     Project,
     ProjectSerializer,
     ProjectTemplateSerializer,
-    ReleaseNameSerializer,
-    S3serializer,
     UserSerializer,
 )
 
@@ -594,102 +588,6 @@ class EnvironmentList(
         obj.delete()
         return HttpResponse("Deleted object.", status=200)
 
-
-class S3List(
-    GenericViewSet,
-    CreateModelMixin,
-    RetrieveModelMixin,
-    UpdateModelMixin,
-    ListModelMixin,
-):
-    permission_classes = (
-        IsAuthenticated,
-        ProjectPermission,
-    )
-    serializer_class = S3serializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["id", "name", "host", "region"]
-
-    def get_queryset(self):
-        return S3.objects.filter(project__pk=self.kwargs["project_pk"])
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            obj = self.get_object()
-        except Exception as e:
-            logger.error(e, exc_info=True)
-            return HttpResponse("No such object.", status=400)
-        obj.delete()
-        return HttpResponse("Deleted object.", status=200)
-
-
-class MLflowList(
-    GenericViewSet,
-    CreateModelMixin,
-    RetrieveModelMixin,
-    UpdateModelMixin,
-    ListModelMixin,
-):
-    permission_classes = (
-        IsAuthenticated,
-        ProjectPermission,
-    )
-    serializer_class = MLflowSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["id", "name"]
-
-    def get_queryset(self):
-        return MLFlow.objects.filter(project__pk=self.kwargs["project_pk"])
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            obj = self.get_object()
-        except Exception as e:
-            logger.error(e, exc_info=True)
-            return HttpResponse("No such object.", status=400)
-        obj.delete()
-        return HttpResponse("Deleted object.", status=200)
-
-
-class ReleaseNameList(
-    GenericViewSet,
-    CreateModelMixin,
-    RetrieveModelMixin,
-    UpdateModelMixin,
-    ListModelMixin,
-):
-    permission_classes = (
-        IsAuthenticated,
-        ProjectPermission,
-    )
-    serializer_class = ReleaseNameSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["id", "name", "project"]
-
-    def get_queryset(self):
-        return ReleaseName.objects.filter(project__pk=self.kwargs["project_pk"])
-
-    def create(self, request, *args, **kwargs):
-        name = slugify(request.data["name"])
-        project = Project.objects.get(id=self.kwargs["project_pk"])
-        if ReleaseName.objects.filter(name=name).exists():
-            if project.status != "archived":
-                logger.info("ReleaseName already in use.")
-                return HttpResponse("Release name already in use.", status=200)
-        status = "active"
-
-        rn = ReleaseName(name=name, status=status, project=project)
-        rn.save()
-        return HttpResponse("Created release name {}.".format(name), status=200)
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            obj = self.get_object()
-        except Exception as e:
-            logger.error(e, exc_info=True)
-            return HttpResponse("No such object.", status=400)
-        obj.delete()
-        return HttpResponse("Deleted object.", status=200)
 
 
 class AppList(
