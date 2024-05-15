@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.exceptions import NotFound
 
-from apps.models import AppInstance, Apps
+from apps.models import BaseAppInstance, Apps
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
@@ -25,7 +25,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         logger.info("Requested API version %s", request.version)
 
         queryset = (
-            AppInstance.objects.filter(~Q(state="Deleted"), access="public")
+            BaseAppInstance.objects.filter(~Q(app_status__status="Deleted"), access="public")
             .order_by("-updated_on")[:8]
             .values("id", "name", "app_id", "table_field", "description", "updated_on")
         )
@@ -45,13 +45,13 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         """
         logger.info("PublicAppsAPI. Entered retrieve method with pk = %s", pk)
         logger.info("Requested API version %s", self.request.version)
-        queryset = AppInstance.objects.all().values(
-            "id", "name", "app_id", "table_field", "description", "updated_on", "access", "state"
+        queryset = BaseAppInstance.objects.all().values(
+            "id", "name", "app_id", "table_field", "description", "updated_on", "access", "app_status"
         )
         app = get_object_or_404(queryset, pk=pk)
-        if app["state"] == "Deleted":
+        if app.app_status.status == "Deleted":
             raise NotFound("this app has been deleted")
-        if app["access"] != "public":
+        if app.access != "public":
             raise NotFound()
 
         add_data = Apps.objects.get(id=app["app_id"])

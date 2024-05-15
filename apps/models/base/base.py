@@ -141,6 +141,8 @@ class BaseAppInstance(models.Model):
 
     class Meta:
         permissions = [("can_access_app", "Can access app service")]
+        verbose_name = "# BASE APP INSTANCE"
+        verbose_name_plural = "# BASE APP INSTANCES"
 
     def __str__(self):
         return f"{self.name} ({self.app_status.status})-{self.owner}-{self.app.name}-{self.project}"

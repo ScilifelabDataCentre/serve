@@ -21,8 +21,8 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.models import Subdomain
-from apps.helpers import find_related_model
+from apps.models import Subdomain, BaseAppInstance
+
 from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
@@ -57,9 +57,8 @@ class AccessPermission(BasePermission):
         try:
             # Must fetch the subdomain and reverse to the related model.
             subdomain = Subdomain.objects.get(subdomain=release)
-            model_class = find_related_model(subdomain)
             instance = (
-            model_class.objects.filter(subdomain=subdomain).last()
+            BaseAppInstance.objects.filter(subdomain=subdomain).last()
             )
             project = instance.project
         # TODO: Make it an explicit exception. At least catch `Exception`
