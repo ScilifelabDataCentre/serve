@@ -51,7 +51,7 @@ class GetLogs(View):
     def post(self, request, project):
         body = request.POST.get("app", "")
         container = request.POST.get("container", "")
-        app = AppInstance.objects.get(pk=body)
+        app = BaseAppInstance.objects.get(pk=body)
         project = Project.objects.get(slug=project)
         app_settings = app.app.settings
         logs = []
@@ -59,11 +59,11 @@ class GetLogs(View):
         if "logs" in app_settings:
             try:
                 url = settings.LOKI_SVC + "/loki/api/v1/query_range"
-                app_params = app.parameters
+                app_params = app.k8s_values
                 if app.app.slug == "shinyproxyapp":
-                    log_query = '{release="' + app_params["release"] + '",container="' + "serve" + '"}'
+                    log_query = '{release="' + app_params["subdomain"] + '",container="' + "serve" + '"}'
                 else:
-                    log_query = '{release="' + app_params["release"] + '",container="' + container + '"}'
+                    log_query = '{release="' + app_params["subdomain"] + '",container="' + container + '"}'
                 logger.info(log_query)
                 query = {
                     "query": log_query,
