@@ -99,7 +99,6 @@ INSTALLED_APPS = [
     "apps",
     "api",
     "customtags",
-    "news",
     "axes",  # django-axes for brute force login protection
     "django_password_validators",  # django-password-validators for password validation
     "collections_module",

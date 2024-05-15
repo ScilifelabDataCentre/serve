@@ -12,5 +12,6 @@ urlpatterns = [
     path("teaching/", views.teaching, name="teaching"),
     path("privacy/", views.privacy, name="privacy"),
     path("apps/", views.public_apps, name="apps"),
+    path("news/", views.news, name="news"),
     path("", views.HomeViewDynamic.as_view(), name="home-dynamic"),
 ]

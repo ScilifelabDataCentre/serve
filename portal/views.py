@@ -5,6 +5,9 @@ from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.views.generic import View
 
+from .models import NewsObject
+
+
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
@@ -12,7 +15,6 @@ logger = get_logger(__name__)
 AppInstance = apps.get_model(app_label="apps.AppInstance",)
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
-NewsObject = apps.get_model(app_label="news.NewsObject")
 Collection = apps.get_model(app_label="collections_module.Collection")
 
 
@@ -185,3 +187,12 @@ def teaching(request):
 def privacy(request):
     template = "portal/privacy.html"
     return render(request, template, locals())
+
+
+
+
+def news(request):
+    news_objects = NewsObject.objects.all().order_by("-created_on")
+    for news in news_objects:
+        news.body_html = markdown.markdown(news.body)
+    return render(request, "news/news.html", {"news_objects": news_objects})
