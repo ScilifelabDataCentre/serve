@@ -21,7 +21,7 @@ Collection = apps.get_model(app_label="portal.Collection")
 # TODO minor refactor
 # 1. Change id to app_id as it's anti-pattern to override language reserved function names
 # 2. add type annotations
-def get_public_apps(request, id=0, get_all=True, collection=None):
+def get_public_apps(request, app_id=0, get_all=True, collection=None):
     try:
         projects = Project.objects.filter(
             Q(owner=request.user) | Q(authorized=request.user), status="active"
@@ -44,24 +44,24 @@ def get_public_apps(request, id=0, get_all=True, collection=None):
         # add app id to app_tags object
         if "app_id_add" in request.GET:
             num_tags = int(request.GET["tag_count"])
-            id = int(request.GET["app_id_add"])
-            request.session["app_tags"][str(id)] = num_tags
+            app_id = int(request.GET["app_id_add"])
+            request.session["app_tags"][str(app_id)] = num_tags
         # remove app id from app_tags object
         if "app_id_remove" in request.GET:
             num_tags = int(request.GET["tag_count"])
-            id = int(request.GET["app_id_remove"])
-            if str(id) in request.session["app_tags"]:
-                request.session["app_tags"].pop(str(id))
+            app_id = int(request.GET["app_id_remove"])
+            if str(app_id) in request.session["app_tags"]:
+                request.session["app_tags"].pop(str(app_id))
 
     # reset app_tags if Apps Tab on Sidebar pressed
-    if id == 0:
+    if app_id == 0:
         if "tf_add" not in request.GET and "tf_remove" not in request.GET:
             request.session["app_tags"] = {}
 
     published_apps = []
     from apps.models import Social
     if collection:
-        #TODO: FILTER ON ACCESS!!!!
+        #TODO: TIDY THIS UP!
         
         for subclass in Social.__subclasses__():
             print(subclass, flush=True)
@@ -128,8 +128,8 @@ def get_public_apps(request, id=0, get_all=True, collection=None):
     return published_apps, request
 
 
-def public_apps(request, id=0):
-    published_apps, request = get_public_apps(request, id=id)
+def public_apps(request, app_id=0):
+    published_apps, request = get_public_apps(request, app_id=app_id)
     template = "portal/apps.html"
     return render(request, template, locals())
 
@@ -137,8 +137,8 @@ def public_apps(request, id=0):
 class HomeView(View):
     template = "portal/home.html"
 
-    def get(self, request, id=0):
-        published_apps, request = get_public_apps(request, id=id, get_all=False)
+    def get(self, request, app_id=0):
+        published_apps, request = get_public_apps(request, app_id=app_id, get_all=False)
         published_models = PublishedModel.objects.all()
         news_objects = NewsObject.objects.all().order_by("-created_on")
         for news in news_objects:
@@ -183,8 +183,7 @@ class HomeViewDynamic(View):
         if request.user.is_authenticated:
             return redirect("projects/")
         else:
-            return HomeView.as_view()(request, id=0)
-
+            return HomeView.as_view()(request, app_id=0)
 
 def about(request):
     template = "portal/about.html"
