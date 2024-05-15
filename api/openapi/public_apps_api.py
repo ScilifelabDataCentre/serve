@@ -24,8 +24,9 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         logger.info("PublicAppsAPI. Entered list method.")
         logger.info("Requested API version %s", request.version)
 
+        #TODO: MAKE SURE THAT THIS IS FILTERED BASED ON ACCESS
         queryset = (
-            BaseAppInstance.objects.filter(~Q(app_status__status="Deleted"), access="public")
+            BaseAppInstance.objects.filter(~Q(app_status__status="Deleted"))
             .order_by("-updated_on")[:8]
             .values("id", "name", "app_id", "table_field", "description", "updated_on")
         )

@@ -53,7 +53,7 @@ class CustomAppForm(AppBaseForm):
             self.add_error('source_code_url', 'Source is required when access is public.')
 
         if path:
-            path = path.strip('/')
+            path = path.strip().rstrip('/').lower().replace(" ", "")
             if not path.startswith('/home'):
                 self.add_error('path', 'Path must start with "/home"')
         

@@ -35,7 +35,7 @@
                         <div class="row d-flex flex-column pb-4">
                             <div class="col-12">
                                 {% if request.session.app_tags|exists:app.id %}
-                                {% with app.tags.all as tags %}
+                                {% with app.tags as tags %}
                                 {% for tag in tags %}
                                 <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
                                     href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">
@@ -50,9 +50,9 @@
                                 </a>
                                 {% endwith %}
                                 {% else %}
-                                {% with app.tags.all as tags %}
-                                {% with tags|count_str as tag_limit %}
-                                {% for tag in tags|slice:tag_limit %}
+                                {% with app.tags as tags %}
+                                
+                                {% for tag in tags %}
                                 <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
                                     href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">
                                     <div class="tag-ico fas fa-tag fa-sm"></div><span class="badge text-bg-primary">{{ tag }}</span>
@@ -67,7 +67,7 @@
                                 </a>
                                 {% endif %}
                                 {% endwith %}
-                                {% endwith %}
+
                                 {% endif %}
                             </div>
                         </div>
