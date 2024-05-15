@@ -379,7 +379,7 @@ APPS_STATUS_WARNING = [
 
 # Apps
 APPS_MODEL = "apps.Apps"
-APPINSTANCE_MODEL = "apps.AbstractAppInstance"
+APPINSTANCE_MODEL = "apps.BaseAppInstance"
 APPCATEGORIES_MODEL = "apps.AppCategories"
 
 # Models

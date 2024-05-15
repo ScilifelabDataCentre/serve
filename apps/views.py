@@ -17,7 +17,7 @@ from django.db import transaction
 from .tasks import delete_resource
 from .constants import SLUG_MODEL_FORM_MAP
 from .helpers import create_instance_from_form
-from .models import AppInstance, AbstractAppInstance
+from .models import AppInstance, BaseAppInstance
 from .tasks import delete_resource
 
 logger = get_logger(__name__)
@@ -103,7 +103,7 @@ class GetStatusView(View):
             arr = body.split(",")
             status_success, status_warning = get_status_defs()
 
-            for model_class in AbstractAppInstance.__subclasses__():
+            for model_class in BaseAppInstance.__subclasses__():
                 instances = model_class.objects.filter(pk__in=arr)
 
                 for instance in instances:
@@ -177,7 +177,6 @@ class CreateApp(View):
         project = Project.objects.get(slug=project_slug)
         
         form = self.get_form(request, project, app_slug, app_id)
-                
         if form is None or not getattr(form, "is_valid", False):
             return render(request, "404.html")
         
@@ -194,6 +193,7 @@ class CreateApp(View):
         
         if not form.is_valid():
             return render(request, self.template_name, {"form": form})
+        
         
         # Otherwise we can create the instance    
         create_instance_from_form(form, project, app_slug, app_id)

@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework.serializers import ModelSerializer
 
-from apps.models import AppCategories,AbstractAppInstance, Apps, AppStatus
+from apps.models import AppCategories,BaseAppInstance, Apps, AppStatus
 from models.models import Metadata, Model, ModelLog, ObjectType
 from projects.models import (
     Environment,
@@ -112,7 +112,7 @@ class AppInstanceSerializer(ModelSerializer):
     status = AppStatusSerializer(many=True)
 
     class Meta:
-        model = AbstractAppInstance
+        model = BaseAppInstance
         fields = ("id", "name", "app", "table_field", "state", "status")
 
 class UserSerializer(ModelSerializer):

@@ -5,15 +5,18 @@ import yaml
 import time
 from datetime import datetime
 
+
+from django.core.exceptions import ObjectDoesNotExist
+
 from celery import shared_task
 from django.db import transaction
-from django.core import serializers 
-from django.utils import timezone
 
+from django.utils import timezone
+from django.apps import apps
 from studio.celery import app
 from studio.utils import get_logger
 
-from .models import AbstractAppInstance, FilemanagerInstance
+from .models import BaseAppInstance, FilemanagerInstance
 
 logger = get_logger(__name__)
 
@@ -24,7 +27,7 @@ logger = get_logger(__name__)
 def delete_old_objects():
     """
     This function retrieves the old apps based on the given threshold, category, and model class.
-    It then iterates through the subclasses of AbstractAppInstance and deletes the old apps
+    It then iterates through the subclasses of BaseAppInstance and deletes the old apps
     for both the "Develop" and "Manage Files" categories.
 
     """
@@ -34,7 +37,7 @@ def delete_old_objects():
  
 
     # Handle deletion of apps in the "Develop" category
-    for subclass in AbstractAppInstance.__subclasses__():
+    for subclass in BaseAppInstance.__subclasses__():
         old_develop_apps = subclass.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
         
         for app_ in old_develop_apps:
@@ -97,8 +100,11 @@ def helm_delete(release_name, namespace="default"):
 @transaction.atomic 
 def deploy_resource(serialized_instance):
     
-    instance = deserialize(serialized_instance)
+    print("######"*10, serialized_instance)
     
+    instance = deserialize(serialized_instance)
+    print("#########", instance)
+    logger.info("Deploying resource for instance %s", instance)
     values = instance.k8s_values
     if "ghcr" in instance.chart:
         version = instance.chart.split(":")[-1]
@@ -153,11 +159,21 @@ def delete_resource(serialized_instance):
 
 
 def deserialize(serialized_instance):
-    deserialized_objects = list(serializers.deserialize("json", serialized_instance))
-    
-    # Check if the length of the deserialized objects is exactly 1
-    if len(deserialized_objects) != 1:
-        raise ValueError("Expected exactly one serialized object, but got {}".format(len(deserialized_objects)))
-    
-    # Get the actual instance from the list
-    return deserialized_objects[0].object
+    # Check if the input is a dictionary
+    if not isinstance(serialized_instance, dict):
+        raise ValueError(f"The input must be a dictionary and not {type(serialized_instance)}")
+
+    try:
+        model = serialized_instance['model']
+        pk = serialized_instance['pk']
+        app_label, model_name = model.split('.')
+        
+        model_class = apps.get_model(app_label, model_name)
+        instance = model_class.objects.get(pk=pk)
+        
+        return instance
+    except (KeyError, ValueError) as e:
+        raise ValueError(f"Invalid serialized data format: {e}")
+    except ObjectDoesNotExist:
+        raise ValueError(f"No instance found for model {model} with pk {pk}")
+

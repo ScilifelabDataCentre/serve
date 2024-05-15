@@ -3,7 +3,7 @@ from django.contrib import admin, messages
 
 from studio.utils import get_logger
 
-from .models import ShinyInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance, NetpolicyInstance, TissuumapsInstance, FilemanagerInstance, RStudioInstance, VSCodeInstance
+from .models import BaseAppInstance, ShinyInstance, Apps, AppCategories,AppStatus, Subdomain, JupyterInstance, VolumeInstance, DashInstance, CustomAppInstance, NetpolicyInstance, TissuumapsInstance, FilemanagerInstance, RStudioInstance, VSCodeInstance
 
 from .tasks import deploy_resource, delete_resource
 
@@ -32,8 +32,7 @@ class AppsAdmin(admin.ModelAdmin):
 
 admin.site.register(Apps, AppsAdmin)
 
-
-class AbstractAppInstanceAdmin(admin.ModelAdmin):
+class BaseAppAdmin(admin.ModelAdmin):
     list_display = ("name", "display_owner", "display_project", "display_status", "display_subdomain", "chart")
 
     list_filter = ["owner", "project", "app_status__status", "chart"]
@@ -124,53 +123,63 @@ class AbstractAppInstanceAdmin(admin.ModelAdmin):
             )
 
 
+    
+@admin.register(BaseAppInstance)
+class BaseAppInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("display_subclass", )
+
+    def display_subclass(self, obj):
+        subclasses = BaseAppInstance.__subclasses__()
+        for subclass in subclasses:
+            app_type = getattr(obj, subclass.__name__.lower(), None)
+            if app_type:
+                return app_type.__class__.__name__ 
+    display_subclass.short_description = "Subclass"
+
 @admin.register(RStudioInstance)
-class RStudioInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display + ("access", "display_volumes")
+class RStudioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("access", "display_volumes")
     
 @admin.register(VSCodeInstance)
-class VSCodeInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display + ("access", "display_volumes")
+class VSCodeInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("access", "display_volumes")
     
 @admin.register(JupyterInstance)
-class JupyterInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display + ("access", "display_volumes")
+class JupyterInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("access", "display_volumes")
     
-    
-    
-
 @admin.register(VolumeInstance)
-class VolumeInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display + ("display_size",)
+class VolumeInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("display_size",)
     
     def display_size(self, obj):
         return f"{str(obj.size)} GB"
     display_size.short_description = "Size"
     
 @admin.register(NetpolicyInstance)
-class NetpolicyInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display
+class NetpolicyInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display
 
 @admin.register(DashInstance)
-class DashInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display + ("image",)
+class DashInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("image",)
 
 @admin.register(CustomAppInstance)
-class CustomAppInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display + ("display_volumes", "image", "port", "user_id",)
+class CustomAppInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("display_volumes", "image", "port", "user_id",)
 
 @admin.register(ShinyInstance)
-class ShinyInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display + ("image", "port",)
+class ShinyInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("image", "port",)
     
 @admin.register(TissuumapsInstance)
-class TissuumapsInstanceAdmin(AbstractAppInstanceAdmin):
-    list_display = AbstractAppInstanceAdmin.list_display + ("display_volumes", )
+class TissuumapsInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("display_volumes", )
     
 @admin.register(FilemanagerInstance)
-class FilemanagerInstanceAdmin(AbstractAppInstanceAdmin):
+class FilemanagerInstanceAdmin(BaseAppAdmin):
 
-    list_display = AbstractAppInstanceAdmin.list_display + ("display_volumes", "persistent",)
+    list_display = BaseAppAdmin.list_display + ("display_volumes", "persistent",)
 
 admin.site.register(Subdomain)
 admin.site.register(AppCategories)

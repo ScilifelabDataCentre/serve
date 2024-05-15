@@ -1,13 +1,13 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, AbstractAppInstance, Social
+from apps.models import AppInstanceManager, BaseAppInstance, Social
 
 
 class VSCodeInstanceManager(AppInstanceManager):
     model_type = "VSCodeinstance"
 
 
-class VSCodeInstance(AbstractAppInstance):
+class VSCodeInstance(BaseAppInstance):
     objects = VSCodeInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),

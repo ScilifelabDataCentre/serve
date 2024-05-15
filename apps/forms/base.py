@@ -7,7 +7,7 @@ from django import forms
 from django.shortcuts import get_object_or_404
 from django.utils.safestring import mark_safe
 
-from apps.models import AbstractAppInstance, Subdomain, VolumeInstance
+from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from projects.models import Flavor, Project
 from django.core.validators import RegexValidator
 
@@ -91,7 +91,7 @@ class BaseForm(forms.ModelForm):
 
     class Meta:
         # Specify model to be used
-        model = AbstractAppInstance
+        model = BaseAppInstance
         fields = "__all__"
 
 

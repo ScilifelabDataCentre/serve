@@ -1,13 +1,13 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, AbstractAppInstance, Social
+from apps.models import AppInstanceManager, BaseAppInstance, Social
 
 
 class JupyterInstanceManager(AppInstanceManager):
     model_type = "jupyterinstance"
 
 
-class JupyterInstance(AbstractAppInstance):
+class JupyterInstance(BaseAppInstance):
     objects = JupyterInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),
@@ -33,11 +33,9 @@ class JupyterInstance(AbstractAppInstance):
                 release=object.subdomain.subdomain
             )
         self.k8s_values["apps"] = volumeK8s_dict
-        print(self.k8s_values, flush=True)
         # This is just do fix a legacy. 
         #TODO: Change the jupyter chart to fetch port from appconfig as other apps
         self.k8s_values["service"]["targetport"] = 8888
-        print(self.k8s_values, flush=True)
         
     class Meta:
         verbose_name = "JupyterLab Instance"

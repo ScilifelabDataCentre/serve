@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from django.db.models import Q
 
-from apps.models import AppInstanceManager, AbstractAppInstance
+from apps.models import AppInstanceManager, BaseAppInstance
 
 
 class NetpolicyInstanceManager(AppInstanceManager):
@@ -23,7 +23,7 @@ class NetpolicyInstanceManager(AppInstanceManager):
         return q
 
 
-class NetpolicyInstance(AbstractAppInstance):
+class NetpolicyInstance(BaseAppInstance):
     objects = NetpolicyInstanceManager()
 
     def __str__(self):

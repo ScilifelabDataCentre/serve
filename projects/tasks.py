@@ -15,14 +15,13 @@ from .exceptions import ProjectCreationException
 from .models import Environment, Flavor, Project
 
 from apps.constants import SLUG_MODEL_FORM_MAP
-from apps.models import VolumeInstance, AbstractAppInstance
+from apps.models import VolumeInstance, BaseAppInstance
 
 from apps.tasks import delete_resource
 
 logger = get_logger(__name__)
 
 Apps = apps.get_model(app_label=settings.APPS_MODEL)
-AppInstance = apps.get_model(app_label="apps.AppInstance")
 
 User = get_user_model()
 
@@ -188,7 +187,7 @@ def delete_project(project_pk):
 @shared_task
 def delete_project_apps(project):
     
-    for subclass in AbstractAppInstance.__subclasses__():
+    for subclass in BaseAppInstance.__subclasses__():
         queryset = subclass.objects.filter(project=project)
         for instance in queryset:
             serialized_instance = instance.serialize()

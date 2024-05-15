@@ -1,13 +1,13 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, AbstractAppInstance, Social
+from apps.models import AppInstanceManager, BaseAppInstance, Social
 
 
 class DashInstanceManager(AppInstanceManager):
     model_type = "dashinstance"
 
 
-class DashInstance(AbstractAppInstance, Social):
+class DashInstance(BaseAppInstance, Social):
     objects = DashInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),

@@ -1,5 +1,8 @@
+import json
+
 from datetime import datetime, timedelta
 from django.conf import settings
+from django.core import serializers
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import Q
@@ -97,7 +100,7 @@ class AppInstanceManager(models.Manager):
         return limit is None or limit > num_of_app_instances or has_perm
 
 
-class AbstractAppInstance(models.Model):
+class BaseAppInstance(models.Model):
     objects = AppInstanceManager()
 
     app = models.ForeignKey(Apps, on_delete=models.CASCADE, related_name="%(app_label)s_%(class)s_related")
@@ -138,7 +141,6 @@ class AbstractAppInstance(models.Model):
 
     class Meta:
         permissions = [("can_access_app", "Can access app service")]
-        abstract = True
 
     def __str__(self):
         return f"{self.name} ({self.app_status.status})-{self.owner}-{self.app.name}-{self.project}"
@@ -171,5 +173,4 @@ class AbstractAppInstance(models.Model):
         self.k8s_values = self.get_k8s_values()
 
     def serialize(self):
-        from django.core import serializers
-        return serializers.serialize("json", [self])
+        return json.loads(serializers.serialize("json", [self]))[0]

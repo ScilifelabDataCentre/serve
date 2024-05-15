@@ -1,13 +1,13 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, AbstractAppInstance, Social
+from apps.models import AppInstanceManager, BaseAppInstance, Social
 
 
 class CustomAppInstanceManager(AppInstanceManager):
     model_type = "customappinstance"
 
 
-class CustomAppInstance(AbstractAppInstance, Social):
+class CustomAppInstance(BaseAppInstance, Social):
     objects = CustomAppInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),

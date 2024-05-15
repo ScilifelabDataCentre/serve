@@ -1,13 +1,13 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, AbstractAppInstance, Social
+from apps.models import AppInstanceManager, BaseAppInstance, Social
 
 
 class TissuumapsInstanceManager(AppInstanceManager):
     model_type = "shinyproxyinstance"
 
 
-class TissuumapsInstance(AbstractAppInstance, Social):
+class TissuumapsInstance(BaseAppInstance, Social):
     objects = TissuumapsInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),

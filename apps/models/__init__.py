@@ -1,3 +1,3 @@
 from .base import *
-from .base import AbstractAppInstance# as AppInstance
+from .base import BaseAppInstance# as AppInstance
 from .app_types import *

@@ -1,13 +1,13 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, AbstractAppInstance
+from apps.models import AppInstanceManager, BaseAppInstance
 
 
 class RStudioInstanceManager(AppInstanceManager):
     model_type = "rstudioinstance"
 
 
-class RStudioInstance(AbstractAppInstance):
+class RStudioInstance(BaseAppInstance):
     objects = RStudioInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),

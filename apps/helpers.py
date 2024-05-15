@@ -15,7 +15,7 @@ from django.template import engines
 from projects.models import Flavor
 from studio.utils import get_logger
 
-from .models import AbstractAppInstance, AppStatus, JupyterInstance, VolumeInstance, Apps, Subdomain
+from .models import BaseAppInstance, AppStatus, JupyterInstance, VolumeInstance, Apps, Subdomain
 from .tasks import deploy_resource, deploy_resource, delete_resource
 
 logger = get_logger(__name__)
@@ -26,7 +26,7 @@ def can_access_app_instance(instance, user, project):
     """Checks if a user has access to an app instance
 
     Args:
-        instance (subclass of AbstractAppInstance): instance object
+        instance (subclass of BaseAppInstance): instance object
         user (User): user object
         project (Project): project object
 
@@ -51,7 +51,7 @@ def can_access_app_instances(instances, user, project):
     """Checks if user has access to all app instances provided
 
     Args:
-        instances (Queryset<AbstractAppInstance>): list of instances
+        instances (Queryset<BaseAppInstance>): list of instances
         user (User): user object
         project (Project): project object
 
@@ -249,11 +249,12 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     subdomain_name = get_subdomain_name(form)
 
     instance = form.save(commit=False)
-    
+
+
     # Handle status creation or retrieval
     status = get_or_create_status(instance, app_id)
     
-    
+
     # Retrieve or create the subdomain
     subdomain, created = Subdomain.objects.get_or_create(subdomain=subdomain_name, project=project)
     
@@ -266,7 +267,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
     setup_instance(instance, subdomain, app, project, status)
     save_instance_and_related_data(instance, form)
-    
+
     deploy_resource.delay(instance.serialize())
  
 
@@ -328,12 +329,12 @@ def save_instance_and_related_data(instance, form):
     instance.save(update_fields=["k8s_values", "url"])
 
 
-def find_related_model(subdomain: Subdomain) -> Optional[AbstractAppInstance]:
+def find_related_model(subdomain: Subdomain) -> Optional[BaseAppInstance]:
     # Get all immediate subclasses of AbstractBase
     # This is needed since the SubModel is not known in advance
     #TODO: Add an app-slug to the event listener to avoid this loop
 
-    for model_class in AbstractAppInstance.__subclasses__():
+    for model_class in BaseAppInstance.__subclasses__():
         model_name = model_class.__name__.lower()
         try:
             # Try to access the reverse relation from SubModel to the concrete model

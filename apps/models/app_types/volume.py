@@ -3,7 +3,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q
 
-from apps.models import AppInstanceManager, AbstractAppInstance
+from apps.models import AppInstanceManager, BaseAppInstance
 
 
 
@@ -26,7 +26,7 @@ class VolumeInstanceManager(AppInstanceManager):
         return q
 
 
-class VolumeInstance(AbstractAppInstance):
+class VolumeInstance(BaseAppInstance):
     objects = VolumeInstanceManager()
     size = models.IntegerField(default=1, help_text="Size in GB",
                                validators=[MinValueValidator(1), MaxValueValidator(100)])

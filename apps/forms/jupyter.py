@@ -17,8 +17,9 @@ class JupyterForm(AppBaseForm):
         body = Div(
             Field("name", placeholder="Name your app"),
             Field("volume"),
-            Field("flavor"),
             Field("access"),
+            Field("flavor"),
+            
 
             css_class="card-body")
 

@@ -1,16 +1,16 @@
 from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
 from django.db.models.signals import post_save
-from apps.models import AbstractAppInstance
+from apps.models import BaseAppInstance
 
 
 @receiver(
     post_save,
-    sender=AbstractAppInstance,
+    sender=BaseAppInstance,
     dispatch_uid="app_instance_update_permission",
 )
 def update_permission(sender, instance, created, **kwargs):
-    """Should work with AbstractAppInstance or any subclass of it."""
+    """Should work with BaseAppInstance or any subclass of it."""
     owner = instance.owner
 
     if instance.access == "private":

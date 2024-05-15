@@ -32,7 +32,7 @@ from .models import (
     ProjectTemplate,
 )
 from .tasks import create_resources_from_template, delete_project
-from apps.models import AbstractAppInstance
+from apps.models import BaseAppInstance
 
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
@@ -476,7 +476,7 @@ class DetailsView(View):
             # Get all subclasses of Base
         
             instances_per_category_list = []
-            for subclass in AbstractAppInstance.__subclasses__():
+            for subclass in BaseAppInstance.__subclasses__():
             # Filter instances of each subclass by project, user and status. See the get_app_instances_of_project_filter method in base.py
                 
                 queryset_per_category = subclass.objects.get_app_instances_of_project(

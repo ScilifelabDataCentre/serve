@@ -1,13 +1,13 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, AbstractAppInstance
+from apps.models import AppInstanceManager, BaseAppInstance
 
 
 class FilemanagerInstanceManager(AppInstanceManager):
     model_type = "jupyterinstance"
 
 
-class FilemanagerInstance(AbstractAppInstance):
+class FilemanagerInstance(BaseAppInstance):
     objects = FilemanagerInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),
