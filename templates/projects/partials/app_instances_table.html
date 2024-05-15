@@ -71,7 +71,7 @@
                     <div class="dropdown-menu dropdown-menu-end">
                         {% if objs.title == "Serve" %}
                         <a class="dropdown-item default"
-                            href="{% url 'apps:logs' project.slug instance.pk %}?from=overview">
+                            href="{% url 'apps:logs' project.slug instance.app.slug instance.pk %}?from=overview">
                             <i class="bi bi-activity me-1"></i>
                             Logs
                         </a>

@@ -38,12 +38,15 @@ def get_status_defs():
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
 )
-class GetLogsView(View):
-    def get(self, request, project, ai_id):
+class GetLogs(View):
+    def get(self, request, project, app_slug, app_id):
+        from .constants import SLUG_MODEL_FORM_MAP
         template = "apps/logs.html"
-        app = AppInstance.objects.get(pk=ai_id)
-        project = Project.objects.get(slug=project)
-        return render(request, template, locals())
+        model_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None)).Model
+        if model_class:
+            app = model_class.objects.get(pk=app_id)
+            project = Project.objects.get(slug=project)
+            return render(request, template, locals())
 
     def post(self, request, project):
         body = request.POST.get("app", "")
@@ -178,7 +181,7 @@ class CreateApp(View):
         if form is None or not getattr(form, "is_valid", False):
             return render(request, "404.html")
         
-        return render(request, self.template_name, {"form": form})
+        return render(request, self.template_name, {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug})
 
     @transaction.atomic
     def post(self, request, project, app_slug, app_id=None):

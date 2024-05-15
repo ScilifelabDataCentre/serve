@@ -1,59 +1,19 @@
-{% extends 'base.html' %}
-{% block title %}Create {{ app.name }}{% endblock %}
-{% load static %}
-{% load custom_tags %}
-{% load crispy_forms_tags %}
+{% extends "apps/create_base.html" %}
 
-{% block content %}
-<h1 class="h3 mb-3">Create {{ app.name }}</h1>
-<div class="row">
-    <div class="col-12 mt-2 mb-4">
+{% block app_info %}
+    {% if app_slug == 'customapp' %}
+    <p>This form allows you to start hosting a custom app that fulfills certain requirements on SciLifeLab Serve (the app itself can be built on any framework). Please read our <a href="/docs/application-hosting/other/">documentation page on custom apps</a> for the list of requirements and step-by-step instructions on deployment.</p>
+    {% elif app_slug == 'dashapp' %}
+    <p>This form allows you to start hosting a Dash app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/dash/">documentation page on Dash apps</a> for step-by-step instructions.</p>
+    {% elif app_slug in 'shinyapp,shinyproxyapp' %}
+    <p>This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.</p>
+    {% elif app_slug == 'tissuumaps' %}
+    <p>This form allows you to start hosting your own TissUUmaps instance at SciLifeLab Serve. After your app has been created you will need to upload the data to your project. We suggest that you create the app with Permissions initially set to <i>private</i>, upload the data, and then edit the app settings to change the Permissions to <i>public</i>. Please read our <a href="/docs/application-hosting/tissuumaps/" target="_blank">documentation page on TissUUmaps apps</a> for step-by-step instructions.</p>
+    {% endif %}
+    {% if app_slug in 'jupyter-lab,rstudio,vscode' %}
+    <p>Note that <b>after 7 days the created {{ form.model_name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
+    <p>Each {{ form.model_name }} instance can get access to the persistent volume (folder) associated with this project, called 'project-vol'. Please make sure to save all your data files, script files, output from computations, etc. inside 'project-vol'; the files located elsewhere can be deleted at any point. The files saved inside 'project-vol' will be available across all instances of {{ form.model_name }} (as well as other apps) within this project.</p>
 
-        <p>Note that <b>after 7 days the created {{ app.name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
-        <p>Each {{ app.name }} instance can get access to the persistent volume (folder) associated with this project, called 'project-vol'. Please make sure to save all your data files, script files, output from computations, etc. inside 'project-vol'; the files located elsewhere can be deleted at any point. The files saved inside 'project-vol' will be available across all instances of {{ app.name }} (as well as other apps) within this project.</p>
+    {% endif %}
 
-    </div>
-</div>
-<div class="row d-flex justify-content-center">
-    <div class="col-12 col-xl-8">
-        <div class="card shadow border-0">
-                    {% crispy form %}
-                    
-        </div>
-    </div>
-</div>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Function to toggle visibility based on select value
-        function toggleVisibility() {
-            var accessSelect = document.getElementById('id_access');
-            var sourceCodeDiv = document.getElementById('div_id_source_code_url');
-    
-            // Ensure elements exist before attempting to use them
-            if (accessSelect && sourceCodeDiv) {
-                // Check if the 'public' option is selected
-                if (accessSelect.value === 'public') {
-                    sourceCodeDiv.style.display = 'block'; // Show the div
-                } else {
-                    sourceCodeDiv.style.display = 'none'; // Hide the div
-                }
-            }
-        }
-    
-        // Get the select element
-        var accessSelect = document.getElementById('id_access');
-    
-        // Check if the select element exists
-        if (accessSelect) {
-            // Add event listener for changes if element exists
-            accessSelect.addEventListener('change', toggleVisibility);
-        }
-    
-        // Call the function on page load to ensure correct initial display
-        toggleVisibility();
-    });
-    </script>
-    
-
-{% endblock %}
+{% endblock%}

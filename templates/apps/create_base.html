@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Create {{ app.name }}{% endblock %}
+{% load static %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+
+
+{% block content %}
+
+{% include "breadcrumbs/bc_app_create.html" %}
+
+<div class="row d-flex justify-content-center mt-2">
+    <div class="col-12 col-xl-8">
+        <div class="card shadow border-1">
+            <div class="card-body">
+            {% if app_id %}
+                <h1 class="h3 mb-3 card-title">Edit {{ form.instance.name }}</h1>
+            {% else %}
+                <h1 class="h3 mb-3 card-title">Create {{ form.model_name }}</h1>
+                <p class="card-text">
+                    {% block app_info %}
+                    {% endblock %}
+                </p>
+            {% endif %}
+
+            </div>
+                {% crispy form %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Function to toggle visibility based on select value
+        function toggleVisibility() {
+            var accessSelect = document.getElementById('id_access');
+            var sourceCodeDiv = document.getElementById('div_id_source_code_url');
+    
+            // Ensure elements exist before attempting to use them
+            if (accessSelect && sourceCodeDiv) {
+                // Check if the 'public' option is selected
+                if (accessSelect.value === 'public') {
+                    sourceCodeDiv.style.display = 'block'; // Show the div
+                } else {
+                    sourceCodeDiv.style.display = 'none'; // Hide the div
+                }
+            }
+        }
+    
+        // Get the select element
+        var accessSelect = document.getElementById('id_access');
+    
+        // Check if the select element exists
+        if (accessSelect) {
+            // Add event listener for changes if element exists
+            accessSelect.addEventListener('change', toggleVisibility);
+        }
+    
+        // Call the function on page load to ensure correct initial display
+        toggleVisibility();
+    });
+    </script>
+    
+
+{% endblock %}

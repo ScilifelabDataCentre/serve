@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+
 {% load static %}
 
 {% load custom_tags %}
@@ -9,7 +10,7 @@
 {% if project.status == "active" %}
 
     {% include 'common/flash_messages.html' %}
-    {% include "projects/partials/breadcrumb_nav.html" %}
+    {% include "breadcrumbs/bc_project_overview.html" %}
     {% include "projects/partials/project_header.html" %}
     {% include "projects/partials/project_description.html" %}
 
