@@ -5,7 +5,7 @@ from django.test import Client, TestCase, override_settings
 
 from projects.models import Project
 
-from ..models import AppInstance, Apps
+from ..models import JupyterInstance, Apps, Subdomain, AppStatus
 
 User = get_user_model()
 
@@ -18,30 +18,27 @@ class CreateAppViewTestCase(TestCase):
         self.app = Apps.objects.create(
             name="Jupyter Lab",
             slug="jupyter-lab",
-            settings={
-                "apps": {"Persistent Volume": "many"},
-                "flavor": "one",
-                "default_values": {"port": "80", "targetport": "8888"},
-                "environment": {
-                    "name": "from",
-                    "title": "Image",
-                    "quantity": "one",
-                    "type": "match",
-                },
-                "permissions": {
-                    "public": {"value": "false", "option": "false"},
-                    "project": {"value": "true", "option": "true"},
-                    "private": {"value": "false", "option": "true"},
-                    "link": {"value": "false", "option": "true"},
-                },
-                "export-cli": "True",
-            },
         )
 
-    def get_data(self, user=None):
-        project = Project.objects.create_project(
-            name="test-perm", owner=user if user is not None else self.user, description=""
-        )
+    def get_data(self, user=None, create_instance=False, create_project=True):
+        
+        if create_project:
+            project = Project.objects.create_project(
+                name="test-perm", owner=user if user is not None else self.user, description=""
+            )
+
+        if create_instance:
+            subdomain = Subdomain.objects.create(subdomain="test_internal")
+            app_status = AppStatus.objects.create(status="Created")
+            _ = JupyterInstance.objects.create(
+                access="private",
+                owner=self.user,
+                name="test_app_instance_private",
+                app=self.app,
+                project=project,
+                subdomain=subdomain,
+                app_status=app_status,
+            )
 
         return project
 
@@ -163,13 +160,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        _ = AppInstance.objects.create(
-            access="private",
-            owner=self.user,
-            name="test_app_instance_private",
-            app=self.app,
-            project=project,
-        )
+        project = self.get_data(create_instance=True, create_project=False)
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
@@ -190,7 +181,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 403)
 
-        content_type = ContentType.objects.get_for_model(AppInstance)
+        content_type = ContentType.objects.get_for_model(JupyterInstance)
         project_permissions = Permission.objects.filter(content_type=content_type)
 
         add_permission = next(
@@ -230,13 +221,8 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        _ = AppInstance.objects.create(
-            access="private",
-            owner=self.user,
-            name="test_app_instance_private",
-            app=self.app,
-            project=project,
-        )
+
+
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
@@ -280,13 +266,7 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        _ = AppInstance.objects.create(
-            access="private",
-            owner=self.user,
-            name="test_app_instance_private",
-            app=self.app,
-            project=project,
-        )
+        _ = self.get_data(create_instance=True, create_project=False)
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 

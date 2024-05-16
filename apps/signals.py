@@ -1,28 +1,20 @@
 from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
 from django.db.models.signals import post_save
-from apps.models import (JupyterInstance, RStudioInstance, VSCodeInstance, DashInstance, ShinyInstance, TissuumapsInstance, FilemanagerInstance, CustomAppInstance)
 
 from studio.utils import get_logger
+from apps.constants import SLUG_MODEL_FORM_MAP
+
 logger = get_logger(__name__)
 
 
 UID="app_instance_update_permission"
 
-#TODO: Can we make this generic? Using BaseAppInstance as sender does not work in tests
-@receiver(post_save, sender=JupyterInstance, dispatch_uid=UID)
-@receiver(post_save, sender=RStudioInstance, dispatch_uid=UID)
-@receiver(post_save, sender=VSCodeInstance, dispatch_uid=UID)
-@receiver(post_save, sender=DashInstance, dispatch_uid=UID)
-@receiver(post_save, sender=ShinyInstance, dispatch_uid=UID)
-@receiver(post_save, sender=TissuumapsInstance, dispatch_uid=UID)
-@receiver(post_save, sender=FilemanagerInstance, dispatch_uid=UID)
-@receiver(post_save, sender=CustomAppInstance, dispatch_uid=UID)
 def update_permission(sender, instance, created, **kwargs):
     owner = instance.owner
 
     access = getattr(instance, "access", None)
-    
+
     if access is None:
         logger.error(f"Access not found in {instance}")
         return
@@ -36,3 +28,24 @@ def update_permission(sender, instance, created, **kwargs):
         if owner.has_perm("can_access_app", instance):
             logger.info(f"Removing permission from {owner} for {instance}")
             remove_perm("can_access_app", owner, instance)
+            
+
+for app_type in SLUG_MODEL_FORM_MAP.values():
+    receiver(post_save, sender=app_type.Model, dispatch_uid=UID)(update_permission)
+    '''
+    What is going on here?
+    Well, after a model is saved, we want to update the permission of the owner of the model.
+    This signal is triggered after a model is saved, and we  update the permission of the owner of the model.
+    But, since we have many types of models, we must add a reciever for all types of models.
+    We can do this by iterating over the values of SLUG_MODEL_FORM_MAP, which is a dictionary that maps the slug of the model to the model itself.
+    
+    Equivalent to doing this:
+    
+    @receiver(post_save, sender=JupyterInstance, dispatch_uid=UID)
+    @receiver(post_save, sender=DashInstance, dispatch_uid=UID)
+    ...
+    @receiver(post_save, sender=LastModelInstance, dispatch_uid=UID)
+    def update_perrmission(sender, instance, created, **kwargs):
+        pass
+        
+    '''
