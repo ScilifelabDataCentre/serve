@@ -4,7 +4,7 @@ import requests
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
-
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
 from django.utils.decorators import method_decorator
@@ -136,10 +136,13 @@ def delete(request, project, app_slug, app_id):
     model_class, _ = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
     logger.info(f"Deleting app type {model_class} with id {app_id}")
 
-
+    if model_class is None:
+        raise PermissionDenied()
+    
     instance = model_class.objects.get(pk=app_id) if app_id else None
     
-    #TODO: Add check here and redirect if instance is not found
+    if instance is None:
+        raise PermissionDenied()
     
     if not instance.app.user_can_delete:
         return HttpResponseForbidden()
@@ -174,8 +177,9 @@ class CreateApp(View):
     def get(self, request, project, app_slug, app_id=None):
         project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
         project = Project.objects.get(slug=project_slug)
-        from django.core.exceptions import PermissionDenied
+
         form = self.get_form(request, project, app_slug, app_id)
+        
         if form is None or not getattr(form, "is_valid", False):
             raise PermissionDenied()
         
@@ -189,10 +193,11 @@ class CreateApp(View):
         project = Project.objects.get(slug=project_slug)
         
         form = self.get_form(request, project, app_slug, app_id)
+        if form is None:
+            raise PermissionDenied()
         
         if not form.is_valid():
             return render(request, self.template_name, {"form": form})
-        
         
         # Otherwise we can create the instance    
         create_instance_from_form(form, project, app_slug, app_id)

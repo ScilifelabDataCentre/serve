@@ -4,7 +4,7 @@ from apps.models import AppInstanceManager, BaseAppInstance
 
 
 class FilemanagerInstanceManager(AppInstanceManager):
-    model_type = "jupyterinstance"
+    model_type = "filemanagerinstance"
 
 
 class FilemanagerInstance(BaseAppInstance):

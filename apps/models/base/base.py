@@ -14,7 +14,7 @@ from projects.models import Flavor, Project
 
 
 class AppInstanceManager(models.Manager):
-    model_type = "AppInstance"
+    model_type = "appinstance"
 
     def get_app_instances_of_project_filter(self, user, project, include_deleted=False, deleted_time_delta=None):
         q = Q()
@@ -74,7 +74,7 @@ class AppInstanceManager(models.Manager):
         ).count()
 
         has_perm = user.has_perm(f"apps.add_{self.model_type}")
-
+        print(f"User {user} has permission to create {self.model_type}: {has_perm}", flush=True)
         return limit is None or limit > num_of_app_instances or has_perm
     
     def user_can_edit(self, user, project, app_slug):
@@ -128,7 +128,7 @@ class BaseAppInstance(models.Model):
         verbose_name_plural = "# BASE APP INSTANCES"
 
     def __str__(self):
-        return f"{self.name} ({self.app_status.status})-{self.owner}-{self.app.name}-{self.project}"
+        return f"{self.name}-{self.owner}-{self.app.name}-{self.project}"
 
     def get_k8s_values(self):
         k8s_values = dict(name=self.name,

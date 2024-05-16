@@ -4,7 +4,7 @@ from apps.models import AppInstanceManager, BaseAppInstance, Social
 
 
 class VSCodeInstanceManager(AppInstanceManager):
-    model_type = "VSCodeinstance"
+    model_type = "vscodeinstance"
 
 
 class VSCodeInstance(BaseAppInstance):

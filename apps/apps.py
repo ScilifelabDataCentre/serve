@@ -7,4 +7,3 @@ class AppsConfig(AppConfig):
 
     def ready(self):
         import apps.signals
-        

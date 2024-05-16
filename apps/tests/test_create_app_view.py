@@ -20,25 +20,11 @@ class CreateAppViewTestCase(TestCase):
             slug="jupyter-lab",
         )
 
-    def get_data(self, user=None, create_instance=False, create_project=True):
+    def get_data(self, user=None):
         
-        if create_project:
-            project = Project.objects.create_project(
-                name="test-perm", owner=user if user is not None else self.user, description=""
-            )
-
-        if create_instance:
-            subdomain = Subdomain.objects.create(subdomain="test_internal")
-            app_status = AppStatus.objects.create(status="Created")
-            _ = JupyterInstance.objects.create(
-                access="private",
-                owner=self.user,
-                name="test_app_instance_private",
-                app=self.app,
-                project=project,
-                subdomain=subdomain,
-                app_status=app_status,
-            )
+        project = Project.objects.create_project(
+            name="test-perm", owner=user if user is not None else self.user, description=""
+        )
 
         return project
 
@@ -160,7 +146,18 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        project = self.get_data(create_instance=True, create_project=False)
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        app_status = AppStatus.objects.create(status="Created")
+        _ = JupyterInstance.objects.create(
+            access="private",
+            owner=self.user,
+            name="test_app_instance_private",
+            app=self.app,
+            project=project,
+            subdomain=subdomain,
+            app_status=app_status,
+        )
+
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
@@ -185,7 +182,7 @@ class CreateAppViewTestCase(TestCase):
         project_permissions = Permission.objects.filter(content_type=content_type)
 
         add_permission = next(
-            (perm for perm in project_permissions if perm.codename == "add_appinstance"),
+            (perm for perm in project_permissions if perm.codename == "add_jupyterinstance"),
             None,
         )
 
@@ -221,8 +218,17 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-
-
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        app_status = AppStatus.objects.create(status="Created")
+        _ = JupyterInstance.objects.create(
+            access="private",
+            owner=self.user,
+            name="test_app_instance_private",
+            app=self.app,
+            project=project,
+            subdomain=subdomain,
+            app_status=app_status,
+        )
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
@@ -266,7 +272,17 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        _ = self.get_data(create_instance=True, create_project=False)
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        app_status = AppStatus.objects.create(status="Created")
+        _ = JupyterInstance.objects.create(
+            access="private",
+            owner=self.user,
+            name="test_app_instance_private",
+            app=self.app,
+            project=project,
+            subdomain=subdomain,
+            app_status=app_status,
+        )
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 

@@ -140,8 +140,8 @@ def handle_update_status_request(
             if instance.app_status is None:
                 # Missing app status so create one now
                 logger.info("AppInstance %s does not have an associated AppStatus. Creating one now.", release)
-                status_object = AppStatus.objects.create() 
-                update_status(instance, status_object, new_status, event_ts, event_msg)
+                app_status = AppStatus.objects.create() 
+                update_status(instance, app_status, new_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
             else:
                 app_status = instance.app_status
