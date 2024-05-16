@@ -164,7 +164,6 @@ def delete(request, project, app_slug, app_id):
 
 
 
-
 @method_decorator(
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
@@ -175,10 +174,10 @@ class CreateApp(View):
     def get(self, request, project, app_slug, app_id=None):
         project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
         project = Project.objects.get(slug=project_slug)
-        
+        from django.core.exceptions import PermissionDenied
         form = self.get_form(request, project, app_slug, app_id)
         if form is None or not getattr(form, "is_valid", False):
-            return render(request, "404.html")
+            raise PermissionDenied()
         
         return render(request, self.template_name, {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug})
 
@@ -217,11 +216,17 @@ class CreateApp(View):
             return None
         
         # Check if user is allowed
-        user_can_create = model_class.objects.user_can_create(request.user, project, app_slug)
+        user_can_edit = False
+        user_can_create = False
         
-        if user_can_create:
-            instance = model_class.objects.get(pk=app_id) if app_id else None
-            
+        if app_id:
+            user_can_edit = model_class.objects.user_can_edit(request.user, project, app_slug)
+            instance = model_class.objects.get(pk=app_id)
+        else:
+            user_can_create = model_class.objects.user_can_create(request.user, project, app_slug)
+            instance = None
+
+        if user_can_edit or user_can_create:        
             return form_class(request.POST or None, project_pk=project.pk, instance=instance)
             # Maybe this makes typing hard.
         else:

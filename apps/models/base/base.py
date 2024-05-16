@@ -76,6 +76,11 @@ class AppInstanceManager(models.Manager):
         has_perm = user.has_perm(f"apps.add_{self.model_type}")
 
         return limit is None or limit > num_of_app_instances or has_perm
+    
+    def user_can_edit(self, user, project, app_slug):
+
+        app = Apps.objects.get(slug=app_slug)
+        return app.user_can_edit or user.has_perm(f"apps.change_{self.model_type}")
 
 
 class BaseAppInstance(models.Model):

@@ -3,7 +3,7 @@ from django.test import Client, TestCase
 
 from projects.models import Project
 
-from ..models import AppCategories, AppInstance, Apps
+from ..models import AppCategories, CustomAppInstance, Apps,Subdomain, AppStatus
 
 User = get_user_model()
 
@@ -15,39 +15,26 @@ class AppSettingsViewTestCase(TestCase):
         self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         self.category = AppCategories.objects.create(name="Network", priority=100, slug="network")
         self.app = Apps.objects.create(
-            name="Jupyter Lab",
-            slug="jupyter-lab",
+            name="My Custom App",
+            slug="customapp",
             user_can_edit=False,
             category=self.category,
-            settings={
-                "apps": {"Persistent Volume": "many"},
-                "flavor": "one",
-                "default_values": {"port": "80", "targetport": "8888"},
-                "environment": {
-                    "name": "from",
-                    "title": "Image",
-                    "quantity": "one",
-                    "type": "match",
-                },
-                "permissions": {
-                    "public": {"value": "false", "option": "false"},
-                    "project": {"value": "true", "option": "true"},
-                    "private": {"value": "false", "option": "true"},
-                    "link": {"value": "false", "option": "true"},
-                },
-                "export-cli": "True",
-            },
         )
 
         self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
 
-        self.app_instance = AppInstance.objects.create(
+
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        app_status = AppStatus.objects.create(status="Created")
+        self.app_instance = CustomAppInstance.objects.create(
             access="public",
             owner=self.user,
             name="test_app_instance_public",
             app=self.app,
             project=self.project,
-            parameters={
+            subdomain=subdomain,
+            app_status = app_status,
+            k8s_values={
                 "environment": {"pk": ""},
             },
         )
@@ -67,7 +54,7 @@ class AppSettingsViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        url = f"/projects/{self.project.slug}/" + f"apps/settings/{self.app_instance.id}"
+        url = f"/projects/{self.project.slug}/" + f"apps/settings/{self.app_instance.app.slug}/{self.app_instance.id}"
 
         response = c.get(url)
 
@@ -84,7 +71,7 @@ class AppSettingsViewTestCase(TestCase):
         self.app.user_can_edit = True
         self.app.save()
 
-        url = f"/projects/{self.project.slug}/" + f"apps/settings/{self.app_instance.id}"
+        url = f"/projects/{self.project.slug}/" + f"apps/settings/{self.app_instance.app.slug}/{self.app_instance.id}"
 
         response = c.get(url)
 
