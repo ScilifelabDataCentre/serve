@@ -152,7 +152,7 @@ def alert_pause_dormant_users() -> None:
 
 
 @app.task(ignore_result=True)
-def send_email_task(subject: str, message: str, html_message: str, recipient_list: list[str]) -> None:
+def send_email_task(subject: str, message: str, html_message: str | None, recipient_list: list[str]) -> None:
     send_mail(
         subject,
         message,
