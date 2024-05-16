@@ -17,7 +17,7 @@ from django.db import transaction
 from .tasks import delete_resource
 from .constants import SLUG_MODEL_FORM_MAP
 from .helpers import create_instance_from_form
-from .models import AppInstance, BaseAppInstance
+from .models import BaseAppInstance
 from .tasks import delete_resource
 
 logger = get_logger(__name__)

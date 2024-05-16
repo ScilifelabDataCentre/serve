@@ -4,4 +4,4 @@ from .app_template import Apps
 from .subdomain import Subdomain
 from .social import Social
 from .app_categories import AppCategories
-from .app_instance import AppInstance
+#from .app_instance import AppInstance

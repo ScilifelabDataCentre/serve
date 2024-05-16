@@ -27,7 +27,7 @@ new_data = defaultdict(list)  # type: ignore
 logger = logging.getLogger(__name__)
 
 Apps = apps.get_model(app_label=settings.APPS_MODEL)
-AppInstance = apps.get_model(app_label="apps.AppInstance")
+BaseAppInstance = apps.get_model(app_label="apps.BaseAppInstance")
 
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 ProjectLog = apps.get_model(app_label=settings.PROJECTLOG_MODEL)
@@ -53,7 +53,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
         # For showing the persistent volumes currently
         # available within the project
         volumeK8s_set = Apps.objects.get(slug="volumeK8s")
-        volumes = AppInstance.objects.filter(Q(app=volumeK8s_set), Q(state="Running"))
+        volumes = BaseAppInstance.objects.filter(Q(app=volumeK8s_set), Q(app_status__status="Running"))
 
         # Passing the current project to the view/template
         project = (
@@ -75,7 +75,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
         # for the time being is hard-coded to
         # jupyter-lab where usually models are trained
         app_set = Apps.objects.get(slug="jupyter-lab")
-        apps = AppInstance.objects.filter(Q(app=app_set), Q(state="Running"))
+        apps = BaseAppInstance.objects.filter(Q(app=app_set), Q(app_status__status="Running"))
 
         return render(request, self.template, locals())
 
@@ -125,7 +125,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             # The minio sidecar does this.
             # First find the minio release name
             minio_set = Apps.objects.get(slug="minio")
-            minio = AppInstance.objects.filter(Q(app=minio_set), Q(project=model_project), Q(state="Running")).first()
+            minio = BaseAppInstance.objects.filter(Q(app=minio_set), Q(project=model_project), Q(app_status__status="Running")).first()
 
             minio_release = minio.parameters["release"]  # e.g 'rfc058c6f'
             # Now find the related pod

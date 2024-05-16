@@ -25,7 +25,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
-from apps.models import AppCategories, AppInstance, Apps, AppStatus
+from apps.models import AppCategories, Apps, AppStatus, BaseAppInstance
 from apps.tasks import delete_resource
 from models.models import ObjectType
 from portal.models import PublishedModel
@@ -485,7 +485,7 @@ class AppInstanceList(
     filterset_fields = ["id", "name", "app__category"]
 
     def get_queryset(self):
-        return AppInstance.objects.filter(~Q(state="Deleted"), project__pk=self.kwargs["project_pk"])
+        return BaseAppInstance.objects.filter(~Q(state="Deleted"), project__pk=self.kwargs["project_pk"])
 
     def create(self, request, *args, **kwargs):
         project = Project.objects.get(id=self.kwargs["project_pk"])
