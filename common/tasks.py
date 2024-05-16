@@ -19,7 +19,7 @@ ADMIN_EMAIL = "serve@scilifelab.se"
 
 
 @app.task
-def handle_deleted_users():
+def handle_deleted_users() -> None:
     """
     Handles deleted user accounts.
 
@@ -65,7 +65,7 @@ def handle_deleted_users():
 
 
 @app.task
-def alert_pause_dormant_users():
+def alert_pause_dormant_users() -> None:
     """
     Handles dormant user accounts.
     The term dormant is used rather than inactive because of the overuse of the term inactive.
@@ -152,8 +152,7 @@ def alert_pause_dormant_users():
 
 
 @app.task(ignore_result=True)
-def send_email_task(subject, message, html_message, recipient_list):
-    logger.info("Sending email to %s", recipient_list)
+def send_email_task(subject: str, message: str, html_message: str | None, recipient_list: list[str]) -> None:
     send_mail(
         subject,
         message,
@@ -164,7 +163,7 @@ def send_email_task(subject, message, html_message, recipient_list):
     )
 
 
-def send_verification_email_task(email, token):
+def send_verification_email_task(email: str, token: str) -> None:
     html_message = render_to_string(
         "registration/verify_email.html",
         {
