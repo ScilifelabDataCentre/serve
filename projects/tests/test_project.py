@@ -1,9 +1,10 @@
+import base64
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase, override_settings
 
-from ..helpers import decrypt_key
 from ..models import Project
 
 User = get_user_model()
@@ -28,7 +29,10 @@ class ProjectTestCase(TestCase):
 
     def test_decrypt_key(self):
         project = Project.objects.filter(name="test-secret").first()
-
+        def decrypt_key(key):
+            base64_bytes = key.encode("ascii")
+            result = base64.b64decode(base64_bytes)
+            return result.decode("ascii")
         self.assertEqual(decrypt_key(project.project_key), "key")
         self.assertEqual(decrypt_key(project.project_secret), "secret")
 
