@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.models import AppInstance, Apps, CustomAppInstance, Subdomain, AppStatus
+from apps.models import Apps, CustomAppInstance, Subdomain, AppStatus
 from projects.models import Project
 from studio.utils import get_logger
 
