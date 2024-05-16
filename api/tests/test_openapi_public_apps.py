@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.models import AppInstance, Apps
+from apps.models import AppInstance, Apps, CustomAppInstance, Subdomain, AppStatus
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -27,18 +27,22 @@ class PublicAppsApiTests(APITestCase):
     def setUpTestData(cls):
         cls.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         cls.project = Project.objects.create_project(name="test-perm", owner=cls.user, description="")
-        cls.app = Apps.objects.create(name="Some App", slug="some-app")
+        cls.app = Apps.objects.create(name="Some App", slug="customapp")
 
-        cls.app_instance = AppInstance.objects.create(
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        app_status = AppStatus.objects.create(status="Running")
+        cls.app_instance = CustomAppInstance.objects.create(
             access="public",
             owner=cls.user,
             name="test_app_instance_public",
             description="My app description",
             app=cls.app,
             project=cls.project,
-            parameters={
+            k8s_values={
                 "environment": {"pk": ""},
             },
+            subdomain=subdomain,
+            app_status=app_status,
         )
 
     def test_public_apps_list(self):
@@ -64,10 +68,12 @@ class PublicAppsApiTests(APITestCase):
     def test_public_apps_single_app(self):
         """Tests the API resource public-apps get single object"""
         id = str(self.app_instance.id)
-        url = os.path.join(self.BASE_API_URL, "public-apps/", id)
+        app_slug = self.app_instance.app.slug
+        url = os.path.join(self.BASE_API_URL, "public-apps", app_slug, id)
         response = self.client.get(url, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
         logger.info(response.content)
         actual = json.loads(response.content)["app"]
         logger.info(type(actual))
@@ -84,6 +90,12 @@ class PublicAppsApiTests(APITestCase):
     def test_public_apps_single_app_notfound(self):
         """Tests the API resource public-apps get single object for a non-existing id"""
         id = "-1"
-        url = os.path.join(self.BASE_API_URL, "public-apps/", id)
+        app_slug = self.app_instance.app.slug
+        url = os.path.join(self.BASE_API_URL, "public-apps", app_slug, id)
+        response = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        app_slug = "invalid_app_slug"
+        url = os.path.join(self.BASE_API_URL, "public-apps", app_slug, id)
         response = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
