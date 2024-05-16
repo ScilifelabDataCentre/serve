@@ -100,10 +100,8 @@ def helm_delete(release_name, namespace="default"):
 @transaction.atomic 
 def deploy_resource(serialized_instance):
     
-    print("######"*10, serialized_instance)
     
     instance = deserialize(serialized_instance)
-    print("#########", instance)
     logger.info("Deploying resource for instance %s", instance)
     values = instance.k8s_values
     if "ghcr" in instance.chart:

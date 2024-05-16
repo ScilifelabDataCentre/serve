@@ -4,10 +4,19 @@ from django.test import TestCase, override_settings
 
 from projects.models import Project
 
-from ..models import AppInstance, Apps
+from ..models import *
 
 User = get_user_model()
 
+MODELS_LIST = [
+    JupyterInstance,
+    RStudioInstance,
+    VSCodeInstance,
+    FilemanagerInstance,
+    ShinyInstance,
+    TissuumapsInstance,
+    CustomAppInstance
+]
 
 class AppInstaceManagerTestCase(TestCase):
     def setUp(self):
@@ -17,72 +26,19 @@ class AppInstaceManagerTestCase(TestCase):
         )
         app = Apps.objects.create(name="Persistent Volume", slug="volumeK8s")
 
-        app_instance = AppInstance.objects.create(
-            access="project",
-            owner=self.user,
-            name="test_app_instance_1",
-            app=app,
-            project=self.project,
-        )
+        self.instances = []
+        for i, model_class in enumerate(MODELS_LIST):
+            subdomain = Subdomain.objects.create(subdomain=f"test_{i}")
+            instance = BaseAppInstance.objects.create(
+                owner=self.user,
+                name=f"test_app_instance_{i}",
+                app=app,
+                project=self.project,
+                subdomain=subdomain,
+            )
+            self.instances.append(instance)
+        
 
-        app_instance_2 = AppInstance.objects.create(
-            access="project",
-            owner=self.user,
-            name="test_app_instance_2",
-            app=app,
-            project=self.project,
-        )
-
-        app_instance_3 = AppInstance.objects.create(
-            access="project",
-            owner=self.user,
-            name="test_app_instance_3",
-            app=app,
-            project=self.project,
-        )
-
-        app_instance.app_dependencies.set([app_instance_2, app_instance_3])
-
-        app_instance_4 = AppInstance.objects.create(
-            access="project",
-            owner=self.user,
-            name="test_app_instance_4",
-            app=app,
-            project=self.project,
-        )
-
-        app_instance_5 = AppInstance.objects.create(
-            access="project",
-            owner=self.user,
-            name="test_app_instance_5",
-            app=app,
-            project=self.project,
-        )
-
-        app_instance_4.app_dependencies.set([app_instance_5])
-
-    @override_settings(STUDIO_ACCESSMODE="ReadWriteOnce")
-    def test_get_available_app_dependencies_rw_once(self):
-        result = AppInstance.objects.get_available_app_dependencies(
-            user=self.user, project=self.project, app_name="Persistent Volume"
-        )
-
-        self.assertEqual(len(result), 2)
-
-    @override_settings(STUDIO_ACCESSMODE="ReadWriteMany")
-    def test_get_available_app_dependencies_rw_many(self):
-        result = AppInstance.objects.get_available_app_dependencies(
-            user=self.user, project=self.project, app_name="Persistent Volume"
-        )
-
-        self.assertEqual(len(result), 5)
-
-    def test_get_available_app_dependencies_setting_default(self):
-        result = AppInstance.objects.get_available_app_dependencies(
-            user=self.user, project=self.project, app_name="Persistent Volume"
-        )
-
-        self.assertEqual(len(result), 5)
 
     # ---------- get_app_instances_of_project ---------- #
 
@@ -93,66 +49,67 @@ class AppInstaceManagerTestCase(TestCase):
 
         app = Apps.objects.create(name="Combiner", slug="combiner")
 
-        app_instance = AppInstance.objects.create(
-            access="project",
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        instance = BaseAppInstance.objects.create(
             owner=self.user,
             name="test_app_instance_internal",
             app=app,
             project=project,
+            subdomain=subdomain,
         )
 
-        result = AppInstance.objects.get_app_instances_of_project(self.user, self.project)
+        result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project)
 
-        self.assertEqual(len(result), 5)
+        self.assertEqual(len(result), len(MODELS_LIST))
 
-        app_instance.project = self.project
-        app_instance.save()
+        instance.project = self.project
+        instance.save()
 
-        result = AppInstance.objects.get_app_instances_of_project(self.user, self.project)
+        result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project)
 
-        self.assertEqual(len(result), 6)
+        self.assertEqual(len(result), len(MODELS_LIST)+1)
 
-        app_instance.access = "private"
-        app_instance.save()
+        instance.access = "private"
+        instance.save()
 
-        result = AppInstance.objects.get_app_instances_of_project(self.user, self.project)
+        result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project)
 
-        self.assertEqual(len(result), 6)
+        self.assertEqual(len(result), len(MODELS_LIST)+1)
 
     def test_get_app_instances_of_project_limit(self):
-        result = AppInstance.objects.get_app_instances_of_project(self.user, self.project, limit=3)
+        result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project, limit=3)
 
         self.assertEqual(len(result), 3)
 
-        result = AppInstance.objects.get_app_instances_of_project(self.user, self.project)
+        result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project)
 
-        self.assertEqual(len(result), 5)
+        self.assertEqual(len(result), len(MODELS_LIST))
 
     def test_get_app_instances_of_project_filter(self):
         app = Apps.objects.create(name="Combiner", slug="combiner")
-
-        _ = AppInstance.objects.create(
-            access="project",
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        _ = BaseAppInstance.objects.create(
             owner=self.user,
             name="test_app_instance_internal",
             app=app,
             project=self.project,
+            subdomain=subdomain,
         )
 
         def filter_func(slug):
             return Q(app__slug=slug)
 
-        result = AppInstance.objects.get_app_instances_of_project(
+        result = BaseAppInstance.objects.get_app_instances_of_project(
             self.user, self.project, filter_func=filter_func("volumeK8s")
         )
 
-        self.assertEqual(len(result), 5)
+        self.assertEqual(len(result), len(MODELS_LIST))
 
-        result = AppInstance.objects.get_app_instances_of_project(self.user, self.project)
+        result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project)
 
-        self.assertEqual(len(result), 6)
+        self.assertEqual(len(result), len(MODELS_LIST)+1)
 
-        result = AppInstance.objects.get_app_instances_of_project(
+        result = BaseAppInstance.objects.get_app_instances_of_project(
             self.user,
             self.project,
             filter_func=filter_func("non-existing-slug"),
@@ -161,14 +118,14 @@ class AppInstaceManagerTestCase(TestCase):
         self.assertEqual(len(result), 0)
 
     def test_get_app_instances_of_project_order_by(self):
-        result = AppInstance.objects.get_app_instances_of_project(self.user, self.project, order_by="name")
+        result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project, order_by="name")
 
-        self.assertEqual(len(result), 5)
-        self.assertEqual(result.first().name, "test_app_instance_1")
-        self.assertEqual(result.last().name, "test_app_instance_5")
+        self.assertEqual(len(result), len(MODELS_LIST))
+        self.assertEqual(result.first().name, "test_app_instance_0")
+        self.assertEqual(result.last().name, f"test_app_instance_{len(MODELS_LIST)-1}")
 
-        result = AppInstance.objects.get_app_instances_of_project(self.user, self.project, order_by="-name")
+        result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project, order_by="-name")
 
-        self.assertEqual(len(result), 5)
-        self.assertEqual(result.first().name, "test_app_instance_5")
-        self.assertEqual(result.last().name, "test_app_instance_1")
+        self.assertEqual(len(result), len(MODELS_LIST))
+        self.assertEqual(result.first().name, f"test_app_instance_{len(MODELS_LIST)-1}")
+        self.assertEqual(result.last().name, "test_app_instance_0")

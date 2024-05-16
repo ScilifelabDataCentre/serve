@@ -26,9 +26,7 @@ class AppInstanceManager(models.Manager):
                 time_threshold = datetime.now() - timedelta(minutes=deleted_time_delta)
                 q &= ~Q(app_status__status="Deleted") | Q(deleted_on__gte=time_threshold)
 
-        q &= Q(owner=user) | Q(
-            access__in=["project", "public", "private", "link"] if user.is_superuser else ["project", "public", "link"]
-        )
+        q &= Q(owner=user) 
         q &= Q(project=project)
 
         return q
@@ -59,26 +57,6 @@ class AppInstanceManager(models.Manager):
             .order_by(order_by)[:limit]
         )
 
-    def get_available_app_dependencies(self, user, project, app_name):
-        result = self.filter(
-            ~Q(app_status__status="Deleted"),
-            Q(owner=user) | Q(access__in=["project", "public"]),
-            project=project,
-            app__name=app_name,
-        )
-
-        if settings.STUDIO_ACCESSMODE == "ReadWriteOnce" and app_name == "Persistent Volume":
-            for instance in result:
-                exists = self.filter(
-                    ~Q(app_status__status="Deleted"),
-                    project=project,
-                    app_dependencies=instance,
-                ).exists()
-
-                if exists:
-                    result = result.exclude(id=instance.id)
-
-        return result
 
     def user_can_create(self, user, project, app_slug):
         apps_per_project = {} if project.apps_per_project is None else project.apps_per_project

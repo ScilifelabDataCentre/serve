@@ -326,3 +326,4 @@ def save_instance_and_related_data(instance, form):
     instance.set_k8s_values()
     instance.url = get_URI(instance.k8s_values)
     instance.save(update_fields=["k8s_values", "url"])
+

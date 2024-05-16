@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.models import Subdomain, BaseAppInstance
+from apps.constants import SLUG_MODEL_FORM_MAP
 
 from common.models import UserProfile
 from projects.models import Project
@@ -67,7 +68,15 @@ class AccessPermission(BasePermission):
             project = Project.objects.get(slug=project_slug)
             return request.user.has_perm("can_view_project", project)
 
-        if instance.access == "private":
+        model_class = SLUG_MODEL_FORM_MAP.get(instance.app.slug, (None, None))[0]
+        if model_class is None:
+            return False
+        instance = getattr(instance, model_class.__name__.lower())
+        access = getattr(instance, "access", None)
+        
+        if access is None:
+            return False
+        elif instance.access == "private":
             return instance.owner == request.user
         elif instance.access == "project":
             return request.user.has_perm("can_view_project", project)
