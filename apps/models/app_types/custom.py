@@ -18,7 +18,8 @@ class CustomAppInstance(BaseAppInstance, Social):
         ("public", "Public"),
         ("link", "Link"),
     )
-    volume = models.ManyToManyField("VolumeInstance", blank=True)
+
+    volume = models.ForeignKey("VolumeInstance", blank=True, null=True, related_name="%(class)s", on_delete=models.CASCADE)
     access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
     port = models.IntegerField(default=8000)
     image = models.CharField(max_length=255)
@@ -31,8 +32,8 @@ class CustomAppInstance(BaseAppInstance, Social):
         self.k8s_values["permission"] = str(self.access)
         self.k8s_values["appconfig"] = dict(port=self.port, image=self.image, path=self.path, userid=self.user_id)
         volumeK8s_dict = {"volumeK8s": {}}
-        for object in self.volume.all():
-            volumeK8s_dict["volumeK8s"][object.name] = dict(release=object.subdomain.subdomain)
+        if self.volume:
+            volumeK8s_dict["volumeK8s"][self.volume.name] = dict(release=self.volume.subdomain.subdomain)
         self.k8s_values["apps"] = volumeK8s_dict
 
     class Meta:

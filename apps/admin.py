@@ -1,6 +1,7 @@
 import time
 
 from django.contrib import admin, messages
+from django.db.models.query import QuerySet
 
 from studio.utils import get_logger
 
@@ -84,7 +85,13 @@ class BaseAppAdmin(admin.ModelAdmin):
     display_project.short_description = "Project"
 
     def display_volumes(self, obj):
-        return [volume.name for volume in obj.volume.all()]
+        if obj.volume is None:
+            return "No Volumes"
+        elif isinstance(obj.volume, QuerySet):
+            return [volume.name for volume in obj.volume.all()]
+        else:
+            return obj.volume.name
+        
 
     display_volumes.short_description = "Volumes"
 

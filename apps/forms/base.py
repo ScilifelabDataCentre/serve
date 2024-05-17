@@ -118,7 +118,8 @@ class AppBaseForm(BaseForm):
     so you can treat this form as an actual base form for the most of the apps
     """
 
-    volume = forms.ModelChoiceField(queryset=VolumeInstance.objects.none(), required=False, empty_label="None")
+    volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), 
+                            required=False)
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=True, empty_label=None)
 
     def __init__(self, *args, **kwargs):
@@ -146,4 +147,4 @@ class AppBaseForm(BaseForm):
 
         self.fields["volume"].queryset = volume_queryset
         self.fields["volume"].initial = volume_queryset.first() if volume_queryset else None
-        self.fields["volume"].help_text = f"Select volume(s) to mount to your {self.model_name}."
+        self.fields["volume"].help_text = f"Select a volume to attach to your {self.model_name}."
