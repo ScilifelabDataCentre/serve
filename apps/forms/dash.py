@@ -9,7 +9,7 @@ __all__ = ["DashForm"]
 
 
 class DashForm(AppBaseForm):
-    flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), widget=forms.RadioSelect, required=False)
+    flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     image = forms.CharField(max_length=255, required=True)
 
@@ -20,14 +20,14 @@ class DashForm(AppBaseForm):
     def _setup_form_helper(self):
         super()._setup_form_helper()
         body = Div(
-            Field("name", placeholder="Name your app"),
-            Field("description", rows="3", placeholder="Provide a detailed description of your app"),
-            Field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
-            Field("flavor"),
-            Field("access"),
-            Field("source_code_url", placeholder="Provide a link to the public source code"),
-            Field("port", placeholder="8000"),
-            Field("image", placeholder="registry/repository/image:tag"),
+            self.get_common_field("name", placeholder="Name your app"),
+            self.get_common_field("description", rows="3", placeholder="Provide a detailed description of your app"),
+            self.get_common_field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
+            self.get_common_field("flavor"),
+            self.get_common_field("access"),
+            self.get_common_field("source_code_url", placeholder="Provide a link to the public source code"),
+            self.get_common_field("port", placeholder="8000"),
+            self.get_common_field("image", placeholder="registry/repository/image:tag"),
             Field("tags"),
             css_class="card-body",
         )

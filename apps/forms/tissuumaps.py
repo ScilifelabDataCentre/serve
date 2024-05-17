@@ -16,12 +16,12 @@ class TissuumapsForm(AppBaseForm):
     def _setup_form_helper(self):
         super()._setup_form_helper()
         body = Div(
-            Field("name", placeholder="Name your app"),
-            Field("description", rows="3", placeholder="Provide a detailed description of your app"),
-            Field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
+            self.get_common_field("name", placeholder="Name your app"),
+            self.get_common_field("description", rows="3", placeholder="Provide a detailed description of your app"),
+            self.get_common_field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
             Field("volume"),
-            Field("flavor"),
-            Field("access"),
+            self.get_common_field("flavor"),
+            self.get_common_field("access"),
             Field("tags"),
             css_class="card-body",
         )
