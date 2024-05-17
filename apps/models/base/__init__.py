@@ -4,5 +4,3 @@ from .app_template import Apps
 from .base import AppInstanceManager, BaseAppInstance
 from .social import Social
 from .subdomain import Subdomain
-
-# from .app_instance import AppInstance

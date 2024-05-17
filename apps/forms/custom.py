@@ -47,13 +47,17 @@ class CustomAppForm(AppBaseForm):
         if access == "public" and not source_code_url:
             self.add_error("source_code_url", "Source is required when access is public.")
 
+        if volume and not path:
+            self.add_error("path", "Path is required when volume is selected.")
+
         if path:
+            # If new path matches current path, it is valid.
+            if self.instance and getattr(self.instance, "path", None) == path:
+                return cleaned_data
+            # Verify that path starts with "/home"
             path = path.strip().rstrip("/").lower().replace(" ", "")
             if not path.startswith("/home"):
                 self.add_error("path", 'Path must start with "/home"')
-
-        if volume and not path:
-            self.add_error("path", "Path is required when volume is selected.")
 
         return cleaned_data
 

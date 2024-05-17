@@ -6,7 +6,8 @@ import os.path
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from apps.helpers import create_app_instance
+from apps.constants import SLUG_MODEL_FORM_MAP
+from apps.helpers import create_instance_from_form
 from apps.models import Apps
 from projects.models import Environment, Flavor, Project, ProjectTemplate
 from projects.tasks import create_resources_from_template
@@ -43,16 +44,19 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     # create resources inside the project
     project_template = ProjectTemplate.objects.get(pk=1)
     create_resources_from_template(user.username, project.slug, project_template.template)
-    # define variables needed
-    app = Apps.objects.filter(slug="jupyter-lab").order_by("-revision").first()
+
     flavor = Flavor.objects.filter(project=project).first()
-    environment = Environment.objects.filter(project=project).first()
+
+    # define variables needed
+    app_slug = "jupyter-lab"
+
     data = {
-        "app_name": "Regular user's private app",
-        "app_description": "Test app for superuser testing",
+        "name": "Regular user's private app",
         "flavor": str(flavor.pk),
-        "permission": "private",
-        "environment": str(environment.pk),
+        "access": "private",
     }
+
+    form = SLUG_MODEL_FORM_MAP.get(app_slug, None).Form(data, project_pk=project.pk)
+
     # now create app
-    create_app_instance(user, project, app, app.settings, data=data)
+    create_instance_from_form(form, project, app_slug)
