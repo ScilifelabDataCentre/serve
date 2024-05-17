@@ -1,4 +1,4 @@
-from .base import AppBaseForm
+from .base import AppBaseForm, BaseForm
 from .custom import CustomAppForm
 from .dash import DashForm
 from .filemanager import FilemanagerForm
