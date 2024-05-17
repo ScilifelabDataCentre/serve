@@ -179,6 +179,7 @@ no_implicit_reexport = false
 module = [
 	"boto3.*",
 	"colorlog.*",
+	"crispy_forms.*",
 	"django.*",
 	"django_structlog.*",
 	"rest_framework.*",
