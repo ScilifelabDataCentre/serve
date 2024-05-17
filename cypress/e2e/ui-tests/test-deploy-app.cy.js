@@ -52,8 +52,8 @@ describe("Test deploying app", () => {
         const image_name_2 = "ghcr.io/scilifelabdatacentre/example-streamlit:230921-1443"
         const image_port = "8501"
         const image_port_2 = "8502"
-        const app_path = "username"
-        const app_path_2 = "username/app"
+        const app_path = "/home/username"
+        const app_path_2 = "/home/username/app"
         const link_privacy_type_note = "some-text-on-link-only-app"
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
@@ -66,12 +66,13 @@ describe("Test deploying app", () => {
             // Create an app with project permissions
             cy.log("Now creating a project app")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('input[name=app_name]').type(app_name_project)
-            cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('#permission').select('project')
-            cy.get('input[name="appconfig.port"]').clear().type(image_port)
-            cy.get('input[name="appconfig.image"]').clear().type(image_name)
-            cy.get('input[name="appconfig.path"]').clear().type(app_path)
+            cy.get('#id_name').type(app_name_project)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_access').select('project')
+            cy.get('#id_volume').select('project-vol')
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_path').clear().type(app_path)
             cy.get('button').contains('Create').click()
             // check that the app was created
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
@@ -87,8 +88,8 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
-            cy.get('#permission').select('public')
-            cy.get('input[name=source_code_url]').type(app_source_code_public)
+            cy.get('#id_access').select('public')
+            cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('button').contains('Update').click()
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'public')
@@ -102,14 +103,14 @@ describe("Test deploying app", () => {
             // Create a public app and verify that it is displayed on the public apps page
             cy.log("Now creating a public app")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('input[name=app_name]').type(app_name_public)
-            cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('#permission').select('public')
-            cy.get('input[name=source_code_url]').type(app_source_code_public)
-            cy.get('input[name="appconfig.port"]').clear().type(image_port)
-            cy.get('input[name="appconfig.image"]').clear().type(image_name)
+            cy.get('#id_name').type(app_name_public)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_access').select('public')
+            cy.get('#id_source_code_url').type(app_source_code_public)
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_image').clear().type(image_name)
             cy.get('input[name="appconfig.path"]').clear().type(app_path)
-            cy.get('#Persistent\\ Volume').select('project-vol')
+            cy.get('#id_volume').select('project-vol')
             cy.get('button').contains('Create').click()
 
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
@@ -151,21 +152,21 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_public + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_public + '")').find('a').contains('Settings').click()
-            cy.get('input[name=app_name]').should('have.value', app_name_public) // name should be same as before
-            cy.get('input[name=app_name]').clear().type(app_name_public_2) // now change name
-            cy.get('textarea[name=app_description]').should('have.value', app_description) // description should be same as set before
-            cy.get('textarea[name=app_description]').clear().type(app_description_2) // now change description
-            cy.get('#permission').find(':selected').should('contain', 'public')
+            cy.get('#id_name').should('have.value', app_name_public) // name should be same as before
+            cy.get('#id_name').clear().type(app_name_public_2) // now change name
+            cy.get('#id_description').should('have.value', app_description) // description should be same as set before
+            cy.get('#id_description').clear().type(app_description_2) // now change description
+            cy.get('#id_access').find(':selected').should('contain', 'public')
             // checking that a) permissions can be changed to 'link'; b) that the corresponding text field is shown and mandatory
-            cy.get('#permission').select('link')
+            cy.get('#id_access').select('link')
             cy.get('textarea[name=link_privacy_type_note]').should('be.visible')
             cy.get('textarea[name=link_privacy_type_note]').should('have.attr', 'required')
             cy.get('textarea[name=link_privacy_type_note]').clear().type(link_privacy_type_note)
-            cy.get('#Persistent\\ Volume').find(':selected').should('contain', 'project-vol')
-            cy.get('input[name="appconfig.port"]').should('have.value', image_port)
-            cy.get('input[name="appconfig.port"]').clear().type(image_port_2)
-            cy.get('input[name="appconfig.image"]').should('have.value', image_name)
-            cy.get('input[name="appconfig.image"]').clear().type(image_name_2)
+            cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
+            cy.get('#id_port').should('have.value', image_port)
+            cy.get('#id_port').clear().type(image_port_2)
+            cy.get('#id_image').should('have.value', image_name)
+            cy.get('#id_image').clear().type(image_name_2)
             cy.get('input[name="appconfig.path"]').should('have.value', app_path)
             cy.get('input[name="appconfig.path"]').clear().type(app_path_2)
             cy.get('button').contains('Update').click()
@@ -176,12 +177,12 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('a').contains('Settings').click()
-            cy.get('input[name=app_name]').should('have.value', app_name_public_2)
-            cy.get('textarea[name=app_description]').should('have.value', app_description_2)
-            cy.get('#permission').find(':selected').should('contain', 'link')
+            cy.get('#id_name').should('have.value', app_name_public_2)
+            cy.get('#id_description').should('have.value', app_description_2)
+            cy.get('#id_access').find(':selected').should('contain', 'link')
             cy.get('textarea[name=link_privacy_type_note]').should('have.value', link_privacy_type_note)
-            cy.get('input[name="appconfig.port"]').should('have.value', image_port_2)
-            cy.get('input[name="appconfig.image"]').should('have.value', image_name_2)
+            cy.get('#id_port').should('have.value', image_port_2)
+            cy.get('#id_image').should('have.value', image_name_2)
             cy.get('input[name="appconfig.path"]').should('have.value', app_path_2)
 
             // Remove the created public app and verify that it is deleted from public apps page
@@ -218,12 +219,12 @@ describe("Test deploying app", () => {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('input[name=app_name]').type(app_name)
-            cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('input[name=source_code_url]').type(source_code_url)
-            cy.get('#permission').select('public')
-            cy.get('input[name="appconfig.image"]').clear().type(image_name)
-            cy.get('input[name="appconfig.port"]').clear().type(image_port)
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_source_code_url').type(source_code_url)
+            cy.get('#id_access').select('public')
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_port').clear().type(image_port)
             cy.get('button').contains('Create').click()
         //    cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
@@ -233,11 +234,11 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('input[name=app_name]').should('have.value', app_name)
-            cy.get('textarea[name=app_description]').should('have.value', app_description)
-            cy.get('#permission').find(':selected').should('contain', 'public')
-            cy.get('input[name="appconfig.image"]').should('have.value', image_name)
-            cy.get('input[name="appconfig.port"]').should('have.value', image_port)
+            cy.get('#id_name').should('have.value', app_name)
+            cy.get('#id_description').should('have.value', app_description)
+            cy.get('#id_access').find(':selected').should('contain', 'public')
+            cy.get('#id_image').should('have.value', image_name)
+            cy.get('#id_port').should('have.value', image_port)
 
             cy.log("Checking that the shiny app is displayed on the public apps page")
             cy.visit("/apps")
@@ -287,12 +288,12 @@ describe("Test deploying app", () => {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('input[name=app_name]').type(app_name)
-            cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('input[name=source_code_url]').type(source_code_url)
-            cy.get('#permission').select('public')
-            cy.get('input[name="appconfig.image"]').clear().type(image_name)
-            cy.get('input[name="appconfig.port"]').clear().type(image_port)
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_source_code_url').type(source_code_url)
+            cy.get('#id_access').select('public')
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_port').clear().type(image_port)
             cy.get('button').contains('Create').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
@@ -302,11 +303,11 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('input[name=app_name]').should('have.value', app_name)
-            cy.get('textarea[name=app_description]').should('have.value', app_description)
-            cy.get('#permission').find(':selected').should('contain', 'public')
-            cy.get('input[name="appconfig.image"]').should('have.value', image_name)
-            cy.get('input[name="appconfig.port"]').should('have.value', image_port)
+            cy.get('#id_name').should('have.value', app_name)
+            cy.get('#id_description').should('have.value', app_description)
+            cy.get('#id_access').find(':selected').should('contain', 'public')
+            cy.get('#id_image').should('have.value', image_name)
+            cy.get('#id_port').should('have.value', image_port)
 
             cy.log("Deleting the dash app")
             cy.visit("/projects/")
@@ -338,10 +339,10 @@ describe("Test deploying app", () => {
 
             cy.log("Creating a tisuumaps app")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('input[name=app_name]').type(app_name)
-            cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('#permission').select('public')
-            cy.get('#Persistent\\ Volume').select('project-vol')
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_access').select('public')
+            cy.get('#id_volume').select('project-vol')
             cy.get('button').contains('Create').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
@@ -351,10 +352,10 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('input[name=app_name]').should('have.value', app_name)
-            cy.get('textarea[name=app_description]').should('have.value', app_description)
-            cy.get('#permission').find(':selected').should('contain', 'public')
-            cy.get('#Persistent\\ Volume').find(':selected').should('contain', 'project-vol')
+            cy.get('#id_name').should('have.value', app_name)
+            cy.get('#id_description').should('have.value', app_description)
+            cy.get('#id_access').find(':selected').should('contain', 'public')
+            cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
 
             cy.log("Deleting the tissuumaps app")
             cy.visit("/projects/")
@@ -391,10 +392,10 @@ describe("Test deploying app", () => {
             cy.log("Now creating an app with a custom subdomain")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             // fill out other fields
-            cy.get('input[name=app_name]').type(app_name)
-            cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('input[name="appconfig.port"]').clear().type("8501")
-            cy.get('input[name="appconfig.image"]').clear().type(image_name)
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_port').clear().type("8501")
+            cy.get('#id_image').clear().type(image_name)
             cy.get('input[name="appconfig.path"]').clear().type("/home")
             // fill out subdomain field
             cy.get('[id="subdomain"]').find('button').click()
@@ -460,18 +461,18 @@ describe("Test deploying app", () => {
             // Create an app with project permissions
             cy.log("Now creating an app with a non-existent image reference - expecting Image Error")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('input[name=app_name]').type(app_name_statuses)
-            cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('#permission').select('project')
-            cy.get('input[name="appconfig.port"]').type("8501")
-            cy.get('input[name="appconfig.image"]').type("hkqxqxkhkqwxhkxwh") // input random string
+            cy.get('#id_name').type(app_name_statuses)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_access').select('project')
+            cy.get('#id_port').type("8501")
+            cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
             cy.get('button').contains('Create').click()
             // check that the app was created
             cy.get('tr:contains("' + app_name_statuses + '")').find('span').should('contain', 'Image Error')
             cy.log("Now updating the app to give a correct image reference - expecting Running")
             cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
-            cy.get('input[name="appconfig.image"]').clear().type(image_name)
+            cy.get('#id_image').clear().type(image_name)
             cy.get('button').contains('Update').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('span').should('contain', 'Running')
         } else {

@@ -7,6 +7,6 @@
         <small class="form-text text-muted">{{ field.help_text }}</small>
     {% endif %}
     {% for error in field.errors %}
-        <div class="invalid-feedback">{{ error }}</div>
+        <div class="text-danger fw-bold">{{ error }}</div>
     {% endfor %}
 </div>

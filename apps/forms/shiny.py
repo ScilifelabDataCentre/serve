@@ -43,6 +43,10 @@ class ShinyForm(AppBaseForm):
             self.get_common_field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
             self.get_common_field("flavor"),
             self.get_common_field("access"),
+            self.get_common_field(
+                "note_on_linkonly_privacy",
+                placeholder="Describe why you want to make the app accessible only via a link",
+            ),
             self.get_common_field("source_code_url", placeholder="Provide a link to the public source code"),
             self.get_common_field("port", placeholder="3838"),
             self.get_common_field("image", placeholder="registry/repository/image:tag"),
@@ -81,6 +85,7 @@ class ShinyForm(AppBaseForm):
             "volume",
             "flavor",
             "access",
+            "note_on_linkonly_privacy",
             "source_code_url",
             "port",
             "image",

@@ -46,6 +46,8 @@ HELP_MESSAGE_MAP = {
         you follow our guide to build the container, then please include the username in the path as well.",
     "port": "Port that the docker container exposes and the application runs on. This should be an integer between \
         3000-9999.",
+    "note_on_linkonly_privacy": "This option can be used only for a limited amount of time, for example while under \
+        development or during peer review.",
 }
 
 

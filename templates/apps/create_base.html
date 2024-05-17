@@ -36,7 +36,7 @@
         function toggleVisibility() {
             var accessSelect = document.getElementById('id_access');
             var sourceCodeDiv = document.getElementById('div_id_source_code_url');
-
+            var noteOnLinkOnlyDiv = document.getElementById('div_id_note_on_linkonly_privacy');
             // Ensure elements exist before attempting to use them
             if (accessSelect && sourceCodeDiv) {
                 // Check if the 'public' option is selected
@@ -44,6 +44,15 @@
                     sourceCodeDiv.style.display = 'block'; // Show the div
                 } else {
                     sourceCodeDiv.style.display = 'none'; // Hide the div
+                }
+            }
+
+            if (accessSelect && noteOnLinkOnlyDiv) {
+                // Check if the 'public' option is selected
+                if (accessSelect.value === 'link') {
+                    noteOnLinkOnlyDiv.style.display = 'block'; // Show the div
+                } else {
+                    noteOnLinkOnlyDiv.style.display = 'none'; // Hide the div
                 }
             }
         }

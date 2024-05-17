@@ -212,8 +212,8 @@ describe("Test superuser access", () => {
             cy.get('textarea[name=app_description]').type(app_description)
             cy.get('#permission').select('project')
             cy.get('#flavor').select('2 vCPU, 4 GB RAM')
-            cy.get('input[name="appconfig.image"]').clear().type(image_name)
-            cy.get('input[name="appconfig.port"]').clear().type(image_port)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_port').clear().type(image_port)
             cy.get('button').contains('Create').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
 
