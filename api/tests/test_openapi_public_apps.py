@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.models import Apps, CustomAppInstance, Subdomain, AppStatus
+from apps.models import Apps, AppStatus, CustomAppInstance, Subdomain
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -73,7 +73,7 @@ class PublicAppsApiTests(APITestCase):
         response = self.client.get(url, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         logger.info(response.content)
         actual = json.loads(response.content)["app"]
         logger.info(type(actual))

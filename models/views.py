@@ -125,7 +125,9 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             # The minio sidecar does this.
             # First find the minio release name
             minio_set = Apps.objects.get(slug="minio")
-            minio = BaseAppInstance.objects.filter(Q(app=minio_set), Q(project=model_project), Q(app_status__status="Running")).first()
+            minio = BaseAppInstance.objects.filter(
+                Q(app=minio_set), Q(project=model_project), Q(app_status__status="Running")
+            ).first()
 
             minio_release = minio.parameters["release"]  # e.g 'rfc058c6f'
             # Now find the related pod

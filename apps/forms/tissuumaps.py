@@ -1,17 +1,14 @@
-from crispy_forms.layout import Layout, Div, Field, HTML
+from crispy_forms.layout import HTML, Div, Field, Layout
 from django import forms
 
 from apps.forms.base import AppBaseForm
 from apps.models import TissuumapsInstance
 from projects.models import Flavor
 
-__all__ = [
-    "TissuumapsForm"
-]
+__all__ = ["TissuumapsForm"]
 
 
 class TissuumapsForm(AppBaseForm):
-
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
@@ -26,13 +23,11 @@ class TissuumapsForm(AppBaseForm):
             Field("flavor"),
             Field("access"),
             Field("tags"),
-            css_class="card-body")
-
-        self.helper.layout = Layout(
-            body,
-            self.footer
+            css_class="card-body",
         )
+
+        self.helper.layout = Layout(body, self.footer)
 
     class Meta:
         model = TissuumapsInstance
-        fields = ["name","description", "volume", "flavor", "access", "tags"]
+        fields = ["name", "description", "volume", "flavor", "access", "tags"]

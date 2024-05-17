@@ -1,14 +1,15 @@
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
-from django.db.models.signals import post_save
 
-from studio.utils import get_logger
 from apps.constants import SLUG_MODEL_FORM_MAP
+from studio.utils import get_logger
 
 logger = get_logger(__name__)
 
 
-UID="app_instance_update_permission"
+UID = "app_instance_update_permission"
+
 
 def update_permission(sender, instance, created, **kwargs):
     owner = instance.owner
@@ -18,7 +19,7 @@ def update_permission(sender, instance, created, **kwargs):
     if access is None:
         logger.error(f"Access not found in {instance}")
         return
-    
+
     if access == "private":
         logger.info(f"Assigning permission to {owner} for {instance}")
         if created or not owner.has_perm("can_access_app", instance):
@@ -28,24 +29,25 @@ def update_permission(sender, instance, created, **kwargs):
         if owner.has_perm("can_access_app", instance):
             logger.info(f"Removing permission from {owner} for {instance}")
             remove_perm("can_access_app", owner, instance)
-            
+
 
 for app_type in SLUG_MODEL_FORM_MAP.values():
     receiver(post_save, sender=app_type.Model, dispatch_uid=UID)(update_permission)
-    '''
+    """
     What is going on here?
     Well, after a model is saved, we want to update the permission of the owner of the model.
     This signal is triggered after a model is saved, and we  update the permission of the owner of the model.
     But, since we have many types of models, we must add a reciever for all types of models.
-    We can do this by iterating over the values of SLUG_MODEL_FORM_MAP, which is a dictionary that maps the slug of the model to the model itself.
-    
+    We can do this by iterating over the values of SLUG_MODEL_FORM_MAP,
+    which is a dictionary that maps the slug of the model to the model itself.
+
     Equivalent to doing this:
-    
+
     @receiver(post_save, sender=JupyterInstance, dispatch_uid=UID)
     @receiver(post_save, sender=DashInstance, dispatch_uid=UID)
     ...
     @receiver(post_save, sender=LastModelInstance, dispatch_uid=UID)
     def update_perrmission(sender, instance, created, **kwargs):
         pass
-        
-    '''
+
+    """

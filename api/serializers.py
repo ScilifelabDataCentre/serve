@@ -1,14 +1,9 @@
 from django.contrib.auth.models import User
 from rest_framework.serializers import ModelSerializer
 
-from apps.models import AppCategories,BaseAppInstance, Apps, AppStatus
+from apps.models import AppCategories, Apps, AppStatus, BaseAppInstance
 from models.models import Metadata, Model, ModelLog, ObjectType
-from projects.models import (
-    Environment,
-    Flavor,
-    Project,
-    ProjectTemplate,
-)
+from projects.models import Environment, Flavor, Project, ProjectTemplate
 
 
 class MLModelSerializer(ModelSerializer):
@@ -69,9 +64,7 @@ class MetadataSerializer(ModelSerializer):
         )
 
 
-
 class ProjectSerializer(ModelSerializer):
-
     class Meta:
         model = Project
 
@@ -107,6 +100,7 @@ class AppStatusSerializer(ModelSerializer):
         model = AppStatus
         fields = ("id", "status_type")
 
+
 class AppInstanceSerializer(ModelSerializer):
     app = AppSerializer()
     status = AppStatusSerializer(many=True)
@@ -114,6 +108,7 @@ class AppInstanceSerializer(ModelSerializer):
     class Meta:
         model = BaseAppInstance
         fields = ("id", "name", "app", "table_field", "state", "status")
+
 
 class UserSerializer(ModelSerializer):
     class Meta:
@@ -133,8 +128,6 @@ class EnvironmentSerializer(ModelSerializer):
     class Meta:
         model = Environment
         fields = "__all__"
-
-
 
 
 class ProjectTemplateSerializer(ModelSerializer):

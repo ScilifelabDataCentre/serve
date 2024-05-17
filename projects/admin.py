@@ -1,14 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 
-from .models import (
-    BasicAuth,
-    Environment,
-    Flavor,
-    Project,
-    ProjectLog,
-    ProjectTemplate
-)
+from .models import BasicAuth, Environment, Flavor, Project, ProjectLog, ProjectTemplate
 
 admin.site.register(ProjectTemplate)
 admin.site.register(Environment)

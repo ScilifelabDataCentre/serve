@@ -5,16 +5,15 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
+
 from studio.utils import get_logger
 
-from django.db import transaction
- 
-from .tasks import delete_resource
 from .constants import SLUG_MODEL_FORM_MAP
 from .helpers import create_instance_from_form
 from .models import BaseAppInstance
@@ -33,7 +32,8 @@ def get_status_defs():
     status_warning = settings.APPS_STATUS_WARNING
     return status_success, status_warning
 
-#TODO: This view must be updated to adhere to new logic
+
+# TODO: This view must be updated to adhere to new logic
 @method_decorator(
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
@@ -41,6 +41,7 @@ def get_status_defs():
 class GetLogs(View):
     def get(self, request, project, app_slug, app_id):
         from .constants import SLUG_MODEL_FORM_MAP
+
         template = "apps/logs.html"
         model_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None)).Model
         if model_class:
@@ -113,7 +114,6 @@ class GetStatusView(View):
                     else:
                         status = None
 
-
                     status_group = (
                         "success" if status in status_success else "warning" if status in status_warning else "danger"
                     )
@@ -132,29 +132,26 @@ class GetStatusView(View):
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
 def delete(request, project, app_slug, app_id):
-
     model_class, _ = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
     logger.info(f"Deleting app type {model_class} with id {app_id}")
 
     if model_class is None:
         raise PermissionDenied()
-    
+
     instance = model_class.objects.get(pk=app_id) if app_id else None
-    
+
     if instance is None:
         raise PermissionDenied()
-    
+
     if not instance.app.user_can_delete:
         return HttpResponseForbidden()
 
     serialized_instance = instance.serialize()
-    
+
     delete_resource.delay(serialized_instance)
     # fix: in case appinstance is public swich to private
     instance.access = "private"
     instance.save()
-
- 
 
     return HttpResponseRedirect(
         reverse(
@@ -166,40 +163,41 @@ def delete(request, project, app_slug, app_id):
     )
 
 
-
 @method_decorator(
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
 )
 class CreateApp(View):
     template_name = "apps/create_view.html"
-    
+
     def get(self, request, project, app_slug, app_id=None):
-        project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
+        project_slug = project  # TODO CHANGE THIS IN THE TEMPLATES
         project = Project.objects.get(slug=project_slug)
 
         form = self.get_form(request, project, app_slug, app_id)
-        
+
         if form is None or not getattr(form, "is_valid", False):
             raise PermissionDenied()
-        
-        return render(request, self.template_name, {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug})
+
+        return render(
+            request, self.template_name, {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug}
+        )
 
     @transaction.atomic
     def post(self, request, project, app_slug, app_id=None):
         # App id is used when updataing an instance
 
-        project_slug = project # TODO CHANGE THIS IN THE TEMPLATES
+        project_slug = project  # TODO CHANGE THIS IN THE TEMPLATES
         project = Project.objects.get(slug=project_slug)
-        
+
         form = self.get_form(request, project, app_slug, app_id)
         if form is None:
             raise PermissionDenied()
-        
+
         if not form.is_valid():
             return render(request, self.template_name, {"form": form})
-        
-        # Otherwise we can create the instance    
+
+        # Otherwise we can create the instance
         create_instance_from_form(form, project, app_slug, app_id)
 
         return HttpResponseRedirect(
@@ -212,18 +210,17 @@ class CreateApp(View):
         )
 
     def get_form(self, request, project, app_slug, app_id):
-
         model_class, form_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
 
         logger.info(f"Creating app type {model_class}")
         if not model_class or not form_class:
-            logger.error(f"Could not fetch model or form")
+            logger.error("Could not fetch model or form")
             return None
-        
+
         # Check if user is allowed
         user_can_edit = False
         user_can_create = False
-        
+
         if app_id:
             user_can_edit = model_class.objects.user_can_edit(request.user, project, app_slug)
             instance = model_class.objects.get(pk=app_id)
@@ -231,10 +228,8 @@ class CreateApp(View):
             user_can_create = model_class.objects.user_can_create(request.user, project, app_slug)
             instance = None
 
-        if user_can_edit or user_can_create:        
+        if user_can_edit or user_can_create:
             return form_class(request.POST or None, project_pk=project.pk, instance=instance)
             # Maybe this makes typing hard.
         else:
             return None
-
-

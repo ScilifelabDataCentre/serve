@@ -5,7 +5,7 @@ from django.test import Client, TestCase
 
 from projects.models import Project
 
-from ..models import JupyterInstance, Apps, Subdomain, AppStatus, AppCategories
+from ..models import AppCategories, Apps, AppStatus, JupyterInstance, Subdomain
 
 User = get_user_model()
 

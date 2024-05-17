@@ -22,17 +22,12 @@ from django.views import View
 from guardian.decorators import permission_required_or_403
 from guardian.shortcuts import assign_perm, remove_perm
 
+from apps.models import BaseAppInstance
+
 from .exceptions import ProjectCreationException
 from .forms import PublishProjectToGitHub
-from .models import (
-    Environment,
-    Flavor,
-    Project,
-    ProjectLog,
-    ProjectTemplate,
-)
+from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
 from .tasks import create_resources_from_template, delete_project
-from apps.models import BaseAppInstance
 
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
@@ -463,7 +458,6 @@ class DetailsView(View):
     template_name = "projects/overview.html"
 
     def get(self, request, project_slug):
-        
         project = Project.objects.get(slug=project_slug)
         resources = []
         app_ids = []
@@ -474,21 +468,20 @@ class DetailsView(View):
 
         for category in categories:
             # Get all subclasses of Base
-        
+
             instances_per_category_list = []
             for subclass in BaseAppInstance.__subclasses__():
-            # Filter instances of each subclass by project, user and status. See the get_app_instances_of_project_filter method in base.py
-                
+                # Filter instances of each subclass by project, user and status.
+                # See the get_app_instances_of_project_filter method in base.py
+
                 queryset_per_category = subclass.objects.get_app_instances_of_project(
-                    user=request.user,
-                    project=project,
-                    filter_func=Q(app__category__slug=category.slug)
+                    user=request.user, project=project, filter_func=Q(app__category__slug=category.slug)
                 )
-                
+
                 if queryset_per_category:
                     app_ids += [obj.id for obj in queryset_per_category]
                     instances_per_category_list.extend([instance for instance in queryset_per_category])
-                    
+
             # Filter the available apps specified in the project template
             available_apps = [app.pk for app in project.project_template.available_apps.all()]
 

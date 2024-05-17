@@ -55,11 +55,7 @@ class AppsViewForbidden(TestCase):
         """
         project = Project.objects.get(name="test-perm")
         response = self.client.get(
-            reverse(
-                "apps:appsettings",
-                kwargs={"project": project.slug, "app_slug": "jupyter-lab", "app_id": "1"}
-            )
+            reverse("apps:appsettings", kwargs={"project": project.slug, "app_slug": "jupyter-lab", "app_id": "1"})
         )
         self.assertTemplateUsed(response, "403.html")
         self.assertEqual(response.status_code, 403)
-

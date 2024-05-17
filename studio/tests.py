@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from guardian.shortcuts import assign_perm, remove_perm
 
-from apps.models import JupyterInstance, Apps, Subdomain, AppStatus
+from apps.models import Apps, AppStatus, JupyterInstance, Subdomain
 from common.models import EmailVerificationTable, UserProfile
 from projects.models import Project
 from scripts.app_instance_permissions import run

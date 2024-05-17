@@ -11,7 +11,10 @@ class DashInstance(BaseAppInstance, Social):
     objects = DashInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),
-        ("private", "Private",),
+        (
+            "private",
+            "Private",
+        ),
         ("public", "Public"),
         ("link", "Link"),
     )
@@ -23,11 +26,8 @@ class DashInstance(BaseAppInstance, Social):
         super().set_k8s_values()
 
         self.k8s_values["permission"] = str(self.access)
-        self.k8s_values["appconfig"] = dict(
-            port = self.port,
-            image = self.image
-        )
-    
+        self.k8s_values["appconfig"] = dict(port=self.port, image=self.image)
+
     class Meta:
         verbose_name = "Dash App Instance"
         verbose_name_plural = "Dash App Instances"

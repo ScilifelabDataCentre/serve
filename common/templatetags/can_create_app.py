@@ -1,6 +1,7 @@
 from django import template
 
 from apps.constants import SLUG_MODEL_FORM_MAP
+
 register = template.Library()
 
 

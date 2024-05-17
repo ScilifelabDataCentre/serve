@@ -4,7 +4,18 @@ from django.test import TestCase, override_settings
 
 from projects.models import Project
 
-from ..models import *
+from ..models import (
+    Apps,
+    BaseAppInstance,
+    CustomAppInstance,
+    FilemanagerInstance,
+    JupyterInstance,
+    RStudioInstance,
+    ShinyInstance,
+    Subdomain,
+    TissuumapsInstance,
+    VSCodeInstance,
+)
 
 User = get_user_model()
 
@@ -15,8 +26,9 @@ MODELS_LIST = [
     FilemanagerInstance,
     ShinyInstance,
     TissuumapsInstance,
-    CustomAppInstance
+    CustomAppInstance,
 ]
+
 
 class AppInstaceManagerTestCase(TestCase):
     def setUp(self):
@@ -37,8 +49,6 @@ class AppInstaceManagerTestCase(TestCase):
                 subdomain=subdomain,
             )
             self.instances.append(instance)
-        
-
 
     # ---------- get_app_instances_of_project ---------- #
 
@@ -67,14 +77,14 @@ class AppInstaceManagerTestCase(TestCase):
 
         result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project)
 
-        self.assertEqual(len(result), len(MODELS_LIST)+1)
+        self.assertEqual(len(result), len(MODELS_LIST) + 1)
 
         instance.access = "private"
         instance.save()
 
         result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project)
 
-        self.assertEqual(len(result), len(MODELS_LIST)+1)
+        self.assertEqual(len(result), len(MODELS_LIST) + 1)
 
     def test_get_app_instances_of_project_limit(self):
         result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project, limit=3)
@@ -107,7 +117,7 @@ class AppInstaceManagerTestCase(TestCase):
 
         result = BaseAppInstance.objects.get_app_instances_of_project(self.user, self.project)
 
-        self.assertEqual(len(result), len(MODELS_LIST)+1)
+        self.assertEqual(len(result), len(MODELS_LIST) + 1)
 
         result = BaseAppInstance.objects.get_app_instances_of_project(
             self.user,

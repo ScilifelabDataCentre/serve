@@ -5,7 +5,7 @@ from django.test import Client, TestCase, override_settings
 
 from projects.models import Project
 
-from ..models import JupyterInstance, Apps, Subdomain, AppStatus
+from ..models import Apps, AppStatus, JupyterInstance, Subdomain
 
 User = get_user_model()
 
@@ -21,7 +21,6 @@ class CreateAppViewTestCase(TestCase):
         )
 
     def get_data(self, user=None):
-        
         project = Project.objects.create_project(
             name="test-perm", owner=user if user is not None else self.user, description=""
         )
@@ -157,7 +156,6 @@ class CreateAppViewTestCase(TestCase):
             subdomain=subdomain,
             app_status=app_status,
         )
-
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 

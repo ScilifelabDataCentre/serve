@@ -1,13 +1,11 @@
-from crispy_forms.layout import Layout, Div, Field, HTML
+from crispy_forms.layout import HTML, Div, Field, Layout
 from django import forms
 
 from apps.forms.base import AppBaseForm
 from apps.models import CustomAppInstance
 from projects.models import Flavor
 
-__all__ = [
-    "CustomAppForm"
-]
+__all__ = ["CustomAppForm"]
 
 
 class CustomAppForm(AppBaseForm):
@@ -15,7 +13,6 @@ class CustomAppForm(AppBaseForm):
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
-    
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -35,34 +32,42 @@ class CustomAppForm(AppBaseForm):
             Field("port", placeholder="8000"),
             Field("image", placeholder="registry/repository/image:tag"),
             Field("tags"),
-            css_class="card-body")
-
-        self.helper.layout = Layout(
-            body,
-            self.footer
+            css_class="card-body",
         )
+
+        self.helper.layout = Layout(body, self.footer)
 
     def clean(self):
         cleaned_data = super().clean()
-        access = cleaned_data.get('access', None)
-        source_code_url = cleaned_data.get('source_code_url', None)
-        path = cleaned_data.get('path', None)
-        volume = cleaned_data.get('volume', None)
+        access = cleaned_data.get("access", None)
+        source_code_url = cleaned_data.get("source_code_url", None)
+        path = cleaned_data.get("path", None)
+        volume = cleaned_data.get("volume", None)
 
-        if access == 'public' and not source_code_url:
-            self.add_error('source_code_url', 'Source is required when access is public.')
+        if access == "public" and not source_code_url:
+            self.add_error("source_code_url", "Source is required when access is public.")
 
         if path:
-            path = path.strip().rstrip('/').lower().replace(" ", "")
-            if not path.startswith('/home'):
-                self.add_error('path', 'Path must start with "/home"')
-        
+            path = path.strip().rstrip("/").lower().replace(" ", "")
+            if not path.startswith("/home"):
+                self.add_error("path", 'Path must start with "/home"')
+
         if volume and not path:
-            self.add_error('path', 'Path is required when volume is selected.')
-        
+            self.add_error("path", "Path is required when volume is selected.")
 
         return cleaned_data
 
     class Meta:
         model = CustomAppInstance
-        fields = ["name","description", "volume", "path", "flavor", "access", "source_code_url", "port", "image", "tags"]
+        fields = [
+            "name",
+            "description",
+            "volume",
+            "path",
+            "flavor",
+            "access",
+            "source_code_url",
+            "port",
+            "image",
+            "tags",
+        ]

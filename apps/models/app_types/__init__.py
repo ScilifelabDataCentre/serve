@@ -1,10 +1,10 @@
-from .jupyter import JupyterInstance, JupyterInstanceManager
-from .rstudio import RStudioInstance, RStudioInstanceManager
-from .vscode import VSCodeInstance, VSCodeInstanceManager
-from .volume import VolumeInstance, VolumeInstanceManager
-from .netpolicy import NetpolicyInstance, NetpolicyInstanceManager
-from .dash import DashInstance, DashInstanceManager
 from .custom import CustomAppInstance, CustomAppInstanceManager
+from .dash import DashInstance, DashInstanceManager
+from .filemanager import FilemanagerInstance, FilemanagerInstanceManager
+from .jupyter import JupyterInstance, JupyterInstanceManager
+from .netpolicy import NetpolicyInstance, NetpolicyInstanceManager
+from .rstudio import RStudioInstance, RStudioInstanceManager
 from .shiny import ShinyInstance, ShinyInstanceManager
 from .tissuumaps import TissuumapsInstance, TissuumapsInstanceManager
-from .filemanager import FilemanagerInstance, FilemanagerInstanceManager
+from .volume import VolumeInstance, VolumeInstanceManager
+from .vscode import VSCodeInstance, VSCodeInstanceManager

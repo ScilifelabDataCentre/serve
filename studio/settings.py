@@ -437,7 +437,7 @@ APPS_PER_PROJECT_LIMIT = {
     "combiner": 0,
     "mongodb": 0,
     "netpolicy": 0,
-    "filemanager": 1
+    "filemanager": 1,
 }
 
 PROJECTS_PER_USER_LIMIT = 5
@@ -517,5 +517,3 @@ if not DEBUG:
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
-
-

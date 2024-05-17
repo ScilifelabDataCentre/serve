@@ -20,7 +20,7 @@ class JupyterInstance(BaseAppInstance):
         super().set_k8s_values()
 
         self.k8s_values["permission"] = str(self.access)
-        
+
         # Not the nicest perhaps, but it works since the charts assume that the volumes are on this form
         # {apps:
         #   {volumeK8s:
@@ -29,17 +29,13 @@ class JupyterInstance(BaseAppInstance):
 
         volumeK8s_dict = {"volumeK8s": {}}
         for object in self.volume.all():
-            volumeK8s_dict["volumeK8s"][object.name] = dict(
-                release=object.subdomain.subdomain
-            )
+            volumeK8s_dict["volumeK8s"][object.name] = dict(release=object.subdomain.subdomain)
         self.k8s_values["apps"] = volumeK8s_dict
-        # This is just do fix a legacy. 
-        #TODO: Change the jupyter chart to fetch port from appconfig as other apps
+        # This is just do fix a legacy.
+        # TODO: Change the jupyter chart to fetch port from appconfig as other apps
         self.k8s_values["service"]["targetport"] = 8888
-        
+
     class Meta:
         verbose_name = "JupyterLab Instance"
         verbose_name_plural = "JupyterLab Instances"
         permissions = [("can_access_app", "Can access app service")]
-
-

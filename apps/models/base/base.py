@@ -1,9 +1,9 @@
 import json
-
 from datetime import datetime, timedelta
+
 from django.conf import settings
-from django.core import serializers
 from django.contrib.auth import get_user_model
+from django.core import serializers
 from django.db import models
 from django.db.models import Q
 
@@ -26,27 +26,27 @@ class AppInstanceManager(models.Manager):
                 time_threshold = datetime.now() - timedelta(minutes=deleted_time_delta)
                 q &= ~Q(app_status__status="Deleted") | Q(deleted_on__gte=time_threshold)
 
-        q &= Q(owner=user) 
+        q &= Q(owner=user)
         q &= Q(project=project)
 
         return q
 
     def get_app_instances_of_project(
-            self,
-            user,
-            project,
-            filter_func=None,
-            order_by=None,
-            limit=None,
-            override_default_filter=False,
+        self,
+        user,
+        project,
+        filter_func=None,
+        order_by=None,
+        limit=None,
+        override_default_filter=False,
     ):
         if order_by is None:
             order_by = "-created_on"
 
         if filter_func is None:
             return self.filter(self.get_app_instances_of_project_filter(user=user, project=project)).order_by(order_by)[
-                   :limit
-                   ]
+                :limit
+            ]
 
         if override_default_filter:
             return self.filter(filter_func).order_by(order_by)[:limit]
@@ -56,7 +56,6 @@ class AppInstanceManager(models.Manager):
             .filter(filter_func)
             .order_by(order_by)[:limit]
         )
-
 
     def user_can_create(self, user, project, app_slug):
         apps_per_project = {} if project.apps_per_project is None else project.apps_per_project
@@ -76,9 +75,8 @@ class AppInstanceManager(models.Manager):
         has_perm = user.has_perm(f"apps.add_{self.model_type}")
         print(f"User {user} has permission to create {self.model_type}: {has_perm}", flush=True)
         return limit is None or limit > num_of_app_instances or has_perm
-    
-    def user_can_edit(self, user, project, app_slug):
 
+    def user_can_edit(self, user, project, app_slug):
         app = Apps.objects.get(slug=app_slug)
         return app.user_can_edit or user.has_perm(f"apps.change_{self.model_type}")
 
@@ -87,7 +85,9 @@ class BaseAppInstance(models.Model):
     objects = AppInstanceManager()
 
     app = models.ForeignKey(Apps, on_delete=models.CASCADE, related_name="%(app_label)s_%(class)s_related")
-    chart = models.CharField(max_length=512, )
+    chart = models.CharField(
+        max_length=512,
+    )
     created_on = models.DateTimeField(auto_now_add=True)
     deleted_on = models.DateTimeField(null=True, blank=True)
     info = models.JSONField(blank=True, null=True)
@@ -105,13 +105,7 @@ class BaseAppInstance(models.Model):
         on_delete=models.CASCADE,
         related_name="%(class)s",
     )
-    flavor = models.ForeignKey(
-        Flavor,
-        on_delete=models.RESTRICT,
-        related_name="%(class)s",
-        null=True,
-        blank=True
-    )
+    flavor = models.ForeignKey(Flavor, on_delete=models.RESTRICT, related_name="%(class)s", null=True, blank=True)
     subdomain = models.OneToOneField(
         Subdomain,
         on_delete=models.CASCADE,
@@ -131,20 +125,19 @@ class BaseAppInstance(models.Model):
         return f"{self.name}-{self.owner}-{self.app.name}-{self.project}"
 
     def get_k8s_values(self):
-        k8s_values = dict(name=self.name,
-                          appname=self.subdomain.subdomain,
-                          project=dict(
-                              name=self.project.name,
-                              slug=self.project.slug),
-                          service=dict(
-                              name=self.subdomain.subdomain + "-" + self.app.slug,
-                          ),
-                          **self.subdomain.to_dict(),
-                          **self.flavor.to_dict() if self.flavor else {},
-                          storageClass=settings.STORAGECLASS,
-                          namespace=settings.NAMESPACE,
-                          release=self.subdomain.subdomain #This is legacy and should be changed
-                          )
+        k8s_values = dict(
+            name=self.name,
+            appname=self.subdomain.subdomain,
+            project=dict(name=self.project.name, slug=self.project.slug),
+            service=dict(
+                name=self.subdomain.subdomain + "-" + self.app.slug,
+            ),
+            **self.subdomain.to_dict(),
+            **self.flavor.to_dict() if self.flavor else {},
+            storageClass=settings.STORAGECLASS,
+            namespace=settings.NAMESPACE,
+            release=self.subdomain.subdomain,  # This is legacy and should be changed
+        )
 
         # Add global values
         k8s_values["global"] = dict(

@@ -14,7 +14,6 @@ urlpatterns = [
     path("apps/", views.public_apps, name="apps"),
     path("news/", views.news, name="news"),
     path("collections/", views.index, name="collections_index"),
-    path("collections/<slug:slug>/", views.collection, name="collection"),  
+    path("collections/<slug:slug>/", views.collection, name="collection"),
     path("", views.HomeViewDynamic.as_view(), name="home-dynamic"),
-
 ]

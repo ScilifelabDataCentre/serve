@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+
 from django.db.models import Q
 
 from apps.models import AppInstanceManager, BaseAppInstance
@@ -6,7 +7,7 @@ from apps.models import AppInstanceManager, BaseAppInstance
 
 class NetpolicyInstanceManager(AppInstanceManager):
     model_type = "netpolicyinstance"
-    
+
     def get_app_instances_of_project_filter(self, user, project, include_deleted=False, deleted_time_delta=None):
         q = Q()
 

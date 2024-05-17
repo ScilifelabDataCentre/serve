@@ -1,5 +1,5 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 
 class Subdomain(models.Model):
@@ -14,7 +14,7 @@ class Subdomain(models.Model):
         return {
             "subdomain": self.subdomain,
         }
-        
+
     class Meta:
         verbose_name = "Subdomain"
         verbose_name_plural = "Subdomains"

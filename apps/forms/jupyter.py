@@ -1,17 +1,14 @@
-from crispy_forms.layout import Layout, Div, Field, HTML
+from crispy_forms.layout import HTML, Div, Field, Layout
 from django import forms
 
 from apps.forms.base import AppBaseForm
-from apps.models import VolumeInstance, JupyterInstance
+from apps.models import JupyterInstance, VolumeInstance
 from projects.models import Flavor
 
-__all__ = [
-    "JupyterForm"
-]
+__all__ = ["JupyterForm"]
 
 
 class JupyterForm(AppBaseForm):
-    
     def _setup_form_helper(self):
         super()._setup_form_helper()
         body = Div(
@@ -19,14 +16,10 @@ class JupyterForm(AppBaseForm):
             Field("volume"),
             Field("access"),
             Field("flavor"),
-            
-
-            css_class="card-body")
-
-        self.helper.layout = Layout(
-            body,
-            self.footer
+            css_class="card-body",
         )
+
+        self.helper.layout = Layout(body, self.footer)
 
     class Meta:
         model = JupyterInstance

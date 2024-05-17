@@ -1,7 +1,8 @@
-from .base import AppInstanceManager, BaseAppInstance
+from .app_categories import AppCategories
 from .app_status import AppStatus
 from .app_template import Apps
-from .subdomain import Subdomain
+from .base import AppInstanceManager, BaseAppInstance
 from .social import Social
-from .app_categories import AppCategories
-#from .app_instance import AppInstance
+from .subdomain import Subdomain
+
+# from .app_instance import AppInstance

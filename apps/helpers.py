@@ -7,19 +7,25 @@ from typing import Optional
 
 from django.apps import apps
 from django.conf import settings
+from django.core import serializers
 from django.core.exceptions import ObjectDoesNotExist
-from django.core import serializers 
 from django.db import transaction
 from django.template import engines
 
 from projects.models import Flavor
 from studio.utils import get_logger
 
-from .models import BaseAppInstance, AppStatus, JupyterInstance, VolumeInstance, Apps, Subdomain
-from .tasks import deploy_resource, deploy_resource, delete_resource
+from .models import (
+    Apps,
+    AppStatus,
+    BaseAppInstance,
+    JupyterInstance,
+    Subdomain,
+    VolumeInstance,
+)
+from .tasks import delete_resource, deploy_resource
 
 logger = get_logger(__name__)
-
 
 
 def can_access_app_instance(instance, user, project):
@@ -92,8 +98,6 @@ def handle_permissions(parameters, project):
     return access
 
 
-
-
 class HandleUpdateStatusResponseCode(Enum):
     NO_ACTION = 0
     UPDATED_STATUS = 1
@@ -127,9 +131,7 @@ def handle_update_status_request(
         subdomain = Subdomain.objects.get(subdomain=release)
 
         with transaction.atomic():
-            instance = (
-                BaseAppInstance.objects.select_for_update().filter(subdomain=subdomain).last()
-            )
+            instance = BaseAppInstance.objects.select_for_update().filter(subdomain=subdomain).last()
             if instance is None:
                 logger.info("The specified app instance was not found release=%s.", release)
                 raise ObjectDoesNotExist
@@ -140,7 +142,7 @@ def handle_update_status_request(
             if instance.app_status is None:
                 # Missing app status so create one now
                 logger.info("AppInstance %s does not have an associated AppStatus. Creating one now.", release)
-                app_status = AppStatus.objects.create() 
+                app_status = AppStatus.objects.create()
                 update_status(instance, app_status, new_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
             else:
@@ -225,7 +227,6 @@ def get_URI(values):
     return URI
 
 
-
 @transaction.atomic
 def create_instance_from_form(form, project, app_slug, app_id=None):
     """
@@ -249,32 +250,31 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
     instance = form.save(commit=False)
 
-
     # Handle status creation or retrieval
     status = get_or_create_status(instance, app_id)
-    
 
     # Retrieve or create the subdomain
     subdomain, created = Subdomain.objects.get_or_create(subdomain=subdomain_name, project=project)
-    
+
     if app_id:
         handle_subdomain_change(instance, subdomain, subdomain_name)
 
     app_slug = handle_shiny_proxy_case(instance, app_slug, app_id)
 
-    app = get_app(app_slug)        
+    app = get_app(app_slug)
 
     setup_instance(instance, subdomain, app, project, status)
     save_instance_and_related_data(instance, form)
 
     deploy_resource.delay(instance.serialize())
- 
+
 
 def get_subdomain_name(form):
     subdomain_name = form.cleaned_data.get("subdomain")
     if not subdomain_name:
         raise ValueError("Subdomain is required")
     return subdomain_name
+
 
 def get_or_create_status(instance, app_id):
     return instance.app_status if app_id else AppStatus.objects.create()
@@ -291,16 +291,12 @@ def handle_subdomain_change(instance, subdomain, subdomain_name):
 
 
 def handle_shiny_proxy_case(instance, app_slug, app_id):
-    conditions = {
-        ("shinyapp", True): "shinyproxyapp",
-        ("shinyproxyapp", False): "shinyapp"
-    }
-    
-    proxy_status = getattr(instance, 'proxy', False)
-    new_slug = conditions.get((app_slug, proxy_status), app_slug)
-    
-    return new_slug
+    conditions = {("shinyapp", True): "shinyproxyapp", ("shinyproxyapp", False): "shinyapp"}
 
+    proxy_status = getattr(instance, "proxy", False)
+    new_slug = conditions.get((app_slug, proxy_status), app_slug)
+
+    return new_slug
 
 
 def get_app(app_slug):
@@ -326,4 +322,3 @@ def save_instance_and_related_data(instance, form):
     instance.set_k8s_values()
     instance.url = get_URI(instance.k8s_values)
     instance.save(update_fields=["k8s_values", "url"])
-

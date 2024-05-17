@@ -29,12 +29,7 @@ from apps.models import AppCategories, Apps, AppStatus, BaseAppInstance
 from apps.tasks import delete_resource
 from models.models import ObjectType
 from portal.models import PublishedModel
-from projects.models import (
-    Environment,
-    Flavor,
-    ProjectLog,
-    ProjectTemplate,
-)
+from projects.models import Environment, Flavor, ProjectLog, ProjectTemplate
 from projects.tasks import create_resources_from_template, delete_project_apps
 from studio.utils import get_logger
 
@@ -587,7 +582,6 @@ class EnvironmentList(
             return HttpResponse("No such object.", status=400)
         obj.delete()
         return HttpResponse("Deleted object.", status=200)
-
 
 
 class AppList(

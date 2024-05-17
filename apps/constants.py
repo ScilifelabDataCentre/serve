@@ -1,13 +1,35 @@
-from apps.forms import JupyterForm, RStudioForm, VSCodeForm, VolumeForm, DashForm, CustomAppForm, ShinyForm, NetpolicyForm, TissuumapsForm, FilemanagerForm
-from apps.models import JupyterInstance, RStudioInstance, VSCodeInstance, VolumeInstance, DashInstance, CustomAppInstance, ShinyInstance, NetpolicyInstance, TissuumapsInstance, FilemanagerInstance
+from apps.forms import (
+    CustomAppForm,
+    DashForm,
+    FilemanagerForm,
+    JupyterForm,
+    NetpolicyForm,
+    RStudioForm,
+    ShinyForm,
+    TissuumapsForm,
+    VolumeForm,
+    VSCodeForm,
+)
+from apps.models import (
+    CustomAppInstance,
+    DashInstance,
+    FilemanagerInstance,
+    JupyterInstance,
+    NetpolicyInstance,
+    RStudioInstance,
+    ShinyInstance,
+    TissuumapsInstance,
+    VolumeInstance,
+    VSCodeInstance,
+)
 from apps.types_.app_types import ModelFormTuple
 
 SLUG_MODEL_FORM_MAP = {
-    'jupyter-lab': ModelFormTuple(JupyterInstance, JupyterForm),
-    'rstudio': ModelFormTuple(RStudioInstance, RStudioForm),
-    'vscode': ModelFormTuple(VSCodeInstance, VSCodeForm),
-    'volumeK8s': ModelFormTuple(VolumeInstance, VolumeForm),
-    'netpolicy': ModelFormTuple(NetpolicyInstance, NetpolicyForm),
+    "jupyter-lab": ModelFormTuple(JupyterInstance, JupyterForm),
+    "rstudio": ModelFormTuple(RStudioInstance, RStudioForm),
+    "vscode": ModelFormTuple(VSCodeInstance, VSCodeForm),
+    "volumeK8s": ModelFormTuple(VolumeInstance, VolumeForm),
+    "netpolicy": ModelFormTuple(NetpolicyInstance, NetpolicyForm),
     "dashapp": ModelFormTuple(DashInstance, DashForm),
     "customapp": ModelFormTuple(CustomAppInstance, CustomAppForm),
     "shinyapp": ModelFormTuple(ShinyInstance, ShinyForm),
@@ -15,4 +37,3 @@ SLUG_MODEL_FORM_MAP = {
     "tissuumaps": ModelFormTuple(TissuumapsInstance, TissuumapsForm),
     "filemanager": ModelFormTuple(FilemanagerInstance, FilemanagerForm),
 }
-

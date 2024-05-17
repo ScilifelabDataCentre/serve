@@ -2,13 +2,13 @@ import markdown
 from django.apps import apps
 from django.conf import settings
 from django.db.models import Q
-from django.shortcuts import redirect, render, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import View
 
-from .models import NewsObject
 from apps.models import BaseAppInstance
-
 from studio.utils import get_logger
+
+from .models import NewsObject
 
 logger = get_logger(__name__)
 
@@ -60,9 +60,10 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None):
 
     published_apps = []
     from apps.models import Social
+
     if collection:
-        #TODO: TIDY THIS UP!
-        
+        # TODO: TIDY THIS UP!
+
         for subclass in Social.__subclasses__():
             print(subclass, flush=True)
             published_apps_qs = subclass.objects.filter(
@@ -70,16 +71,16 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None):
             ).order_by("-updated_on")
             print(published_apps_qs, flush=True)
             published_apps.extend([app for app in published_apps_qs])
-        
+
     else:
-        #TODO: CHECK THIS - SHOULD FILTER ON ACCESS
+        # TODO: CHECK THIS - SHOULD FILTER ON ACCESS
         for subclass in Social.__subclasses__():
-            published_apps_qs = subclass.objects.filter(
-                ~Q(app_status__status="Deleted"), access="public"
-            ).order_by("-updated_on")
+            published_apps_qs = subclass.objects.filter(~Q(app_status__status="Deleted"), access="public").order_by(
+                "-updated_on"
+            )
             published_apps.extend([app for app in published_apps_qs])
-        
-    if len(published_apps)>= 3 and not get_all:
+
+    if len(published_apps) >= 3 and not get_all:
         published_apps = published_apps[:3]
     else:
         published_apps = published_apps
@@ -185,6 +186,7 @@ class HomeViewDynamic(View):
         else:
             return HomeView.as_view()(request, app_id=0)
 
+
 def about(request):
     template = "portal/about.html"
     return render(request, template, locals())
@@ -198,8 +200,6 @@ def teaching(request):
 def privacy(request):
     template = "portal/privacy.html"
     return render(request, template, locals())
-
-
 
 
 def news(request):

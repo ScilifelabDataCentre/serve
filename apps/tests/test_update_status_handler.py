@@ -11,7 +11,7 @@ from django.test import TestCase, TransactionTestCase
 from projects.models import Project
 
 from ..helpers import HandleUpdateStatusResponseCode, handle_update_status_request
-from ..models import JupyterInstance, Apps, Subdomain, AppStatus, AppCategories
+from ..models import AppCategories, Apps, AppStatus, JupyterInstance, Subdomain
 
 utc = pytz.UTC
 
@@ -48,7 +48,6 @@ class UpdateAppStatusTestCase(TestCase):
         )
 
         self.project = Project.objects.create_project(name="test-perm-get_status", owner=self.user, description="")
-
 
         subdomain = Subdomain.objects.create(subdomain=self.ACTUAL_RELEASE_NAME)
         self.app_instance = JupyterInstance.objects.create(
@@ -160,6 +159,7 @@ class UpdateAppStatusTestCase(TestCase):
         actual_appstatus = actual_app_instance.app_status
         assert actual_appstatus.status == expected_status_text
         assert actual_appstatus.time == newer_ts
+
 
 '''
 #TODO: THIS TEST NEEDS TO BE UPDATED TO ADHERE TO NEW LOGIC

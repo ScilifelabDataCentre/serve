@@ -19,14 +19,14 @@
 
     <div class="row g-4">
         {% for objs in resources %}
-        
+
             {% if objs.title == "Develop" and objs.apps %}
                 {% include "projects/categories/develop.html" %}
-            {% endif %} 
+            {% endif %}
 
             {% if objs.title == "Serve" and objs.apps %}
                 {% include "projects/categories/serve.html" %}
-            {% endif %} 
+            {% endif %}
 
             {% if objs.title == "Manage Files" and objs.apps %}
                 {% include "projects/categories/manage_files.html" %}
@@ -34,7 +34,7 @@
 
             {% if objs.title == "Additional options [admins only]" and objs.apps %}
                 {% include "projects/categories/manage_files.html" %}
-            {% endif %}   
+            {% endif %}
         {% endfor %}
 
     </div>

@@ -29,10 +29,12 @@ class ProjectTestCase(TestCase):
 
     def test_decrypt_key(self):
         project = Project.objects.filter(name="test-secret").first()
+
         def decrypt_key(key):
             base64_bytes = key.encode("ascii")
             result = base64.b64decode(base64_bytes)
             return result.decode("ascii")
+
         self.assertEqual(decrypt_key(project.project_key), "key")
         self.assertEqual(decrypt_key(project.project_secret), "secret")
 

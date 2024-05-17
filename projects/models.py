@@ -72,20 +72,20 @@ class Flavor(models.Model):
 
     def __str__(self):
         return str(self.name)
-    
+
     def to_dict(self):
         flavor_dict = dict(
-            flavor = dict(
-                requests = {
+            flavor=dict(
+                requests={
                     "cpu": self.cpu_req,
                     "memory": self.mem_req,
                     "ephemeral-storage": self.ephmem_req,
                 },
-                limits = {
+                limits={
                     "cpu": self.cpu_lim,
                     "memory": self.mem_lim,
                     "ephemeral-storage": self.ephmem_lim,
-                }
+                },
             )
         )
         if self.gpu_req and int(self.gpu_req) > 0:
@@ -200,7 +200,6 @@ class ProjectTemplate(models.Model):
         return "{} ({})".format(self.name, self.revision)
 
 
-
 class Project(models.Model):
     authorized = models.ManyToManyField(get_user_model(), blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -299,4 +298,3 @@ class ProjectLog(models.Model):
     headline = models.CharField(max_length=256)
     module = models.CharField(max_length=2, choices=MODULE_CHOICES, default="UN")
     project = models.ForeignKey(settings.PROJECTS_MODEL, on_delete=models.CASCADE)
-

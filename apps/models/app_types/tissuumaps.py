@@ -11,13 +11,16 @@ class TissuumapsInstance(BaseAppInstance, Social):
     objects = TissuumapsInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),
-        ("private", "Private",),
+        (
+            "private",
+            "Private",
+        ),
         ("public", "Public"),
         ("link", "Link"),
     )
     volume = models.ManyToManyField("VolumeInstance", blank=True)
     access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
-    
+
     def set_k8s_values(self):
         super().set_k8s_values()
 
@@ -30,11 +33,9 @@ class TissuumapsInstance(BaseAppInstance, Social):
 
         volumeK8s_dict = {"volumeK8s": {}}
         for object in self.volume.all():
-            volumeK8s_dict["volumeK8s"][object.name] = dict(
-                release=object.subdomain.subdomain
-            )
+            volumeK8s_dict["volumeK8s"][object.name] = dict(release=object.subdomain.subdomain)
         self.k8s_values["apps"] = volumeK8s_dict
-    
+
     class Meta:
         verbose_name = "TissUUmaps Instance"
         verbose_name_plural = "TissUUmaps Instances"

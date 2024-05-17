@@ -22,9 +22,8 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.models import Subdomain, BaseAppInstance
 from apps.constants import SLUG_MODEL_FORM_MAP
-
+from apps.models import BaseAppInstance, Subdomain
 from common.models import UserProfile
 from models.models import Model
 from projects.models import Project
@@ -60,9 +59,7 @@ class AccessPermission(BasePermission):
         try:
             # Must fetch the subdomain and reverse to the related model.
             subdomain = Subdomain.objects.get(subdomain=release)
-            instance = (
-            BaseAppInstance.objects.filter(subdomain=subdomain).last()
-            )
+            instance = BaseAppInstance.objects.filter(subdomain=subdomain).last()
             project = instance.project
         # TODO: Make it an explicit exception. At least catch `Exception`
         except:  # noqa: E722
@@ -75,7 +72,7 @@ class AccessPermission(BasePermission):
             return False
         instance = getattr(instance, model_class.__name__.lower())
         access = getattr(instance, "access", None)
-        
+
         if access is None:
             return False
         elif instance.access == "private":

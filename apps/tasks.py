@@ -1,26 +1,21 @@
-
 import subprocess
-import uuid
-import yaml
 import time
+import uuid
 from datetime import datetime
 
-
-from django.core.exceptions import ObjectDoesNotExist
-
+import yaml
 from celery import shared_task
-from django.db import transaction
-
-from django.utils import timezone
 from django.apps import apps
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
+from django.utils import timezone
+
 from studio.celery import app
 from studio.utils import get_logger
 
 from .models import BaseAppInstance, FilemanagerInstance
 
 logger = get_logger(__name__)
-
-
 
 
 @app.task
@@ -34,19 +29,18 @@ def delete_old_objects():
 
     def get_threshold(threshold):
         return timezone.now() - timezone.timedelta(days=threshold)
- 
 
     # Handle deletion of apps in the "Develop" category
     for subclass in BaseAppInstance.__subclasses__():
         old_develop_apps = subclass.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
-        
+
         for app_ in old_develop_apps:
             delete_resource.delay(app_.pk)
 
     # Handle deletion of non persistent file managers
     old_file_managers = FilemanagerInstance.objects.filter(
         created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False
-        )
+    )
     for app_ in old_file_managers:
         delete_resource.delay(app_.pk)
 
@@ -54,26 +48,26 @@ def delete_old_objects():
 def helm_install(release_name, chart, namespace="default", values_file=None, version=None):
     """
     Run a Helm install command.
-    
+
     Args:
     release_name (str): Name of the Helm release.
     chart (str): Helm chart to install.
     namespace (str): Kubernetes namespace to deploy to.
     options (list, optional): Additional options for Helm command in list format.
-    
+
     Returns:
     tuple: Output message and any errors from the Helm command.
     """
     # Base command
     command = f"helm upgrade --force --install {release_name} {chart} --namespace {namespace}"
-    
+
     if values_file:
         command += f" -f {values_file}"
-    
+
     # Append version if deploying via ghcr
     if version:
         command += f" --version {version} --repository-cache /app/charts/.cache/helm/repository"
-    
+
     logger.debug(f"Running Helm command: {command}")
     # Execute the command
     try:
@@ -81,7 +75,6 @@ def helm_install(release_name, chart, namespace="default", values_file=None, ver
         return result.stdout, None
     except subprocess.CalledProcessError as e:
         return e.stdout, e.stderr
-    
 
 
 def helm_delete(release_name, namespace="default"):
@@ -93,14 +86,11 @@ def helm_delete(release_name, namespace="default"):
         return result.stdout, None
     except subprocess.CalledProcessError as e:
         return e.stdout, e.stderr
-        
 
 
 @shared_task
-@transaction.atomic 
+@transaction.atomic
 def deploy_resource(serialized_instance):
-    
-    
     instance = deserialize(serialized_instance)
     logger.info("Deploying resource for instance %s", instance)
     values = instance.k8s_values
@@ -115,14 +105,11 @@ def deploy_resource(serialized_instance):
     output, error = helm_install(values["subdomain"], chart, values["namespace"], values_file, version)
     success = not error
 
-    helm_info = {
-        "success": success,
-        "info": {"stdout": output, "stderr": error}
-    }
+    helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 
-    instance.info = dict(helm = helm_info)
+    instance.info = dict(helm=helm_info)
     instance.app_status.status = "Created" if success else "Failed"
-    
+
     instance.app_status.save()
     instance.save()
 
@@ -130,28 +117,24 @@ def deploy_resource(serialized_instance):
 @shared_task
 @transaction.atomic
 def delete_resource(serialized_instance):
-    
     instance = deserialize(serialized_instance)
-    
+
     values = instance.k8s_values
     output, error = helm_delete(values["subdomain"], values["namespace"])
     success = not error
-    
+
     if success:
         if instance.app.slug in ("volumeK8s", "netpolicy"):
             instance.app_status.status = "Deleted"
             instance.deleted_on = datetime.now()
-        else: 
+        else:
             instance.app_status.status = "Deleting..."
     else:
         instance.app_status.status = "FailedToDelete"
-        
-    helm_info = {
-        "success": success,
-        "info": {"stdout": output, "stderr": error}
-    }
 
-    instance.info = dict(helm = helm_info)
+    helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
+
+    instance.info = dict(helm=helm_info)
     instance.app_status.save()
     instance.save()
 
@@ -162,16 +145,15 @@ def deserialize(serialized_instance):
         raise ValueError(f"The input must be a dictionary and not {type(serialized_instance)}")
 
     try:
-        model = serialized_instance['model']
-        pk = serialized_instance['pk']
-        app_label, model_name = model.split('.')
-        
+        model = serialized_instance["model"]
+        pk = serialized_instance["pk"]
+        app_label, model_name = model.split(".")
+
         model_class = apps.get_model(app_label, model_name)
         instance = model_class.objects.get(pk=pk)
-        
+
         return instance
     except (KeyError, ValueError) as e:
         raise ValueError(f"Invalid serialized data format: {e}")
     except ObjectDoesNotExist:
         raise ValueError(f"No instance found for model {model} with pk {pk}")
-

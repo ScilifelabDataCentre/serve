@@ -51,7 +51,7 @@
                                 {% endwith %}
                                 {% else %}
                                 {% with app.tags as tags %}
-                                
+
                                 {% for tag in tags %}
                                 <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
                                     href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">

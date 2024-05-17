@@ -3,6 +3,7 @@ from django.db import models
 
 class Apps(models.Model):
     """Essentially app template"""
+
     user_can_create = models.BooleanField(default=True)
     user_can_edit = models.BooleanField(default=True)
     user_can_delete = models.BooleanField(default=True)

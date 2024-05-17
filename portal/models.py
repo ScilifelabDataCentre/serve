@@ -1,12 +1,11 @@
 import random
-from django.contrib.auth import get_user_model
-from django.db import models
-from django.utils.text import slugify
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from django.utils.text import slugify
 
 
 class PublicModelObject(models.Model):
@@ -74,10 +73,6 @@ class NewsObject(models.Model):
     @property
     def news_title(self):
         return self.title
-
-
-
-
 
 
 class Collection(models.Model):
