@@ -8,6 +8,8 @@ from django.core.validators import RegexValidator
 from django.shortcuts import get_object_or_404
 from django.utils.safestring import mark_safe
 
+from apps.forms import CustomField
+from apps.helpers import HELP_MESSAGE_MAP
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from projects.models import Flavor, Project
 
@@ -27,7 +29,9 @@ class BaseForm(forms.ModelForm):
         self.project_pk = kwargs.pop("project_pk", None)
         self.project = get_object_or_404(Project, pk=self.project_pk) if self.project_pk else None
         self.model_name = self._meta.model._meta.verbose_name.replace("Instance", "")
+
         super().__init__(*args, **kwargs)
+
         self._setup_form_fields()
         self._setup_form_helper()
 
@@ -35,15 +39,8 @@ class BaseForm(forms.ModelForm):
         # Populate subdomain field with instance subdomain if it exists
         if self.instance and self.instance.pk:
             self.fields["subdomain"].initial = self.instance.subdomain.subdomain
-        # Handle Name field
-        self.fields["name"].label = mark_safe(
-            """Name: <span class="bi bi-question-circle" style="color: #989da0" data-bs-toggle="tooltip"
-            title="" data-bs-placement="right" data-bs-original-title="The container wait time set for
-            the ShinyProxy instance. Timeout for the container to be available to ShinyProxy;
-            defaults to 20s (20000). I.e. if the container with the app is not in ready status
-            within this time ShinyProxy will give up trying to reach it."></span>
-            """
-        )
+
+        # Handle name
         self.fields["name"].initial = ""
 
     def _setup_form_helper(self):
@@ -93,6 +90,22 @@ class BaseForm(forms.ModelForm):
 
         return subdomain_input
 
+    def get_common_field(self, field_name: str, **kwargs):
+        """
+        This function is very useful because it allows you to create a custom field,
+        that has a question_mark with tooltip next to the label. So "Name (?)" will have a tooltip.
+        The text in the tooltip is defined in HELP_MESSAGE_MAP.
+        The CustomField class just inherits the crispy_forms.layout.Field class and adds the
+        help_message attribute to it. The template then uses it to render the tooltip for all fields
+        using this class.
+        """
+        base_args = dict(
+            css_class="form-control", wrapper_class="mb-3", rows=3, help_message=HELP_MESSAGE_MAP.get(field_name, "")
+        )
+
+        base_args.update(kwargs)
+        return Div(CustomField(field_name, **base_args))
+
     class Meta:
         # Specify model to be used
         model = BaseAppInstance
@@ -105,9 +118,7 @@ class AppBaseForm(BaseForm):
     so you can treat this form as an actual base form for the most of the apps
     """
 
-    volume = forms.ModelMultipleChoiceField(
-        queryset=VolumeInstance.objects.none(), widget=forms.CheckboxSelectMultiple, required=False
-    )
+    volume = forms.ModelChoiceField(queryset=VolumeInstance.objects.none(), required=False, empty_label="None")
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=True, empty_label=None)
 
     def __init__(self, *args, **kwargs):

@@ -11,10 +11,10 @@ class RStudioForm(AppBaseForm):
     def _setup_form_helper(self):
         super()._setup_form_helper()
         body = Div(
-            Field("name", placeholder="Name your app"),
+            self.get_common_field("name", placeholder="Name your app"),
             Field("volume"),
-            Field("flavor"),
-            Field("access"),
+            self.get_common_field("flavor"),
+            self.get_common_field("access"),
             css_class="card-body",
         )
 
