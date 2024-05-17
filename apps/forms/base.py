@@ -118,9 +118,7 @@ class AppBaseForm(BaseForm):
     so you can treat this form as an actual base form for the most of the apps
     """
 
-    volume = forms.ModelMultipleChoiceField(
-        queryset=VolumeInstance.objects.none(), widget=forms.CheckboxSelectMultiple, required=False
-    )
+    volume = forms.ModelChoiceField(queryset=VolumeInstance.objects.none(), required=False, empty_label="None")
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=True, empty_label=None)
 
     def __init__(self, *args, **kwargs):

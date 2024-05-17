@@ -29,8 +29,7 @@ logger = get_logger(__name__)
 
 
 HELP_MESSAGE_MAP = {
-    "name": """Display name for the application. This is the name
-        visible on the app catalogue if the app is public""",
+    "name": "Display name for the application. This is the name visible on the app catalogue if the app is public",
     "description": "Summarize the application in a few words",
     "subdomain": "Valid subdomain names are those that have letters a-z and numbers 0-9 and a hyphen '-'. The hyphen should not be at the start or end of the subdomain",
     "access": "Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to them. Project apps can only be accessed by project members. Private apps are only accessible by users that create the apps.",
