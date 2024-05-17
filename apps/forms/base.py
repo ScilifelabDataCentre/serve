@@ -91,6 +91,14 @@ class BaseForm(forms.ModelForm):
         return subdomain_input
 
     def get_common_field(self, field_name: str, **kwargs):
+        """
+        This function is very useful because it allows you to create a custom field,
+        that has a question_mark with tooltip next to the label. So "Name (?)" will have a tooltip.
+        The text in the tooltip is defined in HELP_MESSAGE_MAP.
+        The CustomField class just inherits the crispy_forms.layout.Field class and adds the
+        help_message attribute to it. The template then uses it to render the tooltip for all fields
+        using this class.
+        """
         base_args = dict(
             css_class="form-control", wrapper_class="mb-3", rows=3, help_message=HELP_MESSAGE_MAP.get(field_name, "")
         )
