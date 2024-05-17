@@ -110,7 +110,7 @@ python_version = "3.12"
 disallow_subclassing_any = false
 ignore_missing_imports = false
 warn_return_any = true
-untyped_calls_exclude = ["apps.helpers","projects.models"]
+untyped_calls_exclude = ["projects.models"]  # ["apps.helpers","projects.models"]
 exclude = ["venv", ".venv", "examples"]
 #plugins = ["mypy_django_plugin.main"]
 
@@ -138,7 +138,7 @@ module = [
 	"*.tests.*",
 	"*.tests",
 	"conftest",
-	"cypress.*"
+	#"cypress.*"
 ]
 check_untyped_defs = false
 disallow_incomplete_defs = false
@@ -149,6 +149,16 @@ disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = "*.migrations.*"
+ignore_errors = true
+
+# A temporary section to ease the transition of mypy into the codebase
+[[tool.mypy.overrides]]
+module = [
+	"apps.*",
+	"cypress.*",
+	"cypress/e2e/setup-scripts/seed_collections_user"
+]
+strict = false
 ignore_errors = true
 
 # A temporary section to ease the transition of mypy into the codebase

@@ -6,7 +6,7 @@ import os.path
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from apps.helpers import create_app_instance
+from apps.helpers import create_app_instance  # type:ignore
 from apps.models import Apps
 from projects.models import Environment, Flavor, Project, ProjectTemplate
 from projects.tasks import create_resources_from_template
