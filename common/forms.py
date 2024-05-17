@@ -32,7 +32,7 @@ with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
 EMAIL_ALLOW_REGEX = re.compile(
     (
         r"^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*?"  # Subdomain part
-        + f"({('|').join([l[0] for l in UNIVERSITIES if l[0] != 'other'])}"
+        + f"({('|').join([u[0] for u in UNIVERSITIES if u[0] != 'other'])}"
         + r")\.se"  # End of the domain
     ),
     re.IGNORECASE,
