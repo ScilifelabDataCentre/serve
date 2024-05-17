@@ -113,6 +113,8 @@ def deploy_resource(serialized_instance):
     instance.app_status.save()
     instance.save()
 
+    subprocess.run(["rm", "-f", values_file])
+
 
 @shared_task
 @transaction.atomic
