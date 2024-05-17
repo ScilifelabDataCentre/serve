@@ -10,10 +10,9 @@ from apps.forms import CustomField
 
 
 class CustomAppForm(AppBaseForm):
-    volume = forms.ModelChoiceField(queryset=VolumeInstance.objects.none(), 
-                                required=False, 
-                                empty_label="None",
-                                initial=None)
+    volume = forms.ModelChoiceField(
+        queryset=VolumeInstance.objects.none(), required=False, empty_label="None", initial=None
+    )
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     image = forms.CharField(max_length=255, required=True)
@@ -25,7 +24,7 @@ class CustomAppForm(AppBaseForm):
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
-        self.fields["volume"].initial=None
+        self.fields["volume"].initial = None
         body = Div(
             self.get_common_field("name", placeholder="test"),
             self.get_common_field("description", rows=3),

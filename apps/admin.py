@@ -91,7 +91,6 @@ class BaseAppAdmin(admin.ModelAdmin):
             return [volume.name for volume in obj.volume.all()]
         else:
             return obj.volume.name
-        
 
     display_volumes.short_description = "Volumes"
 
