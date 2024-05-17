@@ -1,12 +1,12 @@
-from .custom_field import *  # isort:skip
-from .base import *
-from .custom import *
-from .dash import *
-from .filemanager import *
-from .jupyter import *
-from .netpolicy import *
-from .rstudio import *
-from .shiny import *
-from .tissuumaps import *
-from .volumes import *
-from .vscode import *
+from .custom_field import CustomField  # isort:skip
+from .base import AppBaseForm, BaseForm
+from .custom import CustomAppForm
+from .dash import DashForm
+from .filemanager import FilemanagerForm
+from .jupyter import JupyterForm
+from .netpolicy import NetpolicyForm
+from .rstudio import RStudioForm
+from .shiny import ShinyForm
+from .tissuumaps import TissuumapsForm
+from .volumes import VolumeForm
+from .vscode import VSCodeForm

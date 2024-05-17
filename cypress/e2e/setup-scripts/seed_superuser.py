@@ -56,7 +56,7 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
         "access": "private",
     }
 
-    form = SLUG_MODEL_FORM_MAP.get(app_slug, None).Form(data, project_pk=project.pk)
+    form = SLUG_MODEL_FORM_MAP.get(app_slug, None).Form(data, project_pk=project.pk)  # type: ignore
 
     # now create app
     create_instance_from_form(form, project, app_slug)
