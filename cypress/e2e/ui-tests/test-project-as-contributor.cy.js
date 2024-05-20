@@ -229,7 +229,7 @@ describe("Test project contributor user functionality", () => {
                 Cypress._.times(3, () => {
                         cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
                         cy.get('#id_name').type("e2e-create-jl")
-                        cy.get('.btn-primary').contains('Create').click()
+                        cy.get('#submit-id-submit').contains('Submit').click()
                   });
                 // step 2. check that the button to create another one does not work
                 cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('not.have.attr', 'href')

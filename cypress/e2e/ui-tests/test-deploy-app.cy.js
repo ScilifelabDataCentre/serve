@@ -376,6 +376,7 @@ describe("Test deploying app", () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-subdomain-example"
+        const app_name_2 = "e2e-second-subdomain-example"
         const app_description = "e2e-subdomain-description"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const createResources = Cypress.env('create_resources');
@@ -409,7 +410,7 @@ describe("Test deploying app", () => {
             cy.log("Now trying to create an app with an already taken subdomain")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
 
-            cy.get('#id_name').type("e2e-new-subdomain-temp")
+            cy.get('#id_name').type(app_name_2)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
 
@@ -424,7 +425,7 @@ describe("Test deploying app", () => {
             // create the app
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was created with the correct subdomain
-            cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_2)
+            cy.get('a').contains(app_name_2).should('have.attr', 'href').and('include', subdomain_2)
 
             // Change subdomain of a previously created app
             cy.log("Now changing subdomain of an already created app")
