@@ -109,7 +109,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
-            cy.get('input[name="appconfig.path"]').clear().type(app_path)
+            cy.get('#id_path').clear().type(app_path)
             cy.get('#id_volume').select('project-vol')
             cy.get('button').contains('Create').click()
 
@@ -167,8 +167,8 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port_2)
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_image').clear().type(image_name_2)
-            cy.get('input[name="appconfig.path"]').should('have.value', app_path)
-            cy.get('input[name="appconfig.path"]').clear().type(app_path_2)
+            cy.get('#id_path').should('have.value', app_path)
+            cy.get('#id_path').clear().type(app_path_2)
             cy.get('button').contains('Update').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'link')
             cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'Running') // NB: it will get status "Running" but it won't work because the new port is incorrect
@@ -183,7 +183,7 @@ describe("Test deploying app", () => {
             cy.get('textarea[name=link_privacy_type_note]').should('have.value', link_privacy_type_note)
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
-            cy.get('input[name="appconfig.path"]').should('have.value', app_path_2)
+            cy.get('#id_path').should('have.value', app_path_2)
 
             // Remove the created public app and verify that it is deleted from public apps page
             cy.log("Now deleting the public app")
@@ -396,7 +396,7 @@ describe("Test deploying app", () => {
             cy.get('#id_description').type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
-            cy.get('input[name="appconfig.path"]').clear().type("/home")
+            cy.get('#id_path').clear().type("/home")
             // fill out subdomain field
             cy.get('[id="subdomain"]').find('button').click()
             cy.get('[id="subdomain-add"]').find('[id="rn"]').type(subdomain)

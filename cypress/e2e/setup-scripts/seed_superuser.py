@@ -53,8 +53,10 @@ with transaction.atomic():
         create_resources_from_template(user.username, project.slug, project_template.template)
     except ProjectTemplate.DoesNotExist:
         logger.error("Project template not found")
+        raise ValueError("Project template not found")
     except Exception as e:
         logger.error(f"Error creating resources from project template: {e}")
+        raise ValueError(f"Error creating resources from project template: {e}")
 
     flavor = Flavor.objects.filter(project=project).first()
 

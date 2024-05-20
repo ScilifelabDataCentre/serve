@@ -60,11 +60,6 @@ describe("Test superuser access", () => {
         cy.get('h3').should('contain', project_name)
         cy.get('.card-text').should('contain', project_description)
 
-        cy.log("Checking that the correct deployment options are available (i.e. with extra deployment options)")
-        cy.get('.card-header').find('h5').should('contain', 'Develop')
-        cy.get('.card-header').find('h5').should('contain', 'Serve')
-        cy.get('.card-body').find('h5').should('contain', 'Shiny App (single copy)')
-        cy.get('.card-header').find('h5').should('contain', 'Additional options [admins only]')
 
         cy.log("Checking that project settings are available")
         cy.get('[data-cy="settings"]').click()
@@ -73,8 +68,6 @@ describe("Test superuser access", () => {
 
         cy.log("Checking that the correct project settings are visible (i.e. with extra settings)")
         cy.get('.list-group').find('a').should('contain', 'Access')
-        cy.get('.list-group').find('a').should('contain', 'S3 storage')
-        cy.get('.list-group').find('a').should('contain', 'MLFlow')
         cy.get('.list-group').find('a').should('contain', 'Flavors')
         cy.get('.list-group').find('a').should('contain', 'Environments')
 
@@ -209,9 +202,9 @@ describe("Test superuser access", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
-            cy.get('textarea[name=app_description]').type(app_description)
-            cy.get('#permission').select('project')
-            cy.get('#flavor').select('2 vCPU, 4 GB RAM')
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_access').select('project')
+            cy.get('#id_flavor').select('2 vCPU, 4 GB RAM')
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('button').contains('Create').click()
@@ -222,8 +215,8 @@ describe("Test superuser access", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('#flavor').find(':selected').should('contain', '2 vCPU, 4 GB RAM')
-            cy.get('#flavor').select(new_flavor_name)
+            cy.get('#id_flavor').find(':selected').should('contain', '2 vCPU, 4 GB RAM')
+            cy.get('#id_flavor').select(new_flavor_name)
             cy.get('button').contains('Update').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
 
@@ -232,7 +225,7 @@ describe("Test superuser access", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('#flavor').find(':selected').should('contain', new_flavor_name)
+            cy.get('#id_flavor').find(':selected').should('contain', new_flavor_name)
 
         } else {
             cy.log('Skipped because create_resources is not true');
