@@ -22,12 +22,16 @@ class DashInstance(BaseAppInstance, Social):
     port = models.IntegerField(default=8000)
     image = models.CharField(max_length=255)
 
-    def set_k8s_values(self):
-        super().set_k8s_values()
+    def get_k8s_values(self):
+        k8s_values = super().get_k8s_values()
 
-        self.k8s_values["permission"] = str(self.access)
-        self.k8s_values["appconfig"] = dict(port=self.port, image=self.image)
-
+        k8s_values["permission"] = str(self.access)
+        k8s_values["appconfig"] = dict(
+            port = self.port,
+            image = self.image
+        )
+        return k8s_values
+    
     class Meta:
         verbose_name = "Dash App Instance"
         verbose_name_plural = "Dash App Instances"

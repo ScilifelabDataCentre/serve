@@ -26,16 +26,17 @@ class CustomAppInstance(BaseAppInstance, Social):
     path = models.CharField(max_length=255, default="/")
     user_id = models.IntegerField(default=1000)
 
-    def set_k8s_values(self):
-        super().set_k8s_values()
+    def get_k8s_values(self):
+        k8s_values = super().get_k8s_values()
 
-        self.k8s_values["permission"] = str(self.access)
-        self.k8s_values["appconfig"] = dict(port=self.port, image=self.image, path=self.path, userid=self.user_id)
+        k8s_values["permission"] = str(self.access)
+        k8s_values["appconfig"] = dict(port=self.port, image=self.image, path=self.path, userid=self.user_id)
         volumeK8s_dict = {"volumeK8s": {}}
         if self.volume:
             volumeK8s_dict["volumeK8s"][self.volume.name] = dict(release=self.volume.subdomain.subdomain)
-        self.k8s_values["apps"] = volumeK8s_dict
-
+        k8s_values["apps"] = volumeK8s_dict
+        return k8s_values
+    
     class Meta:
         verbose_name = "Custom App Instance"
         verbose_name_plural = "Custom App Instances"

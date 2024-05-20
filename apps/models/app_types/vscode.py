@@ -16,11 +16,10 @@ class VSCodeInstance(BaseAppInstance):
     volume = models.ManyToManyField("VolumeInstance", blank=True)
     access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
 
-    def set_k8s_values(self):
-        super().set_k8s_values()
+    def get_k8s_values(self):
+        k8s_values = super().get_k8s_values()
 
-        self.k8s_values["permission"] = str(self.access)
-
+        k8s_values["permission"] = str(self.access)
         # Not the nicest perhaps, but it works since the charts assume that the volumes are on this form
         # {apps:
         #   {volumeK8s:
@@ -30,7 +29,8 @@ class VSCodeInstance(BaseAppInstance):
         volumeK8s_dict = {"volumeK8s": {}}
         for object in self.volume.all():
             volumeK8s_dict["volumeK8s"][object.name] = dict(release=object.subdomain.subdomain)
-        self.k8s_values["apps"] = volumeK8s_dict
+        k8s_values["apps"] = volumeK8s_dict
+        return k8s_values
 
     class Meta:
         verbose_name = "VS Code Instance"
