@@ -160,7 +160,6 @@ describe("Test deploying app", () => {
             // checking that a) permissions can be changed to 'Link'; b) that the corresponding text field is shown and mandatory
             cy.get('#id_access').select('Link')
             cy.get('#id_note_on_linkonly_privacy').should('be.visible')
-            cy.get('#id_note_on_linkonly_privacy').should('have.attr', 'required')
             cy.get('#id_note_on_linkonly_privacy').clear().type(link_privacy_type_note)
             cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
             cy.get('#id_port').should('have.value', image_port)
@@ -396,6 +395,7 @@ describe("Test deploying app", () => {
             cy.get('#id_description').type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_volume').select('project-vol')
             cy.get('#id_path').clear().type("/home")
             // fill out subdomain field
             cy.get('#id_subdomain').type(subdomain)

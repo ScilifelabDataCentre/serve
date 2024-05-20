@@ -61,7 +61,7 @@ class CustomAppForm(AppBaseForm):
         if path:
             # If new path matches current path, it is valid.
             if self.instance and getattr(self.instance, "path", None) == path:
-                return cleaned_data
+                return path
             # Verify that path starts with "/home"
             path = path.strip().rstrip("/").lower().replace(" ", "")
             if not path.startswith("/home"):
