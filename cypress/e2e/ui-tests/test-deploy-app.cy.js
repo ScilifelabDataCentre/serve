@@ -159,9 +159,9 @@ describe("Test deploying app", () => {
             cy.get('#id_access').find(':selected').should('contain', 'public')
             // checking that a) permissions can be changed to 'link'; b) that the corresponding text field is shown and mandatory
             cy.get('#id_access').select('link')
-            cy.get('textarea[name=link_privacy_type_note]').should('be.visible')
-            cy.get('textarea[name=link_privacy_type_note]').should('have.attr', 'required')
-            cy.get('textarea[name=link_privacy_type_note]').clear().type(link_privacy_type_note)
+            cy.get('#id_note_on_linkonly_privacy').should('be.visible')
+            cy.get('#id_note_on_linkonly_privacy').should('have.attr', 'required')
+            cy.get('#id_note_on_linkonly_privacy').clear().type(link_privacy_type_note)
             cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
             cy.get('#id_port').should('have.value', image_port)
             cy.get('#id_port').clear().type(image_port_2)
@@ -180,7 +180,7 @@ describe("Test deploying app", () => {
             cy.get('#id_name').should('have.value', app_name_public_2)
             cy.get('#id_description').should('have.value', app_description_2)
             cy.get('#id_access').find(':selected').should('contain', 'link')
-            cy.get('textarea[name=link_privacy_type_note]').should('have.value', link_privacy_type_note)
+            cy.get('#id_note_on_linkonly_privacy').should('have.value', link_privacy_type_note)
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_path').should('have.value', app_path_2)
@@ -221,8 +221,8 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_access').select('public')
+            cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('button').contains('Create').click()
@@ -290,8 +290,8 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_access').select('public')
+            cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('button').contains('Create').click()
@@ -398,11 +398,8 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_path').clear().type("/home")
             // fill out subdomain field
-            cy.get('[id="subdomain"]').find('button').click()
-            cy.get('[id="subdomain-add"]').find('[id="rn"]').type(subdomain)
-            cy.get('[id="subdomain-add"]').find('button').click()
-            cy.wait(5000)
-            cy.get('[id="subdomain"]').find('select#app_release_name option:selected').should('contain', subdomain)
+            cy.get('#id_subdomain').type(subdomain)
+
             // create the app
             cy.get('button').contains('Create').click()
             // check that the app was created with the correct subdomain
@@ -412,16 +409,16 @@ describe("Test deploying app", () => {
             cy.log("Now trying to create an app with an already taken subdomain")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             // fill out subdomain field
-            cy.get('[id="subdomain"]').find('button').click()
-            cy.get('[id="subdomain-add"]').find('[id="rn"]').type(subdomain)
-            cy.get('[id="subdomain-add"]').find('button').click()
-            cy.wait(5000)
-            cy.get('[id="subdomain-add"]').find('[id="subdomain-invalid"]').should('be.visible') // display errror when same subdomain
-            cy.get('[id="subdomain-add"]').find('[id="rn"]').clear().type(subdomain_2)
-            cy.get('[id="subdomain-add"]').find('button').click()
-            cy.wait(5000)
-            cy.get('[id="subdomain-add"]').find('[id="subdomain-invalid"]').should('not.be.visible') // do not display error when different subdomain
-            cy.get('[id="subdomain"]').find('select#app_release_name option:selected').should('contain', subdomain_2) // and the newly added subdomain as selected again
+            cy.get('#id_subdomain').type(subdomain)
+
+            cy.get('#div_id_subdomain').within(() => {
+                cy.contains('.text-danger', 'Subdomain already exists. Please choose another one.').should('exist');
+              }); // display errror when same subdomain
+            cy.get('#id_subdomain').clear().type(subdomain_2)
+            // create the app
+            cy.get('button').contains('Create').click()
+            // check that the app was created with the correct subdomain
+            cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_2)
 
             // Change subdomain of a previously created app
             cy.log("Now changing subdomain of an already created app")
@@ -429,11 +426,8 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
-            cy.get('[id="subdomain"]').find('button').click()
-            cy.get('[id="subdomain-add"]').find('[id="rn"]').type(subdomain_3)
-            cy.get('[id="subdomain-add"]').find('button').click()
-            cy.wait(5000)
-            // update the app
+            cy.get('#id_subdomain').clear().type(subdomain_3)
+
             cy.get('button').contains('Update').click()
             // check that the app was updated with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_3)
