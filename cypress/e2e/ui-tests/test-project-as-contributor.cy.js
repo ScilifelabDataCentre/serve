@@ -466,9 +466,6 @@ describe("Test project contributor user functionality", () => {
         cy.get('div.card-body:contains("File Manager")').find('a:contains("Create")').click()
         cy.get('#submit-id-submit').click()
 
-        // change the command to check for Created, Pending or Running
-        cy.get('#manage-files .card-header').find('span.badge').invoke('text').then((text) => {
-            expect(["Created", "Pending", "Running"]).to.include(text.trim());
-          });
+        cy.get('tr:contains("File Manager")').find('span').should('contain', 'Running')
     })
 })
