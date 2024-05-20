@@ -59,6 +59,42 @@
 
         // Call the function on page load to ensure correct initial display
         toggleVisibility();
+
+        function checkSubdomainAvailability(subdomain_input) {
+            console.log("checkSubdomainAvailability called with text=" + subdomain_input);
+
+            // TODO: add a spinner
+
+            // TODO: call ajax method at /api/app-subdomain/is-available/?subdomain_text=
+            let is_avail = (subdomain_input == "ok");
+
+            if (is_avail) {
+                // The subdomain is available.Enable the submit button.
+                $("#submit-id-submit").prop('disabled', false);
+                $("#id_subdomain").removeClass("alert-danger");
+                $("#id_subdomain").addClass("success");
+            } else {
+                // The subdomain is not available. Disable the submit button.
+                $("#submit-id-submit").prop('disabled', true);
+                $("#id_subdomain").removeClass("alert-success");
+                $("#id_subdomain").addClass("alert-danger");
+            }
+
+            console.log($("#id_subdomain").get(0).classList);
+        }
+
+        // Add event handler on the subdomain input field
+        $("#id_subdomain").focusout(function() {
+            let subdomain_input = $("#id_subdomain").val();
+            if (subdomain_input.length == 0) {
+                // Empty text field. Enable the submit button and clear any validation styles.
+                $("#submit-id-submit").prop('disabled', false);
+            }
+            else if (subdomain_input.length > 0) {
+                // Run check if there is text in the input field
+                checkSubdomainAvailability(subdomain_input);
+            }
+        });
     });
     </script>
 
