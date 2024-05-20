@@ -132,7 +132,7 @@ describe("Test superuser access", () => {
         cy.log("Verifying that can edit the private app of a regular user")
         cy.get('tr:contains("' + private_app_name + '")').find('i.bi-three-dots-vertical').click()
         cy.get('tr:contains("' + private_app_name + '")').find('a').contains('Settings').click()
-        cy.get('input[name=app_name]').clear().type(private_app_name_2) // change name
+        cy.get('#id_name').clear().type(private_app_name_2) // change name
         cy.get('button').contains('Update').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
 
@@ -208,7 +208,7 @@ describe("Test superuser access", () => {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('input[name=app_name]').type(app_name)
+            cy.get('#id_name').type(app_name)
             cy.get('textarea[name=app_description]').type(app_description)
             cy.get('#permission').select('project')
             cy.get('#flavor').select('2 vCPU, 4 GB RAM')
@@ -262,7 +262,7 @@ describe("Test superuser access", () => {
         cy.contains('.card-title', project_name_pvc).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
         cy.get('div.card-body:contains("Persistent Volume")').find('a:contains("Create")').click()
-        cy.get('input[name=app_name]').type(volume_name)
+        cy.get('#id_name').type(volume_name)
         cy.get('button').contains('Create').click()
         cy.get('tr:contains("' + volume_name + '")').should('exist') // persistent volume has been created
 
@@ -337,14 +337,14 @@ describe("Test superuser access", () => {
                 cy.log("Create 3 jupyter lab instances (current limit)")
                 Cypress._.times(3, () => {
                         cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
-                        cy.get('input[name=app_name]').type(app_name)
+                        cy.get('#id_name').type(app_name)
                         cy.get('.btn-primary').contains('Create').click()
                 });
                 cy.log("Check that the button to create another one still works")
                 cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('have.attr', 'href')
                 cy.log("Check that it is possible to create another one and therefore bypass the limit")
                 cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
-                cy.get('input[name=app_name]').type(app_name)
+                cy.get('#id_name').type(app_name)
                 cy.get('.btn-primary').contains('Create').click()
                 cy.get('tr:contains("' + app_name + '")').its('length').should('eq', 4) // we now have an extra app
                 })

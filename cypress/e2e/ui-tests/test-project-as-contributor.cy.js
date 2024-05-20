@@ -228,7 +228,7 @@ describe("Test project contributor user functionality", () => {
                 // step 1. create 3 jupyter lab instances (current limit)
                 Cypress._.times(3, () => {
                         cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
-                        cy.get('input[name=app_name]').type("e2e-create-jl")
+                        cy.get('#id_name').type("e2e-create-jl")
                         cy.get('.btn-primary').contains('Create').click()
                   });
                 // step 2. check that the button to create another one does not work
@@ -357,7 +357,7 @@ describe("Test project contributor user functionality", () => {
         // Create private app
         cy.log("Now creating a private app")
         cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-        cy.get('input[name=app_name]').type(private_app_name)
+        cy.get('#id_name').type(private_app_name)
         cy.get('select[id=permission]').select('private')
         cy.get('button').contains('Create').click() // create app
         cy.get('tr:contains("' + private_app_name + '")').find('span').should('contain', 'private') // check that the app got greated
@@ -365,7 +365,7 @@ describe("Test project contributor user functionality", () => {
         // Create project app
         cy.log("Now creating a project app")
         cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-        cy.get('input[name=app_name]').type(project_app_name)
+        cy.get('#id_name').type(project_app_name)
         cy.get('select[id=permission]').select('project')
         cy.get('button').contains('Create').click() // create app
         cy.get('tr:contains("' + project_app_name + '")').find('span').should('contain', 'project') // check that the app got greated
