@@ -76,7 +76,7 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was created
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Project')
+            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'project')
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public apps')
@@ -92,7 +92,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('button').contains('Update').click()
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Public')
+            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'public')
 
             cy.log("Now deleting the project app (by now public)")
             cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
@@ -114,7 +114,7 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
 
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Public')
+            cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'public')
 
             cy.visit("/apps")
             cy.get('h5.card-title').should('contain', app_name_public)
@@ -170,7 +170,7 @@ describe("Test deploying app", () => {
             cy.get('#id_path').should('have.value', app_path)
             cy.get('#id_path').clear().type(app_path_2)
             cy.get('button').contains('Update').click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'Link')
+            cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'link')
             cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'Running') // NB: it will get status "Running" but it won't work because the new port is incorrect
             // Check that the changes were saved
             cy.visit("/projects/")
@@ -227,7 +227,7 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').contains('Submit').click()
         //    cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Public')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             cy.log("Checking that all shiny app settings were saved")
             cy.visit("/projects/")
@@ -296,7 +296,7 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').contains('Submit').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Public')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             cy.log("Checking that all dash app settings were saved")
             cy.visit("/projects/")
@@ -345,7 +345,7 @@ describe("Test deploying app", () => {
             cy.get('#id_volume').select('project-vol')
             cy.get('#submit-id-submit').contains('Submit').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Public')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             cy.log("Checking that all tissuumaps app settings were saved")
             cy.visit("/projects/")

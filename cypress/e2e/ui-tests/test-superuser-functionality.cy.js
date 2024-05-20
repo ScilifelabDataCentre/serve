@@ -126,7 +126,7 @@ describe("Test superuser access", () => {
         cy.get('tr:contains("' + private_app_name + '")').find('i.bi-three-dots-vertical').click()
         cy.get('tr:contains("' + private_app_name + '")').find('a').contains('Settings').click()
         cy.get('#id_name').clear().type(private_app_name_2) // change name
-        cy.get('button').contains('Update').click()
+        cy.get('#submit-id-submit').contains('Submit').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
 
         cy.log("Deleting a regular user's private app")
@@ -334,14 +334,14 @@ describe("Test superuser access", () => {
                 Cypress._.times(3, () => {
                         cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
                         cy.get('#id_name').type(app_name)
-                        cy.get('.btn-primary').contains('Create').click()
+                        cy.get('#submit-id-submit').contains('Submit').click()
                 });
                 cy.log("Check that the button to create another one still works")
                 cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('have.attr', 'href')
                 cy.log("Check that it is possible to create another one and therefore bypass the limit")
                 cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
                 cy.get('#id_name').type(app_name)
-                cy.get('.btn-primary').contains('Create').click()
+                cy.get('#submit-id-submit').contains('Submit').click()
                 cy.get('tr:contains("' + app_name + '")').its('length').should('eq', 4) // we now have an extra app
                 })
 
