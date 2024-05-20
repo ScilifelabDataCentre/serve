@@ -207,7 +207,7 @@ describe("Test superuser access", () => {
             cy.get('#id_flavor').select('2 vCPU, 4 GB RAM')
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('button').contains('Create').click()
+            cy.get('#submit-id-submit').contains('Create').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
 
             cy.log("Changing the flavor setting")
@@ -256,7 +256,7 @@ describe("Test superuser access", () => {
 
         cy.get('div.card-body:contains("Persistent Volume")').find('a:contains("Create")').click()
         cy.get('#id_name').type(volume_name)
-        cy.get('button').contains('Create').click()
+        cy.get('#submit-id-submit').contains('Create').click()
         cy.get('tr:contains("' + volume_name + '")').should('exist') // persistent volume has been created
 
         // This does not work in our CI. Disabled for now, needs to be enabled for runs against an instance of Serve running on the cluster

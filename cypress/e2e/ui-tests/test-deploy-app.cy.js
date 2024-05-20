@@ -73,7 +73,7 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_path').clear().type(app_path)
-            cy.get('button').contains('Create').click()
+            cy.get('#submit-id-submit').contains('Create').click()
             // check that the app was created
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'project')
@@ -111,7 +111,7 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_path').clear().type(app_path)
             cy.get('#id_volume').select('project-vol')
-            cy.get('button').contains('Create').click()
+            cy.get('#submit-id-submit').contains('Create').click()
 
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'public')
@@ -225,7 +225,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('button').contains('Create').click()
+            cy.get('#submit-id-submit').contains('Create').click()
         //    cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
@@ -294,7 +294,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('button').contains('Create').click()
+            cy.get('#submit-id-submit').contains('Create').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
@@ -343,7 +343,7 @@ describe("Test deploying app", () => {
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('public')
             cy.get('#id_volume').select('project-vol')
-            cy.get('button').contains('Create').click()
+            cy.get('#submit-id-submit').contains('Create').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
@@ -401,7 +401,7 @@ describe("Test deploying app", () => {
             cy.get('#id_subdomain').type(subdomain)
 
             // create the app
-            cy.get('button').contains('Create').click()
+            cy.get('#submit-id-submit').contains('Create').click()
             // check that the app was created with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain)
 
@@ -416,7 +416,7 @@ describe("Test deploying app", () => {
               }); // display errror when same subdomain
             cy.get('#id_subdomain').clear().type(subdomain_2)
             // create the app
-            cy.get('button').contains('Create').click()
+            cy.get('#submit-id-submit').contains('Create').click()
             // check that the app was created with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_2)
 
@@ -460,7 +460,7 @@ describe("Test deploying app", () => {
             cy.get('#id_access').select('project')
             cy.get('#id_port').type("8501")
             cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
-            cy.get('button').contains('Create').click()
+            cy.get('#submit-id-submit').contains('Create').click()
             // check that the app was created
             cy.get('tr:contains("' + app_name_statuses + '")').find('span').should('contain', 'Image Error')
             cy.log("Now updating the app to give a correct image reference - expecting Running")
