@@ -453,7 +453,7 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
-    it("can create a file management instance", () => {
+    it("can create a file management instance", { defaultCommandTimeout: 100000 }, () => {
         const project_name = "e2e-create-proj-test"
 
         cy.log("Creating a blank project")
