@@ -408,11 +408,17 @@ describe("Test deploying app", () => {
             // Try using the same subdomain the second time
             cy.log("Now trying to create an app with an already taken subdomain")
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+
+            cy.get('#id_name').type("e2e-new-subdomain-temp")
+            cy.get('#id_port').clear().type("8501")
+            cy.get('#id_image').clear().type(image_name)
+
             // fill out subdomain field
             cy.get('#id_subdomain').type(subdomain)
+            cy.get('#submit-id-submit').contains('Submit').click()
 
             cy.get('#div_id_subdomain').within(() => {
-                cy.contains('.text-danger', 'Subdomain must be 3-30 characters long');
+                cy.contains('.text-danger', 'Subdomain already exists. Please choose another one.');
               }); // display errror when same subdomain
             cy.get('#id_subdomain').clear().type(subdomain_2)
             // create the app
