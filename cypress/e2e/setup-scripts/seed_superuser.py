@@ -40,23 +40,20 @@ with transaction.atomic():
     user = User.objects.create_user(username, email, pwd)
     user.save()
 
+    project_template = ProjectTemplate.objects.get(pk=1)
+    
     logger.debug("Create a dummy project belonging to the regular user to be inspected by the superuser tests")
     project = Project.objects.create_project(
-        name="e2e-superuser-testuser-proj-test", owner=user, description="Description by regular user"
+        name="e2e-superuser-testuser-proj-test", 
+        owner=user, 
+        description="Description by regular user",
+        project_template=project_template
     )
     project.save()
 
     # Create a private app belonging to the regular user to be inspected by the superuser
-    try:
-        logger.debug("Create resources from project template")
-        project_template = ProjectTemplate.objects.get(pk=1)
-        create_resources_from_template(user.username, project.slug, project_template.template)
-    except ProjectTemplate.DoesNotExist:
-        logger.error("Project template not found")
-        raise ValueError("Project template not found")
-    except Exception as e:
-        logger.error(f"Error creating resources from project template: {e}")
-        raise ValueError(f"Error creating resources from project template: {e}")
+
+    create_resources_from_template(user.username, project.slug, project_template.template)
 
     flavor = Flavor.objects.filter(project=project).first()
 

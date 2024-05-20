@@ -359,7 +359,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
         cy.get('#id_name').type(private_app_name)
         cy.get('select[id=permission]').select('private')
-        cy.get('#submit-id-submit').contains('Create').click() // create app
+        cy.get('#submit-id-submit').contains('Submit').click() // create app
         cy.get('tr:contains("' + private_app_name + '")').find('span').should('contain', 'private') // check that the app got greated
 
         // Create project app
@@ -367,7 +367,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
         cy.get('#id_name').type(project_app_name)
         cy.get('select[id=permission]').select('project')
-        cy.get('#submit-id-submit').contains('Create').click() // create app
+        cy.get('#submit-id-submit').contains('Submit').click() // create app
         cy.get('tr:contains("' + project_app_name + '")').find('span').should('contain', 'project') // check that the app got greated
 
         // Give access to this project to a collaborator user

@@ -31,15 +31,19 @@ with transaction.atomic():
     superuser = User.objects.create_superuser(username, email, pwd)
     superuser.save()
 
+    project_template = ProjectTemplate.objects.get(pk=1)
     # Create a project for apps to be included in the collection
     project = Project.objects.create_project(
-        name="e2e-collections-test-proj", owner=superuser, description="e2e-collections-test-proj-desc"
+        name="e2e-collections-test-proj", 
+        owner=superuser, 
+        description="e2e-collections-test-proj-desc",
+        project_template=project_template
     )
     project.save()
 
     # Create an app to be included in a collection
     # create resources inside the project
-    project_template = ProjectTemplate.objects.get(pk=1)
+
     create_resources_from_template(superuser.username, project.slug, project_template.template)
     # define variables needed
     app = Apps.objects.filter(slug="dashapp").order_by("-revision").first()

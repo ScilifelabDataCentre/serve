@@ -47,7 +47,7 @@ class BaseForm(forms.ModelForm):
         # Create a footer for submit form or cancel
         self.footer = Div(
             Button("cancel", "Cancel", css_class="btn-danger", onclick="window.history.back()"),
-            Submit("submit", "Create"),
+            Submit("submit", "Submit"),
             css_class="card-footer d-flex justify-content-between",
         )
         self.helper = FormHelper(self)
