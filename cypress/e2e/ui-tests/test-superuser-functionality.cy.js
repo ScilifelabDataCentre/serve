@@ -203,7 +203,7 @@ describe("Test superuser access", () => {
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('project')
+            cy.get('#id_access').select('Project')
             cy.get('#id_flavor').select('2 vCPU, 4 GB RAM')
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
