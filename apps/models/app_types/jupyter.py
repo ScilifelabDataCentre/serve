@@ -1,5 +1,6 @@
-from django.db import models
 from datetime import datetime, timedelta
+
+from django.db import models
 from django.db.models import Q
 
 from apps.models import AppInstanceManager, BaseAppInstance, Social
@@ -7,25 +8,6 @@ from apps.models import AppInstanceManager, BaseAppInstance, Social
 
 class JupyterInstanceManager(AppInstanceManager):
     model_type = "jupyterinstance"
-
-    def get_app_instances_of_project_filter(self, user, project, include_deleted=False, deleted_time_delta=None):
-        q = Q()
-
-        if not include_deleted:
-            if deleted_time_delta is None:
-                q &= ~Q(app_status__status="Deleted")
-            else:
-                time_threshold = datetime.now() - timedelta(minutes=deleted_time_delta)
-                q &= ~Q(app_status__status="Deleted") | Q(deleted_on__gte=time_threshold)
-
-        q &= Q(owner=user) | Q(
-            access__in=["project", "public", "private", "link"] if user.is_superuser else ["project", "public", "link"]
-        )
-        q &= Q(project=project)
-
-        return q
-
-
 
 class JupyterInstance(BaseAppInstance):
     objects = JupyterInstanceManager()
@@ -54,7 +36,7 @@ class JupyterInstance(BaseAppInstance):
         # TODO: Change the jupyter chart to fetch port from appconfig as other apps
         k8s_values["service"]["targetport"] = 8888
         return k8s_values
-        
+
     class Meta:
         verbose_name = "JupyterLab Instance"
         verbose_name_plural = "JupyterLab Instances"

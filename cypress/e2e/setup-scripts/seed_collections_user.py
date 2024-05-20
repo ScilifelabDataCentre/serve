@@ -34,10 +34,10 @@ with transaction.atomic():
     project_template = ProjectTemplate.objects.get(pk=1)
     # Create a project for apps to be included in the collection
     project = Project.objects.create_project(
-        name="e2e-collections-test-proj", 
-        owner=superuser, 
+        name="e2e-collections-test-proj",
+        owner=superuser,
         description="e2e-collections-test-proj-desc",
-        project_template=project_template
+        project_template=project_template,
     )
     project.save()
 

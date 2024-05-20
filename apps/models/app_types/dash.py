@@ -26,12 +26,9 @@ class DashInstance(BaseAppInstance, Social):
         k8s_values = super().get_k8s_values()
 
         k8s_values["permission"] = str(self.access)
-        k8s_values["appconfig"] = dict(
-            port = self.port,
-            image = self.image
-        )
+        k8s_values["appconfig"] = dict(port=self.port, image=self.image)
         return k8s_values
-    
+
     class Meta:
         verbose_name = "Dash App Instance"
         verbose_name_plural = "Dash App Instances"

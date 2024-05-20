@@ -6,13 +6,14 @@ import os.path
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
+
 from apps.constants import SLUG_MODEL_FORM_MAP
 from apps.helpers import create_instance_from_form
 from apps.models import Apps
 from projects.models import Environment, Flavor, Project, ProjectTemplate
 from projects.tasks import create_resources_from_template
-
 from studio.utils import get_logger
+
 logger = get_logger(__name__)
 
 cypress_path = os.path.join(settings.BASE_DIR, "cypress/fixtures")
@@ -41,13 +42,13 @@ with transaction.atomic():
     user.save()
 
     project_template = ProjectTemplate.objects.get(pk=1)
-    
+
     logger.debug("Create a dummy project belonging to the regular user to be inspected by the superuser tests")
     project = Project.objects.create_project(
-        name="e2e-superuser-testuser-proj-test", 
-        owner=user, 
+        name="e2e-superuser-testuser-proj-test",
+        owner=user,
         description="Description by regular user",
-        project_template=project_template
+        project_template=project_template,
     )
     project.save()
 
@@ -60,12 +61,7 @@ with transaction.atomic():
     # define variables needed
     app_slug = "jupyter-lab"
 
-    data = {
-        "name": "Regular user's private app",
-        "flavor": str(flavor.pk),
-        "access": "private",
-        "volume": None
-    }
+    data = {"name": "Regular user's private app", "flavor": str(flavor.pk), "access": "private", "volume": None}
 
     model_form_tuple = SLUG_MODEL_FORM_MAP.get(app_slug, None)
     if not model_form_tuple:
@@ -79,4 +75,3 @@ with transaction.atomic():
         create_instance_from_form(form, project, app_slug)
     else:
         raise ValueError(f"Form is invalid: {form.errors.as_data()}")
-

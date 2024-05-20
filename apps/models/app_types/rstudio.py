@@ -35,7 +35,7 @@ class RStudioInstance(BaseAppInstance):
         # TODO: Change the rstdio chart to fetch port from appconfig as other apps
         k8s_values["service"]["targetport"] = 8787
         return k8s_values
-        
+
     class Meta:
         verbose_name = "RStudio Instance"
         verbose_name_plural = "RStudio Instances"

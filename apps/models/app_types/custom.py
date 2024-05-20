@@ -19,7 +19,9 @@ class CustomAppInstance(BaseAppInstance, Social):
         ("link", "Link"),
     )
 
-    volume = models.ForeignKey("VolumeInstance", blank=True, null=True, related_name="%(class)s", on_delete=models.CASCADE)
+    volume = models.ForeignKey(
+        "VolumeInstance", blank=True, null=True, related_name="%(class)s", on_delete=models.CASCADE
+    )
     access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
     port = models.IntegerField(default=8000)
     image = models.CharField(max_length=255)
@@ -36,7 +38,7 @@ class CustomAppInstance(BaseAppInstance, Social):
             volumeK8s_dict["volumeK8s"][self.volume.name] = dict(release=self.volume.subdomain.subdomain)
         k8s_values["apps"] = volumeK8s_dict
         return k8s_values
-    
+
     class Meta:
         verbose_name = "Custom App Instance"
         verbose_name_plural = "Custom App Instances"

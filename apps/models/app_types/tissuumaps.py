@@ -20,7 +20,7 @@ class TissuumapsInstance(BaseAppInstance, Social):
     )
     volume = models.ManyToManyField("VolumeInstance", blank=True)
     access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
-    
+
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
 
@@ -36,7 +36,7 @@ class TissuumapsInstance(BaseAppInstance, Social):
             volumeK8s_dict["volumeK8s"][object.name] = dict(release=object.subdomain.subdomain)
         k8s_values["apps"] = volumeK8s_dict
         return k8s_values
-    
+
     class Meta:
         verbose_name = "TissUUmaps Instance"
         verbose_name_plural = "TissUUmaps Instances"

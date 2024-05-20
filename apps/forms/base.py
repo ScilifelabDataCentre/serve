@@ -82,7 +82,6 @@ class BaseForm(forms.ModelForm):
         return note_on_linkonly_privacy
 
     def validate_subdomain(self, subdomain_input):
-
         # If user did not input subdomain, set it to our standard release name
         if not subdomain_input:
             subdomain = "r" + uuid.uuid4().hex[0:8]
@@ -102,13 +101,12 @@ class BaseForm(forms.ModelForm):
         regex_validator = RegexValidator(
             regex=r"^(?!.*--)(?!^-)(?!.*-$)[a-z0-9]([a-z0-9-]{3,30}[a-z0-9])?$",
             message="Subdomain must be 3-30 characters long, contain only lowercase letters, digits, hyphens, "
-            "and cannot start or end with a hyphen"
+            "and cannot start or end with a hyphen",
         )
         try:
             regex_validator(subdomain_input)
         except forms.ValidationError as e:
             raise forms.ValidationError(f"{e.message}")
-
 
         # Check for subdomain availability
         if Subdomain.objects.filter(subdomain=subdomain_input).exists():

@@ -27,13 +27,12 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     else:
         user = User.objects.get(username=email)
     project_template = ProjectTemplate.objects.get(pk=1)
-    
+
     # Check if project exists, otherwise, create it
     if not Project.objects.filter(name="e2e-delete-proj-test").exists():
-        _ = Project.objects.create_project(name="e2e-delete-proj-test", 
-                                           owner=user, 
-                                           description="",
-                                           project_template=project_template)
+        _ = Project.objects.create_project(
+            name="e2e-delete-proj-test", owner=user, description="", project_template=project_template
+        )
 
     # Create the contributor's collaborator user
     co_userdata = testdata["contributor_collaborator"]
@@ -48,7 +47,6 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
 
     # Check if project exists, otherwise, create it
     if not Project.objects.filter(name="e2e-collaborator-proj-test").exists():
-        _ = Project.objects.create_project(name="e2e-collaborator-proj-test", 
-                                           owner=co_user, 
-                                           description="",
-                                           project_template=project_template)
+        _ = Project.objects.create_project(
+            name="e2e-collaborator-proj-test", owner=co_user, description="", project_template=project_template
+        )

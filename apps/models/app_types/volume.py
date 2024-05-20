@@ -24,7 +24,7 @@ class VolumeInstance(BaseAppInstance):
         k8s_values = super().get_k8s_values()
         k8s_values["volume"] = dict(size=f"{str(self.size)}Gi")
         return k8s_values
-    
+
     class Meta:
         verbose_name = "Persistent Volume"
         verbose_name_plural = "Persistent Volumes"

@@ -7,7 +7,7 @@
       "available_apps": [8, 9, 19, 21, 22, 23, 24, 28],
       "template": {
         "apps": {
-          
+
           "netpolicy": {
             "name": "project-netpolicy"
           }
