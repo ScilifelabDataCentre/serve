@@ -463,9 +463,8 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
-        cy.get('div.card-body:contains("Activate File Manager")').find('a:contains("Activate")').click()
-        cy.get('button').contains("Activate").first().click()
-        cy.get('#manage-files > .card > .row').should('contain', 'File Manager is activated')
+        cy.get('div.card-body:contains("File Manager")').find('a:contains("Create")').click()
+        cy.get('#submit-id-submit').click()
 
         // change the command to check for Created, Pending or Running
         cy.get('#manage-files .card-header').find('span.badge').invoke('text').then((text) => {

@@ -242,7 +242,10 @@ describe("Test superuser access", () => {
         })
     })
 
-    it("can create a persistent volume", () => {
+    it.skip("can create a persistent volume", () => {
+        // This test is not used, since creating PVCs like this is not the correct way any more.
+        // The correct way is to create a volume in the admin panel.
+
         // Names of objects to create
         const project_name_pvc = "e2e-superuser-pvc-test"
         const volume_name = "e2e-project-vol"
