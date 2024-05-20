@@ -84,12 +84,14 @@ class BaseForm(forms.ModelForm):
     def validate_subdomain(self, subdomain_input):
         # First, check if the subdomain adheres to helm rules
         regex_validator = RegexValidator(
-            regex=r"^[a-zA-Z0-9]*$",
+            regex=r"^(?!.*--)(?!^-)(?!.*-$)[a-z0-9]([a-z0-9-]{3,30}[a-z0-9])?$",
+            message="Subdomain must be 3-30 characters long, contain only lowercase letters, digits, hyphens, "
+            "and cannot start or end with a hyphen"
         )
         try:
             regex_validator(subdomain_input)
-        except forms.ValidationError:
-            raise forms.ValidationError("Subdomain must be alphanumeric characters without space")
+        except forms.ValidationError as e:
+            raise forms.ValidationError(f"{e.message}")
 
         # If user did not input subdomain, set it to our standard release name
         if not subdomain_input:

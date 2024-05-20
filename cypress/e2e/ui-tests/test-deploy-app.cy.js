@@ -90,7 +90,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
-            cy.get('button').contains('Update').click()
+            cy.get('#submit-id-submit').contains('Submit').click()
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'public')
 
@@ -169,7 +169,7 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name_2)
             cy.get('#id_path').should('have.value', app_path)
             cy.get('#id_path').clear().type(app_path_2)
-            cy.get('button').contains('Update').click()
+            cy.get('#submit-id-submit').contains('Submit').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'link')
             cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'Running') // NB: it will get status "Running" but it won't work because the new port is incorrect
             // Check that the changes were saved
@@ -412,7 +412,7 @@ describe("Test deploying app", () => {
             cy.get('#id_subdomain').type(subdomain)
 
             cy.get('#div_id_subdomain').within(() => {
-                cy.contains('.text-danger', 'Subdomain already exists. Please choose another one.').should('exist');
+                cy.contains('.text-danger', 'Subdomain must be 3-30 characters long');
               }); // display errror when same subdomain
             cy.get('#id_subdomain').clear().type(subdomain_2)
             // create the app
@@ -428,7 +428,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('#id_subdomain').clear().type(subdomain_3)
 
-            cy.get('button').contains('Update').click()
+            cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was updated with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_3)
 
@@ -467,7 +467,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name)
-            cy.get('button').contains('Update').click()
+            cy.get('#submit-id-submit').contains('Submit').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('span').should('contain', 'Running')
         } else {
             cy.log('Skipped because create_resources is not true');
