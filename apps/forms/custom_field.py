@@ -11,3 +11,6 @@ class CustomField(Field):
     def render(self, form, context, **kwargs):
         context.update({"help_message": self.help_message})
         return super().render(form, context, **kwargs)
+
+    def set_template(self, name: str):
+        self.template = name

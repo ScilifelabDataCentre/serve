@@ -90,7 +90,7 @@ class BaseForm(forms.ModelForm):
 
         return subdomain_input
 
-    def get_common_field(self, field_name: str, **kwargs):
+    def get_common_field(self, field_name: str, spinner: bool = False, **kwargs):
         """
         This function is very useful because it allows you to create a custom field,
         that has a question_mark with tooltip next to the label. So "Name (?)" will have a tooltip.
@@ -99,12 +99,27 @@ class BaseForm(forms.ModelForm):
         help_message attribute to it. The template then uses it to render the tooltip for all fields
         using this class.
         """
-        base_args = dict(
-            css_class="form-control", wrapper_class="mb-3", rows=3, help_message=HELP_MESSAGE_MAP.get(field_name, "")
-        )
+        if spinner is True:
+            template = "apps/custom_field_with_spinner.html"
+            base_args = dict(
+                css_class="form-control form-control-with-spinner",
+                wrapper_class="mb-3",
+                rows=3,
+                help_message=HELP_MESSAGE_MAP.get(field_name, ""),
+            )
+        else:
+            template = "apps/custom_field.html"
+            base_args = dict(
+                css_class="form-control",
+                wrapper_class="mb-3",
+                rows=3,
+                help_message=HELP_MESSAGE_MAP.get(field_name, ""),
+            )
 
         base_args.update(kwargs)
-        return Div(CustomField(field_name, **base_args))
+        field = CustomField(field_name, **base_args)
+        field.set_template(template)
+        return Div(field)
 
     class Meta:
         # Specify model to be used

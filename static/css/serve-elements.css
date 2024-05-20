@@ -84,6 +84,12 @@
     border-color: var(--scaleout-green);
 }
 
+.form-control-with-spinner {
+    width: -webkit-calc(100% - 50px);
+    width:    -moz-calc(100% - 50px);
+    width:         calc(100% - 50px);
+}
+
 /* links */
 
 a {
