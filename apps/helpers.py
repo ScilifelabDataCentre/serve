@@ -46,6 +46,8 @@ HELP_MESSAGE_MAP = {
         you follow our guide to build the container, then please include the username in the path as well.",
     "port": "Port that the docker container exposes and the application runs on. This should be an integer between \
         3000-9999.",
+    "note_on_linkonly_privacy": "This option can be used only for a limited amount of time, for example while under \
+        development or during peer review.",
 }
 
 
@@ -303,7 +305,8 @@ def get_or_create_status(instance, app_id):
 
 def handle_subdomain_change(instance, subdomain, subdomain_name):
     if instance.subdomain.subdomain != subdomain_name:
-        delete_resource.delay(instance.serialize())
+        # In this special case, we avoid async task.
+        delete_resource(instance.serialize())
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])
