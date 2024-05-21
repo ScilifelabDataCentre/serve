@@ -24,3 +24,4 @@ class JupyterForm(AppBaseForm):
     class Meta:
         model = JupyterInstance
         fields = ["name", "volume", "flavor", "access"]
+        
