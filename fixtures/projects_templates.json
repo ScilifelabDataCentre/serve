@@ -7,22 +7,9 @@
       "available_apps": [8, 9, 19, 21, 22, 23, 24, 28],
       "template": {
         "apps": {
-          "jupyter-lab": {
-            "name": "My Jupyter Lab",
-            "description": "Deployed via project template",
-            "volume": "project-vol",
-            "access": "private",
-            "flavor": "2 vCPU, 4 GB RAM"
-          },
+
           "netpolicy": {
             "name": "project-netpolicy"
-          },
-          "filemanager": {
-            "name": "project-filemanager",
-            "volume": "project-vol",
-            "persistent": "True",
-            "flavor": "2 vCPU, 4 GB RAM",
-            "access": "private"
           }
         },
         "environments": {
@@ -45,9 +32,6 @@
         "volumes": {
           "project-vol": {
             "size": "1"
-          },
-          "extra-vol": {
-            "size": "2"
           }
         },
         "flavors": {
@@ -86,22 +70,19 @@
             "permission": "private",
             "slug": "netpolicy"
           },
-          "project-vol": {
-            "app_id": "",
-            "app_release_name": "",
-            "permission": "project",
-            "slug": "volumeK8s",
-            "storageClass": "local-path",
-            "volume.accessModes": "",
-            "volume.size": "1Gi",
-            "volume.storageClass": "local-path"
+          "jupyter-lab": {
+            "name": "My Jupyter Lab",
+            "description": "Deployed via project template",
+            "volume": "project-vol",
+            "access": "private",
+            "flavor": "2 vCPU, 4 GB RAM"
           },
-          "project-filemanager": {
-            "app:volumeK8s": [
-              "project-vol"
-            ],
-            "permission": "project",
-            "slug": "filemanager-admin"
+          "filemanager": {
+            "name": "project-filemanager",
+            "volume": "project-vol",
+            "persistent": "True",
+            "flavor": "2 vCPU, 4 GB RAM",
+            "access": "private"
           }
         },
         "environments": {
@@ -119,6 +100,11 @@
             "app": "python-serve",
             "image": "serve-python:latest",
             "repository": "ghcr.io/scilifelabdatacentre"
+          }
+        },
+        "volumes": {
+          "project-vol": {
+            "size": "1"
           }
         },
         "flavors": {

@@ -26,7 +26,7 @@ class CustomAppForm(AppBaseForm):
         super()._setup_form_helper()
         self.fields["volume"].initial = None
         body = Div(
-            self.get_common_field("name", placeholder="test"),
+            self.get_common_field("name", placeholder="Name your app"),
             self.get_common_field("description", rows=3),
             Div(
                 self.get_common_field(
@@ -39,6 +39,11 @@ class CustomAppForm(AppBaseForm):
             self.get_common_field("flavor"),
             self.get_common_field("access"),
             self.get_common_field("source_code_url", placeholder="Provide a link to the public source code"),
+            self.get_common_field(
+                "note_on_linkonly_privacy",
+                rows=1,
+                placeholder="Describe why you want to make the app accessible only via a link",
+            ),
             self.get_common_field("port", placeholder="8000"),
             self.get_common_field("image"),
             Field("tags"),
@@ -46,29 +51,28 @@ class CustomAppForm(AppBaseForm):
         )
         self.helper.layout = Layout(body, self.footer)
 
-    def clean(self):
+    def clean_path(self):
         cleaned_data = super().clean()
-        access = cleaned_data.get("access", None)
-        source_code_url = cleaned_data.get("source_code_url", None)
+
         path = cleaned_data.get("path", None)
         volume = cleaned_data.get("volume", None)
-
-        if access == "public" and not source_code_url:
-            self.add_error("source_code_url", "Source is required when access is public.")
 
         if volume and not path:
             self.add_error("path", "Path is required when volume is selected.")
 
+        if path and not volume:
+            self.add_error("path", "Warning, you have provided a path, but not selected a volume.")
+
         if path:
             # If new path matches current path, it is valid.
             if self.instance and getattr(self.instance, "path", None) == path:
-                return cleaned_data
+                return path
             # Verify that path starts with "/home"
             path = path.strip().rstrip("/").lower().replace(" ", "")
             if not path.startswith("/home"):
                 self.add_error("path", 'Path must start with "/home"')
 
-        return cleaned_data
+        return path
 
     class Meta:
         model = CustomAppInstance
@@ -79,6 +83,7 @@ class CustomAppForm(AppBaseForm):
             "path",
             "flavor",
             "access",
+            "note_on_linkonly_privacy",
             "source_code_url",
             "port",
             "image",

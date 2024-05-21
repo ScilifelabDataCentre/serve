@@ -10,21 +10,6 @@ from apps.models import AppInstanceManager, BaseAppInstance
 class VolumeInstanceManager(AppInstanceManager):
     model_type = "volumeinstance"
 
-    def get_app_instances_of_project_filter(self, user, project, include_deleted=False, deleted_time_delta=None):
-        q = Q()
-
-        if not include_deleted:
-            if deleted_time_delta is None:
-                q &= ~Q(app_status__status="Deleted")
-            else:
-                time_threshold = datetime.now() - timedelta(minutes=deleted_time_delta)
-                q &= ~Q(app_status__status="Deleted") | Q(deleted_on__gte=time_threshold)
-
-        q &= Q(owner=user)
-        q &= Q(project=project)
-
-        return q
-
 
 class VolumeInstance(BaseAppInstance):
     objects = VolumeInstanceManager()
@@ -35,9 +20,10 @@ class VolumeInstance(BaseAppInstance):
     def __str__(self):
         return str(self.name)
 
-    def set_k8s_values(self):
-        super().set_k8s_values()
-        self.k8s_values["volume"] = dict(size=f"{str(self.size)}Gi")
+    def get_k8s_values(self):
+        k8s_values = super().get_k8s_values()
+        k8s_values["volume"] = dict(size=f"{str(self.size)}Gi")
+        return k8s_values
 
     class Meta:
         verbose_name = "Persistent Volume"

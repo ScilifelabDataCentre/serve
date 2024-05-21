@@ -26,7 +26,15 @@ class AppInstanceManager(models.Manager):
                 time_threshold = datetime.now() - timedelta(minutes=deleted_time_delta)
                 q &= ~Q(app_status__status="Deleted") | Q(deleted_on__gte=time_threshold)
 
-        q &= Q(owner=user)
+        if hasattr(self.model, "access"):
+            q &= Q(owner=user) | Q(
+                access__in=["project", "public", "private", "link"]
+                if user.is_superuser
+                else ["project", "public", "link"]
+            )
+        else:
+            q &= Q(owner=user)
+
         q &= Q(project=project)
 
         return q

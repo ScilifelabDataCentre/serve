@@ -79,7 +79,7 @@ def helm_install(release_name, chart, namespace="default", values_file=None, ver
 
 def helm_delete(release_name, namespace="default"):
     # Base command
-    command = f"helm uninstall {release_name} --namespace {namespace}"
+    command = f"helm uninstall {release_name} --namespace {namespace} --wait"
     # Execute the command
     try:
         result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)

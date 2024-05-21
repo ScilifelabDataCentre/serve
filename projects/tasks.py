@@ -28,7 +28,6 @@ def create_resources_from_template(user, project_slug, template):
     logger.info("Create Resources From Project Template...")
 
     project = Project.objects.get(slug=project_slug)
-    logger.critical("CREATING A VOLUME FROM FORM")
 
     decoder = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
     parsed_template = template.replace("'", '"')

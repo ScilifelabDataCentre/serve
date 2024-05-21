@@ -58,16 +58,30 @@ class BaseForm(forms.ModelForm):
         subdomain_input = cleaned_data.get("subdomain")
         return self.validate_subdomain(subdomain_input)
 
-    def validate_subdomain(self, subdomain_input):
-        # First, check if the subdomain adheres to helm rules
-        regex_validator = RegexValidator(
-            regex=r"^[a-zA-Z0-9]*$",
-        )
-        try:
-            regex_validator(subdomain_input)
-        except forms.ValidationError:
-            raise forms.ValidationError("Subdomain must be alphanumeric characters without space")
+    def clean_source_code_url(self):
+        cleaned_data = super().clean()
+        access = cleaned_data.get("access")
+        source_code_url = cleaned_data.get("source_code_url")
 
+        if access == "public" and not source_code_url:
+            self.add_error("source_code_url", "Source is required when access is public.")
+
+        return source_code_url
+
+    def clean_note_on_linkonly_privacy(self):
+        cleaned_data = super().clean()
+
+        access = cleaned_data.get("access", None)
+        note_on_linkonly_privacy = cleaned_data.get("note_on_linkonly_privacy", None)
+
+        if access == "link" and not note_on_linkonly_privacy:
+            self.add_error(
+                "note_on_linkonly_privacy", "Please, provide a reason for making the app accessible only via a link."
+            )
+
+        return note_on_linkonly_privacy
+
+    def validate_subdomain(self, subdomain_input):
         # If user did not input subdomain, set it to our standard release name
         if not subdomain_input:
             subdomain = "r" + uuid.uuid4().hex[0:8]
@@ -82,6 +96,17 @@ class BaseForm(forms.ModelForm):
         # Validate if the subdomain input matches the instance's current subdomain
         if current_subdomain and current_subdomain.subdomain == subdomain_input:
             return subdomain_input
+
+        # Check if the subdomain adheres to helm rules
+        regex_validator = RegexValidator(
+            regex=r"^(?!.*--)(?!^-)(?!.*-$)[a-z0-9]([a-z0-9-]{3,30}[a-z0-9])?$",
+            message="Subdomain must be 3-30 characters long, contain only lowercase letters, digits, hyphens, "
+            "and cannot start or end with a hyphen",
+        )
+        try:
+            regex_validator(subdomain_input)
+        except forms.ValidationError as e:
+            raise forms.ValidationError(f"{e.message}")
 
         # Check for subdomain availability
         if Subdomain.objects.filter(subdomain=subdomain_input).exists():

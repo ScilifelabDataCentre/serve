@@ -26,17 +26,18 @@ class ShinyInstance(BaseAppInstance, Social):
     heartbeat_timeout = models.IntegerField(default=60000)
     heartbeat_rate = models.IntegerField(default=10000)
 
-    def set_k8s_values(self):
-        super().set_k8s_values()
+    def get_k8s_values(self):
+        k8s_values = super().get_k8s_values()
 
-        self.k8s_values["permission"] = str(self.access)
-        self.k8s_values["appconfig"] = dict(
+        k8s_values["permission"] = str(self.access)
+        k8s_values["appconfig"] = dict(
             port=self.port,
             image=self.image,
             proxyheartbeatrate=self.heartbeat_rate,
             proxyheartbeattimeout=self.heartbeat_timeout,
             proxycontainerwaittime=self.container_waittime,
         )
+        return k8s_values
 
     class Meta:
         verbose_name = "Shiny App Instance"
