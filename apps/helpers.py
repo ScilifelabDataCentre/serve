@@ -305,7 +305,8 @@ def get_or_create_status(instance, app_id):
 
 def handle_subdomain_change(instance, subdomain, subdomain_name):
     if instance.subdomain.subdomain != subdomain_name:
-        delete_resource.delay(instance.serialize())
+        # In this special case, we avoid async task. 
+        delete_resource(instance.serialize())
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])
