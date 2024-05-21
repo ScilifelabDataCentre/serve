@@ -748,7 +748,8 @@ def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
     if subdomain_text is None:
         return Response("Invalid input. Must pass in argument subdomain-text.", 400)
 
-    is_available = True
+    # By default, allow subdomains not equal to "serve" (also useful for testing)
+    is_available = subdomain_text != "serve"
 
     if Subdomain.objects.filter(subdomain=subdomain_text).exists():
         is_available = False
