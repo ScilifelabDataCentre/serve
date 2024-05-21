@@ -41,3 +41,4 @@ class JupyterInstance(BaseAppInstance):
         verbose_name = "JupyterLab Instance"
         verbose_name_plural = "JupyterLab Instances"
         permissions = [("can_access_app", "Can access app service")]
+
