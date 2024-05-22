@@ -9,8 +9,11 @@ __all__ = ["JupyterForm"]
 
 
 class JupyterForm(AppBaseForm):
+    volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
+
     def _setup_form_helper(self):
         super()._setup_form_helper()
+
         body = Div(
             self.get_common_field("name", placeholder="Name your app"),
             Field("volume"),

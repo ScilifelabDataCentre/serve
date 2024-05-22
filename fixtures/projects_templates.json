@@ -66,9 +66,8 @@
       "slug": "default",
       "template": {
         "apps": {
-          "project-netpolicy": {
-            "permission": "private",
-            "slug": "netpolicy"
+          "netpolicy": {
+            "name": "project-netpolicy"
           },
           "jupyter-lab": {
             "name": "My Jupyter Lab",

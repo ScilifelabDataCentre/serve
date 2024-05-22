@@ -23,6 +23,13 @@ class BaseForm(forms.ModelForm):
         required=False,
         min_length=3,
         max_length=30,
+        validators=[
+            RegexValidator(
+                regex=r"^(?!.*--)(?!^-)(?!.*-$)[a-z0-9]([a-z0-9-]{3,30}[a-z0-9])?$",
+                message="Subdomain must be 3-30 characters long, contain only lowercase letters, digits, hyphens, "
+                "and cannot start or end with a hyphen",
+            )
+        ],
     )
 
     def __init__(self, *args, **kwargs):
@@ -153,7 +160,10 @@ class AppBaseForm(BaseForm):
     so you can treat this form as an actual base form for the most of the apps
     """
 
-    volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
+    volume = forms.ModelChoiceField(
+        queryset=VolumeInstance.objects.none(), required=False, empty_label="None", initial=None
+    )
+
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=True, empty_label=None)
 
     def __init__(self, *args, **kwargs):
@@ -180,5 +190,5 @@ class AppBaseForm(BaseForm):
         )
 
         self.fields["volume"].queryset = volume_queryset
-        self.fields["volume"].initial = volume_queryset.first() if volume_queryset else None
+        self.fields["volume"].initial = volume_queryset
         self.fields["volume"].help_text = f"Select a volume to attach to your {self.model_name}."

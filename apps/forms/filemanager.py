@@ -8,6 +8,8 @@ __all__ = ["FilemanagerForm"]
 
 
 class FilemanagerForm(AppBaseForm):
+    volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
+
     def _setup_form_helper(self):
         super()._setup_form_helper()
 

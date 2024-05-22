@@ -2,12 +2,14 @@ from crispy_forms.layout import HTML, Div, Field, Layout
 from django import forms
 
 from apps.forms.base import AppBaseForm
-from apps.models import VSCodeInstance
+from apps.models import VolumeInstance, VSCodeInstance
 
 __all__ = ["VSCodeForm"]
 
 
 class VSCodeForm(AppBaseForm):
+    volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
+
     def _setup_form_helper(self):
         super()._setup_form_helper()
         body = Div(

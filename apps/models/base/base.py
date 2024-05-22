@@ -81,7 +81,6 @@ class AppInstanceManager(models.Manager):
         ).count()
 
         has_perm = user.has_perm(f"apps.add_{self.model_type}")
-        print(f"User {user} has permission to create {self.model_type}: {has_perm}", flush=True)
         return limit is None or limit > num_of_app_instances or has_perm
 
     def user_can_edit(self, user, project, app_slug):

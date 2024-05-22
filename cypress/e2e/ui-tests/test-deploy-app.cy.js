@@ -419,7 +419,7 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
 
             cy.get('#div_id_subdomain').within(() => {
-                cy.contains('.text-danger', 'Subdomain already exists. Please choose another one.');
+                cy.contains('.client-validation-invalid', 'The subdomain is not available');
               }); // display errror when same subdomain
             cy.get('#id_subdomain').clear().type(subdomain_2)
             // create the app

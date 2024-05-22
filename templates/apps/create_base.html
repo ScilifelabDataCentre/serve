@@ -121,12 +121,15 @@
         }
 
         function clearSubdomainValidation() {
-            $('#id_subdomain').next(".client-validation-feedback").text("");
-            $('#id_subdomain').next(".client-validation-feedback").hide();
-            $('#id_subdomain').next(".client-validation-feedback").removeClass("client-validation-valid");
-            $('#id_subdomain').next(".client-validation-feedback").removeClass("client-validation-invalid");
-            $("#id_subdomain").removeClass("is-valid");
-            $("#id_subdomain").removeClass("is-invalid");
+            // Must clear django form validation message
+            $('.client-validation-feedback').each(function() {
+                $(this).text("");
+                $(this).hide();
+                $(this).removeClass("client-validation-valid");
+                $(this).removeClass("client-validation-invalid");
+                $(this).removeClass("is-valid");
+                $(this).removeClass("is-invalid");
+            });
         }
 
         // Add event handler on the subdomain input field

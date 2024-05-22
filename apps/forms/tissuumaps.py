@@ -12,6 +12,7 @@ class TissuumapsForm(AppBaseForm):
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
+        self.fields["volume"].initial = None
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
