@@ -22,11 +22,8 @@ class DashForm(AppBaseForm):
         body = Div(
             self.get_common_field("name", placeholder="Name your app"),
             self.get_common_field("description", rows="3", placeholder="Provide a detailed description of your app"),
-            Div(
-                self.get_common_field(
-                    "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
-                ),
-                css_class="form-input-with-spinner",
+            self.get_common_field(
+                "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
             self.get_common_field("flavor"),
             self.get_common_field("access"),
