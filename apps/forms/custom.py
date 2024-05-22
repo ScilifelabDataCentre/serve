@@ -28,11 +28,8 @@ class CustomAppForm(AppBaseForm):
         body = Div(
             self.get_common_field("name", placeholder="Name your app"),
             self.get_common_field("description", rows=3),
-            Div(
-                self.get_common_field(
-                    "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
-                ),
-                css_class="form-input-with-spinner",
+            self.get_common_field(
+                "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
             self.get_common_field("volume"),
             self.get_common_field("path", placeholder="/home/..."),
