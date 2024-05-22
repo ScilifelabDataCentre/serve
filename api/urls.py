@@ -18,6 +18,7 @@ from .views import (
     ProjectList,
     ProjectTemplateList,
     ResourceList,
+    get_subdomain_is_available,
     update_app_status,
 )
 
@@ -51,4 +52,5 @@ urlpatterns = [
     path("token-auth/", CustomAuthToken.as_view(), name="api_token_auth"),
     path("settings/", get_studio_settings),
     path("app-status/", update_app_status),
+    path("app-subdomain/is-available/", get_subdomain_is_available),
 ]

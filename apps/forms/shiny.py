@@ -40,7 +40,9 @@ class ShinyForm(AppBaseForm):
             Field(
                 "proxy",
             ),
-            self.get_common_field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
+            self.get_common_field(
+                "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
+            ),
             self.get_common_field("flavor"),
             self.get_common_field("access"),
             self.get_common_field(

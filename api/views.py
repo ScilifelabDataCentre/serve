@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils.text import slugify
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
@@ -25,7 +25,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
-from apps.models import AppCategories, Apps, AppStatus, BaseAppInstance
+from apps.models import AppCategories, Apps, AppStatus, BaseAppInstance, Subdomain
 from apps.tasks import delete_resource
 from models.models import ObjectType
 from portal.models import PublishedModel
@@ -726,6 +726,37 @@ class ProjectTemplateList(
         return HttpResponse("Created new template: {}.".format(name), status=200)
 
 
+@api_view(["GET"])
+@permission_classes(
+    (
+        # IsAuthenticated,
+    )
+)
+def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
+    """
+    Implementation of the API method at endpoint /api/app-subdomain/is-available/
+    Supports the GET verb.
+
+    The service contract for the GET action is as follows:
+    :param str subdomain-text: The subdomain text to check for availability.
+    :returns: An http status code and dict containing {"is_available": bool}
+
+    Example request: /api/app-subdomain/is-available/?subdomain_text=my-subdomain
+    """
+    subdomain_text = request.GET.get("subdomain-text")
+
+    if subdomain_text is None:
+        return Response("Invalid input. Must pass in argument subdomain-text.", 400)
+
+    # By default, allow subdomains not equal to "serve" (also useful for testing)
+    is_available = subdomain_text != "serve"
+
+    if Subdomain.objects.filter(subdomain=subdomain_text).exists():
+        is_available = False
+
+    return Response({"is_available": is_available})
+
+
 @api_view(["GET", "POST"])
 @permission_classes(
     (
@@ -734,13 +765,13 @@ class ProjectTemplateList(
         AdminPermission,
     )
 )
-def update_app_status(request):
+def update_app_status(request: HttpRequest) -> HttpResponse:
     """
     Manages the app instance status.
     Implemented as a DRF function based view.
     Supports GET and POST verbs.
 
-    The service contract for the POST actions is as follows:
+    The service contract for the POST verb is as follows:
     :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
     :param new-status str: The new status code.
     :param event-ts timestamp: A JSON-formatted timestamp, e.g. 2024-01-25T16:02:50.00Z.

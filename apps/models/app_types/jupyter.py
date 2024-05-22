@@ -9,6 +9,7 @@ from apps.models import AppInstanceManager, BaseAppInstance, Social
 class JupyterInstanceManager(AppInstanceManager):
     model_type = "jupyterinstance"
 
+
 class JupyterInstance(BaseAppInstance):
     objects = JupyterInstanceManager()
     ACCESS_TYPES = (
@@ -41,4 +42,3 @@ class JupyterInstance(BaseAppInstance):
         verbose_name = "JupyterLab Instance"
         verbose_name_plural = "JupyterLab Instances"
         permissions = [("can_access_app", "Can access app service")]
-

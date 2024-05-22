@@ -32,6 +32,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+
         // Function to toggle visibility based on select value
         function toggleVisibility() {
             var accessSelect = document.getElementById('id_access');
@@ -68,8 +69,87 @@
 
         // Call the function on page load to ensure correct initial display
         toggleVisibility();
+
+        function checkSubdomainAvailability(subdomain_input) {
+            // Checks availability of a subdomain by calling the REST API endpoint
+            // at /api/app-subdomain/is-available/?subdomain-text=<input>
+
+            let api_url = window.location.origin + "/api/app-subdomain/is-available/";
+            console.log(`Checking for subdomain availability. Using API URL: ${api_url}`);
+
+            let request = $.ajax({
+                type: "GET",
+                url: api_url,
+                data: {"subdomain-text": subdomain_input},
+                beforeSend: function ( xhr ) {
+                    // Display the work-in-progress spinner
+                    $("#formInputSpinner").show();
+                }
+            });
+
+            request.done(function (data) {
+                console.log(`Request done with is_available=${data.is_available}`);
+                let msg = "";
+                if (typeof data !== "undefined") {
+                    msg = (data.is_available == true) ? 'The subdomain is available' :'The subdomain is not available';
+                 }
+                handleSubdomainAvailability(data.is_available, msg);
+            });
+            request.fail(function (jqXHR, textStatus, errorThrown) {
+                console.log(`The request failed. status=${textStatus}, errorThrown=${errorThrown}`);
+                handleSubdomainAvailability(false, "Server error");
+            });
+
+            $("#formInputSpinner").hide();
+        }
+
+        function handleSubdomainAvailability(is_avail, msg = "") {
+            if (is_avail) {
+                // Enable the submit button
+                $("#submit-id-submit").prop("disabled", false);
+                $("#id_subdomain").addClass("is-valid");
+                $('#id_subdomain').next('.client-validation-feedback').addClass("client-validation-valid");
+            } else {
+                // Disable the submit button
+                $("#submit-id-submit").prop("disabled", true);
+                $("#id_subdomain").addClass("is-invalid");
+                $('#id_subdomain').next(".client-validation-feedback").addClass("client-validation-invalid");
+            }
+
+            $('#id_subdomain').next(".client-validation-feedback").text(msg);
+            $('#id_subdomain').next(".client-validation-feedback").show();
+        }
+
+        function clearSubdomainValidation() {
+            $('#id_subdomain').next(".client-validation-feedback").text("");
+            $('#id_subdomain').next(".client-validation-feedback").hide();
+            $('#id_subdomain').next(".client-validation-feedback").removeClass("client-validation-valid");
+            $('#id_subdomain').next(".client-validation-feedback").removeClass("client-validation-invalid");
+            $("#id_subdomain").removeClass("is-valid");
+            $("#id_subdomain").removeClass("is-invalid");
+        }
+
+        // Add event handler on the subdomain input field
+        $("#id_subdomain").focusout(function() {
+
+            clearSubdomainValidation();
+
+            let subdomain_input = $("#id_subdomain").val();
+            if (subdomain_input.length == 0) {
+                // Empty text field. Enable the submit button and clear any validation styles.
+                $("#submit-id-submit").prop('disabled', false);
+            }
+            else if (subdomain_input.length < 3) {
+                // The subdomain text must contain at least 3 chars
+                $("#submit-id-submit").prop('disabled', true);
+                $("#id_subdomain").addClass("is-invalid");
+            }
+            else {
+                // Run check if there is text in the input field
+                checkSubdomainAvailability(subdomain_input);
+            }
+        });
     });
     </script>
-
 
 {% endblock %}

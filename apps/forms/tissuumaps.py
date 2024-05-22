@@ -18,7 +18,9 @@ class TissuumapsForm(AppBaseForm):
         body = Div(
             self.get_common_field("name", placeholder="Name your app"),
             self.get_common_field("description", rows="3", placeholder="Provide a detailed description of your app"),
-            self.get_common_field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
+            self.get_common_field(
+                "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
+            ),
             Field("volume"),
             self.get_common_field("flavor"),
             self.get_common_field("access"),
