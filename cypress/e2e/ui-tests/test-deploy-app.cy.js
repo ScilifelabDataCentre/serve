@@ -416,12 +416,13 @@ describe("Test deploying app", () => {
 
             // fill out subdomain field
             cy.get('#id_subdomain').type(subdomain)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#id_subdomain').blur();
+            cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is not available');
 
-            cy.get('#div_id_subdomain').within(() => {
-                cy.contains('.client-validation-invalid', 'The subdomain is not available');
-              }); // display errror when same subdomain
+
             cy.get('#id_subdomain').clear().type(subdomain_2)
+            cy.get('#id_subdomain').blur();
+            cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available');
             // create the app
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was created with the correct subdomain
