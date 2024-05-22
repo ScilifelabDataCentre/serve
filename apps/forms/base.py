@@ -23,13 +23,7 @@ class BaseForm(forms.ModelForm):
         required=False,
         min_length=3,
         max_length=30,
-        validators=[
-            RegexValidator(
-                regex=r"^(?!.*--)(?!^-)(?!.*-$)[a-z0-9]([a-z0-9-]{3,30}[a-z0-9])?$",
-                message="Subdomain must be 3-30 characters long, contain only lowercase letters, digits, hyphens, "
-                "and cannot start or end with a hyphen",
-            )
-        ],
+        widget=forms.TextInput(attrs={"style": "text-transform:lowercase;"}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -104,6 +98,10 @@ class BaseForm(forms.ModelForm):
         if current_subdomain and current_subdomain.subdomain == subdomain_input:
             return subdomain_input
 
+        # Convert the subdomain to lowercase. OK because we force convert to lowecase in the UI.
+        subdomain_input = subdomain_input.lower()
+
+        # TODO: move to helpers
         # Check if the subdomain adheres to helm rules
         regex_validator = RegexValidator(
             regex=r"^(?!.*--)(?!^-)(?!.*-$)[a-z0-9]([a-z0-9-]{3,30}[a-z0-9])?$",

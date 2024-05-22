@@ -149,7 +149,9 @@
             }
             else {
                 // Run check if there is text in the input field
-                checkSubdomainAvailability(subdomain_input);
+                // Convert the input subdomain to lowercase for the validation.
+                // OK because the input form and the server does the same.
+                checkSubdomainAvailability(subdomain_input.toLowerCase());
             }
         });
     });
