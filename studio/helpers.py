@@ -6,7 +6,7 @@ from django.db import transaction
 from common.models import EmailVerificationTable
 
 
-def do_delete_account(user_id):
+def do_delete_account(user_id: int) -> bool:
     """
     Deletes a user account.
     Sets user.is_active = False and userprofile.deleted_on to now.
@@ -29,7 +29,7 @@ def do_delete_account(user_id):
     return user_account_deleted
 
 
-def do_pause_account(user_id):
+def do_pause_account(user_id: int) -> bool:
     """
     Sets a user account to pause (on hold).
     Sets user.is_active = False and deletes the user verification token if it exists.

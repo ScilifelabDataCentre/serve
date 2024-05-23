@@ -1,5 +1,8 @@
+from typing import Any, List, Tuple
+
+
 class Version:
-    def __init__(self, version="v0.0.0"):
+    def __init__(self, version: str = "v0.0.0"):
         numbers = version[1:].split(".")
         self.major = int(numbers[0])
         self.minor = int(numbers[1])
@@ -9,7 +12,7 @@ class Version:
 
     # Release a new version
     # Default is new minor version
-    def release(self, release_type="minor"):
+    def release(self, release_type: str = "minor") -> Tuple[bool, str]:
         if release_type == "minor":
             self.minor = self.minor + 1
             self.patch = 0
@@ -26,7 +29,7 @@ class Version:
 
     # Implement comparison operators to allow for sorting
     # of models
-    def __gt__(self, other):
+    def __gt__(self, other: "Version") -> bool:
         if self.major > other.major:
             return True
         elif other.major > self.major:
@@ -44,20 +47,20 @@ class Version:
 
         return False
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if self.major == other.major and self.minor == other.minor and self.patch == other.minor:
             return True
 
         return False
 
-    def __lt__(self, other):
+    def __lt__(self, other: "Version") -> bool:
         if other.__gt__(self) or self.__eq__(other):
             return False
 
         return True
 
-    def release_types(self):
+    def release_types(self) -> list[str]:
         return ["major", "minor", "patch"]
 
-    def __str__(self):
-        return "v{}.{}.{}".format(self.major, self.minor, self.patch)
+    def __str__(self) -> str:
+        return f"v{self.major}.{self.minor}.{self.patch}"

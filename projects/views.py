@@ -159,15 +159,17 @@ def change_description(request, project_slug):
         description = request.POST.get("description", "")
         if description != "":
             project.description = description
-            project.save()
+        else:
+            project.description = None
+        project.save()
 
-            log = ProjectLog(
-                project=project,
-                module="PR",
-                headline="Project description",
-                description="Changed description for project",
-            )
-            log.save()
+        log = ProjectLog(
+            project=project,
+            module="PR",
+            headline="Project description",
+            description="Changed description for project",
+        )
+        log.save()
 
     return HttpResponseRedirect(
         reverse(
@@ -633,58 +635,3 @@ def delete(request, project_slug):
     delete_project.delay(project.pk)
 
     return HttpResponseRedirect(next_page, {"message": "Deleted project successfully."})
-
-
-@login_required
-@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def publish_project(request, project_slug):
-    owner = User.objects.filter(username=request.user).first()
-    project = Project.objects.filter(owner=owner, slug=project_slug).first()
-
-    if request.method == "POST":
-        gh_form = PublishProjectToGitHub(request.POST)
-
-        if gh_form.is_valid():
-            user_name = gh_form.cleaned_data["user_name"]
-            user_password = gh_form.cleaned_data["user_password"]
-
-            user_password_bytes = user_password.encode("ascii")
-            base64_bytes = base64.b64encode(user_password_bytes)
-            user_password_encoded = base64_bytes.decode("ascii")
-
-            url = "http://{}-file-controller/project/{}/push/{}/{}".format(
-                project_slug,
-                project_slug[:-4],
-                user_name,
-                user_password_encoded,
-            )
-            try:
-                response = r.get(url)
-
-                if response.status_code == 200 or response.status_code == 203:
-                    payload = response.json()
-
-                    if payload["status"] == "OK":
-                        clone_url = payload["clone_url"]
-                        if clone_url:
-                            project.clone_url = clone_url
-                            project.save()
-
-                            log = ProjectLog(
-                                project=project,
-                                module="PR",
-                                headline="GitHub repository",
-                                description=("Published project files" " to a GitHub repository {url}").format(
-                                    url=project.clone_url
-                                ),
-                            )
-                            log.save()
-            except Exception as e:
-                logger.error("Failed to get response from {} with error: {}".format(url, e))
-
-    return HttpResponseRedirect(
-        reverse(
-            "projects:settings",
-            kwargs={"project_slug": project_slug},
-        )
-    )

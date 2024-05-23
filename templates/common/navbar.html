@@ -45,7 +45,10 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{% url 'user-profile' %}"><i class="bi bi-person me-1"></i>My profile</a></li>
                             <li><a class="dropdown-item" href="{% url 'password_change' %}"><i class="bi bi-key me-1"></i>Change password</a></li>
-                            <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-1"></i>Sign out</a></li>
+                            <form action="{% url 'logout' %}" method="post">
+                                {% csrf_token %}
+                                <li><button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right me-1"></i>Sign out</button></li>
+                            </form>
                         </ul>
                     </li>
 

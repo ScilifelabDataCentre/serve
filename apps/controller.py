@@ -60,11 +60,59 @@ def deploy(options):
             try:
                 port = int(options["appconfig"]["port"])
             except Exception:
-                logger.error("Userid not a number.", exc_info=True)
+                logger.error("Port not a number.", exc_info=True)
                 return json.dumps({"status": "failed", "reason": "Port not an integer."})
             if port > 9999 or port < 3000:
                 logger.info("Port outside of allowed range.")
                 return json.dumps({"status": "failed", "reason": "Port outside of allowed range."})
+        # check if valid proxyheartbeatrate
+        if "proxyheartbeatrate" in options["appconfig"]:
+            try:
+                proxyheartbeatrate = int(options["appconfig"]["proxyheartbeatrate"])
+            except Exception:
+                logger.error("Proxy heartbeat rate not a number.", exc_info=True)
+                return json.dumps({"status": "failed", "reason": "Proxyheartbeatrate not an integer."})
+            if proxyheartbeatrate < 1:
+                logger.info("Heartbeat rate outside of allowed range, must be at least 1.")
+                return json.dumps(
+                    {"status": "failed", "reason": "Heartbeat rate outside of allowed range, must be at least 1."}
+                )
+        else:
+            options["appconfig"]["proxyheartbeatrate"] = "10000"
+        # check if valid proxyheartbeattimeout
+        if "proxyheartbeattimeout" in options["appconfig"]:
+            try:
+                proxyheartbeattimeout = int(options["appconfig"]["proxyheartbeattimeout"])
+            except Exception:
+                logger.error("Proxy heartbeat timeout not a number.", exc_info=True)
+                return json.dumps({"status": "failed", "reason": "Proxyheartbeattimeout not an integer."})
+            if proxyheartbeattimeout < -1 or proxyheartbeattimeout == 0:
+                logger.info("Heartbeat timeout outside of allowed range, cannot be lower than 0 except for -1.")
+                return json.dumps(
+                    {
+                        "status": "failed",
+                        "reason": "Heartbeat timeout outside of allowed range, , cannot be lower than 0 except for -1.",
+                    }
+                )
+        else:
+            options["appconfig"]["proxyheartbeattimeout"] = "60000"
+        # check if valid proxycontainerwaittime
+        if "proxycontainerwaittime" in options["appconfig"]:
+            try:
+                proxycontainerwaittime = int(options["appconfig"]["proxycontainerwaittime"])
+            except Exception:
+                logger.error("Proxy container wait time not a number.", exc_info=True)
+                return json.dumps({"status": "failed", "reason": "Proxycontainerwaittime not an integer."})
+            if proxycontainerwaittime < 20000:
+                logger.info("Proxy container wait time outside of allowed range, must be at least 20000.")
+                return json.dumps(
+                    {
+                        "status": "failed",
+                        "reason": "Proxycontainerwaittime outside of allowed range, must be at least 20000.",
+                    }
+                )
+        else:
+            options["appconfig"]["proxycontainerwaittime"] = "30000"
 
     # Save helm values file for internal reference
     unique_filename = "charts/values/{}-{}.yaml".format(str(uuid.uuid4()), str(options["app_name"]))

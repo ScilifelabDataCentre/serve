@@ -1,6 +1,9 @@
 import logging
 import sys
 import traceback
+from typing import Any, Callable
+
+from django.http import HttpRequest, HttpResponse
 
 from studio.utils import get_logger
 
@@ -12,14 +15,14 @@ class ExceptionLoggingMiddleware:
     This middleware provides logging of exception in requests.
     """
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], Any]):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: HttpRequest) -> HttpResponse:
         response = self.get_response(request)
         return response
 
-    def process_exception(self, request, exception):
+    def process_exception(self, request: HttpRequest, exception: Exception) -> None:
         """
         Processes exceptions during handling of a http request.
         Logs them with ERROR level.

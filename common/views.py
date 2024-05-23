@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
 from django.core.mail import send_mail
 from django.db import transaction
 from django.http.response import HttpResponseRedirect
@@ -21,8 +22,6 @@ class RegistrationCompleteView(TemplateView):
 
 
 # Sign Up View
-
-
 class SignUpView(CreateView):
     """
     View for user registration

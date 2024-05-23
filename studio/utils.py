@@ -1,11 +1,11 @@
 import logging
-from typing import List
+from typing import Any, List
 
 import structlog
 from django.conf import settings
 
 
-def get_logger(name: str):
+def get_logger(name: str) -> Any:
     """
     Get different loggers depending on the value of DEBUG.
     When DEBUG = True, then we return the standard logger,
@@ -17,7 +17,7 @@ def get_logger(name: str):
         return structlog.getLogger(name)
 
 
-def add_loggers(logging: dict, installed_apps: List[str]) -> dict:
+def add_loggers(logging: dict[str, Any], installed_apps: List[str]) -> dict[str, Any]:
     """
     Helper function to add loggers to each installed app
     """
