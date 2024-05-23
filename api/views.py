@@ -742,15 +742,15 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
     Supports the GET verb.
 
     The service contract for the GET action is as follows:
-    :param str subdomain-text: The subdomain text to validate.
-    :returns: An http status code and dict containing {"is_valid": bool, "message": str}
+    :param str subdomainText: The subdomain text to validate.
+    :returns: An http status code and dict containing {"isValid": bool, "message": str}
 
-    Example request: /api/app-subdomain/validate/?subdomain-text=my-subdomain
+    Example request: /api/app-subdomain/validate/?subdomainText=my-subdomain
     """
-    subdomain_text = request.GET.get("subdomain-text")
+    subdomain_text = request.GET.get("subdomainText")
 
     if subdomain_text is None:
-        return Response("Invalid input. Must pass in argument subdomain-text.", 400)
+        return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
     # First validate for valid name
     subdomain_candidate = SubdomainCandidateName(subdomain_text)
@@ -758,7 +758,7 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
     try:
         subdomain_candidate.validate_subdomain()
     except ValidationError as e:
-        return Response({"is_valid": False, "message": e.message})
+        return Response({"isValid": False, "message": e.message})
 
     # Only check if the subdomain is available if the name is a valid subdomain name
     msg = None
@@ -772,7 +772,7 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
         is_valid = False
         msg = "The subdomain is not available. There was an error during checking availability of the subdomain."
 
-    return Response({"is_valid": is_valid, "message": msg})
+    return Response({"isValid": is_valid, "message": msg})
 
 
 @api_view(["GET"])
@@ -787,15 +787,15 @@ def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
     Supports the GET verb.
 
     The service contract for the GET action is as follows:
-    :param str subdomain-text: The subdomain text to check for availability.
-    :returns: An http status code and dict containing {"is_available": bool}
+    :param str subdomainText: The subdomain text to check for availability.
+    :returns: An http status code and dict containing {"isAvailable": bool}
 
-    Example request: /api/app-subdomain/is-available/?subdomain-text=my-subdomain
+    Example request: /api/app-subdomain/is-available/?subdomainText=my-subdomain
     """
-    subdomain_text = request.GET.get("subdomain-text")
+    subdomain_text = request.GET.get("subdomainText")
 
     if subdomain_text is None:
-        return Response("Invalid input. Must pass in argument subdomain-text.", 400)
+        return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
     is_available = False
 
@@ -806,7 +806,7 @@ def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
         logger.warn(f"Unable to validate subdomain {subdomain_text}. Error={str(e)}")
         is_available = False
 
-    return Response({"is_available": is_available})
+    return Response({"isAvailable": is_available})
 
 
 @api_view(["GET", "POST"])
