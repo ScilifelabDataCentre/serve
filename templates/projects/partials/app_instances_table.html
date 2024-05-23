@@ -20,7 +20,7 @@
             {% static 'images/logos/apps/' as static_url %}
             <td><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
                     alt="App Logo" style="max-height:25px;"></td>
-            <td class="d-none d-xxl-table-cell ">{{ instance.app.name }} geags</td>
+            <td class="d-none d-xxl-table-cell ">{{ instance.app.name }}</td>
             {% if instance.url %}
             <td class="sorting_1">
                 {% if "Serv" in instance.app.name or instance.app.name == "Python Model Deployment" %}
