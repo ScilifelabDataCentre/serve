@@ -34,8 +34,8 @@ class TissuumapsInstance(BaseAppInstance, Social):
         #           {release: r1582t9h9
 
         volumeK8s_dict = {"volumeK8s": {}}
-        for object in self.volume.all():
-            volumeK8s_dict["volumeK8s"][object.name] = dict(release=object.subdomain.subdomain)
+        if self.volume:
+            volumeK8s_dict["volumeK8s"][self.volume.name] = dict(release=self.volume.subdomain.subdomain)
         k8s_values["apps"] = volumeK8s_dict
         return k8s_values
 

@@ -1,5 +1,5 @@
 import json
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 import requests
 from django.conf import settings
@@ -13,6 +13,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, reverse
+from django.utils import timezone
 from rest_framework.authentication import (
     BasicAuthentication,
     SessionAuthentication,
@@ -34,7 +35,21 @@ from .helpers import do_delete_account
 logger = get_logger(__name__)
 
 
+def disable_for_loaddata(signal_handler: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Decorator that turns off signal handlers when loading fixture data.
+    """
+
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        if kwargs.get("raw", False):
+            return
+        return signal_handler(*args, **kwargs)
+
+    return wrapper
+
+
 @receiver(pre_save, sender=User)
+@disable_for_loaddata
 def set_new_user_inactive(sender: Model, instance: User, **kwargs: dict[str, Any]) -> None:
     if instance._state.adding and settings.INACTIVE_USERS and not instance.is_superuser:
         logger.info("Creating Inactive User")

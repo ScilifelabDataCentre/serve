@@ -77,6 +77,7 @@ def helm_install(release_name, chart, namespace="default", values_file=None, ver
         return e.stdout, e.stderr
 
 
+@shared_task
 def helm_delete(release_name, namespace="default"):
     # Base command
     command = f"helm uninstall {release_name} --namespace {namespace} --wait"
