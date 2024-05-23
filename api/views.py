@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.utils.text import slugify
@@ -24,7 +24,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
+from apps.helpers import (
+    HandleUpdateStatusResponseCode,
+    SubdomainCandidateName,
+    handle_update_status_request,
+)
 from apps.models import AppCategories, Apps, AppStatus, BaseAppInstance, Subdomain
 from apps.tasks import delete_resource
 from models.models import ObjectType
@@ -732,29 +736,77 @@ class ProjectTemplateList(
         # IsAuthenticated,
     )
 )
+def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
+    """
+    Implementation of the API method at endpoint /api/app-subdomain/validate/
+    Supports the GET verb.
+
+    The service contract for the GET action is as follows:
+    :param str subdomainText: The subdomain text to validate.
+    :returns: An http status code and dict containing {"isValid": bool, "message": str}
+
+    Example request: /api/app-subdomain/validate/?subdomainText=my-subdomain
+    """
+    subdomain_text = request.GET.get("subdomainText")
+
+    if subdomain_text is None:
+        return Response("Invalid input. Must pass in argument subdomainText.", 400)
+
+    # First validate for valid name
+    subdomain_candidate = SubdomainCandidateName(subdomain_text)
+
+    try:
+        subdomain_candidate.validate_subdomain()
+    except ValidationError as e:
+        return Response({"isValid": False, "message": e.message})
+
+    # Only check if the subdomain is available if the name is a valid subdomain name
+    msg = None
+
+    try:
+        is_valid = subdomain_candidate.is_available()
+        if not is_valid:
+            msg = "The subdomain is not available"
+    except Exception as e:
+        logger.warn(f"Unable to validate subdomain {subdomain_text}. Error={str(e)}")
+        is_valid = False
+        msg = "The subdomain is not available. There was an error during checking availability of the subdomain."
+
+    return Response({"isValid": is_valid, "message": msg})
+
+
+@api_view(["GET"])
+@permission_classes(
+    (
+        # IsAuthenticated,
+    )
+)
 def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
     """
     Implementation of the API method at endpoint /api/app-subdomain/is-available/
     Supports the GET verb.
 
     The service contract for the GET action is as follows:
-    :param str subdomain-text: The subdomain text to check for availability.
-    :returns: An http status code and dict containing {"is_available": bool}
+    :param str subdomainText: The subdomain text to check for availability.
+    :returns: An http status code and dict containing {"isAvailable": bool}
 
-    Example request: /api/app-subdomain/is-available/?subdomain_text=my-subdomain
+    Example request: /api/app-subdomain/is-available/?subdomainText=my-subdomain
     """
-    subdomain_text = request.GET.get("subdomain-text")
+    subdomain_text = request.GET.get("subdomainText")
 
     if subdomain_text is None:
-        return Response("Invalid input. Must pass in argument subdomain-text.", 400)
+        return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
-    # By default, allow subdomains not equal to "serve" (also useful for testing)
-    is_available = subdomain_text != "serve"
+    is_available = False
 
-    if Subdomain.objects.filter(subdomain=subdomain_text).exists():
+    try:
+        subdomain_candidate = SubdomainCandidateName(subdomain_text)
+        is_available = subdomain_candidate.is_available()
+    except Exception as e:
+        logger.warn(f"Unable to validate subdomain {subdomain_text}. Error={str(e)}")
         is_available = False
 
-    return Response({"is_available": is_available})
+    return Response({"isAvailable": is_available})
 
 
 @api_view(["GET", "POST"])

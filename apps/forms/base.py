@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.safestring import mark_safe
 
 from apps.forms import CustomField
-from apps.helpers import HELP_MESSAGE_MAP
+from apps.helpers import HELP_MESSAGE_MAP, SubdomainCandidateName
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from projects.models import Flavor, Project
 
@@ -23,13 +23,7 @@ class BaseForm(forms.ModelForm):
         required=False,
         min_length=3,
         max_length=30,
-        validators=[
-            RegexValidator(
-                regex=r"^(?!.*--)(?!^-)(?!.*-$)[a-z0-9]([a-z0-9-]{3,30}[a-z0-9])?$",
-                message="Subdomain must be 3-30 characters long, contain only lowercase letters, digits, hyphens, "
-                "and cannot start or end with a hyphen",
-            )
-        ],
+        widget=forms.TextInput(attrs={"style": "text-transform:lowercase;"}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -104,19 +98,19 @@ class BaseForm(forms.ModelForm):
         if current_subdomain and current_subdomain.subdomain == subdomain_input:
             return subdomain_input
 
+        # Convert the subdomain to lowercase. OK because we force convert to lowecase in the UI.
+        subdomain_input = subdomain_input.lower()
+
         # Check if the subdomain adheres to helm rules
-        regex_validator = RegexValidator(
-            regex=r"^(?!.*--)(?!^-)(?!.*-$)[a-z0-9]([a-z0-9-]{3,30}[a-z0-9])?$",
-            message="Subdomain must be 3-30 characters long, contain only lowercase letters, digits, hyphens, "
-            "and cannot start or end with a hyphen",
-        )
+        subdomain_candidate = SubdomainCandidateName(subdomain_input)
+
         try:
-            regex_validator(subdomain_input)
+            subdomain_candidate.validate_subdomain()
         except forms.ValidationError as e:
             raise forms.ValidationError(f"{e.message}")
 
         # Check for subdomain availability
-        if Subdomain.objects.filter(subdomain=subdomain_input).exists():
+        if not subdomain_candidate.is_available():
             error_message = "Subdomain already exists. Please choose another one."
             raise forms.ValidationError(error_message)
 
