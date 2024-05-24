@@ -404,16 +404,13 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-# 2024-02-21: Removed because this is not used.
-# VERSION = "dev"
 
 MIGRATION_MODULES = {
-    "apps": "studio.migrations.apps",
-    "models": "studio.migrations.models",
-    "portal": "studio.migrations.portal",
-    "projects": "studio.migrations.projects",
+    "apps": "apps.migrations",
+    "models": "models.migrations",
+    "portal": "portal.migrations",
+    "projects": "projects.migrations",
     "common": "common.migrations",
-    "news": "news.migrations",
 }
 
 # Defines how many apps a user is allowed to create within one project

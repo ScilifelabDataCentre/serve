@@ -22,7 +22,10 @@ def pre_delete_helm_uninstall(sender, instance, **kwargs):
     logger.info("PRE DELETING RESOURCES")
 
     values = instance.k8s_values
-    helm_delete.delay(values["subdomain"], values["namespace"])
+    if values:
+        helm_delete.delay(values["subdomain"], values["namespace"])
+    else:
+        logger.error(f"Could not find helm release for {instance}")
 
 
 def update_permission(sender, instance, created, **kwargs):

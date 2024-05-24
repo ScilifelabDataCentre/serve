@@ -22,7 +22,7 @@ class BaseForm(forms.ModelForm):
     subdomain = forms.CharField(
         required=False,
         min_length=3,
-        max_length=30,
+        max_length=53,
         widget=forms.TextInput(attrs={"style": "text-transform:lowercase;"}),
     )
 
