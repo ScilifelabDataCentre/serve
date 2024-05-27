@@ -108,19 +108,14 @@ class GetLogs(View):
             for item in res_json:
                 for log_line in reversed(item["values"]):
                     # Separate timestamp and log message
-                    separated_log = log_line[1].split(None, 1)
-                    if len(separated_log) < 2:
-                        continue  # Skip log lines that do not have both timestamp and message
-
-                    timestamp = separated_log[0]
-                    # Adjust timestamp format based on environment
-                    filtered_timestamp = timestamp[:-4] if settings.DEBUG else timestamp[:-10]
+                    timestamp, log_message = log_line[0], log_line[1]
+                    if len(log_message) < 2:
+                        continue  # Skip log lines that do not have a message
 
                     # Parse and format the timestamp
                     try:
-                        formatted_time = parse_datetime(filtered_timestamp).strftime("%Y-%m-%d, %H:%M:%S")
-                        separated_log[0] = formatted_time
-                        logs.append(separated_log)
+                        formatted_time = datetime.fromtimestamp(int(timestamp) / 1e9).strftime("%Y-%m-%d %H:%M:%S")
+                        logs.append([formatted_time, log_message])
                     except ValueError as ve:
                         logger.warning(f"Timestamp parsing failed: {ve}")
                         continue
