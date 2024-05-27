@@ -139,8 +139,27 @@
         }
 
         // Add event handler on the subdomain input field
-        $("#id_subdomain").focusout(function() {
+        let typingTimer;                // Timer identifier
+        let doneTypingInterval = 500;   // Time in ms (500 ms = 0.5 seconds)
 
+        // On keyup, start the countdown
+        $("#id_subdomain").on('keyup', function () {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(doneTyping, doneTypingInterval);
+        });
+
+        // On keydown, clear the countdown 
+        $("#id_subdomain").on('keydown', function () {
+            clearTimeout(typingTimer);
+        });
+
+        // On focusout, run the validation immediately
+        $("#id_subdomain").on('focusout', function () {
+            doneTyping();
+        });
+
+        // User is "finished typing," do something
+        function doneTyping () {
             clearSubdomainValidation();
 
             let subdomain_input = $("#id_subdomain").val();
@@ -159,7 +178,7 @@
                 // OK because the input form and the server does the same.
                 checkSubdomainValidity(subdomain_input.toLowerCase());
             }
-        });
+        }
     });
     </script>
 
