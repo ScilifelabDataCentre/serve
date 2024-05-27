@@ -8,6 +8,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
+from django.utils.dateparse import parse_datetime
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
@@ -39,53 +40,100 @@ def get_status_defs():
     name="dispatch",
 )
 class GetLogs(View):
-    def get(self, request, project, app_slug, app_id):
-        from .constants import SLUG_MODEL_FORM_MAP
+    template = "apps/logs.html"
 
-        template = "apps/logs.html"
+    def get_instance(self, app_slug, app_id, post=False):
         model_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None)).Model
         if model_class:
-            app = model_class.objects.get(pk=app_id)
-            project = Project.objects.get(slug=project)
-            return render(request, template, locals())
+            return model_class.objects.get(pk=app_id)
+        else:
+            message = f"Could not find model for slug {app_slug}"
+            if post:
+                return JsonResponse({"error": message}, status=404)
+            else:
+                logger.error(message)
+                raise PermissionDenied()
 
-    def post(self, request, project):
-        body = request.POST.get("app", "")
-        container = request.POST.get("container", "")
-        app = BaseAppInstance.objects.get(pk=body)
-        project = Project.objects.get(slug=project)
-        app_settings = app.app.settings
+    def get_project(self, project_slug, post=False):
+        try:
+            project = Project.objects.get(slug=project_slug)
+            return project
+        except Project.DoesNotExist:
+            message = "error: Project not found"
+            if post:
+                return JsonResponse({"error": message}, status=404)
+            else:
+                logger.error(message)
+                raise PermissionDenied()
+
+    def get(self, request, project, app_slug, app_id):
+        project = self.get_project(project)
+        instance = self.get_instance(app_slug, app_id)
+
+        context = {"instance": instance, "project": project}
+        return render(request, self.template, context)
+
+    def post(self, request, project, app_slug, app_id):
+        # Validate project and instance existence
+        project = self.get_project(project, post=True)
+        instance = self.get_instance(app_slug, app_id, post=True)
+
+        # container name is often same as subdomain name
+        container = instance.subdomain.subdomain
+
+        if not getattr(instance, "logs_enabled", False):
+            return JsonResponse({"error": "Logs not enabled for this instance"}, status=403)
+
+        if not settings.LOKI_SVC:
+            return JsonResponse({"error": "LOKI_SVC not set"}, status=403)
+
         logs = []
-        # Looks for logs in app settings. TODO: this logs entry is not used. Remove or change this later.
-        if "logs" in app_settings:
-            try:
-                url = settings.LOKI_SVC + "/loki/api/v1/query_range"
-                app_params = app.k8s_values
-                if app.app.slug == "shinyproxyapp":
-                    log_query = '{release="' + app_params["subdomain"] + '",container="' + "serve" + '"}'
-                else:
-                    log_query = '{release="' + app_params["subdomain"] + '",container="' + container + '"}'
-                logger.info(log_query)
-                query = {
-                    "query": log_query,
-                    "limit": 500,
-                    "since": "24h",
-                }
-                res = requests.get(url, params=query)
-                res_json = res.json()["data"]["result"]
-                # TODO: change timestamp logic. Timestamps are different in prod and dev
-                for item in res_json:
-                    for log_line in reversed(item["values"]):
-                        # separate timestamp and log
-                        separated_log = log_line[1].split(None, 1)
-                        # improve timestamp formatting for table
-                        filtered_log = separated_log[0][:-4] if settings.DEBUG else separated_log[0][:-10]
-                        formatted_time = datetime.strptime(filtered_log, "%Y-%m-%dT%H:%M:%S.%f")
-                        separated_log[0] = datetime.strftime(formatted_time, "%Y-%m-%d, %H:%M:%S")
-                        logs.append(separated_log)
+        try:
+            url = settings.LOKI_SVC + "/loki/api/v1/query_range"
+            container = "serve" if instance.app.slug == "shinyproxyapp" else container
+            log_query = f'{{release="{instance.subdomain.subdomain}",container="{container}"}}'
+            logger.info(f"Log query: {log_query}")
 
-            except Exception as e:
-                logger.error(str(e), exc_info=True)
+            query_params = {
+                "query": log_query,
+                "limit": 500,
+                "since": "24h",
+            }
+
+            res = requests.get(url, params=query_params)
+            res.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
+
+            res_json = res.json().get("data", {}).get("result", [])
+
+            for item in res_json:
+                for log_line in reversed(item["values"]):
+                    # Separate timestamp and log message
+                    separated_log = log_line[1].split(None, 1)
+                    if len(separated_log) < 2:
+                        continue  # Skip log lines that do not have both timestamp and message
+
+                    timestamp = separated_log[0]
+                    # Adjust timestamp format based on environment
+                    filtered_timestamp = timestamp[:-4] if settings.DEBUG else timestamp[:-10]
+
+                    # Parse and format the timestamp
+                    try:
+                        formatted_time = parse_datetime(filtered_timestamp).strftime("%Y-%m-%d, %H:%M:%S")
+                        separated_log[0] = formatted_time
+                        logs.append(separated_log)
+                    except ValueError as ve:
+                        logger.warning(f"Timestamp parsing failed: {ve}")
+                        continue
+
+        except requests.RequestException as e:
+            logger.error(f"HTTP request failed: {e}", exc_info=True)
+            return JsonResponse({"error": "Failed to retrieve logs from Loki"}, status=500)
+        except KeyError as e:
+            logger.error(f"Unexpected response format: {e}", exc_info=True)
+            return JsonResponse({"error": "Unexpected response format from Loki"}, status=500)
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {e}", exc_info=True)
+            return JsonResponse({"error": "An unexpected error occurred"}, status=500)
 
         return JsonResponse({"data": logs})
 

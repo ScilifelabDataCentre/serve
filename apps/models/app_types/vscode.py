@@ -1,6 +1,6 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, BaseAppInstance, Social
+from apps.models import AppInstanceManager, BaseAppInstance
 
 
 class VSCodeInstanceManager(AppInstanceManager):

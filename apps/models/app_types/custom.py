@@ -1,13 +1,18 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, BaseAppInstance, Social
+from apps.models import (
+    AppInstanceManager,
+    BaseAppInstance,
+    LogsEnabledMixin,
+    SocialMixin,
+)
 
 
 class CustomAppInstanceManager(AppInstanceManager):
     model_type = "customappinstance"
 
 
-class CustomAppInstance(BaseAppInstance, Social):
+class CustomAppInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     objects = CustomAppInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),

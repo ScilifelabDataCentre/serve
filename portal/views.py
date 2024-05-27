@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import View
 
-from apps.models import BaseAppInstance
+from apps.models import BaseAppInstance, SocialMixin
 from studio.utils import get_logger
 
 from .models import NewsObject
@@ -59,12 +59,11 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None):
             request.session["app_tags"] = {}
 
     published_apps = []
-    from apps.models import Social
 
     if collection:
         # TODO: TIDY THIS UP!
 
-        for subclass in Social.__subclasses__():
+        for subclass in SocialMixin.__subclasses__():
             print(subclass, flush=True)
             published_apps_qs = subclass.objects.filter(
                 ~Q(app_status__status="Deleted"), access="public", collections__slug=collection
@@ -73,8 +72,7 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None):
             published_apps.extend([app for app in published_apps_qs])
 
     else:
-        # TODO: CHECK THIS - SHOULD FILTER ON ACCESS
-        for subclass in Social.__subclasses__():
+        for subclass in SocialMixin.__subclasses__():
             published_apps_qs = subclass.objects.filter(~Q(app_status__status="Deleted"), access="public").order_by(
                 "-updated_on"
             )

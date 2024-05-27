@@ -365,7 +365,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyapp:1.0.1",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyapp:1.0.2",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "shinyapp-logo.svg",

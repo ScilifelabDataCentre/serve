@@ -514,3 +514,5 @@ if not DEBUG:
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
+
+LOKI_SVC = None

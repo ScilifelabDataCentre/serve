@@ -1,13 +1,18 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, BaseAppInstance, Social
+from apps.models import (
+    AppInstanceManager,
+    BaseAppInstance,
+    LogsEnabledMixin,
+    SocialMixin,
+)
 
 
 class DashInstanceManager(AppInstanceManager):
     model_type = "dashinstance"
 
 
-class DashInstance(BaseAppInstance, Social):
+class DashInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     objects = DashInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),

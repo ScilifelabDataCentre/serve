@@ -1,13 +1,18 @@
 from django.db import models
 
-from apps.models import AppInstanceManager, BaseAppInstance, Social
+from apps.models import (
+    AppInstanceManager,
+    BaseAppInstance,
+    LogsEnabledMixin,
+    SocialMixin,
+)
 
 
 class ShinyInstanceManager(AppInstanceManager):
     model_type = "shinyinstance"
 
 
-class ShinyInstance(BaseAppInstance, Social):
+class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     objects = ShinyInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),

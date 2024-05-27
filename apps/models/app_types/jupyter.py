@@ -1,9 +1,6 @@
-from datetime import datetime, timedelta
-
 from django.db import models
-from django.db.models import Q
 
-from apps.models import AppInstanceManager, BaseAppInstance, Social
+from apps.models import AppInstanceManager, BaseAppInstance
 
 
 class JupyterInstanceManager(AppInstanceManager):

@@ -2,7 +2,7 @@ from django.db import models
 from tagulous.models import TagField
 
 
-class Social(models.Model):
+class SocialMixin(models.Model):
     tags = TagField(blank=True)
     note_on_linkonly_privacy = models.TextField(blank=True, null=True, default="")
     collections = models.ManyToManyField("portal.Collection", blank=True, related_name="%(class)s")

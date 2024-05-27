@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Logs - {{ app.name }}{% endblock %}
+{% block title %}Logs - {{ instance.name }}{% endblock %}
 {% load static %}
 {% block content %}
 
@@ -8,18 +8,18 @@
   <div class="col-md-12">
     <div class="row">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-      <h3>{{ app.name }} Logs</h3> <h5><span class="badge bg-secondary" id="status-{{ app.pk }}"> {{ app.status.latest.status_type }}</span></h5>
+      <h3>{{ instance.name }} Logs</h3> <h5><span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}"> {{ instance.status.latest.status_type }}</span></h5>
     </div>
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
-        <p> <span class="fw-bold"> Note:</span> Logs appear a few minutes after an app has been launched. The Status on the top right is an indication of the state of the app. {% if .sluapp.appg == 'customapp' and app.app_dependencies.all %} If the app is not running (due to an error) and you have a volume attached to the app, then you can switch between to the tabs below to see logs for the data copy process. This can give you hints if data copy failed.{% endif %} </p>
+        <p> <span class="fw-bold"> Note:</span> Logs appear a few minutes after an app has been launched. The Status on the top right is an indication of the state of the app. {% if instance.app.slug == 'customapp' and instance.volume %} If the app is not running (due to an error) and you have a volume attached to the app, then you can switch between to the tabs below to see logs for the data copy process. This can give you hints if data copy failed.{% endif %} </p>
       </div>
     <div>
       <nav>
         <div class="nav nav-tabs" id="nav-tab" role="tablist">
-          <button class="nav-link active" id="nav-contianer1-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer1" type="button" role="tab" aria-controls="nav-contianer1" aria-selected="true" onclick="updateContainer('{{app.parameters.appname}}')">{{app.name}}</button>
+          <button class="nav-link active" id="nav-contianer1-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer1" type="button" role="tab" aria-controls="nav-contianer1" aria-selected="true" onclick="updateContainer('{{ instance.subdomain.subdomain }}')">{{instance.name}}</button>
 
-          {% if app.app.slug == 'customapp' and app.app_dependencies.all %}
-          <button class="nav-link {% if app.status.latest.status_type == 'Running' %}disabled{% endif %}" id="nav-contianer2-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer2" type="button" role="tab" aria-controls="nav-contianer2" aria-selected="false" onclick="updateContainer('copy-to-pvc')">Data Copy</button>
+          {% if instance.app.slug == 'customapp' and instance.volume %}
+          <button class="nav-link {% if instance.app_status.status == 'Running' %}disabled{% endif %}" id="nav-contianer2-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer2" type="button" role="tab" aria-controls="nav-contianer2" aria-selected="false" onclick="updateContainer('copy-to-pvc')">Data Copy</button>
           {% endif %}
         </div>
       </nav>
@@ -40,10 +40,9 @@
     </div>
   </div>
 <script>
-const url = "{% url 'apps:get_logs' project.slug %}"
+const url = "{% url 'apps:logs' project.slug instance.app.slug instance.pk %}"
 const csrftoken = getCookie('csrftoken');
-const app = JSON.parse("{{ app.id |escapejs }}")
-const body = {"app" : app, "container": '{{app.parameters.appname}}'}
+const body = {}
 let table = new DataTable('#logs', {
   ajax: {
     url: url,
@@ -107,7 +106,7 @@ const updateContainer = (container) => {
 </script>
 <script>
 {
-  const apps = JSON.parse("{{ app.pk |escapejs }}")
+  const apps = JSON.parse("{{ instance.pk |escapejs }}")
   const body = new FormData()
   body.append("apps", apps)
 
