@@ -7,10 +7,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
 
-from apps.constants import SLUG_MODEL_FORM_MAP
+from apps.constants import APP_REGISTRY
 from apps.helpers import create_instance_from_form
-from apps.models import Apps
-from projects.models import Environment, Flavor, Project, ProjectTemplate
+from projects.models import Flavor, Project, ProjectTemplate
 from projects.tasks import create_resources_from_template
 from studio.utils import get_logger
 
@@ -63,12 +62,13 @@ with transaction.atomic():
 
     data = {"name": "Regular user's private app", "flavor": str(flavor.pk), "access": "private", "volume": None}
 
-    model_form_tuple = SLUG_MODEL_FORM_MAP.get(app_slug, None)
-    if not model_form_tuple:
+    if app_slug not in APP_REGISTRY:
         raise ValueError(f"Form class not found for app slug {app_slug}")
 
+    form_class = APP_REGISTRY.get_form_class(app_slug)
+
     # Create form
-    form = model_form_tuple.Form(data, project_pk=project.pk)
+    form = form_class(data, project_pk=project.pk)
 
     if form.is_valid():
         # now create app

@@ -23,17 +23,18 @@ from apps.models import (
     VSCodeInstance,
 )
 from apps.types_.app_types import ModelFormTuple
+from apps.types_.app_registry import AppRegistry
 
-SLUG_MODEL_FORM_MAP = {
-    "jupyter-lab": ModelFormTuple(JupyterInstance, JupyterForm),
-    "rstudio": ModelFormTuple(RStudioInstance, RStudioForm),
-    "vscode": ModelFormTuple(VSCodeInstance, VSCodeForm),
-    "volumeK8s": ModelFormTuple(VolumeInstance, VolumeForm),
-    "netpolicy": ModelFormTuple(NetpolicyInstance, NetpolicyForm),
-    "dashapp": ModelFormTuple(DashInstance, DashForm),
-    "customapp": ModelFormTuple(CustomAppInstance, CustomAppForm),
-    "shinyapp": ModelFormTuple(ShinyInstance, ShinyForm),
-    "shinyproxyapp": ModelFormTuple(ShinyInstance, ShinyForm),
-    "tissuumaps": ModelFormTuple(TissuumapsInstance, TissuumapsForm),
-    "filemanager": ModelFormTuple(FilemanagerInstance, FilemanagerForm),
-}
+
+APP_REGISTRY = AppRegistry()
+APP_REGISTRY.register("jupyter-lab", ModelFormTuple(JupyterInstance, JupyterForm))
+APP_REGISTRY.register("rstudio", ModelFormTuple(RStudioInstance, RStudioForm))
+APP_REGISTRY.register("vscode", ModelFormTuple(VSCodeInstance, VSCodeForm))
+APP_REGISTRY.register("volumeK8s", ModelFormTuple(VolumeInstance, VolumeForm))
+APP_REGISTRY.register("netpolicy", ModelFormTuple(NetpolicyInstance, NetpolicyForm))
+APP_REGISTRY.register("dashapp", ModelFormTuple(DashInstance, DashForm))
+APP_REGISTRY.register("customapp", ModelFormTuple(CustomAppInstance, CustomAppForm))
+APP_REGISTRY.register("shinyapp", ModelFormTuple(ShinyInstance, ShinyForm))
+APP_REGISTRY.register("shinyproxyapp", ModelFormTuple(ShinyInstance, ShinyForm))
+APP_REGISTRY.register("tissuumaps", ModelFormTuple(TissuumapsInstance, TissuumapsForm))
+APP_REGISTRY.register("filemanager", ModelFormTuple(FilemanagerInstance, FilemanagerForm))

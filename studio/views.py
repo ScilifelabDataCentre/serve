@@ -1,4 +1,3 @@
-import json
 from typing import Any, Callable, cast
 
 import requests
@@ -9,13 +8,11 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from django.db.models import Q
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, reverse
-from django.utils import timezone
 from rest_framework.authentication import (
-    BasicAuthentication,
     SessionAuthentication,
     TokenAuthentication,
 )
@@ -23,13 +20,12 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.constants import SLUG_MODEL_FORM_MAP
+from apps.constants import APP_REGISTRY
 from apps.models import BaseAppInstance, Subdomain
 from common.models import UserProfile
 from models.models import Model
 from projects.models import Project
 from studio.utils import get_logger
-
 from .helpers import do_delete_account
 
 logger = get_logger(__name__)
@@ -82,7 +78,7 @@ class AccessPermission(BasePermission):
             project = Project.objects.get(slug=project_slug)
             return cast(bool, request.user.has_perm("can_view_project", project))
 
-        model_class = SLUG_MODEL_FORM_MAP.get(instance.app.slug, (None, None))[0]
+        model_class = APP_REGISTRY.get_orm_model(instance.app.slug)
         if model_class is None:
             return False
         instance = getattr(instance, model_class.__name__.lower())

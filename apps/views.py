@@ -8,14 +8,12 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
-from django.utils.dateparse import parse_datetime
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
 
 from studio.utils import get_logger
-
-from .constants import SLUG_MODEL_FORM_MAP
+from .constants import APP_REGISTRY
 from .helpers import create_instance_from_form
 from .models import BaseAppInstance
 from .tasks import delete_resource
@@ -23,7 +21,7 @@ from .tasks import delete_resource
 logger = get_logger(__name__)
 
 
-Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
+Project = apps.get_orm_model(app_label=settings.PROJECTS_MODEL)
 
 User = get_user_model()
 
@@ -43,7 +41,7 @@ class GetLogs(View):
     template = "apps/logs.html"
 
     def get_instance(self, app_slug, app_id, post=False):
-        model_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None)).Model
+        model_class = APP_REGISTRY.get_orm_model(app_slug)
         if model_class:
             return model_class.objects.get(pk=app_id)
         else:
@@ -175,7 +173,7 @@ class GetStatusView(View):
 
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
 def delete(request, project, app_slug, app_id):
-    model_class, _ = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
+    model_class = APP_REGISTRY.get_orm_model(app_slug)
     logger.info(f"Deleting app type {model_class} with id {app_id}")
 
     if model_class is None:
@@ -253,7 +251,7 @@ class CreateApp(View):
         )
 
     def get_form(self, request, project, app_slug, app_id):
-        model_class, form_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))
+        model_class, form_class = APP_REGISTRY.get(app_slug)
 
         logger.info(f"Creating app type {model_class}")
         if not model_class or not form_class:

@@ -13,7 +13,7 @@ from .models import Model
 
 logger = get_logger(__name__)
 
-PublicModelObject = apps.get_model(app_label=settings.PUBLICMODELOBJECT_MODEL)
+PublicModelObject = apps.get_orm_model(app_label=settings.PUBLICMODELOBJECT_MODEL)
 
 
 def add_pmo_to_publish(mdl, pmodel):

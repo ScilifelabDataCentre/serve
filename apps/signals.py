@@ -2,10 +2,9 @@ from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
 
-from apps.constants import SLUG_MODEL_FORM_MAP
+from apps.constants import APP_REGISTRY
 from apps.models import BaseAppInstance
 from studio.utils import get_logger
-
 from .tasks import helm_delete
 
 logger = get_logger(__name__)
@@ -48,8 +47,8 @@ def update_permission(sender, instance, created, **kwargs):
             remove_perm("can_access_app", owner, instance)
 
 
-for app_type in SLUG_MODEL_FORM_MAP.values():
-    receiver(post_save, sender=app_type.Model, dispatch_uid=UID)(update_permission)
+for model in APP_REGISTRY.iter_orm_models():
+    receiver(post_save, sender=model, dispatch_uid=UID)(update_permission)
 
     """
     What is going on here?

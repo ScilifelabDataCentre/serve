@@ -5,8 +5,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.exceptions import NotFound
 
-from apps.constants import SLUG_MODEL_FORM_MAP
-from apps.models import Apps, AppStatus, BaseAppInstance
+from apps.constants import APP_REGISTRY
+from apps.models import Apps, AppStatus
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
@@ -28,9 +28,9 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         list_apps = []
 
         # TODO: MAKE SURE THAT THIS IS FILTERED BASED ON ACCESS
-        for model_class, _ in SLUG_MODEL_FORM_MAP.values():
+        for model_class in APP_REGISTRY.iter_orm_models():
             # Loop over all models, and check if they have the access and description field
-            if getattr(model_class, "description", None) and getattr(model_class, "access", None):
+            if hasattr(model_class, "description") and hasattr(model_class, "access"):
                 queryset = (
                     model_class.objects.filter(~Q(app_status__status="Deleted"), access="public")
                     .order_by("-updated_on")[:8]
@@ -54,7 +54,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         logger.info("PublicAppsAPI. Entered retrieve method with pk = %s", pk)
         logger.info("Requested API version %s", self.request.version)
 
-        model_class = SLUG_MODEL_FORM_MAP.get(app_slug, (None, None))[0]
+        model_class = APP_REGISTRY.get_orm_model(app_slug)
 
         if model_class is None:
             logger.error("App slug has no corresponding model class")

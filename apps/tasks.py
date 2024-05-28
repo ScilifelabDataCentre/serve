@@ -152,7 +152,7 @@ def deserialize(serialized_instance):
         pk = serialized_instance["pk"]
         app_label, model_name = model.split(".")
 
-        model_class = apps.get_model(app_label, model_name)
+        model_class = apps.get_orm_model(app_label, model_name)
         instance = model_class.objects.get(pk=pk)
 
         return instance

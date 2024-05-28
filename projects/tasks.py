@@ -1,24 +1,22 @@
 import collections
 import json
-import string
 
 from celery import shared_task
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
-from apps.constants import SLUG_MODEL_FORM_MAP
+from apps.constants import APP_REGISTRY
 from apps.helpers import create_instance_from_form
 from apps.models import BaseAppInstance, VolumeInstance
 from apps.tasks import delete_resource
 from studio.utils import get_logger
-
 from .exceptions import ProjectCreationException
 from .models import Environment, Flavor, Project
 
 logger = get_logger(__name__)
 
-Apps = apps.get_model(app_label=settings.APPS_MODEL)
+Apps = apps.get_orm_model(app_label=settings.APPS_MODEL)
 
 User = get_user_model()
 
@@ -57,7 +55,8 @@ def create_resources_from_template(user, project_slug, template):
     for volume_name, data in volume_dict.items():
         data["name"] = volume_name
         logger.info(f"Creating volume using {data}")
-        form = SLUG_MODEL_FORM_MAP.get("volumeK8s", None).Form(data, project_pk=project.pk)
+        form_class = APP_REGISTRY.get_form_class("volumeK8s")
+        form = form_class(data, project_pk=project.pk)
         if form.is_valid():
             create_instance_from_form(form, project, "volumeK8s")
         else:
@@ -89,7 +88,7 @@ def create_resources_from_template(user, project_slug, template):
             except Flavor.DoesNotExist:
                 raise ProjectCreationException(f"Flavor {data['flavor']} not found")
 
-        model_form_tuple = SLUG_MODEL_FORM_MAP.get(app_slug, None)
+        model_form_tuple = APP_REGISTRY.get(app_slug)
 
         # Check if the model form tuple exists
         if not model_form_tuple:

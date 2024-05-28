@@ -7,10 +7,10 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
 
-from apps.constants import SLUG_MODEL_FORM_MAP
+from apps.constants import APP_REGISTRY
 from apps.helpers import create_instance_from_form
 from apps.models import Apps
-from projects.models import Environment, Flavor, Project, ProjectTemplate
+from projects.models import Flavor, Project, ProjectTemplate
 from projects.tasks import create_resources_from_template
 
 cypress_path = os.path.join(settings.BASE_DIR, "cypress/fixtures")
@@ -61,12 +61,12 @@ with transaction.atomic():
         "image": "some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
     }
-    # now create app
-    model_form_tuple = SLUG_MODEL_FORM_MAP.get(app_slug, None)
 
     # Check if the model form tuple exists
-    if not model_form_tuple:
+    if app_slug not in APP_REGISTRY:
         raise ValueError(f"Form class not found for app slug {app_slug}")
+
+    model_form_tuple = APP_REGISTRY.get(app_slug)
 
     # Create form
     form = model_form_tuple.Form(data, project_pk=project.pk)

@@ -7,3 +7,6 @@ from apps.models import BaseAppInstance
 class ModelFormTuple(NamedTuple):
     Model: Type[BaseAppInstance]
     Form: Type[BaseForm]
+
+
+OptionalModelFormTuple = ModelFormTuple | (None, None)

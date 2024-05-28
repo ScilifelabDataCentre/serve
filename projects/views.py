@@ -30,9 +30,9 @@ from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
 from .tasks import create_resources_from_template, delete_project
 
 logger = logging.getLogger(__name__)
-Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
-AppCategories = apps.get_model(app_label=django_settings.APPCATEGORIES_MODEL)
-Model = apps.get_model(app_label=django_settings.MODELS_MODEL)
+Apps = apps.get_orm_model(app_label=django_settings.APPS_MODEL)
+AppCategories = apps.get_orm_model(app_label=django_settings.APPCATEGORIES_MODEL)
+Model = apps.get_orm_model(app_label=django_settings.MODELS_MODEL)
 User = get_user_model()
 
 

@@ -13,9 +13,9 @@ from .models import NewsObject
 logger = get_logger(__name__)
 
 
-Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
-PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
-Collection = apps.get_model(app_label="portal.Collection")
+Project = apps.get_orm_model(app_label=settings.PROJECTS_MODEL)
+PublishedModel = apps.get_orm_model(app_label=settings.PUBLISHEDMODEL_MODEL)
+Collection = apps.get_orm_model(app_label="portal.Collection")
 
 
 # TODO minor refactor
