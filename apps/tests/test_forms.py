@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.template import Context, Template
 from django.test import TestCase
 
 from apps.forms import CustomAppForm
@@ -12,17 +13,16 @@ test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
 
 class BaseAppFormTest(TestCase):
     def setUp(self):
-        # Create instances of RelatedModel
         self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
-        self.app = Apps.objects.create(name="Serve App", slug="serve-app")
+        self.app = Apps.objects.create(name="Custom App", slug="customapp")
         self.volume = VolumeInstance.objects.create(
             name="project-vol",
             app=self.app,
             owner=self.user,
             project=self.project,
             size=1,
-            subdomain=Subdomain.objects.create(subdomain="subdomain"),
+            subdomain=Subdomain.objects.create(subdomain="subdomain", project=self.project),
             app_status=AppStatus.objects.create(status="Created"),
         )
         self.flavor = Flavor.objects.create(name="flavor", project=self.project)
@@ -143,3 +143,52 @@ class CustomAppFormTest(BaseAppFormTest):
         valid_data["note_on_linkonly_privacy"] = "A reason"
         form = CustomAppForm(valid_data, project_pk=self.project.pk)
         self.assertTrue(form.is_valid())
+
+
+class CustomAppFormRenderingTest(BaseAppFormTest):
+    def setUp(self):
+        super().setUp()
+        self.valid_data = {
+            "name": "Valid Name",
+            "description": "A valid description",
+            "subdomain": "valid-subdomain",
+            "volume": self.volume,
+            "path": "/home/user",
+            "flavor": self.flavor,
+            "access": "public",
+            "source_code_url": "http://example.com",
+            "note_on_linkonly_privacy": None,
+            "port": 8000,
+            "image": "ghcr.io/scilifelabdatacentre/image:tag",
+            "tags": ["tag1", "tag2", "tag3"],
+        }
+
+    def test_form_rendering(self):
+        valid_data = self.valid_data.copy()
+        form = CustomAppForm(valid_data, project_pk=self.project.pk)
+
+        template = Template("{% load crispy_forms_tags %}{% crispy form %}")
+        context = Context({"form": form})
+        rendered_form = template.render(context)
+        for key, value in valid_data.items():
+            if key == "tags":
+                value = "".join(tag for tag in key)
+            if key == "volume":
+                value = self.volume.name
+            if key == "flavor":
+                value = self.flavor.name
+            if key == "port":
+                value = str(value)
+            if value is None:
+                continue
+
+            self.assertIn(value, rendered_form)
+            self.assertIn(f'name="{key}"', rendered_form)
+            self.assertIn(f'id="id_{key}"', rendered_form)
+
+        self.assertIn('name="access"', rendered_form)
+        self.assertIn('id="id_access"', rendered_form)
+        self.assertIn('value="project"', rendered_form)
+        self.assertIn('value="private"', rendered_form)
+        self.assertIn('value="link"', rendered_form)
+        self.assertIn('value="public"', rendered_form)
