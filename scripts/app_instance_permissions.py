@@ -12,7 +12,7 @@ def run(*args):
         for app_instance in app_instances_all:
             owner = app_instance.owner
             
-            if getattr(app_instance, "access", "private"):
+            if getattr(app_instance, "access", False) == "private":
                 if not owner.has_perm("can_access_app", app_instance):
                     assign_perm("can_access_app", owner, app_instance)
             else:
