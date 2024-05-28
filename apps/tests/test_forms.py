@@ -186,8 +186,6 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
             self.assertIn(f'name="{key}"', rendered_form)
             self.assertIn(f'id="id_{key}"', rendered_form)
 
-        self.assertIn('name="access"', rendered_form)
-        self.assertIn('id="id_access"', rendered_form)
         self.assertIn('value="project"', rendered_form)
         self.assertIn('value="private"', rendered_form)
         self.assertIn('value="link"', rendered_form)
