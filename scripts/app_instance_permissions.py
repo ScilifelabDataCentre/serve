@@ -11,7 +11,7 @@ def run(*args):
         app_instances_all = subclass.objects.all()
         for app_instance in app_instances_all:
             owner = app_instance.owner
-            
+
             if getattr(app_instance, "access", False) == "private":
                 if not owner.has_perm("can_access_app", app_instance):
                     assign_perm("can_access_app", owner, app_instance)
