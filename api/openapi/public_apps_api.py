@@ -42,6 +42,9 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
             app["app_type"] = Apps.objects.get(id=app["app_id"]).name
             app["app_status"] = AppStatus.objects.get(pk=app["app_status"]).status
 
+            # Add the previous url key located at app.table_field.url to support clients using the previous schema
+            app["table_field"] = {"url": app["url"]}
+
         data = {"data": list_apps}
         logger.info("LIST: %s", data)
         return JsonResponse(data)
