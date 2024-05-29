@@ -11,12 +11,13 @@ from apps.helpers import create_instance_from_form
 from apps.models import BaseAppInstance, VolumeInstance
 from apps.tasks import delete_resource
 from studio.utils import get_logger
+
 from .exceptions import ProjectCreationException
 from .models import Environment, Flavor, Project
 
 logger = get_logger(__name__)
 
-Apps = apps.get_orm_model(app_label=settings.APPS_MODEL)
+Apps = apps.get_model(app_label=settings.APPS_MODEL)
 
 User = get_user_model()
 

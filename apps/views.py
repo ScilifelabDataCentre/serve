@@ -12,16 +12,15 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
 
+from projects.models import Project
 from studio.utils import get_logger
+
 from .constants import APP_REGISTRY
 from .helpers import create_instance_from_form
 from .models import BaseAppInstance
 from .tasks import delete_resource
 
 logger = get_logger(__name__)
-
-
-Project = apps.get_orm_model(app_label=settings.PROJECTS_MODEL)
 
 User = get_user_model()
 

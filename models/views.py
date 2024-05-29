@@ -26,14 +26,14 @@ from .models import Metadata, Model, ModelLog, ObjectType
 new_data = defaultdict(list)  # type: ignore
 logger = logging.getLogger(__name__)
 
-Apps = apps.get_orm_model(app_label=settings.APPS_MODEL)
-BaseAppInstance = apps.get_orm_model(app_label="apps.BaseAppInstance")
+Apps = apps.get_model(app_label=settings.APPS_MODEL)
+BaseAppInstance = apps.get_model(app_label="apps.BaseAppInstance")
 
-Project = apps.get_orm_model(app_label=settings.PROJECTS_MODEL)
-ProjectLog = apps.get_orm_model(app_label=settings.PROJECTLOG_MODEL)
-Environment = apps.get_orm_model(app_label=settings.ENVIRONMENT_MODEL)
+Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
+ProjectLog = apps.get_model(app_label=settings.PROJECTLOG_MODEL)
+Environment = apps.get_model(app_label=settings.ENVIRONMENT_MODEL)
 
-PublishedModel = apps.get_orm_model(app_label=settings.PUBLISHEDMODEL_MODEL)
+PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
 
 
 class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
