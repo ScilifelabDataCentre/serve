@@ -66,10 +66,10 @@ with transaction.atomic():
     if app_slug not in APP_REGISTRY:
         raise ValueError(f"Form class not found for app slug {app_slug}")
 
-    model_form_tuple = APP_REGISTRY.get(app_slug)
+    form_class = APP_REGISTRY.get_form_class(app_slug)
 
     # Create form
-    form = model_form_tuple.Form(data, project_pk=project.pk)
+    form = form_class(data, project_pk=project.pk)
 
     if form.is_valid():
         # now create app
