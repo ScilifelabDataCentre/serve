@@ -12,10 +12,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, reverse
-from rest_framework.authentication import (
-    SessionAuthentication,
-    TokenAuthentication,
-)
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -26,6 +23,7 @@ from common.models import UserProfile
 from models.models import Model
 from projects.models import Project
 from studio.utils import get_logger
+
 from .helpers import do_delete_account
 
 logger = get_logger(__name__)

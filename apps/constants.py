@@ -22,9 +22,8 @@ from apps.models import (
     VolumeInstance,
     VSCodeInstance,
 )
-from apps.types_.app_types import ModelFormTuple
 from apps.types_.app_registry import AppRegistry
-
+from apps.types_.app_types import ModelFormTuple
 
 APP_REGISTRY = AppRegistry()
 APP_REGISTRY.register("jupyter-lab", ModelFormTuple(JupyterInstance, JupyterForm))
