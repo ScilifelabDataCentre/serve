@@ -1,4 +1,4 @@
-from typing import NamedTuple, Type
+from typing import NamedTuple, Type, Union
 
 from apps.forms import BaseForm
 from apps.models import BaseAppInstance
@@ -9,4 +9,6 @@ class ModelFormTuple(NamedTuple):
     Form: Type[BaseForm]
 
 
-OptionalModelFormTuple = ModelFormTuple | (None, None)
+NoneTuple = tuple[None, None]
+
+OptionalModelFormTuple = Union[ModelFormTuple, NoneTuple]
