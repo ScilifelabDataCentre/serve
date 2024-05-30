@@ -13,6 +13,7 @@ from django.utils import timezone
 from studio.celery import app
 from studio.utils import get_logger
 
+from .constants import APP_REGISTRY
 from .models import BaseAppInstance, FilemanagerInstance
 
 logger = get_logger(__name__)
@@ -31,8 +32,8 @@ def delete_old_objects():
         return timezone.now() - timezone.timedelta(days=threshold)
 
     # Handle deletion of apps in the "Develop" category
-    for subclass in BaseAppInstance.__subclasses__():
-        old_develop_apps = subclass.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
+    for orm_model in APP_REGISTRY.iter_orm_models():
+        old_develop_apps = orm_model.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
 
         for app_ in old_develop_apps:
             delete_resource.delay(app_.pk)

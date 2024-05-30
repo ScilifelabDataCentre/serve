@@ -22,6 +22,7 @@ from django.views import View
 from guardian.decorators import permission_required_or_403
 from guardian.shortcuts import assign_perm, remove_perm
 
+from apps.constants import APP_REGISTRY
 from apps.models import BaseAppInstance
 
 from .exceptions import ProjectCreationException
@@ -470,11 +471,11 @@ class DetailsView(View):
             # Get all subclasses of Base
 
             instances_per_category_list = []
-            for subclass in BaseAppInstance.__subclasses__():
+            for orm_model in APP_REGISTRY.iter_orm_models():
                 # Filter instances of each subclass by project, user and status.
                 # See the get_app_instances_of_project_filter method in base.py
 
-                queryset_per_category = subclass.objects.get_app_instances_of_project(
+                queryset_per_category = orm_model.objects.get_app_instances_of_project(
                     user=request.user, project=project, filter_func=Q(app__category__slug=category.slug)
                 )
 

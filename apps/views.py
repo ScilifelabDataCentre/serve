@@ -31,7 +31,6 @@ def get_status_defs():
     return status_success, status_warning
 
 
-# TODO: This view must be updated to adhere to new logic
 @method_decorator(
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
@@ -144,8 +143,8 @@ class GetStatusView(View):
             arr = body.split(",")
             status_success, status_warning = get_status_defs()
 
-            for model_class in BaseAppInstance.__subclasses__():
-                instances = model_class.objects.filter(pk__in=arr)
+            for orm_model in APP_REGISTRY.iter_orm_models():
+                instances = orm_model.objects.filter(pk__in=arr)
 
                 for instance in instances:
                     status_object = instance.app_status
@@ -211,7 +210,10 @@ class CreateApp(View):
     template_name = "apps/create_view.html"
 
     def get(self, request, project, app_slug, app_id=None):
-        project_slug = project  # TODO CHANGE THIS IN THE TEMPLATES
+        # TODO This is a bit confusing. project is actually project_slug. So it would be better to rename it
+        # Look in studio/urls.py There is <project>. It's being passed from here there
+        # But need to make sure, that that's the only place where it's being passed
+        project_slug = project
         project = Project.objects.get(slug=project_slug)
 
         form = self.get_form(request, project, app_slug, app_id)
@@ -227,7 +229,8 @@ class CreateApp(View):
     def post(self, request, project, app_slug, app_id=None):
         # App id is used when updataing an instance
 
-        project_slug = project  # TODO CHANGE THIS IN THE TEMPLATES
+        # TODO Same as in get method
+        project_slug = project
         project = Project.objects.get(slug=project_slug)
 
         form = self.get_form(request, project, app_slug, app_id)

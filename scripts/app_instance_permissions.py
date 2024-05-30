@@ -1,5 +1,6 @@
 from guardian.shortcuts import assign_perm, remove_perm
 
+from apps.constants import APP_REGISTRY
 from apps.models import BaseAppInstance
 
 
@@ -7,8 +8,8 @@ def run(*args):
     """Reads all AppInstance objects and sets correct permission
     based on owner (user) and the instance access property"""
 
-    for subclass in BaseAppInstance.__subclasses__():
-        app_instances_all = subclass.objects.all()
+    for orm_model in APP_REGISTRY.iter_orm_models():
+        app_instances_all = orm_model.objects.all()
         for app_instance in app_instances_all:
             owner = app_instance.owner
 

@@ -173,8 +173,8 @@ def delete_project(project_pk):
 
 @shared_task
 def delete_project_apps(project):
-    for subclass in BaseAppInstance.__subclasses__():
-        queryset = subclass.objects.filter(project=project)
+    for orm_model in APP_REGISTRY.iter_orm_models():
+        queryset = orm_model.objects.filter(project=project)
         for instance in queryset:
             serialized_instance = instance.serialize()
             delete_resource(serialized_instance)
