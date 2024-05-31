@@ -8,7 +8,6 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
-from django.utils.text import slugify
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.authtoken.models import Token
@@ -24,13 +23,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from apps.helpers import (
-    HandleUpdateStatusResponseCode,
-    SubdomainCandidateName,
-    handle_update_status_request,
-)
-from apps.models import AppCategories, Apps, AppStatus, BaseAppInstance, Subdomain
+from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
+from apps.models import AppCategories, Apps, BaseAppInstance
 from apps.tasks import delete_resource
+from apps.types_.subdomain import SubdomainCandidateName
 from models.models import ObjectType
 from portal.models import PublishedModel
 from projects.models import Environment, Flavor, ProjectLog, ProjectTemplate

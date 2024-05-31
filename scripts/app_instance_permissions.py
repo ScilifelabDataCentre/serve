@@ -1,6 +1,6 @@
 from guardian.shortcuts import assign_perm, remove_perm
 
-from apps.constants import APP_REGISTRY
+from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance
 
 

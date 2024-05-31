@@ -6,7 +6,7 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
-from apps.constants import APP_REGISTRY
+from apps.app_registry import APP_REGISTRY
 from apps.helpers import create_instance_from_form
 from apps.models import BaseAppInstance, VolumeInstance
 from apps.tasks import delete_resource

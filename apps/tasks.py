@@ -1,5 +1,4 @@
 import subprocess
-import time
 import uuid
 from datetime import datetime
 
@@ -10,11 +9,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
 
+from apps.app_registry import APP_REGISTRY
 from studio.celery import app
 from studio.utils import get_logger
 
-from .constants import APP_REGISTRY
-from .models import BaseAppInstance, FilemanagerInstance
+from .models import FilemanagerInstance
 
 logger = get_logger(__name__)
 

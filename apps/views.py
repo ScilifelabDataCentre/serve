@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import requests
-from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
@@ -15,9 +14,8 @@ from guardian.decorators import permission_required_or_403
 from projects.models import Project
 from studio.utils import get_logger
 
-from .constants import APP_REGISTRY
+from .app_registry import APP_REGISTRY
 from .helpers import create_instance_from_form
-from .models import BaseAppInstance
 from .tasks import delete_resource
 
 logger = get_logger(__name__)

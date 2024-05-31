@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.exceptions import NotFound
 
-from apps.constants import APP_REGISTRY
+from apps.app_registry import APP_REGISTRY
 from apps.models import Apps, AppStatus
 from studio.utils import get_logger
 

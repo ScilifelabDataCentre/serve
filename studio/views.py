@@ -17,7 +17,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.constants import APP_REGISTRY
+from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance, Subdomain
 from common.models import UserProfile
 from models.models import Model

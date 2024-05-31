@@ -1,16 +1,14 @@
 import uuid
-from typing import Any
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Submit
 from django import forms
-from django.core.validators import RegexValidator
 from django.shortcuts import get_object_or_404
-from django.utils.safestring import mark_safe
 
+from apps.constants import HELP_MESSAGE_MAP
 from apps.forms import CustomField
-from apps.helpers import HELP_MESSAGE_MAP, SubdomainCandidateName
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
+from apps.types_.subdomain import SubdomainCandidateName
 from projects.models import Flavor, Project
 
 __all__ = ["BaseForm", "AppBaseForm"]

@@ -2,7 +2,7 @@ from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
 
-from apps.constants import APP_REGISTRY
+from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance
 from studio.utils import get_logger
 

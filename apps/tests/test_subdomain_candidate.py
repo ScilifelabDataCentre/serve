@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 
-from ..helpers import SubdomainCandidateName
+from ..types_.subdomain import SubdomainCandidateName
 
 
 @pytest.mark.django_db

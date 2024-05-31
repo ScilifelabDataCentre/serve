@@ -1,6 +1,6 @@
 from django import template
 
-from apps.constants import APP_REGISTRY
+from apps.app_registry import APP_REGISTRY
 
 register = template.Library()
 

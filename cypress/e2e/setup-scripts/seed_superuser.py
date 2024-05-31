@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
 
-from apps.constants import APP_REGISTRY
+from apps.app_registry import APP_REGISTRY
 from apps.helpers import create_instance_from_form
 from projects.models import Flavor, Project, ProjectTemplate
 from projects.tasks import create_resources_from_template
