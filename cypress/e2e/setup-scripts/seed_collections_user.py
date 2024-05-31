@@ -5,10 +5,12 @@ import os.path
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.db import transaction
 
-from apps.helpers import create_app_instance
+from apps.app_registry import APP_REGISTRY
+from apps.helpers import create_instance_from_form
 from apps.models import Apps
-from projects.models import Environment, Flavor, Project, ProjectTemplate
+from projects.models import Flavor, Project, ProjectTemplate
 from projects.tasks import create_resources_from_template
 
 cypress_path = os.path.join(settings.BASE_DIR, "cypress/fixtures")
@@ -17,36 +19,60 @@ print(f"Now loading the json users file from fixtures path: {cypress_path}")  # 
 with open(os.path.join(cypress_path, "users.json"), "r") as f:
     testdata = json.load(f)
 
-    userdata = testdata["collections_user"]
 
-    username = userdata["username"]
-    email = userdata["email"]
-    pwd = userdata["password"]
+userdata = testdata["collections_user"]
 
+username = userdata["username"]
+email = userdata["email"]
+pwd = userdata["password"]
+
+with transaction.atomic():
     # Create a superuser because that's the one that can currently create collections
     superuser = User.objects.create_superuser(username, email, pwd)
     superuser.save()
 
+    project_template = ProjectTemplate.objects.get(pk=1)
     # Create a project for apps to be included in the collection
     project = Project.objects.create_project(
-        name="e2e-collections-test-proj", owner=superuser, description="e2e-collections-test-proj-desc"
+        name="e2e-collections-test-proj",
+        owner=superuser,
+        description="e2e-collections-test-proj-desc",
+        project_template=project_template,
     )
     project.save()
 
     # Create an app to be included in a collection
     # create resources inside the project
-    project_template = ProjectTemplate.objects.get(pk=1)
+
     create_resources_from_template(superuser.username, project.slug, project_template.template)
     # define variables needed
     app = Apps.objects.filter(slug="dashapp").order_by("-revision").first()
     flavor = Flavor.objects.filter(project=project).first()
-    environment = Environment.objects.filter(project=project).first()
+
+    # define variables needed
+    app_slug = "dashapp"
+
     data = {
-        "app_name": "collection-app-name",
-        "app_description": "collection-app-description",
+        "name": "collection-app-name",
+        "description": "collection-app-description",
         "flavor": str(flavor.pk),
-        "permission": "public",
-        "environment": str(environment.pk),
+        "access": "public",
+        "port": 8000,
+        "image": "some-image",
+        "source_code_url": "https://someurlthatdoesnotexist.com",
     }
-    # now create app
-    create_app_instance(superuser, project, app, app.settings, data=data)
+
+    # Check if the model form tuple exists
+    if app_slug not in APP_REGISTRY:
+        raise ValueError(f"Form class not found for app slug {app_slug}")
+
+    form_class = APP_REGISTRY.get_form_class(app_slug)
+
+    # Create form
+    form = form_class(data, project_pk=project.pk)
+
+    if form.is_valid():
+        # now create app
+        create_instance_from_form(form, project, app_slug)
+    else:
+        raise ValueError(f"Form is invalid: {form.errors.as_data()}")

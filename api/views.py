@@ -5,10 +5,9 @@ from datetime import datetime, timedelta, timezone
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
-from django.http import HttpResponse
-from django.utils.text import slugify
+from django.http import HttpRequest, HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.authtoken.models import Token
@@ -25,19 +24,12 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
-from apps.models import AppCategories, AppInstance, Apps, AppStatus
+from apps.models import AppCategories, Apps, BaseAppInstance
 from apps.tasks import delete_resource
+from apps.types_.subdomain import SubdomainCandidateName
 from models.models import ObjectType
 from portal.models import PublishedModel
-from projects.models import (
-    S3,
-    Environment,
-    Flavor,
-    MLFlow,
-    ProjectLog,
-    ProjectTemplate,
-    ReleaseName,
-)
+from projects.models import Environment, Flavor, ProjectLog, ProjectTemplate
 from projects.tasks import create_resources_from_template, delete_project_apps
 from studio.utils import get_logger
 
@@ -49,7 +41,6 @@ from .serializers import (
     FlavorsSerializer,
     Metadata,
     MetadataSerializer,
-    MLflowSerializer,
     MLModelSerializer,
     Model,
     ModelLog,
@@ -58,8 +49,6 @@ from .serializers import (
     Project,
     ProjectSerializer,
     ProjectTemplateSerializer,
-    ReleaseNameSerializer,
-    S3serializer,
     UserSerializer,
 )
 
@@ -491,7 +480,7 @@ class AppInstanceList(
     filterset_fields = ["id", "name", "app__category"]
 
     def get_queryset(self):
-        return AppInstance.objects.filter(~Q(state="Deleted"), project__pk=self.kwargs["project_pk"])
+        return BaseAppInstance.objects.filter(~Q(state="Deleted"), project__pk=self.kwargs["project_pk"])
 
     def create(self, request, *args, **kwargs):
         project = Project.objects.get(id=self.kwargs["project_pk"])
@@ -584,103 +573,6 @@ class EnvironmentList(
 
     def get_queryset(self):
         return Environment.objects.filter(project__pk=self.kwargs["project_pk"])
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            obj = self.get_object()
-        except Exception as e:
-            logger.error(e, exc_info=True)
-            return HttpResponse("No such object.", status=400)
-        obj.delete()
-        return HttpResponse("Deleted object.", status=200)
-
-
-class S3List(
-    GenericViewSet,
-    CreateModelMixin,
-    RetrieveModelMixin,
-    UpdateModelMixin,
-    ListModelMixin,
-):
-    permission_classes = (
-        IsAuthenticated,
-        ProjectPermission,
-    )
-    serializer_class = S3serializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["id", "name", "host", "region"]
-
-    def get_queryset(self):
-        return S3.objects.filter(project__pk=self.kwargs["project_pk"])
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            obj = self.get_object()
-        except Exception as e:
-            logger.error(e, exc_info=True)
-            return HttpResponse("No such object.", status=400)
-        obj.delete()
-        return HttpResponse("Deleted object.", status=200)
-
-
-class MLflowList(
-    GenericViewSet,
-    CreateModelMixin,
-    RetrieveModelMixin,
-    UpdateModelMixin,
-    ListModelMixin,
-):
-    permission_classes = (
-        IsAuthenticated,
-        ProjectPermission,
-    )
-    serializer_class = MLflowSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["id", "name"]
-
-    def get_queryset(self):
-        return MLFlow.objects.filter(project__pk=self.kwargs["project_pk"])
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            obj = self.get_object()
-        except Exception as e:
-            logger.error(e, exc_info=True)
-            return HttpResponse("No such object.", status=400)
-        obj.delete()
-        return HttpResponse("Deleted object.", status=200)
-
-
-class ReleaseNameList(
-    GenericViewSet,
-    CreateModelMixin,
-    RetrieveModelMixin,
-    UpdateModelMixin,
-    ListModelMixin,
-):
-    permission_classes = (
-        IsAuthenticated,
-        ProjectPermission,
-    )
-    serializer_class = ReleaseNameSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["id", "name", "project"]
-
-    def get_queryset(self):
-        return ReleaseName.objects.filter(project__pk=self.kwargs["project_pk"])
-
-    def create(self, request, *args, **kwargs):
-        name = slugify(request.data["name"])
-        project = Project.objects.get(id=self.kwargs["project_pk"])
-        if ReleaseName.objects.filter(name=name).exists():
-            if project.status != "archived":
-                logger.info("ReleaseName already in use.")
-                return HttpResponse("Release name already in use.", status=200)
-        status = "active"
-
-        rn = ReleaseName(name=name, status=status, project=project)
-        rn.save()
-        return HttpResponse("Created release name {}.".format(name), status=200)
 
     def destroy(self, request, *args, **kwargs):
         try:
@@ -834,6 +726,85 @@ class ProjectTemplateList(
         return HttpResponse("Created new template: {}.".format(name), status=200)
 
 
+@api_view(["GET"])
+@permission_classes(
+    (
+        # IsAuthenticated,
+    )
+)
+def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
+    """
+    Implementation of the API method at endpoint /api/app-subdomain/validate/
+    Supports the GET verb.
+
+    The service contract for the GET action is as follows:
+    :param str subdomainText: The subdomain text to validate.
+    :returns: An http status code and dict containing {"isValid": bool, "message": str}
+
+    Example request: /api/app-subdomain/validate/?subdomainText=my-subdomain
+    """
+    subdomain_text = request.GET.get("subdomainText")
+
+    if subdomain_text is None:
+        return Response("Invalid input. Must pass in argument subdomainText.", 400)
+
+    # First validate for valid name
+    subdomain_candidate = SubdomainCandidateName(subdomain_text)
+
+    try:
+        subdomain_candidate.validate_subdomain()
+    except ValidationError as e:
+        return Response({"isValid": False, "message": e.message})
+
+    # Only check if the subdomain is available if the name is a valid subdomain name
+    msg = None
+
+    try:
+        is_valid = subdomain_candidate.is_available()
+        if not is_valid:
+            msg = "The subdomain is not available"
+    except Exception as e:
+        logger.warn(f"Unable to validate subdomain {subdomain_text}. Error={str(e)}")
+        is_valid = False
+        msg = "The subdomain is not available. There was an error during checking availability of the subdomain."
+
+    return Response({"isValid": is_valid, "message": msg})
+
+
+@api_view(["GET"])
+@permission_classes(
+    (
+        # IsAuthenticated,
+    )
+)
+def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
+    """
+    Implementation of the API method at endpoint /api/app-subdomain/is-available/
+    Supports the GET verb.
+
+    The service contract for the GET action is as follows:
+    :param str subdomainText: The subdomain text to check for availability.
+    :returns: An http status code and dict containing {"isAvailable": bool}
+
+    Example request: /api/app-subdomain/is-available/?subdomainText=my-subdomain
+    """
+    subdomain_text = request.GET.get("subdomainText")
+
+    if subdomain_text is None:
+        return Response("Invalid input. Must pass in argument subdomainText.", 400)
+
+    is_available = False
+
+    try:
+        subdomain_candidate = SubdomainCandidateName(subdomain_text)
+        is_available = subdomain_candidate.is_available()
+    except Exception as e:
+        logger.warn(f"Unable to validate subdomain {subdomain_text}. Error={str(e)}")
+        is_available = False
+
+    return Response({"isAvailable": is_available})
+
+
 @api_view(["GET", "POST"])
 @permission_classes(
     (
@@ -842,13 +813,13 @@ class ProjectTemplateList(
         AdminPermission,
     )
 )
-def update_app_status(request):
+def update_app_status(request: HttpRequest) -> HttpResponse:
     """
     Manages the app instance status.
     Implemented as a DRF function based view.
     Supports GET and POST verbs.
 
-    The service contract for the POST actions is as follows:
+    The service contract for the POST verb is as follows:
     :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
     :param new-status str: The new status code.
     :param event-ts timestamp: A JSON-formatted timestamp, e.g. 2024-01-25T16:02:50.00Z.

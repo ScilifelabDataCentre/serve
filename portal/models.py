@@ -1,9 +1,11 @@
 import random
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from django.utils.text import slugify
 
 
 class PublicModelObject(models.Model):
@@ -20,7 +22,7 @@ class PublishedModel(models.Model):
     pattern = models.CharField(max_length=255, default="")
     updated_on = models.DateTimeField(auto_now=True)
     created_on = models.DateTimeField(auto_now_add=True)
-    collections = models.ManyToManyField("collections_module.Collection", related_name="published_models", blank=True)
+    collections = models.ManyToManyField("portal.Collection", related_name="published_models", blank=True)
 
     @property
     def model_description(self):
@@ -57,3 +59,42 @@ def on_project_save(sender, instance, **kwargs):
             pattern = f"pattern-{randint}"
 
         instance.pattern = pattern
+
+
+class NewsObject(models.Model):
+    created_on = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=60, default="", primary_key=True)
+    body = models.TextField(blank=True, null=True, default="", max_length=2024)
+
+    @property
+    def news_body(self):
+        return self.body
+
+    @property
+    def news_title(self):
+        return self.title
+
+
+class Collection(models.Model):
+    created_on = models.DateTimeField(auto_now_add=True)
+    maintainer = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.CASCADE,
+        related_name="collection_maintainer",
+        null=True,
+    )
+    name = models.CharField(max_length=200, unique=True, default="")
+    description = models.TextField(blank=True, default="", max_length=1000)
+    website = models.URLField(max_length=200, blank=True)
+    logo = models.ImageField(upload_to="collections/logos/", null=True, blank=True)
+    slug = models.SlugField(unique=True, blank=True)
+    zenodo_community_id = models.CharField(max_length=200, null=True, blank=True)
+    # repositories source would be another field
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super(Collection, self).save(*args, **kwargs)

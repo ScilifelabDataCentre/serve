@@ -1,0 +1,6 @@
+{% extends "breadcrumbs/breadcrumb_base.html" %}
+
+{% block breadcrumb_content %}
+    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Create a new project</li>
+{% endblock %}

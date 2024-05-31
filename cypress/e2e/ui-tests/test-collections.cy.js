@@ -50,7 +50,7 @@ describe("Test collections functionality", () => {
         cy.get('li.success').should('contain', "was added successfully") // confirm collection was created
 
         cy.log("Adding an app to the collection")
-        cy.get('tr.model-appinstance').find('a').first().click()
+        cy.get('tr.model-dashinstance').find('a').first().click()
         cy.get('tr').find('a').contains(collection_app_name).click()
         cy.get('#id_collections').select(collection_name)
         cy.get('input[name=_save]').click()

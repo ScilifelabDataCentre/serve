@@ -5,7 +5,7 @@ from django.test import Client, TestCase
 
 from projects.models import Project
 
-from ..models import AppCategories, AppInstance, Apps
+from ..models import AppCategories, Apps, AppStatus, JupyterInstance, Subdomain
 
 User = get_user_model()
 
@@ -21,33 +21,20 @@ class DeleteAppViewTestCase(TestCase):
             slug="jupyter-lab",
             user_can_delete=False,
             category=self.category,
-            settings={
-                "apps": {"Persistent Volume": "many"},
-                "flavor": "one",
-                "default_values": {"port": "80", "targetport": "8888"},
-                "environment": {
-                    "name": "from",
-                    "title": "Image",
-                    "quantity": "one",
-                    "type": "match",
-                },
-                "permissions": {
-                    "public": {"value": "false", "option": "false"},
-                    "project": {"value": "true", "option": "true"},
-                    "private": {"value": "false", "option": "true"},
-                },
-                "export-cli": "True",
-            },
         )
 
         self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
 
-        self.app_instance = AppInstance.objects.create(
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        app_status = AppStatus.objects.create(status="Created")
+        self.app_instance = JupyterInstance.objects.create(
             access="public",
             owner=self.user,
             name="test_app_instance_public",
             app=self.app,
             project=self.project,
+            subdomain=subdomain,
+            app_status=app_status,
         )
 
     def get_data(self, user=None):
@@ -65,7 +52,7 @@ class DeleteAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        url = f"/projects/{self.project.slug}/apps/delete/" + f"{self.category.slug}/{self.app_instance.id}"
+        url = f"/projects/{self.project.slug}/apps/delete/" + f"{self.app_instance.app.slug}/{self.app_instance.id}"
 
         response = c.get(url)
 
@@ -83,13 +70,13 @@ class DeleteAppViewTestCase(TestCase):
         self.app.save()
 
         with patch("apps.tasks.delete_resource.delay") as mock_task:
-            url = f"/projects/{self.project.slug}/apps/delete/" + f"{self.category.slug}/{self.app_instance.id}"
+            url = f"/projects/{self.project.slug}/apps/delete/" + f"{self.app_instance.app.slug}/{self.app_instance.id}"
 
             response = c.get(url)
 
             self.assertEqual(response.status_code, 302)
 
-            self.app_instance = AppInstance.objects.get(name="test_app_instance_public")
+            self.app_instance = JupyterInstance.objects.get(name="test_app_instance_public")
 
             self.assertEqual("private", self.app_instance.access)
 

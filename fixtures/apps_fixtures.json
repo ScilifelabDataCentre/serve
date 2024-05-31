@@ -2,47 +2,12 @@
   {
     "fields": {
       "category": "develop",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/lab:1.0.0",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/lab:1.0.1",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
       "logo": "jupyter-lab-logo.svg",
       "name": "Jupyter Lab",
       "priority": "500",
-      "settings": {
-        "apps": {
-          "Persistent Volume": "many"
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "8888"
-        },
-        "environment": {
-          "name": "from",
-          "quantity": "one",
-          "title": "Image",
-          "type": "match"
-        },
-        "export-cli": "True",
-        "flavor": "one",
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "false",
-            "value": "false"
-          },
-          "link": {
-            "option": "false",
-            "value": "false"
-          }
-        }
-      },
       "slug": "jupyter-lab",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
@@ -61,33 +26,6 @@
       "logo": "filemanager-logo.svg",
       "name": "File Manager",
       "priority": "200",
-      "settings": {
-        "apps": {
-          "Persistent Volume": "one"
-        },
-        "default_values": {
-          "port": "8080",
-          "targetport": "8080"
-        },
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "false",
-            "value": "false"
-          },
-          "link": {
-            "option": "false",
-            "value": "false"
-          }
-        }
-      },
       "slug": "filemanager",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
@@ -325,47 +263,6 @@
       "description": "",
       "name": "Persistent Volume",
       "priority": "600",
-      "settings": {
-        "default_values": {
-          "port": "port",
-          "targetport": "targetport"
-        },
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "false",
-            "value": "false"
-          },
-          "link": {
-            "option": "false",
-            "value": "false"
-          }
-        },
-        "volume": {
-          "accessModes": {
-            "default": "ReadWriteMany",
-            "title": "AccessModes",
-            "type": "string"
-          },
-          "size": {
-            "default": "1Gi",
-            "title": "Size",
-            "type": "string"
-          },
-          "storageClass": {
-            "default": "",
-            "title": "StorageClass",
-            "type": "string"
-          }
-        }
-      },
       "slug": "volumeK8s",
       "table_field": {},
       "updated_on": "2021-03-10T19:45:03.927Z"
@@ -381,35 +278,6 @@
       "description": "",
       "logo": "vscode-logo.svg",
       "name": "VS Code",
-      "settings": {
-        "apps": {
-          "Persistent Volume": "many"
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "8080"
-        },
-        "export-cli": "True",
-        "flavor": "one",
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "false",
-            "value": "false"
-          },
-          "link": {
-            "option": "false",
-            "value": "false"
-          }
-        }
-      },
       "slug": "vscode",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
@@ -449,63 +317,6 @@
       "logo": "default-logo.svg",
       "name": "Custom App",
       "priority": "400",
-      "settings": {
-        "appconfig": {
-          "image": {
-            "default": "registry/repository/image:tag",
-            "title": "Image",
-            "type": "string"
-          },
-          "meta": {
-            "title": "Docker image configurations"
-          },
-          "path": {
-            "default": "",
-            "title": "Path to folder for persistent storage (leave blank if Persistent Volume is set to None)",
-            "type": "string"
-          },
-          "port": {
-            "default": "8000",
-            "title": "Port",
-            "type": "number"
-          },
-          "userid": {
-            "default": "1000",
-            "title": "User ID",
-            "type": "number"
-          }
-        },
-        "apps": {
-          "Persistent Volume": "one"
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "8000"
-        },
-        "flavor": "one",
-        "logs": [
-          "serve"
-        ],
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "true",
-            "value": "false"
-          },
-          "link": {
-            "option": "true",
-            "value": "false"
-          }
-        },
-        "publishable": "true"
-      },
       "slug": "customapp",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
@@ -524,34 +335,6 @@
       "logo": "rstudio-logo.svg",
       "name": "RStudio",
       "priority": "600",
-      "settings": {
-        "apps": {
-          "Persistent Volume": "many"
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "8787"
-        },
-        "flavor": "one",
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "false",
-            "value": "false"
-          },
-          "link": {
-            "option": "false",
-            "value": "false"
-          }
-        }
-      },
       "slug": "rstudio",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
@@ -570,50 +353,6 @@
       "logo": "dashapp-logo.svg",
       "name": "Dash App",
       "priority": "400",
-      "settings": {
-        "appconfig": {
-          "image": {
-            "default": "registry/repository/image:tag",
-            "title": "Image",
-            "type": "string"
-          },
-          "meta": {
-            "title": "Docker image onfigurations"
-          },
-          "port": {
-            "default": "8000",
-            "title": "Port",
-            "type": "number"
-          }
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "8000"
-        },
-        "flavor": "one",
-        "logs": [
-          "serve"
-        ],
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "true",
-            "value": "false"
-          },
-          "link": {
-            "option": "true",
-            "value": "false"
-          }
-        },
-        "publishable": "true"
-      },
       "slug": "dashapp",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
@@ -626,56 +365,12 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyapp:1.0.1",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyapp:1.0.2",
       "created_on": "2023-08-25T21:34:37.815Z",
-      "description": "Shiny app without ShinyProxy as a middle layer. [admins only]",
+      "description": "",
       "logo": "shinyapp-logo.svg",
-      "name": "Shiny App (single copy)",
+      "name": "Shiny App",
       "priority": "400",
-      "settings": {
-        "appconfig": {
-          "image": {
-            "default": "registry/repository/image:tag",
-            "title": "Image",
-            "type": "string"
-          },
-          "meta": {
-            "title": "Docker image configurations"
-          },
-          "port": {
-            "default": "3838",
-            "title": "Port",
-            "type": "number"
-          }
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "3838"
-        },
-        "flavor": "one",
-        "logs": [
-          "serve"
-        ],
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "true",
-            "value": "false"
-          },
-          "link": {
-            "option": "true",
-            "value": "false"
-          }
-        },
-        "publishable": "true"
-      },
       "slug": "shinyapp",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
@@ -688,71 +383,12 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.1.0",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.0.0",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "shinyapp-logo.svg",
-      "name": "Shiny App",
+      "name": "ShinyProxy App",
       "priority": "400",
-      "settings": {
-        "appconfig": {
-          "image": {
-            "default": "registry/repository/image:tag",
-            "title": "Image",
-            "type": "string"
-          },
-          "meta": {
-            "title": "Docker image configurations"
-          },
-          "port": {
-            "default": "3838",
-            "title": "Port",
-            "type": "number"
-          },
-          "proxyheartbeatrate": {
-            "default": "10000",
-            "title": "Proxy heartbeat rate",
-            "type": "number"
-          },
-          "proxyheartbeattimeout": {
-            "default": "60000",
-            "title": "Proxy heartbeat timeout",
-            "type": "number"
-          },
-          "proxycontainerwaittime": {
-            "default": "30000",
-            "title": "Proxy container wait time",
-            "type": "number"
-          }
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "3838"
-        },
-        "flavor": "one",
-        "logs": [
-          "serve"
-        ],
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "true",
-            "value": "false"
-          },
-          "link": {
-            "option": "true",
-            "value": "false"
-          }
-        },
-        "publishable": "true"
-      },
       "slug": "shinyproxyapp",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
@@ -833,52 +469,6 @@
   },
   {
     "fields": {
-      "category": "admin-apps",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/filemanager:1.0.2",
-      "created_on": "2023-02-19T21:34:37.815Z",
-      "description": "",
-      "logo": "filemanager-logo.svg",
-      "name": "File Manager Admin",
-      "priority": "200",
-      "settings": {
-        "apps": {
-          "Persistent Volume": "one"
-        },
-        "default_values": {
-          "port": "8080",
-          "targetport": "8080"
-        },
-        "flavor": "one",
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "false"
-          },
-          "project": {
-            "option": "true",
-            "value": "true"
-          },
-          "public": {
-            "option": "false",
-            "value": "false"
-          },
-          "link": {
-            "option": "true",
-            "value": "false"
-          }
-        }
-      },
-      "slug": "filemanager-admin",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
-      },
-      "updated_on": "2023-03-10T19:45:03.927Z"
-    },
-    "model": "apps.apps",
-    "pk": 27
-  },
-  {
-    "fields": {
       "category": "serve",
       "chart": "ghcr.io/scilifelabdatacentre/serve-charts/tissuumaps:1.0.1",
       "created_on": "2023-08-25T21:34:37.815Z",
@@ -886,38 +476,6 @@
       "logo": "tissuumaps-logo.svg",
       "name": "TissUUmaps App",
       "priority": "400",
-      "settings": {
-        "apps": {
-          "Persistent Volume": "one"
-        },
-        "default_values": {
-          "port": "80",
-          "targetport": "80"
-        },
-        "flavor": "one",
-        "logs": [
-          "serve"
-        ],
-        "permissions": {
-          "private": {
-            "option": "true",
-            "value": "true"
-          },
-          "project": {
-            "option": "true",
-            "value": "false"
-          },
-          "public": {
-            "option": "true",
-            "value": "false"
-          },
-          "link": {
-            "option": "true",
-            "value": "false"
-          }
-        },
-        "publishable": "true"
-      },
       "slug": "tissuumaps",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"

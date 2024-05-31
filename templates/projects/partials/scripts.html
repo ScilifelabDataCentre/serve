@@ -1,0 +1,118 @@
+{% if project.status == "active" %}
+
+    <script>
+            function revealCredential(id) {
+              var credential = document.getElementById(id);
+              if (credential.type === "password") {
+                credential.type = "text";
+
+            // Remove the tooltip after 2 seconds
+                setTimeout(function() {
+                    credential.type = "password";
+                }, 8000);
+
+              } else {
+                credential.type = "password";
+              }
+            }
+
+
+        {
+            const apps = JSON.parse("{{ app_ids|escapejs }}")
+            const body = new FormData()
+            body.append("apps", apps)
+
+            const url = "{% url 'apps:get_status' project.slug %}"
+            const csrftoken = getCookie('csrftoken');
+
+            const updateStatus = async () => {
+
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    },
+                    body
+                })
+
+                const json = await response.json()
+
+                for (const key in json) {
+                    if (Object.hasOwnProperty.call(json, key)) {
+                        console.log(key)
+                        const { status, statusGroup } = json[key]
+                        const querySelector = `#status-${key}`
+                        const elements = document.querySelectorAll(querySelector);
+
+                        elements.forEach(element => {
+                            const className = `badge bg-${statusGroup}`;
+                            element.className = className;
+                            element.innerText = status;
+                        });
+                    }
+                }
+            }
+
+            const loop = async () => {
+
+                if ((apps?.length ?? 0) > 0) {
+
+                    await updateStatus()
+
+                    setTimeout(() => {
+                        loop()
+                    }, 5000)
+                }
+            }
+
+            loop()
+        }
+    </script>
+</div>
+{% else %}
+
+    <div class="row">
+        <div class="col d-flex justify-content-center">
+
+            {% include 'common/loader.html' %}
+        </div>
+    </div>
+
+    <script>
+        {
+
+            const url = "{% url 'projects:get_status' project.slug %}"
+            const csrftoken = getCookie('csrftoken');
+
+            const getStatus = async () => {
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    }
+                })
+
+                const json = await response.json()
+
+                if (json.status !== "created") {
+                    window.location.reload()
+                }
+            }
+
+            const loop = async () => {
+
+                await getStatus()
+
+                setTimeout(() => {
+                    loop()
+                }, 2000)
+            }
+
+            loop()
+
+        }
+    </script>
+
+{% endif %}

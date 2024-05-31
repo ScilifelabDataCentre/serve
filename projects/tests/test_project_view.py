@@ -82,33 +82,3 @@ class FrobiddenProjectViewTestCase(TestCase):
         )
         self.assertTemplateUsed(response, "403.html")
         self.assertEqual(response.status_code, 403)
-
-    def test_forbidden_project_setS3storage(self):
-        """
-        Test non-project member not allowed to access project setS3storage
-        """
-        self.client.login(username=test_member["email"], password=test_member["password"])
-        project = Project.objects.get(name="test-perm")
-        response = self.client.get(
-            reverse(
-                "projects:set_s3storage",
-                kwargs={"project_slug": project.slug},
-            )
-        )
-        self.assertTemplateUsed(response, "403.html")
-        self.assertEqual(response.status_code, 403)
-
-    def test_forbidden_project_setmlflow(self):
-        """
-        Test non-project member not allowed to access project setmlflow
-        """
-        self.client.login(username=test_member["email"], password=test_member["password"])
-        project = Project.objects.get(name="test-perm")
-        response = self.client.get(
-            reverse(
-                "projects:set_mlflow",
-                kwargs={"project_slug": project.slug},
-            )
-        )
-        self.assertTemplateUsed(response, "403.html")
-        self.assertEqual(response.status_code, 403)

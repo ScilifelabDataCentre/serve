@@ -3,12 +3,7 @@
 {% block title %}New project{% endblock %}
 {% block content %}
 
-<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Create a new project</li>
-    </ol>
-</nav>
+{% include "breadcrumbs/bc_project_create.html" %}
 
 <div class="row">
     <div class="col">

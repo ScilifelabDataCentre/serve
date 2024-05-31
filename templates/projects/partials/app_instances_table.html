@@ -1,0 +1,114 @@
+{% load static %}
+
+<table id=""
+    class="table table-hover my-0 no-footer table-bordered" role="grid">
+    <thead>
+        <tr>
+            <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1"></th>
+            <th tabindex="0" rowspan="1" colspan="1">Type</th>
+            <th tabindex="0" rowspan="1" colspan="1">Name</th>
+            <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Created</th>
+            <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
+            <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Tags</th>
+            <th tabindex="0" rowspan="1" colspan="1">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for instance in objs.instances %}
+        <tr class="odd">
+
+            {% static 'images/logos/apps/' as static_url %}
+            <td><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
+                    alt="App Logo" style="max-height:25px;"></td>
+            <td class="d-none d-xxl-table-cell ">{{ instance.app.name }}</td>
+            {% if instance.url %}
+            <td class="sorting_1">
+                {% if "Serv" in instance.app.name or instance.app.name == "Python Model Deployment" %}
+                    <a onclick="copyClip('{{instance.table_field.url}}')">
+                        {{ instance.name }}
+                        <!-- Want to use bi-copy but it is not working. Instead, using the full svg code -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-copy" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
+                        </svg>
+                    </a>
+                {% else %}
+                <a href="{{ instance.url }}" target="_blank">
+                    {{ instance.name }} <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+                {% endif %}
+            </td>
+            {% else %}
+            <td class="sorting_1">{{ instance.name }}</td>
+            {% endif %}
+            <td class="d-none d-xxl-table-cell">{{ instance.created_on | date:"d/n/y H:i" }}</td>
+            <td>
+                <span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}">
+                    {{ instance.app_status.status }}
+                </span>
+                {% if instance.access %}
+                    {% if instance.access == 'public' %}
+                    <span class="badge bg-success">
+                        {{ instance.access }}
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">
+                        {{ instance.access }}
+                    </span>
+                    {% endif %}
+                {% endif %}
+            </td>
+            <td class="d-none d-xxl-table-cell" id="tags-{{ instance.pk }}">
+                {% for tag in instance.tags.all %}
+                <span class="badge bg-primary">{{ tag.name }}</span>
+                {% endfor %}
+            </td>
+
+            <td class="table-action text-center">
+                <div class="dropdown show">
+                    <a href="#" class="default" data-bs-toggle="dropdown" data-display="static">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        {% if objs.title == "Serve" %}
+                        <a class="dropdown-item default"
+                            href="{% url 'apps:logs' project.slug instance.app.slug instance.pk %}?from=overview">
+                            <i class="bi bi-activity me-1"></i>
+                            Logs
+                        </a>
+                        {% endif %}
+                        {% if instance.app.user_can_edit %}
+
+                        <a class="dropdown-item default"
+                            href="{% url 'apps:appsettings' project.slug instance.app.slug instance.pk %}?from=overview">
+                            <i class="bi bi-sliders2-vertical me-1"></i>
+                            Settings
+                        </a>
+                        {% else %}
+
+                        <a class="dropdown-item default disabled">
+                            <i class="bi bi-sliders2-vertical me-1"></i>
+                            Settings
+                        </a>
+                        {% endif %}
+
+                        {% if instance.app.user_can_delete %}
+
+                        <a class="dropdown-item bg-danger text-white confirm-delete default"
+                            href="{% url 'apps:delete' project.slug instance.app.slug instance.pk %}?from=overview">
+                            <i class="bi bi-trash me-1"></i>
+                            Delete
+                        </a>
+                        {% else %}
+
+                        <a class="dropdown-item bg-danger text-white confirm-delete default disabled">
+                            <i class="bi bi-trash me-1"></i>
+                            Delete
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

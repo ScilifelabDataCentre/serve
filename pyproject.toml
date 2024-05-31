@@ -28,6 +28,7 @@ django-tagulous = "==1.3.3"
 django-guardian = "==2.4.0"
 djangorestframework = "== 3.15.1"
 django-crispy-forms = "==2.1"
+crispy-bootstrap5 = "==2024.2"
 
 # django-wiki
 wiki = "==0.11.1"
@@ -109,7 +110,7 @@ python_version = "3.12"
 disallow_subclassing_any = false
 ignore_missing_imports = false
 warn_return_any = true
-untyped_calls_exclude = ["apps.helpers","projects.models"]
+untyped_calls_exclude = ["projects.models"]  # ["apps.helpers","projects.models"]
 exclude = ["venv", ".venv", "examples"]
 #plugins = ["mypy_django_plugin.main"]
 
@@ -137,7 +138,7 @@ module = [
 	"*.tests.*",
 	"*.tests",
 	"conftest",
-	"cypress.*"
+	#"cypress.*"
 ]
 check_untyped_defs = false
 disallow_incomplete_defs = false
@@ -148,6 +149,16 @@ disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = "*.migrations.*"
+ignore_errors = true
+
+# A temporary section to ease the transition of mypy into the codebase
+[[tool.mypy.overrides]]
+module = [
+	"apps.*",
+	"cypress.*",
+	"cypress/e2e/setup-scripts/seed_collections_user"
+]
+strict = false
 ignore_errors = true
 
 # A temporary section to ease the transition of mypy into the codebase
@@ -178,6 +189,7 @@ no_implicit_reexport = false
 module = [
 	"boto3.*",
 	"colorlog.*",
+	"crispy_forms.*",
 	"django.*",
 	"django_structlog.*",
 	"rest_framework.*",

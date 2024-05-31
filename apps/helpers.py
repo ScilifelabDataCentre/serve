@@ -1,75 +1,22 @@
-import re
-import time
-import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from django.apps import apps
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.template import engines
 
-from projects.models import Flavor
 from studio.utils import get_logger
 
-from .models import AppInstance, AppStatus
-from .serialize import serialize_app
-from .tasks import deploy_resource
+from .models import Apps, AppStatus, BaseAppInstance, Subdomain
 
 logger = get_logger(__name__)
 
-ReleaseName = apps.get_model(app_label=settings.RELEASENAME_MODEL)
 
-
-def create_instance_params(instance, action="create"):
-    logger.info("HELPER - CREATING INSTANCE PARAMS")
-    RELEASE_NAME = "r" + uuid.uuid4().hex[0:8]
-    logger.info("RELEASE_NAME: " + RELEASE_NAME)
-
-    SERVICE_NAME = RELEASE_NAME + "-" + instance.app.slug
-    # TODO: Fix for multicluster setup, look at e.g. labs
-    HOST = settings.DOMAIN
-    AUTH_HOST = settings.AUTH_DOMAIN
-    AUTH_PROTOCOL = settings.AUTH_PROTOCOL
-    NAMESPACE = settings.NAMESPACE
-
-    # Add some generic parameters.
-    parameters = {
-        "release": RELEASE_NAME,
-        "chart": str(instance.app.chart),
-        "namespace": NAMESPACE,
-        "app_slug": str(instance.app.slug),
-        "app_revision": str(instance.app.revision),
-        "appname": RELEASE_NAME,
-        "global": {
-            "domain": HOST,
-            "auth_domain": AUTH_HOST,
-            "protocol": AUTH_PROTOCOL,
-        },
-        "s3sync": {"image": "scaleoutsystems/s3-sync:latest"},
-        "service": {
-            "name": SERVICE_NAME,
-            "port": instance.parameters["default_values"]["port"],
-            "targetport": instance.parameters["default_values"]["targetport"],
-        },
-        "storageClass": settings.STORAGECLASS,
-    }
-
-    instance.parameters.update(parameters)
-
-    if "project" not in instance.parameters:
-        instance.parameters["project"] = dict()
-
-    instance.parameters["project"].update({"name": instance.project.name, "slug": instance.project.slug})
-
-
-def can_access_app_instance(app_instance, user, project):
+def can_access_app_instance(instance, user, project):
     """Checks if a user has access to an app instance
 
     Args:
-        app_instance (AppInstance): app instance object
+        instance (subclass of BaseAppInstance): instance object
         user (User): user object
         project (Project): project object
 
@@ -78,32 +25,32 @@ def can_access_app_instance(app_instance, user, project):
     """
     authorized = False
 
-    if app_instance.access in ("public", "link"):
+    if instance.access in ("public", "link"):
         authorized = True
-    elif app_instance.access == "project":
+    elif instance.access == "project":
         if user.has_perm("can_view_project", project):
             authorized = True
     else:
-        if user.has_perm("can_access_app", app_instance):
+        if user.has_perm("can_access_app", instance):
             authorized = True
 
     return authorized
 
 
-def can_access_app_instances(app_instances, user, project):
+def can_access_app_instances(instances, user, project):
     """Checks if user has access to all app instances provided
 
     Args:
-        app_instances (Queryset<AppInstace>): list of app instances
+        instances (Queryset<BaseAppInstance>): list of instances
         user (User): user object
         project (Project): project object
 
     Returns:
         Boolean: returns False if user lacks
-        permission to any of the app instances provided
+        permission to any of the instances provided
     """
-    for app_instance in app_instances:
-        authorized = can_access_app_instance(app_instance, user, project)
+    for instance in instances:
+        authorized = can_access_app_instance(instance, user, project)
 
         if not authorized:
             return False
@@ -135,113 +82,6 @@ def handle_permissions(parameters, project):
     return access
 
 
-# TODO: refactor
-# 1. data=[]. This is bad as this is not a list, but a dict and secondly,
-#    it is not a good practice to use mutable as default
-# 2. Use some type annotations
-# 3. Use tuple as return type instead of list
-def create_app_instance(user, project, app, app_settings, data=[], wait=False):
-    app_name = data.get("app_name")
-    app_description = data.get("app_description")
-    created_by_admin = False
-    # For custom apps, if admin user fills form, then data.get("admin") exists as hidden input
-    if data.get("created_by_admin"):
-        created_by_admin = True
-    parameters_out, app_deps, model_deps = serialize_app(data, project, app_settings, user.username)
-    parameters_out["created_by_admin"] = created_by_admin
-    authorized = can_access_app_instances(app_deps, user, project)
-
-    if not authorized:
-        raise Exception("Not authorized to use specified app dependency")
-
-    access = handle_permissions(parameters_out, project)
-
-    flavor_id = data.get("flavor", None)
-    flavor = Flavor.objects.get(pk=flavor_id, project=project) if flavor_id else None
-
-    source_code_url = data.get("source_code_url")
-    app_instance = AppInstance(
-        name=app_name,
-        description=app_description,
-        access=access,
-        app=app,
-        project=project,
-        info={},
-        parameters=parameters_out,
-        owner=user,
-        flavor=flavor,
-        note_on_linkonly_privacy=data.get("link_privacy_type_note"),
-        source_code_url=source_code_url,
-    )
-
-    create_instance_params(app_instance, "create")
-
-    # Attempt to create a ReleaseName model object
-    rel_name_obj = []
-    if "app_release_name" in data and data.get("app_release_name") != "":
-        submitted_rn = data.get("app_release_name")
-        try:
-            rel_name_obj = ReleaseName.objects.get(name=submitted_rn, project=project, status="active")
-            rel_name_obj.status = "in-use"
-            rel_name_obj.save()
-            app_instance.parameters["release"] = submitted_rn
-        except Exception:
-            logger.error("Submitted release name not owned by project.", exc_info=True)
-            return [False, None, None]
-
-    # Add fields for apps table:
-    # to be displayed as app details in views
-    if app_instance.app.table_field and app_instance.app.table_field != "":
-        django_engine = engines["django"]
-        info_field = django_engine.from_string(app_instance.app.table_field).render(app_instance.parameters)
-        # Nikita Churikov @ 2024-01-25
-        # TODO: this seems super bad and exploitable
-        app_instance.table_field = eval(info_field)
-    else:
-        app_instance.table_field = {}
-
-    # Setting status fields before saving app instance
-    status = AppStatus(appinstance=app_instance)
-    status.status_type = "Created"
-    status.info = app_instance.parameters["release"]
-    if "appconfig" in app_instance.parameters:
-        if "path" in app_instance.parameters["appconfig"]:
-            # remove trailing / in all cases
-            if app_instance.parameters["appconfig"]["path"] != "/":
-                app_instance.parameters["appconfig"]["path"] = app_instance.parameters["appconfig"]["path"].rstrip("/")
-            if app_deps:
-                if not created_by_admin:
-                    app_instance.parameters["appconfig"]["path"] = (
-                        "/home/" + app_instance.parameters["appconfig"]["path"]
-                    )
-        if "userid" not in app_instance.parameters["appconfig"]:
-            app_instance.parameters["appconfig"]["userid"] = "1000"
-        if "proxyheartbeatrate" not in app_instance.parameters["appconfig"]:
-            app_instance.parameters["appconfig"]["proxyheartbeatrate"] = "10000"
-        if "proxyheartbeattimeout" not in app_instance.parameters["appconfig"]:
-            app_instance.parameters["appconfig"]["proxyheartbeattimeout"] = "60000"
-        if "proxycontainerwaittime" not in app_instance.parameters["appconfig"]:
-            app_instance.parameters["appconfig"]["proxycontainerwaittime"] = "30000"
-    app_instance.save()
-    # Saving ReleaseName, status and setting up dependencies
-    if rel_name_obj:
-        rel_name_obj.app = app_instance
-        rel_name_obj.save()
-    status.save()
-    app_instance.app_dependencies.set(app_deps)
-    app_instance.model_dependencies.set(model_deps)
-
-    # Finally, attempting to create apps resources
-    res = deploy_resource.delay(app_instance.pk, "create")
-
-    # wait is passed as a function parameter
-    if wait:
-        while not res.ready():
-            time.sleep(0.1)
-
-    return [True, project.slug, app_instance.app.category.slug]
-
-
 class HandleUpdateStatusResponseCode(Enum):
     NO_ACTION = 0
     UPDATED_STATUS = 1
@@ -256,7 +96,7 @@ def handle_update_status_request(
     Helper function to handle update app status requests by determining if the
     request should be performed or ignored.
 
-    :param release str: The release id of the app instance, stored in the AppInstance.parameters dict.
+    :param release str: The release id of the app instance, stored in the AppInstance.k8s_values dict in the subdomain.
     :param new_status str: The new status code. Trimmed to max 15 chars if needed.
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
@@ -272,27 +112,27 @@ def handle_update_status_request(
         # We wrap the select and update tasks in a select_for_update lock
         # to avoid race conditions.
 
+        subdomain = Subdomain.objects.get(subdomain=release)
+
         with transaction.atomic():
-            app_instance = (
-                AppInstance.objects.select_for_update().filter(parameters__contains={"release": release}).last()
-            )
-            if app_instance is None:
+            instance = BaseAppInstance.objects.select_for_update().filter(subdomain=subdomain).last()
+            if instance is None:
                 logger.info("The specified app instance was not found release=%s.", release)
                 raise ObjectDoesNotExist
 
-            logger.debug("The app instance exists. name=%s, state=%s", app_instance.name, app_instance.state)
+            logger.debug("The app instance exists. name=%s", instance.name)
 
             # Also get the latest app status object for this app instance
-            if app_instance.status is None or app_instance.status.count() == 0:
+            if instance.app_status is None:
                 # Missing app status so create one now
                 logger.info("AppInstance %s does not have an associated AppStatus. Creating one now.", release)
-                status_object = AppStatus(appinstance=app_instance)
-                update_status(app_instance, status_object, new_status, event_ts, event_msg)
+                app_status = AppStatus.objects.create()
+                update_status(instance, app_status, new_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
             else:
-                app_status = app_instance.status.latest()
+                app_status = instance.app_status
 
-            logger.debug("AppStatus %s, %s, %s.", app_status.status_type, app_status.time, app_status.info)
+            logger.debug("AppStatus %s, %s, %s.", app_status.status, app_status.time, app_status.info)
 
             # Now determine whether to update the state and status
 
@@ -308,7 +148,7 @@ def handle_update_status_request(
 
             # The event is newer than the existing persisted object
 
-            if new_status == app_instance.state:
+            if new_status == instance.app_status.status:
                 # The same status. Simply update the time.
                 logger.debug("The same status. Simply update the time.")
                 update_status_time(app_status, event_ts, event_msg)
@@ -316,8 +156,8 @@ def handle_update_status_request(
 
             # Different status and newer time
             logger.debug("Different status and newer time.")
-            status_object = AppStatus(appinstance=app_instance)
-            update_status(app_instance, status_object, new_status, event_ts, event_msg)
+            status_object = instance.app_status
+            update_status(instance, status_object, new_status, event_ts, event_msg)
             return HandleUpdateStatusResponseCode.UPDATED_STATUS
 
     except Exception as err:
@@ -331,7 +171,7 @@ def update_status(appinstance, status_object, status, status_ts=None, event_msg=
     Helper function to update the status of an appinstance and a status object.
     """
     # Persist a new app statuss object
-    status_object.status_type = status
+    status_object.status = status
     status_object.time = status_ts
     status_object.info = event_msg
     status_object.save()
@@ -346,8 +186,8 @@ def update_status(appinstance, status_object, status, status_ts=None, event_msg=
         status_object.save(update_fields=["time", "info"])
 
     # Update the app instance object
-    appinstance.state = status
-    appinstance.save(update_fields=["state"])
+    appinstance.app_status = status_object
+    appinstance.save(update_fields=["app_status"])
 
 
 @transaction.atomic
@@ -362,3 +202,111 @@ def update_status_time(status_object, status_ts, event_msg=None):
     else:
         status_object.info = event_msg
         status_object.save(update_fields=["time", "info"])
+
+
+def get_URI(values):
+    URI = "https://" + values["subdomain"] + "." + values["global"]["domain"]
+
+    URI = URI.strip("/")
+    return URI
+
+
+@transaction.atomic
+def create_instance_from_form(form, project, app_slug, app_id=None):
+    """
+    Create or update an instance from a form. This function handles both the creation of new instances
+    and the updating of existing ones based on the presence of an app_id.
+
+    Parameters:
+    - form: The form instance containing validated data.
+    - project: The project to which this instance belongs.
+    - app_slug: Slug of the app associated with this instance.
+    - app_id: Optional ID of an existing instance to update. If None, a new instance is created.
+
+    Returns:
+    - The newly created or updated instance.
+
+    Raises:
+    - ValueError: If the form does not have a 'subdomain' or if the specified app cannot be found.
+    """
+    from .tasks import deploy_resource
+
+    subdomain_name = get_subdomain_name(form)
+
+    instance = form.save(commit=False)
+
+    # Handle status creation or retrieval
+    status = get_or_create_status(instance, app_id)
+
+    # Retrieve or create the subdomain
+    subdomain, created = Subdomain.objects.get_or_create(subdomain=subdomain_name, project=project)
+
+    if app_id:
+        handle_subdomain_change(instance, subdomain, subdomain_name)
+
+    app_slug = handle_shiny_proxy_case(instance, app_slug, app_id)
+
+    app = get_app(app_slug)
+
+    setup_instance(instance, subdomain, app, project, status)
+    save_instance_and_related_data(instance, form)
+
+    deploy_resource.delay(instance.serialize())
+
+
+def get_subdomain_name(form):
+    subdomain_name = form.cleaned_data.get("subdomain")
+    if not subdomain_name:
+        raise ValueError("Subdomain is required")
+    return subdomain_name
+
+
+def get_or_create_status(instance, app_id):
+    return instance.app_status if app_id else AppStatus.objects.create()
+
+
+def handle_subdomain_change(instance, subdomain, subdomain_name):
+    from .tasks import delete_resource
+
+    if instance.subdomain.subdomain != subdomain_name:
+        # In this special case, we avoid async task.
+        delete_resource(instance.serialize())
+        old_subdomain = instance.subdomain
+        instance.subdomain = subdomain
+        instance.save(update_fields=["subdomain"])
+        if old_subdomain:
+            old_subdomain.delete()
+
+
+def handle_shiny_proxy_case(instance, app_slug, app_id):
+    conditions = {("shinyapp", True): "shinyproxyapp", ("shinyproxyapp", False): "shinyapp"}
+
+    proxy_status = getattr(instance, "proxy", False)
+    new_slug = conditions.get((app_slug, proxy_status), app_slug)
+
+    return new_slug
+
+
+def get_app(app_slug):
+    try:
+        return Apps.objects.get(slug=app_slug)
+    except Apps.DoesNotExist:
+        logger.error("App with slug %s not found during instance creation", app_slug)
+        raise ValueError(f"App with slug {app_slug} not found")
+
+
+def setup_instance(instance, subdomain, app, project, status):
+    instance.subdomain = subdomain
+    instance.app = app
+    instance.chart = instance.app.chart
+    instance.project = project
+    instance.owner = project.owner
+    instance.app_status = status
+
+
+def save_instance_and_related_data(instance, form):
+    instance.save()
+    form.save_m2m()
+    instance.set_k8s_values()
+    instance.url = get_URI(instance.k8s_values)
+    instance.save(update_fields=["k8s_values", "url"])

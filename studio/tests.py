@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from guardian.shortcuts import assign_perm, remove_perm
 
-from apps.models import AppInstance, Apps
+from apps.models import Apps, AppStatus, JupyterInstance, Subdomain
 from common.models import EmailVerificationTable, UserProfile
 from projects.models import Project
 from scripts.app_instance_permissions import run
@@ -21,12 +21,16 @@ class AppInstancePermissionScriptTestCase(TestCase):
         project = Project.objects.create_project(name="test-perm", owner=user, description="")
         app = Apps.objects.create(name="FEDn Combiner")
 
-        app_instance = AppInstance.objects.create(
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        app_status = AppStatus.objects.create(status="Created")
+        app_instance = JupyterInstance.objects.create(
             access=access,
             owner=user,
             name="test_app_instance_private",
             app=app,
             project=project,
+            subdomain=subdomain,
+            app_status=app_status,
         )
 
         return [project, app, app_instance]

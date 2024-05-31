@@ -3,7 +3,7 @@ from django.test import Client, TestCase
 
 from projects.models import Project
 
-from ..models import AppCategories, AppInstance, Apps
+from ..models import AppCategories, Apps, AppStatus, JupyterInstance, Subdomain
 
 User = get_user_model()
 
@@ -23,15 +23,16 @@ class GetStatusViewTestCase(TestCase):
 
         self.project = Project.objects.create_project(name="test-perm-get_status", owner=self.user, description="")
 
-        self.app_instance = AppInstance.objects.create(
+        subdomain = Subdomain.objects.create(subdomain="test_internal")
+        app_status = AppStatus.objects.create(status="Created")
+        self.app_instance = JupyterInstance.objects.create(
             access="public",
             owner=self.user,
             name="test_app_instance_public",
             app=self.app,
             project=self.project,
-            parameters={
-                "environment": {"pk": ""},
-            },
+            subdomain=subdomain,
+            app_status=app_status,
         )
 
     def test_user_has_access(self):

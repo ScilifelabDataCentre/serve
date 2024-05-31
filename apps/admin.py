@@ -1,11 +1,39 @@
+import time
+
 from django.contrib import admin, messages
+from django.db.models.query import QuerySet
 
 from studio.utils import get_logger
 
-from .models import AppCategories, AppInstance, Apps, AppStatus, ResourceData
-from .tasks import deploy_resource
+from .helpers import get_URI
+from .models import (
+    AppCategories,
+    Apps,
+    AppStatus,
+    BaseAppInstance,
+    CustomAppInstance,
+    DashInstance,
+    FilemanagerInstance,
+    JupyterInstance,
+    NetpolicyInstance,
+    RStudioInstance,
+    ShinyInstance,
+    Subdomain,
+    TissuumapsInstance,
+    VolumeInstance,
+    VSCodeInstance,
+)
+from .tasks import delete_resource, deploy_resource
 
 logger = get_logger(__name__)
+
+
+class AppStatusAdmin(admin.ModelAdmin):
+    list_display = (
+        "status",
+        "time",
+    )
+    list_filter = ["status", "time"]
 
 
 class AppsAdmin(admin.ModelAdmin):
@@ -22,87 +50,185 @@ class AppsAdmin(admin.ModelAdmin):
 admin.site.register(Apps, AppsAdmin)
 
 
-class AppInstanceAdmin(admin.ModelAdmin):
-    list_display = ("name", "display_owner", "display_project", "state", "access", "app", "display_chart")
+class BaseAppAdmin(admin.ModelAdmin):
+    list_display = ("name", "display_owner", "display_project", "display_status", "display_subdomain", "chart")
 
-    list_filter = ["owner", "project", "state"]
-    actions = ["redeploy_apps", "update_chart"]
+    list_filter = ["owner", "project", "app_status__status", "chart"]
+    actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
+
+    def display_status(self, obj):
+        status_object = obj.app_status
+        if status_object:
+            return status_object.status
+        else:
+            "No status"
+
+    display_status.short_description = "Status"
+
+    def display_subdomain(self, obj):
+        subdomain_object = obj.subdomain
+        if subdomain_object:
+            return subdomain_object.subdomain
+        else:
+            "No Subdomain"
+
+    display_subdomain.short_description = "Subdomain"
 
     def display_owner(self, obj):
         return obj.owner.username
 
+    display_owner.short_description = "Owner"
+
     def display_project(self, obj):
         return obj.project.name
 
-    def display_chart(self, obj):
-        return obj.parameters.get("chart", "No chart")
+    display_project.short_description = "Project"
 
-    @admin.action(description="Redeploy apps")
-    def redeploy_apps(self, request, queryset):
+    def display_volumes(self, obj):
+        if obj.volume is None:
+            return "No Volumes"
+        elif isinstance(obj.volume, QuerySet):
+            return [volume.name for volume in obj.volume.all()]
+        else:
+            return obj.volume.name
+
+    display_volumes.short_description = "Volumes"
+
+    @admin.action(description="(Re)deploy resources")
+    def deploy_resources(self, request, queryset):
         success_count = 0
         failure_count = 0
 
-        for appinstance in queryset:
-            result = deploy_resource(appinstance.pk)
-            if result.returncode == 0:
-                success_count += 1
+        for instance in queryset:
+            instance.set_k8s_values()
+            instance.url = get_URI(instance.k8s_values)
+            instance.save(update_fields=["k8s_values", "url"])
+
+            deploy_resource.delay(instance.serialize())
+            time.sleep(2)
+            info_dict = instance.info
+            if info_dict:
+                success = info_dict["helm"].get("success", False)
+                if success:
+                    success_count += 1
+                else:
+                    failure_count += 1
             else:
                 failure_count += 1
 
         if success_count:
-            self.message_user(request, f"{success_count} apps successfully redeployed.", messages.SUCCESS)
+            self.message_user(request, f"{success_count} apps successfully (re)deployed.", messages.SUCCESS)
         if failure_count:
             self.message_user(
                 request, f"Failed to redeploy {failure_count} apps. Check logs for details.", messages.ERROR
             )
 
-    @admin.action(description="Update helm chart definition in parameters")
-    def update_chart(self, request, queryset):
+    @admin.action(description="Delete resources")
+    def delete_resources(self, request, queryset):
         success_count = 0
         failure_count = 0
-        for appinstance in queryset:
-            # First, update charts for the app
-            try:
-                parameters = appinstance.parameters
-                app = Apps.objects.get(slug=parameters["app_slug"])
-                parameters.update({"chart": app.chart})
 
-                # Secondly, update charts for the dependencies
-                app_deps = parameters.get("apps")
-                # Loop through the outer dictionary
-                for app_key, app_dict in app_deps.items():
-                    # Loop through each project in the projects dictionary
-                    for key, details in app_dict.items():
-                        slug = details["slug"]
-                        app = Apps.objects.get(slug=slug)
-                        # Update the chart value
-                        details["chart"] = app.chart
-                        app_deps[app_key][key] = details
-                parameters.update({"apps": app_deps})
-                appinstance.save(update_fields=["parameters"])
-                success_count += 1
-            except Exception as e:
-                logger.error(f"Failed to update app {appinstance.name}. Error: {e}")
+        for instance in queryset:
+            instance.set_k8s_values()
+            delete_resource.delay(instance.serialize())
+            info_dict = instance.info
+            if info_dict:
+                success = info_dict["helm"].get("success", False)
+                if success:
+                    success_count += 1
+                else:
+                    failure_count += 1
+            else:
                 failure_count += 1
+
         if success_count:
-            self.message_user(request, f"{success_count} apps successfully updated.", messages.SUCCESS)
+            self.message_user(request, f"{success_count} apps successfully deleted.", messages.SUCCESS)
         if failure_count:
             self.message_user(
-                request, f"Failed to update {failure_count} apps. Check logs for details.", messages.ERROR
+                request, f"Failed to delete {failure_count} apps. Check logs for details.", messages.ERROR
             )
 
 
-class AppStatusAdmin(admin.ModelAdmin):
-    list_display = (
-        "appinstance",
-        "status_type",
-        "time",
+@admin.register(BaseAppInstance)
+class BaseAppInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("display_subclass",)
+
+    def display_subclass(self, obj):
+        subclasses = BaseAppInstance.__subclasses__()
+        for subclass in subclasses:
+            app_type = getattr(obj, subclass.__name__.lower(), None)
+            if app_type:
+                return app_type.__class__.__name__
+
+    display_subclass.short_description = "Subclass"
+
+
+@admin.register(RStudioInstance)
+class RStudioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("access", "display_volumes")
+
+
+@admin.register(VSCodeInstance)
+class VSCodeInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("access", "display_volumes")
+
+
+@admin.register(JupyterInstance)
+class JupyterInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("access", "display_volumes")
+
+
+@admin.register(VolumeInstance)
+class VolumeInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("display_size",)
+
+    def display_size(self, obj):
+        return f"{str(obj.size)} GB"
+
+    display_size.short_description = "Size"
+
+
+@admin.register(NetpolicyInstance)
+class NetpolicyInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display
+
+
+@admin.register(DashInstance)
+class DashInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("image",)
+
+
+@admin.register(CustomAppInstance)
+class CustomAppInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + (
+        "display_volumes",
+        "image",
+        "port",
+        "user_id",
     )
 
-    list_filter = ["appinstance", "status_type", "time"]
+
+@admin.register(ShinyInstance)
+class ShinyInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + (
+        "image",
+        "port",
+    )
 
 
-admin.site.register(AppInstance, AppInstanceAdmin)
+@admin.register(TissuumapsInstance)
+class TissuumapsInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + ("display_volumes",)
+
+
+@admin.register(FilemanagerInstance)
+class FilemanagerInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + (
+        "display_volumes",
+        "persistent",
+    )
+
+
+admin.site.register(Subdomain)
 admin.site.register(AppCategories)
-admin.site.register(ResourceData)
 admin.site.register(AppStatus, AppStatusAdmin)
