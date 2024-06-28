@@ -290,8 +290,8 @@ describe("Test superuser access", () => {
         // Names of projects to create
         const project_name = "e2e-superuser-proj-limits-test"
 
-        cy.log("Create 5 projects (current limit for regular users)")
-        Cypress._.times(5, () => {
+        cy.log("Create 10 projects (current limit for regular users)")
+        Cypress._.times(10, () => {
             // better to write this out rather than use the createBlankProject command because then we can do a 5000 ms pause only once
             cy.visit("/projects/")
             cy.get("a").contains('New project').click()
@@ -308,10 +308,10 @@ describe("Test superuser access", () => {
         cy.log("Create one more project to check it is possible to bypass the limit")
         cy.createBlankProject(project_name)
         cy.visit("/projects/")
-        cy.get('h5:contains("' + project_name + '")').its('length').should('eq', 6) // check that the superuser now bypassed the limit for regular users
+        cy.get('h5:contains("' + project_name + '")').its('length').should('eq', 11) // check that the superuser now bypassed the limit for regular users
 
         cy.log("Now delete all created projects")
-        Cypress._.times(6, () => {
+        Cypress._.times(11, () => {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
             .then((href) => {
