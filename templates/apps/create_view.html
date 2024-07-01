@@ -8,7 +8,7 @@
     {% elif app_slug in 'shinyapp,shinyproxyapp' %}
     <p>This form allows you to start hosting a Shiny app at SciLifeLab Serve. Please read our <a href="/docs/application-hosting/shiny/">documentation page on Shiny apps</a> for step-by-step instructions.</p>
     {% elif app_slug == 'tissuumaps' %}
-    <p>This form allows you to start hosting your own TissUUmaps instance at SciLifeLab Serve. After your app has been created you will need to upload the data to your project. We suggest that you create the app with Permissions initially set to <i>private</i>, upload the data, and then edit the app settings to change the Permissions to <i>public</i>. Please read our <a href="/docs/application-hosting/tissuumaps/" target="_blank">documentation page on TissUUmaps apps</a> for step-by-step instructions.</p>
+    <p>This form allows you to start hosting your own TissUUmaps instance at SciLifeLab Serve. After your app has been created you will need to upload the data to your project. We suggest that you create the app with Permissions initially set to <i>Private</i>, upload the data, and then edit the app settings to change the Permissions to <i>Public</i>. Please read our <a href="/docs/application-hosting/tissuumaps/" target="_blank">documentation page on TissUUmaps apps</a> for step-by-step instructions.</p>
     {% endif %}
     {% if app_slug in 'jupyter-lab,rstudio,vscode' %}
     <p>Note that <b>after 7 days the created {{ form.model_name }} instance will be deleted</b>, only the files saved in 'project-vol' will stay available.</p>
