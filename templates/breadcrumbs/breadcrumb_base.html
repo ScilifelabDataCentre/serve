@@ -2,7 +2,7 @@
     <ol class="breadcrumb">
         {% if project %}
         <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">My projects</a></li>
-        <li class="breadcrumb-item" aria-current="page">{{ project.name }}</li>
+        <li class="breadcrumb-item" aria-current="page"><a href="{% url 'projects:details' project.slug %}">{{ project.name }}</a></li>
         {% endif %}
         {% block breadcrumb_content%}
         {% endblock %}

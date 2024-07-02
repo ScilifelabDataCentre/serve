@@ -257,8 +257,8 @@ describe("Test project contributor user functionality", () => {
         // Names of projects to create
         const project_name = "e2e-create-proj-test"
 
-        // Create 5 projects (current limit)
-        Cypress._.times(5, () => {
+        // Create 10 projects (current limit)
+        Cypress._.times(10, () => {
             cy.visit("/projects/")
             cy.get("a").contains('New project').click()
             cy.get("a").contains('Create').first().click()
@@ -276,7 +276,7 @@ describe("Test project contributor user functionality", () => {
         cy.request({url: "/projects/templates/", failOnStatusCode: false}).its('status').should('equal', 403)
 
         // Now delete all created projects
-        Cypress._.times(5, () => {
+        Cypress._.times(10, () => {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
             .then((href) => {

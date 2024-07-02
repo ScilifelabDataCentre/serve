@@ -1,7 +1,7 @@
 [
   {
     "fields": {
-      "description": "Use this template if you intend to only deploy apps or use integrated development environments (IDEs).",
+      "description": "Use this template if you intend to deploy apps or ML models packaged into containers, or if you intend to use web-based notebooks.",
       "name": "Default project",
       "slug": "blank",
       "available_apps": [8, 9, 19, 21, 22, 23, 24, 28],
@@ -61,8 +61,8 @@
   },
   {
     "fields": {
-      "description": "Use this template if you intend to deploy machine learning models using the serving functionality.",
-      "name": "Project with ML serving",
+      "description": "This project type allows to deploy machine learning models using the specialized model serving frameworks.",
+      "name": "Project with specialized ML serving",
       "slug": "default",
       "template": {
         "apps": {
