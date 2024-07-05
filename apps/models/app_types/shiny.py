@@ -30,6 +30,9 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     container_waittime = models.IntegerField(default=20000)
     heartbeat_timeout = models.IntegerField(default=60000)
     heartbeat_rate = models.IntegerField(default=10000)
+    minimum_seats_available = models.IntegerField(default=2)
+    seats_per_container = models.IntegerField(default=3)
+    allow_container_reuse = models.BooleanField(default=True)
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
@@ -41,6 +44,9 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
             proxyheartbeatrate=self.heartbeat_rate,
             proxyheartbeattimeout=self.heartbeat_timeout,
             proxycontainerwaittime=self.container_waittime,
+            minimumSeatsAvailable=self.minimum_seats_available,
+            seatsPerContainer=self.seats_per_container,
+            allowContainerReuse=self.allow_container_reuse,
         )
         return k8s_values
 
