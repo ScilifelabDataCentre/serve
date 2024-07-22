@@ -24,7 +24,9 @@ class AppRegistry:
         return self[app_slug][1]
 
     def iter_orm_models(self):
-        for app in self._apps.values():
+        # set() used so shinyproxy and shinyapp are
+        # not duplicated as both share shinyapp instance
+        for app in set(self._apps.values()):
             yield app.Model
 
     def iter_forms(self):
