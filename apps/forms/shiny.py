@@ -13,7 +13,6 @@ class ShinyForm(AppBaseForm):
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     image = forms.CharField(max_length=255, required=True)
 
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
