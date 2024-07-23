@@ -480,8 +480,11 @@ class DetailsView(View):
                 )
 
                 if queryset_per_category:
-                    app_ids += [obj.id for obj in queryset_per_category]
-                    instances_per_category_list.extend([instance for instance in queryset_per_category])
+                    # Added check for app_ids and instances_per_category to avoid duplicates (e.g in case of shinyapps)
+                    app_ids += [obj.id for obj in queryset_per_category if obj.id not in app_ids]
+                    instances_per_category_list.extend(
+                        [instance for instance in queryset_per_category if instance not in instances_per_category_list]
+                    )
 
             # Filter the available apps specified in the project template
             available_apps = [app.pk for app in project.project_template.available_apps.all()]
