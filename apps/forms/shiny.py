@@ -55,8 +55,6 @@ class ShinyForm(AppBaseForm):
         if access == "public" and not source_code_url:
             self.add_error("source_code_url", "Source is required when access is public.")
 
-        subdomain = cleaned_data.get("subdomain")
-
         return cleaned_data
 
     class Meta:
