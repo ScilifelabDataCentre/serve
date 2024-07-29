@@ -480,7 +480,8 @@ class DetailsView(View):
                 )
 
                 if queryset_per_category:
-                    # SS-1071 Added check for app_ids and instances_per_category to avoid duplicates (e.g in case of shinyapps)
+                    # SS-1071 Added check for app_ids and instances_per_category
+                    # to avoid duplicates (e.g in case of shinyapps)
                     app_ids += [obj.id for obj in queryset_per_category if obj.id not in app_ids]
                     instances_per_category_list.extend(
                         [instance for instance in queryset_per_category if instance not in instances_per_category_list]
