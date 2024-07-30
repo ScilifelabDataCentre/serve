@@ -4,14 +4,65 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Submit
 from django import forms
 from django.shortcuts import get_object_or_404
+from django.utils.safestring import mark_safe
 
 from apps.constants import HELP_MESSAGE_MAP
 from apps.forms import CustomField
+from apps.helpers import get_select_options
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName
 from projects.models import Flavor, Project
 
 __all__ = ["BaseForm", "AppBaseForm"]
+
+
+# Custom Widget that adds boostrap-style input group to the subdomain field
+class SubdomainInputGroup(forms.Widget):
+    def __init__(self, base_widget, data, *args, **kwargs):
+        # Initialise widget and get base instance
+        super(SubdomainInputGroup, self).__init__(*args, **kwargs)
+        self.base_widget = base_widget(*args, **kwargs)
+        self.data = data
+
+    def render(self, name, value, attrs=None, renderer=None):
+        # Render base widget and add bootstrap spans
+        return mark_safe(
+            (
+                '<div class="input-group mb-3">'
+                '<button class="btn btn-outline-secondary dropdown-toggle" type="button"'
+                'data-bs-toggle="dropdown" aria-expanded="false">Options</button>'
+                '<ul class="dropdown-menu">'
+                '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
+                '?type=newinput&project_id=%(project_pk)s" hx-target="#id_subdomain" hx-swap="outerHTML"'
+                'onclick="clearSubdomainValidation()">New</a></li>'
+                '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
+                '?type=select&project_id=%(project_pk)s&initial_subdomain=%(initial_subdomain)s"'
+                ' hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()">'
+                "Available</a></li>"
+                '    <li><hr class="dropdown-divider" %(hidden)s></li>'
+                '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
+                '?type=input&project_id=%(project_pk)s&initial_subdomain=%(initial_subdomain)s"'
+                ' hx-target="#id_subdomain" hx-swap="outerHTML" %(hidden)s onclick="clearSubdomainValidation()">'
+                "Current</a></li>"
+                "</ul>"
+                '<select class="form-select" aria-label="List subdomains" name="subdomain" id="id_subdomain"'
+                ' onchange="selectValidation(event)">'
+                "%(subdomain_select_options)s"
+                "</select>"
+                '  <div class="client-validation-feedback order-last" style="display:none;"></div>'
+                '  <div class="input-group-append">'
+                '      <span class="input-group-text" id="basic-addon2" '
+                'style="font-weight: bold;border-radius: 0 .375rem .375rem 0;">.serve.scilifelab.se</span>'
+                "  </div>"
+                "</div>"
+            )
+            % {
+                "project_pk": self.data["project_pk"],
+                "hidden": self.data["hidden"],
+                "initial_subdomain": self.data["initial_subdomain"],
+                "subdomain_select_options": self.data["subdomain_select_options"],
+            }
+        )
 
 
 class BaseForm(forms.ModelForm):
@@ -21,7 +72,7 @@ class BaseForm(forms.ModelForm):
         required=False,
         min_length=3,
         max_length=53,
-        widget=forms.TextInput(attrs={"style": "text-transform:lowercase;"}),
+        widget=SubdomainInputGroup(base_widget=forms.TextInput, data={}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -36,8 +87,26 @@ class BaseForm(forms.ModelForm):
 
     def _setup_form_fields(self):
         # Populate subdomain field with instance subdomain if it exists
+        self.fields["subdomain"].widget.data["project_pk"] = self.project_pk
+        self.fields["subdomain"].widget.data["hidden"] = "hidden"
+        subdomain_select_options = ""
         if self.instance and self.instance.pk:
             self.fields["subdomain"].initial = self.instance.subdomain.subdomain
+            self.fields["subdomain"].widget.data["initial_subdomain"] = self.instance.subdomain.subdomain
+            self.fields["subdomain"].widget.data["hidden"] = ""
+            subdomain_select_options += (
+                '<option value="'
+                + self.instance.subdomain.subdomain
+                + '" selected>'
+                + self.instance.subdomain.subdomain
+                + "</option>"
+            )
+        else:
+            subdomain_select_options += (
+                '<option value="" selected> Choose subdomain or enter a new one using options </option>'
+            )
+        subdomain_select_options += get_select_options(self.project_pk, self.fields["subdomain"].initial)
+        self.fields["subdomain"].widget.data["subdomain_select_options"] = subdomain_select_options
 
         # Handle name
         self.fields["name"].initial = ""

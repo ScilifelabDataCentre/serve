@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
+from django.utils.safestring import mark_safe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.authtoken.models import Token
@@ -23,10 +24,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
+from apps.helpers import (
+    HandleUpdateStatusResponseCode,
+    get_select_options,
+    handle_update_status_request,
+)
 from apps.models import AppCategories, Apps, BaseAppInstance, Subdomain
 from apps.tasks import delete_resource
-from apps.helpers import get_select_options
 from apps.types_.subdomain import SubdomainCandidateName
 from models.models import ObjectType
 from portal.models import PublishedModel
@@ -747,7 +751,6 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
     """
     subdomain_text = request.GET.get("subdomainText")
     app_id = request.GET.get("app_id")
-    print(app_id==None)
     if subdomain_text is None:
         return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
@@ -766,7 +769,7 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
         if app_id != "None" and subdomain_text == BaseAppInstance.objects.get(pk=app_id).subdomain.subdomain:
             is_valid = True
             msg = "The subdomain is already in use by the app."
-        else:   
+        else:
             is_valid = subdomain_candidate.is_available()
             if not is_valid:
                 msg = "The subdomain is not available"
@@ -809,6 +812,57 @@ def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
         is_available = False
 
     return Response({"isAvailable": is_available})
+
+
+@api_view(["GET"])
+@permission_classes(
+    (
+        # IsAuthenticated,
+    )
+)
+def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
+    """
+    Implementation of the API method at endpoint /api/app-subdomain/subdomain-input/
+    Supports the GET verb.
+
+    The service contract for the GET action is as follows:
+    :param str type: The type of element to return (select, input or newinput).
+    :param str project_id: The project id to check for available subdomains in the project.
+    :param str initial_subdomain: The initial subdomain for the app.
+    :returns: An http response with the HTML element.
+
+    Example request: /api/app-subdomain/subdomain-input/?type=select&project_id=project_id
+    &initial_subdomain=initial_subdomain
+    """
+    project_id = request.GET.get("project_id")
+    request_type = request.GET.get("type")
+    initial_subdomain = request.GET.get("initial_subdomain") if request.GET.get("initial_subdomain") else ""
+    if request_type == "select":
+        subdomain_select = (
+            '<select class="form-select" aria-label="List subdomains"'
+            'name="subdomain" id="id_subdomain" onchange="selectValidation(event)">'
+        )
+        if initial_subdomain:
+            subdomain_select += '<option value="' + initial_subdomain + '" selected>' + initial_subdomain + "</option>"
+        else:
+            subdomain_select += '<option value="" selected> Choose subdomain or enter a new one using options </option>'
+        subdomain_select += get_select_options(project_id, initial_subdomain)
+
+        subdomain_select += "</select>"
+
+        response_html = mark_safe(subdomain_select)
+    else:
+        response_html = mark_safe(
+            (
+                '<input type="text" class="form-control" name="subdomain"'
+                'placeholder="Enter a subdomain or leave blank for a random one"'
+                'aria-label="Input Subdomain" aria-describedby="basic-addon2" '
+                'id="id_subdomain" value="%(initial_subdomain)s">'
+            )
+            % {"initial_subdomain": initial_subdomain}
+        )
+
+    return HttpResponse(response_html)
 
 
 @api_view(["GET", "POST"])

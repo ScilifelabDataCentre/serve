@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 
-from apps.models import Subdomain
+from apps.models import BaseAppInstance, Subdomain
 
 
 class SubdomainCandidateName:
@@ -19,7 +19,10 @@ class SubdomainCandidateName:
         if self.__name == "serve":
             # Reserved words
             return False
-        elif Subdomain.objects.filter(subdomain=self.__name).exists():
+        elif (
+            Subdomain.objects.filter(subdomain=self.__name).exists()
+            and BaseAppInstance.objects.filter(subdomain__subdomain=self.__name, app_status__status="Running").exists()
+        ):
             return False
         else:
             return True

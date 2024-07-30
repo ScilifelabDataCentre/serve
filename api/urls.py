@@ -18,6 +18,7 @@ from .views import (
     ProjectList,
     ProjectTemplateList,
     ResourceList,
+    get_subdomain_input_html,
     get_subdomain_is_available,
     get_subdomain_is_valid,
     update_app_status,
@@ -55,4 +56,5 @@ urlpatterns = [
     path("app-status/", update_app_status),
     path("app-subdomain/validate/", get_subdomain_is_valid),
     path("app-subdomain/is-available/", get_subdomain_is_available),
+    path("app-subdomain/subdomain-input/", get_subdomain_input_html, name="get_subdomain_input_html"),
 ]

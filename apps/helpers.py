@@ -12,6 +12,13 @@ from .models import Apps, AppStatus, BaseAppInstance, Subdomain
 logger = get_logger(__name__)
 
 
+def get_select_options(project_pk, selected_option=""):
+    select_options = ""
+    for sub in Subdomain.objects.filter(project=project_pk).values_list("subdomain", flat=True):
+        select_options += "" if sub == selected_option else '<option value="' + sub + '">' + sub + "</option>"
+    return select_options
+
+
 def can_access_app_instance(instance, user, project):
     """Checks if a user has access to an app instance
 
