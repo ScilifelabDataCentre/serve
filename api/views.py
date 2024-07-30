@@ -24,8 +24,9 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
-from apps.models import AppCategories, Apps, BaseAppInstance
+from apps.models import AppCategories, Apps, BaseAppInstance, Subdomain
 from apps.tasks import delete_resource
+from apps.helpers import get_select_options
 from apps.types_.subdomain import SubdomainCandidateName
 from models.models import ObjectType
 from portal.models import PublishedModel
@@ -739,12 +740,14 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
 
     The service contract for the GET action is as follows:
     :param str subdomainText: The subdomain text to validate.
+    :param str app_id: The app id to check if the subdomain is already taken by the app.
     :returns: An http status code and dict containing {"isValid": bool, "message": str}
 
-    Example request: /api/app-subdomain/validate/?subdomainText=my-subdomain
+    Example request: /api/app-subdomain/validate/?subdomainText=my-subdomain&app_id=1
     """
     subdomain_text = request.GET.get("subdomainText")
-
+    app_id = request.GET.get("app_id")
+    print(app_id==None)
     if subdomain_text is None:
         return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
@@ -757,12 +760,16 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
         return Response({"isValid": False, "message": e.message})
 
     # Only check if the subdomain is available if the name is a valid subdomain name
-    msg = None
+    msg = "The subdomain is available"
 
     try:
-        is_valid = subdomain_candidate.is_available()
-        if not is_valid:
-            msg = "The subdomain is not available"
+        if app_id != "None" and subdomain_text == BaseAppInstance.objects.get(pk=app_id).subdomain.subdomain:
+            is_valid = True
+            msg = "The subdomain is already in use by the app."
+        else:   
+            is_valid = subdomain_candidate.is_available()
+            if not is_valid:
+                msg = "The subdomain is not available"
     except Exception as e:
         logger.warn(f"Unable to validate subdomain {subdomain_text}. Error={str(e)}")
         is_valid = False
@@ -789,7 +796,6 @@ def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
     Example request: /api/app-subdomain/is-available/?subdomainText=my-subdomain
     """
     subdomain_text = request.GET.get("subdomainText")
-
     if subdomain_text is None:
         return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
