@@ -115,8 +115,10 @@ class BaseAppInstance(models.Model):
     flavor = models.ForeignKey(Flavor, on_delete=models.RESTRICT, related_name="%(class)s", null=True, blank=True)
     subdomain = models.OneToOneField(
         Subdomain,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="%(class)s",
+        null=True, 
+        blank=True
     )
     app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
 
