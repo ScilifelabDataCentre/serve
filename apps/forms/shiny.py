@@ -37,7 +37,7 @@ class ShinyForm(AppBaseForm):
         body = Div(
             self.get_common_field("name", placeholder="Name your app"),
             self.get_common_field("description", rows="3", placeholder="Provide a detailed description of your app"),
-            self.get_common_field("tags"),
+            Field("tags"),
             Field(
                 "proxy",
             ),
@@ -93,3 +93,6 @@ class ShinyForm(AppBaseForm):
             "image",
             "tags",
         ]
+        labels = {
+            "tags": "Keywords",
+        }

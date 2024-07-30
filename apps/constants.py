@@ -18,5 +18,4 @@ HELP_MESSAGE_MAP = {
         3000-9999.",
     "note_on_linkonly_privacy": "This option can be used only for a limited amount of time, for example while under \
         development or during peer review.",
-    "tags": "Add tags to help categorize your app",
 }
