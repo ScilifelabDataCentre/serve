@@ -98,7 +98,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ matrix.dockerfile }}
-          target: runtime
 
   on-failure:
     runs-on: ubuntu-latest

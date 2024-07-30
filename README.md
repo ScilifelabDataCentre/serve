@@ -94,7 +94,8 @@ $ git checkout develop
 $ cp .env.template .env
 $ cp ~/.kube/config cluster.conf
 $ cp ~/.ssh/id_rsa.pub id_rsa.pub
-$ nerdctl build -t mystudio --target local-runtime .
+$ nerdctl build -t studio .
+$ nerdctl build -t mystudio -f local.Dockerfile .
 ```
 
 Now continue setting up serve charts until you get to the PyCharm setup.
