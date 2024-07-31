@@ -81,7 +81,7 @@ jobs:
         with:
           url: ${{ env.STUDIO_URL }}
           code: 200 # http status code
-          timeout: 120 # seconds
+          timeout: 300 # seconds
           interval: 5 # seconds
         continue-on-error: true
 
