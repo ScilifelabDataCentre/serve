@@ -241,15 +241,16 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
     subdomain_name, user_created = get_subdomain_name(form)
 
-    #print(form)
-    
+    # print(form)
+
     instance = form.save(commit=False)
 
     # Handle status creation or retrieval
     status = get_or_create_status(instance, app_id)
-    print("DUDES: ", user_created)
     # Retrieve or create the subdomain
-    subdomain, created = Subdomain.objects.get_or_create(subdomain=subdomain_name, project=project, user_created=user_created)
+    subdomain, created = Subdomain.objects.get_or_create(
+        subdomain=subdomain_name, project=project, user_created=user_created
+    )
 
     if app_id:
         handle_subdomain_change(instance, subdomain, subdomain_name)
@@ -284,7 +285,7 @@ def handle_subdomain_change(instance, subdomain, subdomain_name):
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])
-        if old_subdomain and old_subdomain.user_created == False:
+        if old_subdomain and old_subdomain.user_created is False:
             old_subdomain.delete()
 
 
