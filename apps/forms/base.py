@@ -72,7 +72,7 @@ class BaseForm(forms.ModelForm):
         required=False,
         min_length=3,
         max_length=53,
-        widget=SubdomainInputGroup(base_widget=forms.TextInput, data={}),
+        widget=SubdomainInputGroup(base_widget=forms.ChoiceField, data={}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -89,6 +89,7 @@ class BaseForm(forms.ModelForm):
         # Populate subdomain field with instance subdomain if it exists
         self.fields["subdomain"].widget.data["project_pk"] = self.project_pk
         self.fields["subdomain"].widget.data["hidden"] = "hidden"
+        self.fields["subdomain"].widget.data["initial_subdomain"] = ""
         subdomain_select_options = ""
         if self.instance and self.instance.pk:
             self.fields["subdomain"].initial = self.instance.subdomain.subdomain
