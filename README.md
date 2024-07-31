@@ -148,7 +148,7 @@ $ sh scripts/run_web.sh
 # Now you are in the studio container
 # Type env
 $ env
-# Copy the whole output in to the pycharm environment configuration 
+# Copy the whole output in to the pycharm environment configuration
 ```
 
 Copy environment variables to the PyCharm Django configuration.
