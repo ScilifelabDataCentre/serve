@@ -157,14 +157,14 @@ class BaseForm(forms.ModelForm):
             if Subdomain.objects.filter(subdomain=subdomain_input).exists():
                 error_message = "Wow, you just won the lottery. Contact us for a free chocolate bar."
                 raise forms.ValidationError(error_message)
-            return subdomain
+            return subdomain, False
 
         # Check if the instance has an existing subdomain
         current_subdomain = getattr(self.instance, "subdomain", None)
 
         # Validate if the subdomain input matches the instance's current subdomain
         if current_subdomain and current_subdomain.subdomain == subdomain_input:
-            return subdomain_input
+            return subdomain_input, current_subdomain.user_created
 
         # Convert the subdomain to lowercase. OK because we force convert to lowecase in the UI.
         subdomain_input = subdomain_input.lower()
@@ -182,7 +182,7 @@ class BaseForm(forms.ModelForm):
             error_message = "Subdomain already exists. Please choose another one."
             raise forms.ValidationError(error_message)
 
-        return subdomain_input
+        return subdomain_input, True
 
     def get_common_field(self, field_name: str, **kwargs):
         """
