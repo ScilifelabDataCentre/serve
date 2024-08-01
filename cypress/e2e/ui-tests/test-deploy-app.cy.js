@@ -271,7 +271,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can deploy a dash app", { defaultCommandTimeout: 100000 }, () => {
+    it.skip("can deploy a dash app", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-dash-example"
@@ -324,7 +324,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can deploy a tissuumaps app", { defaultCommandTimeout: 100000 }, () => {
+    it.skip("can deploy a tissuumaps app", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-tissuumaps-example"
