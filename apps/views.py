@@ -219,8 +219,12 @@ class CreateApp(View):
         if form is None or not getattr(form, "is_valid", False):
             raise PermissionDenied()
 
+        form_header = "Update" if app_id else "Create"
+
         return render(
-            request, self.template_name, {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug}
+            request,
+            self.template_name,
+            {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug, "form_header": form_header},
         )
 
     @transaction.atomic
