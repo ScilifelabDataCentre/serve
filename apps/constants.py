@@ -1,6 +1,7 @@
 HELP_MESSAGE_MAP = {
     "name": "Display name for the application. This is the name visible on the app catalogue if the app is public",
-    "description": "Summarize the application in a few words",
+    "description": "Provide a detailed description of your app. "
+    "This will be the description visible in the app catalogue if the app is public.",
     "subdomain": "Valid subdomain names have minimum length of 3 characters and may contain lower case letters a-z "
     "and numbers 0-9 and a hyphen '-'. The hyphen should not be at the start or end of the subdomain.",
     "access": "Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to "
