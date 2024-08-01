@@ -440,7 +440,8 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('#subdomain_options').click()
             cy.get('#new_subdomain').click()
-            cy.get('#id_subdomain').type(subdomain_3)
+            cy.get('#id_subdomain').clear().type(subdomain_3)
+            cy.get('#id_subdomain').blur();
 
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was updated with the correct subdomain
