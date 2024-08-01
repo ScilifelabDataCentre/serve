@@ -399,6 +399,8 @@ describe("Test deploying app", () => {
             cy.get('#id_volume').select('project-vol')
             cy.get('#id_path').clear().type("/home")
             // fill out subdomain field
+            cy.get('#subdomain_options').click()
+            cy.get('#new_subdomain').click()
             cy.get('#id_subdomain').type(subdomain)
 
             // create the app

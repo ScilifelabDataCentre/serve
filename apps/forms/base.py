@@ -30,11 +30,11 @@ class SubdomainInputGroup(forms.Widget):
             (
                 '<div class="input-group">'
                 '<button class="btn btn-outline-secondary dropdown-toggle" type="button"'
-                'data-bs-toggle="dropdown" aria-expanded="false">Options</button>'
+                'data-bs-toggle="dropdown" aria-expanded="false" id="subdomain_options">Options</button>'
                 '<ul class="dropdown-menu">'
                 '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
                 '?type=newinput&project_id=%(project_pk)s" hx-target="#id_subdomain" hx-swap="outerHTML"'
-                'onclick="clearSubdomainValidation()">New</a></li>'
+                'onclick="clearSubdomainValidation()" id="new_subdomain">New</a></li>'
                 '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
                 '?type=select&project_id=%(project_pk)s&initial_subdomain=%(initial_subdomain)s"'
                 ' hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()">'
