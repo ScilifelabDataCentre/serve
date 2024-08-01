@@ -424,8 +424,6 @@ describe("Test deploying app", () => {
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is not available');
 
 
-            cy.get('#subdomain_options').click()
-            cy.get('#new_subdomain').click()
             cy.get('#id_subdomain').clear().type(subdomain_2)
             cy.get('#id_subdomain').blur();
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available');
