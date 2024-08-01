@@ -5,6 +5,7 @@ from typing import Optional
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 
+from apps.types_.subdomain import SubdomainCandidateName
 from studio.utils import get_logger
 
 from .models import Apps, AppStatus, BaseAppInstance, Subdomain
@@ -15,7 +16,8 @@ logger = get_logger(__name__)
 def get_select_options(project_pk, selected_option=""):
     select_options = ""
     for sub in Subdomain.objects.filter(project=project_pk, user_created=True).values_list("subdomain", flat=True):
-        if not BaseAppInstance.objects.filter(subdomain__subdomain=sub, app_status__status="Running").exists():
+        subdomain_candidate = SubdomainCandidateName(sub, project_pk)
+        if subdomain_candidate.is_available():
             select_options += "" if sub == selected_option else '<option value="' + sub + '">' + sub + "</option>"
     return select_options
 
@@ -240,8 +242,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     from .tasks import deploy_resource
 
     subdomain_name, user_created = get_subdomain_name(form)
-
-    # print(form)
 
     instance = form.save(commit=False)
 

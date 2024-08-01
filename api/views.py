@@ -750,12 +750,13 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
     Example request: /api/app-subdomain/validate/?subdomainText=my-subdomain&app_id=1
     """
     subdomain_text = request.GET.get("subdomainText")
+    project_id = request.GET.get("project_id")
     app_id = request.GET.get("app_id")
     if subdomain_text is None:
         return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
     # First validate for valid name
-    subdomain_candidate = SubdomainCandidateName(subdomain_text)
+    subdomain_candidate = SubdomainCandidateName(subdomain_text, project_id)
 
     try:
         subdomain_candidate.validate_subdomain()
@@ -794,18 +795,20 @@ def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
 
     The service contract for the GET action is as follows:
     :param str subdomainText: The subdomain text to check for availability.
+    :param str project_id: The project id to check for available subdomains in the project.
     :returns: An http status code and dict containing {"isAvailable": bool}
 
-    Example request: /api/app-subdomain/is-available/?subdomainText=my-subdomain
+    Example request: /api/app-subdomain/is-available/?subdomainText=my-subdomain&project_id=1
     """
     subdomain_text = request.GET.get("subdomainText")
+    project_id = request.GET.get("project_id")
     if subdomain_text is None:
         return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
     is_available = False
 
     try:
-        subdomain_candidate = SubdomainCandidateName(subdomain_text)
+        subdomain_candidate = SubdomainCandidateName(subdomain_text, project_id)
         is_available = subdomain_candidate.is_available()
     except Exception as e:
         logger.warn(f"Unable to validate subdomain {subdomain_text}. Error={str(e)}")

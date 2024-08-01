@@ -26,7 +26,7 @@ class BaseAppFormTest(TestCase):
             app_status=AppStatus.objects.create(status="Created"),
         )
         self.flavor = Flavor.objects.create(name="flavor", project=self.project)
-        self.subdomain = Subdomain.objects.create(subdomain="valid-subdomain", project=self.project)
+        self.subdomain = Subdomain.objects.create(subdomain="valid-subdomain", project=self.project, user_created=True)
 
 
 class CustomAppFormTest(BaseAppFormTest):

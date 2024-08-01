@@ -56,7 +56,7 @@
         let request = $.ajax({
             type: "GET",
             url: api_url,
-            data: {"subdomainText": subdomain_input, "app_id": "{{ app_id }}" },
+            data: {"subdomainText": subdomain_input, "app_id": "{{ app_id }}", "project_id": "{{ project.id }}"},
             beforeSend: function ( xhr ) {
                 // Display the work-in-progress spinner
                 $("#formInputSpinner").show();
@@ -144,7 +144,7 @@
         }
     }
     function selectValidation(event) {
-        checkSubdomainValidity(event.target.value);
+        doneTyping(event.target.value);
     }
     function runScript() {
         // Add event handler on the subdomain input field

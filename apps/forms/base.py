@@ -28,7 +28,7 @@ class SubdomainInputGroup(forms.Widget):
         # Render base widget and add bootstrap spans
         return mark_safe(
             (
-                '<div class="input-group mb-3">'
+                '<div class="input-group">'
                 '<button class="btn btn-outline-secondary dropdown-toggle" type="button"'
                 'data-bs-toggle="dropdown" aria-expanded="false">Options</button>'
                 '<ul class="dropdown-menu">'
@@ -97,9 +97,9 @@ class BaseForm(forms.ModelForm):
             self.fields["subdomain"].widget.data["hidden"] = ""
             subdomain_select_options += (
                 '<option value="'
-                + self.instance.subdomain.subdomain
+                + str(self.instance.subdomain.subdomain)
                 + '" selected>'
-                + self.instance.subdomain.subdomain
+                + str(self.instance.subdomain.subdomain)
                 + "</option>"
             )
         else:
@@ -170,7 +170,7 @@ class BaseForm(forms.ModelForm):
         subdomain_input = subdomain_input.lower()
 
         # Check if the subdomain adheres to helm rules
-        subdomain_candidate = SubdomainCandidateName(subdomain_input)
+        subdomain_candidate = SubdomainCandidateName(subdomain_input, self.project_pk)
 
         try:
             subdomain_candidate.validate_subdomain()
@@ -254,3 +254,5 @@ class AppBaseForm(BaseForm):
         self.fields["volume"].queryset = volume_queryset
         self.fields["volume"].initial = volume_queryset
         self.fields["volume"].help_text = f"Select a volume to attach to your {self.model_name}."
+
+        self.fields["subdomain"].help_text = "Choose subdomain, create a new one or leave blank to get a random one"

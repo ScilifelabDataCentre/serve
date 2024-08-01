@@ -11,19 +11,25 @@ class SubdomainCandidateName:
 
     __name = None
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, project_id: int):
         self.__name = name
+        self.__project_id = project_id
 
     def is_available(self) -> bool:
         """Determines if the candidate name is available in Serve."""
         if self.__name == "serve":
             # Reserved words
             return False
-        elif (
-            Subdomain.objects.filter(subdomain=self.__name).exists()
-            and BaseAppInstance.objects.filter(subdomain__subdomain=self.__name, app_status__status="Running").exists()
-        ):
-            return False
+        elif Subdomain.objects.filter(subdomain=self.__name).exists():
+            if str(Subdomain.objects.get(subdomain=self.__name).project_id) == str(self.__project_id):
+                if BaseAppInstance.objects.filter(
+                    subdomain__subdomain=self.__name, app_status__status="Running"
+                ).exists():
+                    return False
+                else:
+                    return True
+            else:
+                return False
         else:
             return True
 
