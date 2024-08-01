@@ -94,8 +94,8 @@ $ git checkout develop
 $ cp .env.template .env
 $ cp ~/.kube/config cluster.conf
 $ cp ~/.ssh/id_rsa.pub id_rsa.pub
-$ nerdctl build -t studio .
-$ nerdctl build -t mystudio -f local.Dockerfile .
+$ cat Dockerfile local.Dockerfile > local_.dockerfile
+$ nerdctl build --namespace k8s.io -t mystudio -f local_.dockerfile .
 ```
 
 Now continue setting up serve charts until you get to the PyCharm setup.

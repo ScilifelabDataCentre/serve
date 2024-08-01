@@ -1,4 +1,4 @@
-FROM studio as local-runtime
+FROM runtime as local
 
 USER root
 

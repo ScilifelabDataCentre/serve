@@ -154,3 +154,5 @@ node_modules
 # The media folder contents
 media/*
 !media/.gitkeep
+
+local_.dockerfile

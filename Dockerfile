@@ -83,5 +83,3 @@ RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
     && chgrp -R $USER /app/fixtures /app/media /app/charts /app/sent_emails /app/static
 
 USER $USER
-
-EXPOSE 8080
