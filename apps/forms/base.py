@@ -38,12 +38,12 @@ class SubdomainInputGroup(forms.Widget):
                 '?type=newinput&project_id=%(project_pk)s" hx-target="#id_subdomain" hx-swap="outerHTML"'
                 'onclick="clearSubdomainValidation()" id="new_subdomain">New</a></li>'
                 '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
-                '?type=select&project_id=%(project_pk)s&initial_subdomain=%(initial_subdomain)s"'
+                '?type=select&project_id=%(project_pk)s&initial_subdomain=%(initial)s"'
                 ' hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()">'
                 "Available</a></li>"
                 '    <li><hr class="dropdown-divider" %(hidden)s></li>'
                 '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
-                '?type=input&project_id=%(project_pk)s&initial_subdomain=%(initial_subdomain)s"'
+                '?type=input&project_id=%(project_pk)s&initial_subdomain=%(initial)s"'
                 ' hx-target="#id_subdomain" hx-swap="outerHTML" %(hidden)s onclick="clearSubdomainValidation()">'
                 "Current</a></li>"
                 "</ul>"
@@ -62,7 +62,6 @@ class SubdomainInputGroup(forms.Widget):
             % {
                 "project_pk": self.data["project_pk"],
                 "hidden": self.data["hidden"],
-                "initial_subdomain": self.data["initial_subdomain"],
                 "initial": self.initial,
             }
         )
@@ -92,13 +91,9 @@ class BaseForm(forms.ModelForm):
         # Populate subdomain field with instance subdomain if it exists
         self.fields["subdomain"].widget.data["project_pk"] = self.project_pk
         self.fields["subdomain"].widget.data["hidden"] = "hidden"
-        self.fields["subdomain"].widget.data["initial_subdomain"] = ""
         self.fields["subdomain"].initial = ""
         if self.instance and self.instance.pk:
             self.fields["subdomain"].initial = self.instance.subdomain.subdomain if self.instance.subdomain else ""
-            self.fields["subdomain"].widget.data["initial_subdomain"] = (
-                self.instance.subdomain.subdomain if self.instance.subdomain else ""
-            )
             self.fields["subdomain"].widget.data["hidden"] = ""
 
         # Handle name
@@ -156,7 +151,7 @@ class BaseForm(forms.ModelForm):
 
         # Validate if the subdomain input matches the instance's current subdomain
         if current_subdomain and current_subdomain.subdomain == subdomain_input:
-            return subdomain_input, current_subdomain.user_created
+            return subdomain_input, current_subdomain.is_created_by_user
 
         # Convert the subdomain to lowercase. OK because we force convert to lowecase in the UI.
         subdomain_input = subdomain_input.lower()

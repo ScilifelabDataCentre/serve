@@ -15,10 +15,12 @@ logger = get_logger(__name__)
 
 def get_select_options(project_pk, selected_option=""):
     select_options = ""
-    for sub in Subdomain.objects.filter(project=project_pk, user_created=True).values_list("subdomain", flat=True):
+    for sub in Subdomain.objects.filter(project=project_pk, is_created_by_user=True).values_list(
+        "subdomain", flat=True
+    ):
         subdomain_candidate = SubdomainCandidateName(sub, project_pk)
         if subdomain_candidate.is_available():
-            select_options += "" if sub == selected_option else f'<option value="{sub}">{sub}</option>"
+            select_options += "" if sub == selected_option else '<option value="' + sub + '">' + sub + "</option>"
     return select_options
 
 
@@ -215,8 +217,9 @@ def update_status_time(status_object, status_ts, event_msg=None):
 
 
 def get_URI(values):
-    subdomain = values["subdomain"] if "subdomain" in values else "deleted"
-    URI = "https://{subdomain}.{values['global']['domain']}"
+    # Subdomain is empty if app is already deleted
+    subdomain = values["subdomain"] if "subdomain" in values else ""
+    URI = f"https://{subdomain}.{values['global']['domain']}"
 
     URI = URI.strip("/")
     return URI
@@ -242,7 +245,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     """
     from .tasks import deploy_resource
 
-    subdomain_name, user_created = get_subdomain_name(form)
+    subdomain_name, is_created_by_user = get_subdomain_name(form)
 
     instance = form.save(commit=False)
 
@@ -250,7 +253,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     status = get_or_create_status(instance, app_id)
     # Retrieve or create the subdomain
     subdomain, created = Subdomain.objects.get_or_create(
-        subdomain=subdomain_name, project=project, user_created=user_created
+        subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user
     )
 
     if app_id:
@@ -267,10 +270,10 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
 
 def get_subdomain_name(form):
-    subdomain_name, user_created = form.cleaned_data.get("subdomain")
+    subdomain_name, is_created_by_user = form.cleaned_data.get("subdomain")
     if not subdomain_name:
         raise ValueError("Subdomain is required")
-    return subdomain_name, user_created
+    return subdomain_name, is_created_by_user
 
 
 def get_or_create_status(instance, app_id):
@@ -286,7 +289,7 @@ def handle_subdomain_change(instance, subdomain, subdomain_name):
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])
-        if old_subdomain and old_subdomain.user_created is False:
+        if old_subdomain and old_subdomain.is_created_by_user is False:
             old_subdomain.delete()
 
 
@@ -307,7 +310,7 @@ def get_app(app_slug):
         raise ValueError(f"App with slug {app_slug} not found")
 
 
-def setup_instance(instance, subdomain, app, project, status, user_created=False):
+def setup_instance(instance, subdomain, app, project, status, is_created_by_user=False):
     instance.subdomain = subdomain
     instance.app = app
     instance.chart = instance.app.chart
