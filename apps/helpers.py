@@ -18,7 +18,7 @@ def get_select_options(project_pk, selected_option=""):
     for sub in Subdomain.objects.filter(project=project_pk, user_created=True).values_list("subdomain", flat=True):
         subdomain_candidate = SubdomainCandidateName(sub, project_pk)
         if subdomain_candidate.is_available():
-            select_options += "" if sub == selected_option else '<option value="' + sub + '">' + sub + "</option>"
+            select_options += "" if sub == selected_option else f'<option value="{sub}">{sub}</option>"
     return select_options
 
 
