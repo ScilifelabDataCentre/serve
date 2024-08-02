@@ -216,7 +216,7 @@ def update_status_time(status_object, status_ts, event_msg=None):
 
 def get_URI(values):
     subdomain = values["subdomain"] if "subdomain" in values else "deleted"
-    URI = "https://" + subdomain + "." + values["global"]["domain"]
+    URI = "https://{subdomain}.{values['global']['domain']}"
 
     URI = URI.strip("/")
     return URI
