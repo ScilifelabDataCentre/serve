@@ -842,7 +842,7 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
     initial_subdomain = request.GET.get("initial_subdomain") if request.GET.get("initial_subdomain") else ""
     if request_type == "select":
         subdomain_select = (
-            '<select class="form-select" aria-label="List subdomains"'
+            '<select class="form-select" aria-label="List subdomains" '
             'name="subdomain" id="id_subdomain" onchange="selectValidation(event)">'
         )
         if initial_subdomain:
