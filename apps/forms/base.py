@@ -247,4 +247,4 @@ class AppBaseForm(BaseForm):
         self.fields["volume"].initial = volume_queryset
         self.fields["volume"].help_text = f"Select a volume to attach to your {self.model_name}."
 
-        self.fields["subdomain"].help_text = "Choose subdomain, create a new one or leave blank to get a random one"
+        self.fields["subdomain"].help_text = "Choose subdomain, create a new one or leave blank to get a random one."
