@@ -27,9 +27,7 @@ class CustomAppForm(AppBaseForm):
             self.get_common_field("name", placeholder="Name your app"),
             self.get_common_field("description", rows=3, placeholder="Provide a detailed description of your app"),
             Field("tags"),
-            self.get_common_field(
-                "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
-            ),
+            self.get_common_field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
             Field("volume"),
             self.get_common_field("path", placeholder="/home/..."),
             self.get_common_field("flavor"),

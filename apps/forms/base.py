@@ -26,11 +26,13 @@ class SubdomainInputGroup(forms.Widget):
 
     def render(self, name, value, attrs=None, renderer=None):
         # Render base widget and add bootstrap spans
+        self.initial = value
         return mark_safe(
             (
                 '<div class="input-group">'
-                '<button class="btn btn-outline-secondary dropdown-toggle" type="button"'
-                'data-bs-toggle="dropdown" aria-expanded="false" id="subdomain_options">Options</button>'
+                '<div class="input-group-prepend">'
+                '<button class="btn btn-outline-secondary dropdown-toggle" style="border-radius: .375rem 0  0 .375rem;"'
+                ' type="button" data-bs-toggle="dropdown" aria-expanded="false" id="subdomain_options">Options</button>'
                 '<ul class="dropdown-menu">'
                 '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
                 '?type=newinput&project_id=%(project_pk)s" hx-target="#id_subdomain" hx-swap="outerHTML"'
@@ -45,10 +47,11 @@ class SubdomainInputGroup(forms.Widget):
                 ' hx-target="#id_subdomain" hx-swap="outerHTML" %(hidden)s onclick="clearSubdomainValidation()">'
                 "Current</a></li>"
                 "</ul>"
+                "</div>"
                 '<input type="text" class="form-control" name="subdomain"'
                 'placeholder="Enter a subdomain or leave blank for a random one"'
                 'aria-label="Input Subdomain" aria-describedby="basic-addon2" '
-                'id="id_subdomain" value="%(initial_subdomain)s">'
+                'id="id_subdomain" value="%(initial)s">'
                 '  <div class="client-validation-feedback order-last" style="display:none;"></div>'
                 '  <div class="input-group-append">'
                 '      <span class="input-group-text" id="basic-addon2" '
@@ -59,7 +62,8 @@ class SubdomainInputGroup(forms.Widget):
             % {
                 "project_pk": self.data["project_pk"],
                 "hidden": self.data["hidden"],
-                "initial_subdomain": self.data["initial_subdomain"]
+                "initial_subdomain": self.data["initial_subdomain"],
+                "initial": self.initial,
             }
         )
 
@@ -71,7 +75,7 @@ class BaseForm(forms.ModelForm):
         required=False,
         min_length=3,
         max_length=53,
-        widget=SubdomainInputGroup(base_widget=forms.ChoiceField, data={}),
+        widget=SubdomainInputGroup(base_widget=forms.TextInput, data={}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -89,11 +93,14 @@ class BaseForm(forms.ModelForm):
         self.fields["subdomain"].widget.data["project_pk"] = self.project_pk
         self.fields["subdomain"].widget.data["hidden"] = "hidden"
         self.fields["subdomain"].widget.data["initial_subdomain"] = ""
+        self.fields["subdomain"].initial = ""
         if self.instance and self.instance.pk:
-            self.fields["subdomain"].initial = self.instance.subdomain.subdomain
-            self.fields["subdomain"].widget.data["initial_subdomain"] = self.instance.subdomain.subdomain
+            self.fields["subdomain"].initial = self.instance.subdomain.subdomain if self.instance.subdomain else ""
+            self.fields["subdomain"].widget.data["initial_subdomain"] = (
+                self.instance.subdomain.subdomain if self.instance.subdomain else ""
+            )
             self.fields["subdomain"].widget.data["hidden"] = ""
-            
+
         # Handle name
         self.fields["name"].initial = ""
 

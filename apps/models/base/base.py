@@ -132,16 +132,16 @@ class BaseAppInstance(models.Model):
     def get_k8s_values(self):
         k8s_values = dict(
             name=self.name,
-            appname=self.subdomain.subdomain,
+            appname=self.subdomain.subdomain if self.subdomain else "deleted",
             project=dict(name=self.project.name, slug=self.project.slug),
             service=dict(
-                name=self.subdomain.subdomain + "-" + self.app.slug,
+                name=(self.subdomain.subdomain if self.subdomain else "deleted") + "-" + self.app.slug,
             ),
-            **self.subdomain.to_dict(),
+            **self.subdomain.to_dict() if self.subdomain else {},
             **self.flavor.to_dict() if self.flavor else {},
             storageClass=settings.STORAGECLASS,
             namespace=settings.NAMESPACE,
-            release=self.subdomain.subdomain,  # This is legacy and should be changed
+            release=self.subdomain.subdomain if self.subdomain else "deleted",  # This is legacy and should be changed
         )
 
         # Add global values
