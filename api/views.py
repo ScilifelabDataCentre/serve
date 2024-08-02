@@ -846,7 +846,7 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
             'name="subdomain" id="id_subdomain" onchange="selectValidation(event)">'
         )
         if initial_subdomain:
-            subdomain_select += '<option value="' + initial_subdomain + '" selected>' + initial_subdomain + "</option>"
+            subdomain_select += f'<option value="{initial_subdomain}" selected>{initial_subdomain}</option>'
         else:
             subdomain_select += '<option value="" selected> Choose subdomain or enter a new one using options </option>'
         subdomain_select += get_select_options(project_id, initial_subdomain)
