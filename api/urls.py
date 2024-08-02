@@ -56,5 +56,5 @@ urlpatterns = [
     path("app-status/", update_app_status),
     path("app-subdomain/validate/", get_subdomain_is_valid),
     path("app-subdomain/is-available/", get_subdomain_is_available),
-    path("app-subdomain/subdomain-input/", get_subdomain_input_html, name="get_subdomain_input_html"),
+    path("htmx/subdomain-input/", get_subdomain_input_html, name="get_subdomain_input_html"),
 ]

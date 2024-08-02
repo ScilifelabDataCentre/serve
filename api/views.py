@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
+from django.template import loader
 from django.utils.safestring import mark_safe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
@@ -841,31 +842,15 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
     project_id = request.GET.get("project_id")
     request_type = request.GET.get("type")
     initial_subdomain = request.GET.get("initial_subdomain") if request.GET.get("initial_subdomain") else ""
+    # default template and context is for input box
+    context = {"initial_subdomain": initial_subdomain}
+    template = "apps/partials/subdomain_input.html"
     if request_type == "select":
-        subdomain_select = (
-            '<select class="form-select" aria-label="List subdomains" '
-            'name="subdomain" id="id_subdomain" onchange="selectValidation(event)">'
-        )
-        if initial_subdomain:
-            subdomain_select += f'<option value="{initial_subdomain}" selected>{initial_subdomain}</option>'
-        else:
-            subdomain_select += '<option value="" selected> Choose subdomain or enter a new one using options </option>'
-        subdomain_select += get_select_options(project_id, initial_subdomain)
-
-        subdomain_select += "</select>"
-
-        response_html = mark_safe(subdomain_select)
-    else:
-        response_html = mark_safe(
-            (
-                '<input type="text" class="form-control" name="subdomain"'
-                'placeholder="Enter a subdomain or leave blank for a random one"'
-                'aria-label="Input Subdomain" aria-describedby="basic-addon2" '
-                'id="id_subdomain" value="%(initial_subdomain)s">'
-            )
-            % {"initial_subdomain": initial_subdomain}
-        )
-
+        options_list = get_select_options(project_id, initial_subdomain)
+        context["options_list"] = options_list
+        template = "apps/partials/subdomain_select.html"
+    rendered_template = loader.get_template(template).render(context)
+    response_html = mark_safe(rendered_template)
     return HttpResponse(response_html)
 
 

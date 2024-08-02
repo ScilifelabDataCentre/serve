@@ -4,6 +4,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Submit
 from django import forms
 from django.shortcuts import get_object_or_404
+from django.template import loader
 from django.utils.safestring import mark_safe
 
 from apps.constants import HELP_MESSAGE_MAP
@@ -18,53 +19,22 @@ __all__ = ["BaseForm", "AppBaseForm"]
 
 # Custom Widget that adds boostrap-style input group to the subdomain field
 class SubdomainInputGroup(forms.Widget):
+    subdomain_template = "apps/partials/subdomain_input_group.html"
+
     def __init__(self, base_widget, data, *args, **kwargs):
         # Initialise widget and get base instance
         super(SubdomainInputGroup, self).__init__(*args, **kwargs)
         self.base_widget = base_widget(*args, **kwargs)
         self.data = data
 
+    def get_context(self, name, value, attrs=None):
+        return {"initial_subdomain": value, "project_pk": self.data["project_pk"], "hidden": self.data["hidden"]}
+
     def render(self, name, value, attrs=None, renderer=None):
         # Render base widget and add bootstrap spans
-        self.initial = value
-        return mark_safe(
-            (
-                '<div class="input-group">'
-                '<div class="input-group-prepend">'
-                '<button class="btn btn-outline-secondary dropdown-toggle" style="border-radius: .375rem 0  0 .375rem;"'
-                ' type="button" data-bs-toggle="dropdown" aria-expanded="false" id="subdomain_options">Options</button>'
-                '<ul class="dropdown-menu">'
-                '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
-                '?type=newinput&project_id=%(project_pk)s" hx-target="#id_subdomain" hx-swap="outerHTML"'
-                'onclick="clearSubdomainValidation()" id="new_subdomain">New</a></li>'
-                '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
-                '?type=select&project_id=%(project_pk)s&initial_subdomain=%(initial)s"'
-                ' hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()">'
-                "Available</a></li>"
-                '    <li><hr class="dropdown-divider" %(hidden)s></li>'
-                '    <li><a class="dropdown-item" href="#" hx-get="/api/app-subdomain/subdomain-input/'
-                '?type=input&project_id=%(project_pk)s&initial_subdomain=%(initial)s"'
-                ' hx-target="#id_subdomain" hx-swap="outerHTML" %(hidden)s onclick="clearSubdomainValidation()">'
-                "Current</a></li>"
-                "</ul>"
-                "</div>"
-                '<input type="text" class="form-control" name="subdomain"'
-                'placeholder="Enter a subdomain or leave blank for a random one"'
-                'aria-label="Input Subdomain" aria-describedby="basic-addon2" '
-                'id="id_subdomain" value="%(initial)s">'
-                '  <div class="client-validation-feedback order-last" style="display:none;"></div>'
-                '  <div class="input-group-append">'
-                '      <span class="input-group-text" id="basic-addon2" '
-                'style="font-weight: bold;border-radius: 0 .375rem .375rem 0;">.serve.scilifelab.se</span>'
-                "  </div>"
-                "</div>"
-            )
-            % {
-                "project_pk": self.data["project_pk"],
-                "hidden": self.data["hidden"],
-                "initial": self.initial,
-            }
-        )
+        context = self.get_context(name, value, attrs)
+        template = loader.get_template(self.subdomain_template).render(context)
+        return mark_safe(template)
 
 
 class BaseForm(forms.ModelForm):

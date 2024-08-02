@@ -14,13 +14,13 @@ logger = get_logger(__name__)
 
 
 def get_select_options(project_pk, selected_option=""):
-    select_options = ""
+    select_options = []
     for sub in Subdomain.objects.filter(project=project_pk, is_created_by_user=True).values_list(
         "subdomain", flat=True
     ):
         subdomain_candidate = SubdomainCandidateName(sub, project_pk)
-        if subdomain_candidate.is_available():
-            select_options += "" if sub == selected_option else '<option value="' + sub + '">' + sub + "</option>"
+        if subdomain_candidate.is_available() or sub == selected_option:
+            select_options.append(sub)
     return select_options
 
 

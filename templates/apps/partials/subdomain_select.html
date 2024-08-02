@@ -1,0 +1,10 @@
+<select class="form-select" aria-label="List subdomains" name="subdomain" id="id_subdomain" onchange="selectValidation(event)">
+    {% for option in options_list %}
+    {% if option == initial_subdomain %}
+    <option value="{{initial_subdomain}}" selected="">{{option}}</option>
+    {% else %}
+    <option value="{{option}}">{{option}}</option>
+    {% endif %}
+    {% endfor %}
+    
+</select>
