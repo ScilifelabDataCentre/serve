@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 
@@ -54,3 +56,11 @@ class SubdomainCandidateName:
         )
 
         regex_validator(self.__name)
+
+
+class SubdomainTuple(NamedTuple):
+    subdomain: str
+    is_created_by_user: bool
+
+    def __str__(self) -> str:
+        return self.subdomain
