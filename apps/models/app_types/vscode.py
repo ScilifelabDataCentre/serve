@@ -14,7 +14,7 @@ class VSCodeInstance(BaseAppInstance):
         ("private", "Private"),
     )
     volume = models.ManyToManyField("VolumeInstance", blank=True)
-    access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
+    access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()

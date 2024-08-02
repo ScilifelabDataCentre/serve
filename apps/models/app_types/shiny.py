@@ -23,7 +23,7 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
         ("public", "Public"),
         ("link", "Link"),
     )
-    access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
+    access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
     port = models.IntegerField(default=3838)
     image = models.CharField(max_length=255)
     proxy = models.BooleanField(default=True)

@@ -37,6 +37,7 @@ class ShinyForm(AppBaseForm):
         body = Div(
             self.get_common_field("name", placeholder="Name your app"),
             self.get_common_field("description", rows="3", placeholder="Provide a detailed description of your app"),
+            Field("tags"),
             Field(
                 "proxy",
             ),
@@ -52,7 +53,6 @@ class ShinyForm(AppBaseForm):
             self.get_common_field("source_code_url", placeholder="Provide a link to the public source code"),
             self.get_common_field("port", placeholder="3838"),
             self.get_common_field("image", placeholder="registry/repository/image:tag"),
-            Field("tags"),
             css_class="card-body",
         )
 
@@ -93,3 +93,7 @@ class ShinyForm(AppBaseForm):
             "image",
             "tags",
         ]
+        labels = {
+            "tags": "Keywords",
+            "note_on_linkonly_privacy": "Reason for choosing the link only option",
+        }

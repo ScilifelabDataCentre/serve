@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Create {{ app.name }}{% endblock %}
+{% block title %}{{ form_header }} {{ app.name }}{% endblock %}
 {% load static %}
 {% load custom_tags %}
 {% load crispy_forms_tags %}
@@ -37,17 +37,8 @@
         // Function to toggle visibility based on select value
         function toggleVisibility() {
             var accessSelect = document.getElementById('id_access');
-            var sourceCodeDiv = document.getElementById('div_id_source_code_url');
             var noteOnLinkOnlyDiv = document.getElementById('div_id_note_on_linkonly_privacy');
             // Ensure elements exist before attempting to use them
-            if (accessSelect && sourceCodeDiv) {
-                // Check if the 'public' option is selected
-                if (accessSelect.value === 'public') {
-                    sourceCodeDiv.style.display = 'block'; // Show the div
-                } else {
-                    sourceCodeDiv.style.display = 'none'; // Hide the div
-                }
-            }
 
             if (accessSelect && noteOnLinkOnlyDiv) {
                 // Check if the 'public' option is selected
