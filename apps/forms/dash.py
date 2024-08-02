@@ -65,4 +65,5 @@ class DashForm(AppBaseForm):
         ]
         labels = {
             "tags": "Keywords",
+            "note_on_linkonly_privacy": "Reason for choosing the link only option",
         }

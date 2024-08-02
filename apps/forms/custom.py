@@ -85,5 +85,6 @@ class CustomAppForm(AppBaseForm):
             "tags",
         ]
         labels = {
+            "note_on_linkonly_privacy": "Reason for choosing the link only option",
             "tags": "Keywords",
         }
