@@ -399,8 +399,6 @@ describe("Test deploying app", () => {
             cy.get('#id_volume').select('project-vol')
             cy.get('#id_path').clear().type("/home")
             // fill out subdomain field
-            cy.get('#subdomain_options').click()
-            cy.get('#new_subdomain').click()
             cy.get('#id_subdomain').type(subdomain)
 
             // create the app
@@ -417,10 +415,6 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name)
 
             // fill out subdomain field
-            cy.get('#subdomain_options').click()
-            cy.wait(2000)
-            cy.get('#new_subdomain').click()
-            cy.wait(2000)
             cy.get('#id_subdomain').type(subdomain)
             cy.get('#id_subdomain').blur();
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is not available');
@@ -440,11 +434,6 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
-            cy.wait(2000)
-            cy.get('#subdomain_options').click()
-            cy.wait(2000)
-            cy.get('#new_subdomain').click()
-            cy.wait(2000)
             cy.get('#id_subdomain').type(subdomain_3)
 
             cy.get('#submit-id-submit').contains('Submit').click()

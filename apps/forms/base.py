@@ -45,10 +45,10 @@ class SubdomainInputGroup(forms.Widget):
                 ' hx-target="#id_subdomain" hx-swap="outerHTML" %(hidden)s onclick="clearSubdomainValidation()">'
                 "Current</a></li>"
                 "</ul>"
-                '<select class="form-select" aria-label="List subdomains" name="subdomain" id="id_subdomain"'
-                ' onchange="selectValidation(event)">'
-                "%(subdomain_select_options)s"
-                "</select>"
+                '<input type="text" class="form-control" name="subdomain"'
+                'placeholder="Enter a subdomain or leave blank for a random one"'
+                'aria-label="Input Subdomain" aria-describedby="basic-addon2" '
+                'id="id_subdomain" value="%(initial_subdomain)s">'
                 '  <div class="client-validation-feedback order-last" style="display:none;"></div>'
                 '  <div class="input-group-append">'
                 '      <span class="input-group-text" id="basic-addon2" '
@@ -59,8 +59,7 @@ class SubdomainInputGroup(forms.Widget):
             % {
                 "project_pk": self.data["project_pk"],
                 "hidden": self.data["hidden"],
-                "initial_subdomain": self.data["initial_subdomain"],
-                "subdomain_select_options": self.data["subdomain_select_options"],
+                "initial_subdomain": self.data["initial_subdomain"]
             }
         )
 
@@ -90,25 +89,11 @@ class BaseForm(forms.ModelForm):
         self.fields["subdomain"].widget.data["project_pk"] = self.project_pk
         self.fields["subdomain"].widget.data["hidden"] = "hidden"
         self.fields["subdomain"].widget.data["initial_subdomain"] = ""
-        subdomain_select_options = ""
         if self.instance and self.instance.pk:
             self.fields["subdomain"].initial = self.instance.subdomain.subdomain
             self.fields["subdomain"].widget.data["initial_subdomain"] = self.instance.subdomain.subdomain
             self.fields["subdomain"].widget.data["hidden"] = ""
-            subdomain_select_options += (
-                '<option value="'
-                + str(self.instance.subdomain.subdomain)
-                + '" selected>'
-                + str(self.instance.subdomain.subdomain)
-                + "</option>"
-            )
-        else:
-            subdomain_select_options += (
-                '<option value="" selected> Choose subdomain or enter a new one using options </option>'
-            )
-        subdomain_select_options += get_select_options(self.project_pk, self.fields["subdomain"].initial)
-        self.fields["subdomain"].widget.data["subdomain_select_options"] = subdomain_select_options
-
+            
         # Handle name
         self.fields["name"].initial = ""
 

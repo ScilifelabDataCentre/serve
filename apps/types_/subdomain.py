@@ -23,8 +23,7 @@ class SubdomainCandidateName:
         elif Subdomain.objects.filter(subdomain=self.__name).exists():
             if str(Subdomain.objects.get(subdomain=self.__name).project_id) == str(self.__project_id):
                 if BaseAppInstance.objects.filter(
-                    subdomain__subdomain=self.__name, app_status__status="Running"
-                ).exists():
+                    subdomain__subdomain=self.__name).exists():
                     return False
                 else:
                     return True
