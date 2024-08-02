@@ -831,7 +831,8 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
     The service contract for the GET action is as follows:
     :param str type: The type of element to return (select, input or newinput).
     :param str project_id: The project id to check for available subdomains in the project.
-    :param str initial_subdomain: The initial subdomain for the app.
+    :param str initial_subdomain: The subdomain value for the app that is already created
+    (will be empty for new apps).
     :returns: An http response with the HTML element.
 
     Example request: /api/app-subdomain/subdomain-input/?type=select&project_id=project_id
