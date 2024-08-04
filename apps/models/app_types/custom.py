@@ -27,7 +27,7 @@ class CustomAppInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     volume = models.ForeignKey(
         "VolumeInstance", blank=True, null=True, related_name="%(class)s", on_delete=models.CASCADE
     )
-    access = models.CharField(max_length=20, default="private", choices=ACCESS_TYPES)
+    access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
     port = models.IntegerField(default=8000)
     image = models.CharField(max_length=255)
     path = models.CharField(max_length=255, default="/")
