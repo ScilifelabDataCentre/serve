@@ -25,11 +25,12 @@ class CustomAppForm(AppBaseForm):
 
         body = Div(
             self.get_common_field("name", placeholder="Name your app"),
-            self.get_common_field("description", rows=3),
+            self.get_common_field("description", rows=3, placeholder="Provide a detailed description of your app"),
+            Field("tags"),
             self.get_common_field(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
-            self.get_common_field("volume"),
+            Field("volume"),
             self.get_common_field("path", placeholder="/home/..."),
             self.get_common_field("flavor"),
             self.get_common_field("access"),
@@ -41,7 +42,6 @@ class CustomAppForm(AppBaseForm):
             ),
             self.get_common_field("port", placeholder="8000"),
             self.get_common_field("image"),
-            Field("tags"),
             css_class="card-body",
         )
         self.helper.layout = Layout(body, self.footer)
@@ -84,3 +84,7 @@ class CustomAppForm(AppBaseForm):
             "image",
             "tags",
         ]
+        labels = {
+            "note_on_linkonly_privacy": "Reason for choosing the link only option",
+            "tags": "Keywords",
+        }
