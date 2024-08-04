@@ -128,8 +128,8 @@ describe("Test superuser access", () => {
         cy.get('#id_name').clear().type(private_app_name_2) // change name
         cy.get('#submit-id-submit').contains('Submit').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
-        cy.get('tr:contains("' + private_app_name_2 + '")', { timeout: 30000 }).find('span').should('contain', 'Running') // add this because to make sure the app is running before deleting otherwise it gives an error,
         cy.wait(10000)
+        cy.get('tr:contains("' + private_app_name_2 + '")', { timeout: 30000 }).find('span').should('contain', 'Running') // add this because to make sure the app is running before deleting otherwise it gives an error,
         cy.log("Deleting a regular user's private app")
         cy.get('tr:contains("' + private_app_name_2 + '")').find('i.bi-three-dots-vertical').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').find('a.confirm-delete').click()
