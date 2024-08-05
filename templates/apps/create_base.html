@@ -52,7 +52,7 @@
         // at /api/app-subdomain/validate/?subdomainText=<input>
 
         let api_url = window.location.origin + "/api/app-subdomain/validate/";
-        console.log(`Checking for subdomain validity. Using API URL: ${api_url}, name: ${subdomain_input}, app_id: {{ app_id }}`);
+        //console.log(`Checking for subdomain validity. Using API URL: ${api_url}, name: ${subdomain_input}, app_id: {{ app_id }}`);
 
         let request = $.ajax({
             type: "GET",
@@ -65,7 +65,7 @@
         });
 
         request.done(function (data) {
-            console.log(`Request done with isValid=${data.isValid}, message=${data.message}`);
+            //console.log(`Request done with isValid=${data.isValid}, message=${data.message}`);
             let msg = "";
             if (typeof data !== "undefined") {
                 //msg = (data.is_available == true) ? 'The subdomain is available' :'The subdomain is not available';
@@ -74,7 +74,7 @@
              handleSubdomainValidity(data.isValid, msg);
         });
         request.fail(function (jqXHR, textStatus, errorThrown) {
-            console.log(`The request failed. status=${textStatus}, errorThrown=${errorThrown}`);
+            //console.log(`The request failed. status=${textStatus}, errorThrown=${errorThrown}`);
             handleSubdomainValidity(false, "Server error");
         });
 
@@ -84,18 +84,22 @@
     function handleSubdomainValidity(is_valid, msg = "") {
         if (is_valid) {
             // Enable the submit button
-            console.log("is_valid is true")
+            //console.log("is_valid is true")
             $("#submit-id-submit").prop("disabled", false);
             $("#id_subdomain").addClass("is-valid");
-            console.log($('#id_subdomain').siblings('.client-validation-feedback'))
+            $("#id_subdomain").removeClass("is-invalid");
+            //console.log($('#id_subdomain').siblings('.client-validation-feedback'))
             $('#id_subdomain').siblings('.client-validation-feedback').addClass("client-validation-valid");
+            $('#id_subdomain').siblings(".client-validation-feedback").removeClass("client-validation-invalid");
         } else {
             // Disable the submit button
-            console.log("is_valid is false")
+            //console.log("is_valid is false")
             $("#submit-id-submit").prop("disabled", true);
             $("#id_subdomain").addClass("is-invalid");
-            console.log($('#id_subdomain').siblings('.client-validation-feedback'))
+            $("#id_subdomain").removeClass("is-valid");
+            //console.log($('#id_subdomain').siblings('.client-validation-feedback'))
             $('#id_subdomain').siblings(".client-validation-feedback").addClass("client-validation-invalid");
+            $('#id_subdomain').siblings(".client-validation-feedback").removeClass("client-validation-valid");
         }
 
         $('#id_subdomain').siblings(".client-validation-feedback").text(msg);
@@ -119,16 +123,17 @@
 
     // User is "finished typing," do something
     function doneTyping () {
-        clearSubdomainValidation();
+
 
         let subdomain_input = $("#id_subdomain").val();
         if (subdomain_input.length == 0) {
-            console.log("Empty subdomain input");
+            //console.log("Empty subdomain input");
+            clearSubdomainValidation();
             // Empty text field. Enable the submit button and clear any validation styles.
             $("#submit-id-submit").prop('disabled', false);
         }
         else {
-            console.log(`Checking subdomain validity for: ${subdomain_input}`);
+            //console.log(`Checking subdomain validity for: ${subdomain_input}`);
             // Run check if there is text in the input field
             // Convert the input subdomain to lowercase for the validation.
             // OK because the input form and the server does the same.
