@@ -1,3 +1,4 @@
+{% load get_setting %}
 <div class="input-group">
     <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="subdomain_options">Options</button>
     <ul class="dropdown-menu">
@@ -19,6 +20,6 @@
     {% endif %}
     <div class="client-validation-feedback order-last" style="display:none;"></div>
     <div class="input-group-append">
-        <span class="input-group-text" id="basic-addon2" style="font-weight: bold;border-radius: 0 .375rem .375rem 0;">.serve.scilifelab.se</span>
+        <span class="input-group-text" id="basic-addon2" style="font-weight: bold;border-radius: 0 .375rem .375rem 0;">.{% get_setting "DOMAIN" %}</span>
     </div>
 </div>
