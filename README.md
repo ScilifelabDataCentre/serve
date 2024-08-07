@@ -155,7 +155,7 @@ $ env
 
 Copy environment variables to the PyCharm Django configuration. The environment variables need to be separated by a semi-colon. To achieve this, click on the list icon in the Environment variables input box and then in the popup, click paste.
 
-Make sure that the Django Framework settings in PyCharm are correctly setup. 
+Make sure that the Django Framework settings in PyCharm are correctly setup.
 To check, go to  PyCharm | Settings | Languages & Frameworks | Django and check the following settings
 - Enable Django Support should be checked.
 - Django project root should be `/path/to/your/stackn`
