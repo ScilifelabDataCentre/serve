@@ -28,7 +28,12 @@ class SubdomainInputGroup(forms.Widget):
         self.data = data
 
     def get_context(self, name, value, attrs=None):
-        return {"initial_subdomain": value, "project_pk": self.data["project_pk"], "hidden": self.data["hidden"]}
+        return {
+            "initial_subdomain": value,
+            "project_pk": self.data["project_pk"],
+            "hidden": self.data["hidden"],
+            "subdomain_list": get_select_options(self.data["project_pk"]),
+        }
 
     def render(self, name, value, attrs=None, renderer=None):
         # Render base widget and add bootstrap spans

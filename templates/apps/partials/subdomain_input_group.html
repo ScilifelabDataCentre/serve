@@ -6,7 +6,7 @@
             <a class="dropdown-item" href="#" hx-get="/api/htmx/subdomain-input/?type=newinput&project_id={{ project_pk }}" hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()" id="new_subdomain">New</a>
         </li>
         <li>
-            <a class="dropdown-item" href="#" hx-get="/api/htmx/subdomain-input/?type=select&project_id={{ project_pk }}&initial_subdomain={{ initial_subdomain }}" hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()">Available</a>
+            <a class="dropdown-item {% if subdomain_list|length == 0 %}disabled{% endif %}" href="#" hx-get="/api/htmx/subdomain-input/?type=select&project_id={{ project_pk }}&initial_subdomain={{ initial_subdomain }}" hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()">Available</a>
         </li>
         <li><hr class="dropdown-divider" {{ hidden }}></li>
         <li>

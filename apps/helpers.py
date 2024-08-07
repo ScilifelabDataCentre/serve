@@ -5,7 +5,7 @@ from typing import Optional
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 
-from apps.types_.subdomain import SubdomainCandidateName
+from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
 from studio.utils import get_logger
 
 from .models import Apps, AppStatus, BaseAppInstance, Subdomain
@@ -270,10 +270,10 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
 
 def get_subdomain_name(form):
-    subdomain_name, is_created_by_user = form.cleaned_data.get("subdomain")
-    if not subdomain_name:
+    subdomain_tuple = SubdomainTuple(form.cleaned_data.get("subdomain"))
+    if not str(subdomain_tuple):
         raise ValueError("Subdomain is required")
-    return subdomain_name, is_created_by_user
+    return subdomain_tuple
 
 
 def get_or_create_status(instance, app_id):
