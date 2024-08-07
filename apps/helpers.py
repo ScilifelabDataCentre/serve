@@ -270,7 +270,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
 
 def get_subdomain_name(form):
-    subdomain_tuple = SubdomainTuple(form.cleaned_data.get("subdomain"))
+    subdomain_tuple = form.cleaned_data.get("subdomain")
     if not str(subdomain_tuple):
         raise ValueError("Subdomain is required")
     return subdomain_tuple
