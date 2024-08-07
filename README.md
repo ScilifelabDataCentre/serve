@@ -102,7 +102,7 @@ Now continue setting up serve charts until you get to the PyCharm setup.
 
 ##### PyCharm setup
 
-Just commands:
+> Prerequisite: This setup assumes you have PyCharm Professional installed.
 
 1. Do this weirdness due to [this](https://youtrack.jetbrains.com/issue/PY-55338/Connection-to-python-console-refused-with-docker-interpreter-on-Linux)
     1. go to Help | Find Action | Registry
@@ -115,7 +115,7 @@ Just commands:
 $ sudo kubectl port-forward svc/serve-studio 22:22
 ```
 3. Set up the interpreter in PyCharm
-    1. Go to File | Settings | Project: stackn | Python Interpreter
+    1. Go to `PyCharm | Settings | Project: stackn | Python Interpreter`
     2. Add new interpreter
     3. Choose SSH
     4. Host: localhost
