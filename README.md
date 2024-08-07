@@ -135,6 +135,8 @@ $ sudo kubectl port-forward svc/serve-studio 22:22
     6. Port: `8080`
     7. Click Modify options and select `No reload` and `Environment variables`
     8. Add environment variables from the studio pod
+    9. Make sure the Working directory is /app.
+    10. The Path mappings should be /path/to/your/stackn=/app.
 
 ```bash
 $ kubectl get po
@@ -151,7 +153,14 @@ $ env
 # Copy the whole output in to the pycharm environment configuration
 ```
 
-Copy environment variables to the PyCharm Django configuration.
+Copy environment variables to the PyCharm Django configuration. The environment variables need to be separated by a semi-colon. To achieve this, click on the list icon in the Environment variables input box and then in the popup, click paste.
+
+Make sure that the Django Framework settings in PyCharm are correctly setup. 
+To check, go to  PyCharm | Settings | Languages & Frameworks | Django and check the following settings
+- Enable Django Support should be checked.
+- Django project root should be `/path/to/your/stackn`
+- Settings should be `studio/settings.py`
+- Manage script should be `manage.py`
 
 Now that you are done, you can run Django server using PyCharm and access the studio at [http://studio.127.0.0.1.nip.io/](http://studio.127.0.0.1.nip.io/)
 
