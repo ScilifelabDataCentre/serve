@@ -289,7 +289,7 @@ def handle_subdomain_change(instance, subdomain, subdomain_name):
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])
-        if old_subdomain and old_subdomain.is_created_by_user is False:
+        if old_subdomain and not old_subdomain.is_created_by_user:
             old_subdomain.delete()
 
 
