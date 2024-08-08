@@ -83,8 +83,10 @@ class CustomAppFormTest(BaseAppFormTest):
         instance.app = self.app
 
         # Fetch subdomain and set
-        subdomain_name = form.cleaned_data.get("subdomain")
-        subdomain, _ = Subdomain.objects.get_or_create(subdomain=subdomain_name, project=self.project)
+        subdomain_name, is_created_by_user = form.cleaned_data.get("subdomain")
+        subdomain, _ = Subdomain.objects.get_or_create(
+            subdomain=subdomain_name, project=self.project, is_created_by_user=is_created_by_user
+        )
         instance.subdomain = subdomain
 
         # Change the path to something that the form would not allow

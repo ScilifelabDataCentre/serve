@@ -4,14 +4,42 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Submit
 from django import forms
 from django.shortcuts import get_object_or_404
+from django.template import loader
+from django.utils.safestring import mark_safe
 
 from apps.constants import HELP_MESSAGE_MAP
 from apps.forms import CustomField
+from apps.helpers import get_select_options
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
-from apps.types_.subdomain import SubdomainCandidateName
+from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
 from projects.models import Flavor, Project
 
 __all__ = ["BaseForm", "AppBaseForm"]
+
+
+# Custom Widget that adds boostrap-style input group to the subdomain field
+class SubdomainInputGroup(forms.Widget):
+    subdomain_template = "apps/partials/subdomain_input_group.html"
+
+    def __init__(self, base_widget, data, *args, **kwargs):
+        # Initialise widget and get base instance
+        super(SubdomainInputGroup, self).__init__(*args, **kwargs)
+        self.base_widget = base_widget(*args, **kwargs)
+        self.data = data
+
+    def get_context(self, name, value, attrs=None):
+        return {
+            "initial_subdomain": value,
+            "project_pk": self.data["project_pk"],
+            "hidden": self.data["hidden"],
+            "subdomain_list": get_select_options(self.data["project_pk"]),
+        }
+
+    def render(self, name, value, attrs=None, renderer=None):
+        # Render base widget and add bootstrap spans
+        context = self.get_context(name, value, attrs)
+        template = loader.get_template(self.subdomain_template).render(context)
+        return mark_safe(template)
 
 
 class BaseForm(forms.ModelForm):
@@ -21,7 +49,7 @@ class BaseForm(forms.ModelForm):
         required=False,
         min_length=3,
         max_length=53,
-        widget=forms.TextInput(attrs={"style": "text-transform:lowercase;"}),
+        widget=SubdomainInputGroup(base_widget=forms.TextInput, data={}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -36,8 +64,12 @@ class BaseForm(forms.ModelForm):
 
     def _setup_form_fields(self):
         # Populate subdomain field with instance subdomain if it exists
+        self.fields["subdomain"].widget.data["project_pk"] = self.project_pk
+        self.fields["subdomain"].widget.data["hidden"] = "hidden"
+        self.fields["subdomain"].initial = ""
         if self.instance and self.instance.pk:
-            self.fields["subdomain"].initial = self.instance.subdomain.subdomain
+            self.fields["subdomain"].initial = self.instance.subdomain.subdomain if self.instance.subdomain else ""
+            self.fields["subdomain"].widget.data["hidden"] = ""
 
         # Handle name
         self.fields["name"].initial = ""
@@ -87,20 +119,20 @@ class BaseForm(forms.ModelForm):
             if Subdomain.objects.filter(subdomain=subdomain_input).exists():
                 error_message = "Wow, you just won the lottery. Contact us for a free chocolate bar."
                 raise forms.ValidationError(error_message)
-            return subdomain
+            return SubdomainTuple(subdomain, False)
 
         # Check if the instance has an existing subdomain
         current_subdomain = getattr(self.instance, "subdomain", None)
 
         # Validate if the subdomain input matches the instance's current subdomain
         if current_subdomain and current_subdomain.subdomain == subdomain_input:
-            return subdomain_input
+            return SubdomainTuple(subdomain_input, current_subdomain.is_created_by_user)
 
         # Convert the subdomain to lowercase. OK because we force convert to lowecase in the UI.
         subdomain_input = subdomain_input.lower()
 
         # Check if the subdomain adheres to helm rules
-        subdomain_candidate = SubdomainCandidateName(subdomain_input)
+        subdomain_candidate = SubdomainCandidateName(subdomain_input, self.project_pk)
 
         try:
             subdomain_candidate.validate_subdomain()
@@ -112,7 +144,7 @@ class BaseForm(forms.ModelForm):
             error_message = "Subdomain already exists. Please choose another one."
             raise forms.ValidationError(error_message)
 
-        return subdomain_input
+        return SubdomainTuple(subdomain_input, True)
 
     def get_common_field(self, field_name: str, **kwargs):
         """
@@ -184,3 +216,5 @@ class AppBaseForm(BaseForm):
         self.fields["volume"].queryset = volume_queryset
         self.fields["volume"].initial = volume_queryset
         self.fields["volume"].help_text = f"Select a volume to attach to your {self.model_name}."
+
+        self.fields["subdomain"].help_text = "Choose subdomain, create a new one or leave blank to get a random one."
