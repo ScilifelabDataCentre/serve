@@ -23,9 +23,14 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
         ("public", "Public"),
         ("link", "Link"),
     )
+
+    volume = models.ForeignKey(
+        "VolumeInstance", blank=True, null=True, related_name="%(class)s", on_delete=models.CASCADE
+    )
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
     port = models.IntegerField(default=3838)
     image = models.CharField(max_length=255)
+    path = models.CharField(max_length=255, default="/")
     proxy = models.BooleanField(default=True)
     container_waittime = models.IntegerField(default=20000)
     heartbeat_timeout = models.IntegerField(default=60000)
@@ -41,6 +46,7 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
         k8s_values["appconfig"] = dict(
             port=self.port,
             image=self.image,
+            path=self.path,
             proxyheartbeatrate=self.heartbeat_rate,
             proxyheartbeattimeout=self.heartbeat_timeout,
             proxycontainerwaittime=self.container_waittime,
@@ -48,6 +54,10 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
             seatsPerContainer=self.seats_per_container,
             allowContainerReuse=self.allow_container_reuse,
         )
+        volumeK8s_dict = {"volumeK8s": {}}
+        if self.volume:
+            volumeK8s_dict["volumeK8s"][self.volume.name] = dict(release=self.volume.subdomain.subdomain)
+        k8s_values["apps"] = volumeK8s_dict
         return k8s_values
 
     class Meta:
