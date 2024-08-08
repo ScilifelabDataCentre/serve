@@ -112,6 +112,7 @@ class GetLogs(View):
                         logs.append([formatted_time, log_message])
                     except ValueError as ve:
                         logger.warning(f"Timestamp parsing failed: {ve}")
+                        logs.append(["-", log_message])
                         continue
 
         except requests.RequestException as e:

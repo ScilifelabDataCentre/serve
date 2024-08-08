@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     "api",
     "axes",  # django-axes for brute force login protection
     "django_password_validators",  # django-password-validators for password validation
+    "django_htmx",
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = (
@@ -114,6 +115,7 @@ MIDDLEWARE = (
         "corsheaders.middleware.CorsMiddleware",
         "axes.middleware.AxesMiddleware",
         "studio.middleware.ExceptionLoggingMiddleware",
+        "django_htmx.middleware.HtmxMiddleware",
     ]
     + DJANGO_WIKI_MIDDLEWARE
     + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])

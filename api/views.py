@@ -8,6 +8,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
+from django.template import loader
+from django.utils.safestring import mark_safe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.authtoken.models import Token
@@ -23,8 +25,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from apps.helpers import HandleUpdateStatusResponseCode, handle_update_status_request
-from apps.models import AppCategories, Apps, BaseAppInstance
+from apps.helpers import (
+    HandleUpdateStatusResponseCode,
+    get_select_options,
+    handle_update_status_request,
+)
+from apps.models import AppCategories, Apps, BaseAppInstance, Subdomain
 from apps.tasks import delete_resource
 from apps.types_.subdomain import SubdomainCandidateName
 from models.models import ObjectType
@@ -739,17 +745,19 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
 
     The service contract for the GET action is as follows:
     :param str subdomainText: The subdomain text to validate.
+    :param str app_id: The app id to check if the subdomain is already taken by the app.
     :returns: An http status code and dict containing {"isValid": bool, "message": str}
 
-    Example request: /api/app-subdomain/validate/?subdomainText=my-subdomain
+    Example request: /api/app-subdomain/validate/?subdomainText=my-subdomain&app_id=1
     """
     subdomain_text = request.GET.get("subdomainText")
-
+    project_id = request.GET.get("project_id")
+    app_id = request.GET.get("app_id")
     if subdomain_text is None:
         return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
     # First validate for valid name
-    subdomain_candidate = SubdomainCandidateName(subdomain_text)
+    subdomain_candidate = SubdomainCandidateName(subdomain_text, project_id)
 
     try:
         subdomain_candidate.validate_subdomain()
@@ -757,12 +765,16 @@ def get_subdomain_is_valid(request: HttpRequest) -> HttpResponse:
         return Response({"isValid": False, "message": e.message})
 
     # Only check if the subdomain is available if the name is a valid subdomain name
-    msg = None
+    msg = "The subdomain is available"
 
     try:
-        is_valid = subdomain_candidate.is_available()
-        if not is_valid:
-            msg = "The subdomain is not available"
+        if app_id != "None" and subdomain_text == BaseAppInstance.objects.get(pk=app_id).subdomain.subdomain:
+            is_valid = True
+            msg = "The subdomain is already in use by the app."
+        else:
+            is_valid = subdomain_candidate.is_available()
+            if not is_valid:
+                msg = "The subdomain is not available"
     except Exception as e:
         logger.warn(f"Unable to validate subdomain {subdomain_text}. Error={str(e)}")
         is_valid = False
@@ -784,25 +796,62 @@ def get_subdomain_is_available(request: HttpRequest) -> HttpResponse:
 
     The service contract for the GET action is as follows:
     :param str subdomainText: The subdomain text to check for availability.
+    :param str project_id: The project id to check for available subdomains in the project.
     :returns: An http status code and dict containing {"isAvailable": bool}
 
-    Example request: /api/app-subdomain/is-available/?subdomainText=my-subdomain
+    Example request: /api/app-subdomain/is-available/?subdomainText=my-subdomain&project_id=1
     """
     subdomain_text = request.GET.get("subdomainText")
-
+    project_id = request.GET.get("project_id")
     if subdomain_text is None:
         return Response("Invalid input. Must pass in argument subdomainText.", 400)
 
     is_available = False
 
     try:
-        subdomain_candidate = SubdomainCandidateName(subdomain_text)
+        subdomain_candidate = SubdomainCandidateName(subdomain_text, project_id)
         is_available = subdomain_candidate.is_available()
     except Exception as e:
         logger.warn(f"Unable to validate subdomain {subdomain_text}. Error={str(e)}")
         is_available = False
 
     return Response({"isAvailable": is_available})
+
+
+@api_view(["GET"])
+@permission_classes(
+    (
+        # IsAuthenticated,
+    )
+)
+def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
+    """
+    Implementation of the API method at endpoint /api/app-subdomain/subdomain-input/
+    Supports the GET verb.
+
+    The service contract for the GET action is as follows:
+    :param str type: The type of element to return (select, input or newinput).
+    :param str project_id: The project id to check for available subdomains in the project.
+    :param str initial_subdomain: The subdomain value for the app that is already created
+    (will be empty for new apps).
+    :returns: An http response with the HTML element.
+
+    Example request: /api/app-subdomain/subdomain-input/?type=select&project_id=project_id
+    &initial_subdomain=initial_subdomain
+    """
+    project_id = request.GET.get("project_id")
+    request_type = request.GET.get("type")
+    initial_subdomain = request.GET.get("initial_subdomain") if request.GET.get("initial_subdomain") else ""
+    # default template and context is for input box
+    context = {"initial_subdomain": initial_subdomain}
+    template = "apps/partials/subdomain_input.html"
+    if request_type == "select":
+        options_list = get_select_options(project_id, initial_subdomain)
+        context["options_list"] = options_list
+        template = "apps/partials/subdomain_select.html"
+    rendered_template = loader.get_template(template).render(context)
+    response_html = mark_safe(rendered_template)
+    return HttpResponse(response_html)
 
 
 @api_view(["GET", "POST"])

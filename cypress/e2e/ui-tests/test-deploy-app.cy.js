@@ -434,7 +434,7 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
-            cy.get('#id_subdomain').clear().type(subdomain_3)
+            cy.get('#id_subdomain').type(subdomain_3)
 
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was updated with the correct subdomain

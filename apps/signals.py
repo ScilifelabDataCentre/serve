@@ -1,9 +1,9 @@
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_delete, post_save, pre_delete
 from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
 
 from apps.app_registry import APP_REGISTRY
-from apps.models import BaseAppInstance
+from apps.models import AppStatus, BaseAppInstance
 from studio.utils import get_logger
 
 from .tasks import helm_delete
@@ -26,6 +26,15 @@ def pre_delete_helm_uninstall(sender, instance, **kwargs):
         helm_delete.delay(values["subdomain"], values["namespace"])
     else:
         logger.error(f"Could not find helm release for {instance}")
+
+
+# After status of app changes to Deleted, remove subdomain from BaseAppInstance
+@receiver(post_save, sender=AppStatus)
+def post_delete_subdomain_remove(sender, instance, using, **kwargs):
+    if instance.status == "Deleted":
+        baseapp_instance = BaseAppInstance.objects.get(app_status=instance)
+        baseapp_instance.subdomain = None
+        baseapp_instance.save()
 
 
 def update_permission(sender, instance, created, **kwargs):
