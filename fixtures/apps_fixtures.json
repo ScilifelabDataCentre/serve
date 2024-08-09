@@ -383,7 +383,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.2.2",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.3.0",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "shinyapp-logo.svg",
