@@ -18,7 +18,7 @@ class VolumeInstance(BaseAppInstance):
     )
 
     def __str__(self):
-        return str(self.name)
+        return f"{str(self.name)} ({self.project.name})"
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
