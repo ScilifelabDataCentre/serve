@@ -25,7 +25,7 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     )
 
     volume = models.ForeignKey(
-        "VolumeInstance", blank=True, null=True, related_name="%(class)s", on_delete=models.CASCADE
+        "VolumeInstance", blank=True, null=True, related_name="%(class)s", on_delete=models.SET_NULL
     )
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
     port = models.IntegerField(default=3838)
