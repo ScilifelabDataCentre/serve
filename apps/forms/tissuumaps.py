@@ -28,6 +28,10 @@ class TissuumapsForm(AppBaseForm):
             Field("volume"),
             self.get_common_field("flavor"),
             self.get_common_field("access"),
+            self.get_common_field(
+                "note_on_linkonly_privacy",
+                placeholder="Describe why you want to make the app accessible only via a link",
+            ),
             css_class="card-body",
         )
 
@@ -35,7 +39,5 @@ class TissuumapsForm(AppBaseForm):
 
     class Meta:
         model = TissuumapsInstance
-        fields = ["name", "description", "volume", "flavor", "access", "tags"]
-        labels = {
-            "tags": "Keywords",
-        }
+        fields = ["name", "description", "volume", "flavor", "access", "note_on_linkonly_privacy", "tags"]
+        labels = {"tags": "Keywords", "note_on_linkonly_privacy": "Reason for choosing the link only option"}
