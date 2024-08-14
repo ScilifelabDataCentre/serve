@@ -9,7 +9,7 @@ from apps.models import (
 
 
 class TissuumapsInstanceManager(AppInstanceManager):
-    model_type = "shinyproxyinstance"
+    model_type = "tissuumapsinstance"
 
 
 class TissuumapsInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
