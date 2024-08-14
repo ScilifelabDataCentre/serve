@@ -121,6 +121,7 @@
         }
     }
 
+
     // User is "finished typing," do something
     function doneTyping () {
 
@@ -168,6 +169,8 @@
     document.addEventListener("DOMContentLoaded", function() {
         // Get the select element
         var accessSelect = document.getElementById('id_access');
+
+        toggleVisibility()
 
         // Check if the select element exists
         if (accessSelect) {

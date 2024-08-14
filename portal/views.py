@@ -67,16 +67,20 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None):
             print(subclass, flush=True)
             published_apps_qs = subclass.objects.filter(
                 ~Q(app_status__status="Deleted"), access="public", collections__slug=collection
-            ).order_by("-updated_on")
+            )
             print(published_apps_qs, flush=True)
             published_apps.extend([app for app in published_apps_qs])
 
     else:
         for subclass in SocialMixin.__subclasses__():
-            published_apps_qs = subclass.objects.filter(~Q(app_status__status="Deleted"), access="public").order_by(
-                "-updated_on"
-            )
+            published_apps_qs = subclass.objects.filter(~Q(app_status__status="Deleted"), access="public")
             published_apps.extend([app for app in published_apps_qs])
+
+    # sorting the apps by date updated
+    published_apps.sort(
+        key=lambda app: (app.updated_on is None, app.updated_on if app.updated_on is not None else ""),
+        reverse=True,  # Sort in descending order
+    )
 
     if len(published_apps) >= 3 and not get_all:
         published_apps = published_apps[:3]
