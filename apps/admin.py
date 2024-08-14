@@ -211,6 +211,7 @@ class CustomAppInstanceAdmin(BaseAppAdmin):
 @admin.register(ShinyInstance)
 class ShinyInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + (
+        "display_volumes",
         "image",
         "port",
     )
