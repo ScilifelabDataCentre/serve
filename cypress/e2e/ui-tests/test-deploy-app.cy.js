@@ -59,6 +59,8 @@ describe("Test deploying app", () => {
         const app_type = "Custom App"
         const app_source_code_public = "https://doi.org/example"
 
+        let volume_display_text = "project-vol (" + project_name + ")"
+
         if (createResources === true) {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -69,7 +71,7 @@ describe("Test deploying app", () => {
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
-            cy.get('#id_volume').select('project-vol')
+            cy.get('#id_volume').select(volume_display_text)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_path').clear().type(app_path)
@@ -110,7 +112,7 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_path').clear().type(app_path)
-            cy.get('#id_volume').select('project-vol')
+            cy.get('#id_volume').select(volume_display_text)
             cy.get('#submit-id-submit').contains('Submit').click()
 
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
@@ -331,6 +333,8 @@ describe("Test deploying app", () => {
         const app_description = "e2e-tissuumaps-description"
         const createResources = Cypress.env('create_resources');
         const app_type = "TissUUmaps App"
+        
+        let volume_display_text = "project-vol (" + project_name + ")"
 
         if (createResources === true) {
             cy.visit("/projects/")
@@ -341,7 +345,7 @@ describe("Test deploying app", () => {
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
-            cy.get('#id_volume').select('project-vol')
+            cy.get('#id_volume').select(volume_display_text)
             cy.get('#submit-id-submit').contains('Submit').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
@@ -385,6 +389,8 @@ describe("Test deploying app", () => {
         const subdomain_2 = "subdomain-test2"
         const subdomain_3 = "subdomain-test3"
 
+        let volume_display_text = "project-vol (" + project_name + ")"
+
         if (createResources === true) {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -396,7 +402,7 @@ describe("Test deploying app", () => {
             cy.get('#id_description').type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_volume').select('project-vol')
+            cy.get('#id_volume').select(volume_display_text)
             cy.get('#id_path').clear().type("/home")
             // fill out subdomain field
             cy.get('#id_subdomain').type(subdomain)
