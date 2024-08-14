@@ -333,7 +333,7 @@ describe("Test deploying app", () => {
         const app_description = "e2e-tissuumaps-description"
         const createResources = Cypress.env('create_resources');
         const app_type = "TissUUmaps App"
-        
+
         let volume_display_text = "project-vol (" + project_name + ")"
 
         if (createResources === true) {
