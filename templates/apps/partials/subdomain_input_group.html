@@ -1,0 +1,25 @@
+{% load get_setting %}
+<div class="input-group">
+    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="subdomain_options">Options</button>
+    <ul class="dropdown-menu">
+        <li>
+            <a class="dropdown-item" href="#" hx-get="/api/htmx/subdomain-input/?type=newinput&project_id={{ project_pk }}" hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()" id="new_subdomain">New</a>
+        </li>
+        <li>
+            <a class="dropdown-item {% if subdomain_list|length == 0 %}disabled{% endif %}" href="#" hx-get="/api/htmx/subdomain-input/?type=select&project_id={{ project_pk }}&initial_subdomain={{ initial_subdomain }}" hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()">Available</a>
+        </li>
+        <li><hr class="dropdown-divider" {{ hidden }}></li>
+        <li>
+            <a class="dropdown-item" href="#" hx-get="/api/htmx/subdomain-input/?type=input&project_id={{ project_pk }}&initial_subdomain={{ initial_subdomain }}" hx-target="#id_subdomain" hx-swap="outerHTML" {{ hidden }} onclick="clearSubdomainValidation()">Current</a>
+        </li>
+    </ul>
+    {% if type == "select" %}
+    {% include "apps/partials/subdomain_select.html" %}
+    {% else %}
+    {% include "apps/partials/subdomain_input.html" %}
+    {% endif %}
+    <div class="client-validation-feedback order-last" style="display:none;"></div>
+    <div class="input-group-append">
+        <span class="input-group-text" id="basic-addon2" style="font-weight: bold;border-radius: 0 .375rem .375rem 0;">.{% get_setting "DOMAIN" %}</span>
+    </div>
+</div>

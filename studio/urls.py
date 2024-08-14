@@ -47,12 +47,6 @@ urlpatterns = (
         path("", include("common.urls", namespace="common")),
         path("", include("models.urls", namespace="models")),
         path("", include("portal.urls", namespace="portal")),
-        path("", include("news.urls", namespace="news")),
-        path("", include("collections_module.urls", namespace="collections_module")),
-        path(
-            "<user>/<project>/monitor/",
-            include("monitor.urls", namespace="monitor"),
-        ),
         path("projects/<project>/apps/", include("apps.urls", namespace="apps")),
     ]
     + staticfiles_urlpatterns()

@@ -12,13 +12,13 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         # Define all fixtures here
         files = [
-            "projects_templates.json",
-            "intervals_fixtures.json",
-            "periodic_tasks_fixtures.json",
             "appcats_fixtures.json",
             "apps_fixtures.json",
+            "intervals_fixtures.json",
+            "periodic_tasks_fixtures.json",
             "objecttype_fixtures.json",
             "groups_fixtures.json",
+            "projects_templates.json",
         ]
         fixture_files = ["fixtures/" + file for file in files]
 

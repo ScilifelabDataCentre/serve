@@ -12,15 +12,15 @@ from .views import (
     FlavorsList,
     MembersList,
     MetadataList,
-    MLflowList,
     ModelList,
     ModelLogList,
     ObjectTypeList,
     ProjectList,
     ProjectTemplateList,
-    ReleaseNameList,
     ResourceList,
-    S3List,
+    get_subdomain_input_html,
+    get_subdomain_is_available,
+    get_subdomain_is_valid,
     update_app_status,
 )
 
@@ -40,9 +40,6 @@ models_router.register(r"resources", ResourceList, basename="resources")
 models_router.register(r"appinstances", AppInstanceList, basename="appinstances")
 models_router.register(r"flavors", FlavorsList, basename="flavors")
 models_router.register(r"environments", EnvironmentList, basename="environment")
-models_router.register(r"s3", S3List, basename="s3")
-models_router.register(r"mlflow", MLflowList, basename="mlflow")
-models_router.register(r"releasenames", ReleaseNameList, basename="releasenames")
 models_router.register(r"modellogs", ModelLogList, basename="modellog")
 models_router.register(r"metadata", MetadataList, basename="metadata")
 models_router.register(r"apps", AppList, basename="apps")
@@ -57,4 +54,7 @@ urlpatterns = [
     path("token-auth/", CustomAuthToken.as_view(), name="api_token_auth"),
     path("settings/", get_studio_settings),
     path("app-status/", update_app_status),
+    path("app-subdomain/validate/", get_subdomain_is_valid),
+    path("app-subdomain/is-available/", get_subdomain_is_available),
+    path("htmx/subdomain-input/", get_subdomain_input_html, name="get_subdomain_input_html"),
 ]

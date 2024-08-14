@@ -91,18 +91,16 @@ INSTALLED_APPS = [
     "tagulous",
     "guardian",
     "crispy_forms",
+    "crispy_bootstrap5",
     "common",
     "portal",
     "projects",
     "models",
-    "monitor",
     "apps",
     "api",
-    "customtags",
-    "news",
     "axes",  # django-axes for brute force login protection
     "django_password_validators",  # django-password-validators for password validation
-    "collections_module",
+    "django_htmx",
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = (
@@ -117,13 +115,16 @@ MIDDLEWARE = (
         "corsheaders.middleware.CorsMiddleware",
         "axes.middleware.AxesMiddleware",
         "studio.middleware.ExceptionLoggingMiddleware",
+        "django_htmx.middleware.HtmxMiddleware",
     ]
     + DJANGO_WIKI_MIDDLEWARE
     + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
 )
 
 ROOT_URLCONF = "studio.urls"
-CRISPY_TEMPLATE_PACK = "bootstrap"
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 TEMPLATES = [
     {
@@ -351,7 +352,7 @@ EXTERNAL_KUBECONF = True
 KUBECONFIG = "/app/cluster.conf"
 NAMESPACE = "default"
 KUBE_API_REQUEST_TIMEOUT = 1
-STORAGECLASS = "microk8s-hostpath"
+STORAGECLASS = "local-path"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
@@ -378,7 +379,7 @@ APPS_STATUS_WARNING = [
 
 # Apps
 APPS_MODEL = "apps.Apps"
-APPINSTANCE_MODEL = "apps.AppInstance"
+APPINSTANCE_MODEL = "apps.BaseAppInstance"
 APPCATEGORIES_MODEL = "apps.AppCategories"
 
 # Models
@@ -405,18 +406,13 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-# 2024-02-21: Removed because this is not used.
-# VERSION = "dev"
 
 MIGRATION_MODULES = {
-    "apps": "studio.migrations.apps",
-    "models": "studio.migrations.models",
-    "monitor": "studio.migrations.monitor",
-    "portal": "studio.migrations.portal",
-    "projects": "studio.migrations.projects",
+    "apps": "apps.migrations",
+    "models": "models.migrations",
+    "portal": "portal.migrations",
+    "projects": "projects.migrations",
     "common": "common.migrations",
-    "news": "news.migrations",
-    "collections_module": "collections_module.migrations",
 }
 
 # Defines how many apps a user is allowed to create within one project
@@ -440,9 +436,10 @@ APPS_PER_PROJECT_LIMIT = {
     "combiner": 0,
     "mongodb": 0,
     "netpolicy": 0,
+    "filemanager": 1,
 }
 
-PROJECTS_PER_USER_LIMIT = 5
+PROJECTS_PER_USER_LIMIT = 10
 
 STUDIO_ACCESSMODE = os.environ.get("STUDIO_ACCESSMODE", "")
 ENABLE_PROJECT_EXTRA_SETTINGS = False
@@ -519,3 +516,5 @@ if not DEBUG:
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
+
+LOKI_SVC = None

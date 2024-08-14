@@ -1,24 +1,15 @@
 [
   {
     "fields": {
-      "description": "Use this template if you intend to only deploy apps or use integrated development environments (IDEs).",
+      "description": "Use this template if you intend to deploy apps or ML models packaged into containers, or if you intend to use web-based notebooks.",
       "name": "Default project",
       "slug": "blank",
+      "available_apps": [8, 9, 19, 21, 22, 23, 24, 28],
       "template": {
         "apps": {
-          "project-netpolicy": {
-            "permission": "private",
-            "slug": "netpolicy"
-          },
-          "project-vol": {
-            "app_id": "",
-            "app_release_name": "",
-            "permission": "project",
-            "slug": "volumeK8s",
-            "storageClass": "microk8s-hostpath",
-            "volume.accessModes": "ReadWriteMany",
-            "volume.size": "1Gi",
-            "volume.storageClass": "microk8s-hostpath"
+
+          "netpolicy": {
+            "name": "project-netpolicy"
           }
         },
         "environments": {
@@ -36,6 +27,11 @@
             "app": "python-serve",
             "image": "serve-python:latest",
             "repository": "ghcr.io/scilifelabdatacentre"
+          }
+        },
+        "volumes": {
+          "project-vol": {
+            "size": "1"
           }
         },
         "flavors": {
@@ -65,31 +61,27 @@
   },
   {
     "fields": {
-      "description": "Use this template if you intend to deploy machine learning models using the serving functionality.",
-      "name": "Project with ML serving",
+      "description": "This project type allows to deploy machine learning models using the specialized model serving frameworks.",
+      "name": "Project with specialized ML serving",
       "slug": "default",
       "template": {
         "apps": {
-          "project-netpolicy": {
-            "permission": "private",
-            "slug": "netpolicy"
+          "netpolicy": {
+            "name": "project-netpolicy"
           },
-          "project-vol": {
-            "app_id": "",
-            "app_release_name": "",
-            "permission": "project",
-            "slug": "volumeK8s",
-            "storageClass": "microk8s-hostpath",
-            "volume.accessModes": "ReadWriteMany",
-            "volume.size": "1Gi",
-            "volume.storageClass": "microk8s-hostpath"
+          "jupyter-lab": {
+            "name": "My Jupyter Lab",
+            "description": "Deployed via project template",
+            "volume": "project-vol",
+            "access": "private",
+            "flavor": "2 vCPU, 4 GB RAM"
           },
-          "project-filemanager": {
-            "app:volumeK8s": [
-              "project-vol"
-            ],
-            "permission": "project",
-            "slug": "filemanager-admin"
+          "filemanager": {
+            "name": "project-filemanager",
+            "volume": "project-vol",
+            "persistent": "True",
+            "flavor": "2 vCPU, 4 GB RAM",
+            "access": "private"
           }
         },
         "environments": {
@@ -107,6 +99,11 @@
             "app": "python-serve",
             "image": "serve-python:latest",
             "repository": "ghcr.io/scilifelabdatacentre"
+          }
+        },
+        "volumes": {
+          "project-vol": {
+            "size": "1"
           }
         },
         "flavors": {

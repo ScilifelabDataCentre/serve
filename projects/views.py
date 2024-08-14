@@ -22,22 +22,16 @@ from django.views import View
 from guardian.decorators import permission_required_or_403
 from guardian.shortcuts import assign_perm, remove_perm
 
+from apps.app_registry import APP_REGISTRY
+from apps.models import BaseAppInstance
+
 from .exceptions import ProjectCreationException
 from .forms import PublishProjectToGitHub
-from .models import (
-    S3,
-    Environment,
-    Flavor,
-    MLFlow,
-    Project,
-    ProjectLog,
-    ProjectTemplate,
-)
+from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
 from .tasks import create_resources_from_template, delete_project
 
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
-AppInstance = apps.get_model(app_label=django_settings.APPINSTANCE_MODEL)
 AppCategories = apps.get_model(app_label=django_settings.APPCATEGORIES_MODEL)
 Model = apps.get_model(app_label=django_settings.MODELS_MODEL)
 User = get_user_model()
@@ -51,7 +45,7 @@ class IndexView(View):
                 projects = Project.objects.filter(status="active").distinct("pk")
             else:
                 projects = Project.objects.filter(
-                    Q(owner=request.user) | Q(authorized=request.user),
+                    Q(owner=request.user.id) | Q(authorized=request.user.id),
                     status="active",
                 ).distinct("pk")
         except TypeError as err:
@@ -110,9 +104,7 @@ def settings(request, project_slug):
     environments = Environment.objects.filter(project=project)
     apps = Apps.objects.all().order_by("slug", "-revision").distinct("slug")
 
-    s3instances = S3.objects.filter(Q(project=project), Q(app__state="Running"))
     flavors = Flavor.objects.filter(project=project)
-    mlflows = MLFlow.objects.filter(Q(project=project), Q(app__state="Running"))
 
     return render(request, template, locals())
 
@@ -266,71 +258,6 @@ def delete_flavor(request, project_slug):
         # TODO: Check that the user has permission to delete this flavor.
         flavor = Flavor.objects.get(pk=pk, project=project)
         flavor.delete()
-
-    return HttpResponseRedirect(
-        reverse(
-            "projects:settings",
-            kwargs={"project_slug": project.slug},
-        )
-    )
-
-
-@login_required
-@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def set_s3storage(request, project_slug, s3storage=[]):
-    # TODO: Ensure that the user has the correct permissions to set
-    # this specific
-    # s3 object to storage in this project (need to check that
-    # the user has access to the
-    # project as well.)
-    if request.method == "POST" or s3storage:
-        project = Project.objects.get(slug=project_slug)
-
-        if s3storage:
-            s3obj = S3.objects.get(name=s3storage, project=project)
-        else:
-            pk = request.POST.get("s3storage")
-            if pk == "blank":
-                s3obj = None
-            else:
-                s3obj = S3.objects.get(pk=pk)
-
-        project.s3storage = s3obj
-        project.save()
-
-        if s3storage:
-            return JsonResponse({"status": "ok"})
-
-    return HttpResponseRedirect(
-        reverse(
-            "projects:settings",
-            kwargs={"project_slug": project.slug},
-        )
-    )
-
-
-@login_required
-@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
-def set_mlflow(request, project_slug, mlflow=[]):
-    # TODO: Ensure that the user has the correct permissions
-    # to set this specific
-    # MLFlow object to MLFlow Server in this project (need to check
-    #  that the user has access to the
-    # project as well.)
-    if request.method == "POST" or mlflow:
-        project = Project.objects.get(slug=project_slug)
-
-        if mlflow:
-            mlflowobj = MLFlow.objects.get(name=mlflow, project=project)
-        else:
-            pk = request.POST.get("mlflow")
-            mlflowobj = MLFlow.objects.get(pk=pk)
-
-        project.mlflow = mlflowobj
-        project.save()
-
-        if mlflow:
-            return JsonResponse({"status": "ok"})
 
     return HttpResponseRedirect(
         reverse(
@@ -532,72 +459,55 @@ class DetailsView(View):
     template_name = "projects/overview.html"
 
     def get(self, request, project_slug):
-        resources = list()
-        models = Model.objects.none()
+        project = Project.objects.get(slug=project_slug)
+        resources = []
         app_ids = []
-        project = None
-        filemanager_instance = None
+        if request.user.is_superuser:
+            categories = AppCategories.objects.all().order_by("-priority")
+        else:
+            categories = AppCategories.objects.all().exclude(slug__in=["admin-apps"]).order_by("-priority")
 
-        if request.user.is_authenticated:
-            project = Project.objects.get(slug=project_slug)
-            if request.user.is_superuser:
-                categories = AppCategories.objects.all().order_by("-priority")
-            else:
-                categories = AppCategories.objects.all().exclude(slug__in=["admin-apps"]).order_by("-priority")
-            # models = Model.objects.filter(project=project).order_by("-uploaded_at")[:10]
-            models = Model.objects.filter(project=project).order_by("-uploaded_at")
+        for category in categories:
+            # Get all subclasses of Base
 
-            def filter_func(slug):
-                return Q(app__category__slug=slug)
+            instances_per_category_list = []
+            for orm_model in APP_REGISTRY.iter_orm_models():
+                # Filter instances of each subclass by project, user and status.
+                # See the get_app_instances_of_project_filter method in base.py
 
-            for category in categories:
-                app_instances_of_category = AppInstance.objects.get_app_instances_of_project(
-                    user=request.user,
-                    project=project,
-                    filter_func=filter_func(slug=category.slug),
-                    # limit=5,
+                queryset_per_category = orm_model.objects.get_app_instances_of_project(
+                    user=request.user, project=project, filter_func=Q(app__category__slug=category.slug)
                 )
 
-                app_ids += [obj.id for obj in app_instances_of_category]
+                if queryset_per_category:
+                    # SS-1071 Added check for app_ids and instances_per_category
+                    # to avoid duplicates (e.g in case of shinyapps)
+                    app_ids += [obj.id for obj in queryset_per_category if obj.id not in app_ids]
+                    instances_per_category_list.extend(
+                        [instance for instance in queryset_per_category if instance not in instances_per_category_list]
+                    )
 
-                apps_of_category = (
-                    Apps.objects.filter(category=category, user_can_create=True)
-                    .order_by("slug", "-revision")
-                    .distinct("slug")
-                )
+            # Filter the available apps specified in the project template
+            available_apps = [app.pk for app in project.project_template.available_apps.all()]
 
-                resources.append(
-                    {
-                        "title": category.name,
-                        "objs": app_instances_of_category,
-                        "apps": apps_of_category,
-                    }
-                )
+            apps_per_category = (
+                Apps.objects.filter(category=category, user_can_create=True, pk__in=available_apps)
+                .order_by("slug", "-revision")
+                .distinct("slug")
+            )
 
-            def filter_app_slug(slug):
-                return Q(app__slug=slug)
-
-            filemanager_instance = AppInstance.objects.get_app_instances_of_project(
-                user=request.user, project=project, filter_func=filter_app_slug(slug="filemanager")
-            ).first()
-
-            if filemanager_instance:
-                creation_date = filemanager_instance.created_on
-                now = datetime.datetime.now(datetime.timezone.utc)
-                age = now - creation_date
-                timedelta = datetime.timedelta(hours=24)
-                hours = timedelta - age
-                hours = round(hours.total_seconds() / 3600)
-            else:
-                hours = 0
+            resources.append(
+                {
+                    "title": category.name,
+                    "instances": instances_per_category_list,
+                    "apps": apps_per_category,
+                }
+            )
 
         context = {
             "resources": resources,
-            "models": models,
             "project": project,
             "app_ids": app_ids,
-            "filemanager_instance": filemanager_instance,
-            "hours": hours,
         }
 
         return render(

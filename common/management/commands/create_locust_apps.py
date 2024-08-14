@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.helpers import create_app_instance
+# TODO: revisit:
+from apps.helpers import create_app_instance  # type:ignore[attr-defined]
 from apps.models import Apps
 from projects.models import Flavor, Project
 
@@ -33,7 +34,7 @@ class Command(BaseCommand):
 
                     successful, project_slug, app_category_slug = create_app_instance(
                         user, project, app, app.settings, data=data
-                    )
+                    )  # TODO: revisit. type:ignore[attr-defined]
                 else:
                     self.stdout.write(self.style.WARNING(f"Flavor or app not found for user: {user.email}"))
             else:

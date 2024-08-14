@@ -35,7 +35,7 @@
                         <div class="row d-flex flex-column pb-4">
                             <div class="col-12">
                                 {% if request.session.app_tags|exists:app.id %}
-                                {% with app.tags|split:"," as tags %}
+                                {% with app.tags.all as tags %}
                                 {% for tag in tags %}
                                 <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
                                     href="{% url 'portal:apps' %}?tf_add={{ tag | urlencode }}">
@@ -50,7 +50,7 @@
                                 </a>
                                 {% endwith %}
                                 {% else %}
-                                {% with app.tags|split:"," as tags %}
+                                {% with app.tags.all as tags %}
                                 {% with tags|count_str as tag_limit %}
                                 {% for tag in tags|slice:tag_limit %}
                                 <a class="tag {% if tag in request.session.app_tag_filters%}disabled{% endif %}"
@@ -74,9 +74,9 @@
                         <div class="row mt-auto align-items-center">
                             <div class="col-8">
                                 {% if "Serve" in app.app.name or app.app.name == "Python Model Deployment" %}
-                                    <a class="btn btn-primary" onclick="copyClip('{{app.table_field.url}}')">Copy API Endpoint</a>
+                                    <a class="btn btn-primary" onclick="copyClip('{{app.url}}')">Copy API Endpoint</a>
                                 {% else %}
-                                    <a title="Launch the app" rel="Link to launch the app" href="{{ app.table_field.url }}" target="_blank" class="btn btn-primary">Open</a>
+                                    <a title="Launch the app" rel="Link to launch the app" href="{{ app.url }}" target="_blank" class="btn btn-primary">Open</a>
                                 {% endif %}
                                 {% if app.app.slug in 'shinyapp,shinyproxyapp,dashapp,customapp' %}
                                 {% if app.pvc == None %}

@@ -32,14 +32,6 @@
                     Access
                 </a>
                 {% if enable_extra_settings or request.user.is_superuser %}
-                <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#s3storage"
-                    role="tab">
-                    S3 storage
-                </a>
-                <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#mlflow"
-                    role="tab">
-                    MLFlow
-                </a>
                 <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#flavors"
                     role="tab">
                     Flavors
@@ -220,69 +212,8 @@
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="s3storage" role="tabpanel">
-                <div class="card shadow border-0">
 
-                    <div class="card-header bg-light py-3">
-                        <h5 class="card-title mb-0">Default S3 storage</h5>
-                    </div>
 
-                    <div class="card-body">
-                        <form action="{% url 'projects:set_s3storage' project.slug %}" method="post">
-                            {% csrf_token %}
-
-                            <div class="mb-3">
-                                <label for="id_user_name" class="form-label">S3 instance</label>
-                                <select type="text" class="form-control" id="id_s3storage" name="s3storage"
-                                    maxlength="256" required>
-                                    <option value="blank" selected>--------</option>
-                                    {% for s3 in s3instances %}
-                                    {% if s3 == project.s3storage %}
-                                    <option value="{{ s3.pk }}" selected>{{ s3.name }}</option>
-                                    {% else %}
-                                    <option value="{{ s3.pk }}">{{ s3.name }}</option>
-                                    {% endif %}
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <button type="submit" class="btn btn-square btn-primary">Set</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="tab-pane fade" id="mlflow" role="tabpanel">
-                <div class="card shadow border-0">
-
-                    <div class="card-header bg-light py-3">
-                        <h5 class="card-title mb-0">Default MLFlow Server</h5>
-                    </div>
-
-                    <div class="card-body">
-                        <form action="{% url 'projects:set_mlflow' project.slug %}" method="post">
-                            {% csrf_token %}
-
-                            <div class="mb-3">
-                                <label for="id_user_name" class="form-label">MLFlow Servers</label>
-                                <select type="text" class="form-control" id="id_mlflow" name="mlflow" maxlength="256"
-                                    required>
-                                    {% for mlflow in mlflows %}
-                                    <option value="blank" selected>--------</option>
-                                    {% if mlflow == project.mlflow %}
-                                    <option value="{{ mlflow.pk }}" selected>{{ mlflow.name }}</option>
-                                    {% else %}
-                                    <option value="{{ mlflow.pk }}">{{ mlflow.name }}</option>
-                                    {% endif %}
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <button type="submit" class="btn btn-square btn-primary">Set</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
             {% endif %}
             {% if request.user.pk == project.owner.pk or request.user.is_superuser %}
             <div class="tab-pane fade" id="delete" role="tabpanel">

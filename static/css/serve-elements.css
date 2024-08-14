@@ -84,6 +84,27 @@
     border-color: var(--scaleout-green);
 }
 
+.form-control-with-spinner {
+    width: -webkit-calc(100% - 50px);
+    width:    -moz-calc(100% - 50px);
+    width:         calc(100% - 50px);
+}
+
+.client-validation-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 80%;
+}
+
+.client-validation-valid {
+    color: rgb(25, 135, 84);
+}
+
+.client-validation-invalid {
+    color: var(--bs-danger);
+}
+
 /* links */
 
 a {

@@ -11,7 +11,7 @@ from django.test import TestCase, TransactionTestCase
 from projects.models import Project
 
 from ..helpers import HandleUpdateStatusResponseCode, handle_update_status_request
-from ..models import AppCategories, AppInstance, Apps, AppStatus
+from ..models import AppCategories, Apps, AppStatus, JupyterInstance, Subdomain
 
 utc = pytz.UTC
 
@@ -49,77 +49,79 @@ class UpdateAppStatusTestCase(TestCase):
 
         self.project = Project.objects.create_project(name="test-perm-get_status", owner=self.user, description="")
 
-        self.app_instance = AppInstance.objects.create(
-            access="public",
+        subdomain = Subdomain.objects.create(subdomain=self.ACTUAL_RELEASE_NAME)
+        self.app_instance = JupyterInstance.objects.create(
+            access="private",
             owner=self.user,
-            name="test_app_instance_public",
+            name="test_app_instance_private",
             app=self.app,
             project=self.project,
-            parameters={
+            subdomain=subdomain,
+            k8s_values={
                 "environment": {"pk": ""},
                 "release": self.ACTUAL_RELEASE_NAME,
             },
-            state=self.INITIAL_STATUS,
         )
+        print(f"######## {self.INITIAL_EVENT_TS}")
 
     def setUpCreateAppStatus(self):
-        self.status_object = AppStatus(appinstance=self.app_instance)
-        self.status_object.status_type = self.INITIAL_STATUS
-        self.status_object.save()
-        # Must re-save with the desired timeUpdate the app instance object
-        self.status_object.time = self.INITIAL_EVENT_TS
-        self.status_object.save(update_fields=["time"])
+        app_status = AppStatus.objects.create(status=self.INITIAL_STATUS)
+        app_status.time = self.INITIAL_EVENT_TS
+        app_status.save()
+        self.app_instance.app_status = app_status
+        self.app_instance.save(update_fields=["app_status"])
+        print(f"######## {app_status.time}")
 
     def test_handle_old_event_time_should_ignore_update(self):
         self.setUpCreateAppStatus()
-        older_ts = self.INITIAL_EVENT_TS - timedelta(seconds=1)
+        older_ts = self.app_instance.app_status.time - timedelta(seconds=1)
         actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, "NewStatus", older_ts)
 
         assert actual == HandleUpdateStatusResponseCode.NO_ACTION
 
         # Fetch the app instance and status objects and verify values
-        actual_app_instance = AppInstance.objects.filter(
-            parameters__contains={"release": self.ACTUAL_RELEASE_NAME}
+        actual_app_instance = JupyterInstance.objects.filter(
+            k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.state == self.INITIAL_STATUS
-        actual_appstatus = actual_app_instance.status.latest()
-        assert actual_appstatus.status_type == self.INITIAL_STATUS
+        assert actual_app_instance.app_status.status == self.INITIAL_STATUS
+        actual_appstatus = actual_app_instance.app_status
+        assert actual_appstatus.status == self.INITIAL_STATUS
         assert actual_appstatus.time == self.INITIAL_EVENT_TS
 
     def test_handle_same_status_newer_time_should_update_time(self):
         self.setUpCreateAppStatus()
-        newer_ts = self.INITIAL_EVENT_TS + timedelta(seconds=1)
+        newer_ts = self.app_instance.app_status.time + timedelta(seconds=1)
         actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, self.INITIAL_STATUS, newer_ts)
 
         assert actual == HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
 
         # Fetch the app instance and status objects and verify values
-        actual_app_instance = AppInstance.objects.filter(
-            parameters__contains={"release": self.ACTUAL_RELEASE_NAME}
+        actual_app_instance = JupyterInstance.objects.filter(
+            k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.state == self.INITIAL_STATUS
-        actual_appstatus = actual_app_instance.status.latest()
-        assert actual_appstatus.status_type == self.INITIAL_STATUS
+        assert actual_app_instance.app_status.status == self.INITIAL_STATUS
+        actual_appstatus = actual_app_instance.app_status
+        assert actual_appstatus.status == self.INITIAL_STATUS
         assert actual_appstatus.time == newer_ts
 
     def test_handle_different_status_newer_time_should_update_status(self):
         self.setUpCreateAppStatus()
-        newer_ts = self.INITIAL_EVENT_TS + timedelta(seconds=1)
+        newer_ts = self.app_instance.app_status.time + timedelta(seconds=1)
         new_status = self.INITIAL_STATUS + "-test01"
         actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, new_status, newer_ts)
 
         assert actual == HandleUpdateStatusResponseCode.UPDATED_STATUS
 
         # Fetch the app instance and status objects and verify values
-        actual_app_instance = AppInstance.objects.filter(
-            parameters__contains={"release": self.ACTUAL_RELEASE_NAME}
+        actual_app_instance = JupyterInstance.objects.filter(
+            k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.state == new_status
-        actual_appstatus = actual_app_instance.status.latest()
-        assert actual_appstatus.status_type == new_status
+        assert actual_app_instance.app_status.status == new_status
+        actual_appstatus = actual_app_instance.app_status
+        assert actual_appstatus.status == new_status
         assert actual_appstatus.time == newer_ts
 
     def test_handle_missing_app_status_should_create_and_update_status(self):
@@ -130,13 +132,13 @@ class UpdateAppStatusTestCase(TestCase):
         assert actual == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
 
         # Fetch the app instance and status objects and verify values
-        actual_app_instance = AppInstance.objects.filter(
-            parameters__contains={"release": self.ACTUAL_RELEASE_NAME}
+        actual_app_instance = JupyterInstance.objects.filter(
+            k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.state == new_status
-        actual_appstatus = actual_app_instance.status.latest()
-        assert actual_appstatus.status_type == new_status
+        assert actual_app_instance.app_status.status == new_status
+        actual_appstatus = actual_app_instance.app_status
+        assert actual_appstatus.status == new_status
         assert actual_appstatus.time == newer_ts
 
     def test_handle_long_status_text_should_trim_status(self):
@@ -149,16 +151,18 @@ class UpdateAppStatusTestCase(TestCase):
         assert actual == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
 
         # Fetch the app instance and status objects and verify values
-        actual_app_instance = AppInstance.objects.filter(
-            parameters__contains={"release": self.ACTUAL_RELEASE_NAME}
+        actual_app_instance = JupyterInstance.objects.filter(
+            k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.state == expected_status_text
-        actual_appstatus = actual_app_instance.status.latest()
-        assert actual_appstatus.status_type == expected_status_text
+        assert actual_app_instance.app_status.status == expected_status_text
+        actual_appstatus = actual_app_instance.app_status
+        assert actual_appstatus.status == expected_status_text
         assert actual_appstatus.time == newer_ts
 
 
+'''
+#TODO: THIS TEST NEEDS TO BE UPDATED TO ADHERE TO NEW LOGIC
 @pytest.mark.skip(
     reason="This test requires a modification to the handle_update_status_request function to add a delay parameter."
 )
@@ -269,3 +273,4 @@ class UpdateAppStatusConcurrentRequestsTestCase(TransactionTestCase):
         new_status = "StatusB"
         actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, new_status, newer_ts)
         return "submit_request_new_status", actual
+'''

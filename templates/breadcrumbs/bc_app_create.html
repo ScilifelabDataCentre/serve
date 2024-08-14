@@ -1,0 +1,10 @@
+{% extends "breadcrumbs/breadcrumb_base.html" %}
+
+{% block breadcrumb_content %}
+{% if app_id %}
+    <li class="breadcrumb-item active" aria-current="page">Edit {{ form.model_name }}</li>
+{% else %}
+    <li class="breadcrumb-item active" aria-current="page">Create {{ form.model_name }}</li>
+{% endif %}
+
+{% endblock %}

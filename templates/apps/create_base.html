@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block title %}{{ form_header }} {{ app.name }}{% endblock %}
+{% load static %}
+{% load custom_tags %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+{% include "breadcrumbs/bc_app_create.html" %}
+
+<div class="row d-flex justify-content-center mt-2">
+    <div class="col-12 col-xl-8">
+        <div class="card shadow border-1">
+            <div class="card-body">
+            {% if app_id %}
+                <h1 class="h3 mb-3 card-title">Edit {{ form.instance.name }}</h1>
+            {% else %}
+                <h1 class="h3 mb-3 card-title">Create {{ form.model_name }}</h1>
+                <p class="card-text">
+                    {% block app_info %}
+                    {% endblock %}
+                </p>
+            {% endif %}
+
+            </div>
+                {% crispy form %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+    function clearSubdomainValidation() {
+        // Must clear django form validation message
+        $("#id_subdomain").each(function() {
+            $(this).removeClass("is-valid");
+            $(this).removeClass("is-invalid");
+        });
+
+        $(".client-validation-feedback").each(function() {
+            $(this).text("");
+            $(this).hide();
+            $(this).removeClass("client-validation-valid");
+            $(this).removeClass("client-validation-invalid");
+        });
+    }
+
+    function checkSubdomainValidity(subdomain_input) {
+        // Checks the validity of a subdomain name by calling the REST API endpoint
+        // at /api/app-subdomain/validate/?subdomainText=<input>
+
+        let api_url = window.location.origin + "/api/app-subdomain/validate/";
+        //console.log(`Checking for subdomain validity. Using API URL: ${api_url}, name: ${subdomain_input}, app_id: {{ app_id }}`);
+
+        let request = $.ajax({
+            type: "GET",
+            url: api_url,
+            data: {"subdomainText": subdomain_input, "app_id": "{{ app_id }}", "project_id": "{{ project.id }}"},
+            beforeSend: function ( xhr ) {
+                // Display the work-in-progress spinner
+                $("#formInputSpinner").show();
+            }
+        });
+
+        request.done(function (data) {
+            //console.log(`Request done with isValid=${data.isValid}, message=${data.message}`);
+            let msg = "";
+            if (typeof data !== "undefined") {
+                //msg = (data.is_available == true) ? 'The subdomain is available' :'The subdomain is not available';
+                msg = data.message;
+             }
+             handleSubdomainValidity(data.isValid, msg);
+        });
+        request.fail(function (jqXHR, textStatus, errorThrown) {
+            //console.log(`The request failed. status=${textStatus}, errorThrown=${errorThrown}`);
+            handleSubdomainValidity(false, "Server error");
+        });
+
+        $("#formInputSpinner").hide();
+    }
+
+    function handleSubdomainValidity(is_valid, msg = "") {
+        if (is_valid) {
+            // Enable the submit button
+            //console.log("is_valid is true")
+            $("#submit-id-submit").prop("disabled", false);
+            $("#id_subdomain").addClass("is-valid");
+            $("#id_subdomain").removeClass("is-invalid");
+            //console.log($('#id_subdomain').siblings('.client-validation-feedback'))
+            $('#id_subdomain').siblings('.client-validation-feedback').addClass("client-validation-valid");
+            $('#id_subdomain').siblings(".client-validation-feedback").removeClass("client-validation-invalid");
+        } else {
+            // Disable the submit button
+            //console.log("is_valid is false")
+            $("#submit-id-submit").prop("disabled", true);
+            $("#id_subdomain").addClass("is-invalid");
+            $("#id_subdomain").removeClass("is-valid");
+            //console.log($('#id_subdomain').siblings('.client-validation-feedback'))
+            $('#id_subdomain').siblings(".client-validation-feedback").addClass("client-validation-invalid");
+            $('#id_subdomain').siblings(".client-validation-feedback").removeClass("client-validation-valid");
+        }
+
+        $('#id_subdomain').siblings(".client-validation-feedback").text(msg);
+        $('#id_subdomain').siblings(".client-validation-feedback").show();
+    }
+     // Function to toggle visibility based on select value
+     function toggleVisibility() {
+        var accessSelect = document.getElementById('id_access');
+        var noteOnLinkOnlyDiv = document.getElementById('div_id_note_on_linkonly_privacy');
+        // Ensure elements exist before attempting to use them
+
+        if (accessSelect && noteOnLinkOnlyDiv) {
+            // Check if the 'public' option is selected
+            if (accessSelect.value === 'link') {
+                noteOnLinkOnlyDiv.style.display = 'block'; // Show the div
+            } else {
+                noteOnLinkOnlyDiv.style.display = 'none'; // Hide the div
+            }
+        }
+    }
+
+
+    // User is "finished typing," do something
+    function doneTyping () {
+
+
+        let subdomain_input = $("#id_subdomain").val();
+        if (subdomain_input.length == 0) {
+            //console.log("Empty subdomain input");
+            clearSubdomainValidation();
+            // Empty text field. Enable the submit button and clear any validation styles.
+            $("#submit-id-submit").prop('disabled', false);
+        }
+        else {
+            //console.log(`Checking subdomain validity for: ${subdomain_input}`);
+            // Run check if there is text in the input field
+            // Convert the input subdomain to lowercase for the validation.
+            // OK because the input form and the server does the same.
+            checkSubdomainValidity(subdomain_input.toLowerCase());
+        }
+    }
+    function selectValidation(event) {
+        doneTyping(event.target.value);
+    }
+    function runScript() {
+        // Add event handler on the subdomain input field
+        let typingTimer;                // Timer identifier
+        let doneTypingInterval = 500;   // Time in ms (500 ms = 0.5 seconds)
+
+        // On keyup, start the countdown
+        $("#id_subdomain").on('keyup', function () {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(doneTyping, doneTypingInterval);
+        });
+
+        // On keydown, clear the countdown
+        $("#id_subdomain").on('keydown', function () {
+                clearTimeout(typingTimer);
+        });
+
+        // On focusout, run the validation immediately
+        $("#id_subdomain").on('focusout', function () {
+            doneTyping();
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Get the select element
+        var accessSelect = document.getElementById('id_access');
+
+        toggleVisibility()
+
+        // Check if the select element exists
+        if (accessSelect) {
+            // Add event listener for changes if element exists
+            accessSelect.addEventListener('change', toggleVisibility);
+        }
+
+        runScript();
+    });
+    htmx.onLoad(function(content) {
+        runScript();
+    })
+    </script>
+
+{% endblock %}

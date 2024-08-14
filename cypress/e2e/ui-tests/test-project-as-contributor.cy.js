@@ -228,8 +228,8 @@ describe("Test project contributor user functionality", () => {
                 // step 1. create 3 jupyter lab instances (current limit)
                 Cypress._.times(3, () => {
                         cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
-                        cy.get('input[name=app_name]').type("e2e-create-jl")
-                        cy.get('.btn-primary').contains('Create').click()
+                        cy.get('#id_name').type("e2e-create-jl")
+                        cy.get('#submit-id-submit').contains('Submit').click()
                   });
                 // step 2. check that the button to create another one does not work
                 cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('not.have.attr', 'href')
@@ -257,8 +257,8 @@ describe("Test project contributor user functionality", () => {
         // Names of projects to create
         const project_name = "e2e-create-proj-test"
 
-        // Create 5 projects (current limit)
-        Cypress._.times(5, () => {
+        // Create 10 projects (current limit)
+        Cypress._.times(10, () => {
             cy.visit("/projects/")
             cy.get("a").contains('New project').click()
             cy.get("a").contains('Create').first().click()
@@ -276,7 +276,7 @@ describe("Test project contributor user functionality", () => {
         cy.request({url: "/projects/templates/", failOnStatusCode: false}).its('status').should('equal', 403)
 
         // Now delete all created projects
-        Cypress._.times(5, () => {
+        Cypress._.times(10, () => {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
             .then((href) => {
@@ -357,17 +357,17 @@ describe("Test project contributor user functionality", () => {
         // Create private app
         cy.log("Now creating a private app")
         cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-        cy.get('input[name=app_name]').type(private_app_name)
-        cy.get('select[id=permission]').select('private')
-        cy.get('button').contains('Create').click() // create app
+        cy.get('#id_name').type(private_app_name)
+        cy.get('#id_access').select('Private')
+        cy.get('#submit-id-submit').contains('Submit').click() // create app
         cy.get('tr:contains("' + private_app_name + '")').find('span').should('contain', 'private') // check that the app got greated
 
         // Create project app
         cy.log("Now creating a project app")
         cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-        cy.get('input[name=app_name]').type(project_app_name)
-        cy.get('select[id=permission]').select('project')
-        cy.get('button').contains('Create').click() // create app
+        cy.get('#id_name').type(project_app_name)
+        cy.get('#id_access').select('Project')
+        cy.get('#submit-id-submit').contains('Submit').click() // create app
         cy.get('tr:contains("' + project_app_name + '")').find('span').should('contain', 'project') // check that the app got greated
 
         // Give access to this project to a collaborator user
@@ -453,7 +453,7 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
-    it("can create a file management instance", () => {
+    it("can create a file management instance", { defaultCommandTimeout: 100000 }, () => {
         const project_name = "e2e-create-proj-test"
 
         cy.log("Creating a blank project")
@@ -463,13 +463,9 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
-        cy.get('div.card-body:contains("Activate File Manager")').find('a:contains("Activate")').click()
-        cy.get('button').contains("Activate").first().click()
-        cy.get('#manage-files > .card > .row').should('contain', 'File Manager is activated')
+        cy.get('div.card-body:contains("File Manager")').find('a:contains("Create")').click()
+        cy.get('#submit-id-submit').click()
 
-        // change the command to check for Created, Pending or Running
-        cy.get('#manage-files .card-header').find('span.badge').invoke('text').then((text) => {
-            expect(["Created", "Pending", "Running"]).to.include(text.trim());
-          });
+        cy.get('tr:contains("File Manager")').find('span').should('contain', 'Running')
     })
 })

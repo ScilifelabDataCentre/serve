@@ -2,24 +2,26 @@ import markdown
 from django.apps import apps
 from django.conf import settings
 from django.db.models import Q
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import View
 
+from apps.models import BaseAppInstance, SocialMixin
 from studio.utils import get_logger
+
+from .models import NewsObject
 
 logger = get_logger(__name__)
 
-AppInstance = apps.get_model(app_label=settings.APPINSTANCE_MODEL)
+
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
-NewsObject = apps.get_model(app_label="news.NewsObject")
-Collection = apps.get_model(app_label="collections_module.Collection")
+Collection = apps.get_model(app_label="portal.Collection")
 
 
 # TODO minor refactor
 # 1. Change id to app_id as it's anti-pattern to override language reserved function names
 # 2. add type annotations
-def get_public_apps(request, id=0, get_all=True, collection=None):
+def get_public_apps(request, app_id=0, get_all=True, collection=None):
     try:
         projects = Project.objects.filter(
             Q(owner=request.user) | Q(authorized=request.user), status="active"
@@ -42,28 +44,45 @@ def get_public_apps(request, id=0, get_all=True, collection=None):
         # add app id to app_tags object
         if "app_id_add" in request.GET:
             num_tags = int(request.GET["tag_count"])
-            id = int(request.GET["app_id_add"])
-            request.session["app_tags"][str(id)] = num_tags
+            app_id = int(request.GET["app_id_add"])
+            request.session["app_tags"][str(app_id)] = num_tags
         # remove app id from app_tags object
         if "app_id_remove" in request.GET:
             num_tags = int(request.GET["tag_count"])
-            id = int(request.GET["app_id_remove"])
-            if str(id) in request.session["app_tags"]:
-                request.session["app_tags"].pop(str(id))
+            app_id = int(request.GET["app_id_remove"])
+            if str(app_id) in request.session["app_tags"]:
+                request.session["app_tags"].pop(str(app_id))
 
     # reset app_tags if Apps Tab on Sidebar pressed
-    if id == 0:
+    if app_id == 0:
         if "tf_add" not in request.GET and "tf_remove" not in request.GET:
             request.session["app_tags"] = {}
 
-    if collection:
-        published_apps = AppInstance.objects.filter(
-            ~Q(state="Deleted"), access="public", collections__slug=collection
-        ).order_by("-updated_on")
-    else:
-        published_apps = AppInstance.objects.filter(~Q(state="Deleted"), access="public").order_by("-updated_on")
+    published_apps = []
 
-    if published_apps.count() >= 3 and not get_all:
+    if collection:
+        # TODO: TIDY THIS UP!
+
+        for subclass in SocialMixin.__subclasses__():
+            print(subclass, flush=True)
+            published_apps_qs = subclass.objects.filter(
+                ~Q(app_status__status="Deleted"), access="public", collections__slug=collection
+            )
+            print(published_apps_qs, flush=True)
+            published_apps.extend([app for app in published_apps_qs])
+
+    else:
+        for subclass in SocialMixin.__subclasses__():
+            published_apps_qs = subclass.objects.filter(~Q(app_status__status="Deleted"), access="public")
+            published_apps.extend([app for app in published_apps_qs])
+
+    # sorting the apps by date updated
+    published_apps.sort(
+        key=lambda app: (app.updated_on is None, app.updated_on if app.updated_on is not None else ""),
+        reverse=True,  # Sort in descending order
+    )
+
+    if len(published_apps) >= 3 and not get_all:
         published_apps = published_apps[:3]
     else:
         published_apps = published_apps
@@ -71,19 +90,18 @@ def get_public_apps(request, id=0, get_all=True, collection=None):
     # Similar to GetStatusView() in apps.views
     for app in published_apps:
         try:
-            app.latest_status = app.status.latest().status_type
-
-            app.status_group = "success" if app.latest_status in settings.APPS_STATUS_SUCCESS else "warning"
+            app.status_group = "success" if app.app_status.status in settings.APPS_STATUS_SUCCESS else "warning"
         except:  # noqa E722 TODO refactor: Add exception
             app.latest_status = "unknown"
             app.status_group = "unknown"
 
     # Extract app config for use in Django templates
     for app in published_apps:
-        app.image = app.parameters.get("appconfig", {}).get("image", "Not available")
-        app.port = app.parameters.get("appconfig", {}).get("port", "Not available")
-        app.userid = app.parameters.get("appconfig", {}).get("userid", "Not available")
-        app.pvc = app.parameters.get("apps", {}).get("volumeK8s") or None
+        if getattr(app, "k8s_values", False):
+            app.image = app.k8s_values.get("appconfig", {}).get("image", "Not available")
+            app.port = app.k8s_values.get("appconfig", {}).get("port", "Not available")
+            app.userid = app.k8s_values.get("appconfig", {}).get("userid", "Not available")
+            app.pvc = app.k8s_values.get("apps", {}).get("volumeK8s") or None
 
     # create session object to store ids for tag seacrh if it does not exist
     if "app_tag_filters" not in request.session:
@@ -114,8 +132,8 @@ def get_public_apps(request, id=0, get_all=True, collection=None):
     return published_apps, request
 
 
-def public_apps(request, id=0):
-    published_apps, request = get_public_apps(request, id=id)
+def public_apps(request, app_id=0):
+    published_apps, request = get_public_apps(request, app_id=app_id)
     template = "portal/apps.html"
     return render(request, template, locals())
 
@@ -123,8 +141,8 @@ def public_apps(request, id=0):
 class HomeView(View):
     template = "portal/home.html"
 
-    def get(self, request, id=0):
-        published_apps, request = get_public_apps(request, id=id, get_all=False)
+    def get(self, request, app_id=0):
+        published_apps, request = get_public_apps(request, app_id=app_id, get_all=False)
         published_models = PublishedModel.objects.all()
         news_objects = NewsObject.objects.all().order_by("-created_on")
         for news in news_objects:
@@ -169,7 +187,7 @@ class HomeViewDynamic(View):
         if request.user.is_authenticated:
             return redirect("projects/")
         else:
-            return HomeView.as_view()(request, id=0)
+            return HomeView.as_view()(request, app_id=0)
 
 
 def about(request):
@@ -185,3 +203,36 @@ def teaching(request):
 def privacy(request):
     template = "portal/privacy.html"
     return render(request, template, locals())
+
+
+def news(request):
+    news_objects = NewsObject.objects.all().order_by("-created_on")
+    for news in news_objects:
+        news.body_html = markdown.markdown(news.body)
+    return render(request, "news/news.html", {"news_objects": news_objects})
+
+
+def index(request):
+    template = "collections/index.html"
+
+    collection_objects = Collection.objects.all().order_by("-created_on")
+
+    context = {"collection_objects": collection_objects}
+
+    return render(request, template, context=context)
+
+
+def collection(request, slug, app_id=0):
+    template = "collections/collection.html"
+
+    collection = get_object_or_404(Collection, slug=slug)
+    collection_published_apps, request = get_public_apps(request, app_id=app_id, collection=slug)
+    collection_published_models = PublishedModel.objects.all().filter(collections__slug=slug)
+
+    context = {
+        "collection": collection,
+        "collection_published_apps": collection_published_apps,
+        "collection_published_models": collection_published_models,
+    }
+
+    return render(request, template, context=context)

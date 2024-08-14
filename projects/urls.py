@@ -34,12 +34,6 @@ basicpatterns = [
     path("<project_slug>/settings/", views.settings, name="settings"),
     path("<project_slug>/delete/", views.delete, name="delete"),
     path(
-        "<project_slug>/setS3storage/",
-        views.set_s3storage,
-        name="set_s3storage",
-    ),
-    path("<project_slug>/setmlflow/", views.set_mlflow, name="set_mlflow"),
-    path(
         "<project_slug>/details/change/",
         views.change_description,
         name="change_description",
