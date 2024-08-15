@@ -245,6 +245,26 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     """
     from .tasks import deploy_resource
 
+    new_app = app_id is None
+
+    logger.debug(f"Creating or updating a user app via UI form for app_id={app_id}, new_app={new_app}")
+
+    # Do not deploy resource for edits that do not require a k8s re-deployment
+    do_deploy = False
+
+    if new_app:
+        do_deploy = True
+    else:
+        # Only re-deploy existing apps if one of the following fields was changed:
+        redeployment_fields = ["subdomain", "volume", "path", "flavor", "port", "image"]
+        logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
+
+        # Because not all forms contain all fields, we check if the supposedly changed field
+        # is actually contained in the form
+        for field in form.changed_data:
+            if field in redeployment_fields and field in form.Meta.fields:
+                do_deploy = True
+
     subdomain_name, is_created_by_user = get_subdomain_name(form)
 
     instance = form.save(commit=False)
@@ -266,7 +286,11 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     setup_instance(instance, subdomain, app, project, status)
     save_instance_and_related_data(instance, form)
 
-    deploy_resource.delay(instance.serialize())
+    if do_deploy:
+        logger.debug(f"Now deploying resource app with app_id = {app_id}")
+        deploy_resource.delay(instance.serialize())
+    else:
+        logger.debug(f"Not re-deploying this app with app_id = {app_id}")
 
 
 def get_subdomain_name(form):
