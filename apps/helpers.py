@@ -124,6 +124,7 @@ def handle_update_status_request(
         # We wrap the select and update tasks in a select_for_update lock
         # to avoid race conditions.
 
+        # TODO: Check this
         subdomain = Subdomain.objects.get(subdomain=release)
 
         with transaction.atomic():

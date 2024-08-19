@@ -921,25 +921,25 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
 
             if result == HandleUpdateStatusResponseCode.NO_ACTION:
                 return Response(
-                    "OK. NO_ACTION. No action performed. Possibly the event time is older \
-                    than the currently stored time.",
+                    f"OK. NO_ACTION. No action performed. Possibly the event time is older \
+                    than the currently stored time. {release=}, {new_status=}",
                     200,
                 )
 
             elif result == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS:
-                return Response("OK. CREATED_FIRST_STATUS. Created a missing AppStatus.", 200)
+                return Response(f"OK. CREATED_FIRST_STATUS. Created missing AppStatus. {release=}, {new_status=}", 200)
 
             elif result == HandleUpdateStatusResponseCode.UPDATED_STATUS:
                 return Response(
-                    "OK. UPDATED_STATUS. Updated the app status. \
-                    Determined that the submitted event was newer and different status.",
+                    f"OK. UPDATED_STATUS. Updated the app status. \
+                    Determined that the submitted event was newer and different status. {release=}, {new_status=}",
                     200,
                 )
 
             elif result == HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS:
                 return Response(
-                    "OK. UPDATED_TIME_OF_STATUS. Updated only the event time of the status. \
-                    Determined that the new and old status codes are the same.",
+                    f"OK. UPDATED_TIME_OF_STATUS. Updated only the event time of the status. \
+                    Determined that the new and old status codes are the same. {release=}, {new_status=}",
                     200,
                 )
 
