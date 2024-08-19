@@ -276,7 +276,7 @@ describe("Test deploying app", () => {
     it("can deploy a dash app", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-dash-example"
+        let app_name = "e2e-dash-example"
         const app_description = "e2e-dash-description"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
@@ -285,6 +285,7 @@ describe("Test deploying app", () => {
         const app_type = "Dash App"
 
         if (createResources === true) {
+            // Create Dash app
             cy.log("Creating a dash app")
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -299,6 +300,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
+            // Verify Dash app values
             cy.log("Checking that all dash app settings were saved")
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -310,6 +312,20 @@ describe("Test deploying app", () => {
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
+            // Edit Dash app
+            cy.log("Editing the dash app settings (non redeployment fields)")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            app_name = app_name + "-edited"
+            cy.get('#id_name').type("-edited")
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // Verify that the app status still equals Running
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
+
+            // Delete the Dash app
             cy.log("Deleting the dash app")
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -446,6 +462,11 @@ describe("Test deploying app", () => {
             // check that the app was updated with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_3)
 
+            // Verify that the app status is not Deleted (Deleting and Created ok)
+            cy.get('tr:contains("' + app_name + '")', {timeout: 5000}).find('span').should('not.contain', 'Deleted')
+            // Finally verify status equals Running
+            cy.get('tr:contains("' + app_name + '")', {timeout: 100000}).find('span').should('contain', 'Running')
+
         } else {
             cy.log('Skipped because create_resources is not true');
       }
@@ -475,14 +496,15 @@ describe("Test deploying app", () => {
             cy.get('#id_port').type("8501")
             cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
             cy.get('#submit-id-submit').contains('Submit').click()
-            // check that the app was created
-            cy.get('tr:contains("' + app_name_statuses + '")').find('span').should('contain', 'Image Error')
+            // Check that the app was created. Using custom timeout of 5 secs
+            cy.get('tr:contains("' + app_name_statuses + '")', {timeout: 5000}).find('span').should('contain', 'Image Error')
             cy.log("Now updating the app to give a correct image reference - expecting Running")
             cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name_statuses + '")').find('span').should('contain', 'Running')
+            // Using longer custom timeout for correct image to be set to Running
+            cy.get('tr:contains("' + app_name_statuses + '")', {timeout: 30000}).find('span').should('contain', 'Running')
         } else {
             cy.log('Skipped because create_resources is not true');
       }
