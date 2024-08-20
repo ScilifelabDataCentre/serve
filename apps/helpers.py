@@ -124,7 +124,7 @@ def handle_update_status_request(
         # We wrap the select and update tasks in a select_for_update lock
         # to avoid race conditions.
 
-        # TODO: Check this
+        # TODO: Check this. Seems like this is OK for the modified app instance.
         subdomain = Subdomain.objects.get(subdomain=release)
 
         with transaction.atomic():
@@ -309,6 +309,7 @@ def handle_subdomain_change(instance, subdomain, subdomain_name):
     from .tasks import delete_resource
 
     if instance.subdomain.subdomain != subdomain_name:
+        # The user modified the subdomain name
         # In this special case, we avoid async task.
         delete_resource(instance.serialize())
         old_subdomain = instance.subdomain
