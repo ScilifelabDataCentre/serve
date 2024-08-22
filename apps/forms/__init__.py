@@ -1,4 +1,4 @@
-from .custom_field import CustomField  # isort:skip
+from apps.forms.field.custom import CustomField  # isort:skip
 from .base import AppBaseForm, BaseForm
 from .custom import CustomAppForm
 from .dash import DashForm

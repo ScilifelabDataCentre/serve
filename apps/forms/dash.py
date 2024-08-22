@@ -2,6 +2,7 @@ from crispy_forms.layout import HTML, Div, Field, Layout
 from django import forms
 
 from apps.forms.base import AppBaseForm
+from apps.forms.field.common import SRVCommonDivField
 from apps.models import DashInstance
 from projects.models import Flavor
 
@@ -20,21 +21,21 @@ class DashForm(AppBaseForm):
     def _setup_form_helper(self):
         super()._setup_form_helper()
         body = Div(
-            self.get_common_field("name", placeholder="Name your app"),
-            self.get_common_field("description", rows="3", placeholder="Provide a detailed description of your app"),
+            SRVCommonDivField("name", placeholder="Name your app"),
+            SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             Field("tags"),
-            self.get_common_field(
+            SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
-            self.get_common_field("flavor"),
-            self.get_common_field("access"),
-            self.get_common_field(
+            SRVCommonDivField("flavor"),
+            SRVCommonDivField("access"),
+            SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
-            self.get_common_field("source_code_url", placeholder="Provide a link to the public source code"),
-            self.get_common_field("port", placeholder="8000"),
-            self.get_common_field("image", placeholder="registry/repository/image:tag"),
+            SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+            SRVCommonDivField("port", placeholder="8000"),
+            SRVCommonDivField("image", placeholder="registry/repository/image:tag"),
             css_class="card-body",
         )
 
