@@ -7,8 +7,6 @@ from django.shortcuts import get_object_or_404
 from django.template import loader
 from django.utils.safestring import mark_safe
 
-from apps.constants import HELP_MESSAGE_MAP
-from apps.forms import CustomField
 from apps.helpers import get_select_options
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
