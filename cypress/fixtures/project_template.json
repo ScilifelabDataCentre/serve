@@ -1,0 +1,45 @@
+{
+  "apps": {},
+  "environments": {
+    "Jupyter Lab": {
+      "app": "jupyter-lab",
+      "image": "serve-jupyterlab:231030-1145",
+      "repository": "ghcr.io/scilifelabdatacentre"
+    },
+    "MLflow Serving": {
+      "app": "mlflow-serve",
+      "image": "serve-mlflow:231030-1149",
+      "repository": "ghcr.io/scilifelabdatacentre"
+    },
+    "Python Serving": {
+      "app": "python-serve",
+      "image": "serve-python:latest",
+      "repository": "ghcr.io/scilifelabdatacentre"
+    }
+  },
+  "flavors": {
+    "2 vCPU, 4 GB RAM": {
+      "cpu": {
+        "limit": "2000m",
+        "requirement": "500m"
+      },
+      "ephmem": {
+        "limit": "5000Mi",
+        "requirement": "100Mi"
+      },
+      "gpu": {
+        "limit": "0",
+        "requirement": "0"
+      },
+      "mem": {
+        "limit": "4Gi",
+        "requirement": "1Gi"
+      }
+    }
+  },
+  "volumes": {
+    "project-vol": {
+      "size": "1"
+    }
+  }
+}
