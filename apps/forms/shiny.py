@@ -1,5 +1,7 @@
+from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import Div, Layout
 from django import forms
+from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
@@ -13,6 +15,7 @@ class ShinyForm(AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     image = forms.CharField(max_length=255, required=True)
+    shiny_app_path = forms.CharField(max_length=255, required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -42,10 +45,31 @@ class ShinyForm(AppBaseForm):
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
             SRVCommonDivField("port", placeholder="3838"),
             SRVCommonDivField("image", placeholder="registry/repository/image:tag"),
+            Accordion(
+                AccordionGroup(
+                    "Advanced settings",
+                    PrependedText(
+                        "shiny_app_path",
+                        "/srv/shiny-server",
+                    ),
+                    active=False,
+                ),
+            ),
             css_class="card-body",
         )
 
         self.helper.layout = Layout(body, self.footer)
+
+    def clean_shiny_app_path(self):
+        cleaned_data = super().clean()
+        shiny_app_path = cleaned_data.get("shiny_app_path", None)
+        if shiny_app_path and not shiny_app_path.startswith("/"):
+            self.add_error("shiny_app_path", "Path must start with a forward slash.")
+        # Check that the path is ascii and has forwarded slash
+        if shiny_app_path and not shiny_app_path.isascii():
+            self.add_error("shiny_app_path", "Path must be ASCII.")
+
+        return shiny_app_path
 
     def clean(self):
         cleaned_data = super().clean()
@@ -70,8 +94,10 @@ class ShinyForm(AppBaseForm):
             "port",
             "image",
             "tags",
+            "shiny_app_path",
         ]
         labels = {
             "tags": "Keywords",
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
+            "shiny_app_path": "Custom subpath for Shiny app after /srv/shiny-server/",
         }
