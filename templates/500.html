@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% load static sekizai_tags %}
+
+<head>
+    <title>Internal error | SciLifeLab Serve (beta)</title>
+    {% include 'common/common_head.html' %}
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    {% include 'common/navbar.html' with minimum=True %}
+
+    <main class="container mb-3">
+      <h1>Internal error (500 error)</h1>
+      <p>
+        Something went wrong. Please try again later.
+      </p>
+      <p>
+        If the problem persists, please contact us at <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a> 
+        and provide information on how to reproduce the error.
+      </p>
+    </main>
+
+</body>
