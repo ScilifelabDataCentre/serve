@@ -211,6 +211,7 @@ describe("Test deploying app", () => {
         const app_description = "e2e-shiny-description"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/shiny-adhd-medication-sweden:20240117-062031"
+        const image_name_2 = "ghcr.io/scilifelabdatacentre/shiny-adhd-medication-sweden:latest"
         const image_port = "3838"
         const createResources = Cypress.env('create_resources');
         const app_type = "Shiny App"
@@ -227,7 +228,8 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').contains('Submit').click()
-        //    cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
+            cy.wait(420000) // wait for shinyproxy to start up
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             cy.log("Checking that all shiny app settings were saved")
@@ -256,6 +258,18 @@ describe("Test deploying app", () => {
             cy.log("Checking that source code URL is displayed on the public apps page")
             cy.visit("/apps")
             cy.get('a#source-code-url').should('have.attr', 'href', source_code_url)
+
+            // Change image of a previously created app
+            cy.log("Now changing the image of an already created app")
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
+            cy.get('#id_image').clear().type(image_name_2)
+            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.wait(420000) // wait for shinyproxy to start up
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
+
 
             cy.log("Deleting the shiny app")
             cy.visit("/projects/")
