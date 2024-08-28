@@ -1,8 +1,9 @@
 describe("Tests of the public pages of the website", () => {
 
     beforeEach(() => {
-
+        cy.logf("Begin beforeEach() hook", Cypress.currentTest)
         cy.visit("/")
+        cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
     it("should open the home page on link click", () => {
@@ -40,9 +41,9 @@ describe("Tests of the public pages of the website", () => {
     it("should open the login page on link click", () => {
         cy.get("li.nav-item a").contains("Log in").click()
         cy.url().should("include", "accounts/login")
-  })
+    })
 
     it("should have proper title", () => {
-	cy.get("title").should("have.text", "Home | SciLifeLab Serve (beta)")
+	    cy.get("title").should("have.text", "Home | SciLifeLab Serve (beta)")
     })
 })

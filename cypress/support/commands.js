@@ -137,3 +137,11 @@ Cypress.Commands.add('deleteBlankProject', (project_name) => {
   })
 
 })
+
+Cypress.Commands.add('logf', (msg, currentTest, args = []) => {
+    if (args.length > 0) {
+        cy.log(msg, args, `(TEST: ${currentTest.title}, ${new Date().getTime()})`)
+    } else {
+        cy.log(msg, `(TEST: ${currentTest.title}, ${new Date().getTime()})`)
+    }
+})

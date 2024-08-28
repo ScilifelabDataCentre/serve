@@ -7,20 +7,20 @@ describe("Test deploying app", () => {
     let users
 
     before({ defaultCommandTimeout: 100000 }, () => {
-        cy.log("before() hook", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+        cy.logf("Begin before() hook", Cypress.currentTest)
 
         // do db reset if needed
         if (Cypress.env('do_reset_db') === true) {
-            cy.log("Resetting db state. Running db-reset.sh", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`);
+            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
             cy.exec("./cypress/e2e/db-reset.sh");
             cy.wait(Cypress.env('wait_db_reset'));
         }
         else {
-            cy.log("Skipping resetting the db state.", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`);
+            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
         }
         // seed the db with a user
         cy.visit("/")
-        cy.log("Running seed-deploy-app-user.py", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+        cy.logf("Running seed-deploy-app-user.py", Cypress.currentTest)
         cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
         // username in fixture must match username in db-reset.sh
         cy.fixture('users.json').then(function (data) {
@@ -30,18 +30,22 @@ describe("Test deploying app", () => {
         })
         const project_name = "e2e-deploy-app-test"
         cy.createBlankProject(project_name)
+
+        cy.logf("End before() hook", Cypress.currentTest)
     })
 
     beforeEach(() => {
-        cy.log("beforeEach() hook", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+        cy.logf("Begin beforeEach() hook", Cypress.currentTest)
 
         // username in fixture must match username in db-reset.sh
-        cy.log("Logging in", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+        cy.logf("Logging in", Cypress.currentTest)
         cy.fixture('users.json').then(function (data) {
             users = data
 
             cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password)
         })
+
+        cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
     it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: 100000 }, () => {
@@ -70,7 +74,7 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
             // Create an app with project permissions
-            cy.log("Now creating a project app", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now creating a project app", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
@@ -89,7 +93,7 @@ describe("Test deploying app", () => {
             cy.get('h5.card-title').should('not.exist')
 
             // make this app public as an update and check that it works
-            cy.log("Now making the project app public", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now making the project app public", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
@@ -100,14 +104,14 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'public')
 
-            cy.log("Now deleting the project app (by now public)", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
             cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Deleted')
 
             // Create a public app and verify that it is displayed on the public apps page
-            cy.log("Now creating a public app", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now creating a public app", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_public)
             cy.get('#id_description').type(app_description)
@@ -127,7 +131,7 @@ describe("Test deploying app", () => {
             cy.get('.card-text').find('p').should('contain', app_description)
 
             // Check that the public app is displayed on the homepage
-            cy.log("Now checking if the public app is displayed when not logged in.", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now checking if the public app is displayed when not logged in.", Cypress.currentTest)
             cy.visit("/home/")
             cy.get('h5').should('contain', app_name_public)
             // Log out and check that the public app is still displayed on the homepage
@@ -145,7 +149,7 @@ describe("Test deploying app", () => {
             })
 
             // Check that the logs page opens for the app
-            cy.log("Now checking that the logs page for the app opens", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now checking that the logs page for the app opens", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_public + '")').find('i.bi-three-dots-vertical').click()
@@ -153,7 +157,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('contain', "Logs")
 
             // Try changing the name, description, etc. of the app and verify it works
-            cy.log("Now changing the name and description of the public app", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now changing the name and description of the public app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_public + '")').find('i.bi-three-dots-vertical').click()
@@ -191,7 +195,7 @@ describe("Test deploying app", () => {
             cy.get('#id_path').should('have.value', app_path_2)
 
             // Remove the created public app and verify that it is deleted from public apps page
-            cy.log("Now deleting the public app", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now deleting the public app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('i.bi-three-dots-vertical').click()
@@ -203,7 +207,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('contain', 'Public apps')
             cy.get('h5.card-title').should('not.exist')
         } else {
-            cy.log('Skipped because create_resources is not true', `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`);
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
     })
 
@@ -220,7 +224,7 @@ describe("Test deploying app", () => {
         const app_type = "Shiny App"
 
         if (createResources === true) {
-            cy.log("Creating a shiny app")
+            cy.logf("Creating a shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
@@ -234,7 +238,7 @@ describe("Test deploying app", () => {
         //    cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
-            cy.log("Checking that all shiny app settings were saved")
+            cy.logf("Checking that all shiny app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -245,23 +249,23 @@ describe("Test deploying app", () => {
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
-            cy.log("Checking that the shiny app is displayed on the public apps page")
+            cy.logf("Checking that the shiny app is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
             cy.get('h5.card-title').should('contain', app_name)
             cy.get('.card-text').find('p').should('contain', app_description)
 
-            cy.log("Checking that instructions for running the app locally are displayed on public apps page")
+            cy.logf("Checking that instructions for running the app locally are displayed on public apps page", Cypress.currentTest)
             cy.get('a[data-bs-target="#dockerInfoModal"]').click()
             cy.get('div#dockerInfoModal').should('be.visible')
             cy.get('code').first().should('contain', image_name)
             cy.get('code').first().should('contain', image_port)
             cy.get('div.modal-footer').find('button').contains('Close').click()
 
-            cy.log("Checking that source code URL is displayed on the public apps page")
+            cy.logf("Checking that source code URL is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
             cy.get('a#source-code-url').should('have.attr', 'href', source_code_url)
 
-            cy.log("Deleting the shiny app")
+            cy.logf("Deleting the shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -273,7 +277,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('contain', 'Public apps')
             cy.get('h5.card-title').should('not.exist')
         } else {
-            cy.log('Skipped because create_resources is not true');
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
     })
 
@@ -290,7 +294,7 @@ describe("Test deploying app", () => {
 
         if (createResources === true) {
             // Create Dash app
-            cy.log("Creating a dash app", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
@@ -305,7 +309,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             // Verify Dash app values
-            cy.log("Checking that all dash app settings were saved", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -317,7 +321,7 @@ describe("Test deploying app", () => {
             cy.get('#id_port').should('have.value', image_port)
 
             // Edit Dash app
-            cy.log("Editing the dash app settings (non redeployment fields)", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Editing the dash app settings (non redeployment fields)", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -330,7 +334,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             // Delete the Dash app
-            cy.log("Deleting the dash app", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -342,7 +346,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('contain', 'Public apps')
             cy.get('h5.card-title').should('not.exist')
         } else {
-            cy.log('Skipped because create_resources is not true', `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`);
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
     })
 
@@ -360,7 +364,7 @@ describe("Test deploying app", () => {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
-            cy.log("Creating a tisuumaps app", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Creating a tisuumaps app", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
@@ -370,7 +374,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
-            cy.log("Checking that all tissuumaps app settings were saved", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Checking that all tissuumaps app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -380,7 +384,7 @@ describe("Test deploying app", () => {
             cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
 
-            cy.log("Deleting the tissuumaps app", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Deleting the tissuumaps app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -392,7 +396,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('contain', 'Public apps')
             cy.get('h5.card-title').should('not.exist')
         } else {
-            cy.log('Skipped because create_resources is not true', `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`);
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
     })
 
@@ -415,7 +419,7 @@ describe("Test deploying app", () => {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             // Create an app and set a custom subdomain for it
-            cy.log("Now creating an app with a custom subdomain", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now creating an app with a custom subdomain", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             // fill out other fields
             cy.get('#id_name').type(app_name)
@@ -433,7 +437,7 @@ describe("Test deploying app", () => {
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain)
 
             // Try using the same subdomain the second time
-            cy.log("Now trying to create an app with an already taken subdomain", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now trying to create an app with an already taken subdomain", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
 
             cy.get('#id_name').type(app_name_2)
@@ -455,7 +459,7 @@ describe("Test deploying app", () => {
             cy.get('a').contains(app_name_2).should('have.attr', 'href').and('include', subdomain_2)
 
             // Change subdomain of a previously created app
-            cy.log("Now changing subdomain of an already created app", `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`)
+            cy.logf("Now changing subdomain of an already created app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -472,7 +476,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")', {timeout: 100000}).find('span').should('contain', 'Running')
 
         } else {
-            cy.log('Skipped because create_resources is not true', `(TEST: ${Cypress.currentTest.title}, ${new Date().getTime()})`);
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
     })
 
@@ -492,7 +496,7 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
             // Create an app with project permissions
-            cy.log("Now creating an app with a non-existent image reference - expecting Image Error")
+            cy.logf("Now creating an app with a non-existent image reference - expecting Image Error", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_statuses)
             cy.get('#id_description').type(app_description)
@@ -502,7 +506,7 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
             // Check that the app was created. Using custom timeout of 5 secs
             cy.get('tr:contains("' + app_name_statuses + '")', {timeout: 5000}).find('span').should('contain', 'Image Error')
-            cy.log("Now updating the app to give a correct image reference - expecting Running")
+            cy.logf("Now updating the app to give a correct image reference - expecting Running", Cypress.currentTest)
             cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name)
@@ -510,7 +514,7 @@ describe("Test deploying app", () => {
             // Using longer custom timeout for correct image to be set to Running
             cy.get('tr:contains("' + app_name_statuses + '")', {timeout: 30000}).find('span').should('contain', 'Running')
         } else {
-            cy.log('Skipped because create_resources is not true');
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
     })
 
