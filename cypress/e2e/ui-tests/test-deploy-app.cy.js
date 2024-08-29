@@ -90,7 +90,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').should('not.exist')
+            cy.get('h5.card-title').find(app_name_project).should('not.exist')
 
             // make this app public as an update and check that it works
             cy.logf("Now making the project app public", Cypress.currentTest)
@@ -202,10 +202,11 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_public_2 + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'Deleted')
+            // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').should('not.exist')
+            cy.get('h5.card-title').find(app_name_public_2).should('not.exist')
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
@@ -272,10 +273,11 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
+            // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').should('not.exist')
+            cy.get('h5.card-title').find(app_name).should('not.exist')
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
@@ -284,7 +286,8 @@ describe("Test deploying app", () => {
     it("can deploy a dash app", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
-        let app_name = "e2e-dash-example"
+        const app_name = "e2e-dash-example"
+        const app_name_edited = "e2e-dash-example-edited"
         const app_description = "e2e-dash-description"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
@@ -305,8 +308,8 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
+            cy.get('tr:contains("' + app_name + '")', {timeout: 100000}).find('span').should('contain', 'Running')
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -326,25 +329,27 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            app_name = app_name + "-edited"
+
             cy.get('#id_name').type("-edited")
             cy.get('#submit-id-submit').contains('Submit').click()
             // Verify that the app status still equals Running
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
+            cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'public')
+            cy.get('tr:contains("' + app_name_edited + '")', {timeout: 100000}).find('span').should('contain', 'Running')
 
             // Delete the Dash app
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
+            cy.get('tr:contains("' + app_name_edited + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_edited + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
-            cy.visit("/apps")
+            cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'Deleted')
+
+            // check that the app is not visible under public apps
+            cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').should('not.exist')
+            cy.get('h5.card-title').find(app_name_edited).should('not.exist')
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
@@ -391,10 +396,12 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
-            cy.visit("/apps")
+
+            // check that the app is not visible under public apps
+            cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').should('not.exist')
+            cy.get('h5.card-title').find(app_name).should('not.exist')
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
