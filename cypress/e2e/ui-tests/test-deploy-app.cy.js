@@ -90,7 +90,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name_project).should('not.exist')
+            cy.contains('h5.card-title', app_name_project).should('not.exist')
 
             // make this app public as an update and check that it works
             cy.logf("Now making the project app public", Cypress.currentTest)
@@ -206,7 +206,8 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name_public_2).should('not.exist')
+            cy.contains('h5.card-title', app_name_public_2).should('not.exist')
+
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
@@ -277,7 +278,8 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name).should('not.exist')
+            cy.contains('h5.card-title', app_name).should('not.exist')
+
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
@@ -349,7 +351,8 @@ describe("Test deploying app", () => {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name_edited).should('not.exist')
+            cy.contains('h5.card-title', app_name_edited).should('not.exist')
+
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
@@ -401,7 +404,8 @@ describe("Test deploying app", () => {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.get('h5.card-title').contains(app_name).should('not.exist')
+            cy.contains('h5.card-title', app_name).should('not.exist')
+
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
