@@ -334,6 +334,9 @@ describe("Test deploying app", () => {
 
             cy.get('#id_name').type("-edited")
             cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('eq', project_name)
             // Verify that the app status still equals Running
             cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'public')
             cy.get('tr:contains("' + app_name_edited + '")', {timeout: 100000}).find('span').should('contain', 'Running')
