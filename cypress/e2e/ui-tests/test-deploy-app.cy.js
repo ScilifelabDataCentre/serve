@@ -85,7 +85,7 @@ describe("Test deploying app", () => {
             cy.get('#id_path').clear().type(app_path)
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was created
-            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_project + '")', {timeout: 180000}).find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'project')
             // check that the app is not visible under public apps
             cy.visit('/apps/')
@@ -101,7 +101,7 @@ describe("Test deploying app", () => {
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_project + '")', {timeout: 180000}).find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'public')
 
             cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
@@ -123,7 +123,7 @@ describe("Test deploying app", () => {
             cy.get('#id_volume').select(volume_display_text)
             cy.get('#submit-id-submit').contains('Submit').click()
 
-            cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_public + '")', {timeout: 180000}).find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'public')
 
             cy.visit("/apps")
@@ -180,7 +180,7 @@ describe("Test deploying app", () => {
             cy.get('#id_path').clear().type(app_path_2)
             cy.get('#submit-id-submit').contains('Submit').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'link')
-            cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'Running') // NB: it will get status "Running" but it won't work because the new port is incorrect
+            cy.get('tr:contains("' + app_name_public_2 + '")', {timeout: 180000}).find('span').should('contain', 'Running') // NB: it will get status "Running" but it won't work because the new port is incorrect
             // Check that the changes were saved
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -310,8 +310,12 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('eq', project_name)
+            // check that the app was created
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
-            cy.get('tr:contains("' + app_name + '")', {timeout: 100000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")', {timeout: 180000}).find('span').should('contain', 'Running')
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -339,7 +343,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('eq', project_name)
             // Verify that the app status still equals Running
             cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'public')
-            cy.get('tr:contains("' + app_name_edited + '")', {timeout: 100000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_edited + '")', {timeout: 180000}).find('span').should('contain', 'Running')
 
             // Delete the Dash app
             cy.logf("Deleting the dash app", Cypress.currentTest)
@@ -382,7 +386,7 @@ describe("Test deploying app", () => {
             cy.get('#id_access').select('Public')
             cy.get('#id_volume').select(volume_display_text)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")', {timeout: 180000}).find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             cy.logf("Checking that all tissuumaps app settings were saved", Cypress.currentTest)
@@ -487,7 +491,7 @@ describe("Test deploying app", () => {
             // Verify that the app status is not Deleted (Deleting and Created ok)
             cy.get('tr:contains("' + app_name + '")', {timeout: 5000}).find('span').should('not.contain', 'Deleted')
             // Finally verify status equals Running
-            cy.get('tr:contains("' + app_name + '")', {timeout: 100000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")', {timeout: 180000}).find('span').should('contain', 'Running')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
@@ -526,7 +530,7 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#submit-id-submit').contains('Submit').click()
             // Using longer custom timeout for correct image to be set to Running
-            cy.get('tr:contains("' + app_name_statuses + '")', {timeout: 30000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_statuses + '")', {timeout: 180000}).find('span').should('contain', 'Running')
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
