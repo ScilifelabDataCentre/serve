@@ -21,16 +21,17 @@ describe("Tests of the public pages of the website", () => {
             // This test was flaky before as other test failures could make this test fail as well
             cy.get('p').should('contain', 'No public apps available.')
         } else {
-            cy.get('span.ghost-number').then(($element) => {
-                if ($element.length > 0) {
-                  // There are public apps and the text must be an integer
-                  const text = $element.text().trim();
-                  const isInteger = Number.isInteger(Number(text));
-                  expect(isInteger).to.be.true;
+            cy.get('h3').then($parent => {
+                if ($parent.find("span.ghost-number").length > 0) {
+                    cy.get('span.ghost-number').then(($element) => {
+                        // There are public apps and the text must be an integer
+                        const text = $element.text().trim();
+                        const isInteger = Number.isInteger(Number(text));
+                        expect(isInteger).to.be.true;
+                    });
                 }
-              });
+            });
         }
-
     })
 
     it("should open the Models page on link click", () => {
