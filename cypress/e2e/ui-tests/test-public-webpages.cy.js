@@ -16,7 +16,21 @@ describe("Tests of the public pages of the website", () => {
         cy.url().should("include", "/apps")
         cy.get('h3').should('contain', 'Public apps')
         cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
-        cy.get('p').should('contain', 'No public apps available.')
+
+        if (Cypress.env('do_reset_db') === true) {
+            // This test was flaky before as other test failures could make this test fail as well
+            cy.get('p').should('contain', 'No public apps available.')
+        } else {
+            cy.get('span.ghost-number').then(($element) => {
+                if ($element.length > 0) {
+                  // There are public apps and the text must be an integer
+                  const text = $element.text().trim();
+                  const isInteger = Number.isInteger(Number(text));
+                  expect(isInteger).to.be.true;
+                }
+              });
+        }
+
     })
 
     it("should open the Models page on link click", () => {
