@@ -3,10 +3,15 @@ describe("Test deploying app", () => {
     // Tests performed as an authenticated user that
     // creates and deletes apps.
     // user: e2e_tests_deploy_app_user
-
     let users
 
-    before({ defaultCommandTimeout: 100000 }, () => {
+    // The default command timeout should not be so long
+    // Instead use longer timeouts on specific commands where deemed necessary and valid
+    const defaultCmdTimeoutMs = 10000
+    // The longer timeout is often used when waiting for k8s operations to complete
+    const longCmdTimeoutMs = 180000
+
+    before({ defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         cy.logf("Begin before() hook", Cypress.currentTest)
 
         // do db reset if needed
@@ -48,7 +53,7 @@ describe("Test deploying app", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: 100000 }, () => {
+    it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name_project = "e2e-streamlit-example-project"
@@ -85,7 +90,7 @@ describe("Test deploying app", () => {
             cy.get('#id_path').clear().type(app_path)
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was created
-            cy.get('tr:contains("' + app_name_project + '")', {timeout: 180000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_project + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'project')
             // check that the app is not visible under public apps
             cy.visit('/apps/')
@@ -101,7 +106,7 @@ describe("Test deploying app", () => {
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name_project + '")', {timeout: 180000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_project + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
             cy.get('tr:contains("' + app_name_project + '")').find('span').should('contain', 'public')
 
             cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
@@ -123,7 +128,7 @@ describe("Test deploying app", () => {
             cy.get('#id_volume').select(volume_display_text)
             cy.get('#submit-id-submit').contains('Submit').click()
 
-            cy.get('tr:contains("' + app_name_public + '")', {timeout: 180000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_public + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
             cy.get('tr:contains("' + app_name_public + '")').find('span').should('contain', 'public')
 
             cy.visit("/apps")
@@ -180,7 +185,7 @@ describe("Test deploying app", () => {
             cy.get('#id_path').clear().type(app_path_2)
             cy.get('#submit-id-submit').contains('Submit').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('span').should('contain', 'link')
-            cy.get('tr:contains("' + app_name_public_2 + '")', {timeout: 180000}).find('span').should('contain', 'Running') // NB: it will get status "Running" but it won't work because the new port is incorrect
+            cy.get('tr:contains("' + app_name_public_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running') // NB: it will get status "Running" but it won't work because the new port is incorrect
             // Check that the changes were saved
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -214,7 +219,7 @@ describe("Test deploying app", () => {
     })
 
     // This test is skipped because it will only work against a Serve instance running on our cluster. should be switched on for the e2e tests against remote.
-    it.skip("can deploy a shiny app", { defaultCommandTimeout: 100000 }, () => {
+    it.skip("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-shiny-example"
@@ -285,11 +290,11 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can deploy a dash app", { defaultCommandTimeout: 100000 }, () => {
+    it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // Simple test to create and delete a Dash app
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-dash-example"
-        const app_name_edited = "e2e-dash-example-edited"
         const app_description = "e2e-dash-description"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
@@ -312,10 +317,10 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
-            cy.get('h3').should('eq', project_name)
+            cy.get('h3').should('have.text', project_name);
             // check that the app was created
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
-            cy.get('tr:contains("' + app_name + '")', {timeout: 180000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -329,43 +334,27 @@ describe("Test deploying app", () => {
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
-            // Edit Dash app
-            cy.logf("Editing the dash app settings (non redeployment fields)", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-
-            cy.get('#id_name').type("-edited")
-            cy.get('#submit-id-submit').contains('Submit').click()
-            // Back on project page
-            cy.url().should("not.include", "/apps/settings")
-            cy.get('h3').should('eq', project_name)
-            // Verify that the app status still equals Running
-            cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'public')
-            cy.get('tr:contains("' + app_name_edited + '")', {timeout: 180000}).find('span').should('contain', 'Running')
-
             // Delete the Dash app
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_edited + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name_edited + '")').find('a.confirm-delete').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'Deleted')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public apps')
-            cy.contains('h5.card-title', app_name_edited).should('not.exist')
+            cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
     })
 
-    it("can deploy a tissuumaps app", { defaultCommandTimeout: 100000 }, () => {
+    it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-tissuumaps-example"
@@ -386,7 +375,7 @@ describe("Test deploying app", () => {
             cy.get('#id_access').select('Public')
             cy.get('#id_volume').select(volume_display_text)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name + '")', {timeout: 180000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             cy.logf("Checking that all tissuumaps app settings were saved", Cypress.currentTest)
@@ -418,7 +407,118 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can set and change custom subdomain", { defaultCommandTimeout: 100000 }, () => {
+    it("can modify app settings", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // An advanced test to verify user can modify app settings such as the name and image
+        // Names of objects to create
+        const project_name = "e2e-deploy-app-test"
+        const app_name = "e2e-change-app-settings"
+        const app_name_edited = "e2e-change-app-settings-edited"
+        const app_description = "e2e-change-app-settings-description"
+        const source_code_url = "https://doi.org/example"
+        const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
+        const image_port = "8000"
+        const createResources = Cypress.env('create_resources');
+        const app_type = "Dash App"
+
+        if (createResources === true) {
+            // Create Dash app
+            cy.logf("Creating a dash app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_access').select('Public')
+            cy.get('#id_source_code_url').type(source_code_url)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+            // check that the app was created
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
+            cy.get('tr:contains("' + app_name + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
+
+            // Verify Dash app values
+            cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('#id_name').should('have.value', app_name)
+            cy.get('#id_description').should('have.value', app_description)
+            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_image').should('have.value', image_name)
+            cy.get('#id_port').should('have.value', image_port)
+
+            // Edit Dash app: modify the app name
+            cy.logf("Editing the dash app settings (non redeployment fields)", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            // Here we change the app name from app_name to app_name_edited
+            cy.get('#id_name').type("-edited")
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+            // Verify that the app status still equals Running
+            cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'public')
+            cy.get('tr:contains("' + app_name_edited + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
+
+            // Edit Dash app: modify the app image to an invalid image
+            cy.logf("Editing the dash app settings field Image to an invalid value", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name_edited + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_edited + '")').find('a').contains('Settings').click()
+            cy.get('#id_image').type("-BAD")
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+            // Verify that the app status now equals Image Error
+            cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'public')
+            cy.get('tr:contains("' + app_name_edited + '")').find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Image Error')
+
+            // Edit Dash app: modify the app image back to a valid image
+            cy.logf("Editing the dash app settings field Image to a valid value", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name_edited + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_edited + '")').find('a').contains('Settings').click()
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+            // Verify that the app status now equals Running
+            cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'public')
+            cy.get('tr:contains("' + app_name_edited + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
+
+            // Delete the Dash app
+            cy.logf("Deleting the dash app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name_edited + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_edited + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            cy.get('tr:contains("' + app_name_edited + '")').find('span').should('contain', 'Deleted')
+
+            // check that the app is not visible under public apps
+            cy.visit('/apps/')
+            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public apps')
+            cy.contains('h5.card-title', app_name_edited).should('not.exist')
+
+        } else {
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
+      }
+    })
+
+    it("can set and change custom subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-subdomain-example"
@@ -489,9 +589,9 @@ describe("Test deploying app", () => {
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_3)
 
             // Verify that the app status is not Deleted (Deleting and Created ok)
-            cy.get('tr:contains("' + app_name + '")', {timeout: 5000}).find('span').should('not.contain', 'Deleted')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('not.contain', 'Deleted')
             // Finally verify status equals Running
-            cy.get('tr:contains("' + app_name + '")', {timeout: 180000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
@@ -523,14 +623,14 @@ describe("Test deploying app", () => {
             cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
             cy.get('#submit-id-submit').contains('Submit').click()
             // Check that the app was created. Using custom timeout of 5 secs
-            cy.get('tr:contains("' + app_name_statuses + '")', {timeout: 5000}).find('span').should('contain', 'Image Error')
+            cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Image Error')
             cy.logf("Now updating the app to give a correct image reference - expecting Running", Cypress.currentTest)
             cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name)
             cy.get('#submit-id-submit').contains('Submit').click()
             // Using longer custom timeout for correct image to be set to Running
-            cy.get('tr:contains("' + app_name_statuses + '")', {timeout: 180000}).find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_statuses + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
