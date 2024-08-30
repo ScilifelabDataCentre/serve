@@ -7,8 +7,6 @@ from django.shortcuts import get_object_or_404
 from django.template import loader
 from django.utils.safestring import mark_safe
 
-from apps.constants import HELP_MESSAGE_MAP
-from apps.forms import CustomField
 from apps.helpers import get_select_options
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
@@ -145,32 +143,6 @@ class BaseForm(forms.ModelForm):
             raise forms.ValidationError(error_message)
 
         return SubdomainTuple(subdomain_input, True)
-
-    def get_common_field(self, field_name: str, **kwargs):
-        """
-        This function is very useful because it allows you to create a custom field,
-        that has a question_mark with tooltip next to the label. So "Name (?)" will have a tooltip.
-        The text in the tooltip is defined in HELP_MESSAGE_MAP.
-        The CustomField class just inherits the crispy_forms.layout.Field class and adds the
-        help_message attribute to it. The template then uses it to render the tooltip for all fields
-        using this class.
-        """
-
-        spinner = kwargs.pop("spinner", False)
-
-        template = "apps/custom_field.html"
-        base_args = dict(
-            css_class="form-control form-control-with-spinner" if spinner else "form-control",
-            wrapper_class="mb-3",
-            rows=3,
-            help_message=HELP_MESSAGE_MAP.get(field_name, ""),
-            spinner=spinner,
-        )
-
-        base_args.update(kwargs)
-        field = CustomField(field_name, **base_args)
-        field.set_template(template)
-        return Div(field, css_class="form-input-with-spinner" if spinner else None)
 
     class Meta:
         # Specify model to be used
