@@ -31,7 +31,7 @@ on:
 
 jobs:
   CI:
-    if: github.repository == 'scilifelabdatacentre/stackn'
+    if: github.repository == 'scilifelabdatacentre/serve'
     runs-on: ubuntu-20.04
     env:
       working-directory: .
