@@ -11,7 +11,7 @@ license = "Apache 2.0"
 maintainers = ["Team Whale <serve@scilifelab.se>",]
 authors = ["Team Whale <serve@scilifelab.se>",]
 homepage = "https://serve.scilifelab.se"
-repository = "https://github.com/ScilifelabDataCentre/stackn"
+repository = "https://github.com/ScilifelabDataCentre/serve"
 keywords = ["machine learning", "life science", "research", "django", "python"]
 packages = []
 
