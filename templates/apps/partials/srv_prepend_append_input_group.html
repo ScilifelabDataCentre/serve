@@ -1,0 +1,15 @@
+{% include "apps/partials/div_label_with_help_toggle.html" with help_message=field.help_text %}
+<div>
+  <div class="input-group">
+    {% if crispy_prepended_text %}
+      <span class="input-group-text">{{ crispy_prepended_text }}</span>
+    {% endif %}
+    {{ field }}
+    {% if crispy_appended_text %}
+      <span class="input-group-text">{{ crispy_appended_text }}</span>
+    {% endif %}
+  </div>
+  {% if field.field.bottom_help_text %}
+    <small class="form-text text-muted">{{ field.field.bottom_help_text }}</small>
+  {% endif %}
+</div>

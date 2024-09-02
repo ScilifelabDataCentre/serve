@@ -1,9 +1,5 @@
 <div id="div_{{ field.id_for_label }}" class="{% if wrapper_class %}{{ wrapper_class }}{% endif %}">
-    <div>
-        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ help_message }}">
-        </span>
-    </div>
+    {% include "apps/partials/div_label_with_help_toggle.html" %}
 
     <div style="display: block; clear:both;">
         {% if spinner %}
