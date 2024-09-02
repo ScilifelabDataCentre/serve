@@ -15,7 +15,7 @@
     <main class="container mb-3">
       <h1>Internal error. Something went wrong.</h1>
       <h4 class="mt-4">
-        An error has occured. We are sorry for the inconvenience.
+        An error has occurred. We are sorry for the inconvenience.
       </h4>
       <p class="text-secondary">
         Error code: 500
@@ -29,7 +29,8 @@
         <li><i class="bi bi-envelope"></i> If the problem persists, please contact us at <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a>
           and provide information on how to reproduce the error.</li>
       </ul>
-      <a type="button" class="btn btn-profile" href="{% url 'portal:home' %}">
+      {# Link hardcoded intentionally, this page should be there in case almost **everything** breaks #}
+      <a type="button" class="btn btn-profile" href="https://serve.scilifelab.se/home/">
         <i class="bi bi-house-door-fill"></i> Take me home
       </a>
     </main>
