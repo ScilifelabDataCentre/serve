@@ -1,8 +1,10 @@
 describe("Test superuser access", () => {
 
+    // The longer timeout is often used when waiting for k8s operations to complete
+    const longCmdTimeoutMs = 180000
+
     // Tests performed as an authenticated user that has superuser privileges
     // user: no-reply-superuser@scilifelab.se
-
     let users
 
     before(() => {
@@ -63,9 +65,9 @@ describe("Test superuser access", () => {
         cy.get('input[name=name]').type(project_name)
         cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(5000) // sometimes it takes a while to create a project
+        //cy.wait(5000) // sometimes it takes a while to create a project. Not needed because of cypress retryability.
 
-        cy.get('h3').should('contain', project_name)
+        cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
         cy.get('.card-text').should('contain', project_description)
 
 
@@ -136,14 +138,15 @@ describe("Test superuser access", () => {
         cy.get('#id_name').clear().type(private_app_name_2) // change name
         cy.get('#submit-id-submit').contains('Submit').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
-        cy.wait(10000)
-        cy.get('tr:contains("' + private_app_name_2 + '")').find('span').should('contain', 'Running') // add this because to make sure the app is running before deleting otherwise it gives an error,
+
+        //cy.wait(10000)  // Not needed because of the retryability built into cypress.
+        cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running') // add this because to make sure the app is running before deleting otherwise it gives an error,
         cy.logf("Deleting a regular user's private app", Cypress.currentTest)
         cy.get('tr:contains("' + private_app_name_2 + '")').find('i.bi-three-dots-vertical').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').find('a.confirm-delete').click()
         cy.get('button').contains('Delete').click()
-        cy.wait(5000)
-        cy.get('tr:contains("' + private_app_name_2 + '")').find('span').should('contain', 'Deleted')
+        //cy.wait(5000)  // Not needed because of the retryability built into cypress.
+        cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Deleted')
 
         cy.logf("Deleting a regular user's project", Cypress.currentTest)
         cy.visit("/projects/")
@@ -171,7 +174,7 @@ describe("Test superuser access", () => {
         cy.get("a").contains('Create').first().click()
         cy.get('input[name=name]').type(project_name)
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(5000) // sometimes it takes a while to create a project
+        //cy.wait(5000) // sometimes it takes a while to create a project. Not needed because of cypress retryability.
         cy.get('h3').should('contain', project_name)
 
         Cypress.session.clearAllSavedSessions()
