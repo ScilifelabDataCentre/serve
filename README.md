@@ -6,9 +6,9 @@
       <img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg">
    </a>
    <br />
-      <img alt="Pre-commit" src="https://github.com/ScilifelabDataCentre/stackn/actions/workflows/pre-commit.yaml/badge.svg?branch=develop">
-      <img alt="CI" src="https://github.com/ScilifelabDataCentre/stackn/actions/workflows/ci.yaml/badge.svg?branch=develop">
-      <img alt="End2end tests" src="https://github.com/ScilifelabDataCentre/stackn/actions/workflows/e2e-tests.yaml/badge.svg?branch=develop">
+      <img alt="Pre-commit" src="https://github.com/ScilifelabDataCentre/serve/actions/workflows/pre-commit.yaml/badge.svg?branch=develop">
+      <img alt="CI" src="https://github.com/ScilifelabDataCentre/serve/actions/workflows/ci.yaml/badge.svg?branch=develop">
+      <img alt="End2end tests" src="https://github.com/ScilifelabDataCentre/serve/actions/workflows/e2e-tests.yaml/badge.svg?branch=develop">
 
 </p>
 
@@ -16,11 +16,11 @@
 
 SciLifeLab Serve ([https://serve.scilifelab.se](https://serve.scilifelab.se)) is a platform offering machine learning model serving, app hosting (Shiny, Streamlit, Dash, etc.), web-based integrated development environments, and other tools to life science researchers affiliated with a Swedish research institute. It is developed and operated by the [SciLifeLab Data Centre](https://github.com/ScilifelabDataCentre), part of [SciLifeLab](https://scilifelab.se/). See [this page for information about funders and mandate](https://serve.scilifelab.se/about/).
 
-This repository contains source code for SciLifeLab Serve. It is  based on the open-source platform [Stackn](https://github.com/scaleoutsystems/stackn).
+This repository contains source code for the main Django application of SciLifeLab Serve.
 
 ## Reporting bugs and requesting features
 
-If you are using SciLifeLab Serve and notice a bug or if there is a feature you would like to be added feel free to [create an issue](https://github.com/ScilifelabDataCentre/stackn/issues/new/choose) with a bug report or feature request.
+If you are using SciLifeLab Serve and notice a bug or if there is a feature you would like to be added feel free to [create an issue](https://github.com/ScilifelabDataCentre/serve/issues/new/choose) with a bug report or feature request.
 
 ## Development and contributions
 
@@ -36,8 +36,8 @@ It is possible to deploy and work with the user interface of Serve without a run
 
 1. Clone this repository locally:
 ```
-$ git clone https://github.com/ScilifelabDataCentre/stackn
-$ cd stackn
+$ git clone https://github.com/ScilifelabDataCentre/serve
+$ cd serve
 ```
 
 2. Create a copy of the .env template file
