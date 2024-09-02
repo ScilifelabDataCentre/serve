@@ -13,7 +13,7 @@
 
 <body class="d-flex flex-column min-vh-100">
 
-    {% include 'common/navbar.html' %}
+    {% include 'common/navbar.html' with minimum=False %}
 
     <main class="container mb-3">
     {% block content %}{% endblock %}
