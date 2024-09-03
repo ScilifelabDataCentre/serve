@@ -16,6 +16,7 @@ services:
     container_name: studio
     build:
       context: .
+      target: runtime
     image: stackn:develop
     env_file:
       - .env
