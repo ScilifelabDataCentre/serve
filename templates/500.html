@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% load static sekizai_tags %}
+
+<head>
+    <title>Internal error | SciLifeLab Serve (beta)</title>
+    {% include 'common/common_head.html' %}
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    {% include 'common/navbar.html' with minimum=True %}
+
+    <main class="container mb-3">
+      <h1>Internal error. Something went wrong.</h1>
+      <h4 class="mt-4">
+        An error has occurred. We are sorry for the inconvenience.
+      </h4>
+      <p class="text-secondary">
+        Error code: 500
+      </p>
+      <h4 class="mt-4">
+        In the meantime, here is what you can do
+      </h4>
+      <ul class="list-unstyled fw-bold">
+        <li><i class="bi bi-arrow-clockwise fw-bold"></i> Refresh the page (sometimes this helps)</li>
+        <li><i class="bi bi-clock"></i> Try again in a few minutes</li>
+        <li><i class="bi bi-envelope"></i> If the problem persists, please contact us at <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a>
+          and provide information on how to reproduce the error.</li>
+      </ul>
+      {# Link hardcoded intentionally, this page should be there in case almost **everything** breaks #}
+      <a type="button" class="btn btn-profile" href="https://serve.scilifelab.se/home/">
+        <i class="bi bi-house-door-fill"></i> Take me home
+      </a>
+    </main>
+
+</body>
