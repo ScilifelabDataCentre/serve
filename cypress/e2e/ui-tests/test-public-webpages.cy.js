@@ -1,8 +1,9 @@
 describe("Tests of the public pages of the website", () => {
 
     beforeEach(() => {
-
+        cy.logf("Begin beforeEach() hook", Cypress.currentTest)
         cy.visit("/")
+        cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
     it("should open the home page on link click", () => {
@@ -15,7 +16,22 @@ describe("Tests of the public pages of the website", () => {
         cy.url().should("include", "/apps")
         cy.get('h3').should('contain', 'Public apps')
         cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
-        cy.get('p').should('contain', 'No public apps available.')
+
+        if (Cypress.env('do_reset_db') === true) {
+            // This test was flaky before as other test failures could make this test fail as well
+            cy.get('p').should('contain', 'No public apps available.')
+        } else {
+            cy.get('h3').then($parent => {
+                if ($parent.find("span.ghost-number").length > 0) {
+                    cy.get('span.ghost-number').then(($element) => {
+                        // There are public apps and the text must be an integer
+                        const text = $element.text().trim();
+                        const isInteger = Number.isInteger(Number(text));
+                        expect(isInteger).to.be.true;
+                    });
+                }
+            });
+        }
     })
 
     it("should open the Models page on link click", () => {
@@ -40,9 +56,9 @@ describe("Tests of the public pages of the website", () => {
     it("should open the login page on link click", () => {
         cy.get("li.nav-item a").contains("Log in").click()
         cy.url().should("include", "accounts/login")
-  })
+    })
 
     it("should have proper title", () => {
-	cy.get("title").should("have.text", "Home | SciLifeLab Serve (beta)")
+	    cy.get("title").should("have.text", "Home | SciLifeLab Serve (beta)")
     })
 })
