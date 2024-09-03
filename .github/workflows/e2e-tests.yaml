@@ -26,7 +26,7 @@ on:
 
 jobs:
   e2e:
-    if: github.repository == 'scilifelabdatacentre/stackn'
+    if: github.repository == 'scilifelabdatacentre/serve'
     runs-on: ubuntu-20.04
     env:
       working-directory: .
@@ -121,7 +121,7 @@ jobs:
 
 
       - name: Cypress run e2e tests
-        uses: cypress-io/github-action@v5
+        uses: cypress-io/github-action@v6
         with:
           working-directory: ${{env.working-directory}}
           config: pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }}
@@ -147,4 +147,4 @@ jobs:
           ## limits ssh access and adds the ssh public key for the user which triggered the workflow
           limit-access-to-actor: true
           ## limits ssh access and adds the ssh public keys of the listed GitHub users
-          limit-access-to-users: sandstromviktor,churnikov,hamzaimran08,alfredeen,akochari
+          limit-access-to-users: churnikov,hamzaimran08,alfredeen,akochari,anondo1969

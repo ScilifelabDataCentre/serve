@@ -11,7 +11,7 @@ license = "Apache 2.0"
 maintainers = ["Team Whale <serve@scilifelab.se>",]
 authors = ["Team Whale <serve@scilifelab.se>",]
 homepage = "https://serve.scilifelab.se"
-repository = "https://github.com/ScilifelabDataCentre/stackn"
+repository = "https://github.com/ScilifelabDataCentre/serve"
 keywords = ["machine learning", "life science", "research", "django", "python"]
 packages = []
 
@@ -71,7 +71,7 @@ pytest-cov = { version = "==4.1.0", optional = true }
 pytest-xdist = { version = "^3.5.0", optional = true }
 django-axes = {extras = ["ipware"], version = "^6.3.0"}
 django-password-validators = "^1.7.3"
-
+django-htmx = "^1.18.0"
 
 [tool.poetry.extras]
 linters = ["black", "isort", "flake8", "mypy"]

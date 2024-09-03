@@ -5,10 +5,9 @@ from crispy_forms.layout import Button, Div, Submit
 from django import forms
 from django.shortcuts import get_object_or_404
 
-from apps.constants import HELP_MESSAGE_MAP
-from apps.forms import CustomField
+from apps.forms.field.widget import SubdomainInputGroup
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
-from apps.types_.subdomain import SubdomainCandidateName
+from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
 from projects.models import Flavor, Project
 
 __all__ = ["BaseForm", "AppBaseForm"]
@@ -21,7 +20,7 @@ class BaseForm(forms.ModelForm):
         required=False,
         min_length=3,
         max_length=53,
-        widget=forms.TextInput(attrs={"style": "text-transform:lowercase;"}),
+        widget=SubdomainInputGroup(base_widget=forms.TextInput, data={}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -36,8 +35,12 @@ class BaseForm(forms.ModelForm):
 
     def _setup_form_fields(self):
         # Populate subdomain field with instance subdomain if it exists
+        self.fields["subdomain"].widget.data["project_pk"] = self.project_pk
+        self.fields["subdomain"].widget.data["hidden"] = "hidden"
+        self.fields["subdomain"].initial = ""
         if self.instance and self.instance.pk:
-            self.fields["subdomain"].initial = self.instance.subdomain.subdomain
+            self.fields["subdomain"].initial = self.instance.subdomain.subdomain if self.instance.subdomain else ""
+            self.fields["subdomain"].widget.data["hidden"] = ""
 
         # Handle name
         self.fields["name"].initial = ""
@@ -87,20 +90,20 @@ class BaseForm(forms.ModelForm):
             if Subdomain.objects.filter(subdomain=subdomain_input).exists():
                 error_message = "Wow, you just won the lottery. Contact us for a free chocolate bar."
                 raise forms.ValidationError(error_message)
-            return subdomain
+            return SubdomainTuple(subdomain, False)
 
         # Check if the instance has an existing subdomain
         current_subdomain = getattr(self.instance, "subdomain", None)
 
         # Validate if the subdomain input matches the instance's current subdomain
         if current_subdomain and current_subdomain.subdomain == subdomain_input:
-            return subdomain_input
+            return SubdomainTuple(subdomain_input, current_subdomain.is_created_by_user)
 
         # Convert the subdomain to lowercase. OK because we force convert to lowecase in the UI.
         subdomain_input = subdomain_input.lower()
 
         # Check if the subdomain adheres to helm rules
-        subdomain_candidate = SubdomainCandidateName(subdomain_input)
+        subdomain_candidate = SubdomainCandidateName(subdomain_input, self.project_pk)
 
         try:
             subdomain_candidate.validate_subdomain()
@@ -112,33 +115,7 @@ class BaseForm(forms.ModelForm):
             error_message = "Subdomain already exists. Please choose another one."
             raise forms.ValidationError(error_message)
 
-        return subdomain_input
-
-    def get_common_field(self, field_name: str, **kwargs):
-        """
-        This function is very useful because it allows you to create a custom field,
-        that has a question_mark with tooltip next to the label. So "Name (?)" will have a tooltip.
-        The text in the tooltip is defined in HELP_MESSAGE_MAP.
-        The CustomField class just inherits the crispy_forms.layout.Field class and adds the
-        help_message attribute to it. The template then uses it to render the tooltip for all fields
-        using this class.
-        """
-
-        spinner = kwargs.pop("spinner", False)
-
-        template = "apps/custom_field.html"
-        base_args = dict(
-            css_class="form-control form-control-with-spinner" if spinner else "form-control",
-            wrapper_class="mb-3",
-            rows=3,
-            help_message=HELP_MESSAGE_MAP.get(field_name, ""),
-            spinner=spinner,
-        )
-
-        base_args.update(kwargs)
-        field = CustomField(field_name, **base_args)
-        field.set_template(template)
-        return Div(field, css_class="form-input-with-spinner" if spinner else None)
+        return SubdomainTuple(subdomain_input, True)
 
     class Meta:
         # Specify model to be used
@@ -184,3 +161,5 @@ class AppBaseForm(BaseForm):
         self.fields["volume"].queryset = volume_queryset
         self.fields["volume"].initial = volume_queryset
         self.fields["volume"].help_text = f"Select a volume to attach to your {self.model_name}."
+
+        self.fields["subdomain"].help_text = "Choose subdomain, create a new one or leave blank to get a random one."

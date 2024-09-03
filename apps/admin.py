@@ -52,7 +52,7 @@ admin.site.register(Apps, AppsAdmin)
 
 class BaseAppAdmin(admin.ModelAdmin):
     list_display = ("name", "display_owner", "display_project", "display_status", "display_subdomain", "chart")
-
+    readonly_fields = ("id",)
     list_filter = ["owner", "project", "app_status__status", "chart"]
     actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
 
@@ -211,6 +211,7 @@ class CustomAppInstanceAdmin(BaseAppAdmin):
 @admin.register(ShinyInstance)
 class ShinyInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + (
+        "display_volumes",
         "image",
         "port",
     )
