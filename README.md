@@ -30,6 +30,12 @@ We welcome contributions to the code. When you want to make a contribution pleas
 
 The  `main` branch contains code behind the version that is currently deployed in production - https://serve.scilifelab.se. The branches `develop` and `staging` contain current development versions at different stages.
 
+### Local development setup
+
+There are multiple ways to set up a local development environment for SciLifeLab Serve. Below you can find instructions on how to set up a local development environment using Docker Compose or Rancher Desktop.
+
+Both have their pros and cons. Docker Compose is easier to set up but does not provide a full Kubernetes environment. Rancher Desktop provides a full Kubernetes environment but is more complex to set up.
+
 ### Deploy Serve for local development with Docker Compose
 
 It is possible to deploy and work with the user interface of Serve without a running Kubernetes cluster, in that case you can skip the step related to that below. However, in order to be able to deploy and modify resources (apps, notebooks, persistent storage, etc.) a running local cluster is required; it can be created for example with [microk8s](https://microk8s.io/).
@@ -74,6 +80,89 @@ This assumes you have the correct ssh key in your ssh-agent. If you like to give
 ```
 $ docker compose up -d
 ```
+
+### Deploy Serve for local development with Rancher Desktop
+
+Start with instructions in [Serve Charts > How to Deploy](https://github.com/ScilifelabDataCentre/serve-charts?tab=readme-ov-file#how-to-deploy) and come back here when you get to the point of building the studio image.
+
+Again, this setup assumes you have [Rancher Desktop](https://rancherdesktop.io/) installed and running.
+
+```bash
+$ git clone git@github.com:ScilifelabDataCentre/stackn.git
+$ cd stackn
+$ git checkout develop
+$ cp .env.template .env
+$ cp ~/.kube/config cluster.conf
+$ cp ~/.ssh/id_rsa.pub id_rsa.pub
+$ cat Dockerfile local.Dockerfile > local_.dockerfile
+$ nerdctl build --namespace k8s.io -t mystudio -f local_.dockerfile .
+```
+
+Now continue setting up serve charts until you get to the PyCharm setup.
+
+##### PyCharm setup
+
+> Prerequisite: This setup assumes you have PyCharm Professional installed.
+
+1. Do this weirdness due to [this](https://youtrack.jetbrains.com/issue/PY-55338/Connection-to-python-console-refused-with-docker-interpreter-on-Linux)
+    1. go to Help | Find Action | Registry
+    2. disable python.use.targets.api
+    3. recreate the interpreter from scratch
+2. Setup ssh interpreter
+```bash
+# This will open ssh connection from the pod to our host machine
+# Because we made everything super NOT secure for local development you can ssh there without password and as root
+$ sudo kubectl port-forward svc/serve-studio 22:22
+```
+3. Set up the interpreter in PyCharm
+    1. Go to `PyCharm | Settings | Project: stackn | Python Interpreter`
+    2. Add new interpreter
+    3. Choose SSH
+    4. Host: localhost
+    5. Port: 22
+    6. Username: root
+    7. Auth type: Password
+    8. Password: root
+    9. Interpreter path: /usr/local/bin/python
+    10. Python interpreter path: /usr/local/bin/python
+    11. **Important** Don't accept synchronization option from PyCharm. There is no need for it because we already synchronize the code with the pod using volume mounts provided by Rancher Desktop.
+4. Set up the environment variables
+    1. Go to Run | Edit Configurations
+    2. Add new configuration
+    3. Choose `Django server`
+    4. Name: `Serve`
+    5. Host: `0.0.0.0`
+    6. Port: `8080`
+    7. Click Modify options and select `No reload` and `Environment variables`
+    8. Add environment variables from the studio pod
+    9. Make sure the Working directory is /app.
+    10. The Path mappings should be /path/to/your/stackn=/app.
+
+```bash
+$ kubectl get po
+# find the studio pod serve-studio-123
+$ kubectl exec -it <serve-studio-123> -- /bin/bash
+# Run migrations
+# For simplicity just run sh scripts/run_web.sh
+$ sh scripts/run_web.sh
+# And then stop the process when the server is running
+
+# Now you are in the studio container
+# Type env
+$ env
+# Copy the whole output in to the pycharm environment configuration
+```
+
+Copy environment variables to the PyCharm Django configuration. The environment variables need to be separated by a semi-colon. To achieve this, click on the list icon in the Environment variables input box and then in the popup, click paste.
+
+Make sure that the Django Framework settings in PyCharm are correctly setup.
+To check, go to  PyCharm | Settings | Languages & Frameworks | Django and check the following settings
+- Enable Django Support should be checked.
+- Django project root should be `/path/to/your/stackn`
+- Settings should be `studio/settings.py`
+- Manage script should be `manage.py`
+
+Now that you are done, you can run Django server using PyCharm and access the studio at [http://studio.127.0.0.1.nip.io/](http://studio.127.0.0.1.nip.io/)
 
 ## Contact information
 
