@@ -2,30 +2,39 @@ describe("Test sign up", () => {
 
     let users
 
+    before(() => {
+        cy.logf("Begin before() hook", Cypress.currentTest)
+
+        cy.fixture('users.json').then(function (data) {
+            users = data;
+          })
+
+        cy.logf("End before() hook", Cypress.currentTest)
+    })
+
     beforeEach(() => {
+        cy.logf("Begin beforeEach() hook", Cypress.currentTest)
+
         // reset and seed the database prior to every test
         if (Cypress.env('do_reset_db') === true) {
-            cy.log("Resetting db state. Running db-reset.sh");
+            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
             cy.exec("./cypress/e2e/db-reset.sh");
             cy.wait(Cypress.env('wait_db_reset'));
         }
         else {
-            cy.log("Skipping resetting the db state.");
+            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
         }
+
+        cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    beforeEach(() => {
-        cy.fixture('users.json').then(function (data) {
-            users = data;
-          })
-    })
 
     it("can create new user account with valid form input", () => {
 
         cy.visit("/signup/");
         cy.get("title").should("have.text", "Register | SciLifeLab Serve (beta)")
 
-        cy.log("Creating user account with valid input")
+        cy.logf("Creating user account with valid input", Cypress.currentTest)
         cy.get('input[name=email]').type(users.signup_user.email);
         cy.get('input[name=first_name]').type("first name");
         cy.get('input[name=last_name]').type("last name");
@@ -50,16 +59,16 @@ describe("Test sign up", () => {
         // HTML form checks
 
         cy.visit("/signup/");
-        cy.log("First name is a required field in the HTML form")
+        cy.logf("First name is a required field in the HTML form", Cypress.currentTest)
         cy.get('input[name=first_name]').invoke('prop', 'validationMessage').should('equal', 'Please fill out this field.')
-        cy.log("Last name is a required field in the HTML form")
+        cy.logf("Last name is a required field in the HTML form", Cypress.currentTest)
         cy.get('input[name=last_name]').invoke('prop', 'validationMessage').should('equal', 'Please fill out this field.')
-        cy.log("Department is not a required field in the HTML form")
+        cy.logf("Department is not a required field in the HTML form", Cypress.currentTest)
         cy.get('input[name=department]').invoke('prop', 'validationMessage').should('not.equal', 'Please fill out this field.') // department is not a required field because those without uni  affiliation do not need to fill it out
 
         // Backend checks
 
-        cy.log("User without uni email asked for additional info by front and backend")
+        cy.logf("User without uni email asked for additional info by front and backend", Cypress.currentTest)
         cy.visit("/signup/");
         cy.get('[id="id_request_account_info"]').should('have.class', 'hidden')
         cy.get('input[name=email]').type("test-email@test.se"); // non-uni email
@@ -77,7 +86,7 @@ describe("Test sign up", () => {
         cy.get('input[name=email]').clear().type("test-email@uu.se");
         cy.get('[id="id_request_account_info"]').should('have.class', 'hidden')
 
-        cy.log("Invalid email rejected by the backend")
+        cy.logf("Invalid email rejected by the backend", Cypress.currentTest)
         cy.visit("/signup/");
         cy.get('input[name=email]').type("test-email@test");
         cy.get('input[name=first_name]').type("first name");
@@ -87,7 +96,7 @@ describe("Test sign up", () => {
         cy.get("input#submit-id-save").click();
         cy.get('[id="validation_email"]').should('exist')
 
-        cy.log("Mismatching email and affiliation rejected by the backend")
+        cy.logf("Mismatching email and affiliation rejected by the backend", Cypress.currentTest)
         cy.visit("/signup/")
         cy.get('input[name=first_name]').type("first name");
         cy.get('input[name=last_name]').type("last name");
@@ -98,7 +107,7 @@ describe("Test sign up", () => {
         cy.get("input#submit-id-save").click();
         cy.get('[id="validation_affiliation"]').should('exist')
 
-        cy.log("Empty department rejected by the backend")
+        cy.logf("Empty department rejected by the backend", Cypress.currentTest)
         cy.visit("/signup/")
         cy.get('input[name=email]').type("test-email@ki.se"); // department becomes a required field for uni emails
         cy.get('input[name=first_name]').type("first name");
@@ -109,7 +118,7 @@ describe("Test sign up", () => {
         cy.get("input#submit-id-save").click();
         cy.get('[id="validation_department"]').should('exist')
 
-        cy.log("Mismatching passwords rejected by the backend")
+        cy.logf("Mismatching passwords rejected by the backend", Cypress.currentTest)
         cy.visit("/signup/")
         cy.get('input[name=email]').type("test-email@test.kth.se");
         cy.get('input[name=first_name]').type("first name");
