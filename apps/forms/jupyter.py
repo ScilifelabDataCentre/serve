@@ -10,6 +10,12 @@ __all__ = ["JupyterForm"]
 
 class JupyterForm(AppBaseForm):
     volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
+    environment = forms.ModelChoiceField(queryset=None, required=False)
+
+    def _setup_form_fields(self):
+        super()._setup_form_fields()
+        self.fields["environment"].label = "Environment"
+        self.fields["environment"].queryset = self.project.environment_set.all()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -19,6 +25,7 @@ class JupyterForm(AppBaseForm):
             Field("volume"),
             SRVCommonDivField("access"),
             SRVCommonDivField("flavor"),
+            SRVCommonDivField("environment"),
             css_class="card-body",
         )
 
@@ -26,4 +33,4 @@ class JupyterForm(AppBaseForm):
 
     class Meta:
         model = JupyterInstance
-        fields = ["name", "volume", "flavor", "access"]
+        fields = ["name", "volume", "flavor", "access", "environment"]
