@@ -152,6 +152,14 @@
                         <h5 class="card-title mb-0">Environments</h5>
                     </div>
 
+{#                    Warn that this is a legacy way of environments management #}
+                    <div class="card-body">
+                        <div class="alert alert-warning alert-outline alert-dismissible" role="alert">
+                            <i class="far fa-fw fa-bell"></i>
+                            <strong>Legacy way of managing environments!</strong> This is a legacy way of managing environments.
+                            We recommend using admin panel to manage environments.
+                        </div>
+
                     <div class="card-body">
                         <form action="{% url 'projects:delete_environment' project.slug %}" method="post">
                             {% csrf_token %}

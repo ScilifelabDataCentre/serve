@@ -34,26 +34,39 @@ class BasicAuth(models.Model):
 
 
 class Environment(models.Model):
-    app = models.ForeignKey(settings.APPS_MODEL, on_delete=models.CASCADE, null=True)
+    app = models.ForeignKey(
+        settings.APPS_MODEL, on_delete=models.CASCADE, null=True, help_text="App associated with the environment"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
-    image = models.CharField(max_length=100)
-    name = models.CharField(max_length=100)
+    image = models.CharField(max_length=100, help_text="Image name. Could be like jupyter/minimal-notebook:latest")
+    name = models.CharField(max_length=100, help_text="Display name for the environment for users")
     project = models.ForeignKey(
         settings.PROJECTS_MODEL,
         on_delete=models.CASCADE,
         null=True,
         blank=True,
+        help_text="Project associated with the environment",
     )
 
-    repository = models.CharField(max_length=100, blank=True, null=True)
-    slug = models.CharField(max_length=100, null=True, blank=True)
+    repository = models.CharField(
+        max_length=100, blank=True, null=True, help_text="Repository name. Could be empty or like ghcr.io"
+    )
+    slug = models.CharField(max_length=100, null=True, blank=True, help_text="This one seem to be legacy and unused")
     updated_at = models.DateTimeField(auto_now=True)
 
     public = models.BooleanField(default=False)
 
     def __str__(self):
         return str(self.name)
+
+    def get_full_image_reference(self):
+        """
+        Get the full image reference for the environment
+
+        It's either just the image name or the repository/image name
+        """
+        return f"{self.repository}/{self.image}" if self.repository else self.image
 
 
 class Flavor(models.Model):

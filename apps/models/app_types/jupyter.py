@@ -33,7 +33,7 @@ class JupyterInstance(BaseAppInstance):
             volumeK8s_dict["volumeK8s"][object.name] = dict(release=object.subdomain.subdomain)
         k8s_values["apps"] = volumeK8s_dict
         if self.environment:
-            k8s_values["appconfig"] = {"image": self.environment.image}
+            k8s_values["appconfig"] = {"image": self.environment.get_full_image_reference()}
         # This is just do fix a legacy.
         # TODO: Change the jupyter chart to fetch port from appconfig as other apps
         k8s_values["service"]["targetport"] = 8888
