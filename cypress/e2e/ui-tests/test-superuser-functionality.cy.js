@@ -144,9 +144,9 @@ describe("Test superuser access", () => {
         cy.logf("Deleting a regular user's private app", Cypress.currentTest)
         cy.get('tr:contains("' + private_app_name_2 + '")').find('i.bi-three-dots-vertical').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').find('a.confirm-delete').click()
-        cy.get('button').contains('Delete').click()
+        cy.get('#id_delete_button').contains('Delete').click()
         //cy.wait(5000)  // Not needed because of the retryability built into cypress.
-        cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Deleted')
+         cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Deleted')
 
         cy.logf("Deleting a regular user's project", Cypress.currentTest)
         cy.visit("/projects/")
@@ -161,7 +161,7 @@ describe("Test superuser access", () => {
 
     it("can create a new flavor or environment and a regular user can subsequently use those", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
-        const project_name = "e2e-proj-flavor-test"
+        const project_name = "e2e-proj-flavor-env-test"
         const new_flavor_name = "4 CPU, 8 GB RAM"
         const new_environment_name = "e2e test environment"
 
@@ -195,7 +195,7 @@ describe("Test superuser access", () => {
         cy.get('input[name="cpu_lim"]').clear().type("4000m")
         cy.get('input[name="mem_req"]').clear().type("2Gi")
         cy.get('input[name="mem_lim"]').clear().type("8Gi")
-        cy.get('button').contains("Create").click()
+        cy.get('button').contains("Create flavor").click()
 
         cy.logf("Creating a new Jupyter Lab environment in the regular user's project", Cypress.currentTest)
         cy.visit("/projects/")
@@ -206,7 +206,7 @@ describe("Test superuser access", () => {
         cy.get('input[name="environment_repository"]').clear().type("dockerhub.io")
         cy.get('input[name="environment_image"]').clear().type("jupyter/minimal-notebook:latest")
         cy.get('#environment_app').select('Jupyter Lab')
-        cy.get('button').contains("Create").click()
+        cy.get('button').contains("Create environment").click()
 
         Cypress.session.clearAllSavedSessions()
         cy.logf("Logging back in as a regular user and using the new flavor and environment", Cypress.currentTest)
@@ -237,7 +237,7 @@ describe("Test superuser access", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name_flavor + '")').find('span').should('contain', 'Running')
+             cy.get('tr:contains("' + app_name_flavor + '")').find('span').should('contain', 'Running')
 
             cy.logf("Changing the flavor setting", Cypress.currentTest)
             cy.visit("/projects/")
@@ -247,7 +247,7 @@ describe("Test superuser access", () => {
             cy.get('#id_flavor').find(':selected').should('contain', '2 vCPU, 4 GB RAM')
             cy.get('#id_flavor').select(new_flavor_name)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name_flavor + '")').find('span').should('contain', 'Running')
+             cy.get('tr:contains("' + app_name_flavor + '")').find('span').should('contain', 'Running')
 
             cy.logf("Checking that the new flavor setting was saved in the database", Cypress.currentTest)
             cy.visit("/projects/")
@@ -265,7 +265,7 @@ describe("Test superuser access", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('div.card-body:contains("' + app_type_env + '")').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_env)
-            cy.get('#environment_app').select('Default Jupyter Lab')
+            cy.get('#id_environment').select('Default Jupyter Lab')
             cy.get('#submit-id-submit').contains('Submit').click()
             cy.get('tr:contains("' + app_name_env + '")').find('span').should('contain', 'Running')
 

@@ -9,7 +9,7 @@ from django.db import transaction
 
 from apps.app_registry import APP_REGISTRY
 from apps.helpers import create_instance_from_form
-from projects.models import Flavor, Project, ProjectTemplate
+from projects.models import Environment, Flavor, Project, ProjectTemplate
 from projects.tasks import create_resources_from_template
 from studio.utils import get_logger
 
@@ -56,11 +56,18 @@ with transaction.atomic():
     create_resources_from_template(user.username, project.slug, project_template.template)
 
     flavor = Flavor.objects.filter(project=project).first()
+    environment = Environment.objects.filter(project=project).first()
 
     # define variables needed
     app_slug = "jupyter-lab"
 
-    data = {"name": "Regular user's private app", "flavor": str(flavor.pk), "access": "private", "volume": None}
+    data = {
+        "name": "Regular user's private app",
+        "flavor": str(flavor.pk),
+        "access": "private",
+        "volume": None,
+        "environment": str(environment.pk),
+    }
 
     if app_slug not in APP_REGISTRY:
         raise ValueError(f"Form class not found for app slug {app_slug}")
