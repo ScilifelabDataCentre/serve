@@ -13,7 +13,7 @@
           }
         },
         "environments": {
-          "Jupyter Lab": {
+          "Default Jupyter Lab": {
             "app": "jupyter-lab",
             "image": "serve-jupyterlab:231030-1145",
             "repository": "ghcr.io/scilifelabdatacentre"

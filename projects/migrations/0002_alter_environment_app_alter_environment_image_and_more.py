@@ -58,4 +58,9 @@ class Migration(migrations.Migration):
                 blank=True, help_text="This one seem to be legacy and unused", max_length=100, null=True
             ),
         ),
+        migrations.AlterField(
+            model_name="environment",
+            name="public",
+            field=models.BooleanField(default=False, help_text="Seems to be legacy and have no effect."),
+        ),
     ]

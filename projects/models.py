@@ -55,7 +55,7 @@ class Environment(models.Model):
     slug = models.CharField(max_length=100, null=True, blank=True, help_text="This one seem to be legacy and unused")
     updated_at = models.DateTimeField(auto_now=True)
 
-    public = models.BooleanField(default=False)
+    public = models.BooleanField(default=False, help_text="Seems to be legacy and have no effect.")
 
     def __str__(self):
         return str(self.name)
