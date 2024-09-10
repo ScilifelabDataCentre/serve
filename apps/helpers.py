@@ -263,7 +263,10 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
         # Because not all forms contain all fields, we check if the supposedly changed field
         # is actually contained in the form
         for field in form.changed_data:
-            if field in redeployment_fields and field in form.Meta.fields:
+            if field.lower() in redeployment_fields and (
+                field.lower() in form.Meta.fields or field.lower() == "subdomain"
+            ):
+                # subdomain is a special field not contained in meta fields
                 do_deploy = True
 
     subdomain_name, is_created_by_user = get_subdomain_name(form)
