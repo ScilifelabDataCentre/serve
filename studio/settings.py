@@ -373,6 +373,7 @@ APPS_STATUS_WARNING = [
     "Waiting",
     "Installing",
     "Created",
+    "Creating",
 ]
 
 # App dependencies
