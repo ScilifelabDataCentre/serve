@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Collection, NewsObject, PublicModelObject, PublishedModel
+from .models import Collection, NewsObject, PublicModelObject, PublishedModel, EventsObject
 
 
 class CollectionAdmin(admin.ModelAdmin):
@@ -14,5 +14,6 @@ class CollectionAdmin(admin.ModelAdmin):
 
 admin.site.register(Collection, CollectionAdmin)
 admin.site.register(NewsObject)
+admin.site.register(EventsObject)
 admin.site.register(PublishedModel)
 admin.site.register(PublicModelObject)

@@ -4,11 +4,12 @@ from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import View
+from django.utils import timezone
 
 from apps.models import BaseAppInstance, SocialMixin
 from studio.utils import get_logger
 
-from .models import NewsObject
+from .models import NewsObject, EventsObject
 
 logger = get_logger(__name__)
 
@@ -168,6 +169,16 @@ class HomeView(View):
         else:
             collection_objects = collection_objects
 
+        events_objects = EventsObject.objects.all().order_by("-start_time")[:3]
+        future_event_exists = (
+            True
+            if len(EventsObject.objects.filter(start_time__date__gt=timezone.now().date()).order_by("-start_time")) >= 1
+            else False
+        )
+        for event in events_objects:
+            event.description_html = markdown.markdown(event.description)
+            event.past = True if event.start_time.date() < timezone.now().date() else False
+        
         context = {
             "published_apps": published_apps,
             "published_models": published_models,
@@ -175,6 +186,8 @@ class HomeView(View):
             "link_all_news": link_all_news,
             "collection_objects": collection_objects,
             "link_all_collections": link_all_collections,
+            "events_objects": events_objects,
+            "future_event_exists": future_event_exists,
         }
 
         return render(request, self.template, context=context)
@@ -236,3 +249,12 @@ def collection(request, slug, app_id=0):
     }
 
     return render(request, template, context=context)
+
+def events(request):
+    future_events = EventsObject.objects.filter(start_time__date__gt=timezone.now().date()).order_by("-start_time")
+    for event in future_events:
+        event.description_html = markdown.markdown(event.description)
+    past_events = EventsObject.objects.filter(start_time__date__lte=timezone.now().date()).order_by("-start_time")
+    for event in past_events:
+        event.description_html = markdown.markdown(event.description)
+    return render(request, "events/events.html", {"future_events": future_events, "past_events": past_events})

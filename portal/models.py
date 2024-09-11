@@ -98,3 +98,46 @@ class Collection(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         super(Collection, self).save(*args, **kwargs)
+
+class EventsObject(models.Model):
+    created_on = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=200, default="")
+    description = models.TextField(blank=True, null=True, default="", max_length=2024)
+    start_time = models.DateTimeField(auto_now=False, auto_now_add=False)
+    end_time = models.DateTimeField(auto_now=False, auto_now_add=False)
+    venue = models.CharField(max_length=100, default="")
+    speaker = models.CharField(max_length=200, default="")
+    registration_url = models.URLField(max_length=200)
+    recording_url = models.URLField(blank=True, null=True, max_length=200)
+
+    @property
+    def event_title(self):
+        return self.title
+
+    @property
+    def event_description(self):
+        return self.description
+
+    @property
+    def event_start_time(self):
+        return self.start_time
+
+    @property
+    def event_end_time(self):
+        return self.end_time
+
+    @property
+    def event_venue(self):
+        return self.venue
+
+    @property
+    def event_speaker(self):
+        return self.speaker
+
+    @property
+    def event_registration_url(self):
+        return self.registration_url
+
+    @property
+    def event_recording_url(self):
+        return self.recording_url
