@@ -3,13 +3,13 @@ from django.apps import apps
 from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.generic import View
 from django.utils import timezone
+from django.views.generic import View
 
 from apps.models import BaseAppInstance, SocialMixin
 from studio.utils import get_logger
 
-from .models import NewsObject, EventsObject
+from .models import EventsObject, NewsObject
 
 logger = get_logger(__name__)
 
@@ -178,7 +178,7 @@ class HomeView(View):
         for event in events_objects:
             event.description_html = markdown.markdown(event.description)
             event.past = True if event.start_time.date() < timezone.now().date() else False
-        
+
         context = {
             "published_apps": published_apps,
             "published_models": published_models,
@@ -249,6 +249,7 @@ def collection(request, slug, app_id=0):
     }
 
     return render(request, template, context=context)
+
 
 def events(request):
     future_events = EventsObject.objects.filter(start_time__date__gt=timezone.now().date()).order_by("-start_time")

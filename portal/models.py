@@ -99,6 +99,7 @@ class Collection(models.Model):
             self.slug = slugify(self.name)
         super(Collection, self).save(*args, **kwargs)
 
+
 class EventsObject(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
     title = models.CharField(max_length=200, default="")

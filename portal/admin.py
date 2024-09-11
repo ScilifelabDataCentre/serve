@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from .models import Collection, NewsObject, PublicModelObject, PublishedModel, EventsObject
+from .models import (
+    Collection,
+    EventsObject,
+    NewsObject,
+    PublicModelObject,
+    PublishedModel,
+)
 
 
 class CollectionAdmin(admin.ModelAdmin):
