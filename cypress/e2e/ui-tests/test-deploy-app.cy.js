@@ -435,7 +435,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can modify app settings resulting in no k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it("can modify app settings resulting in NO k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // An advanced test to verify user can modify app settings such as the name and description
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
@@ -618,7 +618,95 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can set and change custom subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // A test to verify creating an app and changing the subdomain
+        const project_name = "e2e-deploy-app-test"
+        const app_name = "e2e-subdomain-change"
+        const app_description = "e2e-subdomain-change-description"
+        const source_code_url = "https://doi.org/example"
+        const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
+        const image_port = "8000"
+        const createResources = Cypress.env('create_resources');
+        const app_type = "Dash App"
+        const subdomain_change = "subdomain-change"
+
+        if (createResources === true) {
+            // Create Dash app without custom subdomain
+            cy.logf("Creating a dash app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_access').select('Public')
+            cy.get('#id_source_code_url').type(source_code_url)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+            // check that the app was created
+            verifyAppStatus(app_name, "Running", "public")
+
+            // Verify Dash app values
+            cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('#id_name').should('have.value', app_name)
+            cy.get('#id_description').should('have.value', app_description)
+            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_image').should('have.value', image_name)
+            cy.get('#id_port').should('have.value', image_port)
+
+            // Edit Dash app: change the suibdomain to a custom value
+            cy.logf("Editing the dash app settings field subdomain", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('#id_subdomain').clear().type(subdomain_change)
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+            // Verify that the app status now equals Running
+            verifyAppStatus(app_name, "Running", "public")
+
+            // Wait for 5 seconds and check the app status again
+            cy.wait(5000).then(() => {
+                verifyAppStatus(app_name, "Running", "public")
+              })
+
+            // Delete the Dash app
+            cy.logf("Deleting the dash app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            verifyAppStatus(app_name, "Deleted", "")
+
+            // check that the app is not visible under public apps
+            cy.visit('/apps/')
+            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public apps')
+            cy.contains('h5.card-title', app_name).should('not.exist')
+
+        } else {
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
+      }
+
+    })
+
+    it("can set and change custom subdomain several times", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // An advanced test to verify creating apps and changing subdomains. Steps taken:
+        // 1. Create app e2e-subdomain-example, subdomain=subdomain-test
+        // 2. Attempt create app e2e-second-subdomain-example, using subdomain=subdomain-test
+        // 3. Create app e2e-second-subdomain-example, subdomain=subdomain-test2
+        // 4. Change the subdomain of the first app to subdomain=subdomain-test3
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-subdomain-example"
@@ -640,14 +728,14 @@ describe("Test deploying app", () => {
             cy.logf("Now creating an app with a custom subdomain", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             // fill out other fields
-            cy.get('#id_name').type(app_name)
-            cy.get('#id_description').type(app_description)
+            cy.get('#id_name').clear().type(app_name)
+            cy.get('#id_description').clear().type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_volume').select(volume_display_text)
             cy.get('#id_path').clear().type("/home")
             // fill out subdomain field
-            cy.get('#id_subdomain').type(subdomain)
+            cy.get('#id_subdomain').clear().type(subdomain)
 
             // create the app
             cy.get('#submit-id-submit').contains('Submit').click()
@@ -658,16 +746,16 @@ describe("Test deploying app", () => {
             cy.logf("Now trying to create an app with an already taken subdomain", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
 
-            cy.get('#id_name').type(app_name_2)
+            cy.get('#id_name').clear().type(app_name_2)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
 
             // fill out subdomain field
-            cy.get('#id_subdomain').type(subdomain)
+            cy.get('#id_subdomain').clear().type(subdomain)
             cy.get('#id_subdomain').blur();
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is not available');
 
-
+            // instead use a new subdomain
             cy.get('#id_subdomain').clear().type(subdomain_2)
             cy.get('#id_subdomain').blur();
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available');
@@ -682,7 +770,7 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
-            cy.get('#id_subdomain').type(subdomain_3)
+            cy.get('#id_subdomain').clear().type(subdomain_3)
 
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was updated with the correct subdomain
@@ -691,7 +779,7 @@ describe("Test deploying app", () => {
             // Verify that the app status is not Deleted (Deleting and Created ok)
             cy.get('tr:contains("' + app_name + '")').find('span').should('not.contain', 'Deleted')
             // Finally verify status equals Running
-            verifyAppStatus(app_name, "Running", "")
+            verifyAppStatus(app_name, "Running", "") // TODO: Here. Fix this!
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {

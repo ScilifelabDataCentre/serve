@@ -26,6 +26,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!static/tagulous/lib/
 lib64/
 parts/
 sdist/
