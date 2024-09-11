@@ -106,7 +106,7 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-square btn-danger justify-content-end">Delete</button>
+                            <button type="submit" class="btn btn-square btn-danger justify-content-end">Delete flavor</button>
                         </form>
                         <div class="mt-2">
                             or create new flavor:
@@ -138,7 +138,7 @@
                                     <label for="mem_lim">Memory limits</label>
                                     <input type="text" name="mem_lim" id="mem_lim" value="4Gi" class="form-control" />
                                 </div>
-                                <button type="submit" class="btn btn-square btn-primary">Create</button>
+                                <button type="submit" class="btn btn-square btn-primary">Create flavor</button>
                             </form>
                         </div>
                     </div>
@@ -150,6 +150,15 @@
 
                     <div class="card-header bg-light py-3">
                         <h5 class="card-title mb-0">Environments</h5>
+                    </div>
+
+{#                    Warn that this is a legacy way of environments management #}
+                    <div class="card-body">
+                        <div class="alert alert-warning alert-outline alert-dismissible" role="alert">
+                            <i class="far fa-fw fa-bell"></i>
+                            <strong>Legacy way of managing environments!</strong> This is a legacy way of managing environments.
+                            We recommend using admin panel to manage environments.
+                        </div>
                     </div>
 
                     <div class="card-body">
@@ -164,7 +173,7 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-square btn-danger">Delete</button>
+                            <button type="submit" class="btn btn-square btn-danger">Delete environment</button>
                         </form>
                         <div class="mt-2">
                             or create new Environment:
@@ -175,15 +184,6 @@
                                     <label for="environment_name">Name</label>
                                     <input type="text" name="environment_name" id="environment_name" value=""
                                         class="form-control" />
-                                </div>
-                                <div class="mb-3">
-                                    <label for="environment_name">Registry</label>
-                                    <select type="text" class="form-control" id="environment_registry"
-                                        name="environment_registry" maxlength="256">
-                                        {% for registry in registries %}
-                                        <option value="{{ registry.pk }}">{{ registry.name }}</option>
-                                        {% endfor %}
-                                    </select>
                                 </div>
                                 <div class="mb-3">
                                     <label for="environment_name">Repository</label>
@@ -205,7 +205,7 @@
                                     </select>
                                 </div>
 
-                                <button type="submit" class="btn btn-square btn-primary">Create</button>
+                                <button type="submit" class="btn btn-square btn-primary">Create environment</button>
                             </form>
                         </div>
                     </div>

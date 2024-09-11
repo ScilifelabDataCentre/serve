@@ -144,9 +144,9 @@ describe("Test superuser access", () => {
         cy.logf("Deleting a regular user's private app", Cypress.currentTest)
         cy.get('tr:contains("' + private_app_name_2 + '")').find('i.bi-three-dots-vertical').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').find('a.confirm-delete').click()
-        cy.get('button').contains('Delete').click()
+        cy.get('#id_delete_button').contains('Delete').click()
         //cy.wait(5000)  // Not needed because of the retryability built into cypress.
-        cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Deleted')
+         cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Deleted')
 
         cy.logf("Deleting a regular user's project", Cypress.currentTest)
         cy.visit("/projects/")
@@ -159,10 +159,11 @@ describe("Test superuser access", () => {
 
     })
 
-    it("can create a new flavor and a regular user can subsequently use it", { defaultCommandTimeout: 100000 }, () => {
+    it("can create a new flavor or environment and a regular user can subsequently use those", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
-        const project_name = "e2e-proj-flavor-test"
+        const project_name = "e2e-proj-flavor-env-test"
         const new_flavor_name = "4 CPU, 8 GB RAM"
+        const new_environment_name = "e2e test environment"
 
         cy.logf("Logging in as a regular user and creating a project", Cypress.currentTest)
         cy.fixture('users.json').then(function (data) {
@@ -178,11 +179,13 @@ describe("Test superuser access", () => {
         cy.get('h3').should('contain', project_name)
 
         Cypress.session.clearAllSavedSessions()
-        cy.logf("Logging in as a superuser and creating a new flavor in the regular user's project", Cypress.currentTest)
+        cy.logf("Logging in as a superuser", Cypress.currentTest)
         cy.fixture('users.json').then(function (data) {
             users = data
             cy.loginViaUI(users.superuser.email, users.superuser.password)
         })
+
+        cy.logf("Creating a new flavor in the regular user's project", Cypress.currentTest)
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('[data-cy="settings"]').click()
@@ -192,52 +195,97 @@ describe("Test superuser access", () => {
         cy.get('input[name="cpu_lim"]').clear().type("4000m")
         cy.get('input[name="mem_req"]').clear().type("2Gi")
         cy.get('input[name="mem_lim"]').clear().type("8Gi")
-        cy.get('button').contains("Create").click()
+        cy.get('button').contains("Create flavor").click()
+
+        cy.logf("Creating a new Jupyter Lab environment in the regular user's project", Cypress.currentTest)
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.get('[data-cy="settings"]').click()
+        cy.get('.list-group').find('a').contains('Environments').click()
+        cy.get('input[name="environment_name"]').type(new_environment_name)
+        cy.get('input[name="environment_repository"]').clear().type("dockerhub.io")
+        cy.get('input[name="environment_image"]').clear().type("jupyter/minimal-notebook:latest")
+        cy.get('#environment_app').select('Jupyter Lab')
+        cy.get('button').contains("Create environment").click()
 
         Cypress.session.clearAllSavedSessions()
-        cy.logf("Logging back in as a regular user and using the new flavor for an app", Cypress.currentTest)
+        cy.logf("Logging back in as a regular user and using the new flavor and environment", Cypress.currentTest)
         const createResources = Cypress.env('create_resources');
 
         if (createResources === true) {
-
-            const app_type = "Dash App"
-            const app_name = "e2e-dash-example"
-            const app_description = "e2e-dash-description"
-            const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
-            const image_port = "8000"
 
             cy.fixture('users.json').then(function (data) {
                 users = data
                 cy.loginViaUI(users.superuser_testuser.email, users.superuser_testuser.password)
             })
+
+            cy.logf("Checking the flavour functionality", Cypress.currentTest)
+
+            const app_type_flavor = "Dash App"
+            const app_name_flavor = "e2e-dash-example"
+            const app_description = "e2e-dash-description"
+            const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
+            const image_port = "8000"
+
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('#id_name').type(app_name)
+            cy.get('div.card-body:contains("' + app_type_flavor + '")').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name_flavor)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
             cy.get('#id_flavor').select('2 vCPU, 4 GB RAM')
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
+             cy.get('tr:contains("' + app_name_flavor + '")').find('span').should('contain', 'Running')
 
             cy.logf("Changing the flavor setting", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('tr:contains("' + app_name_flavor + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_flavor + '")').find('a').contains('Settings').click()
             cy.get('#id_flavor').find(':selected').should('contain', '2 vCPU, 4 GB RAM')
             cy.get('#id_flavor').select(new_flavor_name)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
+             cy.get('tr:contains("' + app_name_flavor + '")').find('span').should('contain', 'Running')
 
             cy.logf("Checking that the new flavor setting was saved in the database", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('tr:contains("' + app_name_flavor + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_flavor + '")').find('a').contains('Settings').click()
             cy.get('#id_flavor').find(':selected').should('contain', new_flavor_name)
+
+            cy.logf("Checking the Jupyter Lab environment functionality", Cypress.currentTest)
+
+            const app_type_env = "Jupyter Lab"
+            const app_name_env = "e2e-jupyter-lab-env-test"
+
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type_env + '")').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name_env)
+            cy.get('#id_environment').select('Default Jupyter Lab')
+            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('tr:contains("' + app_name_env + '")').find('span').should('contain', 'Running')
+
+            cy.logf("Changing the environment setting", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name_env + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_env + '")').find('a').contains('Settings').click()
+            cy.get('#id_environment').find(':selected').should('contain', 'Default Jupyter Lab')
+            cy.get('#id_environment').select(new_environment_name)
+            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('tr:contains("' + app_name_env + '")').find('span').should('contain', 'Running')
+
+            cy.logf("Checking that the new environment setting was saved in the database", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name_env + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_env + '")').find('a').contains('Settings').click()
+            cy.get('#id_environment').find(':selected').should('contain', new_environment_name)
+
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
