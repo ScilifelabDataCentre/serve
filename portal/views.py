@@ -170,11 +170,6 @@ class HomeView(View):
             collection_objects = collection_objects
 
         events_objects = EventsObject.objects.all().order_by("-start_time")[:3]
-        future_event_exists = (
-            True
-            if len(EventsObject.objects.filter(start_time__date__gt=timezone.now().date()).order_by("-start_time")) >= 1
-            else False
-        )
         for event in events_objects:
             event.description_html = markdown.markdown(event.description)
             event.past = True if event.start_time.date() < timezone.now().date() else False
@@ -187,7 +182,6 @@ class HomeView(View):
             "collection_objects": collection_objects,
             "link_all_collections": link_all_collections,
             "events_objects": events_objects,
-            "future_event_exists": future_event_exists,
         }
 
         return render(request, self.template, context=context)
