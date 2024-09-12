@@ -47,7 +47,9 @@
                   {% csrf_token %}
                   <div class="form-group pb-2">
                     <label for="username-id">Email:</label>
-                    <input type="text" class="form-control" id="username-id" name="username">
+                    <input type="email"
+                           style="text-transform: lowercase" onchange="this.value = this.value.toLowerCase();"
+                           class="form-control" id="username-id" name="username">
                   </div>
                   <div class="form-group pb-3">
                     <label for="password-id">Password:</label>

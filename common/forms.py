@@ -6,6 +6,7 @@ from typing import Optional, Sequence
 
 from django import forms
 from django.conf import settings
+from django.contrib.auth import password_validation
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -117,6 +118,7 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
         min_length=8,
         label="Password",
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        help_text=password_validation.password_validators_help_text_html(),
     )
     password2 = forms.CharField(
         min_length=8,
