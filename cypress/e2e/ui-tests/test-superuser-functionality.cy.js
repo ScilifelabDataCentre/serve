@@ -144,7 +144,7 @@ describe("Test superuser access", () => {
         cy.logf("Deleting a regular user's private app", Cypress.currentTest)
         cy.get('tr:contains("' + private_app_name_2 + '")').find('i.bi-three-dots-vertical').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').find('a.confirm-delete').click()
-        cy.get('#id_delete_button').contains('Delete').click()
+        cy.get('button').contains('Delete').click()
         //cy.wait(5000)  // Not needed because of the retryability built into cypress.
          cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Deleted')
 
@@ -203,7 +203,7 @@ describe("Test superuser access", () => {
         cy.get('[data-cy="settings"]').click()
         cy.get('.list-group').find('a').contains('Environments').click()
         cy.get('input[name="environment_name"]').type(new_environment_name)
-        cy.get('input[name="environment_repository"]').clear().type("dockerhub.io")
+        cy.get('input[name="environment_repository"]').clear().type("docker.io")
         cy.get('input[name="environment_image"]').clear().type("jupyter/minimal-notebook:latest")
         cy.get('#environment_app').select('Jupyter Lab')
         cy.get('button').contains("Create environment").click()
