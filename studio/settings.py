@@ -172,12 +172,12 @@ if TESTING:
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "OPTIONS": {
-            "pool": {
-                "min_size": 2,
-                "max_size": 4,
-                "timeout": 10,
-            }
-        },
+                "pool": {
+                    "min_size": 2,
+                    "max_size": 4,
+                    "timeout": 10,
+                }
+            },
             "NAME": "postgres",
             "USER": "postgres",
             "PASSWORD": "postgres",
@@ -190,12 +190,12 @@ else:
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "OPTIONS": {
-            "pool": {
-                "min_size": 2,
-                "max_size": 4,
-                "timeout": 10,
-            }
-        },
+                "pool": {
+                    "min_size": 2,
+                    "max_size": 4,
+                    "timeout": 10,
+                }
+            },
             "NAME": "postgres",
             "USER": "postgres",
             "PASSWORD": "postgres",
