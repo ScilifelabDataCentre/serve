@@ -170,7 +170,14 @@ TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 if TESTING:
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.postgresql_psycopg2",
+            "ENGINE": "django.db.backends.postgresql",
+            "OPTIONS": {
+            "pool": {
+                "min_size": 2,
+                "max_size": 4,
+                "timeout": 10,
+            }
+        },
             "NAME": "postgres",
             "USER": "postgres",
             "PASSWORD": "postgres",
@@ -181,7 +188,14 @@ if TESTING:
 else:
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.postgresql_psycopg2",
+            "ENGINE": "django.db.backends.postgresql",
+            "OPTIONS": {
+            "pool": {
+                "min_size": 2,
+                "max_size": 4,
+                "timeout": 10,
+            }
+        },
             "NAME": "postgres",
             "USER": "postgres",
             "PASSWORD": "postgres",
