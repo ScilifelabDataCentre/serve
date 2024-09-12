@@ -1,5 +1,7 @@
 describe("Test deploying app", () => {
 
+    // Tests performed as an authenticated user that creates and deletes apps.
+
     // The default command timeout should not be so long
     // Instead use longer timeouts on specific commands where deemed necessary and valid
     const defaultCmdTimeoutMs = 10000
@@ -14,8 +16,6 @@ describe("Test deploying app", () => {
         }
     };
 
-    // Tests performed as an authenticated user that
-    // creates and deletes apps.
     // user: e2e_tests_deploy_app_user
     let users
 
