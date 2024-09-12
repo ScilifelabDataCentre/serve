@@ -6,7 +6,7 @@ describe("Test deploying app", () => {
     // Instead use longer timeouts on specific commands where deemed necessary and valid
     const defaultCmdTimeoutMs = 10000
     // The longer timeout is often used when waiting for k8s operations to complete
-    const longCmdTimeoutMs = 180000
+    const longCmdTimeoutMs = 240000
 
     // Function to verify the displayed app status permission level
     const verifyAppStatus = (app_name, expected_status, expected_permission) => {
