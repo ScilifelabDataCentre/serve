@@ -120,7 +120,6 @@
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
                                         <label class="form-label">{{form.password1.label_tag}}</label>
                                         {{form.password1}}
-                                        <div class="form-text">{{form.password1.help_text}}</div>
                                         {% if form.password1.errors %}
                                         <div id="validation_password1" class="pt-1 invalid-feedback">
                                             {% for error in form.password1.errors %}
@@ -142,6 +141,7 @@
                                         {% endif %}
                                     </div>
 
+                                  <div class="form-text">{{form.password1.help_text}}</div>
 
 
                                 </div>
