@@ -878,7 +878,7 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
 
     # POST verb
     if request.method == "POST":
-        logger.info("API method update_app_status called with POST verb.")
+        logger.debug("API method update_app_status called with POST verb.")
 
         utc = pytz.UTC
 
@@ -891,7 +891,7 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
             new_status = request.data["new-status"]
 
             if len(new_status) > 15:
-                logger.debug("Status code is longer than 15 chars so shortening: %s", new_status)
+                logger.debug(f"Status code is longer than 15 chars so shortening: {new_status}")
                 new_status = new_status[:15]
 
             event_ts = datetime.strptime(request.data["event-ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -901,19 +901,16 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
             event_msg = request.data.get("event-msg", None)
 
         except KeyError as err:
-            logger.error("API method called with invalid input. Missing required input parameter: %s", err)
+            logger.error(f"API method called with invalid input. Missing required input parameter: {err}")
             return Response(f"Invalid input. Missing required input parameter: {err}", 400)
 
         except Exception as err:
-            logger.error("API method called with invalid input:  %s, %s", err, type(err))
+            logger.error(f"API method called with invalid input: {err}, type: {type(err)}")
             return Response(f"Invalid input. {err}", 400)
 
         logger.debug(
-            "API method update_app_status input: release=%s, new_status=%s, event_ts=%s, event_msg=%s",
-            release,
-            new_status,
-            event_ts,
-            event_msg,
+            f"API method update_app_status input: release={release}, new_status={new_status}, \
+            event_ts={event_ts}, event_msg={event_msg}"
         )
 
         try:
@@ -921,40 +918,39 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
 
             if result == HandleUpdateStatusResponseCode.NO_ACTION:
                 return Response(
-                    f"OK. NO_ACTION. No action performed. Possibly the event time is older \
-                    than the currently stored time. {release=}, {new_status=}",
+                    "OK. NO_ACTION. No action performed. Possibly the event time is older \
+                    than the currently stored time.",
                     200,
                 )
 
             elif result == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS:
-                return Response(f"OK. CREATED_FIRST_STATUS. Created missing AppStatus. {release=}, {new_status=}", 200)
+                return Response("OK. CREATED_FIRST_STATUS. Created a missing AppStatus.", 200)
 
             elif result == HandleUpdateStatusResponseCode.UPDATED_STATUS:
                 return Response(
-                    f"OK. UPDATED_STATUS. Updated the app status. \
-                    Determined that the submitted event was newer and different status. {release=}, {new_status=}",
+                    "OK. UPDATED_STATUS. Updated the app status. \
+                    Determined that the submitted event was newer and different status.",
                     200,
                 )
 
             elif result == HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS:
                 return Response(
-                    f"OK. UPDATED_TIME_OF_STATUS. Updated only the event time of the status. \
-                    Determined that the new and old status codes are the same. {release=}, {new_status=}",
+                    "OK. UPDATED_TIME_OF_STATUS. Updated only the event time of the status. \
+                    Determined that the new and old status codes are the same.",
                     200,
                 )
 
             else:
-                logger.error("Unknown return code from handle_update_status_request() = %s", result, exc_info=True)
+                logger.error(f"Unknown return code from handle_update_status_request() = {result}", exc_info=True)
                 return Response(f"Unknown return code from handle_update_status_request() = {result}", 500)
 
         except ObjectDoesNotExist:
-            logger.error("The specified app instance was not found release=%s.", release)
-            return Response(f"The specified app instance was not found {release=}.", 404)
+            # This is often not a problem. It typically happens during app re-deployemnts.
+            logger.warning(f"The specified app instance was not found release={release}")
+            return Response(f"The specified app instance was not found {release=}", 404)
 
         except Exception as err:
-            logger.error(
-                "Unable to update the status of the specified app instance %s. %s, %s", release, err, type(err)
-            )
+            logger.error(f"Unable to update the status of the specified app instance {release}. {err}, {type(err)}")
             return Response(f"Unable to update the status of the specified app instance {release=}.", 500)
 
     # GET verb
