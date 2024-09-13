@@ -6,6 +6,7 @@ WORKDIR /app
 ARG DISABLE_EXTRAS=false
 
 COPY pyproject.toml ./
+COPY poetry.lock ./
 
 RUN apk add --update --no-cache \
     build-base \
