@@ -945,7 +945,8 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
                 return Response(f"Unknown return code from handle_update_status_request() = {result}", 500)
 
         except ObjectDoesNotExist:
-            logger.error(f"The specified app instance was not found release={release}")
+            # This is often not a problem. It typically happens during app re-deployemnts.
+            logger.warning(f"The specified app instance was not found release={release}")
             return Response(f"The specified app instance was not found {release=}", 404)
 
         except Exception as err:
