@@ -19,20 +19,25 @@
     {% endfor %}
 
     <div class="row pb-2">
-            <div class="col-lg-2">
+            <div class="col-md-2 col-lg-2 col-xl-1">
                 <ul class="list-unstyled">
                     <li><a href="{% url 'portal:home' %}">Home</a></li>
+                    <li><a href="{% url 'portal:about' %}">About</a></li>
+                    <li><a href="{% url 'portal:privacy' %}">Privacy policy</a></li>
                     <li><a href="{% url 'portal:apps' %}">Public apps</a></li>
                     <li><a href="{% url 'models:index' %}">Public models</a></li>
                     <li><a href="{% url 'portal:collections_index' %}">Collections</a></li>
+                </ul>
+            </div>
+            <div class="col-md-2 col-lg-2 col-xl-1">
+                <ul class="list-unstyled">
                     <li><a href="/docs/">User guide</a></li>
                     <li><a href="{% url 'portal:teaching' %}">Teaching</a></li>
-                    <li><a href="{% url 'portal:about' %}">About</a></li>
-                    <li><a href="{% url 'portal:privacy' %}">Privacy policy</a></li>
+                    <li><a href="{% url 'portal:news' %}">News</a></li>
+                    <li><a href="{% url 'portal:events' %}">Events</a></li>
                 </ul>
-
             </div>
-            <div class="col-lg-7">
+            <div class="col-lg-5 col-xl-7">
                 <p>SciLifeLab Serve (beta) is developed and operated by the <a href="https://scilifelab.se/data" target="_blank">SciLifeLab Data Centre</a>. SciLifeLab Serve is free to use for all life science researchers affiliated with a Swedish research institution and their collaborators. The service is hosted on a Kubernetes cluster. The code behind SciLifeLab Serve is <a href="https://github.com/ScilifelabDataCentre/serve/">available on Github</a>.</p>
                 <p>Please email <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a> with any questions.</p>
                 <p>

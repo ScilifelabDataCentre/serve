@@ -145,31 +145,36 @@ class HomeView(View):
     def get(self, request, app_id=0):
         published_apps, request = get_public_apps(request, app_id=app_id, get_all=False)
         published_models = PublishedModel.objects.all()
-        news_objects = NewsObject.objects.all().order_by("-created_on")
-        for news in news_objects:
-            news.body_html = markdown.markdown(news.body)
-        link_all_news = False
         if published_models.count() >= 3:
             published_models = published_models[:3]
         else:
             published_models = published_models
 
+        news_objects = NewsObject.objects.all().order_by("-created_on")
+        link_all_news = False
         if news_objects.count() > 3:
             news_objects = news_objects[:3]
             link_all_news = True
         else:
             news_objects = news_objects
+        for news in news_objects:
+            news.body_html = markdown.markdown(news.body)
 
         collection_objects = Collection.objects.all().order_by("-created_on")
         link_all_collections = False
-
         if collection_objects.count() > 3:
             collection_objects = collection_objects[:3]
             link_all_collections = True
         else:
             collection_objects = collection_objects
 
-        events_objects = EventsObject.objects.all().order_by("-start_time")[:3]
+        events_objects = EventsObject.objects.all().order_by("-start_time")
+        link_all_events = False
+        if events_objects.count() > 3:
+            link_all_events = True
+            events_objects = events_objects[:3]
+        else:
+            events_objects = events_objects
         for event in events_objects:
             event.description_html = markdown.markdown(event.description)
             event.past = True if event.start_time.date() < timezone.now().date() else False
@@ -182,6 +187,7 @@ class HomeView(View):
             "collection_objects": collection_objects,
             "link_all_collections": link_all_collections,
             "events_objects": events_objects,
+            "link_all_events": link_all_events,
         }
 
         return render(request, self.template, context=context)
