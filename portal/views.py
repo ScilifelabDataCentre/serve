@@ -218,14 +218,14 @@ def privacy(request):
     return render(request, template, locals())
 
 
-def news(request):
+def get_news(request):
     news_objects = NewsObject.objects.all().order_by("-created_on")
     for news in news_objects:
         news.body_html = markdown.markdown(news.body)
     return render(request, "news/news.html", {"news_objects": news_objects})
 
 
-def index(request):
+def get_collections_index(request):
     template = "collections/index.html"
 
     collection_objects = Collection.objects.all().order_by("-created_on")
@@ -235,7 +235,7 @@ def index(request):
     return render(request, template, context=context)
 
 
-def collection(request, slug, app_id=0):
+def get_collection(request, slug, app_id=0):
     template = "collections/collection.html"
 
     collection = get_object_or_404(Collection, slug=slug)
@@ -251,7 +251,7 @@ def collection(request, slug, app_id=0):
     return render(request, template, context=context)
 
 
-def events(request):
+def get_events(request):
     future_events = EventsObject.objects.filter(start_time__date__gte=timezone.now().date()).order_by("-start_time")
     for event in future_events:
         event.description_html = markdown.markdown(event.description)
