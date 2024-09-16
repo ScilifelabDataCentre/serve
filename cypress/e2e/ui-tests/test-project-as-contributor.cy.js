@@ -1,9 +1,14 @@
 describe("Test project contributor user functionality", () => {
 
-    // Tests performed as an authenticated user that
-    // creates and deletes objects.
-    // user: e2e_tests_contributor_tester
+    // Tests performed as an authenticated user that creates and deletes objects.
 
+    // The default command timeout should not be so long
+    // Instead use longer timeouts on specific commands where deemed necessary and valid
+    const defaultCmdTimeoutMs = 10000
+    // The longer timeout is often used when waiting for k8s operations to complete
+    const longCmdTimeoutMs = 180000
+
+    // user: e2e_tests_contributor_tester
     let users
 
     before(() => {
@@ -40,7 +45,7 @@ describe("Test project contributor user functionality", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    it("can create a new project with default template, open settings, change description, delete from settings", { defaultCommandTimeout: 100000 }, () => {
+    it("can create a new project with default template, open settings, change description, delete from settings", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
 
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
@@ -115,7 +120,7 @@ describe("Test project contributor user functionality", () => {
     // This test cannot run properly in GitHub workflows because there is an issue with minio creation there. Therefore, it should be run locally to make sure things work. For GitHub, skipping it.
 
     // TODO: When models are launched, make sure that this test is activated
-    it.skip("can create a new project with ML serving template, open settings, delete from settings", { defaultCommandTimeout: 100000 }, () => {
+    it.skip("can create a new project with ML serving template, open settings, delete from settings", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
 
         // Names of objects to create
         const project_name = "e2e-create-ml-proj-test"
@@ -191,7 +196,7 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
-    it("can delete a project from projects overview", { defaultCommandTimeout: 100000 }, () => {
+    it("can delete a project from projects overview", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
 
         // Names of objects to create
         const project_name = "e2e-delete-proj-test"
@@ -461,7 +466,7 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
-    it("can create a file management instance", { defaultCommandTimeout: 100000 }, () => {
+    it("can create a file management instance", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         const project_name = "e2e-create-proj-test"
 
         cy.logf("Creating a blank project", Cypress.currentTest)
@@ -474,6 +479,11 @@ describe("Test project contributor user functionality", () => {
         cy.get('div.card-body:contains("File Manager")').find('a:contains("Create")').click()
         cy.get('#submit-id-submit').click()
 
-        cy.get('tr:contains("File Manager")').find('span').should('contain', 'Running')
+        cy.get('tr:contains("File Manager")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
+
+        // Wait for 5 seconds and check the status again
+        cy.wait(5000).then(() => {
+            cy.get('tr:contains("File Manager")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
+        })
     })
 })

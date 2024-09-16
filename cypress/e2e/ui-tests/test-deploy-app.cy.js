@@ -1,10 +1,12 @@
 describe("Test deploying app", () => {
 
+    // Tests performed as an authenticated user that creates and deletes apps.
+
     // The default command timeout should not be so long
     // Instead use longer timeouts on specific commands where deemed necessary and valid
     const defaultCmdTimeoutMs = 10000
     // The longer timeout is often used when waiting for k8s operations to complete
-    const longCmdTimeoutMs = 180000
+    const longCmdTimeoutMs = 240000
 
     // Function to verify the displayed app status permission level
     const verifyAppStatus = (app_name, expected_status, expected_permission) => {
@@ -14,8 +16,6 @@ describe("Test deploying app", () => {
         }
     };
 
-    // Tests performed as an authenticated user that
-    // creates and deletes apps.
     // user: e2e_tests_deploy_app_user
     let users
 
