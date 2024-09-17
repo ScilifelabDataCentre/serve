@@ -59,7 +59,7 @@ class ShinyForm(AppBaseForm):
                     "Advanced settings",
                     PrependedText(
                         "shiny_site_dir",
-                        "/srv/shiny-server",
+                        "/srv/shiny-server/",
                         template="apps/partials/srv_prepend_append_input_group.html",
                     ),
                     active=False,
