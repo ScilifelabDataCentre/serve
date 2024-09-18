@@ -2,7 +2,7 @@
   {
     "fields": {
       "category": "develop",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/lab:1.0.1",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/lab:1.0.2",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
       "logo": "jupyter-lab-logo.svg",
@@ -20,7 +20,7 @@
   {
     "fields": {
       "category": "manage-files",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/filemanager:1.0.2",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/filemanager:1.0.3",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
       "logo": "filemanager-logo.svg",
@@ -273,7 +273,7 @@
   {
     "fields": {
       "category": "develop",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/vscode:1.0.0",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/vscode:1.0.1",
       "created_on": "2021-02-19T21:34:37.815Z",
       "description": "",
       "logo": "vscode-logo.svg",
@@ -311,7 +311,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.0.1",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.0.2",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "Apps built with Gradio, Streamlit, Flask, etc.",
       "logo": "default-logo.svg",
@@ -329,7 +329,7 @@
   {
     "fields": {
       "category": "develop",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/rstudio:1.0.1",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/rstudio:1.0.2",
       "created_on": "2023-08-31T09:30:00.000Z",
       "description": "",
       "logo": "rstudio-logo.svg",
@@ -347,7 +347,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/dash-app:1.0.1",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/dash-app:1.0.2",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "dashapp-logo.svg",
@@ -365,7 +365,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyapp:1.0.2",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyapp:1.0.3",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "shinyapp-logo.svg",
@@ -383,7 +383,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.4.0",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.4.1",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "shinyapp-logo.svg",
@@ -470,7 +470,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/tissuumaps:1.0.1",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/tissuumaps:1.0.2",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "App to visualise and explore data using TissUUmaps.",
       "logo": "tissuumaps-logo.svg",
