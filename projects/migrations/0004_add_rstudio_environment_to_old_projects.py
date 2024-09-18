@@ -8,20 +8,22 @@ def create_default_rstudio_environments(apps, schema_editor):
     Project = apps.get_model("projects", "Project")
     Environment = apps.get_model("projects", "Environment")
     AppsTemplate = apps.get_model("apps", "Apps")
-    RStudioTemplate = AppsTemplate.objects.get(name="RStudio")
-    RStudioInstance = apps.get_model("apps", "RStudioInstance")
-    for project in Project.objects.all():
-        env = Environment.objects.create(
-            app=RStudioTemplate,
-            project=project,
-            name="Default RStudio",
-            image="serve-rstudio:231030-1146",
-            repository="ghcr.io/scilifelabdatacentre",
-        )
-        env.save()
-        for rstudio_instance in RStudioInstance.objects.filter(project=project):
-            rstudio_instance.environment = env
-            rstudio_instance.save()
+    # check if RStudio app template exists. It doesn't exist on the first migration
+    if not AppsTemplate.objects.filter(name="RStudio").exists():
+        RStudioTemplate = AppsTemplate.objects.get(name="RStudio")
+        RStudioInstance = apps.get_model("apps", "RStudioInstance")
+        for project in Project.objects.all():
+            env = Environment.objects.create(
+                app=RStudioTemplate,
+                project=project,
+                name="Default RStudio",
+                image="serve-rstudio:231030-1146",
+                repository="ghcr.io/scilifelabdatacentre",
+            )
+            env.save()
+            for rstudio_instance in RStudioInstance.objects.filter(project=project):
+                rstudio_instance.environment = env
+                rstudio_instance.save()
 
 
 class Migration(migrations.Migration):
