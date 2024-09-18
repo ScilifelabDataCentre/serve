@@ -261,7 +261,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
         do_deploy = True
     else:
         # Only re-deploy existing apps if one of the following fields was changed:
-        redeployment_fields = ["subdomain", "volume", "path", "flavor", "port", "image"]
+        redeployment_fields = ["subdomain", "volume", "path", "flavor", "port", "image", "access"]
         logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
 
         # Because not all forms contain all fields, we check if the supposedly changed field
