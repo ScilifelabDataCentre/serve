@@ -9,7 +9,7 @@ def create_default_rstudio_environments(apps, schema_editor):
     Environment = apps.get_model("projects", "Environment")
     AppsTemplate = apps.get_model("apps", "Apps")
     # check if RStudio app template exists. It doesn't exist on the first migration
-    if not AppsTemplate.objects.filter(name="RStudio").exists():
+    if AppsTemplate.objects.filter(name="RStudio").exists():
         RStudioTemplate = AppsTemplate.objects.get(name="RStudio")
         RStudioInstance = apps.get_model("apps", "RStudioInstance")
         for project in Project.objects.all():
