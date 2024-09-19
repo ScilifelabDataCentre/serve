@@ -2,11 +2,11 @@ from crispy_forms.layout import HTML, Div, Field, Layout, MultiField
 from django import forms
 
 from apps.forms.base import AppBaseForm
+from apps.forms.field.common import SRVCommonDivField
 from apps.models import CustomAppInstance, VolumeInstance
 from projects.models import Flavor
 
 __all__ = ["CustomAppForm"]
-from apps.forms import CustomField
 
 
 class CustomAppForm(AppBaseForm):
@@ -24,22 +24,22 @@ class CustomAppForm(AppBaseForm):
         super()._setup_form_helper()
 
         body = Div(
-            self.get_common_field("name", placeholder="Name your app"),
-            self.get_common_field("description", rows=3, placeholder="Provide a detailed description of your app"),
+            SRVCommonDivField("name", placeholder="Name your app"),
+            SRVCommonDivField("description", rows=3, placeholder="Provide a detailed description of your app"),
             Field("tags"),
-            self.get_common_field("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
+            SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
             Field("volume"),
-            self.get_common_field("path", placeholder="/home/..."),
-            self.get_common_field("flavor"),
-            self.get_common_field("access"),
-            self.get_common_field("source_code_url", placeholder="Provide a link to the public source code"),
-            self.get_common_field(
+            SRVCommonDivField("path", placeholder="/home/..."),
+            SRVCommonDivField("flavor"),
+            SRVCommonDivField("access"),
+            SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+            SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
-            self.get_common_field("port", placeholder="8000"),
-            self.get_common_field("image"),
+            SRVCommonDivField("port", placeholder="8000"),
+            SRVCommonDivField("image"),
             css_class="card-body",
         )
         self.helper.layout = Layout(body, self.footer)

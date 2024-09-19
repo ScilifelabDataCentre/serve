@@ -1,7 +1,8 @@
-from crispy_forms.layout import HTML, Div, Field, Layout
+from crispy_forms.layout import Div, Field, Layout
 from django import forms
 
 from apps.forms.base import AppBaseForm
+from apps.forms.field.common import SRVCommonDivField
 from apps.models import VolumeInstance, VSCodeInstance
 
 __all__ = ["VSCodeForm"]
@@ -13,10 +14,10 @@ class VSCodeForm(AppBaseForm):
     def _setup_form_helper(self):
         super()._setup_form_helper()
         body = Div(
-            self.get_common_field("name", placeholder="Name your app"),
+            SRVCommonDivField("name", placeholder="Name your app"),
             Field("volume"),
-            self.get_common_field("flavor"),
-            self.get_common_field("access"),
+            SRVCommonDivField("flavor"),
+            SRVCommonDivField("access"),
             css_class="card-body",
         )
 

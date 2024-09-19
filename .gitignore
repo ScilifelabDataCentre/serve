@@ -26,6 +26,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!static/tagulous/lib/
 lib64/
 parts/
 sdist/
@@ -154,3 +155,5 @@ node_modules
 # The media folder contents
 media/*
 !media/.gitkeep
+
+local_.dockerfile

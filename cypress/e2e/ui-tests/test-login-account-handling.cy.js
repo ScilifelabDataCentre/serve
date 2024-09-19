@@ -3,26 +3,29 @@ describe("Test login, profile page view, password change, password reset", () =>
     let users
 
     before(() => {
+        cy.logf("Begin before() hook", Cypress.currentTest)
+
         // do db reset if needed
         if (Cypress.env('do_reset_db') === true) {
-            cy.log("Resetting db state. Running db-reset.sh");
+            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
             cy.exec("./cypress/e2e/db-reset.sh");
             cy.wait(Cypress.env('wait_db_reset'));
         }
         else {
-            cy.log("Skipping resetting the db state.");
+            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
         }
         // seed the db with a user
         cy.visit("/")
-        cy.log("Running seed-login-user.py")
+        cy.logf("Running seed-login-user.py", Cypress.currentTest)
         cy.exec("./cypress/e2e/db-seed-login-user.sh")
-    })
 
-    beforeEach(() => {
         cy.fixture('users.json').then(function (data) {
             users = data;
-          })
+        })
+
+        cy.logf("End before() hook", Cypress.currentTest)
     })
+
 
     it("can login an existing user through the UI when input is valid", () => {
 
@@ -34,7 +37,7 @@ describe("Test login, profile page view, password change, password reset", () =>
 
         cy.get("button").contains('Login').click()
             .then((href) => {
-                cy.log(href)
+                cy.logf(href, Cypress.currentTest)
                 cy.url().should("include", "projects")
                 cy.get('h3').should('contain', 'My projects')
                 cy.get('h3').parent().parent().find('p').first().should('not.contain', 'You need to be logged in')

@@ -8,6 +8,7 @@
                     <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve (beta)" style="width:100%; max-height:2.2rem">
                 </a>
             </div>
+        {% if not minimum %}
             <div class="col-12 col-lg-9 d-flex justify-content-lg-end justify-content-center py-2">
                 <ul class="nav text-center justify-content-center align-items-center">
                     <li class="nav-item">
@@ -67,21 +68,24 @@
                     {% endif %}
                 </ul>
             </div>
+        {% endif %}
         </div>
     </div>
 </nav>
 
-{% for obj in maintenance_mode %}
-{% if obj.message_in_header %}
-<div class="container">
-    <div class="row d-flex justify-content-center">
-        <div class="col-12 col-md-8 text-center">
-            <div class="alert alert-warning border" role="alert">
-                <p class="mb-0 fs-5"><i class="bi-exclamation-triangle"></i></p>
-                <p>{{ obj.message_in_header | safe }}</p>
-            </div>
-        </div>
-    </div>
-</div>
+{% if not minumum %}
+  {% for obj in maintenance_mode %}
+    {% if obj.message_in_header %}
+      <div class="container">
+          <div class="row d-flex justify-content-center">
+              <div class="col-12 col-md-8 text-center">
+                  <div class="alert alert-warning border" role="alert">
+                      <p class="mb-0 fs-5"><i class="bi-exclamation-triangle"></i></p>
+                      <p>{{ obj.message_in_header | safe }}</p>
+                  </div>
+              </div>
+          </div>
+      </div>
+    {% endif %}
+  {% endfor %}
 {% endif %}
-{% endfor %}

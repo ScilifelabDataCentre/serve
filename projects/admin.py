@@ -4,7 +4,6 @@ from django.contrib import admin
 from .models import BasicAuth, Environment, Flavor, Project, ProjectLog, ProjectTemplate
 
 admin.site.register(ProjectTemplate)
-admin.site.register(Environment)
 admin.site.register(ProjectLog)
 admin.site.register(BasicAuth)
 
@@ -22,5 +21,11 @@ class ProjectAdmin(admin.ModelAdmin):
 
 @admin.register(Flavor)
 class FlavorAdmin(admin.ModelAdmin):
+    list_display = ("name", "project", "updated_at")
+    list_filter = ["project"]
+
+
+@admin.register(Environment)
+class EnvironmentAdmin(admin.ModelAdmin):
     list_display = ("name", "project", "updated_at")
     list_filter = ["project"]

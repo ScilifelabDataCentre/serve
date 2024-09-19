@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Events{% endblock %}
+{% load static %}
+{% load custom_tags %}
+
+{% block content %}
+
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h3>Events</h3>
+            <p>Below you can find an overview of events organized by the SciLifeLab Serve team. Life science researchers in Sweden is our primary focus but some webinars may also be interesting for an international audience. Our events are open to everyone (regardless of affiliation) so feel free to sign up and attend. However, please pay attention to the described target audience of each event as some of them are prepared for groups with specific prior knowledge. When possible, we try to record our webinars and provide links to the recorded video afterwards on this page.</p>
+            <p>If you have any questions about the events below or if you would like to collaborate with us on organising an event, feel free to get in touch with us (<a href="mailto:serve@scilifelab.se">serve@scilifelab.se)</a>.</p>
+        </div>
+    </div>
+
+    <div class="row text-center mt-3">
+        <div class="col-12 text-center">
+            <h4>Upcoming events<h4>
+            <hr class="m-0 bg-teal border-0" style="height: 2px;">
+        </div>
+    </div>
+
+    {% if future_events %}
+    {% for event in future_events %}
+    <div class="card mt-3" id="{{ event.title|slugify}}">
+        <div class="row">
+            <div class="d-sm-none d-md-block col-md-2">
+                    <div class="px-2 pb-1 mx-2 mx-lg-4 mx-xl-5 mt-3 d-flex flex-column rounded bg-teal">
+                    <div class="px-2 fs-3 mx-auto text-light">{{ event.start_time|date:"j" }}</div>
+                    <div class="pb-1 px-2 mx-auto text-light">{{ event.start_time|date:"M" }}</div>
+                    </div>
+            </div>
+            <div class="col-sm-12 col-md-10">
+                <div class="card-body">
+                <h5 class="card-title">{{ event.title }}</h5>
+                {% if event.description_html %}<p class="card-text">{{ event.description_html|safe }}</p>{% endif %}
+                <p><b>Date and time:</b>
+                    {% if event.start_time|date:"Y-m-d" == event.end_time|date:"Y-m-d" %}
+                        {{ event.start_time|date:"M. j, Y" }} {{ event.start_time|date:"H:i" }}-{{ event.end_time|date:"H:i" }}
+                    {% else %}
+                        {{ event.start_time|date:"M. j, Y, H:i" }} - {{ event.end_time|date:"M. j, Y, H:i" }}
+                    {% endif %}
+                </p>
+                {% if event.speaker %}<p><b>Speaker(s):</b> {{ event.speaker }}</p>{% endif %}
+                <p><b>Venue:</b> {{ event.venue }}</p>
+                <a href="{{ event.registration_url }}" target="_blank" class="btn btn-sm btn-outline-serve">Register for this event</a>
+              </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="row text-center mt-3">
+        <div class="col-12 text-center text-muted">
+            There are no upcoming events at this point.
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row text-center mt-5">
+        <div class="col-12 text-center">
+            <h4>Past events<h4>
+            <hr class="m-0 bg-teal border-0" style="height: 2px;">
+        </div>
+    </div>
+
+    {% if past_events %}
+    {% for event in past_events %}
+    <div class="card mt-3" id="{{ event.title|slugify}}">
+        <div class="row">
+            <div class="d-sm-none d-md-block col-sm-2">
+                    <div class="px-2 pb-1 mx-2 mx-lg-4 mx-xl-5 mt-3 d-flex flex-column rounded bg-teal-075">
+                    <div class="px-2 fs-3 mx-auto text-light">{{ event.start_time|date:"j" }}</div>
+                    <div class="pb-1 px-2 mx-auto text-light">{{ event.start_time|date:"M" }}</div>
+                    </div>
+            </div>
+            <div class="col-sm-12 col-md-10">
+                <div class="card-body">
+                <h5 class="card-title">{{ event.title }}</h5>
+                {% if event.description_html %}<p class="card-text">{{ event.description_html|safe }}</p>{% endif %}
+                <p><b>Date and time:</b>
+                    {% if event.start_time|date:"Y-m-d" == event.end_time|date:"Y-m-d" %}
+                        {{ event.start_time|date:"M. j, Y" }} {{ event.start_time|date:"H:i" }}-{{ event.end_time|date:"H:i" }}
+                    {% else %}
+                        {{ event.start_time|date:"M. j, Y, H:i" }} - {{ event.end_time|date:"M. j, Y, H:i" }}
+                    {% endif %}
+                </p>                <p><b>Venue:</b> {{ event.venue }}</p>
+                {% if event.recording_url %}<a href="{{ event.recording_url }}" target="_blank" class="btn btn-sm btn-primary">See the recording</a>{% endif %}
+              </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="row text-center mt-3">
+        <div class="col-12 text-center text-muted">
+            There are no past events.
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

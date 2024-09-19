@@ -124,27 +124,31 @@ def handle_update_status_request(
         # We wrap the select and update tasks in a select_for_update lock
         # to avoid race conditions.
 
+        # release takes on the value of the subdomain
         subdomain = Subdomain.objects.get(subdomain=release)
 
         with transaction.atomic():
             instance = BaseAppInstance.objects.select_for_update().filter(subdomain=subdomain).last()
             if instance is None:
-                logger.info("The specified app instance was not found release=%s.", release)
+                logger.info(f"The specified app instance identified by release {release} was not found")
                 raise ObjectDoesNotExist
 
-            logger.debug("The app instance exists. name=%s", instance.name)
+            logger.debug(f"The app instance identified by release {release} exists. App name={instance.name}")
 
             # Also get the latest app status object for this app instance
             if instance.app_status is None:
                 # Missing app status so create one now
-                logger.info("AppInstance %s does not have an associated AppStatus. Creating one now.", release)
+                logger.debug(f"AppInstance {release} does not have an associated AppStatus. Creating one now.")
                 app_status = AppStatus.objects.create()
                 update_status(instance, app_status, new_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
             else:
                 app_status = instance.app_status
 
-            logger.debug("AppStatus %s, %s, %s.", app_status.status, app_status.time, app_status.info)
+            logger.debug(
+                f"AppStatus object was created or updated with status {app_status.status}, ts={app_status.time}, \
+                {app_status.info}"
+            )
 
             # Now determine whether to update the state and status
 
@@ -152,9 +156,8 @@ def handle_update_status_request(
             time_ftm = "%Y-%m-%d %H:%M:%S"
             if event_ts <= app_status.time:
                 msg = "The incoming event-ts is older than the current status ts so nothing to do."
-                msg += (
-                    f"event_ts={event_ts.strftime(time_ftm)}, app_status.time={str(app_status.time.strftime(time_ftm))}"
-                )
+                msg += f"event_ts={event_ts.strftime(time_ftm)} vs \
+                    app_status.time={str(app_status.time.strftime(time_ftm))}"
                 logger.debug(msg)
                 return HandleUpdateStatusResponseCode.NO_ACTION
 
@@ -162,18 +165,20 @@ def handle_update_status_request(
 
             if new_status == instance.app_status.status:
                 # The same status. Simply update the time.
-                logger.debug("The same status. Simply update the time.")
+                logger.debug(f"The same status {new_status}. Simply update the time.")
                 update_status_time(app_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
 
             # Different status and newer time
-            logger.debug("Different status and newer time.")
+            logger.debug(
+                f"Different status and newer time. New status={new_status} vs Old={instance.app_status.status}"
+            )
             status_object = instance.app_status
             update_status(instance, status_object, new_status, event_ts, event_msg)
             return HandleUpdateStatusResponseCode.UPDATED_STATUS
 
     except Exception as err:
-        logger.error("Unable to fetch or update the specified app instance %s. %s, %s", release, err, type(err))
+        logger.error(f"Unable to fetch or update the specified app instance with release={release}. {err}, {type(err)}")
         raise
 
 
@@ -245,6 +250,30 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     """
     from .tasks import deploy_resource
 
+    new_app = app_id is None
+
+    logger.debug(f"Creating or updating a user app via UI form for app_id={app_id}, new_app={new_app}")
+
+    # Do not deploy resource for edits that do not require a k8s re-deployment
+    do_deploy = False
+
+    if new_app:
+        do_deploy = True
+    else:
+        # Only re-deploy existing apps if one of the following fields was changed:
+        redeployment_fields = ["subdomain", "volume", "path", "flavor", "port", "image", "access"]
+        logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
+
+        # Because not all forms contain all fields, we check if the supposedly changed field
+        # is actually contained in the form
+        for field in form.changed_data:
+            if field.lower() in redeployment_fields and (
+                field.lower() in form.Meta.fields or field.lower() == "subdomain"
+            ):
+                # subdomain is a special field not contained in meta fields
+                do_deploy = True
+                break
+
     subdomain_name, is_created_by_user = get_subdomain_name(form)
 
     instance = form.save(commit=False)
@@ -266,7 +295,11 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     setup_instance(instance, subdomain, app, project, status)
     save_instance_and_related_data(instance, form)
 
-    deploy_resource.delay(instance.serialize())
+    if do_deploy:
+        logger.debug(f"Now deploying resource app with app_id = {app_id}")
+        deploy_resource.delay(instance.serialize())
+    else:
+        logger.debug(f"Not re-deploying this app with app_id = {app_id}")
 
 
 def get_subdomain_name(form):
@@ -284,6 +317,7 @@ def handle_subdomain_change(instance, subdomain, subdomain_name):
     from .tasks import delete_resource
 
     if instance.subdomain.subdomain != subdomain_name:
+        # The user modified the subdomain name
         # In this special case, we avoid async task.
         delete_resource(instance.serialize())
         old_subdomain = instance.subdomain

@@ -13,9 +13,14 @@
           }
         },
         "environments": {
-          "Jupyter Lab": {
+          "Default Jupyter Lab": {
             "app": "jupyter-lab",
             "image": "serve-jupyterlab:231030-1145",
+            "repository": "ghcr.io/scilifelabdatacentre"
+          },
+          "Default RStudio": {
+            "app": "rstudio",
+            "image": "serve-rstudio:231030-1146",
             "repository": "ghcr.io/scilifelabdatacentre"
           },
           "MLflow Serving": {
