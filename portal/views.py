@@ -252,7 +252,7 @@ def get_collection(request, slug, app_id=0):
 
 
 def get_events(request):
-    future_events = EventsObject.objects.filter(start_time__date__gte=timezone.now().date()).order_by("-start_time")
+    future_events = EventsObject.objects.filter(start_time__date__gte=timezone.now().date()).order_by("start_time")
     for event in future_events:
         event.description_html = markdown.markdown(event.description)
     past_events = EventsObject.objects.filter(start_time__date__lt=timezone.now().date()).order_by("-start_time")
