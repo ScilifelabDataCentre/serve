@@ -87,7 +87,9 @@
                     {% else %}
                         {{ event.start_time|date:"M. j, Y, H:i" }} - {{ event.end_time|date:"M. j, Y, H:i" }}
                     {% endif %}
-                </p>                <p><b>Venue:</b> {{ event.venue }}</p>
+                </p>
+                {% if event.speaker %}<p><b>Speaker(s):</b> {{ event.speaker }}</p>{% endif %}                
+                <p><b>Venue:</b> {{ event.venue }}</p>
                 {% if event.recording_url %}<a href="{{ event.recording_url }}" target="_blank" class="btn btn-sm btn-primary">See the recording</a>{% endif %}
               </div>
             </div>
