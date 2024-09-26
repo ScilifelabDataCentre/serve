@@ -22,7 +22,7 @@ Collection = apps.get_model(app_label="portal.Collection")
 # TODO minor refactor
 # 1. Change id to app_id as it's anti-pattern to override language reserved function names
 # 2. add type annotations
-def get_public_apps(request, app_id=0, get_all=True, collection=None):
+def get_public_apps(request, app_id=0, get_all=True, collection=None, order=None):
     try:
         projects = Project.objects.filter(
             Q(owner=request.user) | Q(authorized=request.user), status="active"
@@ -77,11 +77,17 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None):
             published_apps_qs = subclass.objects.filter(~Q(app_status__status="Deleted"), access="public")
             published_apps.extend([app for app in published_apps_qs])
 
-    # sorting the apps by date updated
-    published_apps.sort(
-        key=lambda app: (app.updated_on is None, app.updated_on if app.updated_on is not None else ""),
-        reverse=True,  # Sort in descending order
-    )
+    # sort the apps
+    if order == "created_on":
+        published_apps.sort(
+            key=lambda app: (app.created_on is None, app.created_on if app.created_on is not None else ""),
+            reverse=True,  # Sort in descending order
+        )
+    else:
+        published_apps.sort(
+            key=lambda app: (app.updated_on is None, app.updated_on if app.updated_on is not None else ""),
+            reverse=True,  # Sort in descending order
+        )
 
     if len(published_apps) >= 3 and not get_all:
         published_apps = published_apps[:3]
@@ -143,12 +149,8 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, app_id=0):
-        published_apps, request = get_public_apps(request, app_id=app_id, get_all=False)
-        published_models = PublishedModel.objects.all()
-        if published_models.count() >= 3:
-            published_models = published_models[:3]
-        else:
-            published_models = published_models
+        published_apps_updated_on, request = get_public_apps(request, app_id=app_id, get_all=False)
+        published_apps_created_on, request = get_public_apps(request, app_id=app_id, get_all=False, order="created_on")
 
         news_objects = NewsObject.objects.all().order_by("-created_on")
         link_all_news = False
@@ -180,8 +182,8 @@ class HomeView(View):
             event.past = True if event.start_time.date() < timezone.now().date() else False
 
         context = {
-            "published_apps": published_apps,
-            "published_models": published_models,
+            "published_apps_updated_on": published_apps_updated_on,
+            "published_apps_created_on": published_apps_created_on,
             "news_objects": news_objects,
             "link_all_news": link_all_news,
             "collection_objects": collection_objects,
