@@ -25,7 +25,7 @@
 
     {% if future_events %}
     {% for event in future_events %}
-    <div class="card mt-3" id="{{ event.title|slugify}}">
+    <div class="card mt-3 {% if forloop.counter|divisibleby:2 %}bg-grey-2{% endif %}" id="{{ event.title|slugify}}">
         <div class="row">
             <div class="d-sm-none d-md-block col-md-2">
                     <div class="px-2 pb-1 mx-2 mx-lg-4 mx-xl-5 mt-3 d-flex flex-column rounded bg-teal">
@@ -37,15 +37,16 @@
                 <div class="card-body">
                 <h5 class="card-title">{{ event.title }}</h5>
                 {% if event.description_html %}<p class="card-text">{{ event.description_html|safe }}</p>{% endif %}
-                <p><b>Date and time:</b>
-                    {% if event.start_time|date:"Y-m-d" == event.end_time|date:"Y-m-d" %}
-                        {{ event.start_time|date:"M. j, Y" }} {{ event.start_time|date:"H:i" }}-{{ event.end_time|date:"H:i" }}
-                    {% else %}
-                        {{ event.start_time|date:"M. j, Y, H:i" }} - {{ event.end_time|date:"M. j, Y, H:i" }}
-                    {% endif %}
-                </p>
-                {% if event.speaker %}<p><b>Speaker(s):</b> {{ event.speaker }}</p>{% endif %}
-                <p><b>Venue:</b> {{ event.venue }}</p>
+                <div class="row mb-1">
+                    <div class="col-md" title="Date and time"><i class="bi bi-calendar-event text-teal fs-4"></i>
+                        <span class="small fw-bold">{% if event.start_time|date:"Y-m-d" == event.end_time|date:"Y-m-d" %}
+                            {{ event.start_time|date:"M. j, Y" }} {{ event.start_time|date:"H:i" }}-{{ event.end_time|date:"H:i" }}
+                        {% else %}
+                            {{ event.start_time|date:"M. j, Y, H:i" }} - {{ event.end_time|date:"M. j, Y, H:i" }}
+                        {% endif %}</span></div>
+                        {% if event.speaker %}<div class="col-md" title="Speaker(s)"><i class="bi bi-megaphone text-teal fs-4"></i> <span class="small fw-bold">{{ event.speaker }}</span></div>{% endif %}
+                    <div class="col-md" title="Venue"><i class="bi bi-buildings text-teal fs-4"></i> <span class="small fw-bold">{{ event.venue }}</span></div>
+                </div>
                 <a href="{{ event.registration_url }}" target="_blank" class="btn btn-sm btn-outline-serve">Register for this event</a>
               </div>
             </div>
@@ -69,7 +70,7 @@
 
     {% if past_events %}
     {% for event in past_events %}
-    <div class="card mt-3" id="{{ event.title|slugify}}">
+    <div class="card mt-3 {% if forloop.counter|divisibleby:2 %}bg-grey-2{% endif %}" id="{{ event.title|slugify}}">
         <div class="row">
             <div class="d-sm-none d-md-block col-sm-2">
                     <div class="px-2 pb-1 mx-2 mx-lg-4 mx-xl-5 mt-3 d-flex flex-column rounded bg-teal-075">
@@ -81,15 +82,16 @@
                 <div class="card-body">
                 <h5 class="card-title">{{ event.title }}</h5>
                 {% if event.description_html %}<p class="card-text">{{ event.description_html|safe }}</p>{% endif %}
-                <p><b>Date and time:</b>
-                    {% if event.start_time|date:"Y-m-d" == event.end_time|date:"Y-m-d" %}
-                        {{ event.start_time|date:"M. j, Y" }} {{ event.start_time|date:"H:i" }}-{{ event.end_time|date:"H:i" }}
-                    {% else %}
-                        {{ event.start_time|date:"M. j, Y, H:i" }} - {{ event.end_time|date:"M. j, Y, H:i" }}
-                    {% endif %}
-                </p>
-                {% if event.speaker %}<p><b>Speaker(s):</b> {{ event.speaker }}</p>{% endif %}                
-                <p><b>Venue:</b> {{ event.venue }}</p>
+                <div class="row mb-1">
+                    <div class="col-md" title="Date and time"><i class="bi bi-calendar-event text-teal fs-4"></i>
+                        <span class="small fw-bold">{% if event.start_time|date:"Y-m-d" == event.end_time|date:"Y-m-d" %}
+                            {{ event.start_time|date:"M. j, Y" }} {{ event.start_time|date:"H:i" }}-{{ event.end_time|date:"H:i" }}
+                        {% else %}
+                            {{ event.start_time|date:"M. j, Y, H:i" }} - {{ event.end_time|date:"M. j, Y, H:i" }}
+                        {% endif %}</span></div>
+                        {% if event.speaker %}<div class="col-md" title="Speaker(s)"><i class="bi bi-megaphone text-teal fs-4"></i> <span class="small fw-bold">{{ event.speaker }}</span></div>{% endif %}
+                    <div class="col-md" title="Venue"><i class="bi bi-buildings text-teal fs-4"></i> <span class="small fw-bold">{{ event.venue }}</span></div>
+                </div>
                 {% if event.recording_url %}<a href="{{ event.recording_url }}" target="_blank" class="btn btn-sm btn-primary">See the recording</a>{% endif %}
               </div>
             </div>
