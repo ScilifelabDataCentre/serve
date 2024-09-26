@@ -102,7 +102,7 @@ describe("Test deploying app", () => {
             verifyAppStatus(app_name_project, "Running", "project")
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get('h3').should('contain', 'Public apps')
+            cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name_project).should('not.exist')
 
             // make this app public as an update and check that it works
@@ -233,8 +233,8 @@ describe("Test deploying app", () => {
 
             // check that the app is not visible under public apps
             cy.visit("/apps")
-            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public apps')
+            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name_public_2).should('not.exist')
 
         } else {
@@ -305,8 +305,8 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
             // check that the app is not visible under public apps
             cy.visit("/apps")
-            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public apps')
+            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -368,8 +368,8 @@ describe("Test deploying app", () => {
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public apps')
+            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -426,8 +426,8 @@ describe("Test deploying app", () => {
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public apps')
+            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -512,8 +512,8 @@ describe("Test deploying app", () => {
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public apps')
+            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name_edited).should('not.exist')
 
         } else {
@@ -609,8 +609,8 @@ describe("Test deploying app", () => {
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public apps')
+            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -691,8 +691,8 @@ describe("Test deploying app", () => {
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public apps')
+            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
