@@ -195,16 +195,6 @@ class HomeView(View):
         return render(request, self.template, context=context)
 
 
-class HomeViewDynamic(View):
-    template = "portal/home.html"
-
-    def get(self, request):
-        if request.user.is_authenticated:
-            return redirect("projects/")
-        else:
-            return HomeView.as_view()(request, app_id=0)
-
-
 def about(request):
     template = "portal/about.html"
     return render(request, template, locals())
