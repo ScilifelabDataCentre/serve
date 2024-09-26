@@ -81,16 +81,6 @@ class ShinyForm(AppBaseForm):
 
         return shiny_site_dir
 
-    def clean(self):
-        cleaned_data = super().clean()
-        access = cleaned_data.get("access", None)
-        source_code_url = cleaned_data.get("source_code_url", None)
-
-        if access == "public" and not source_code_url:
-            self.add_error("source_code_url", "Source is required when access is public.")
-
-        return cleaned_data
-
     class Meta:
         model = ShinyInstance
         fields = [
