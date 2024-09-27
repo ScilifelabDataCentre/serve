@@ -25,6 +25,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         logger.info("PublicAppsAPI. Entered list method.")
         logger.info("Requested API version %s", request.version)
         list_apps = []
+        list_apps_dict = {}
 
         # TODO: MAKE SURE THAT THIS IS FILTERED BASED ON ACCESS
         for model_class in APP_REGISTRY.iter_orm_models():
@@ -33,7 +34,12 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
                 queryset = model_class.objects.filter(~Q(app_status__status="Deleted"), access="public").values(
                     "id", "name", "app_id", "url", "description", "created_on", "updated_on", "app_status"
                 )
-                list_apps.extend(list(queryset))
+                # using a dictionary to avoid duplicates for shiny apps
+                for item in queryset:
+                    list_apps_dict[item['id']] = item 
+
+            # converting the dictionary back to a list
+            list_apps = list(list_apps_dict.values())
 
             # Order the combined list by "created_on"
             list_apps = sorted(list_apps, key=lambda x: x["created_on"], reverse=True)
