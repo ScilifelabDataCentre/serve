@@ -36,7 +36,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
                 )
                 # using a dictionary to avoid duplicates for shiny apps
                 for item in queryset:
-                    list_apps_dict[item['id']] = item 
+                    list_apps_dict[item["id"]] = item
 
             # converting the dictionary back to a list
             list_apps = list(list_apps_dict.values())
