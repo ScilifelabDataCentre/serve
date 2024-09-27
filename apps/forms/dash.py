@@ -23,7 +23,7 @@ class DashForm(AppBaseForm):
         body = Div(
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
-            Field("tags"),
+            SRVCommonDivField("tags"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
