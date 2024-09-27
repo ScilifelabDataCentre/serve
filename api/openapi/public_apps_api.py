@@ -17,11 +17,10 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
     The Public Apps API with read-only methods to get public apps information.
     """
 
-    # TODO: refactor. Rename list to list_apps, because it is a reserved word in python.
-    def list(self, request):
+    def list_apps(self, request):
         """
         This endpoint gets a list of public apps.
-        :returns list: A list of app information.
+        :returns list: A list of app information, ordered by reverse order created.
         """
         logger.info("PublicAppsAPI. Entered list method.")
         logger.info("Requested API version %s", request.version)
@@ -31,12 +30,13 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         for model_class in APP_REGISTRY.iter_orm_models():
             # Loop over all models, and check if they have the access and description field
             if hasattr(model_class, "description") and hasattr(model_class, "access"):
-                queryset = (
-                    model_class.objects.filter(~Q(app_status__status="Deleted"), access="public")
-                    .order_by("-updated_on")[:8]
-                    .values("id", "name", "app_id", "url", "description", "updated_on", "app_status")
+                queryset = model_class.objects.filter(~Q(app_status__status="Deleted"), access="public").values(
+                    "id", "name", "app_id", "url", "description", "created_on", "updated_on", "app_status"
                 )
                 list_apps.extend(list(queryset))
+
+            # Order the combined list by "created_on"
+            list_apps = sorted(list_apps, key=lambda x: x["created_on"], reverse=True)
 
         for app in list_apps:
             app["app_type"] = Apps.objects.get(id=app["app_id"]).name
@@ -65,7 +65,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
 
         try:
             queryset = model_class.objects.all().values(
-                "id", "name", "app_id", "url", "description", "updated_on", "access", "app_status"
+                "id", "name", "app_id", "url", "description", "created_on", "updated_on", "access", "app_status"
             )
             logger.info("Queryset: %s", queryset)
         except FieldError as e:
