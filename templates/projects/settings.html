@@ -115,28 +115,32 @@
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="flavor_name">Name</label>
-                                    <input type="text" name="flavor_name" id="flavor_name" value=""
+                                    <input type="text" name="flavor_name" id="flavor_name" value="" placeholder="N vCPU, N GB RAM"
                                         class="form-control" />
                                 </div>
                                 <div class="mb-3">
                                     <label for="cpu_req">CPU requests</label>
                                     <input type="text" name="cpu_req" id="cpu_req" value="200m" class="form-control" />
                                 </div>
+                                <div class="mb-3"></div>
+                                    <label for="cpu_lim">CPU limits</label>
+                                    <input type="text" name="cpu_lim" id="cpu_lim" value="2000m" class="form-control" />
+                                </div>
                                 <div class="mb-3">
                                     <label for="mem_req">Memory requests</label>
-                                    <input type="text" name="mem_req" id="mem_req" value="1Gi" class="form-control" />
-                                </div>
-                                <div class="mb-3">
-                                    <label for="gpu_req">GPU requests</label>
-                                    <input type="text" name="gpu_req" id="gpu_req" value="0" class="form-control" />
-                                </div>
-                                <div class="mb-3">
-                                    <label for="cpu_lim">CPU limits</label>
-                                    <input type="text" name="cpu_lim" id="cpu_lim" value="800m" class="form-control" />
+                                    <input type="text" name="mem_req" id="mem_req" value="0.5Gi" class="form-control" />
                                 </div>
                                 <div class="mb-3">
                                     <label for="mem_lim">Memory limits</label>
                                     <input type="text" name="mem_lim" id="mem_lim" value="4Gi" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mem_req">Ephemeral storage requests</label>
+                                    <input type="text" name="ephmem_req" id="ephmem_req" value="200Mi" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mem_lim">Ephemeral storage limits</label>
+                                    <input type="text" name="ephmem_lim" id="ephmem_lim" value="1000Mi" class="form-control" />
                                 </div>
                                 <button type="submit" class="btn btn-square btn-primary">Create flavor</button>
                             </form>

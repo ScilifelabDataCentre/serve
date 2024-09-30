@@ -71,10 +71,10 @@ class Environment(models.Model):
 
 class Flavor(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    cpu_lim = models.TextField(blank=True, null=True, default="1000m")
+    cpu_lim = models.TextField(blank=True, null=True, default="2000m")
     gpu_lim = models.TextField(blank=True, null=True, default="0")
-    ephmem_lim = models.TextField(blank=True, null=True, default="200Mi")
-    mem_lim = models.TextField(blank=True, null=True, default="3Gi")
+    ephmem_lim = models.TextField(blank=True, null=True, default="1000Mi")
+    mem_lim = models.TextField(blank=True, null=True, default="4Gi")
     cpu_req = models.TextField(blank=True, null=True, default="200m")
     gpu_req = models.TextField(blank=True, null=True, default="0")
     ephmem_req = models.TextField(blank=True, null=True, default="200Mi")
