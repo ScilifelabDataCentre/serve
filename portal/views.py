@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import markdown
 from django.apps import apps
 from django.conf import settings
@@ -22,7 +24,7 @@ Collection = apps.get_model(app_label="portal.Collection")
 # TODO minor refactor
 # 1. Change id to app_id as it's anti-pattern to override language reserved function names
 # 2. add type annotations
-def get_public_apps(request, app_id=0, get_all=True, collection=None, order=None):
+def get_public_apps(request, app_id=0, collection=None, order=None):
     try:
         projects = Project.objects.filter(
             Q(owner=request.user) | Q(authorized=request.user), status="active"
@@ -77,10 +79,18 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None, order=None
             published_apps_qs = subclass.objects.filter(~Q(app_status__status="Deleted"), access="public")
             published_apps.extend([app for app in published_apps_qs])
 
-    # sort the apps
-    if order == "created_on":
+    # sort the apps and prepare for the homepage view if specified
+    if order == "created_on_for_homepage":
+        published_apps = [app for app in published_apps if app.updated_on <= (app.created_on + timedelta(minutes=60))]
+        # we don't count updates in the first hour as updates, these should still be displayed under recently added apps
         published_apps.sort(
             key=lambda app: (app.created_on is None, app.created_on if app.created_on is not None else ""),
+            reverse=True,  # Sort in descending order
+        )
+    elif order == "updated_on_for_homepage":
+        published_apps = [app for app in published_apps if app.updated_on > (app.created_on + timedelta(minutes=60))]
+        published_apps.sort(
+            key=lambda app: (app.updated_on is None, app.updated_on if app.updated_on is not None else ""),
             reverse=True,  # Sort in descending order
         )
     else:
@@ -89,7 +99,7 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None, order=None
             reverse=True,  # Sort in descending order
         )
 
-    if len(published_apps) >= 3 and not get_all:
+    if order == "created_on_for_homepage" or order == "updated_on_for_homepage" and len(published_apps) >= 3:
         published_apps = published_apps[:3]
     else:
         published_apps = published_apps
@@ -149,8 +159,8 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, app_id=0):
-        published_apps_updated_on, request = get_public_apps(request, app_id=app_id, get_all=False)
-        published_apps_created_on, request = get_public_apps(request, app_id=app_id, get_all=False, order="created_on")
+        published_apps_updated_on, request = get_public_apps(request, app_id=app_id, order="updated_on_for_homepage")
+        published_apps_created_on, request = get_public_apps(request, app_id=app_id, order="created_on_for_homepage")
 
         news_objects = NewsObject.objects.all().order_by("-created_on")
         link_all_news = False
