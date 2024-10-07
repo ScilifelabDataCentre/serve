@@ -81,7 +81,11 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     # Sort by the values specified in 'order_by' and 'reverse'
     try:
         published_apps.sort(
-            key=lambda app: (getattr(app, order_by) is None, getattr(app, order_by) or ""), reverse=order_reverse
+            key=lambda app: (
+                not hasattr(app, order_by) or getattr(app, order_by) is None,
+                getattr(app, order_by) if hasattr(app, order_by) else "",
+            ),
+            reverse=order_reverse,
         )
     except AttributeError:
         logger.error("Error: Invalid order_by field", exc_info=True)
@@ -131,7 +135,7 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
 
 
 def public_apps(request, app_id=0):
-    published_apps, request = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse="True")
+    published_apps, request = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
     template = "portal/apps.html"
     return render(request, template, locals())
 
