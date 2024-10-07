@@ -8,14 +8,14 @@ describe("Tests of the public pages of the website", () => {
 
     it("should open the home page on link click", () => {
         cy.get("li.nav-item a").contains("Home").click()
-        cy.url().should("include", "/home")
+        cy.contains("SciLifeLab Serve").should("exist")
     })
 
-    it("should open the Apps page on link click", () => {
-        cy.get("li.nav-item a").contains("Apps").click()
+    it("should open the Apps and models page on link click", () => {
+        cy.get("li.nav-item a").contains("Apps and models").click()
         cy.url().should("include", "/apps")
-        cy.get('h3').should('contain', 'Public apps')
-        cy.get("title").should("have.text", "Apps | SciLifeLab Serve (beta)")
+        cy.get('h3').should('contain', 'Public applications and models')
+        cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
 
         if (Cypress.env('do_reset_db') === true) {
             // This test was flaky before as other test failures could make this test fail as well
@@ -32,14 +32,6 @@ describe("Tests of the public pages of the website", () => {
                 }
             });
         }
-    })
-
-    it("should open the Models page on link click", () => {
-        cy.get("li.nav-item a").contains("Models").click()
-        cy.url().should("include", "/models/")
-        cy.get('h3').should('contain', 'Model cards')
-        cy.get("title").should("have.text", "Models | SciLifeLab Serve (beta)")
-        cy.get('p').should('contain', 'No public model cards available.')
     })
 
     it("should open the User guide page on link click", () => {

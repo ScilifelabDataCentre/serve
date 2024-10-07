@@ -211,7 +211,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Related to user registration and authetication workflow
-LOGIN_REDIRECT_URL = "/projects"
+LOGIN_REDIRECT_URL = "/projects/"
 LOGIN_URL = "login"
 LOGOUT_URL = "logout"
 

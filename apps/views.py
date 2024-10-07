@@ -241,7 +241,12 @@ class CreateApp(View):
             raise PermissionDenied()
 
         if not form.is_valid():
-            return render(request, self.template_name, {"form": form})
+            form_header = "Update" if app_id else "Create"
+            return render(
+                request,
+                self.template_name,
+                {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug, "form_header": form_header},
+            )
 
         # Otherwise we can create the instance
         create_instance_from_form(form, project, app_slug, app_id)

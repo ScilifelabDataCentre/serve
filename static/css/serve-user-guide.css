@@ -128,6 +128,16 @@ blockquote p {
   font-style: italic;
 }
 
+.wiki-article ul li a {
+  color: var(--serve-teal);
+}
+
+.wiki-article ul li a:hover,
+.wiki-article ul li a:focus,
+.wiki-article ul li a:active {
+  color: var(--serve-teal);
+}
+
 /* Search form on top of search result form */
 
 .fa-search::before {

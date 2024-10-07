@@ -35,7 +35,7 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     container_waittime = models.IntegerField(default=20000)
     heartbeat_timeout = models.IntegerField(default=60000)
     heartbeat_rate = models.IntegerField(default=10000)
-    shiny_site_dir = models.CharField(max_length=255, default="")
+    shiny_site_dir = models.CharField(max_length=255, default="", blank=True)
 
     # The following three settings control the pre-init and seats behaviour (see documentation)
     # These settings override the Helm chart default values
