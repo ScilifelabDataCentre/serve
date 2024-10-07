@@ -29,13 +29,15 @@ class GrantAccessForm(forms.Form):
     selected_users = forms.MultipleChoiceField(widget=forms.SelectMultiple, choices=OPTIONS)
 
 
+# Note: 2024-09-30: I don't think we're currently using this one but will keep it up to date for future.
 class FlavorForm(forms.Form):
     cpu_req = forms.CharField(label="CPU request", max_length=10, initial="200m")
-    mem_req = forms.CharField(label="Memory request", max_length=15)
-    gpu_req = forms.CharField(label="GPU request", max_length=10)
+    mem_req = forms.CharField(label="Memory request", max_length=15, initial="0.5Gi")
+    ephmem_req = forms.CharField(label="Ephemeral storage request", max_length=15, initial="200Mi")
 
-    cpu_lim = forms.CharField(label="CPU limit", max_length=10)
-    mem_lim = forms.CharField(label="Memory limit", max_length=15)
+    cpu_lim = forms.CharField(label="CPU limit", max_length=10, initial="2000m")
+    mem_lim = forms.CharField(label="Memory limit", max_length=15, initial="4Gi")
+    ephmem_req = forms.CharField(label="Ephemeral storage limit", max_length=15, initial="1000Mi")
 
 
 class ImageUpdateForm(forms.Form):
