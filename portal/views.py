@@ -22,7 +22,6 @@ Collection = apps.get_model(app_label="portal.Collection")
 
 
 # TODO minor refactor
-# 1. Change id to app_id as it's anti-pattern to override language reserved function names
 # 2. add type annotations
 def get_public_apps(request, app_id=0, collection=None, order=None):
     try:
