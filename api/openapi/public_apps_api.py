@@ -38,11 +38,8 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
                 for item in queryset:
                     list_apps_dict[item["id"]] = item
 
-            # converting the dictionary back to a list
-            list_apps = list(list_apps_dict.values())
-
             # Order the combined list by "created_on"
-            list_apps = sorted(list_apps, key=lambda x: x["created_on"], reverse=True)
+            list_apps = sorted(list_apps_dict.values(), key=lambda x: x["created_on"], reverse=True)
 
         for app in list_apps:
             app["app_type"] = Apps.objects.get(id=app["app_id"]).name
