@@ -4,13 +4,17 @@ from django.contrib.auth import authenticate, login, logout
 from django.core.mail import send_mail
 from django.db import transaction
 from django.http.response import HttpResponseRedirect
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, HttpResponse
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, TemplateView
+from django.views.generic.edit import UpdateView
+from django.core.exceptions import ObjectDoesNotExist
+from studio.utils import get_logger
 
-from .forms import ProfileForm, SignUpForm, TokenVerificationForm, UserForm
-from .models import EmailVerificationTable
+from .forms import ProfileForm, SignUpForm, TokenVerificationForm, UserForm, ProfileEditForm, UserEditForm
+from .models import EmailVerificationTable, UserProfile
 
+logger = get_logger(__name__)
 
 # Create your views here.
 class HomeView(TemplateView):
@@ -129,3 +133,80 @@ class VerifyView(TemplateView):
                 messages.error(request, "Invalid token!")
                 return redirect("portal:home")
         return render(request, self.template_name, {"form": form})
+    
+
+class EditProfileView(TemplateView):
+    """
+    
+    """
+    template_name = "registration/edit_profile.html"
+    
+    profile_edit_form_class = ProfileEditForm
+    user_edit_form_class= UserEditForm
+    
+    def get_user_profile_info(self, request):
+         # Get the user profile
+        try:
+        # Note that not all users have a user profile object
+        # such as the admin superuser
+            user_profile_data = UserProfile.objects.get(user_id=request.user.id)
+        except ObjectDoesNotExist as e:
+            logger.error(str(e), exc_info=True)
+            user_profile = UserProfile()
+        except Exception as e:
+            logger.error(str(e), exc_info=True)
+            user_profile = UserProfile()
+            
+        return user_profile_data
+        
+    
+    def get(self, request, *args, **kwargs):
+        
+        user_profile_data = self.get_user_profile_info(request)
+        
+        profile_edit_form = self.profile_edit_form_class(initial={
+                                                    "affiliation" : user_profile_data.affiliation,
+                                                    "department" : user_profile_data.department
+                                                 }) 
+        user_edit_form = self.user_edit_form_class(initial={
+                                                    "email" : user_profile_data.user.email,
+                                                    "first_name" : user_profile_data.user.first_name,
+                                                    "last_name" : user_profile_data.user.last_name
+                                                 }) 
+        
+        return render(request, self.template_name, {"form": user_edit_form, "profile_form": profile_edit_form})
+    
+    def post(self, request, *args, **kwargs):
+        
+        user_profile_data = self.get_user_profile_info(request)
+                        
+        user_form_details = self.user_edit_form_class(request.POST, instance=request.user, initial={
+                                                    "email" : user_profile_data.user.email,})
+        
+        profile_form_details = self.profile_edit_form_class(request.POST, instance=user_profile_data, initial={
+                                                   "affiliation" : user_profile_data.affiliation,})
+        
+        if user_form_details.is_valid() and profile_form_details.is_valid():
+                    
+            user_form_details.save()
+            profile_form_details.save()
+            
+            
+            #logger.info(user_form_details.cleaned_data, exc_info=True)
+            
+            logger.info("Updated First Name: "+str(self.get_user_profile_info(request).user.first_name), exc_info=True)
+            logger.info("Updated Last Name: "+str(self.get_user_profile_info(request).user.last_name), exc_info=True)
+            logger.info("Updated Department: "+str(self.get_user_profile_info(request).department), exc_info=True)
+ 
+            return render(request, "registration/edit_profile_done.html")
+        
+        else:
+         
+            # Redirect back to the same page if the data
+            # was invalid
+           
+            #print (form.errors)
+            logger.error("Edit user error: " + str(user_form_details.errors), exc_info=True)
+            logger.error("Edit profile error: " + str(profile_form_details.errors), exc_info=True)
+            
+            return render(request, self.template_name, {"form": user_form_details, "profile_form": profile_form_details})
