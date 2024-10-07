@@ -71,15 +71,15 @@ class Environment(models.Model):
 
 class Flavor(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    cpu_lim = models.TextField(blank=True, null=True, default="1000m")
+    cpu_lim = models.TextField("CPU limit", blank=True, null=True, default="2000m")
     gpu_lim = models.TextField(blank=True, null=True, default="0")
-    ephmem_lim = models.TextField(blank=True, null=True, default="200Mi")
-    mem_lim = models.TextField(blank=True, null=True, default="3Gi")
-    cpu_req = models.TextField(blank=True, null=True, default="200m")
+    ephmem_lim = models.TextField("Ephemeral storage limit", blank=True, null=True, default="1000Mi")
+    mem_lim = models.TextField("Memory limit", blank=True, null=True, default="4Gi")
+    cpu_req = models.TextField("CPU request", blank=True, null=True, default="200m")
     gpu_req = models.TextField(blank=True, null=True, default="0")
-    ephmem_req = models.TextField(blank=True, null=True, default="200Mi")
-    mem_req = models.TextField(blank=True, null=True, default="0.5Gi")
-    name = models.CharField(max_length=512)
+    ephmem_req = models.TextField("Ephemeral storage request", blank=True, null=True, default="200Mi")
+    mem_req = models.TextField("Memory request", blank=True, null=True, default="0.5Gi")
+    name = models.CharField("Flavor name (N vCPU, N GB RAM)", max_length=512)
     project = models.ForeignKey(settings.PROJECTS_MODEL, on_delete=models.CASCADE, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
