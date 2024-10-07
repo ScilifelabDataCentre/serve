@@ -113,6 +113,7 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
             "Swedish university</a> email address. If you are not affiliated with a Swedish university, "
             "your account request will be reviewed manually."
         ),
+        #disabled = True,
     )
     password1 = forms.CharField(
         min_length=8,
@@ -321,3 +322,85 @@ class TokenVerificationForm(forms.Form):
         fields = [
             "token",
         ]
+
+
+class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
+    first_name = forms.CharField(
+        min_length=1,
+        max_length=30,
+        label="First name",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        
+    )
+    last_name = forms.CharField(
+        min_length=1,
+        max_length=30,
+        label="Last name",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    email = forms.EmailField(
+        max_length=254,
+        label="Email",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        help_text=mark_safe(
+            "Email address can not be changed. Please email serve@scilifelab.se with any questions."
+        ),
+        disabled = True,
+    )
+    
+
+    required_css_class = "required"
+
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "password1",
+            "password2",
+        ]
+        exclude = [
+            "username",
+            "password1",
+            "password2",
+        ]
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.data})"
+    
+    
+class ProfileEditForm(BootstrapErrorFormMixin, forms.ModelForm):
+    affiliation = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label="University",
+        choices=UNIVERSITIES,
+        help_text="Affiliation can not be changed. Please email serve@scilifelab.se with any questions.",
+        disabled = True,
+    )
+    department = forms.CharField(
+        widget=ListTextWidget(data_list=DEPARTMENTS, name="department-list", attrs={"class": "form-control"}),
+        label="Department",
+        required=False,
+        help_text="Select closest department name or enter your own.",
+    )
+    
+    required_css_class = "required"
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            "affiliation",
+            "department",
+            "note",
+            "why_account_needed",
+        ]
+        exclude = [
+            "note",
+            "why_account_needed",
+        ]
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.data})"
+    
