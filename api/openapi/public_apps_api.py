@@ -20,7 +20,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
     def list_apps(self, request):
         """
         This endpoint gets a list of public apps.
-        :returns list: A list of app information, ordered by reverse order created.
+        :returns list: A list of app information, ordered by date created from the most recent to the oldest.
         """
         logger.info("PublicAppsAPI. Entered list method.")
         logger.info("Requested API version %s", request.version)
