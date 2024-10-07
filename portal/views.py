@@ -79,15 +79,11 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
             published_apps.extend([app for app in published_apps_qs])
 
     # Sort by the values specified in 'order_by' and 'reverse'
-    try:
+    if all(hasattr(app, order_by) for app in published_apps):
         published_apps.sort(
-            key=lambda app: (
-                not hasattr(app, order_by) or getattr(app, order_by) is None,
-                getattr(app, order_by) if hasattr(app, order_by) else "",
-            ),
-            reverse=order_reverse,
+            key=lambda app: (getattr(app, order_by) is None, getattr(app, order_by, "")), reverse=order_reverse
         )
-    except AttributeError:
+    else:
         logger.error("Error: Invalid order_by field", exc_info=True)
 
     for app in published_apps:
