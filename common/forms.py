@@ -17,6 +17,8 @@ from django.utils.safestring import mark_safe
 from common.models import EmailVerificationTable, UserProfile
 from studio.utils import get_logger
 
+from django.utils.translation import gettext_lazy as _
+
 logger = get_logger(__name__)
 
 
@@ -370,7 +372,7 @@ class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.data})"
     
-    
+'''
 class ProfileEditForm(BootstrapErrorFormMixin, forms.ModelForm):
     affiliation = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
@@ -403,4 +405,44 @@ class ProfileEditForm(BootstrapErrorFormMixin, forms.ModelForm):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.data})"
+''' 
+
+class ProfileEditForm(ProfileForm):
+    
+    
+    class Meta(ProfileForm.Meta):
+        
+        exclude = ["note",
+            "why_account_needed",]
+        
+    def __init__(self, *args, **kwargs):
+        super(ProfileEditForm, self).__init__(*args, **kwargs)
+        self.fields["affiliation"].disabled=True
+        #self.fields["affiliation"].required = False
+        self.fields["affiliation"].help_text="Affiliation can not be changed. Please email serve@scilifelab.se with any questions."
+
+'''   
+class UserEditForm(UserForm):
+    
+    
+    class Meta(UserForm.Meta):
+        
+        exclude = [
+            "username",
+            "password1",
+            "password2",
+        ]
+    def __init__(self, *args, **kwargs):
+        super(UserEditForm, self).__init__(*args, **kwargs)
+        self.fields["email"].disabled=True
+        self.fields["email"].help_text="Email address can not be changed. Please email serve@scilifelab.se with any questions."
+        del self.fields["password1"]
+        del self.fields["password2"]
+        self.fields["email"].required = False
+'''      
+        
+      
+        
+        
+        
     

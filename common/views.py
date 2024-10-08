@@ -167,7 +167,9 @@ class EditProfileView(TemplateView):
         profile_edit_form = self.profile_edit_form_class(initial={
                                                     "affiliation" : user_profile_data.affiliation,
                                                     "department" : user_profile_data.department
-                                                 }) 
+                                                 })
+        
+        
         user_edit_form = self.user_edit_form_class(initial={
                                                     "email" : user_profile_data.user.email,
                                                     "first_name" : user_profile_data.user.first_name,
@@ -206,7 +208,9 @@ class EditProfileView(TemplateView):
             # was invalid
            
             #print (form.errors)
-            logger.error("Edit user error: " + str(user_form_details.errors), exc_info=True)
-            logger.error("Edit profile error: " + str(profile_form_details.errors), exc_info=True)
+            if user_form_details.is_valid()==False:
+                logger.error("Edit user error: " + str(user_form_details.errors), exc_info=True)
+            if  profile_form_details.is_valid()==False:
+                logger.error("Edit profile error: " + str(profile_form_details.errors), exc_info=True)
             
             return render(request, self.template_name, {"form": user_form_details, "profile_form": profile_form_details})
