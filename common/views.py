@@ -156,7 +156,7 @@ class EditProfileView(TemplateView):
         try:
             # Note that not all users have a user profile object
             # such as the admin superuser
-            user_profile_data = UserProfile.objects.get(user_id=request.user.id)
+            user_profile = UserProfile.objects.get(user_id=request.user.id)
         except ObjectDoesNotExist as e:
             logger.error(str(e), exc_info=True)
             user_profile = UserProfile()
@@ -164,7 +164,7 @@ class EditProfileView(TemplateView):
             logger.error(str(e), exc_info=True)
             user_profile = UserProfile()
 
-        return user_profile_data
+        return user_profile
 
     def get(self, request, *args, **kwargs):
         user_profile_data = self.get_user_profile_info(request)
@@ -193,7 +193,7 @@ class EditProfileView(TemplateView):
                 "email": user_profile_data.user.email,
             },
         )
-        
+
         profile_form_details = self.profile_edit_form_class(
             request.POST,
             instance=user_profile_data,
@@ -224,13 +224,12 @@ class EditProfileView(TemplateView):
             return render(request, "user/profile.html", {"user_profile": self.get_user_profile_info(request)})
 
         else:
-            
             if not user_form_details.is_valid():
                 logger.error("Edit user error: " + str(user_form_details.errors), exc_info=True)
-                
+
             if not profile_form_details.is_valid():
                 logger.error("Edit profile error: " + str(profile_form_details.errors), exc_info=True)
-                
+
             return render(
                 request, self.template_name, {"form": user_form_details, "profile_form": profile_form_details}
             )
