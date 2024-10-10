@@ -13,11 +13,10 @@ from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.db import transaction
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
 from common.models import EmailVerificationTable, UserProfile
 from studio.utils import get_logger
-
-from django.utils.translation import gettext_lazy as _
 
 logger = get_logger(__name__)
 
@@ -115,7 +114,7 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
             "Swedish university</a> email address. If you are not affiliated with a Swedish university, "
             "your account request will be reviewed manually."
         ),
-        #disabled = True,
+        # disabled = True,
     )
     password1 = forms.CharField(
         min_length=8,
@@ -325,14 +324,14 @@ class TokenVerificationForm(forms.Form):
             "token",
         ]
 
-
+# creating a new form because UserForm is a UserCreationForm, which means 'exclude' in Meta or change in
+#initialization won't work
 class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
     first_name = forms.CharField(
         min_length=1,
         max_length=30,
         label="First name",
         widget=forms.TextInput(attrs={"class": "form-control"}),
-        
     )
     last_name = forms.CharField(
         min_length=1,
@@ -342,14 +341,11 @@ class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
     )
     email = forms.EmailField(
         max_length=254,
-        label="Email",
+        label="Email address",
         widget=forms.TextInput(attrs={"class": "form-control"}),
-        help_text=mark_safe(
-            "Email address can not be changed. Please email serve@scilifelab.se with any questions."
-        ),
-        disabled = True,
+        help_text=mark_safe("Email address can not be changed. Please email serve@scilifelab.se with any questions."),
+        disabled=True,
     )
-    
 
     required_css_class = "required"
 
@@ -371,78 +367,18 @@ class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.data})"
-    
-'''
-class ProfileEditForm(BootstrapErrorFormMixin, forms.ModelForm):
-    affiliation = forms.ChoiceField(
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label="University",
-        choices=UNIVERSITIES,
-        help_text="Affiliation can not be changed. Please email serve@scilifelab.se with any questions.",
-        disabled = True,
-    )
-    department = forms.CharField(
-        widget=ListTextWidget(data_list=DEPARTMENTS, name="department-list", attrs={"class": "form-control"}),
-        label="Department",
-        required=False,
-        help_text="Select closest department name or enter your own.",
-    )
-    
-    required_css_class = "required"
 
-    class Meta:
-        model = UserProfile
-        fields = [
-            "affiliation",
-            "department",
-            "note",
-            "why_account_needed",
-        ]
-        exclude = [
-            "note",
-            "why_account_needed",
-        ]
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.data})"
-''' 
 
 class ProfileEditForm(ProfileForm):
-    
-    
     class Meta(ProfileForm.Meta):
-        
-        exclude = ["note",
-            "why_account_needed",]
-        
+        exclude = [
+            "note",
+            "why_account_needed",
+        ]
+
     def __init__(self, *args, **kwargs):
         super(ProfileEditForm, self).__init__(*args, **kwargs)
-        self.fields["affiliation"].disabled=True
-        #self.fields["affiliation"].required = False
-        self.fields["affiliation"].help_text="Affiliation can not be changed. Please email serve@scilifelab.se with any questions."
-
-'''   
-class UserEditForm(UserForm):
-    
-    
-    class Meta(UserForm.Meta):
-        
-        exclude = [
-            "username",
-            "password1",
-            "password2",
-        ]
-    def __init__(self, *args, **kwargs):
-        super(UserEditForm, self).__init__(*args, **kwargs)
-        self.fields["email"].disabled=True
-        self.fields["email"].help_text="Email address can not be changed. Please email serve@scilifelab.se with any questions."
-        del self.fields["password1"]
-        del self.fields["password2"]
-        self.fields["email"].required = False
-'''      
-        
-      
-        
-        
-        
-    
+        self.fields["affiliation"].disabled = True
+        self.fields[
+            "affiliation"
+        ].help_text = "Affiliation can not be changed. Please email serve@scilifelab.se with any questions."
