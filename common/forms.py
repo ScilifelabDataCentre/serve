@@ -324,8 +324,9 @@ class TokenVerificationForm(forms.Form):
             "token",
         ]
 
+
 # creating a new form because UserForm is a UserCreationForm, which means 'exclude' in Meta or change in
-#initialization won't work
+# initialization won't work
 class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
     first_name = forms.CharField(
         min_length=1,
