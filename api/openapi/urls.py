@@ -20,7 +20,7 @@ urlpatterns = [
     path("system-version", get_system_version),
     path("api-info", APIInfo.as_view({"get": "get_api_info"})),
     # The Apps API
-    path("public-apps", PublicAppsAPI.as_view({"get": "list"})),
+    path("public-apps", PublicAppsAPI.as_view({"get": "list_apps"})),
     path("public-apps/<str:app_slug>/<int:pk>", PublicAppsAPI.as_view({"get": "retrieve"})),
     # Supplementary lookups API
     path(

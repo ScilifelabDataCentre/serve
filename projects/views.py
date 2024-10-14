@@ -228,17 +228,19 @@ def create_flavor(request, project_slug):
         name = request.POST.get("flavor_name")
         cpu_req = request.POST.get("cpu_req")
         mem_req = request.POST.get("mem_req")
-        gpu_req = request.POST.get("gpu_req")
+        ephmem_req = request.POST.get("ephmem_req")
         cpu_lim = request.POST.get("cpu_lim")
         mem_lim = request.POST.get("mem_lim")
+        ephmem_lim = request.POST.get("ephmem_lim")
         flavor = Flavor(
             name=name,
             project=project,
             cpu_req=cpu_req,
             mem_req=mem_req,
-            gpu_req=gpu_req,
             cpu_lim=cpu_lim,
             mem_lim=mem_lim,
+            ephmem_req=ephmem_req,
+            ephmem_lim=ephmem_lim,
         )
         flavor.save()
     return HttpResponseRedirect(

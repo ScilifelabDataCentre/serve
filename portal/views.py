@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import markdown
 from django.apps import apps
 from django.conf import settings
@@ -20,9 +22,8 @@ Collection = apps.get_model(app_label="portal.Collection")
 
 
 # TODO minor refactor
-# 1. Change id to app_id as it's anti-pattern to override language reserved function names
 # 2. add type annotations
-def get_public_apps(request, app_id=0, get_all=True, collection=None):
+def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", order_reverse=False):
     try:
         projects = Project.objects.filter(
             Q(owner=request.user) | Q(authorized=request.user), status="active"
@@ -77,18 +78,14 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None):
             published_apps_qs = subclass.objects.filter(~Q(app_status__status="Deleted"), access="public")
             published_apps.extend([app for app in published_apps_qs])
 
-    # sorting the apps by date updated
-    published_apps.sort(
-        key=lambda app: (app.updated_on is None, app.updated_on if app.updated_on is not None else ""),
-        reverse=True,  # Sort in descending order
-    )
-
-    if len(published_apps) >= 3 and not get_all:
-        published_apps = published_apps[:3]
+    # Sort by the values specified in 'order_by' and 'reverse'
+    if all(hasattr(app, order_by) for app in published_apps):
+        published_apps.sort(
+            key=lambda app: (getattr(app, order_by) is None, getattr(app, order_by, "")), reverse=order_reverse
+        )
     else:
-        published_apps = published_apps
-    # Get the app instance latest status (not state)
-    # Similar to GetStatusView() in apps.views
+        logger.error("Error: Invalid order_by field", exc_info=True)
+
     for app in published_apps:
         try:
             app.status_group = "success" if app.app_status.status in settings.APPS_STATUS_SUCCESS else "warning"
@@ -134,7 +131,7 @@ def get_public_apps(request, app_id=0, get_all=True, collection=None):
 
 
 def public_apps(request, app_id=0):
-    published_apps, request = get_public_apps(request, app_id=app_id)
+    published_apps, request = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
     template = "portal/apps.html"
     return render(request, template, locals())
 
@@ -143,12 +140,24 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, app_id=0):
-        published_apps, request = get_public_apps(request, app_id=app_id, get_all=False)
-        published_models = PublishedModel.objects.all()
-        if published_models.count() >= 3:
-            published_models = published_models[:3]
-        else:
-            published_models = published_models
+        all_published_apps_created_on, request = get_public_apps(
+            request, app_id=app_id, order_by="created_on", order_reverse=True
+        )
+        all_published_apps_updated_on, request = get_public_apps(
+            request, app_id=app_id, order_by="updated_on", order_reverse=True
+        )
+
+        # Make sure we don't have the same apps displayed in both Recently updated and Recently added fields
+        published_apps_created_on = [
+            app for app in all_published_apps_created_on if app.updated_on <= (app.created_on + timedelta(minutes=60))
+        ][
+            :3
+        ]  # we display only 3 apps
+        published_apps_updated_on = [
+            app for app in all_published_apps_updated_on if app.updated_on > (app.created_on + timedelta(minutes=60))
+        ][
+            :3
+        ]  # we display only 3 apps
 
         news_objects = NewsObject.objects.all().order_by("-created_on")
         link_all_news = False
@@ -180,8 +189,8 @@ class HomeView(View):
             event.past = True if event.start_time.date() < timezone.now().date() else False
 
         context = {
-            "published_apps": published_apps,
-            "published_models": published_models,
+            "published_apps_updated_on": published_apps_updated_on,
+            "published_apps_created_on": published_apps_created_on,
             "news_objects": news_objects,
             "link_all_news": link_all_news,
             "collection_objects": collection_objects,
@@ -191,16 +200,6 @@ class HomeView(View):
         }
 
         return render(request, self.template, context=context)
-
-
-class HomeViewDynamic(View):
-    template = "portal/home.html"
-
-    def get(self, request):
-        if request.user.is_authenticated:
-            return redirect("projects/")
-        else:
-            return HomeView.as_view()(request, app_id=0)
 
 
 def about(request):
@@ -252,7 +251,7 @@ def get_collection(request, slug, app_id=0):
 
 
 def get_events(request):
-    future_events = EventsObject.objects.filter(start_time__date__gte=timezone.now().date()).order_by("-start_time")
+    future_events = EventsObject.objects.filter(start_time__date__gte=timezone.now().date()).order_by("start_time")
     for event in future_events:
         event.description_html = markdown.markdown(event.description)
     past_events = EventsObject.objects.filter(start_time__date__lt=timezone.now().date()).order_by("-start_time")

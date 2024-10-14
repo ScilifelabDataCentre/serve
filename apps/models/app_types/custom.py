@@ -30,7 +30,7 @@ class CustomAppInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
     port = models.IntegerField(default=8000)
     image = models.CharField(max_length=255)
-    path = models.CharField(max_length=255, default="/")
+    path = models.CharField(max_length=255, default="/", blank=True)
     user_id = models.IntegerField(default=1000)
 
     def get_k8s_values(self):

@@ -23,7 +23,7 @@ class DashForm(AppBaseForm):
         body = Div(
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
-            Field("tags"),
+            SRVCommonDivField("tags"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
@@ -40,16 +40,6 @@ class DashForm(AppBaseForm):
         )
 
         self.helper.layout = Layout(body, self.footer)
-
-    def clean(self):
-        cleaned_data = super().clean()
-        access = cleaned_data.get("access")
-        source_code_url = cleaned_data.get("source_code_url")
-
-        if access == "public" and not source_code_url:
-            self.add_error("source_code_url", "Source is required when access is public.")
-
-        return cleaned_data
 
     class Meta:
         model = DashInstance

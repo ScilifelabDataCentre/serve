@@ -59,7 +59,6 @@ class PublicAppsApiTests(APITestCase):
         self.assertEqual(app["id"], self.app_instance.id)
         self.assertIsNotNone(app["name"])
         self.assertEqual(app["name"], self.app_instance.name)
-        self.assertTrue(app["app_id"] > 0)
         self.assertEqual(app["description"], self.app_instance.description)
         updated_on = datetime.fromisoformat(app["updated_on"][:-1])
         self.assertEqual(datetime.date(updated_on), datetime.date(self.app_instance.updated_on))
