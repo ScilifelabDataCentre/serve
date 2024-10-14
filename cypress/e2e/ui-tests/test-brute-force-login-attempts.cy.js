@@ -17,7 +17,7 @@ describe("Test brute force login attempts are blocked", () => {
         // seed the db with a user
         cy.visit("/")
         cy.logf("Running seed-brute-force-login-user.py", Cypress.currentTest)
-      //  cy.exec("./cypress/e2e/db-seed-brute-force-login-user.sh")
+        cy.exec("./cypress/e2e/db-seed-brute-force-login-user.sh")
 
         cy.logf("End before() hook", Cypress.currentTest)
     })
