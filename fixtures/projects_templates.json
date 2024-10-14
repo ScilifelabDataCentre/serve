@@ -4,7 +4,17 @@
       "description": "The default project type includes all standard SciLifeLab Serve functionality - model serving, app hosting, web-based notebooks, and file management.",
       "name": "Default project",
       "slug": "blank",
-      "available_apps": [8, 9, 19, 21, 22, 23, 24, 28],
+      "available_apps": [
+        8,
+        9,
+        19,
+        21,
+        22,
+        23,
+        24,
+        28,
+        30
+      ],
       "template": {
         "apps": {
 

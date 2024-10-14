@@ -12,7 +12,6 @@ from django.utils import timezone
 from apps.app_registry import APP_REGISTRY
 from studio.celery import app
 from studio.utils import get_logger
-
 from .models import FilemanagerInstance
 
 logger = get_logger(__name__)
@@ -98,6 +97,9 @@ def deploy_resource(serialized_instance):
     if "ghcr" in instance.chart:
         version = instance.chart.split(":")[-1]
         chart = "oci://" + instance.chart.split(":")[0]
+    else:
+        version = None
+        chart = instance.chart
     # Save helm values file for internal reference
     values_file = f"charts/values/{str(uuid.uuid4())}.yaml"
     with open(values_file, "w") as f:

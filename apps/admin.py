@@ -14,6 +14,7 @@ from .models import (
     CustomAppInstance,
     DashInstance,
     FilemanagerInstance,
+    GradioInstance,
     JupyterInstance,
     NetpolicyInstance,
     RStudioInstance,
@@ -227,6 +228,16 @@ class FilemanagerInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + (
         "display_volumes",
         "persistent",
+    )
+
+
+@admin.register(GradioInstance)
+class GradioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + (
+        "display_volumes",
+        "image",
+        "port",
+        "user_id",
     )
 
 
