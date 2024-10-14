@@ -17,7 +17,7 @@ describe("Test brute force login attempts are blocked", () => {
         // seed the db with a user
         cy.visit("/")
         cy.logf("Running seed-brute-force-login-user.py", Cypress.currentTest)
-        cy.exec("./cypress/e2e/db-seed-brute-force-login-user.sh")
+      //  cy.exec("./cypress/e2e/db-seed-brute-force-login-user.sh")
 
         cy.logf("End before() hook", Cypress.currentTest)
     })
@@ -45,7 +45,7 @@ describe("Test brute force login attempts are blocked", () => {
 
         // Sign out before logging in again
         cy.logf("Sign out before logging in again", Cypress.currentTest)
-        cy.get('button.btn-profile').click()
+        cy.get('button.btn-profile').contains("Profile").click()
         cy.get('li.btn-group').find('button').contains("Sign out").click()
         cy.get("title").should("have.text", "Logout | SciLifeLab Serve (beta)")
 
