@@ -7,4 +7,20 @@ __all__ = ["GradioForm"]
 class GradioForm(CustomAppForm):
     class Meta:
         model = GradioInstance
-        fields = ["name", "description", "flavor", "access", "source_code_url", "port", "image", "tags"]
+        fields = [
+            "name",
+            "description",
+            "volume",
+            "path",
+            "flavor",
+            "access",
+            "note_on_linkonly_privacy",
+            "source_code_url",
+            "port",
+            "image",
+            "tags",
+        ]
+        labels = {
+            "note_on_linkonly_privacy": "Reason for choosing the link only option",
+            "tags": "Keywords",
+        }
