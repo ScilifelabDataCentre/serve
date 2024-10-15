@@ -73,7 +73,7 @@ class Flavor(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     cpu_lim = models.TextField("CPU limit", blank=True, null=True, default="2000m")
     gpu_lim = models.TextField(blank=True, null=True, default="0")
-    ephmem_lim = models.TextField("Ephemeral storage limit", blank=True, null=True, default="1000Mi")
+    ephmem_lim = models.TextField("Ephemeral storage limit", blank=True, null=True, default="5000Mi")
     mem_lim = models.TextField("Memory limit", blank=True, null=True, default="4Gi")
     cpu_req = models.TextField("CPU request", blank=True, null=True, default="200m")
     gpu_req = models.TextField(blank=True, null=True, default="0")
