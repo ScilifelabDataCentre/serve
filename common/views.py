@@ -144,7 +144,6 @@ class VerifyView(TemplateView):
 
 
 class EditProfileView(TemplateView):
-    """ """
 
     template_name = "user/profile_edit_form.html"
 
