@@ -324,7 +324,9 @@ class TokenVerificationForm(forms.Form):
         ]
 
 
-# SS-643 We've created a new form because UserForm above is a UserCreationForm, which means 'exclude' in Meta or change in
+# SS-643 We've created a new form because UserForm above
+# is a UserCreationForm,
+# which means 'exclude' in Meta or change in
 # initialization won't work
 class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
     first_name = forms.CharField(
@@ -377,7 +379,7 @@ class ProfileEditForm(ProfileForm):
         ]
 
     def __init__(self, *args, **kwargs):
-        super(ProfileEditForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["affiliation"].disabled = True
         self.fields[
             "affiliation"
