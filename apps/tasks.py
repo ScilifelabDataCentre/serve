@@ -35,14 +35,14 @@ def delete_old_objects():
         old_develop_apps = orm_model.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
 
         for app_ in old_develop_apps:
-            delete_resource.delay(app_.pk)
+            delete_resource.delay(app_.serialize())
 
     # Handle deletion of non persistent file managers
     old_file_managers = FilemanagerInstance.objects.filter(
         created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False
     )
     for app_ in old_file_managers:
-        delete_resource.delay(app_.pk)
+        delete_resource.delay(app_.serialize())
 
 
 def helm_install(release_name, chart, namespace="default", values_file=None, version=None):
