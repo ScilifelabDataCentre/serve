@@ -8,6 +8,7 @@ from .jupyter import JupyterForm
 from .netpolicy import NetpolicyForm
 from .rstudio import RStudioForm
 from .shiny import ShinyForm
+from .streamlit import StreamlitForm
 from .tissuumaps import TissuumapsForm
 from .volumes import VolumeForm
 from .vscode import VSCodeForm

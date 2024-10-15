@@ -24,6 +24,7 @@ from .models import (
     VolumeInstance,
     VSCodeInstance,
 )
+from .models.app_types.custom.streamlit import StreamlitInstance
 from .tasks import delete_resource, deploy_resource
 
 logger = get_logger(__name__)
@@ -233,6 +234,16 @@ class FilemanagerInstanceAdmin(BaseAppAdmin):
 
 @admin.register(GradioInstance)
 class GradioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + (
+        "display_volumes",
+        "image",
+        "port",
+        "user_id",
+    )
+
+
+@admin.register(StreamlitInstance)
+class StreamlitInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + (
         "display_volumes",
         "image",

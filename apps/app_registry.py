@@ -11,6 +11,7 @@ from apps.forms import (
     VolumeForm,
     VSCodeForm,
 )
+from apps.forms.streamlit import StreamlitForm
 from apps.models import (
     CustomAppInstance,
     DashInstance,
@@ -24,6 +25,7 @@ from apps.models import (
     VolumeInstance,
     VSCodeInstance,
 )
+from apps.models.app_types.custom.streamlit import StreamlitInstance
 from apps.types_.app_registry import AppRegistry
 from apps.types_.app_types import ModelFormTuple
 
@@ -40,3 +42,4 @@ APP_REGISTRY.register("shinyproxyapp", ModelFormTuple(ShinyInstance, ShinyForm))
 APP_REGISTRY.register("tissuumaps", ModelFormTuple(TissuumapsInstance, TissuumapsForm))
 APP_REGISTRY.register("filemanager", ModelFormTuple(FilemanagerInstance, FilemanagerForm))
 APP_REGISTRY.register("gradio", ModelFormTuple(GradioInstance, GradioForm))
+APP_REGISTRY.register("streamlit", ModelFormTuple(StreamlitInstance, StreamlitForm))
