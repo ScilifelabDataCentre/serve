@@ -114,7 +114,6 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
             "Swedish university</a> email address. If you are not affiliated with a Swedish university, "
             "your account request will be reviewed manually."
         ),
-        # disabled = True,
     )
     password1 = forms.CharField(
         min_length=8,
