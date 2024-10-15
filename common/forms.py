@@ -13,7 +13,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.db import transaction
 from django.utils.safestring import mark_safe
-from django.utils.translation import gettext_lazy as _
 
 from common.models import EmailVerificationTable, UserProfile
 from studio.utils import get_logger
