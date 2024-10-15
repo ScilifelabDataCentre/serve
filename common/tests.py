@@ -19,6 +19,8 @@ from common.forms import (
     ProfileForm,
     SignUpForm,
     UserForm,
+    UserEditForm,
+    ProfileEditForm,
 )
 from common.models import EmailVerificationTable, UserProfile
 
@@ -235,3 +237,44 @@ def test_fail_validation_other_email_affiliation_selected(form):
             "Please select 'Other' in affiliation or use your Swedish university researcher email."
         ]
     } == form.user.errors
+
+
+
+
+# @st.composite
+def edit_form(
+    name=st.text(min_size=3, max_size=20),
+    surname=st.text(min_size=3, max_size=20),
+    department=st.sampled_from(DEPARTMENTS),
+):
+    mail = draw(email)
+    pwd = draw(st.text(min_size=8).map(make_password))
+    department = draw(department)
+    affiliation = affiliation_getter(mail)
+    name_ = unicodedata.normalize("NFKD", draw(name).replace("\x00", "\uFFFD"))
+    surname_ = unicodedata.normalize("NFKD", draw(surname).replace("\x00", "\uFFFD"))
+    why_account_needed = draw(why_account_needed)
+    if why_account_needed is not None:
+        why_account_needed = unicodedata.normalize("NFKD", why_account_needed.replace("\x00", "\uFFFD"))
+
+    user_form = UserForm(
+        {
+            "first_name": name_,
+            "last_name": surname_,
+            "email": mail,
+            "password1": pwd,
+            "password2": pwd,
+            "username": mail,
+        }
+    )
+
+    profile_form = ProfileForm(
+        {
+            "why_account_needed": why_account_needed,
+            "department": department,
+            "affiliation": affiliation,
+        }
+    )
+
+    form = SignUpForm(user=user_form, profile=profile_form)
+    return form
