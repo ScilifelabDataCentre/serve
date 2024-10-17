@@ -1,7 +1,8 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+
+# from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from django.db import transaction
@@ -145,7 +146,7 @@ class VerifyView(TemplateView):
         return render(request, self.template_name, {"form": form})
 
 
-@method_decorator(login_required, name="post")
+# @method_decorator(login_required, name="post")
 class EditProfileView(TemplateView):
     template_name = "user/profile_edit_form.html"
 
@@ -206,6 +207,9 @@ class EditProfileView(TemplateView):
         if user_form_details.is_valid() and profile_form_details.is_valid():
             try:
                 with transaction.atomic():
+                    """
+                    # If we only want to save the new information,
+                    #rather overriding existing one in the database
                     user_form_retrived_data = user_form_details.save(commit=False)
 
                     # Only saving the new values, overwriting other existing values
@@ -231,18 +235,13 @@ class EditProfileView(TemplateView):
                     profile_form_retrived_data.save()
 
                     # profile_form_details.save_m2m()
-                    # user_form_details.save()
-                    # profile_form_details.save()
+                    """
+                    user_form_details.save()
+                    profile_form_details.save()
 
-                    logger.info(
-                        "Updated First Name: " + str(self.get_user_profile_info(request).user.first_name), exc_info=True
-                    )
-                    logger.info(
-                        "Updated Last Name: " + str(self.get_user_profile_info(request).user.last_name), exc_info=True
-                    )
-                    logger.info(
-                        "Updated Department: " + str(self.get_user_profile_info(request).department), exc_info=True
-                    )
+                    logger.info("Updated First Name: " + str(self.get_user_profile_info(request).user.first_name))
+                    logger.info("Updated Last Name: " + str(self.get_user_profile_info(request).user.last_name))
+                    logger.info("Updated Department: " + str(self.get_user_profile_info(request).department))
 
             except Exception as e:
                 return HttpResponse("Error updating records: " + str(e))
@@ -251,10 +250,10 @@ class EditProfileView(TemplateView):
 
         else:
             if not user_form_details.is_valid():
-                logger.error("Edit user error: " + str(user_form_details.errors), exc_info=True)
+                logger.error("Edit user error: " + str(user_form_details.errors))
 
             if not profile_form_details.is_valid():
-                logger.error("Edit profile error: " + str(profile_form_details.errors), exc_info=True)
+                logger.error("Edit profile error: " + str(profile_form_details.errors))
 
             return render(
                 request, self.template_name, {"form": user_form_details, "profile_form": profile_form_details}
