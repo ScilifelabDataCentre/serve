@@ -206,6 +206,7 @@ class EditProfileView(TemplateView):
         if user_form_details.is_valid() and profile_form_details.is_valid():
             try:
                 with transaction.atomic():
+                    """
                     user_form_retrived_data = user_form_details.save(commit=False)
 
                     # Only saving the new values, overwriting other existing values
@@ -231,8 +232,9 @@ class EditProfileView(TemplateView):
                     profile_form_retrived_data.save()
 
                     # profile_form_details.save_m2m()
-                    # user_form_details.save()
-                    # profile_form_details.save()
+                    """
+                    user_form_details.save()
+                    profile_form_details.save()
 
                     logger.info(
                         "Updated First Name: " + str(self.get_user_profile_info(request).user.first_name), exc_info=True

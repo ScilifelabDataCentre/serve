@@ -345,7 +345,7 @@ class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
         label="Email address",
         widget=forms.TextInput(attrs={"class": "form-control"}),
         help_text=mark_safe("Email address can not be changed. Please email serve@scilifelab.se with any questions."),
-        disabled=True,
+        # disabled=True,
     )
 
     required_css_class = "required"
