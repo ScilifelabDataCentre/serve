@@ -147,7 +147,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
             <div class="tab-pane fade" id="environments" role="tabpanel">
                 <div class="card shadow border-0">
@@ -215,9 +214,6 @@
                     </div>
                 </div>
             </div>
-
-
-
             {% endif %}
             {% if request.user.pk == project.owner.pk or request.user.is_superuser %}
             <div class="tab-pane fade" id="delete" role="tabpanel">

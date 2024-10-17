@@ -45,6 +45,35 @@ def delete_old_objects():
         delete_resource.delay(app_.serialize())
 
 
+@app.task
+def clean_up_apps_in_database():
+    """
+    This task retrieves apps that have been deleted (i.e. got status 'deleted') over 14 months ago \
+    and removes them from the database.
+    TODO: Make apps_clean_up_threshold_days a variable in settings.py.
+
+    """
+
+    apps_clean_up_threshold_days = 425
+    logger.info(
+        f"Running task clean_up_apps_in_database to remove all apps that have been deleted more than \
+                {apps_clean_up_threshold_days} days ago."
+    )
+
+    for orm_model in APP_REGISTRY.iter_orm_models():
+        apps_to_be_cleaned_up = orm_model.objects.filter(
+            deleted_on__lt=timezone.now() - timezone.timedelta(days=apps_clean_up_threshold_days),
+            app_status__status="Deleted",
+        )
+
+        if apps_to_be_cleaned_up:
+            logger.info(
+                f"Removing {len(apps_to_be_cleaned_up)} {apps_to_be_cleaned_up[0].app.name} app(s) from the database."
+            )
+            for app_ in apps_to_be_cleaned_up:
+                app_.delete()
+
+
 def helm_install(release_name, chart, namespace="default", values_file=None, version=None):
     """
     Run a Helm install command.
