@@ -1,3 +1,5 @@
+from django.db import models
+
 from ... import AppInstanceManager, BaseAppInstance
 from .base import AbstractCustomAppInstance
 
@@ -8,10 +10,10 @@ class GradioAppInstanceManager(AppInstanceManager):
 
 class GradioInstance(AbstractCustomAppInstance, BaseAppInstance):
     objects = GradioAppInstanceManager()
+    port = models.IntegerField(default=7860)
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
-        # TODO Change this to actual command to run gradio app
         k8s_values["appconfig"]["startupCommand"] = "python main.py"
         return k8s_values
 

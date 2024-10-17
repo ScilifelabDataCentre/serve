@@ -67,11 +67,11 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     if collection:
         # TODO: TIDY THIS UP!
         for app_orm in app_orms:
-            print(app_orm, flush=True)
+            logger.info("%s", app_orm)
             published_apps_qs = app_orm.objects.filter(
                 ~Q(app_status__status="Deleted"), access="public", collections__slug=collection
             )
-            print(published_apps_qs, flush=True)
+            logger.info("%s", published_apps_qs)
             published_apps.extend([app for app in published_apps_qs])
 
     else:
