@@ -16,8 +16,10 @@ from common.forms import (
     DEPARTMENTS,
     EMAIL_ALLOW_REGEX,
     UNIVERSITIES,
+    ProfileEditForm,
     ProfileForm,
     SignUpForm,
+    UserEditForm,
     UserForm,
 )
 from common.models import EmailVerificationTable, UserProfile
@@ -235,3 +237,38 @@ def test_fail_validation_other_email_affiliation_selected(form):
             "Please select 'Other' in affiliation or use your Swedish university researcher email."
         ]
     } == form.user.errors
+
+
+@pytest.mark.parametrize(
+    "first_name, last_name",
+    [
+        ("Mahbub", "Alam"),
+        ("", "Alam"),
+        ("Mahbub", ""),
+        ("", ""),
+        (None, ""),
+        ("", None),
+        (None, None),
+    ],
+)
+def test_user_edit_form(first_name, last_name):
+    form = UserEditForm(data={"first_name": first_name, "last_name": last_name, "email": "mahbub@uu.se"})
+
+    is_val = form.is_valid()
+    assert not is_val, form.errors
+
+
+@pytest.mark.parametrize(
+    "department",
+    [
+        ("Computer Science"),
+        (""),
+        ("122445"),
+        (None),
+    ],
+)
+def test_profile_edit_form(department):
+    form = ProfileEditForm(data={"department": department, "affiliation": "Uppsala University"})
+
+    is_val = form.is_valid()
+    assert not is_val, form.errors
