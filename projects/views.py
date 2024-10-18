@@ -5,6 +5,7 @@ import logging
 import requests as r
 from django.apps import apps
 from django.conf import settings as django_settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
@@ -102,7 +103,10 @@ def settings(request, project_slug):
         )
 
     environments = Environment.objects.filter(project=project)
-    apps = Apps.objects.all().order_by("slug", "-revision").distinct("slug")
+    # apps = Apps.objects.all().order_by("slug", "-revision").distinct("slug")
+    apps_with_environment_option = (
+        Apps.objects.filter(environment__isnull=False).order_by("slug", "-revision").distinct("slug")
+    )
 
     flavors = Flavor.objects.filter(project=project)
 
@@ -207,7 +211,23 @@ def delete_environment(request, project_slug):
         pk = request.POST.get("environment_pk")
         # TODO: Check that the user has permission to delete this environment.
         environment = Environment.objects.get(pk=pk, project=project)
-        environment.delete()
+
+        can_environment_be_deleted = True
+        for model_class in APP_REGISTRY.iter_orm_models():
+            if hasattr(model_class, "environment"):
+                queryset = model_class.objects.filter(environment=environment)
+                logger.error(f"{queryset}")
+                if queryset:
+                    messages.error(
+                        request,
+                        "Environment cannot be deleted because it is currently used by at least one app \
+                            (can also be a deleted app).",
+                    )
+                    can_environment_be_deleted = False
+                    break
+
+        if can_environment_be_deleted:
+            environment.delete()
 
     return HttpResponseRedirect(
         reverse(
@@ -259,7 +279,22 @@ def delete_flavor(request, project_slug):
         pk = request.POST.get("flavor_pk")
         # TODO: Check that the user has permission to delete this flavor.
         flavor = Flavor.objects.get(pk=pk, project=project)
-        flavor.delete()
+
+        can_flavor_be_deleted = True
+        for model_class in APP_REGISTRY.iter_orm_models():
+            if hasattr(model_class, "flavor"):
+                queryset = model_class.objects.filter(flavor=flavor)
+                if queryset:
+                    messages.error(
+                        request,
+                        "Flavor cannot be deleted because it is currently used by at least one app \
+                            (can also be a deleted app).",
+                    )
+                    can_flavor_be_deleted = False
+                    break
+
+        if can_flavor_be_deleted:
+            flavor.delete()
 
     return HttpResponseRedirect(
         reverse(
