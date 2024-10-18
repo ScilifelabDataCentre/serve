@@ -37,7 +37,7 @@ class FlavorForm(forms.Form):
 
     cpu_lim = forms.CharField(label="CPU limit", max_length=10, initial="2000m")
     mem_lim = forms.CharField(label="Memory limit", max_length=15, initial="4Gi")
-    ephmem_req = forms.CharField(label="Ephemeral storage limit", max_length=15, initial="1000Mi")
+    ephmem_req = forms.CharField(label="Ephemeral storage limit", max_length=15, initial="5000Mi")
 
 
 class ImageUpdateForm(forms.Form):
