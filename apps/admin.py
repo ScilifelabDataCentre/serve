@@ -19,6 +19,7 @@ from .models import (
     NetpolicyInstance,
     RStudioInstance,
     ShinyInstance,
+    StreamlitInstance,
     Subdomain,
     TissuumapsInstance,
     VolumeInstance,
@@ -233,6 +234,16 @@ class FilemanagerInstanceAdmin(BaseAppAdmin):
 
 @admin.register(GradioInstance)
 class GradioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + (
+        "display_volumes",
+        "image",
+        "port",
+        "user_id",
+    )
+
+
+@admin.register(StreamlitInstance)
+class StreamlitInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + (
         "display_volumes",
         "image",
