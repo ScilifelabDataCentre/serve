@@ -1,4 +1,5 @@
 from .custom import CustomAppInstance, CustomAppInstanceManager
+from .custom.gradio import GradioAppInstanceManager, GradioInstance
 from .dash import DashInstance, DashInstanceManager
 from .filemanager import FilemanagerInstance, FilemanagerInstanceManager
 from .jupyter import JupyterInstance, JupyterInstanceManager
