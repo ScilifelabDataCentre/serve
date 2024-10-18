@@ -71,7 +71,7 @@ class Migration(migrations.Migration):
                         max_length=20,
                     ),
                 ),
-                ("port", models.IntegerField(default=8000)),
+                ("port", models.IntegerField(default=8501)),
                 ("image", models.CharField(max_length=255)),
                 ("path", models.CharField(blank=True, default="/", max_length=255)),
                 ("user_id", models.IntegerField(default=1000)),
