@@ -14,7 +14,7 @@ class GradioInstance(AbstractCustomAppInstance, BaseAppInstance):
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
-        k8s_values["appconfig"]["startupCommand"] = "python main.py"
+        k8s_values["appconfig"]["startupCommand"] = "#!/bin/bash\npython main.py"
         return k8s_values
 
     class Meta:
