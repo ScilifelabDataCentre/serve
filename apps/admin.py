@@ -19,12 +19,12 @@ from .models import (
     NetpolicyInstance,
     RStudioInstance,
     ShinyInstance,
+    StreamlitInstance,
     Subdomain,
     TissuumapsInstance,
     VolumeInstance,
     VSCodeInstance,
 )
-from .models.app_types.custom.streamlit import StreamlitInstance
 from .tasks import delete_resource, deploy_resource
 
 logger = get_logger(__name__)

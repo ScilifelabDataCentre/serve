@@ -7,11 +7,11 @@ from apps.forms import (
     NetpolicyForm,
     RStudioForm,
     ShinyForm,
+    StreamlitForm,
     TissuumapsForm,
     VolumeForm,
     VSCodeForm,
 )
-from apps.forms.streamlit import StreamlitForm
 from apps.models import (
     CustomAppInstance,
     DashInstance,
@@ -21,11 +21,11 @@ from apps.models import (
     NetpolicyInstance,
     RStudioInstance,
     ShinyInstance,
+    StreamlitInstance,
     TissuumapsInstance,
     VolumeInstance,
     VSCodeInstance,
 )
-from apps.models.app_types.custom.streamlit import StreamlitInstance
 from apps.types_.app_registry import AppRegistry
 from apps.types_.app_types import ModelFormTuple
 
