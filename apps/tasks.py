@@ -24,7 +24,7 @@ def delete_old_objects():
     This function retrieves the old apps based on the given threshold, category, and model class.
     It then iterates through the subclasses of BaseAppInstance and deletes the old apps
     for both the "Develop" and "Manage Files" categories.
-
+    TODO: Make app categories and their corresponding thresholds variables in settings.py.
     """
 
     def get_threshold(threshold):
@@ -48,8 +48,8 @@ def delete_old_objects():
 @app.task
 def clean_up_apps_in_database():
     """
-    This task retrieves apps that have been deleted (i.e. got status 'deleted') over 14 months ago \
-    and removes them from the database.
+    This task retrieves apps that have been deleted (i.e. got status 'deleted') over a \
+    specified amount of days ago and removes them from the database.
     TODO: Make apps_clean_up_threshold_days a variable in settings.py.
 
     """

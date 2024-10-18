@@ -33,7 +33,7 @@
       "clocked": null,
       "crontab": 3,
       "date_changed": "2021-02-26T14:03:40.168Z",
-      "description": "Deletes apps under develop after specified amount of time",
+      "description": "Deletes apps of specified categories after specified amount of time",
       "enabled": true,
       "exchange": null,
       "expire_seconds": null,
@@ -117,7 +117,7 @@
       "clocked": null,
       "crontab": 5,
       "date_changed": "2021-02-26T14:03:40.168Z",
-      "description": "Removes apps that have been deleted over 14 months ago from the database.",
+      "description": "Removes apps that have been deleted over a specified number of days ago from the database.",
       "enabled": true,
       "exchange": null,
       "expire_seconds": null,
@@ -138,5 +138,33 @@
     },
     "model": "django_celery_beat.periodictask",
     "pk": 9
+  },
+  {
+    "fields": {
+      "args": "[]",
+      "clocked": null,
+      "crontab": 6,
+      "date_changed": "2021-02-26T14:03:40.168Z",
+      "description": "Removes projects that have been deleted over a specified number of days ago from the database.",
+      "enabled": true,
+      "exchange": null,
+      "expire_seconds": null,
+      "expires": null,
+      "headers": "{}",
+      "interval": null,
+      "kwargs": "{}",
+      "last_run_at": "2021-02-26T14:03:37.169Z",
+      "name": "clean_up_projects_in_database",
+      "one_off": false,
+      "priority": null,
+      "queue": null,
+      "routing_key": null,
+      "solar": null,
+      "start_time": null,
+      "task": "projects.tasks.clean_up_projects_in_database",
+      "total_run_count": 174
+    },
+    "model": "django_celery_beat.periodictask",
+    "pk": 10
   }
 ]
