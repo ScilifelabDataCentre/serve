@@ -193,7 +193,7 @@ def clean_up_projects_in_database():
     """
 
     projects_clean_up_threshold_days = 425
-    logger.error(
+    logger.info(
         f"Running task clean_up_projects_in_database to remove all apps that have been \
                  deleted more than {projects_clean_up_threshold_days} days ago."
     )
@@ -203,8 +203,8 @@ def clean_up_projects_in_database():
     )
 
     if projects_to_be_cleaned_up:
-        logger.error(f"Removing {len(projects_to_be_cleaned_up)} project(s) from the database.")
+        logger.info(f"Removing {len(projects_to_be_cleaned_up)} project(s) from the database.")
         for project in projects_to_be_cleaned_up:
             project.delete()
     else:
-        logger.error("There were no projects to be cleaned up.")
+        logger.info("There were no projects to be cleaned up.")
