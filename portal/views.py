@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.generic import View
 
+from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance, SocialMixin
 from studio.utils import get_logger
 
@@ -62,20 +63,20 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
 
     published_apps = []
 
+    app_orms = (app_model for app_model in APP_REGISTRY.iter_orm_models() if issubclass(app_model, SocialMixin))
     if collection:
         # TODO: TIDY THIS UP!
-
-        for subclass in SocialMixin.__subclasses__():
-            print(subclass, flush=True)
-            published_apps_qs = subclass.objects.filter(
+        for app_orm in app_orms:
+            logger.info("%s", app_orm)
+            published_apps_qs = app_orm.objects.filter(
                 ~Q(app_status__status="Deleted"), access="public", collections__slug=collection
             )
-            print(published_apps_qs, flush=True)
+            logger.info("%s", published_apps_qs)
             published_apps.extend([app for app in published_apps_qs])
 
     else:
-        for subclass in SocialMixin.__subclasses__():
-            published_apps_qs = subclass.objects.filter(~Q(app_status__status="Deleted"), access="public")
+        for app_orm in app_orms:
+            published_apps_qs = app_orm.objects.filter(~Q(app_status__status="Deleted"), access="public")
             published_apps.extend([app for app in published_apps_qs])
 
     # Sort by the values specified in 'order_by' and 'reverse'
