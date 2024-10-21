@@ -194,7 +194,7 @@ def clean_up_projects_in_database():
 
     projects_clean_up_threshold_days = 425
     logger.info(
-        f"Running task clean_up_projects_in_database to remove all apps that have been \
+        f"Running task clean_up_projects_in_database to remove all projects that have been \
                  deleted more than {projects_clean_up_threshold_days} days ago."
     )
 
