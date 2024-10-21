@@ -13,6 +13,7 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = ("name", "owner", "status", "updated_at", "project_template")
     list_filter = ["owner", "status", "project_template"]
     actions = ["update_app_limits"]
+    readonly_fields = ["created_at"]
 
     @admin.action(description="Reset app limits")
     def update_app_limits(self, request, queryset):

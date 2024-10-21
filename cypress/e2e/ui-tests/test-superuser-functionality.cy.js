@@ -237,7 +237,7 @@ describe("Test superuser access", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').contains('Submit').click()
-             cy.get('tr:contains("' + app_name_flavor + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_flavor + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
             cy.logf("Changing the flavor setting", Cypress.currentTest)
             cy.visit("/projects/")
@@ -247,7 +247,7 @@ describe("Test superuser access", () => {
             cy.get('#id_flavor').find(':selected').should('contain', '2 vCPU, 4 GB RAM')
             cy.get('#id_flavor').select(new_flavor_name)
             cy.get('#submit-id-submit').contains('Submit').click()
-             cy.get('tr:contains("' + app_name_flavor + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_flavor + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
             cy.logf("Checking that the new flavor setting was saved in the database", Cypress.currentTest)
             cy.visit("/projects/")
@@ -267,7 +267,7 @@ describe("Test superuser access", () => {
             cy.get('#id_name').type(app_name_env)
             cy.get('#id_environment').select('Default Jupyter Lab')
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name_env + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_env + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
             cy.logf("Changing the environment setting", Cypress.currentTest)
             cy.visit("/projects/")
@@ -277,7 +277,7 @@ describe("Test superuser access", () => {
             cy.get('#id_environment').find(':selected').should('contain', 'Default Jupyter Lab')
             cy.get('#id_environment').select(new_environment_name)
             cy.get('#submit-id-submit').contains('Submit').click()
-            cy.get('tr:contains("' + app_name_env + '")').find('span').should('contain', 'Running')
+            cy.get('tr:contains("' + app_name_env + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
             cy.logf("Checking that the new environment setting was saved in the database", Cypress.currentTest)
             cy.visit("/projects/")
