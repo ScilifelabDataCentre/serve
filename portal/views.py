@@ -61,23 +61,26 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
         if "tf_add" not in request.GET and "tf_remove" not in request.GET:
             request.session["app_tags"] = {}
 
+    # Select published apps
     published_apps = []
+    # because shiny appears twice we have to ensure uniqueness
+    seen_app_ids = set() 
+    def process_queryset(queryset):
+        for app in queryset:
+            if app.id not in seen_app_ids:
+                published_apps.append(app)
+                seen_app_ids.add(app.id)
 
     app_orms = (app_model for app_model in APP_REGISTRY.iter_orm_models() if issubclass(app_model, SocialMixin))
-    if collection:
-        # TODO: TIDY THIS UP!
-        for app_orm in app_orms:
-            logger.info("%s", app_orm)
-            published_apps_qs = app_orm.objects.filter(
-                ~Q(app_status__status="Deleted"), access="public", collections__slug=collection
-            )
-            logger.info("%s", published_apps_qs)
-            published_apps.extend([app for app in published_apps_qs])
 
-    else:
-        for app_orm in app_orms:
-            published_apps_qs = app_orm.objects.filter(~Q(app_status__status="Deleted"), access="public")
-            published_apps.extend([app for app in published_apps_qs])
+    for app_orm in app_orms:
+        logger.info("Processing: %s", app_orm)
+        filters = ~Q(app_status__status="Deleted") & Q(access="public")
+        if collection:
+            filters &= Q(collections__slug=collection)
+        published_apps_qs = app_orm.objects.filter(filters)
+
+        process_queryset(published_apps_qs)
 
     # Sort by the values specified in 'order_by' and 'reverse'
     if all(hasattr(app, order_by) for app in published_apps):
