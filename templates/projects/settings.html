@@ -54,8 +54,6 @@
 
     <div class="col-md-9 col-xl-10 mt-4 mt-md-0">
         <div class="tab-content">
-            {% include 'common/flash_messages.html' %}
-
             <div class="tab-pane fade show active" id="projdesc" role="tabpanel">
                 <div class="card shadow border-0">
 
@@ -188,23 +186,23 @@
                                 <div class="mb-3">
                                     <label for="environment_name">Name</label>
                                     <input type="text" name="environment_name" id="environment_name" value=""
-                                        placeholder="Lab X" class="form-control" />
+                                        class="form-control" />
                                 </div>
                                 <div class="mb-3">
                                     <label for="environment_name">Repository</label>
                                     <input type="text" name="environment_repository" id="environment_repository"
-                                        placeholder="docker.io" value="" class="form-control" />
+                                        value="" class="form-control" />
                                 </div>
                                 <div class="mb-3">
                                     <label for="environment_image">Image</label>
                                     <input type="text" name="environment_image" id="environment_image" value=""
-                                        placeholder="user/image:tag" class="form-control" />
+                                        class="form-control" />
                                 </div>
                                 <div class="mb-3">
                                     <label for="environment_app">Applies to app:</label>
                                     <select type="text" class="form-control" id="environment_app" name="environment_app"
                                         maxlength="256" required>
-                                        {% for app in apps_with_environment_option %}
+                                        {% for app in apps %}
                                         <option value="{{ app.pk }}">{{ app.name }}</option>
                                         {% endfor %}
                                     </select>
