@@ -64,7 +64,8 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     # Select published apps
     published_apps = []
     # because shiny appears twice we have to ensure uniqueness
-    seen_app_ids = set() 
+    seen_app_ids = set()
+
     def process_queryset(queryset):
         for app in queryset:
             if app.id not in seen_app_ids:
