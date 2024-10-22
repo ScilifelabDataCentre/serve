@@ -1,10 +1,12 @@
 import collections
 import json
+from datetime import datetime
 
 from celery import shared_task
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from apps.app_registry import APP_REGISTRY
 from apps.helpers import create_instance_from_form
@@ -168,7 +170,9 @@ def delete_project(project_pk):
     project = Project.objects.get(pk=project_pk)
     delete_project_apps(project)
 
-    project.delete()
+    project.status = "deleted"
+    project.deleted_on = datetime.now()
+    project.save()
 
 
 @shared_task
@@ -178,3 +182,29 @@ def delete_project_apps(project):
         for instance in queryset:
             serialized_instance = instance.serialize()
             delete_resource(serialized_instance)
+
+
+@shared_task
+def clean_up_projects_in_database():
+    """
+    This task retrieves projects that have been deleted (i.e. got status 'deleted') over a specified
+    amount of days ago and removes them from the database.
+    TODO: Make projects_clean_up_threshold_days a variable in settings.py.
+    """
+
+    projects_clean_up_threshold_days = 425
+    logger.info(
+        f"Running task clean_up_projects_in_database to remove all projects that have been \
+                 deleted more than {projects_clean_up_threshold_days} days ago."
+    )
+
+    projects_to_be_cleaned_up = Project.objects.filter(
+        deleted_on__lt=timezone.now() - timezone.timedelta(days=projects_clean_up_threshold_days), status="deleted"
+    )
+
+    if projects_to_be_cleaned_up:
+        logger.info(f"Removing {len(projects_to_be_cleaned_up)} project(s) from the database.")
+        for project in projects_to_be_cleaned_up:
+            project.delete()
+    else:
+        logger.info("There were no projects to be cleaned up.")
