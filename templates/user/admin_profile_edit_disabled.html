@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Admin profile edit disabled{% endblock %}
+
+
+{% block content %}
+
+<div class="container">
+  <div class="card shadow-lg my-5">
+    <div class="card-body">
+
+      <div class="row justify-content-md-center py-3">
+
+        <div class="col col-md-6">
+          <div class="row">
+            <div class="col">
+              <h2>Profile editing is disabled!</h2>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12">
+              <p>Admin user does not have a ProfileTable to update records.</p>
+              <a class="btn btn-primary" href="{% url 'projects:index' %}">Go to My projects</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
