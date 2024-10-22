@@ -281,9 +281,9 @@ def delete_flavor(request, project_slug):
         flavor = Flavor.objects.get(pk=pk, project=project)
 
         can_flavor_be_deleted = True
-        for model_class in APP_REGISTRY.iter_orm_models():
-            if hasattr(model_class, "flavor"):
-                queryset = model_class.objects.filter(flavor=flavor)
+        for app_orm in APP_REGISTRY.iter_orm_models():
+            if hasattr(app_orm, "flavor"):
+                queryset = app_orm.objects.filter(flavor=flavor)
                 if queryset:
                     messages.error(
                         request,
