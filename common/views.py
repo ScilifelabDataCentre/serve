@@ -145,11 +145,7 @@ class VerifyView(TemplateView):
         return render(request, self.template_name, {"form": form})
 
 
-<<<<<<< HEAD
-@method_decorator(login_required, name="post")
-=======
 @method_decorator(login_required, name="dispatch")
->>>>>>> 0ed33936100075cb1b452129be1296397bbff6dd
 class EditProfileView(TemplateView):
     template_name = "user/profile_edit_form.html"
 
@@ -219,54 +215,12 @@ class EditProfileView(TemplateView):
         if user_form_details.is_valid() and profile_form_details.is_valid():
             try:
                 with transaction.atomic():
-<<<<<<< HEAD
-                    """
-                    user_form_retrived_data = user_form_details.save(commit=False)
-
-                    # Only saving the new values, overwriting other existing values
-                    if (
-                        user_form_retrived_data.first_name != user_profile_data.user.first_name
-                        or user_form_retrived_data.last_name != user_profile_data.user.last_name
-                    ):
-                        user_form_retrived_data.username = user_profile_data.user.username
-                        user_form_retrived_data.email = user_profile_data.user.email
-                        user_form_retrived_data.password1 = user_profile_data.user.password
-                        user_form_retrived_data.password2 = user_profile_data.user.password
-                        user_form_retrived_data.save()
-
-                    else:
-                        logger.info("Not saving user form info as nothing has changed", exc_info=True)
-
-                    profile_form_retrived_data = profile_form_details.save(commit=False)
-
-                    # Only saving the new values, overwriting other existing values
-                    profile_form_retrived_data.affiliation = user_profile_data.affiliation
-                    profile_form_retrived_data.deleted_on = user_profile_data.deleted_on
-                    profile_form_retrived_data.why_account_needed = user_profile_data.why_account_needed
-                    profile_form_retrived_data.save()
-
-                    # profile_form_details.save_m2m()
-                    """
-                    user_form_details.save()
-                    profile_form_details.save()
-
-                    logger.info(
-                        "Updated First Name: " + str(self.get_user_profile_info(request).user.first_name), exc_info=True
-                    )
-                    logger.info(
-                        "Updated Last Name: " + str(self.get_user_profile_info(request).user.last_name), exc_info=True
-                    )
-                    logger.info(
-                        "Updated Department: " + str(self.get_user_profile_info(request).department), exc_info=True
-                    )
-=======
                     user_form_details.save()
                     profile_form_details.save()
 
                     logger.info("Updated First Name: " + str(self.get_user_profile_info(request).user.first_name))
                     logger.info("Updated Last Name: " + str(self.get_user_profile_info(request).user.last_name))
                     logger.info("Updated Department: " + str(self.get_user_profile_info(request).department))
->>>>>>> 0ed33936100075cb1b452129be1296397bbff6dd
 
             except Exception as e:
                 return HttpResponse("Error updating records: " + str(e))
@@ -275,17 +229,10 @@ class EditProfileView(TemplateView):
 
         else:
             if not user_form_details.is_valid():
-<<<<<<< HEAD
-                logger.error("Edit user error: " + str(user_form_details.errors), exc_info=True)
-
-            if not profile_form_details.is_valid():
-                logger.error("Edit profile error: " + str(profile_form_details.errors), exc_info=True)
-=======
                 logger.error("Edit user error: " + str(user_form_details.errors))
 
             if not profile_form_details.is_valid():
                 logger.error("Edit profile error: " + str(profile_form_details.errors))
->>>>>>> 0ed33936100075cb1b452129be1296397bbff6dd
 
             return render(
                 request, self.template_name, {"form": user_form_details, "profile_form": profile_form_details}
