@@ -103,7 +103,6 @@ def settings(request, project_slug):
         )
 
     environments = Environment.objects.filter(project=project)
-    # apps = Apps.objects.all().order_by("slug", "-revision").distinct("slug")
     apps_with_environment_option = (
         Apps.objects.filter(environment__isnull=False).order_by("slug", "-revision").distinct("slug")
     )
