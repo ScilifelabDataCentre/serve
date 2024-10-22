@@ -168,35 +168,39 @@ class EditProfileView(TemplateView):
         return user_profile
 
     def get(self, request, *args, **kwargs):
-        user_profile_data = self.get_user_profile_info(request)
-        common_user = True if not request.user.is_superuser else False
+        # admin user
+        if request.user.email in ["admin@serve.scilifelab.se", "event_user@serve.scilifelab.se"]:
+            return render(request, "user/admin_profile_edit_disabled.html")
 
-        profile_edit_form = self.profile_edit_form_class(
-            initial={
-                "affiliation": user_profile_data.affiliation if common_user else "uu",
-                "department": user_profile_data.department if common_user else "",
-            }
-        )
+        # common user with or without Staff/Superuser status
+        else:
+            user_profile_data = self.get_user_profile_info(request)
 
-        user_edit_form = self.user_edit_form_class(
-            initial={
-                "email": user_profile_data.user.email if common_user else "test_admin@xyz.se",
-                "first_name": user_profile_data.user.first_name if common_user else "admin_first_name",
-                "last_name": user_profile_data.user.last_name if common_user else "admin_last_name",
-            }
-        )
+            profile_edit_form = self.profile_edit_form_class(
+                initial={
+                    "affiliation": user_profile_data.affiliation,
+                    "department": user_profile_data.department,
+                }
+            )
 
-        return render(request, self.template_name, {"form": user_edit_form, "profile_form": profile_edit_form})
+            user_edit_form = self.user_edit_form_class(
+                initial={
+                    "email": user_profile_data.user.email,
+                    "first_name": user_profile_data.user.first_name,
+                    "last_name": user_profile_data.user.last_name,
+                }
+            )
+
+            return render(request, self.template_name, {"form": user_edit_form, "profile_form": profile_edit_form})
 
     def post(self, request, *args, **kwargs):
         user_profile_data = self.get_user_profile_info(request)
-        common_user = True if not request.user.is_superuser else False
 
         user_form_details = self.user_edit_form_class(
             request.POST,
             instance=request.user,
             initial={
-                "email": user_profile_data.user.email if common_user else "test_admin@xyz.se",
+                "email": user_profile_data.user.email,
             },
         )
 
@@ -204,7 +208,7 @@ class EditProfileView(TemplateView):
             request.POST,
             instance=user_profile_data,
             initial={
-                "affiliation": user_profile_data.affiliation if common_user else "uu",
+                "affiliation": user_profile_data.affiliation,
             },
         )
 
@@ -219,9 +223,7 @@ class EditProfileView(TemplateView):
                     logger.info("Updated Department: " + str(self.get_user_profile_info(request).department))
 
             except Exception as e:
-                # For the superuser it is expected to not to be able to update records
-                # as it does not have a user profile object.
-                return HttpResponse("Superuser: " + str(not common_user) + ", Error updating records: " + str(e))
+                return HttpResponse("Error updating records: " + str(e))
 
             return render(request, "user/profile.html", {"user_profile": self.get_user_profile_info(request)})
 
