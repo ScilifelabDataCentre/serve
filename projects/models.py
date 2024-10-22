@@ -216,6 +216,7 @@ class ProjectTemplate(models.Model):
 class Project(models.Model):
     authorized = models.ManyToManyField(get_user_model(), blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    deleted_on = models.DateTimeField(null=True, blank=True)
     clone_url = models.CharField(max_length=512, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
 
