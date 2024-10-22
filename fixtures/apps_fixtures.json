@@ -311,7 +311,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.0.2",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.0",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "Apps built with Gradio, Streamlit, Flask, etc.",
       "logo": "default-logo.svg",
@@ -484,5 +484,41 @@
     },
     "model": "apps.apps",
     "pk": 28
+  },
+  {
+    "fields": {
+      "category": "serve",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.0",
+      "created_on": "2023-08-25T21:34:37.815Z",
+      "description": "",
+      "logo": "gradio-logo.svg",
+      "name": "Gradio App",
+      "priority": "400",
+      "slug": "gradio",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "updated_on": "2023-08-25T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 30
+  },
+  {
+    "fields": {
+      "category": "serve",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.0",
+      "created_on": "2023-08-25T21:34:37.815Z",
+      "description": "",
+      "logo": "streamlit-logo.svg",
+      "name": "Streamlit App",
+      "priority": "400",
+      "slug": "streamlit",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "updated_on": "2023-08-25T19:45:03.927Z"
+    },
+    "model": "apps.apps",
+    "pk": 35
   }
 ]

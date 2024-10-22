@@ -145,7 +145,11 @@ class VerifyView(TemplateView):
         return render(request, self.template_name, {"form": form})
 
 
+<<<<<<< HEAD
 @method_decorator(login_required, name="post")
+=======
+@method_decorator(login_required, name="dispatch")
+>>>>>>> 0ed33936100075cb1b452129be1296397bbff6dd
 class EditProfileView(TemplateView):
     template_name = "user/profile_edit_form.html"
 
@@ -168,21 +172,30 @@ class EditProfileView(TemplateView):
         return user_profile
 
     def get(self, request, *args, **kwargs):
-        user_profile_data = self.get_user_profile_info(request)
+        # admin user
+        if request.user.email in ["admin@serve.scilifelab.se", "event_user@serve.scilifelab.se"]:
+            return render(request, "user/admin_profile_edit_disabled.html")
 
-        profile_edit_form = self.profile_edit_form_class(
-            initial={"affiliation": user_profile_data.affiliation, "department": user_profile_data.department}
-        )
+        # common user with or without Staff/Superuser status
+        else:
+            user_profile_data = self.get_user_profile_info(request)
 
-        user_edit_form = self.user_edit_form_class(
-            initial={
-                "email": user_profile_data.user.email,
-                "first_name": user_profile_data.user.first_name,
-                "last_name": user_profile_data.user.last_name,
-            }
-        )
+            profile_edit_form = self.profile_edit_form_class(
+                initial={
+                    "affiliation": user_profile_data.affiliation,
+                    "department": user_profile_data.department,
+                }
+            )
 
-        return render(request, self.template_name, {"form": user_edit_form, "profile_form": profile_edit_form})
+            user_edit_form = self.user_edit_form_class(
+                initial={
+                    "email": user_profile_data.user.email,
+                    "first_name": user_profile_data.user.first_name,
+                    "last_name": user_profile_data.user.last_name,
+                }
+            )
+
+            return render(request, self.template_name, {"form": user_edit_form, "profile_form": profile_edit_form})
 
     def post(self, request, *args, **kwargs):
         user_profile_data = self.get_user_profile_info(request)
@@ -206,6 +219,7 @@ class EditProfileView(TemplateView):
         if user_form_details.is_valid() and profile_form_details.is_valid():
             try:
                 with transaction.atomic():
+<<<<<<< HEAD
                     """
                     user_form_retrived_data = user_form_details.save(commit=False)
 
@@ -245,6 +259,14 @@ class EditProfileView(TemplateView):
                     logger.info(
                         "Updated Department: " + str(self.get_user_profile_info(request).department), exc_info=True
                     )
+=======
+                    user_form_details.save()
+                    profile_form_details.save()
+
+                    logger.info("Updated First Name: " + str(self.get_user_profile_info(request).user.first_name))
+                    logger.info("Updated Last Name: " + str(self.get_user_profile_info(request).user.last_name))
+                    logger.info("Updated Department: " + str(self.get_user_profile_info(request).department))
+>>>>>>> 0ed33936100075cb1b452129be1296397bbff6dd
 
             except Exception as e:
                 return HttpResponse("Error updating records: " + str(e))
@@ -253,10 +275,17 @@ class EditProfileView(TemplateView):
 
         else:
             if not user_form_details.is_valid():
+<<<<<<< HEAD
                 logger.error("Edit user error: " + str(user_form_details.errors), exc_info=True)
 
             if not profile_form_details.is_valid():
                 logger.error("Edit profile error: " + str(profile_form_details.errors), exc_info=True)
+=======
+                logger.error("Edit user error: " + str(user_form_details.errors))
+
+            if not profile_form_details.is_valid():
+                logger.error("Edit profile error: " + str(profile_form_details.errors))
+>>>>>>> 0ed33936100075cb1b452129be1296397bbff6dd
 
             return render(
                 request, self.template_name, {"form": user_form_details, "profile_form": profile_form_details}

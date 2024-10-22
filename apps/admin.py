@@ -14,10 +14,12 @@ from .models import (
     CustomAppInstance,
     DashInstance,
     FilemanagerInstance,
+    GradioInstance,
     JupyterInstance,
     NetpolicyInstance,
     RStudioInstance,
     ShinyInstance,
+    StreamlitInstance,
     Subdomain,
     TissuumapsInstance,
     VolumeInstance,
@@ -52,7 +54,7 @@ admin.site.register(Apps, AppsAdmin)
 
 class BaseAppAdmin(admin.ModelAdmin):
     list_display = ("name", "display_owner", "display_project", "display_status", "display_subdomain", "chart")
-    readonly_fields = ("id",)
+    readonly_fields = ("id", "created_on")
     list_filter = ["owner", "project", "app_status__status", "chart"]
     actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
 
@@ -227,6 +229,26 @@ class FilemanagerInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + (
         "display_volumes",
         "persistent",
+    )
+
+
+@admin.register(GradioInstance)
+class GradioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + (
+        "display_volumes",
+        "image",
+        "port",
+        "user_id",
+    )
+
+
+@admin.register(StreamlitInstance)
+class StreamlitInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display + (
+        "display_volumes",
+        "image",
+        "port",
+        "user_id",
     )
 
 

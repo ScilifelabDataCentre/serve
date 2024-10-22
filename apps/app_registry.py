@@ -2,10 +2,12 @@ from apps.forms import (
     CustomAppForm,
     DashForm,
     FilemanagerForm,
+    GradioForm,
     JupyterForm,
     NetpolicyForm,
     RStudioForm,
     ShinyForm,
+    StreamlitForm,
     TissuumapsForm,
     VolumeForm,
     VSCodeForm,
@@ -14,10 +16,12 @@ from apps.models import (
     CustomAppInstance,
     DashInstance,
     FilemanagerInstance,
+    GradioInstance,
     JupyterInstance,
     NetpolicyInstance,
     RStudioInstance,
     ShinyInstance,
+    StreamlitInstance,
     TissuumapsInstance,
     VolumeInstance,
     VSCodeInstance,
@@ -37,3 +41,5 @@ APP_REGISTRY.register("shinyapp", ModelFormTuple(ShinyInstance, ShinyForm))
 APP_REGISTRY.register("shinyproxyapp", ModelFormTuple(ShinyInstance, ShinyForm))
 APP_REGISTRY.register("tissuumaps", ModelFormTuple(TissuumapsInstance, TissuumapsForm))
 APP_REGISTRY.register("filemanager", ModelFormTuple(FilemanagerInstance, FilemanagerForm))
+APP_REGISTRY.register("gradio", ModelFormTuple(GradioInstance, GradioForm))
+APP_REGISTRY.register("streamlit", ModelFormTuple(StreamlitInstance, StreamlitForm))
