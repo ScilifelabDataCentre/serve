@@ -213,9 +213,8 @@ def delete_environment(request, project_slug):
 
         can_environment_be_deleted = True
         for app_orm in APP_REGISTRY.iter_orm_models():
-            if hasattr(model_class, "environment"):
+            if hasattr(app_orm, "environment"):
                 queryset = app_orm.objects.filter(environment=environment)
-                logger.error(f"{queryset}")
                 if queryset:
                     messages.error(
                         request,
