@@ -261,7 +261,7 @@ def test_user_edit_form(first_name, last_name):
 @pytest.mark.parametrize(
     "department",
     [
-        ("Bilolgy"),
+        ("abc"),
         (""),
         ("122445"),
         (None),
