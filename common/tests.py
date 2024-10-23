@@ -242,9 +242,9 @@ def test_fail_validation_other_email_affiliation_selected(form):
 @pytest.mark.parametrize(
     "first_name, last_name",
     [
-        ("Mahbub", "Alam"),
-        ("", "Alam"),
-        ("Mahbub", ""),
+        ("abc", "xyz"),
+        ("", "xyz"),
+        ("abc", ""),
         ("", ""),
         (None, ""),
         ("", None),
@@ -252,7 +252,7 @@ def test_fail_validation_other_email_affiliation_selected(form):
     ],
 )
 def test_user_edit_form(first_name, last_name):
-    form = UserEditForm(data={"first_name": first_name, "last_name": last_name, "email": "mahbub@uu.se"})
+    form = UserEditForm(data={"first_name": first_name, "last_name": last_name, "email": "test@x.se"})
 
     is_val = form.is_valid()
     assert not is_val, form.errors
@@ -261,7 +261,7 @@ def test_user_edit_form(first_name, last_name):
 @pytest.mark.parametrize(
     "department",
     [
-        ("Computer Science"),
+        ("Bilolgy"),
         (""),
         ("122445"),
         (None),
