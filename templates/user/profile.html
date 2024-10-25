@@ -11,8 +11,16 @@
         <div class="card-body">
             <div class="row">
                 <div class="col">
-                    <h3 class="card-title mb-0">My user profile</h3>
-
+                    <div class="row">
+                        <div class="col">
+                            <h3 class="card-title mb-0">My user profile</h3>
+                        </div>
+                        <div class="col">
+                            <button type="button" type="submit" aria-expanded="false" class="btn btn-profile">
+                                <a href="{% url 'common:edit-profile' %}"> <i class="bi bi-pencil-square"></i> Edit </a>
+                            </button>
+                        </div>
+                        </div>
                     <div class="row pt-4">
                         <h6 class="fw-bold">Account</h6>
                     </div>
@@ -45,7 +53,7 @@
                     <div class="row pt-5">
                         <h5>Delete Account</h5>
                         <p>
-                            To delete your account, <a href="{% url 'delete_account' %}">visit this page</a>
+                            To delete your account, <a href="{% url 'delete_account' %}">visit this page</a>.
                         </p>
                     </div>
 
