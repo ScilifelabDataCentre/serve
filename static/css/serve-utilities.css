@@ -82,3 +82,17 @@ label.required::before {
   .w-80 {
     width: 80%;
   }
+
+.nav-tab-logs {
+    border-color: #d2d5d8!important;
+}
+.nav-tab-logs.active {
+  background-color:#6d5476!important;
+  border-bottom:#6d5476!important;
+  font-weight: bold!important;
+  color: white!important;
+}
+.nav-tab-logs.disabled {
+    color: #6c757d43!important;
+    border:#6c757d00!important;
+  }
