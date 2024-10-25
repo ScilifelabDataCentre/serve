@@ -7,6 +7,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.exceptions import ValidationError
+from django.http import HttpRequest
 from django.test import override_settings
 from hypothesis import Verbosity, assume, given, settings
 from hypothesis import strategies as st
@@ -16,8 +17,10 @@ from common.forms import (
     DEPARTMENTS,
     EMAIL_ALLOW_REGEX,
     UNIVERSITIES,
+    ProfileEditForm,
     ProfileForm,
     SignUpForm,
+    UserEditForm,
     UserForm,
 )
 from common.models import EmailVerificationTable, UserProfile
@@ -235,3 +238,66 @@ def test_fail_validation_other_email_affiliation_selected(form):
             "Please select 'Other' in affiliation or use your Swedish university researcher email."
         ]
     } == form.user.errors
+
+
+@pytest.mark.parametrize(
+    "first_name, last_name",
+    [
+        ("abc", "xyz"),
+        ("122124", "57457458"),
+        ("/&)(&(/))", "@#€%€%&"),
+    ],
+)
+def test_pass_validation_user_edit_form(first_name, last_name):
+    request = HttpRequest()
+    request.POST = {
+        "first_name": first_name,
+        "last_name": last_name,
+    }
+    form = UserEditForm(request.POST, instance=UserProfile(), initial={"email": "a@uu.se"})
+    assert form.is_valid()
+
+
+@pytest.mark.parametrize(
+    "first_name, last_name",
+    [
+        ("", "xyz"),
+        ("abc", ""),
+        ("", ""),
+        ("   ", "   "),
+        (None, ""),
+        ("", None),
+        (None, None),
+    ],
+)
+def test_fail_validation_user_edit_form(first_name, last_name):
+    request = HttpRequest()
+    request.POST = {"first_name": first_name, "last_name": last_name}
+    form = UserEditForm(request.POST, instance=UserProfile(), initial={"email": "a@uu.se"})
+    assert not form.is_valid()
+
+
+@pytest.mark.parametrize(
+    "department",
+    [
+        ("abc"),
+        ("122445"),
+        ("@#%&&"),
+        (""),
+        ("  "),
+        (None),
+    ],
+)
+def test_pass_validation_profile_edit_form(department):
+    request = HttpRequest()
+    request.POST = {
+        "department": department,
+    }
+    form = ProfileEditForm(
+        request.POST,
+        instance=UserProfile(),
+        initial={
+            "affiliation": "uu",
+        },
+    )
+    assert form.is_valid()
