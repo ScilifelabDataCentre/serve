@@ -93,6 +93,12 @@ label.required::before {
   color: white!important;
 }
 .nav-tab-logs.disabled {
-    color: #6c757d43!important;
+    color: #ffffff11!important;
     border:#6c757d00!important;
   }
+
+.nav-tab-error {
+    background: #d2454fb8!important;
+    border: #e5626b!important;
+    color: white!important;
+}
