@@ -8,7 +8,7 @@
   <div class="col-md-12">
     <div class="row">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-      <h3>{{ instance.name }} Logs</h3> <h5><span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}"> {{ instance.status.latest.status_type }}</span></h5>
+      <h3>{{ instance.name }} Logs</h3> <h5><span class="shadow badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}"> {{ instance.status.latest.status_type }}</span></h5>
     </div>
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
         <p> <span class="fw-bold"> Note:</span> Logs appear a few minutes after an app has been launched. The Status on the top right is an indication of the state of the app. {% if instance.app.slug == 'customapp' and instance.volume %} If the app is not running (due to an error) and you have a volume attached to the app, then you can switch between to the tabs below to see logs for the data copy process. If the data copy succeeds, then the data copy tab is disabled and can't be accessed. This can give you hints if data copy failed.{% endif %} </p>
@@ -16,16 +16,16 @@
     <div>
       <nav>
         <div class="nav nav-tabs" id="nav-tab" role="tablist">
-          <button class="nav-link nav-tab-logs active" id="nav-contianer1-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer1" type="button" role="tab" aria-controls="nav-contianer1" aria-selected="true" onclick="updateContainer('{{ instance.subdomain.subdomain }}')">{{instance.name}}</button>
+          <button class="shadow nav-link nav-tab-logs active" id="nav-contianer1-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer1" type="button" role="tab" aria-controls="nav-contianer1" aria-selected="true" onclick="updateContainer('{{ instance.subdomain.subdomain }}')">{{instance.name}}</button>
 
           {% if instance.app.slug == 'customapp' and instance.volume %}
-          <button class="nav-link nav-tab-logs {% if instance.app_status.status == 'Running' %}disabled{% endif %}" id="nav-contianer2-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer2" type="button" role="tab" aria-controls="nav-contianer2" aria-selected="false" onclick="updateContainer('copy-to-pvc')">Data Copy</button>
+          <button class="shadow nav-link nav-tab-logs {% if instance.app_status.status == 'Running' %}disabled{% endif %}" id="nav-contianer2-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer2" type="button" role="tab" aria-controls="nav-contianer2" aria-selected="false" onclick="updateContainer('copy-to-pvc')">Data Copy</button>
           {% endif %}
         </div>
       </nav>
     </div>
     </div>
-    <div class="row pt-3 pb-3 border rounded">
+    <div class="shadow row pt-3 pb-3 border rounded">
       <div class="table-responsive">
         <table id="logs" class="table">
           <thead class="table-light">
@@ -134,7 +134,7 @@ const updateContainer = (container) => {
               const elements = document.querySelectorAll(querySelector);
 
               elements.forEach(element => {
-                  const className = `badge bg-${statusGroup}`;
+                  const className = `shadow badge bg-${statusGroup}`;
                   element.className = className;
                   element.innerText = status;
               });

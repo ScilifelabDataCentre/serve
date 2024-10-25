@@ -74,7 +74,7 @@ class GetLogs(View):
 
         # get container name from UI (subdomain or copy-to-pvc) if none exists then use subdomain name
         container = request.POST.get("container", "") or instance.subdomain.subdomain
-        
+
         if not getattr(instance, "logs_enabled", False):
             return JsonResponse({"error": "Logs not enabled for this instance"}, status=403)
 
