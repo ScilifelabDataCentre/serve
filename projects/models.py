@@ -101,8 +101,8 @@ class Flavor(models.Model):
                 },
             )
         )
-        # allow GPU only for specific apps. 
-        apps_allowed_gpus=["jupyter-lab"]
+        # allow GPU only for specific apps.
+        apps_allowed_gpus = ["jupyter-lab"]
         if self.gpu_req and int(self.gpu_req) > 0 and app_slug in apps_allowed_gpus:
             flavor_dict["flavor"]["requests"]["nvidia.com/gpu"] = self.gpu_req
             flavor_dict["flavor"]["limits"]["nvidia.com/gpu"] = self.gpu_lim
