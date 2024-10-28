@@ -66,11 +66,15 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     # because shiny appears twice we have to ensure uniqueness
     seen_app_ids = set()
 
-    def process_queryset(queryset):
+    def get_unique_apps(queryset, app_ids_to_exclude):
+        """Get from queryset app orm models, that are not present in ``seen_app_ids``"""
+        unique_app_ids_ = set()
+        unique_apps_ = []
         for app in queryset:
-            if app.id not in seen_app_ids:
-                published_apps.append(app)
-                seen_app_ids.add(app.id)
+            if app.id not in app_ids_to_exclude and app_id not in unique_app_ids_:
+                unique_app_ids_.add(app.id)
+                unique_apps_.append(app)
+        return unique_apps_, unique_app_ids_
 
     app_orms = (app_model for app_model in APP_REGISTRY.iter_orm_models() if issubclass(app_model, SocialMixin))
 
