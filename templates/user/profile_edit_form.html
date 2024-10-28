@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit my user profile{% endblock %}
+
+{% load static %}
+{% load is_login_signup_disabled %}
+{% block extra_scripts %}
+	<script src="{% static 'js/form-helpers.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Begin Page Content -->
+<div class="container-sm py-5">
+
+    <!-- Main Content Here -->
+    <div class="card border-0 shadow p-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                    <div class="row">
+                        <div class="col">
+                            <h3 class="card-title mb-0">Edit my user profile</h3>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row pt-4">
+                            <h6 class="fw-bold">Account</h6>
+                        </div>
+
+                        <div class="row pt-1">
+                            <div class="col-4">{{form.email.label_tag}}</div>
+                            <div class="col-8 fw-bold">{{form.email}}</div>
+                            <div class="col-4"></div>
+                            <div class="col-8 form-text">{{form.email.help_text}}</div>
+
+                        </div>
+
+                        <div class="row pt-4">
+                            <h6 class="fw-bold">Contact</h6>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-4">{{form.first_name.label_tag}}</div>
+                            <div class="col-8 fw-bold">
+                                {{form.first_name}}
+                                {% if form.first_name.errors %}
+                                    <div class="form-text">{{form.first_name.help_text}}</div>
+                                    <div id="validation_first_name" class="invalid-feedback pt-1">
+                                        {% for error in form.first_name.errors %}
+                                             <p class="m-0">{{error|escape}}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row pt-1">
+                            <div class="col-4">{{form.last_name.label_tag}}</div>
+                            <div class="col-8 fw-bold">{{form.last_name}}</div>
+                            {% if form.last_name.errors %}
+                                <div id="validation_last_name" class="pt-1 invalid-feedback">
+                                    {% for error in form.last_name.errors %}
+                                        <p class="m-0">{{error|escape}}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row pt-1">
+                            <div class="col-4">{{profile_form.affiliation.label_tag}}</div>
+                            <div class="col-8 fw-bold">{{ profile_form.affiliation }}</div>
+                            <div class="col-4"></div>
+                            <div class="col-8 form-text">{{profile_form.affiliation.help_text}}</div>
+                        </div>
+
+                        <div class="row pt-1">
+                            <div class="col-4">{{profile_form.department.label_tag}}</div>
+                            <div class="col-8 fw-bold">{{ profile_form.department | safe }}</div>
+                            <div class="col-4"></div>
+                            <div class="col-8 form-text">{{profile_form.department.help_text}}</div>
+
+                                {% if profile_form.department.errors %}
+                                <div id="validation_department" class="pt-1 invalid-feedback">
+                                    {% for error in profile_form.department.errors %}
+                                    <p class="m-0">{{error|escape}}</p>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                        </div>
+
+                        <div class="row pt-1">
+                            <div class="col-4">Password:</div>
+                            <div class="col-8">
+                                <p>
+                                    To change your password, <a href="{% url 'password_change' %}">visit this page</a>.
+                            </p>
+                            </div>
+                        </div>
+
+                        <div class="row pt-1">
+                            <div class="d-flex justify-content-end">
+
+                                <a href="/" class="btn me-2">Cancel</a>
+                                <input type="submit" name="save" value="Submit" class="btn btn-primary ms-2"
+                                    id="submit-id-save">
+                            </div>
+                        </div>
+
+                    </form>
+
+
+
+                    <div class="row pt-2">
+                        <h5>Delete Account</h5>
+                        <p>
+                            To delete your account, <a href="{% url 'delete_account' %}">visit this page</a>.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock content %}
