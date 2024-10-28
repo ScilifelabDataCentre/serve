@@ -87,7 +87,7 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
 
         unique_apps, unique_app_ids = get_unique_apps(published_apps_qs, seen_app_ids)
         published_apps += unique_apps
-        seen_app_ids += unique_app_ids
+        seen_app_ids.update(unique_app_ids)
 
     # Sort by the values specified in 'order_by' and 'reverse'
     if all(hasattr(app, order_by) for app in published_apps):
