@@ -16,10 +16,10 @@
     <div>
       <nav>
         <div class="nav nav-tabs" id="nav-tab" role="tablist">
-          <button class="shadow nav-link nav-tab-logs active" id="nav-contianer1-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer1" type="button" role="tab" aria-controls="nav-contianer1" aria-selected="true" onclick="updateContainer('{{ instance.subdomain.subdomain }}')">{{instance.name}}</button>
+          <button class="shadow nav-link nav-tab-logs active" id="nav-container1-tab" data-bs-toggle="tab" data-bs-target="#nav-container1" type="button" role="tab" aria-controls="nav-container1" aria-selected="true" onclick="updateContainer('{{ instance.subdomain.subdomain }}')">{{instance.name}}</button>
 
           {% if instance.app.slug == 'customapp' and instance.volume %}
-          <button class="nav-link nav-tab-logs {% if instance.app_status.status == 'Running' %}disabled {% else %}nav-tab-error shadow {% endif %}" id="nav-contianer2-tab" data-bs-toggle="tab" data-bs-target="#nav-contianer2" type="button" role="tab" aria-controls="nav-contianer2" aria-selected="false" onclick="updateContainer('copy-to-pvc')">Data Copy</button>
+          <button class="nav-link nav-tab-logs {% if instance.app_status.status == 'Running' %}disabled {% else %}nav-tab-error shadow {% endif %}" id="nav-container2-tab" data-bs-toggle="tab" data-bs-target="#nav-container2" type="button" role="tab" aria-controls="nav-container2" aria-selected="false" onclick="updateContainer('copy-to-pvc')">Data Copy</button>
           {% endif %}
         </div>
       </nav>
