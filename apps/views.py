@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
 
+from apps.types_.subdomain import SubdomainCandidateName
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -76,7 +77,7 @@ class GetLogs(View):
         container = request.POST.get("container", "") or instance.subdomain.subdomain
 
         # Perform data validation
-        if not container.isalnum() and container != "":
+        if not SubdomainCandidateName(container, project.id).is_valid() and container != "":
             # Handle the validation error
             return JsonResponse({"error": "Invalid container value. It must be alphanumeric or empty."}, status=403)
 
