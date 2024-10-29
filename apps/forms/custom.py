@@ -1,5 +1,7 @@
+from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Field, Layout, MultiField
 from django import forms
+from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
@@ -15,10 +17,22 @@ class CustomAppForm(AppBaseForm):
     image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
 
+    custom_default_url = forms.CharField(max_length=255, required=False, label="Path to site_dir")
+
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
         self.fields["volume"].initial = None
+
+        self.fields["custom_default_url"].widget.attrs.update({"class": "textinput form-control"})
+        self.fields["custom_default_url"].help_text = (
+            "Provide a path to the Shiny app inside your " "Docker image if it is different from /srv/shiny-server/"
+        )
+        self.fields["custom_default_url"].bottom_help_text = mark_safe(
+            "Use this field to specify subfolder if you did not place your app directly in <i>/srv/shiny-server/</i>. "
+            'You can find more about it <a href="/docs/application-hosting/shiny/#wiki-toc-advanced-settings">'
+            "in our documentation</a>."
+        )
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -40,6 +54,17 @@ class CustomAppForm(AppBaseForm):
             ),
             SRVCommonDivField("port", placeholder="8000"),
             SRVCommonDivField("image"),
+            Accordion(
+                AccordionGroup(
+                    "Advanced settings",
+                    PrependedText(
+                        "custom_default_url",
+                        "/srv/shiny-server/",
+                        template="apps/partials/srv_prepend_append_input_group.html",
+                    ),
+                    active=False,
+                ),
+            ),
             css_class="card-body",
         )
         self.helper.layout = Layout(body, self.footer)
@@ -81,6 +106,7 @@ class CustomAppForm(AppBaseForm):
             "port",
             "image",
             "tags",
+            "custom_default_url",
         ]
         labels = {
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
