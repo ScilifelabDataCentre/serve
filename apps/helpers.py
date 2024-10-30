@@ -225,7 +225,6 @@ def get_URI(values):
     # Subdomain is empty if app is already deleted
     subdomain = values["subdomain"] if "subdomain" in values else ""
     URI = f"https://{subdomain}.{values['global']['domain']}"
-
     URI = URI.strip("/")
     return URI
 
@@ -261,7 +260,17 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
         do_deploy = True
     else:
         # Only re-deploy existing apps if one of the following fields was changed:
-        redeployment_fields = ["subdomain", "volume", "path", "flavor", "port", "image", "access", "shiny_site_dir"]
+        redeployment_fields = [
+            "subdomain",
+            "volume",
+            "path",
+            "flavor",
+            "port",
+            "image",
+            "access",
+            "shiny_site_dir",
+            "custom_default_url",
+        ]
         logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
 
         # Because not all forms contain all fields, we check if the supposedly changed field
@@ -358,4 +367,10 @@ def save_instance_and_related_data(instance, form):
     form.save_m2m()
     instance.set_k8s_values()
     instance.url = get_URI(instance.k8s_values)
+
+    # adding the custom default url with the original url, it will be saved later
+    if type(instance).__name__ == "CustomAppInstance" and instance.custom_default_url != "":
+        instance.url = instance.url + "/" + instance.custom_default_url
+        logger.info("New custom default url for the custom app: " + instance.url)
+
     instance.save(update_fields=["k8s_values", "url"])

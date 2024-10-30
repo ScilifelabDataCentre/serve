@@ -17,7 +17,7 @@ class CustomAppForm(AppBaseForm):
     image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
 
-    custom_default_url = forms.CharField(max_length=255, required=False, label="Path to site_dir")
+    custom_default_url = forms.CharField(max_length=255, required=False, label="Add custom default url")
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -26,12 +26,14 @@ class CustomAppForm(AppBaseForm):
 
         self.fields["custom_default_url"].widget.attrs.update({"class": "textinput form-control"})
         self.fields["custom_default_url"].help_text = (
-            "Provide a path to the Shiny app inside your " "Docker image if it is different from /srv/shiny-server/"
+            "(Optional:) Use this field to specify to set a default start"
+            " url for your app; for example your-app-subdomain-name.serve.scilifelab.se/your-custom-default-url."
         )
         self.fields["custom_default_url"].bottom_help_text = mark_safe(
-            "Use this field to specify subfolder if you did not place your app directly in <i>/srv/shiny-server/</i>. "
-            'You can find more about it <a href="/docs/application-hosting/shiny/#wiki-toc-advanced-settings">'
-            "in our documentation</a>."
+            (
+                "<b>Warning!</b> Selecting a non-default URL will result in users seeing an"
+                " empty page at <b>your-subdomain-name.serve.scilifelab.se</b>. Are you sure you want to proceed?"
+            )
         )
 
     def _setup_form_helper(self):
@@ -59,7 +61,7 @@ class CustomAppForm(AppBaseForm):
                     "Advanced settings",
                     PrependedText(
                         "custom_default_url",
-                        "/srv/shiny-server/",
+                        "Subdomain/",
                         template="apps/partials/srv_prepend_append_input_group.html",
                     ),
                     active=False,
@@ -68,6 +70,17 @@ class CustomAppForm(AppBaseForm):
             css_class="card-body",
         )
         self.helper.layout = Layout(body, self.footer)
+
+    def clean_custom_default_url(self):
+        cleaned_data = super().clean()
+        custom_default_url = cleaned_data.get("custom_default_url", None)
+        if custom_default_url and custom_default_url.startswith("/"):
+            self.add_error("custom_default_url", "Path must not start with a forward slash.")
+        # Check that the path is ascii
+        if custom_default_url and not custom_default_url.isascii():
+            self.add_error("custom_default_url", "Path must be ASCII.")
+
+        return custom_default_url
 
     def clean_path(self):
         cleaned_data = super().clean()
