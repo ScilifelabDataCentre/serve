@@ -44,6 +44,7 @@ class CustomAppFormTest(BaseAppFormTest):
             "port": 8000,
             "image": "ghcr.io/scilifelabdatacentre/image:tag",
             "tags": ["tag1", "tag2", "tag3"],
+            "custom_default_url": "valid-custom_default_url/",
         }
 
     def test_form_valid_data(self):
