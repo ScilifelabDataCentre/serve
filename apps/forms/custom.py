@@ -90,7 +90,7 @@ class CustomAppForm(AppBaseForm):
             " It cannot contain consecutive forward slashes ( // )."
         )
         regex_validator = RegexValidator(
-            regex=r"^(?!-)(?!/)(?!.*//)[A-Za-z0-9-/_]{1,53}(?<!-)$",
+            regex=r"^(?!-)(?!/)(?!.*//)[A-Za-z0-9-/_]{1,53}(?<!-)$|^$",
             message=error_message,
         )
         try:
