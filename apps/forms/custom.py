@@ -1,6 +1,14 @@
-from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
+from crispy_forms.bootstrap import (
+    Accordion,
+    AccordionGroup,
+    AppendedText,
+    PrependedAppendedText,
+    PrependedText,
+)
 from crispy_forms.layout import HTML, Div, Field, Layout, MultiField
 from django import forms
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
@@ -25,14 +33,14 @@ class CustomAppForm(AppBaseForm):
         self.fields["volume"].initial = None
 
         self.fields["custom_default_url"].widget.attrs.update({"class": "textinput form-control"})
-        self.fields["custom_default_url"].help_text = (
-            "(Optional:) Use this field to specify to set a default start"
-            " url for your app; for example your-app-subdomain-name.serve.scilifelab.se/your-custom-default-url."
-        )
+        self.fields[
+            "custom_default_url"
+        ].help_text = "(Optional:) Use this field to specify to set a default start url."
         self.fields["custom_default_url"].bottom_help_text = mark_safe(
             (
-                "<b>Warning!</b> Selecting a non-default URL will result in users seeing an"
-                " empty page at <b>your-subdomain-name.serve.scilifelab.se</b>. Are you sure you want to proceed?"
+                "<b>Warning!</b> Are you sure you want to proceed?"
+                " Selecting a non-default URL might result in users seeing an"
+                " empty page at "
             )
         )
 
@@ -58,11 +66,11 @@ class CustomAppForm(AppBaseForm):
             SRVCommonDivField("image"),
             Accordion(
                 AccordionGroup(
-                    "Advanced settings",
+                    "Advanced settings to add custom default url",
                     PrependedText(
                         "custom_default_url",
                         "Subdomain/",
-                        template="apps/partials/srv_prepend_append_input_group.html",
+                        template="apps/partials/srv_prepend_input_group_custom_app.html",
                     ),
                     active=False,
                 ),
@@ -74,13 +82,22 @@ class CustomAppForm(AppBaseForm):
     def clean_custom_default_url(self):
         cleaned_data = super().clean()
         custom_default_url = cleaned_data.get("custom_default_url", None)
-        if custom_default_url and custom_default_url.startswith("/"):
-            self.add_error("custom_default_url", "Path must not start with a forward slash.")
-        # Check that the path is ascii
-        if custom_default_url and not custom_default_url.isascii():
-            self.add_error("custom_default_url", "Path must be ASCII.")
-
-        return custom_default_url
+        error_message = (
+            "Custom default url must be 1-53 characters long,"
+            " contain only letters, digits, hyphens"
+            " ( - ), forward slashes ( / ), and underscores ( _ )."
+            " It cannot start or end with a hyphen ( - ) or forward slashe ( / ),"
+            " nor contain consecutive forward slashes ( // )."
+        )
+        regex_validator = RegexValidator(
+            regex=r"^(?!-)(?!/)(?!.*//)[A-Za-z0-9-/_]{1,53}(?<!-)(?<!/)$",
+            message=error_message,
+        )
+        try:
+            regex_validator(custom_default_url)
+            return custom_default_url
+        except ValidationError:
+            self.add_error("custom_default_url", error_message)
 
     def clean_path(self):
         cleaned_data = super().clean()

@@ -221,11 +221,15 @@ def update_status_time(status_object, status_ts, event_msg=None):
         status_object.save(update_fields=["time", "info"])
 
 
-def get_URI(values):
+def get_URI(instance):
+    values = instance.k8s_values
     # Subdomain is empty if app is already deleted
     subdomain = values["subdomain"] if "subdomain" in values else ""
     URI = f"https://{subdomain}.{values['global']['domain']}"
     URI = URI.strip("/")
+    if hasattr(instance, "custom_default_url") and instance.custom_default_url != "":
+        URI = URI + "/" + instance.custom_default_url
+        logger.info("Modified URI by adding custom default url for the custom app: " + URI)
     return URI
 
 
@@ -366,11 +370,5 @@ def save_instance_and_related_data(instance, form):
     instance.save()
     form.save_m2m()
     instance.set_k8s_values()
-    instance.url = get_URI(instance.k8s_values)
-
-    # adding the custom default url with the original url, it will be saved later
-    if type(instance).__name__ == "CustomAppInstance" and instance.custom_default_url != "":
-        instance.url = instance.url + "/" + instance.custom_default_url
-        logger.info("New custom default url for the custom app: " + instance.url)
-
+    instance.url = get_URI(instance)
     instance.save(update_fields=["k8s_values", "url"])
