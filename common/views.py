@@ -78,8 +78,9 @@ class SignUpView(CreateView):
                     self.request,
                     (
                         "Please check your email for a verification link."
-                        " If you don’t see it, please contact us at "
-                        "serve@scilifelab.se"
+                        " If you don’t see it, perhaps you already have an account on our service, "
+                        "try the forgot password route linked below."
+                        " Otherwise contact us at serve@scilifelab.se."
                     ),
                 )
             else:
