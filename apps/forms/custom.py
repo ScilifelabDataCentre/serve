@@ -83,14 +83,14 @@ class CustomAppForm(AppBaseForm):
         cleaned_data = super().clean()
         custom_default_url = cleaned_data.get("custom_default_url", None)
         error_message = (
-            "Custom default url must be 1-53 characters long,"
-            " contain only letters, digits, hyphens"
+            "Custom default url must be 1-53 characters long."
+            " It can contain only letters, digits, hyphens"
             " ( - ), forward slashes ( / ), and underscores ( _ )."
-            " It cannot start or end with a hyphen ( - ) or forward slashe ( / ),"
-            " nor contain consecutive forward slashes ( // )."
+            " It cannot start or end with a hyphen ( - ) and can not start with a forward slash ( / )."
+            " It cannot contain consecutive forward slashes ( // )."
         )
         regex_validator = RegexValidator(
-            regex=r"^(?!-)(?!/)(?!.*//)[A-Za-z0-9-/_]{1,53}(?<!-)(?<!/)$",
+            regex=r"^(?!-)(?!/)(?!.*//)[A-Za-z0-9-/_]{1,53}(?<!-)$",
             message=error_message,
         )
         try:
