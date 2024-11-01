@@ -1,19 +1,13 @@
-from crispy_forms.bootstrap import (
-    Accordion,
-    AccordionGroup,
-    AppendedText,
-    PrependedAppendedText,
-    PrependedText,
-)
+from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Field, Layout, MultiField
 from django import forms
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
 from apps.models import CustomAppInstance, VolumeInstance
+from apps.types_.url_additional_path_validation import UrlAdditionalPathValidation
 from projects.models import Flavor
 
 __all__ = ["CustomAppForm"]
@@ -38,8 +32,8 @@ class CustomAppForm(AppBaseForm):
             (
                 "We will display this URL for your app in our app catalogue."
                 " Keep in mind that when your app does not have anything on the root URL"
-                " (<span id='id_custom_default_url_form_help_text'></span>) if a user manually"
-                " navigates to the root URL they will see an empty page there."
+                " (<span id='id_custom_default_url_form_help_text'></span>), if a user manually"
+                " navigates to the root URL, they will see an empty page there."
             )
         )
 
@@ -80,25 +74,13 @@ class CustomAppForm(AppBaseForm):
 
     def clean_custom_default_url(self):
         cleaned_data = super().clean()
-        custom_default_url = cleaned_data.get("custom_default_url", None)
-        error_message = (
-            "Your custom default URL is not valid, please correct it. "
-            "It must be 1-53 characters long."
-            " It can contain only letters, digits, hyphens"
-            " ( - ), forward slashes ( / ), and underscores ( _ )."
-            " It cannot start or end with a hyphen ( - ) and "
-            "cannot start with a forward slash ( / )."
-            " It cannot contain consecutive forward slashes ( // )."
-        )
-        regex_validator = RegexValidator(
-            regex=r"^(?!-)(?!/)(?!.*//)[A-Za-z0-9-/_]{1,53}(?<!-)$|^$",
-            message=error_message,
-        )
+        custom_url = cleaned_data.get("custom_default_url", None)
+        custom_url_candidate = UrlAdditionalPathValidation(custom_url)
         try:
-            regex_validator(custom_default_url)
-            return custom_default_url
-        except ValidationError:
-            self.add_error("custom_default_url", error_message)
+            custom_url_candidate.validate_candidate()
+            return custom_url
+        except ValidationError as e:
+            self.add_error("custom_default_url", e)
 
     def clean_path(self):
         cleaned_data = super().clean()
