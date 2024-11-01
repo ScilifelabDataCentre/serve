@@ -25,7 +25,7 @@ class CustomAppForm(AppBaseForm):
     image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
 
-    custom_default_url = forms.CharField(max_length=255, required=False, label="Add custom default url")
+    custom_default_url = forms.CharField(max_length=255, required=False, label="Custom default start URL")
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -33,14 +33,13 @@ class CustomAppForm(AppBaseForm):
         self.fields["volume"].initial = None
 
         self.fields["custom_default_url"].widget.attrs.update({"class": "textinput form-control"})
-        self.fields[
-            "custom_default_url"
-        ].help_text = "(Optional:) Use this field to specify to set a default start url."
+        self.fields["custom_default_url"].help_text = "Specify a non-default start URL if your app requires that."
         self.fields["custom_default_url"].bottom_help_text = mark_safe(
             (
-                "<b>Warning!</b> Are you sure you want to proceed?"
-                " Selecting a non-default URL might result in users seeing an"
-                " empty page at "
+                "We will display this URL for your app in our app catalogue."
+                " Keep in mind that when your app does not have anything on the root URL"
+                " (<span id='id_custom_default_url_form_help_text'></span>) if a user manually"
+                " navigates to the root URL they will see an empty page there."
             )
         )
 
@@ -66,7 +65,7 @@ class CustomAppForm(AppBaseForm):
             SRVCommonDivField("image"),
             Accordion(
                 AccordionGroup(
-                    "Advanced settings to add custom default url",
+                    "Advanced settings",
                     PrependedText(
                         "custom_default_url",
                         "Subdomain/",
@@ -83,10 +82,12 @@ class CustomAppForm(AppBaseForm):
         cleaned_data = super().clean()
         custom_default_url = cleaned_data.get("custom_default_url", None)
         error_message = (
-            "Custom default url must be 1-53 characters long."
+            "Your custom default URL is not valid, please correct it. "
+            "It must be 1-53 characters long."
             " It can contain only letters, digits, hyphens"
             " ( - ), forward slashes ( / ), and underscores ( _ )."
-            " It cannot start or end with a hyphen ( - ) and can not start with a forward slash ( / )."
+            " It cannot start or end with a hyphen ( - ) and "
+            "cannot start with a forward slash ( / )."
             " It cannot contain consecutive forward slashes ( // )."
         )
         regex_validator = RegexValidator(
