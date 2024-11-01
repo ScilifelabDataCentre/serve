@@ -273,7 +273,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
             "image",
             "access",
             "shiny_site_dir",
-            "custom_default_url",
         ]
         logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
 
