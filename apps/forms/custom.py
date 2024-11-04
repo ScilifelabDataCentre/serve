@@ -2,13 +2,14 @@ from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Field, Layout, MultiField
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
 from apps.models import CustomAppInstance, VolumeInstance
-from apps.types_.url_additional_path_validation import UrlAdditionalPathValidation
 from projects.models import Flavor
+from studio.settings import DOMAIN
 
 __all__ = ["CustomAppForm"]
 
@@ -74,10 +75,15 @@ class CustomAppForm(AppBaseForm):
 
     def clean_custom_default_url(self):
         cleaned_data = super().clean()
+
         custom_url = cleaned_data.get("custom_default_url", None)
-        custom_url_candidate = UrlAdditionalPathValidation(custom_url)
+
+        subdomain = self.clean_subdomain()[0]
+
+        url_string = "https://" + subdomain + "." + DOMAIN + "/" + custom_url
+
         try:
-            custom_url_candidate.validate_candidate()
+            URLValidator()(url_string)
             return custom_url
         except ValidationError as e:
             self.add_error("custom_default_url", e)
