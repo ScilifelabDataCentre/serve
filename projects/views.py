@@ -1,5 +1,6 @@
 import base64
 import datetime
+import json
 import logging
 
 import requests as r
@@ -387,7 +388,9 @@ class CreateProjectView(View):
 
         template = arr[0] if len(arr) > 0 else None
 
-        context = {"template": template}
+        context = {
+            "template": template,
+        }
 
         return render(
             request=request,
@@ -406,6 +409,24 @@ class CreateProjectView(View):
 
         name = request.POST.get("name", "default")[:200]
         description = request.POST.get("description", "")
+
+        current_user_previous_project_names = list(Project.objects.filter(owner=request.user).values("name", "status"))
+
+        project_name_already_exists = any(
+            current_user_project["name"] == name and current_user_project["status"] != "deleted"
+            for current_user_project in current_user_previous_project_names
+        )
+
+        if project_name_already_exists and request.user.email not in [
+            "admin@serve.scilifelab.se",
+            "event_user@serve.scilifelab.se",
+        ]:
+            context = {
+                "template": project_template,
+                "duplicate_name_error": "A project with name '" + name + "' already exists.",
+            }
+            logger.error("A project with name '" + name + "' already exists.")
+            return render(request, self.template_name, context)
 
         # Try to create database project object.
         try:

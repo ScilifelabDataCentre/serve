@@ -40,6 +40,11 @@
                             {% endfor %}
                         </div>
                         {% endif %}
+                        {% if duplicate_name_error %}
+                        <div>
+                        <p class="m-0">{{ duplicate_name_error }}</p>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <input type="hidden" name="template_id" value="{{template.id}}" id="template_id">
