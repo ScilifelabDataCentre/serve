@@ -81,18 +81,19 @@ class CustomAppForm(AppBaseForm):
         subdomain = self.clean_subdomain()[0]
 
         url_string = "https://" + subdomain + "." + DOMAIN + "/" + custom_url
-        
-        error_message = mark_safe(
-    'Your URL is not valid. Please ensure your '
-    '<a href="https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2" style="color: #e0746d; text-decoration: underline;">host</a> '
-    'and <a href="https://www.iana.org/assignments/uri-schemes/uri-schemes.xhtml" style="color: #e0746d; text-decoration: underline;">URI scheme</a> are valid.'
-)
 
+        error_message = mark_safe(
+            "Your URL is not valid. Please ensure your "
+            '<a href="https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2" '
+            'style="color: #e0746d; text-decoration: underline;">host</a> '
+            'and <a href="https://www.iana.org/assignments/uri-schemes/uri-schemes.xhtml" '
+            'style="color: #e0746d; text-decoration: underline;">URI scheme</a> are valid.'
+        )
 
         try:
             URLValidator()(url_string)
             return custom_url
-        except ValidationError as e:
+        except ValidationError:
             self.add_error("custom_default_url", error_message)
 
     def clean_path(self):
