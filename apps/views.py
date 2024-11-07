@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
 
+from apps.types_.subdomain import SubdomainCandidateName
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -72,8 +73,13 @@ class GetLogs(View):
         project = self.get_project(project, post=True)
         instance = self.get_instance(app_slug, app_id, post=True)
 
-        # container name is often same as subdomain name
-        container = instance.subdomain.subdomain
+        # get container name from UI (subdomain or copy-to-pvc) if none exists then use subdomain name
+        container = request.POST.get("container", "") or instance.subdomain.subdomain
+
+        # Perform data validation
+        if not SubdomainCandidateName(container, project.id).is_valid() and container != "":
+            # Handle the validation error
+            return JsonResponse({"error": "Invalid container value. It must be alphanumeric or empty."}, status=403)
 
         if not getattr(instance, "logs_enabled", False):
             return JsonResponse({"error": "Logs not enabled for this instance"}, status=403)
@@ -241,7 +247,12 @@ class CreateApp(View):
             raise PermissionDenied()
 
         if not form.is_valid():
-            return render(request, self.template_name, {"form": form})
+            form_header = "Update" if app_id else "Create"
+            return render(
+                request,
+                self.template_name,
+                {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug, "form_header": form_header},
+            )
 
         # Otherwise we can create the instance
         create_instance_from_form(form, project, app_slug, app_id)

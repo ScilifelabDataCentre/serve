@@ -22,7 +22,7 @@ def test_index():
 
     # Check if it returns the correct status code
     assert response.status_code == 200
-    assert "<title>Apps | SciLifeLab Serve (beta)</title>" in response.content.decode()
+    assert "<title>Apps and models | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
 @pytest.mark.django_db

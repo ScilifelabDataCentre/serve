@@ -21,7 +21,7 @@
                 <i class="bi bi-robot fs-1"></i>
                 <div class="card-body">
                   <h5 class="card-title">Machine Learning model serving</h5>
-                  <p class="card-text">Deploy your trained models and obtain API endpoints for inference requests. We support TorchServe, TensorFlow Serving, MLFlow.</p>
+                  <p class="card-text">Deploy your trained models and obtain API endpoints for inference requests. We support deployment of models packaged as Docker images.</p>
                 </div>
             </div>
         </div>
@@ -67,15 +67,14 @@
             <h3 class="pt-4">Recent updates</h3>
         </div>
 
-        <div class="col-12 col-md-6 align-items-stretch my-4 p-4">
-            <h5>Apps
-            </h5>
+        <div class="col-12 col-md-6 align-items-stretch mt-4 mb-2">
+            <h5>Recently updated</h5>
             <hr class="m-0 bg-lime  border-0" style="height: 2px;">
-            {% for app in published_apps %}
+            {% for app in published_apps_updated_on %}
                 <div class="card border-0 shadow my-5" data-aos="slide-up">
                     <div class="card-body text-start">
                         <div class="card-title d-flex justify-content-between align-items-center m-0">
-                            <a href="{{ app.table_field.url }}" target="_blank">
+                            <a href="{{ app.url }}" target="_blank">
                                 <h5 class="">{{ app.name|truncatechars:30 }}</h5>
                             </a>
                             <div>
@@ -88,8 +87,6 @@
                         <div class="card-text">
                             {{ app.description|truncatechars:100 }}
                         </div>
-
-
                     </div>
 
                     <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-lime-025">
@@ -102,44 +99,43 @@
                     </div>
                 </div>
             {% endfor %}
-            <a class="text-muted" href="{% url 'portal:apps' %}" target="_self" title="Apps">Browse all apps</a>
         </div>
 
-        <div class="col-12 col-md-6 align-items-stretch my-4 p-4">
-            <h5>Models
-            </h5>
+        <div class="col-12 col-md-6 align-items-stretch mt-4 mb-2">
+            <h5>Recently created</h5>
             <hr class="m-0 bg-teal border-0" style="height: 2px;">
-            {% for model in published_models %}
-
+            {% for app in published_apps_created_on %}
                 <div class="card border-0 shadow my-5" data-aos="slide-up">
                     <div class="card-body text-start">
                         <div class="card-title d-flex justify-content-between align-items-center m-0">
-                            <a href="{% url 'models:details_public' model.pk %}" target="_self">
-                                <h5 class="">{{ model.name|truncatechars:30 }}</h5>
+                            <a href="{{ app.url }}" target="_blank">
+                                <h5 class="">{{ app.name|truncatechars:30 }}</h5>
                             </a>
                             <div>
                                 {% static 'images/logos/apps/' as static_url %}
                                 <img style="height:40px;"
-                                    src="{{static_url}}default-logo.svg"
-                                    alt="App Logo" title="ML model">
+                                    src="{{static_url}}{{app.app.logo}}"
+                                    alt="App Logo" title="{{app.app.name}}">
                             </div>
                         </div>
                         <div class="card-text">
-                            {{model.model_description|default_if_none:"" |truncatechars:30}}
+                            {{ app.description|truncatechars:100 }}
                         </div>
                     </div>
 
                     <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-teal-075">
                         <div class="text-start">
-                            <span>ML Model</span>
+                            <span>{{ app.app.name }}</span>
                         </div>
                         <div class="text-end">
-                            <span>Last updated: {{ model.updated_on|date:"d M, Y" }}</span>
+                            <span>Created: {{ app.created_on|date:"d M, Y" }}</span>
                         </div>
                     </div>
                 </div>
             {% endfor %}
-            <a class="text-muted pb-4" href="{% url 'models:index' %}" target="_self" title="Models">Browse all models</a>
+        </div>
+        <div class="col-12 text-center mb-2">
+            <a class="text-muted" href="{% url 'portal:apps' %}" target="_self" title="All apps and models">Browse all apps and models</a>
         </div>
     </div>
 

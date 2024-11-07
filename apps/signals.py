@@ -42,8 +42,10 @@ def update_permission(sender, instance, created, **kwargs):
 
     access = getattr(instance, "access", None)
 
-    if access is None:
+    if access is None and instance.name not in ["project-vol", "project-netpolicy"]:
         logger.error(f"Access not found in {instance}")
+        # We do not expect there to be access in case of project-vol and project-netpolicy
+        # so we do not show a warning when these are deployed.
         return
 
     if access == "private":

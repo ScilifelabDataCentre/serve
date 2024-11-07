@@ -23,7 +23,7 @@ class DashForm(AppBaseForm):
         body = Div(
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
-            Field("tags"),
+            SRVCommonDivField("tags"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
@@ -35,21 +35,11 @@ class DashForm(AppBaseForm):
             ),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
             SRVCommonDivField("port", placeholder="8000"),
-            SRVCommonDivField("image", placeholder="registry/repository/image:tag"),
+            SRVCommonDivField("image", placeholder="e.g. docker.io/username/image-name:image-tag"),
             css_class="card-body",
         )
 
         self.helper.layout = Layout(body, self.footer)
-
-    def clean(self):
-        cleaned_data = super().clean()
-        access = cleaned_data.get("access")
-        source_code_url = cleaned_data.get("source_code_url")
-
-        if access == "public" and not source_code_url:
-            self.add_error("source_code_url", "Source is required when access is public.")
-
-        return cleaned_data
 
     class Meta:
         model = DashInstance

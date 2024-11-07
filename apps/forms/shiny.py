@@ -53,7 +53,7 @@ class ShinyForm(AppBaseForm):
             ),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
             SRVCommonDivField("port", placeholder="3838"),
-            SRVCommonDivField("image", placeholder="registry/repository/image:tag"),
+            SRVCommonDivField("image", placeholder="e.g. docker.io/username/image-name:image-tag"),
             Accordion(
                 AccordionGroup(
                     "Advanced settings",
@@ -80,16 +80,6 @@ class ShinyForm(AppBaseForm):
             self.add_error("shiny_site_dir", "Path must be ASCII.")
 
         return shiny_site_dir
-
-    def clean(self):
-        cleaned_data = super().clean()
-        access = cleaned_data.get("access", None)
-        source_code_url = cleaned_data.get("source_code_url", None)
-
-        if access == "public" and not source_code_url:
-            self.add_error("source_code_url", "Source is required when access is public.")
-
-        return cleaned_data
 
     class Meta:
         model = ShinyInstance

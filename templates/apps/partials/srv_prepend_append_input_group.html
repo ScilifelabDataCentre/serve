@@ -12,4 +12,12 @@
   {% if field.field.bottom_help_text %}
     <small class="form-text text-muted">{{ field.field.bottom_help_text }}</small>
   {% endif %}
+
+  {% if field.errors %}
+    {% for error in field.errors %}
+      <div class="client-validation-feedback client-validation-invalid">
+        {{ error }}
+      </div>
+    {% endfor %}
+  {% endif %}
 </div>

@@ -1,19 +1,23 @@
 from django.db import models
 
-from apps.models import (
-    AppInstanceManager,
-    BaseAppInstance,
-    LogsEnabledMixin,
-    SocialMixin,
-)
+from apps.models import LogsEnabledMixin, SocialMixin
 
 
-class CustomAppInstanceManager(AppInstanceManager):
-    model_type = "customappinstance"
+class AbstractCustomAppInstance(SocialMixin, LogsEnabledMixin):
+    """
+    This class is intended to be used with ``BaseAppInstance`` the following way:
 
+    ```python
+    class CustomAppInstance(AbstractCustomAppInstance, BaseAppInstance):
+        pass
+    ```
 
-class CustomAppInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
-    objects = CustomAppInstanceManager()
+    This is because of how ``get_k8s_values`` method works. It depends on in this case
+     the ``CustomAppInstance`` to be already a child class of a ``BaseAppInstance``. That way,
+     when this classes ``super().get_k8s_values()`` is called, it will call ``get_k8s_values()``
+     of ``BaseAppInstance``.
+    """
+
     ACCESS_TYPES = (
         ("project", "Project"),
         (
@@ -30,7 +34,7 @@ class CustomAppInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
     port = models.IntegerField(default=8000)
     image = models.CharField(max_length=255)
-    path = models.CharField(max_length=255, default="/")
+    path = models.CharField(max_length=255, default="/", blank=True)
     user_id = models.IntegerField(default=1000)
 
     def get_k8s_values(self):
@@ -48,3 +52,4 @@ class CustomAppInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
         verbose_name = "Custom App Instance"
         verbose_name_plural = "Custom App Instances"
         permissions = [("can_access_app", "Can access app service")]
+        abstract = True
