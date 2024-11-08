@@ -1,6 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
+
 import validators
 
 invalid_path_list = [
@@ -23,6 +24,7 @@ valid_path_list = [
     "valid_%5E_caret",
     "valid_%7B_left_curly_brace",
     "valid_%3F_question_mark"
+    "?from=sg"
 ]
 
 @pytest.mark.parametrize(
