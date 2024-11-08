@@ -4,15 +4,15 @@
 {% block content %}
 
 {% include "breadcrumbs/bc_project_create.html" %}
+{% include 'common/flash_messages.html' %}
 
 <div class="row">
+  
     <div class="col">
         <h3>New project</h3>
         <p>Provide details about your new project.</p>
     </div>
 </div>
-
-
 
 
 <div class="row pt-3">
@@ -38,11 +38,6 @@
                             {% for error in form.name.errors %}
                             <p class="m-0">{{error|escape}}</p>
                             {% endfor %}
-                        </div>
-                        {% endif %}
-                        {% if duplicate_name_error %}
-                        <div>
-                        <p class="m-0">{{ duplicate_name_error }}</p>
                         </div>
                         {% endif %}
                     </div>

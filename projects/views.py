@@ -30,6 +30,7 @@ from .exceptions import ProjectCreationException
 from .forms import PublishProjectToGitHub
 from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
 from .tasks import create_resources_from_template, delete_project
+from django.contrib import messages
 
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
@@ -417,15 +418,25 @@ class CreateProjectView(View):
             for current_user_project in current_user_previous_project_names
         )
 
-        if project_name_already_exists and request.user.email not in [
-            "admin@serve.scilifelab.se",
-            "event_user@serve.scilifelab.se",
-        ]:
+        if project_name_already_exists and not request.user.is_superuser:
+            
+            pre_selected_template = request.GET.get("template")
+
+            arr = ProjectTemplate.objects.filter(name=pre_selected_template)
+            
+            template = arr[0] if len(arr) > 0 else None
+
             context = {
-                "template": project_template,
-                "duplicate_name_error": "A project with name '" + name + "' already exists.",
-            }
+            "template": template,
+        }
             logger.error("A project with name '" + name + "' already exists.")
+            
+            messages.error(
+                        request,
+                        "Project cannot be created because a project with name '" + name + "' already exists.",
+                    )
+            
+            
             return render(request, self.template_name, context)
 
         # Try to create database project object.
