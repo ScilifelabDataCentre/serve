@@ -1,5 +1,5 @@
+import regex as re
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
 
 
 class UrlAdditionalPathValidation:
@@ -33,14 +33,14 @@ class UrlAdditionalPathValidation:
         error_message = (
             "Your custom default URL is not valid, please correct it. "
             "It must be 1-53 characters long."
-            " It can contain only letters, digits, hyphens"
+            " It can contain only Unicode letters, digits, hyphens"
             " ( - ), forward slashes ( / ), and underscores ( _ )."
             " It cannot start or end with a hyphen ( - ) and "
             "cannot start with a forward slash ( / )."
             " It cannot contain consecutive forward slashes ( // )."
         )
-        regex_validator = RegexValidator(
-            regex=r"^(?!-)(?!/)(?!.*//)[A-Za-z0-9-/_]{1,53}(?<!-)$|^$",
-            message=error_message,
-        )
-        regex_validator(self.__name)
+
+        pattern = r"^(?!-)(?!/)(?!.*//)[\p{Letter}\p{Mark}0-9-/_]{1,53}(?<!-)$|^$"
+
+        if not re.match(pattern, self.__name):
+            raise ValidationError(error_message)

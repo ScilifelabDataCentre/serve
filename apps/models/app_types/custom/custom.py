@@ -10,7 +10,5 @@ class CustomAppInstanceManager(AppInstanceManager):
 
 
 class CustomAppInstance(AbstractCustomAppInstance, BaseAppInstance):
-    # defining here
     custom_default_url = models.CharField(max_length=255, default="", blank=True)
-
     objects = CustomAppInstanceManager()

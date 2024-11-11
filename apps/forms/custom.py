@@ -2,14 +2,13 @@ from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Field, Layout, MultiField
 from django import forms
 from django.core.exceptions import ValidationError
-from django.core.validators import URLValidator
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
 from apps.models import CustomAppInstance, VolumeInstance
+from apps.types_.url_additional_path_validation import UrlAdditionalPathValidation
 from projects.models import Flavor
-from studio.settings import DOMAIN
 
 __all__ = ["CustomAppForm"]
 
@@ -77,24 +76,12 @@ class CustomAppForm(AppBaseForm):
         cleaned_data = super().clean()
 
         custom_url = cleaned_data.get("custom_default_url", None)
-
-        subdomain = self.clean_subdomain()[0]
-
-        url_string = "https://" + subdomain + "." + DOMAIN + "/" + custom_url
-
-        error_message = mark_safe(
-            "Your URL is not valid. Please ensure your "
-            '<a href="https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2" '
-            'style="color: #e0746d; text-decoration: underline;">host</a> '
-            'and <a href="https://www.iana.org/assignments/uri-schemes/uri-schemes.xhtml" '
-            'style="color: #e0746d; text-decoration: underline;">URI scheme</a> are valid.'
-        )
-
+        custom_url_candidate = UrlAdditionalPathValidation(custom_url)
         try:
-            URLValidator()(url_string)
+            custom_url_candidate.validate_candidate()
             return custom_url
-        except ValidationError:
-            self.add_error("custom_default_url", error_message)
+        except ValidationError as e:
+            self.add_error("custom_default_url", e)
 
     def clean_path(self):
         cleaned_data = super().clean()
