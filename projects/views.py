@@ -1,11 +1,11 @@
 import base64
 import datetime
-import json
 import logging
 
 import requests as r
 from django.apps import apps
 from django.conf import settings as django_settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
@@ -30,7 +30,6 @@ from .exceptions import ProjectCreationException
 from .forms import PublishProjectToGitHub
 from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
 from .tasks import create_resources_from_template, delete_project
-from django.contrib import messages
 
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
@@ -411,32 +410,25 @@ class CreateProjectView(View):
         name = request.POST.get("name", "default")[:200]
         description = request.POST.get("description", "")
 
+        # Ensure no duplicate project name for the common user
         current_user_previous_project_names = list(Project.objects.filter(owner=request.user).values("name", "status"))
 
         project_name_already_exists = any(
             current_user_project["name"] == name and current_user_project["status"] != "deleted"
             for current_user_project in current_user_previous_project_names
         )
-
         if project_name_already_exists and not request.user.is_superuser:
-            
             pre_selected_template = request.GET.get("template")
-
             arr = ProjectTemplate.objects.filter(name=pre_selected_template)
-            
             template = arr[0] if len(arr) > 0 else None
-
-            context = {
-            "template": template,
-        }
+            context = {"template": template}
             logger.error("A project with name '" + name + "' already exists.")
-            
+
             messages.error(
-                        request,
-                        "Project cannot be created because a project with name '" + name + "' already exists.",
-                    )
-            
-            
+                request,
+                "Project cannot be created because a project with name '" + name + "' already exists.",
+            )
+
             return render(request, self.template_name, context)
 
         # Try to create database project object.
