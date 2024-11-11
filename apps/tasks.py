@@ -32,7 +32,9 @@ def delete_old_objects():
 
     # Handle deletion of apps in the "Develop" category
     for orm_model in APP_REGISTRY.iter_orm_models():
-        old_develop_apps = orm_model.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
+        old_develop_apps = orm_model.objects.filter(
+            created_on__lt=get_threshold(7), app__category__name="Develop"
+        ).exclude(app_status__status="Deleted")
 
         for app_ in old_develop_apps:
             delete_resource.delay(app_.serialize())
@@ -40,7 +42,7 @@ def delete_old_objects():
     # Handle deletion of non persistent file managers
     old_file_managers = FilemanagerInstance.objects.filter(
         created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False
-    )
+    ).exclude(app_status__status="Deleted")
     for app_ in old_file_managers:
         delete_resource.delay(app_.serialize())
 

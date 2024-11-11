@@ -39,7 +39,7 @@ class StreamlitForm(AppBaseForm):
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
             SRVCommonDivField("port", placeholder="8501"),
-            SRVCommonDivField("image"),
+            SRVCommonDivField("image", placeholder="e.g. docker.io/username/image-name:image-tag"),
             css_class="card-body",
         )
         self.helper.layout = Layout(body, self.footer)

@@ -12,7 +12,7 @@ describe("Tests of the public pages of the website", () => {
     })
 
     it("should open the Apps and models page on link click", () => {
-        cy.get("li.nav-item a").contains("Apps and models").click()
+        cy.get("li.nav-item a").contains("Apps & Models").click()
         cy.url().should("include", "/apps")
         cy.get('h3').should('contain', 'Public applications and models')
         cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
