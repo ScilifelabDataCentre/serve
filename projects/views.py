@@ -411,16 +411,19 @@ class CreateProjectView(View):
         description = request.POST.get("description", "")
 
         # Ensure no duplicate project name for the common user
-        current_user_previous_project_names = list(Project.objects.filter(owner=request.user).values("name", "status"))
 
-        project_name_already_exists = any(
-            current_user_project["name"] == name and current_user_project["status"] != "deleted"
-            for current_user_project in current_user_previous_project_names
+        project_name_already_exists = (
+            Project.objects.filter(
+                owner=request.user,
+                name=name,
+            )
+            .exclude(status="deleted")
+            .exists()
         )
+
         if project_name_already_exists and not request.user.is_superuser:
             pre_selected_template = request.GET.get("template")
-            arr = ProjectTemplate.objects.filter(name=pre_selected_template)
-            template = arr[0] if len(arr) > 0 else None
+            template = ProjectTemplate.objects.filter(name=pre_selected_template).first()
             context = {"template": template}
             logger.error("A project with name '" + name + "' already exists.")
 
