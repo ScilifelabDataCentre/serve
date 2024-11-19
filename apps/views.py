@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -220,6 +220,9 @@ class CreateApp(View):
         # But need to make sure, that that's the only place where it's being passed
         project_slug = project
         project = Project.objects.get(slug=project_slug)
+
+        if request.user.is_superuser and project.status == "deleted":
+            return HttpResponse("This project has been deleted by the user.")
 
         form = self.get_form(request, project, app_slug, app_id)
 

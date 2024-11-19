@@ -20,7 +20,7 @@ from django.shortcuts import render, reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
-from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
+from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance
@@ -85,6 +85,9 @@ def settings(request, project_slug):
             Q(owner=request.user) | Q(authorized=request.user),
             Q(slug=project_slug),
         ).first()
+
+    if request.user.is_superuser and project.status == "deleted":
+        return HttpResponse("This project has been deleted by the user.")
 
     try:
         User._meta.get_field("is_user")
@@ -462,6 +465,10 @@ class DetailsView(View):
 
     def get(self, request, project_slug):
         project = Project.objects.get(slug=project_slug)
+
+        if request.user.is_superuser and project.status == "deleted":
+            return HttpResponse("This project has been deleted by the user.")
+
         resources = []
         app_ids = []
         if request.user.is_superuser:
@@ -542,11 +549,11 @@ def delete(request, project_slug):
         project = Project.objects.filter(slug=project_slug).first()
 
     logger.info("SCHEDULING DELETION OF ALL INSTALLED APPS")
-    #remove permissions to see this project
+    # remove permissions to see this project
     users_with_permission = get_users_with_perms(project)
     for user in users_with_permission:
         remove_perm("can_view_project", user, project)
-    #set the status to 'deleted'
+    # set the status to 'deleted'
     project.status = "deleted"
     project.save()
     delete_project.delay(project.pk)
