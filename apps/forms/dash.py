@@ -35,7 +35,7 @@ class DashForm(AppBaseForm):
             ),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
             SRVCommonDivField("port", placeholder="8000"),
-            SRVCommonDivField("image", placeholder="registry/repository/image:tag"),
+            SRVCommonDivField("image", placeholder="e.g. docker.io/username/image-name:image-tag"),
             css_class="card-body",
         )
 
