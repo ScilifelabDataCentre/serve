@@ -1,9 +1,12 @@
+import pytest
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.template import Context, Template
 from django.test import TestCase
 
 from apps.forms import CustomAppForm
 from apps.models import Apps, AppStatus, Subdomain, VolumeInstance
+from apps.models.app_types.custom.custom import validate_default_url_subpath
 from projects.models import Flavor, Project
 
 User = get_user_model()
@@ -44,7 +47,7 @@ class CustomAppFormTest(BaseAppFormTest):
             "port": 8000,
             "image": "ghcr.io/scilifelabdatacentre/image:tag",
             "tags": ["tag1", "tag2", "tag3"],
-            "custom_default_url": "valid-custom_default_url/",
+            "default_url_subpath": "valid-default_url_subpath/",
         }
 
     def test_form_valid_data(self):
@@ -193,3 +196,47 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
         self.assertIn('value="private"', rendered_form)
         self.assertIn('value="link"', rendered_form)
         self.assertIn('value="public"', rendered_form)
+
+
+invalid_default_url_subpath_list = [
+    "invalid space",
+    'invalid_"_double_quote',
+    "invalid_<_less_than_sign",
+    "invalid_\\_backslash",
+    "invalid_|_pipe",
+    "invalid_^_caret",
+    "invalid_{_left_curly_brace",
+    "invalid_?_question_mark",
+]
+
+valid_default_url_subpath_list = [
+    "valid_ÄÄ_unicode_charecters",
+    "valid_aa/_forward_slash",
+    "valid_____underscore",
+    "_aa/bb/c_format",
+    "valid_-_hiphen",
+    "_ad-frt/fgh_cd_",
+    "ÅÄaad1234",
+]
+
+
+@pytest.mark.parametrize("valid_default_url_subpath", valid_default_url_subpath_list)
+def test_valid_default_url_subpath(valid_default_url_subpath):
+    valid_check = True
+    try:
+        validate_default_url_subpath(valid_default_url_subpath)
+    except ValidationError:
+        valid_check = False
+
+    assert valid_check
+
+
+@pytest.mark.parametrize("invalid_default_url_subpath", invalid_default_url_subpath_list)
+def test_invalid_default_url_subpath(invalid_default_url_subpath):
+    valid_check = True
+    try:
+        validate_default_url_subpath(invalid_default_url_subpath)
+    except ValidationError:
+        valid_check = False
+
+    assert not valid_check

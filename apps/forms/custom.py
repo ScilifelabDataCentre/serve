@@ -7,7 +7,6 @@ from django.utils.safestring import mark_safe
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
 from apps.models import CustomAppInstance, VolumeInstance
-from apps.types_.url_additional_path_validation import UrlAdditionalPathValidation
 from projects.models import Flavor
 
 __all__ = ["CustomAppForm"]
@@ -19,20 +18,20 @@ class CustomAppForm(AppBaseForm):
     image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
 
-    custom_default_url = forms.CharField(max_length=255, required=False, label="Custom default start URL")
+    default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom default url subpath")
 
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
         self.fields["volume"].initial = None
 
-        self.fields["custom_default_url"].widget.attrs.update({"class": "textinput form-control"})
-        self.fields["custom_default_url"].help_text = "Specify a non-default start URL if your app requires that."
-        self.fields["custom_default_url"].bottom_help_text = mark_safe(
+        self.fields["default_url_subpath"].widget.attrs.update({"class": "textinput form-control"})
+        self.fields["default_url_subpath"].help_text = "Specify a non-default start URL if your app requires that."
+        self.fields["default_url_subpath"].bottom_help_text = mark_safe(
             (
                 "We will display this URL for your app in our app catalogue."
                 " Keep in mind that when your app does not have anything on the root URL"
-                " (<span id='id_custom_default_url_form_help_text'></span>), if a user manually"
+                " (<span id='id_custom_default_url_subpath_form_help_text'></span>), if a user manually"
                 " navigates to the root URL, they will see an empty page there."
             )
         )
@@ -61,7 +60,7 @@ class CustomAppForm(AppBaseForm):
                 AccordionGroup(
                     "Advanced settings",
                     PrependedText(
-                        "custom_default_url",
+                        "default_url_subpath",
                         "Subdomain/",
                         template="apps/partials/srv_prepend_input_group_custom_app.html",
                     ),
@@ -71,17 +70,6 @@ class CustomAppForm(AppBaseForm):
             css_class="card-body",
         )
         self.helper.layout = Layout(body, self.footer)
-
-    def clean_custom_default_url(self):
-        cleaned_data = super().clean()
-
-        custom_url = cleaned_data.get("custom_default_url", None)
-        custom_url_candidate = UrlAdditionalPathValidation(custom_url)
-        try:
-            custom_url_candidate.validate_candidate()
-            return custom_url
-        except ValidationError as e:
-            self.add_error("custom_default_url", e)
 
     def clean_path(self):
         cleaned_data = super().clean()
@@ -120,7 +108,7 @@ class CustomAppForm(AppBaseForm):
             "port",
             "image",
             "tags",
-            "custom_default_url",
+            "default_url_subpath",
         ]
         labels = {
             "note_on_linkonly_privacy": "Reason for choosing the link only option",

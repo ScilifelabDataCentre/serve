@@ -103,7 +103,7 @@ class BaseAppAdmin(admin.ModelAdmin):
 
         for instance in queryset:
             instance.set_k8s_values()
-            instance.url = get_URI(instance.k8s_values)
+            instance.url = get_URI(instance)
             instance.save(update_fields=["k8s_values", "url"])
 
             deploy_resource.delay(instance.serialize())

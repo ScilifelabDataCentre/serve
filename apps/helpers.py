@@ -227,9 +227,9 @@ def get_URI(instance):
     subdomain = values["subdomain"] if "subdomain" in values else ""
     URI = f"https://{subdomain}.{values['global']['domain']}"
     URI = URI.strip("/")
-    if hasattr(instance, "custom_default_url") and instance.custom_default_url != "":
-        URI = URI + "/" + instance.custom_default_url
-        logger.info("Modified URI by adding custom default url for the custom app: " + URI)
+    if hasattr(instance, "default_url_subpath") and instance.default_url_subpath != "":
+        URI = URI + "/" + instance.default_url_subpath
+        logger.info("Modified URI by adding default url subpath for the custom app: " + URI)
     return URI
 
 
