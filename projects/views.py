@@ -420,7 +420,9 @@ class CreateProjectView(View):
 
         template = arr[0] if len(arr) > 0 else None
 
-        context = {"template": template}
+        context = {
+            "template": template,
+        }
 
         return render(
             request=request,
@@ -439,6 +441,30 @@ class CreateProjectView(View):
 
         name = request.POST.get("name", "default")[:200]
         description = request.POST.get("description", "")
+
+        # Ensure no duplicate project name for the common user
+
+        project_name_already_exists = (
+            Project.objects.filter(
+                owner=request.user,
+                name=name,
+            )
+            .exclude(status="deleted")
+            .exists()
+        )
+
+        if project_name_already_exists and not request.user.is_superuser:
+            pre_selected_template = request.GET.get("template")
+            template = ProjectTemplate.objects.filter(name=pre_selected_template).first()
+            context = {"template": template}
+            logger.error("A project with name '" + name + "' already exists.")
+
+            messages.error(
+                request,
+                "Project cannot be created because a project with name '" + name + "' already exists.",
+            )
+
+            return render(request, self.template_name, context)
 
         # Try to create database project object.
         try:
