@@ -151,24 +151,11 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, app_id=0):
-        all_published_apps_created_on, request = get_public_apps(
-            request, app_id=app_id, order_by="created_on", order_reverse=True
-        )
-        all_published_apps_updated_on, request = get_public_apps(
+        published_apps_updated_on, request = get_public_apps(
             request, app_id=app_id, order_by="updated_on", order_reverse=True
-        )
-
-        # Make sure we don't have the same apps displayed in both Recently updated and Recently added fields
-        published_apps_created_on = [
-            app for app in all_published_apps_created_on if app.updated_on <= (app.created_on + timedelta(minutes=60))
-        ][
-            :3
-        ]  # we display only 3 apps
-        published_apps_updated_on = [
-            app for app in all_published_apps_updated_on if app.updated_on > (app.created_on + timedelta(minutes=60))
-        ][
-            :3
-        ]  # we display only 3 apps
+        )[
+            :6
+        ]  # we display only 6 apps
 
         news_objects = NewsObject.objects.all().order_by("-created_on")
         link_all_news = False
@@ -201,7 +188,7 @@ class HomeView(View):
 
         context = {
             "published_apps_updated_on": published_apps_updated_on,
-            "published_apps_created_on": published_apps_created_on,
+            #   "published_apps_created_on": published_apps_created_on,
             "news_objects": news_objects,
             "link_all_news": link_all_news,
             "collection_objects": collection_objects,

@@ -65,13 +65,12 @@
     <div class="row text-center justify-content-center border rounded bg-light mt-5">
         <div class="col-12 text-center">
             <h3 class="pt-4">Recent updates</h3>
+            <hr class="m-0 bg-lime border-0" style="height: 2px;">
         </div>
 
+          {% for app in published_apps_updated_on %}
         <div class="col-12 col-md-6 align-items-stretch mt-4 mb-2">
-            <h5>Recently updated</h5>
-            <hr class="m-0 bg-lime  border-0" style="height: 2px;">
-            {% for app in published_apps_updated_on %}
-                <div class="card border-0 shadow my-5" data-aos="slide-up">
+                <div class="card border-0 shadow my-2" data-aos="slide-up">
                     <div class="card-body text-start">
                         <div class="card-title d-flex justify-content-between align-items-center m-0">
                             <a href="{{ app.url }}" target="_blank">
@@ -89,52 +88,23 @@
                         </div>
                     </div>
 
-                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-lime-025">
+                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between {% if app.updated_on|date:'d M, Y' == app.created_on|date:'d M, Y' %}bg-teal-075{% else %}bg-lime-025{% endif %}">
                         <div class="text-start">
                             <span>{{ app.app.name }}</span>
                         </div>
                         <div class="text-end">
-                            <span>Last updated: {{ app.updated_on|date:"d M, Y" }}</span>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-
-        <div class="col-12 col-md-6 align-items-stretch mt-4 mb-2">
-            <h5>Recently created</h5>
-            <hr class="m-0 bg-teal border-0" style="height: 2px;">
-            {% for app in published_apps_created_on %}
-                <div class="card border-0 shadow my-5" data-aos="slide-up">
-                    <div class="card-body text-start">
-                        <div class="card-title d-flex justify-content-between align-items-center m-0">
-                            <a href="{{ app.url }}" target="_blank">
-                                <h5 class="">{{ app.name|truncatechars:30 }}</h5>
-                            </a>
-                            <div>
-                                {% static 'images/logos/apps/' as static_url %}
-                                <img style="height:40px;"
-                                    src="{{static_url}}{{app.app.logo}}"
-                                    alt="App Logo" title="{{app.app.name}}">
-                            </div>
-                        </div>
-                        <div class="card-text">
-                            {{ app.description|truncatechars:100 }}
-                        </div>
-                    </div>
-
-                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-teal-075">
-                        <div class="text-start">
-                            <span>{{ app.app.name }}</span>
-                        </div>
-                        <div class="text-end">
+                            {% if app.updated_on|date:'d M, Y' == app.created_on|date:'d M, Y' %}
                             <span>Created: {{ app.created_on|date:"d M, Y" }}</span>
+                            {% else %}
+                            <span>Updated: {{ app.updated_on|date:"d M, Y" }}</span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
-            {% endfor %}
         </div>
-        <div class="col-12 text-center mb-2">
+        {% endfor %}
+
+        <div class="col-12 text-center my-2">
             <a class="text-muted" href="{% url 'portal:apps' %}" target="_self" title="All apps and models">Browse all apps and models</a>
         </div>
     </div>
