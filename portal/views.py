@@ -188,7 +188,6 @@ class HomeView(View):
 
         context = {
             "published_apps_updated_on": published_apps_updated_on,
-            #   "published_apps_created_on": published_apps_created_on,
             "news_objects": news_objects,
             "link_all_news": link_all_news,
             "collection_objects": collection_objects,
