@@ -2,6 +2,7 @@ from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Field, Layout, MultiField
 from django import forms
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
@@ -17,8 +18,7 @@ class CustomAppForm(AppBaseForm):
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
-
-    default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom default url subpath")
+    default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -27,12 +27,11 @@ class CustomAppForm(AppBaseForm):
 
         self.fields["default_url_subpath"].widget.attrs.update({"class": "textinput form-control"})
         self.fields["default_url_subpath"].help_text = "Specify a non-default start URL if your app requires that."
+        apps_url = reverse("portal:apps")
         self.fields["default_url_subpath"].bottom_help_text = mark_safe(
             (
-                "We will display this URL for your app in our app catalogue."
-                " Keep in mind that when your app does not have anything on the root URL"
-                " (<span id='id_custom_default_url_subpath_form_help_text'></span>), if a user manually"
-                " navigates to the root URL, they will see an empty page there."
+                f"<span class='fw-bold'>Note:</span> This changes the URL connected to the Open button for an app"
+                f" on the Serve <a href='{apps_url}'>Apps & Models</a> page."
             )
         )
 
@@ -61,8 +60,8 @@ class CustomAppForm(AppBaseForm):
                     "Advanced settings",
                     PrependedText(
                         "default_url_subpath",
-                        "Subdomain/",
-                        template="apps/partials/srv_prepend_input_group_custom_app.html",
+                        mark_safe("<span id='id_custom_default_url_prepend'>Subdomain/</span>"),
+                        template="apps/partials/srv_prepend_append_input_group.html",
                     ),
                     active=False,
                 ),

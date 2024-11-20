@@ -14,7 +14,7 @@ def validate_default_url_subpath(candidate):
     It is up to the caller to handle the raised exception if desired.
     """
     error_message = (
-        "Your custom default URL is not valid, please correct it. "
+        "Your custom URL subpath is not valid, please correct it. "
         "It must be 1-53 characters long."
         " It can contain only Unicode letters, digits, hyphens"
         " ( - ), forward slashes ( / ), and underscores ( _ )."

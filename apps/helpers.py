@@ -229,7 +229,7 @@ def get_URI(instance):
     URI = URI.strip("/")
     if hasattr(instance, "default_url_subpath") and instance.default_url_subpath != "":
         URI = URI + "/" + instance.default_url_subpath
-        logger.info("Modified URI by adding default url subpath for the custom app: " + URI)
+        logger.info("Modified URI by adding custom default url for the custom app: %s", URI)
     return URI
 
 
