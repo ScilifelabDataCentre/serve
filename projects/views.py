@@ -174,6 +174,28 @@ def change_description(request, project_slug):
     )
 
 
+def can_model_instance_be_deleted(request, model, field_name, instance):
+    """
+    Check if a model instance can be deleted by ensuring no app in APP_REGISTRY
+    references it via the specified field.
+
+    Args:
+        request: The HTTP request object or None if called outside of request context.
+        model: The model class (e.g., Environment or Flavor).
+        field_name: The name of the field to check in APP_REGISTRY models.
+        instance: The instance to check.
+
+    Returns:
+        bool: True if the instance can be safely deleted, False otherwise.
+    """
+    for app_orm in APP_REGISTRY.iter_orm_models():
+        if hasattr(app_orm, field_name):
+            queryset = app_orm.objects.filter(**{field_name: instance})
+            if queryset.exists():
+                return False
+    return True
+
+
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_environment(request, project_slug):
@@ -211,21 +233,16 @@ def delete_environment(request, project_slug):
         # TODO: Check that the user has permission to delete this environment.
         environment = Environment.objects.get(pk=pk, project=project)
 
-        can_environment_be_deleted = True
-        for app_orm in APP_REGISTRY.iter_orm_models():
-            if hasattr(app_orm, "environment"):
-                queryset = app_orm.objects.filter(environment=environment)
-                if queryset:
-                    messages.error(
-                        request,
-                        "Environment cannot be deleted because it is currently used by at least one app \
-                            (can also be a deleted app).",
-                    )
-                    can_environment_be_deleted = False
-                    break
+        can_environment_be_deleted = can_model_instance_be_deleted(request, Environment, "environment", pk)
 
         if can_environment_be_deleted:
             environment.delete()
+        else:
+            messages.error(
+                request,
+                "Environment cannot be deleted because it is currently used by at least one app \
+                    (can also be a deleted app).",
+            )
 
     return HttpResponseRedirect(
         reverse(
@@ -278,21 +295,16 @@ def delete_flavor(request, project_slug):
         # TODO: Check that the user has permission to delete this flavor.
         flavor = Flavor.objects.get(pk=pk, project=project)
 
-        can_flavor_be_deleted = True
-        for app_orm in APP_REGISTRY.iter_orm_models():
-            if hasattr(app_orm, "flavor"):
-                queryset = app_orm.objects.filter(flavor=flavor)
-                if queryset:
-                    messages.error(
-                        request,
-                        "Flavor cannot be deleted because it is currently used by at least one app \
-                            (can also be a deleted app).",
-                    )
-                    can_flavor_be_deleted = False
-                    break
+        can_flavor_be_deleted = can_model_instance_be_deleted(request, Flavor, "flavor", pk)
 
         if can_flavor_be_deleted:
             flavor.delete()
+        else:
+            messages.error(
+                request,
+                "Flavor cannot be deleted because it is currently used by at least one app \
+                    (can also be a deleted app).",
+            )
 
     return HttpResponseRedirect(
         reverse(
