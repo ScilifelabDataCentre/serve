@@ -226,7 +226,7 @@ describe("Test project contributor user functionality", () => {
 
     it("limit on number of apps per project is enforced", () => {
         // Names of objects to create
-        const project_name = "e2e-create-proj-test"
+        const project_name = "e2e-create-proj-test-1"
 
         // Create a project
         cy.visit("/projects/")
@@ -268,14 +268,15 @@ describe("Test project contributor user functionality", () => {
 
     it("limit on number of projects per user is enforced", () => {
         // Names of projects to create
-        const project_name = "e2e-create-proj-test"
+        const project_name = "e2e-create-proj-test-2"
 
         // Create 10 projects (current limit)
-        Cypress._.times(10, () => {
+        Cypress._.times(10, (i) => {
             cy.visit("/projects/")
             cy.get("a").contains('New project').click()
             cy.get("a").contains('Create').first().click()
-            cy.get('input[name=name]').type(project_name)
+            // cy.get('input[name=name]').type(project_name)
+            cy.get('input[name=name]').type(`${project_name}-${i + 1}`);
             cy.get("input[name=save]").contains('Create project').click()
         });
         cy.wait(5000) // sometimes it takes a while to create a project but just waiting once at the end should be enough
@@ -467,7 +468,7 @@ describe("Test project contributor user functionality", () => {
     })
 
     it("can create a file management instance", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        const project_name = "e2e-create-proj-test"
+        const project_name = "e2e-create-proj-test-3"
 
         cy.logf("Creating a blank project", Cypress.currentTest)
         cy.createBlankProject(project_name)

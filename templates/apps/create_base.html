@@ -127,9 +127,13 @@
     const customDefaultUrlFormModifiedUrlText = document.getElementById("id_custom_default_url_prepend");
 
     function updateUrlWithSubdomain() {
-        const subdomainValue = subdomainInput.value.trim();
-        const displayValue = subdomainValue || "subdomain_name";
-        customDefaultUrlFormModifiedUrlText.innerHTML = `${displayValue}.{% get_setting 'DOMAIN' %}/</b>`;
+        try {
+            const subdomainValue = subdomainInput.value.trim();
+            const displayValue = subdomainValue || "subdomain_name";
+            customDefaultUrlFormModifiedUrlText.innerHTML = `${displayValue}.{% get_setting 'DOMAIN' %}/</b>`;
+        } catch (error) {
+            console.log("No custom url subpath option in this app type.");
+        }
     }
 
     // User is "finished typing," do something
