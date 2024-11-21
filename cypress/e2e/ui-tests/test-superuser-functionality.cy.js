@@ -65,7 +65,6 @@ describe("Test superuser access", () => {
         cy.get('input[name=name]').type(project_name)
         cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").contains('Create project').click()
-        //cy.wait(5000) // sometimes it takes a while to create a project. Not needed because of cypress retryability.
 
         cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
         cy.get('.card-text').should('contain', project_description)
@@ -139,13 +138,11 @@ describe("Test superuser access", () => {
         cy.get('#submit-id-submit').contains('Submit').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
 
-        //cy.wait(10000)  // Not needed because of the retryability built into cypress.
         cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running') // add this because to make sure the app is running before deleting otherwise it gives an error,
         cy.logf("Deleting a regular user's private app", Cypress.currentTest)
         cy.get('tr:contains("' + private_app_name_2 + '")').find('i.bi-three-dots-vertical').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').find('a.confirm-delete').click()
         cy.get('button').contains('Delete').click()
-        //cy.wait(5000)  // Not needed because of the retryability built into cypress.
          cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Deleted')
 
         cy.logf("Deleting a regular user's project", Cypress.currentTest)
@@ -163,7 +160,9 @@ describe("Test superuser access", () => {
         // Names of objects to create
         const project_name = "e2e-proj-flavor-env-test"
         const new_flavor_name = "4 CPU, 8 GB RAM"
+        const new_flavor_name_unused = "Unused flavor"
         const new_environment_name = "e2e test environment"
+        const new_environment_name_unused = "Unused environment"
 
         cy.logf("Logging in as a regular user and creating a project", Cypress.currentTest)
         cy.fixture('users.json').then(function (data) {
@@ -175,7 +174,6 @@ describe("Test superuser access", () => {
         cy.get("a").contains('Create').first().click()
         cy.get('input[name=name]').type(project_name)
         cy.get("input[name=save]").contains('Create project').click()
-        //cy.wait(5000) // sometimes it takes a while to create a project. Not needed because of cypress retryability.
         cy.get('h3').should('contain', project_name)
 
         Cypress.session.clearAllSavedSessions()
@@ -185,7 +183,7 @@ describe("Test superuser access", () => {
             cy.loginViaUI(users.superuser.email, users.superuser.password)
         })
 
-        cy.logf("Creating a new flavor in the regular user's project", Cypress.currentTest)
+        cy.logf("Creating new flavors in the regular user's project", Cypress.currentTest)
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('[data-cy="settings"]').click()
@@ -197,12 +195,27 @@ describe("Test superuser access", () => {
         cy.get('input[name="mem_lim"]').clear().type("8Gi")
         cy.get('button').contains("Create flavor").click()
 
-        cy.logf("Creating a new Jupyter Lab environment in the regular user's project", Cypress.currentTest)
+        cy.get('.list-group').find('a').contains('Flavors').click()
+        cy.get('input[name="flavor_name"]').type(new_flavor_name_unused)
+        cy.get('input[name="cpu_req"]').clear().type("500m")
+        cy.get('input[name="cpu_lim"]').clear().type("4000m")
+        cy.get('input[name="mem_req"]').clear().type("2Gi")
+        cy.get('input[name="mem_lim"]').clear().type("8Gi")
+        cy.get('button').contains("Create flavor").click()
+
+        cy.logf("Creating new Jupyter Lab environments in the regular user's project", Cypress.currentTest)
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('[data-cy="settings"]').click()
         cy.get('.list-group').find('a').contains('Environments').click()
         cy.get('input[name="environment_name"]').type(new_environment_name)
+        cy.get('input[name="environment_repository"]').clear().type("docker.io")
+        cy.get('input[name="environment_image"]').clear().type("jupyter/minimal-notebook:latest")
+        cy.get('#environment_app').select('Jupyter Lab')
+        cy.get('button').contains("Create environment").click()
+
+        cy.get('.list-group').find('a').contains('Environments').click()
+        cy.get('input[name="environment_name"]').type(new_environment_name_unused)
         cy.get('input[name="environment_repository"]').clear().type("docker.io")
         cy.get('input[name="environment_image"]').clear().type("jupyter/minimal-notebook:latest")
         cy.get('#environment_app').select('Jupyter Lab')
@@ -286,6 +299,48 @@ describe("Test superuser access", () => {
             cy.get('tr:contains("' + app_name_env + '")').find('a').contains('Settings').click()
             cy.get('#id_environment').find(':selected').should('contain', new_environment_name)
 
+            cy.logf("Checking that admin cannot delete flavor or environment currently in use", Cypress.currentTest)
+            Cypress.session.clearAllSavedSessions()
+            cy.logf("Logging in as a superuser", Cypress.currentTest)
+            cy.fixture('users.json').then(function (data) {
+                users = data
+                cy.loginViaUI(users.superuser.email, users.superuser.password)
+            })
+
+            cy.logf("Deleting a flavor that was used", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('[data-cy="settings"]').click()
+            cy.logf("Deleting a flavor that was used", Cypress.currentTest)
+            cy.get('.list-group').find('a').contains('Flavors').click()
+            cy.get('#flavor_pk').select(new_flavor_name)
+            cy.get('button').contains("Delete flavor").click()
+            cy.get('div.alert-danger').contains('Flavor cannot be deleted').should('exist')
+
+            cy.logf("Deleting a flavor that was not used", Cypress.currentTest)
+            cy.logf("Trying flavor deletion", Cypress.currentTest)
+            cy.get('.list-group').find('a').contains('Flavors').click()
+            cy.get('#flavor_pk').select(new_flavor_name_unused)
+            cy.get('button').contains("Delete flavor").click()
+            cy.get('.list-group').find('a').contains('Flavors').click()
+            cy.get('#flavor_pk').contains(new_flavor_name_unused).should("not.exist")
+
+            cy.logf("Deleting an environment that was used", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('[data-cy="settings"]').click()
+            cy.logf("Deleting a flavor that was used", Cypress.currentTest)
+            cy.get('.list-group').find('a').contains('Environments').click()
+            cy.get('#environment_pk').select(new_environment_name)
+            cy.get('button').contains("Delete environment").click()
+            cy.get('div.alert-danger').contains('Environment cannot be deleted').should('exist')
+
+            cy.logf("Deletion of an environment that was not used", Cypress.currentTest)
+            cy.get('.list-group').find('a').contains('Environments').click()
+            cy.get('#environment_pk').select(new_environment_name_unused)
+            cy.get('button').contains("Delete environment").click()
+            cy.get('.list-group').find('a').contains('Environments').click()
+            cy.get('#environment_pk').contains(new_environment_name_unused).should("not.exist")
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
@@ -302,55 +357,11 @@ describe("Test superuser access", () => {
         })
     })
 
-    it.skip("can create a persistent volume", () => {
-        // This test is not used, since creating PVCs like this is not the correct way any more.
-        // The correct way is to create a volume in the admin panel.
-
-        // Names of objects to create
-        const project_name_pvc = "e2e-superuser-pvc-test"
-        const volume_name = "e2e-project-vol"
-
-        cy.logf("Creating a blank project", Cypress.currentTest)
-        cy.createBlankProject(project_name_pvc)
-
-        cy.logf("Creating a persistent volume", Cypress.currentTest)
-        cy.visit("/projects/")
-        cy.contains('.card-title', project_name_pvc).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-
-        cy.get('div.card-body:contains("Persistent Volume")').find('a:contains("Create")').click()
-        cy.get('#id_name').type(volume_name)
-        cy.get('#submit-id-submit').contains('Submit').click()
-        cy.get('tr:contains("' + volume_name + '")').should('exist') // persistent volume has been created
-
-        // This does not work in our CI. Disabled for now, needs to be enabled for runs against an instance of Serve running on the cluster
-        /*
-        cy.get('tr:contains("' + volume_name + '")').find('span').should('contain', 'Installed') // confirm the volume is working
-
-        cy.log("Deleting the created persistent volume")
-        cy.get('tr:contains("' + volume_name + '")').find('i.bi-three-dots-vertical').click()
-        cy.get('tr:contains("' + volume_name + '")').find('a.confirm-delete').click()
-        cy.get('button').contains('Delete').click()
-        cy.get('tr:contains("' + volume_name + '")').find('span').should('contain', 'Deleted') // confirm the volume has been deleted
-        */
-
-        cy.logf("Deleting the created project", Cypress.currentTest)
-        cy.visit("/projects/")
-        cy.contains('.card-title', project_name_pvc).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
-        .then((href) => {
-            cy.get('div#modalConfirmDelete').should('have.css', 'display', 'block')
-            cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
-                cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
-                cy.contains(project_name_pvc).should('not.exist') // confirm the project has been deleted
-           })
-        })
-
-    })
-
     it("can bypass N projects limit", () => {
         // Names of projects to create
         const project_name = "e2e-superuser-proj-limits-test"
 
-        cy.logf("Create 10 projects (current limit for regular users)", Cypress.currentTest)
+        cy.logf("Create 10 projects (current limit for regular users) with the same name (currently not possible for regular users to use the same name)", Cypress.currentTest)
         Cypress._.times(10, () => {
             // better to write this out rather than use the createBlankProject command because then we can do a 5000 ms pause only once
             cy.visit("/projects/")

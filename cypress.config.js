@@ -10,6 +10,8 @@ module.exports = defineConfig({
   e2e: {
     baseUrl: 'http://studio.127.0.0.1.nip.io:8080',
     //baseUrl: 'https://serve-dev.scilifelab.se',
+    experimentalSessionAndOrigin: true,
+  
 
     setupNodeEvents(on, config) {
       // implement node event listeners here
