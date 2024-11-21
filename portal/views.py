@@ -79,7 +79,6 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     app_orms = (app_model for app_model in APP_REGISTRY.iter_orm_models() if issubclass(app_model, SocialMixin))
 
     for app_orm in app_orms:
-        logger.info("Processing: %s", app_orm)
         filters = ~Q(app_status__status="Deleted") & Q(access="public")
         if collection:
             filters &= Q(collections__slug=collection)
