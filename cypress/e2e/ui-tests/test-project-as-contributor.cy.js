@@ -275,7 +275,6 @@ describe("Test project contributor user functionality", () => {
             cy.visit("/projects/")
             cy.get("a").contains('New project').click()
             cy.get("a").contains('Create').first().click()
-            // cy.get('input[name=name]').type(project_name)
             cy.get('input[name=name]').type(`${project_name}-${i + 1}`);
             cy.get("input[name=save]").contains('Create project').click()
         });
