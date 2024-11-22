@@ -7,6 +7,12 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 
+class UserProfileManager(models.Manager):
+    def create_user_profile(self, user):
+        user_profile = self.create(user=user)
+        return user_profile
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     affiliation = models.CharField(max_length=100, blank=True)
@@ -19,13 +25,10 @@ class UserProfile(models.Model):
 
     note = models.TextField(max_length=1000, blank=True)
 
+    objects = UserProfileManager()
+
     def __str__(self):
         return f"{self.user.email}"
-    
-    @classmethod
-    def create(cls, user):
-        user_profile = cls(user=user)
-        return user_profile
 
 
 class EmailVerificationTable(models.Model):

@@ -25,7 +25,11 @@
     "username": "e2e_tests_deploy_app_user"
   },
   "login_user": {
+    "affiliation": "uu",
+    "department": "e2e-tests-login-user-department-name",
     "email": "no-reply-login@scilifelab.uu.se",
+    "first_name": "e2e-tests-login-user-first-name",
+    "last_name": "e2e-tests-login-user-last-name",
     "password": "tesT12345@",
     "reset_password": "^x#^PbLnDY!{J0ju",
     "username": "e2e_tests_login_user"
@@ -49,15 +53,5 @@
     "email": "no-reply-superuser-testuser@scilifelab.se",
     "password": "tesT12345@",
     "username": "e2e_superuser_testuser_tester"
-  },
-  "profile_edit_testuser": {
-    "email": "no-reply-profile-edit-testuser@scilifelab.se",
-    "password": "tesT12345@",
-    "username": "e2e_profile_edit_testuser_tester",
-    "first_name": "profile-edit-test-user-first-name",
-    "last_name": "profile-edit-test-user-last-name",
-    "department": "test-user-department-name",
-    "affiliation": "uu",
-    "why_account_needed": "test"
   }
 }
