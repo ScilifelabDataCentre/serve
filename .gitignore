@@ -63,6 +63,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Model diagrams from graphviz
+*.dot
+
 # Translations
 *.mo
 *.pot
