@@ -242,6 +242,49 @@ describe("Test deploying app", () => {
       }
     })
 
+    it("can create a custom url subpath using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // Names of objects to create
+        const project_name = "e2e-deploy-app-test"
+        const app_name_project = "e2e-streamlit-example-project-custom-url-subpath"
+        const app_description = "e2e-streamlit-description-custom-url-subpath"
+
+        const image_name = "ghcr.io/srijitseal/dili_predictor:20240803-203907"
+
+        const image_port = "8501"
+
+        const link_privacy_type_note = "some-text-on-link-only-app"
+        const createResources = Cypress.env('create_resources');
+        const app_type = "Custom App"
+        const app_source_code_public = "https://doi.org/example"
+
+        const default_url_subpath = "as/df/gg"
+
+
+        if (createResources === true) {
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+            // Create an app with project permissions
+            cy.logf("Now creating a project app", Cypress.currentTest)
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name_project)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_subdomain').type("custom-url-subpath")
+            cy.get('#id_access').select('Project')
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click();
+            cy.get('#id_default_url_subpath').clear().type(default_url_subpath)
+
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // check that the app was created
+            verifyAppStatus(app_name_project, "Running", "project")
+
+             } else {
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
+      }
+    })
+
     // This test is skipped because it will only work against a Serve instance running on our cluster. should be switched on for the e2e tests against remote.
     it.skip("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
