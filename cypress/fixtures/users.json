@@ -49,5 +49,15 @@
     "email": "no-reply-superuser-testuser@scilifelab.se",
     "password": "tesT12345@",
     "username": "e2e_superuser_testuser_tester"
+  },
+  "profile_edit_testuser": {
+    "email": "no-reply-profile-edit-testuser@scilifelab.se",
+    "password": "tesT12345@",
+    "username": "e2e_profile_edit_testuser_tester",
+    "first_name": "profile-edit-test-user-first-name",
+    "last_name": "profile-edit-test-user-last-name",
+    "department": "test-user-department-name",
+    "affiliation": "uu",
+    "why_account_needed": "test"
   }
 }

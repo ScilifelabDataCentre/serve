@@ -21,6 +21,11 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.email}"
+    
+    @classmethod
+    def create(cls, user):
+        user_profile = cls(user=user)
+        return user_profile
 
 
 class EmailVerificationTable(models.Model):
