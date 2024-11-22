@@ -221,12 +221,12 @@ describe("Test superuser access", () => {
         cy.get('#environment_app').select('Jupyter Lab')
         cy.get('button').contains("Create environment").click()
 
-        Cypress.session.clearAllSavedSessions()
-        cy.logf("Logging back in as a regular user and using the new flavor and environment", Cypress.currentTest)
         const createResources = Cypress.env('create_resources');
 
         if (createResources === true) {
 
+            Cypress.session.clearAllSavedSessions()
+            cy.logf("Logging back in as a regular user and using the new flavor and environment", Cypress.currentTest)
             cy.fixture('users.json').then(function (data) {
                 users = data
                 cy.loginViaUI(users.superuser_testuser.email, users.superuser_testuser.password)
@@ -300,14 +300,22 @@ describe("Test superuser access", () => {
             cy.get('#id_environment').find(':selected').should('contain', new_environment_name)
 
             cy.logf("Checking that admin cannot delete flavor or environment currently in use", Cypress.currentTest)
-            Cypress.session.clearAllSavedSessions()
             cy.logf("Logging in as a superuser", Cypress.currentTest)
+            // I do this logout and login manually (rather than using Cypress sessions) because Cypress
+            // refused to do one more session for this user here for some reason
+            cy.get('button.btn-profile').contains("Profile").click()
+            cy.get('li.btn-group').find('button').contains("Sign out").click()
+            cy.get("title").should("have.text", "Logout | SciLifeLab Serve (beta)")
             cy.fixture('users.json').then(function (data) {
                 users = data
-                cy.loginViaUI(users.superuser.email, users.superuser.password)
+                cy.visit('/accounts/login/')
+                cy.get('input[name=username]').type(users.superuser.email)
+                cy.get('input[name=password]').type(`${users.superuser.password}{enter}`, { log: false })
+                cy.url().should('include', '/projects')
+                cy.get('h3').should('contain', 'My projects')
             })
 
-            cy.logf("Deleting a flavor that was used", Cypress.currentTest)
+            cy.logf("Trying to delete a flavor that was used", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('[data-cy="settings"]').click()
@@ -325,7 +333,7 @@ describe("Test superuser access", () => {
             cy.get('.list-group').find('a').contains('Flavors').click()
             cy.get('#flavor_pk').contains(new_flavor_name_unused).should("not.exist")
 
-            cy.logf("Deleting an environment that was used", Cypress.currentTest)
+            cy.logf("Trying to delete an environment that was used", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('[data-cy="settings"]').click()
@@ -335,7 +343,7 @@ describe("Test superuser access", () => {
             cy.get('button').contains("Delete environment").click()
             cy.get('div.alert-danger').contains('Environment cannot be deleted').should('exist')
 
-            cy.logf("Deletion of an environment that was not used", Cypress.currentTest)
+            cy.logf("Deleting an environment that was not used", Cypress.currentTest)
             cy.get('.list-group').find('a').contains('Environments').click()
             cy.get('#environment_pk').select(new_environment_name_unused)
             cy.get('button').contains("Delete environment").click()
