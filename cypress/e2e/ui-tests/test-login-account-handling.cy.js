@@ -62,9 +62,6 @@ describe("Test login, profile page view, password change, password reset", () =>
 
     it("can edit user profile information", () => {
 
-        //(uncaught exception) TypeError: request_account_field is null
-        // Cypress.on('uncaught:exception', (err, runnable) => {return false;});
-
         function editProfile(firstName, lastName, department) {
 
             cy.url().should("include", "edit-profile/")
@@ -85,12 +82,12 @@ describe("Test login, profile page view, password change, password reset", () =>
         cy.get('button.btn-profile').click()
         cy.get('li.btn-group').find('a').contains("Edit profile").click()
 
-        editProfile('changing fast name', 'changing last name', 'changing department name');
+        editProfile('changing first name', 'changing last name', 'changing department name');
 
         cy.get('button.btn-profile').contains('a', 'Edit').click();
 
         // Checking it twice as edit option is in two different places.
-        editProfile('changing fast name again', 'changing last name again', 'changing department name again');
+        editProfile('changing first name again', 'changing last name again', 'changing department name again');
     })
 
     it("can change user password", () => {
