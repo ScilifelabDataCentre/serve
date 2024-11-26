@@ -1,4 +1,6 @@
 from django.db import models
+import regex as re
+from django.core.exceptions import ValidationError
 
 from apps.models import (
     AppInstanceManager,
@@ -6,6 +8,27 @@ from apps.models import (
     LogsEnabledMixin,
     SocialMixin,
 )
+
+def validate_shiny_site_dir(candidate):
+    """
+    Validates a shiny_site_dir path addition.
+    The RegexValidator will raise a ValidationError if the input does not match the regular expression.
+    It is up to the caller to handle the raised exception if desired.
+    """
+    error_message = (
+        "Your shiny site directory subpath is not valid, please correct it. "
+        "It must be 1-53 characters long."
+        " It can contain only Unicode letters, digits, hyphens"
+        " ( - ), forward slashes ( / ), and underscores ( _ )."
+        " It cannot start or end with a hyphen ( - ) and "
+        "cannot start with a forward slash ( / )."
+        " It cannot contain consecutive forward slashes ( // )."
+    )
+
+    pattern = r"^(?!-)(?!/)(?!.*//)[\p{Letter}\p{Mark}0-9-/_]{1,53}(?<!-)$|^$"
+
+    if not re.match(pattern, candidate):
+        raise ValidationError(error_message)
 
 
 class ShinyInstanceManager(AppInstanceManager):
@@ -35,7 +58,8 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     container_waittime = models.IntegerField(default=20000)
     heartbeat_timeout = models.IntegerField(default=60000)
     heartbeat_rate = models.IntegerField(default=10000)
-    shiny_site_dir = models.CharField(max_length=255, default="", blank=True)
+    shiny_site_dir = models.CharField(
+        validators=[validate_shiny_site_dir], max_length=255, default="", blank=True)
 
     # The following three settings control the pre-init and seats behaviour (see documentation)
     # These settings override the Helm chart default values
