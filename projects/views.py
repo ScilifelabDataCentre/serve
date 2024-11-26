@@ -202,23 +202,26 @@ def can_model_instance_be_deleted(field_name, instance):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_environment(request, project_slug):
-    # TODO: Ensure that user is allowed to create environment in this project.
-    if request.method == "POST":
-        project = Project.objects.get(slug=project_slug)
-        name = request.POST.get("environment_name")
-        repo = request.POST.get("environment_repository")
-        image = request.POST.get("environment_image")
-        app_pk = request.POST.get("environment_app")
-        app = Apps.objects.get(pk=app_pk)
-        environment = Environment(
-            name=name,
-            slug=name,
-            project=project,
-            repository=repo,
-            image=image,
-            app=app,
-        )
-        environment.save()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            # TODO: check input data
+            name = request.POST.get("environment_name")
+            repo = request.POST.get("environment_repository")
+            image = request.POST.get("environment_image")
+            app_pk = request.POST.get("environment_app")
+            app = Apps.objects.get(pk=app_pk)
+            environment = Environment(
+                name=name,
+                slug=name,
+                project=project,
+                repository=repo,
+                image=image,
+                app=app,
+            )
+            environment.save()
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
@@ -230,23 +233,24 @@ def create_environment(request, project_slug):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def delete_environment(request, project_slug):
-    if request.method == "POST":
-        project = Project.objects.get(slug=project_slug)
-        pk = request.POST.get("environment_pk")
-        # TODO: Check that the user has permission to delete this environment.
-        environment = Environment.objects.get(pk=pk, project=project)
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            pk = request.POST.get("environment_pk")
+            environment = Environment.objects.get(pk=pk, project=project)
 
-        can_environment_be_deleted = can_model_instance_be_deleted("environment", pk)
+            can_environment_be_deleted = can_model_instance_be_deleted("environment", pk)
 
-        if can_environment_be_deleted:
-            environment.delete()
-        else:
-            messages.error(
-                request,
-                "Environment cannot be deleted because it is currently used by at least one app \
-                    (can also be a deleted app).",
-            )
-
+            if can_environment_be_deleted:
+                environment.delete()
+            else:
+                messages.error(
+                    request,
+                    "Environment cannot be deleted because it is currently used by at least one app \
+                        (can also be a deleted app).",
+                )
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
@@ -294,22 +298,25 @@ def create_flavor(request, project_slug):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def delete_flavor(request, project_slug):
-    if request.method == "POST":
-        project = Project.objects.get(slug=project_slug)
-        pk = request.POST.get("flavor_pk")
-        # TODO: Check that the user has permission to delete this flavor.
-        flavor = Flavor.objects.get(pk=pk, project=project)
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            project = Project.objects.get(slug=project_slug)
+            pk = request.POST.get("flavor_pk")
+            flavor = Flavor.objects.get(pk=pk, project=project)
 
-        can_flavor_be_deleted = can_model_instance_be_deleted("flavor", pk)
+            can_flavor_be_deleted = can_model_instance_be_deleted("flavor", pk)
 
-        if can_flavor_be_deleted:
-            flavor.delete()
-        else:
-            messages.error(
-                request,
-                "Flavor cannot be deleted because it is currently used by at least one app \
-                    (can also be a deleted app).",
-            )
+            if can_flavor_be_deleted:
+                flavor.delete()
+            else:
+                messages.error(
+                    request,
+                    "Flavor cannot be deleted because it is currently used by at least one app \
+                        (can also be a deleted app).",
+                )
 
     return HttpResponseRedirect(
         reverse(
