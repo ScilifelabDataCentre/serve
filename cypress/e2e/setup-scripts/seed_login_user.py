@@ -27,6 +27,7 @@ with open(os.path.join(cypress_path, "users.json"), "r") as f:
     user.last_name = userdata["last_name"]
     user.save()
 
+    # needed for editing profile information (see SS-1177)
     user_profile = UserProfile.objects.create_user_profile(user)
     user_profile.department = userdata["department"]
     user_profile.affiliation = userdata["affiliation"]
