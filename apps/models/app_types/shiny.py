@@ -1,6 +1,6 @@
-from django.db import models
 import regex as re
 from django.core.exceptions import ValidationError
+from django.db import models
 
 from apps.models import (
     AppInstanceManager,
@@ -8,6 +8,7 @@ from apps.models import (
     LogsEnabledMixin,
     SocialMixin,
 )
+
 
 def validate_shiny_site_dir(candidate):
     """
@@ -58,8 +59,7 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     container_waittime = models.IntegerField(default=20000)
     heartbeat_timeout = models.IntegerField(default=60000)
     heartbeat_rate = models.IntegerField(default=10000)
-    shiny_site_dir = models.CharField(
-        validators=[validate_shiny_site_dir], max_length=255, default="", blank=True)
+    shiny_site_dir = models.CharField(validators=[validate_shiny_site_dir], max_length=255, default="", blank=True)
 
     # The following three settings control the pre-init and seats behaviour (see documentation)
     # These settings override the Helm chart default values
