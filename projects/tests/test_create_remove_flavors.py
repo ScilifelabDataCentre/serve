@@ -1,21 +1,21 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from projects.models import Project, Flavor
-from projects.views import can_model_instance_be_deleted
 from apps.models import Apps, CustomAppInstance
+from projects.models import Flavor, Project
+from projects.views import can_model_instance_be_deleted
 
 User = get_user_model()
 
 test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
 test_superuser = {"username": "superuser", "email": "superuser@test.com", "password": "bar"}
 
+
 class FlavorTestCase(TestCase):
     def setUp(self):
         user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         _ = Project.objects.create_project(name="test-flavor", owner=user, description="")
-        superuser = User.objects.create_superuser(test_superuser["username"], test_superuser["email"], test_superuser["password"])
-        #self.client.login(username=test_user["email"], password=test_user["password"])
+        User.objects.create_superuser(test_superuser["username"], test_superuser["email"], test_superuser["password"])
 
     def test_forbidden_flavor_creation(self):
         """
@@ -27,21 +27,21 @@ class FlavorTestCase(TestCase):
 
         response = self.client.post(
             f"/projects/{project.slug}/createflavor/",
-            {"flavor_name": "new-flavor-user",
-             "cpu_req": "n",
-             "mem_req": "n",
-             "ephmem_req": "n",
-             "cpu_lim": "n",
-             "mem_lim": "n",
-             "ephmem_lim": "n"             
-             },
+            {
+                "flavor_name": "new-flavor-user",
+                "cpu_req": "n",
+                "mem_req": "n",
+                "ephmem_req": "n",
+                "cpu_lim": "n",
+                "mem_lim": "n",
+                "ephmem_lim": "n",
+            },
         )
 
         self.assertEqual(response.status_code, 403)
 
         flavors = Flavor.objects.all()
         self.assertEqual(len(flavors), 0)
-
 
     def test_allowed_flavor_creation(self):
         """
@@ -51,21 +51,22 @@ class FlavorTestCase(TestCase):
         project = Project.objects.get(name="test-flavor")
         response = self.client.post(
             f"/projects/{project.slug}/createflavor/",
-            {"flavor_name": "new-flavor-superuser",
-             "cpu_req": "n",
-             "mem_req": "n",
-             "ephmem_req": "n",
-             "cpu_lim": "n",
-             "mem_lim": "n",
-             "ephmem_lim": "n"             
-             },
+            {
+                "flavor_name": "new-flavor-superuser",
+                "cpu_req": "n",
+                "mem_req": "n",
+                "ephmem_req": "n",
+                "cpu_lim": "n",
+                "mem_lim": "n",
+                "ephmem_lim": "n",
+            },
         )
 
         self.assertEqual(response.status_code, 302)
 
         flavors = Flavor.objects.all()
         self.assertEqual(len(flavors), 1)
-    
+
         """
         Test it is allowed to delete flavor that is not in use
         """
@@ -89,9 +90,8 @@ class FlavorTestCase(TestCase):
             k8s_values={
                 "environment": {"pk": ""},
             },
-            flavor=flavor
+            flavor=flavor,
         )
 
         can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor.pk)
         self.assertFalse(can_flavor_be_deleted)
-
