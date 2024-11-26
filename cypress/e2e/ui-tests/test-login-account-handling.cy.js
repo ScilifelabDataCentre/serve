@@ -78,16 +78,18 @@ describe("Test login, profile page view, password change, password reset", () =>
 
 
         cy.loginViaUI(users.login_user.email, users.login_user.password)
+
+        cy.log("Editing and verifying userprofile by accessing it from the navbar")
         cy.visit("/")
         cy.get('button.btn-profile').click()
         cy.get('li.btn-group').find('a').contains("Edit profile").click()
-
-        // Editing and verifying userprofile by accessing it from the navbar
         editProfile('changing first name', 'changing last name', 'changing department name');
 
+        cy.log("Editing and verifying userprofile by accessing it from the profile view")
+        cy.visit("/")
+        cy.get('button.btn-profile').click()
+        cy.get('li.btn-group').find('a').contains("My profile").click()
         cy.get('button.btn-profile').contains('a', 'Edit').click();
-
-        // Editing and verifying userprofile by accessing it from the profile view
         editProfile('changing first name again', 'changing last name again', 'changing department name again');
     })
 
