@@ -121,8 +121,7 @@ def helm_delete(release_name, namespace="default"):
         return e.stdout, e.stderr
 
 
-@shared_task
-def get_manifest_yaml(release_name: str, namespace: str = "default"):
+def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
     command = f"helm get manifest {release_name} --namespace {namespace}"
     # command = f"kubectl get configmap cm -n default -o yaml | yq eval '.data[\"application.yml\"]'"
     # Execute the command
@@ -134,7 +133,7 @@ def get_manifest_yaml(release_name: str, namespace: str = "default"):
         return e.stdout, e.stderr
 
 
-def validate_manifest_file(manifest_file: str):
+def validate_manifest_file(manifest_file: str) -> tuple[str | None, str | None]:
     """Validates a k8s deployment manifest file."""
     command = f"kubectl apply --dry-run=client -f {manifest_file}"
     # command = f"kubernetes-validate {manifest_file}"
@@ -212,7 +211,8 @@ def deploy_resource(serialized_instance):
                     # Delete the file is there was no error and if it is valid
                     subprocess.run(["rm", "-f", deployment_file])
 
-    subprocess.run(["rm", "-f", values_file])
+    # TODO: Uncomment
+    # subprocess.run(["rm", "-f", values_file])
 
 
 @shared_task
