@@ -82,11 +82,12 @@ describe("Test login, profile page view, password change, password reset", () =>
         cy.get('button.btn-profile').click()
         cy.get('li.btn-group').find('a').contains("Edit profile").click()
 
+        // Editing and verifying userprofile by accessing it from the navbar
         editProfile('changing first name', 'changing last name', 'changing department name');
 
         cy.get('button.btn-profile').contains('a', 'Edit').click();
 
-        // Checking it twice as edit option is in two different places.
+        // Editing and verifying userprofile by accessing it from the profile view
         editProfile('changing first name again', 'changing last name again', 'changing department name again');
     })
 

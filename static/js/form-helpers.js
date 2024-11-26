@@ -30,7 +30,8 @@ window.onload = (event) => {
             choiceSelect.value = 'other';  // Reset to default or empty value
             department_label.classList.remove('required');
         }
-        if (request_account_field){
+
+        if (request_account_field){ // to prevent Uncaught TypeError for null value
             if (shouldHide) {
                 request_account_field.classList.add('hidden');
             } else {
@@ -40,7 +41,7 @@ window.onload = (event) => {
         }
     }
 
-    if (request_account_field){
+    if (request_account_field){ // to prevent Uncaught TypeError for null value
         // Temporarily disable transitions
         request_account_field.style.transition = 'none';
 
