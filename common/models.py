@@ -8,7 +8,7 @@ logger = get_logger(__name__)
 
 
 class UserProfileManager(models.Manager):
-    def create_user_profile(self, user):
+    def create_user_profile(self, user: User):
         user_profile = self.create(user=user)
         return user_profile
 
