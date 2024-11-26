@@ -17,16 +17,15 @@ def validate_shiny_site_dir(candidate):
     It is up to the caller to handle the raised exception if desired.
     """
     error_message = (
-        "Your shiny site directory subpath is not valid, please correct it. "
-        "It must be 1-53 characters long."
-        " It can contain only Unicode letters, digits, hyphens"
-        " ( - ), forward slashes ( / ), and underscores ( _ )."
-        " It cannot start or end with a hyphen ( - ) and "
-        "cannot start with a forward slash ( / )."
-        " It cannot contain consecutive forward slashes ( // )."
+        "Please provide a valid path. "
+        "It can be empty. "
+        "Otherwise, it must be 63 characters or less. "
+        " It must begin and end with an alphanumeric character (a-z, or 0-9, or A-Z)."
+        " It could contain dashes ( - ), underscores ( _ ), dots ( . ), "
+        "and alphanumerics."
     )
 
-    pattern = r"^(?!-)(?!/)(?!.*//)[\p{Letter}\p{Mark}0-9-/_]{1,53}(?<!-)$|^$"
+    pattern = r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,61}[a-zA-Z0-9])?)?$"
 
     if not re.match(pattern, candidate):
         raise ValidationError(error_message)
