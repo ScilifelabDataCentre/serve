@@ -177,7 +177,7 @@ def change_description(request, project_slug):
     )
 
 
-def can_model_instance_be_deleted(request, model, field_name, instance):
+def can_model_instance_be_deleted(field_name, instance):
     """
     Check if a model instance can be deleted by ensuring no app in APP_REGISTRY
     references it via the specified field.
@@ -236,7 +236,7 @@ def delete_environment(request, project_slug):
         # TODO: Check that the user has permission to delete this environment.
         environment = Environment.objects.get(pk=pk, project=project)
 
-        can_environment_be_deleted = can_model_instance_be_deleted(request, Environment, "environment", pk)
+        can_environment_be_deleted = can_model_instance_be_deleted("environment", pk)
 
         if can_environment_be_deleted:
             environment.delete()
@@ -300,7 +300,7 @@ def delete_flavor(request, project_slug):
         # TODO: Check that the user has permission to delete this flavor.
         flavor = Flavor.objects.get(pk=pk, project=project)
 
-        can_flavor_be_deleted = can_model_instance_be_deleted(request, Flavor, "flavor", pk)
+        can_flavor_be_deleted = can_model_instance_be_deleted("flavor", pk)
 
         if can_flavor_be_deleted:
             flavor.delete()
