@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from projects.models import Project, Flavor
+from projects.views import can_model_instance_be_deleted
+from apps.models import Apps, CustomAppInstance
 
 User = get_user_model()
 
@@ -25,7 +27,7 @@ class FlavorTestCase(TestCase):
 
         response = self.client.post(
             f"/projects/{project.slug}/createflavor/",
-            {"flavor_name": "new-flavor",
+            {"flavor_name": "new-flavor-user",
              "cpu_req": "n",
              "mem_req": "n",
              "ephmem_req": "n",
@@ -49,7 +51,7 @@ class FlavorTestCase(TestCase):
         project = Project.objects.get(name="test-flavor")
         response = self.client.post(
             f"/projects/{project.slug}/createflavor/",
-            {"flavor_name": "new-flavor",
+            {"flavor_name": "new-flavor-superuser",
              "cpu_req": "n",
              "mem_req": "n",
              "ephmem_req": "n",
@@ -63,3 +65,33 @@ class FlavorTestCase(TestCase):
 
         flavors = Flavor.objects.all()
         self.assertEqual(len(flavors), 1)
+    
+        """
+        Test it is allowed to delete flavor that is not in use
+        """
+        user = User.objects.get(email=test_superuser["email"])
+        flavor = Flavor.objects.get(name="new-flavor-superuser")
+
+        can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor.pk)
+        self.assertTrue(can_flavor_be_deleted)
+
+        """
+        Test it is not allowed to delete flavor that is in use
+        """
+        app = Apps.objects.create(name="Some App", slug="customapp")
+        self.app_instance = CustomAppInstance.objects.create(
+            access="public",
+            owner=user,
+            name="test_app_instance_flavor",
+            description="some app description",
+            app=app,
+            project=project,
+            k8s_values={
+                "environment": {"pk": ""},
+            },
+            flavor=flavor
+        )
+
+        can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor.pk)
+        self.assertFalse(can_flavor_be_deleted)
+
