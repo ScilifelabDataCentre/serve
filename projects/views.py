@@ -258,29 +258,31 @@ def delete_environment(request, project_slug):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_flavor(request, project_slug):
-    # TODO: Ensure that user is allowed to create flavor in this project.
-    if request.method == "POST":
-        # TODO: Check input
-        project = Project.objects.get(slug=project_slug)
-        logger.info(request.POST)
-        name = request.POST.get("flavor_name")
-        cpu_req = request.POST.get("cpu_req")
-        mem_req = request.POST.get("mem_req")
-        ephmem_req = request.POST.get("ephmem_req")
-        cpu_lim = request.POST.get("cpu_lim")
-        mem_lim = request.POST.get("mem_lim")
-        ephmem_lim = request.POST.get("ephmem_lim")
-        flavor = Flavor(
-            name=name,
-            project=project,
-            cpu_req=cpu_req,
-            mem_req=mem_req,
-            cpu_lim=cpu_lim,
-            mem_lim=mem_lim,
-            ephmem_req=ephmem_req,
-            ephmem_lim=ephmem_lim,
-        )
-        flavor.save()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            # TODO: Check input
+            logger.info(request.POST)
+            name = request.POST.get("flavor_name")
+            cpu_req = request.POST.get("cpu_req")
+            mem_req = request.POST.get("mem_req")
+            ephmem_req = request.POST.get("ephmem_req")
+            cpu_lim = request.POST.get("cpu_lim")
+            mem_lim = request.POST.get("mem_lim")
+            ephmem_lim = request.POST.get("ephmem_lim")
+            flavor = Flavor(
+                name=name,
+                project=project,
+                cpu_req=cpu_req,
+                mem_req=mem_req,
+                cpu_lim=cpu_lim,
+                mem_lim=mem_lim,
+                ephmem_req=ephmem_req,
+                ephmem_lim=ephmem_lim,
+            )
+            flavor.save()
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
