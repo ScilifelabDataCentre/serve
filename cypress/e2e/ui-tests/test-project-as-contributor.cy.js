@@ -77,7 +77,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('h3').should('contain', project_name)
         cy.get('.card-text').should('contain', project_description)
 
-        // Check that creating another project with the same existing project name will create an error
+        // Check that creating another project with same existing project name will create an error
         cy.visit("/projects/")
         cy.get("title").should("have.text", "My projects | SciLifeLab Serve (beta)")
         cy.logf("Create a new project with the same existing project name", Cypress.currentTest)
@@ -96,7 +96,6 @@ describe("Test project contributor user functionality", () => {
         cy.get('input[name=name]').type(project_name) // same name used before
         cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").contains('Create project').click() // should generate an error
-        // cy.wait(5000) // sometimes it takes a while to create a project
 
         // Check that the error message is correctly displayed
         cy.get('#flash-msg')

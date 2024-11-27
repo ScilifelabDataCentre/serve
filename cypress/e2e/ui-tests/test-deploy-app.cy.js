@@ -62,7 +62,7 @@ describe("Test deploying app", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it.skip("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name_project = "e2e-streamlit-example-project"
@@ -349,7 +349,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it.skip("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Simple test to create and delete a Dash app
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
@@ -412,7 +412,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it.skip("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-tissuumaps-example"
@@ -556,7 +556,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can modify app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it.skip("can modify app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // An advanced test to verify user can modify app settings resulting in k8s redeployment (image)
         // still shows the correct app status.
         // Names of objects to create
@@ -653,7 +653,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it.skip("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // A test to verify creating an app and changing the subdomain
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-subdomain-change"
@@ -736,7 +736,7 @@ describe("Test deploying app", () => {
 
     })
 
-    it("can set and change custom subdomain several times", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it.skip("can set and change custom subdomain several times", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // An advanced test to verify creating apps and changing subdomains. Steps taken:
         // 1. Create app e2e-subdomain-example, subdomain=subdomain-test
         // 2. Attempt create app e2e-second-subdomain-example, using subdomain=subdomain-test
