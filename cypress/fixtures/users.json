@@ -25,7 +25,11 @@
     "username": "e2e_tests_deploy_app_user"
   },
   "login_user": {
+    "affiliation": "uu",
+    "department": "e2e-tests-login-user-department-name",
     "email": "no-reply-login@scilifelab.uu.se",
+    "first_name": "e2e-tests-login-user-first-name",
+    "last_name": "e2e-tests-login-user-last-name",
     "password": "tesT12345@",
     "reset_password": "^x#^PbLnDY!{J0ju",
     "username": "e2e_tests_login_user"
