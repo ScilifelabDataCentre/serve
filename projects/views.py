@@ -5,6 +5,7 @@ import logging
 import requests as r
 from django.apps import apps
 from django.conf import settings as django_settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
@@ -20,7 +21,7 @@ from django.shortcuts import render, reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
-from guardian.shortcuts import assign_perm, remove_perm
+from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance
@@ -85,6 +86,9 @@ def settings(request, project_slug):
             Q(owner=request.user) | Q(authorized=request.user),
             Q(slug=project_slug),
         ).first()
+
+    if request.user.is_superuser and project.status == "deleted":
+        return HttpResponse("This project has been deleted by the user.")
 
     try:
         User._meta.get_field("is_user")
@@ -387,7 +391,9 @@ class CreateProjectView(View):
 
         template = arr[0] if len(arr) > 0 else None
 
-        context = {"template": template}
+        context = {
+            "template": template,
+        }
 
         return render(
             request=request,
@@ -406,6 +412,30 @@ class CreateProjectView(View):
 
         name = request.POST.get("name", "default")[:200]
         description = request.POST.get("description", "")
+
+        # Ensure no duplicate project name for the common user
+
+        project_name_already_exists = (
+            Project.objects.filter(
+                owner=request.user,
+                name=name,
+            )
+            .exclude(status="deleted")
+            .exists()
+        )
+
+        if project_name_already_exists and not request.user.is_superuser:
+            pre_selected_template = request.GET.get("template")
+            template = ProjectTemplate.objects.filter(name=pre_selected_template).first()
+            context = {"template": template}
+            logger.error("A project with name '" + name + "' already exists.")
+
+            messages.error(
+                request,
+                "Project cannot be created because a project with name '" + name + "' already exists.",
+            )
+
+            return render(request, self.template_name, context)
 
         # Try to create database project object.
         try:
@@ -462,6 +492,10 @@ class DetailsView(View):
 
     def get(self, request, project_slug):
         project = Project.objects.get(slug=project_slug)
+
+        if request.user.is_superuser and project.status == "deleted":
+            return HttpResponse("This project has been deleted by the user.")
+
         resources = []
         app_ids = []
         if request.user.is_superuser:
@@ -542,6 +576,11 @@ def delete(request, project_slug):
         project = Project.objects.filter(slug=project_slug).first()
 
     logger.info("SCHEDULING DELETION OF ALL INSTALLED APPS")
+    # remove permissions to see this project
+    users_with_permission = get_users_with_perms(project)
+    for user in users_with_permission:
+        remove_perm("can_view_project", user, project)
+    # set the status to 'deleted'
     project.status = "deleted"
     project.save()
     delete_project.delay(project.pk)

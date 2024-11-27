@@ -61,23 +61,32 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
         if "tf_add" not in request.GET and "tf_remove" not in request.GET:
             request.session["app_tags"] = {}
 
+    # Select published apps
     published_apps = []
+    # because shiny appears twice we have to ensure uniqueness
+    seen_app_ids = set()
+
+    def get_unique_apps(queryset, app_ids_to_exclude):
+        """Get from queryset app orm models, that are not present in ``seen_app_ids``"""
+        unique_app_ids_ = set()
+        unique_apps_ = []
+        for app in queryset:
+            if app.id not in app_ids_to_exclude and app_id not in unique_app_ids_:
+                unique_app_ids_.add(app.id)
+                unique_apps_.append(app)
+        return unique_apps_, unique_app_ids_
 
     app_orms = (app_model for app_model in APP_REGISTRY.iter_orm_models() if issubclass(app_model, SocialMixin))
-    if collection:
-        # TODO: TIDY THIS UP!
-        for app_orm in app_orms:
-            logger.info("%s", app_orm)
-            published_apps_qs = app_orm.objects.filter(
-                ~Q(app_status__status="Deleted"), access="public", collections__slug=collection
-            )
-            logger.info("%s", published_apps_qs)
-            published_apps.extend([app for app in published_apps_qs])
 
-    else:
-        for app_orm in app_orms:
-            published_apps_qs = app_orm.objects.filter(~Q(app_status__status="Deleted"), access="public")
-            published_apps.extend([app for app in published_apps_qs])
+    for app_orm in app_orms:
+        filters = ~Q(app_status__status="Deleted") & Q(access="public")
+        if collection:
+            filters &= Q(collections__slug=collection)
+        published_apps_qs = app_orm.objects.filter(filters)
+
+        unique_apps, unique_app_ids = get_unique_apps(published_apps_qs, seen_app_ids)
+        published_apps += unique_apps
+        seen_app_ids.update(unique_app_ids)
 
     # Sort by the values specified in 'order_by' and 'reverse'
     if all(hasattr(app, order_by) for app in published_apps):
@@ -141,24 +150,11 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, app_id=0):
-        all_published_apps_created_on, request = get_public_apps(
-            request, app_id=app_id, order_by="created_on", order_reverse=True
-        )
-        all_published_apps_updated_on, request = get_public_apps(
+        published_apps_updated_on, request = get_public_apps(
             request, app_id=app_id, order_by="updated_on", order_reverse=True
-        )
-
-        # Make sure we don't have the same apps displayed in both Recently updated and Recently added fields
-        published_apps_created_on = [
-            app for app in all_published_apps_created_on if app.updated_on <= (app.created_on + timedelta(minutes=60))
-        ][
-            :3
-        ]  # we display only 3 apps
-        published_apps_updated_on = [
-            app for app in all_published_apps_updated_on if app.updated_on > (app.created_on + timedelta(minutes=60))
-        ][
-            :3
-        ]  # we display only 3 apps
+        )[
+            :6
+        ]  # we display only 6 apps
 
         news_objects = NewsObject.objects.all().order_by("-created_on")
         link_all_news = False
@@ -191,7 +187,6 @@ class HomeView(View):
 
         context = {
             "published_apps_updated_on": published_apps_updated_on,
-            "published_apps_created_on": published_apps_created_on,
             "news_objects": news_objects,
             "link_all_news": link_all_news,
             "collection_objects": collection_objects,

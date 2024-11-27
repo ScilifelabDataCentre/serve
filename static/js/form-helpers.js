@@ -8,6 +8,7 @@ window.onload = (event) => {
     const domainRegex = /^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[\.A-Z0-9-]{0,61}[A-Z0-9])?\.)*?(uu|lu|gu|su|umu|liu|ki|kth|chalmers|ltu|hhs|slu|kau|lth|lnu|oru|miun|mau|mdu|bth|fhs|gih|hb|du|hig|hh|hkr|his|hv|ju|sh)\.se$/i;
 
     function changeVisibility() {
+
         let shouldHide = false;
         let match;
 
@@ -30,23 +31,27 @@ window.onload = (event) => {
             department_label.classList.remove('required');
         }
 
-        if (shouldHide) {
-            request_account_field.classList.add('hidden');
-        } else {
-            request_account_field.classList.remove('hidden');
-            request_account_label.classList.add('required');
+        if (request_account_field){ // to prevent Uncaught TypeError for null value
+            if (shouldHide) {
+                request_account_field.classList.add('hidden');
+            } else {
+                request_account_field.classList.remove('hidden');
+                request_account_label.classList.add('required');
+            }
         }
     }
 
-    // Temporarily disable transitions
-    request_account_field.style.transition = 'none';
+    if (request_account_field){ // to prevent Uncaught TypeError for null value
+        // Temporarily disable transitions
+        request_account_field.style.transition = 'none';
 
-    changeVisibility();
+        changeVisibility();
 
-    // Restore transitions after a short delay
-    setTimeout(() => {
-        request_account_field.style.transition = '';
-    }, 50);
+        // Restore transitions after a short delay
+        setTimeout(() => {
+            request_account_field.style.transition = '';
+        }, 50);
+    }
 
     email.addEventListener('input', changeVisibility);
 };

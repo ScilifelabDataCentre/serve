@@ -5,12 +5,13 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
 
+from apps.types_.subdomain import SubdomainCandidateName
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -72,8 +73,13 @@ class GetLogs(View):
         project = self.get_project(project, post=True)
         instance = self.get_instance(app_slug, app_id, post=True)
 
-        # container name is often same as subdomain name
-        container = instance.subdomain.subdomain
+        # get container name from UI (subdomain or copy-to-pvc) if none exists then use subdomain name
+        container = request.POST.get("container", "") or instance.subdomain.subdomain
+
+        # Perform data validation
+        if not SubdomainCandidateName(container, project.id).is_valid() and container != "":
+            # Handle the validation error
+            return JsonResponse({"error": "Invalid container value. It must be alphanumeric or empty."}, status=403)
 
         if not getattr(instance, "logs_enabled", False):
             return JsonResponse({"error": "Logs not enabled for this instance"}, status=403)
@@ -214,6 +220,9 @@ class CreateApp(View):
         # But need to make sure, that that's the only place where it's being passed
         project_slug = project
         project = Project.objects.get(slug=project_slug)
+
+        if request.user.is_superuser and project.status == "deleted":
+            return HttpResponse("This project has been deleted by the user.")
 
         form = self.get_form(request, project, app_slug, app_id)
 
