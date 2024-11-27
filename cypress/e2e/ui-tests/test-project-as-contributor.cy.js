@@ -77,6 +77,38 @@ describe("Test project contributor user functionality", () => {
         cy.get('h3').should('contain', project_name)
         cy.get('.card-text').should('contain', project_description)
 
+        // Check that creating another project with the same existing project name will create an error
+        cy.visit("/projects/")
+        cy.get("title").should("have.text", "My projects | SciLifeLab Serve (beta)")
+        cy.logf("Create a new project with the same existing project name", Cypress.currentTest)
+
+        // Click button for UI to create a new project with the same existing project name
+        cy.get("a").contains('New project').click()
+        cy.url().should("include", "projects/templates")
+        cy.get('h3').should('contain', 'New project')
+
+        // Next click button to create a new blank project with the same existing project name
+        cy.get("a").contains('Create').first().click()
+        cy.url().should("include", "projects/create/?template=")
+        cy.get('h3').should('contain', 'New project')
+
+        // Fill in the options for creating a new blank project with the same existing project name
+        cy.get('input[name=name]').type(project_name) // same name used before
+        cy.get('textarea[name=description]').type(project_description)
+        cy.get("input[name=save]").contains('Create project').click() // should generate an error
+        // cy.wait(5000) // sometimes it takes a while to create a project
+
+        // Check that the error message is correctly displayed
+        cy.get('#flash-msg')
+            .should('be.visible')
+            .and('have.class', 'alert-danger')
+            .and('contain.text', `Project cannot be created because a project with name '${project_name}' already exists.`);
+        cy.logf("Error is successfully generated when trying to create a new project with the same existing project name", Cypress.currentTest)
+
+        // go back to the previously created project
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
+
         cy.logf("Check that the correct deployment options are available", Cypress.currentTest)
         cy.get('.card-header').find('h5').should('contain', 'Develop')
         cy.get('.card-header').find('h5').should('contain', 'Serve')
