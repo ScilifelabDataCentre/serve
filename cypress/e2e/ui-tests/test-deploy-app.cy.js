@@ -62,6 +62,7 @@ describe("Test deploying app", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
+    // We nned to add a test here for validating Site-dir option. See SS-1206 for details
     it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
