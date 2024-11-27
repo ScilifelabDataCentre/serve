@@ -215,7 +215,7 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name_2)
             cy.get('#id_path').should('have.value', app_path)
             cy.get('#id_path').clear().type(app_path_2)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings 
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
             cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
@@ -255,7 +255,7 @@ describe("Test deploying app", () => {
             // check this invalid_default_url_subpath error was matched
             cy.get('.client-validation-feedback.client-validation-invalid')
       .should('exist')
-      .and('include.text', 'Your custom URL subpath is not valid, please correct it'); 
+      .and('include.text', 'Your custom URL subpath is not valid, please correct it');
 
             // Remove the created public app and verify that it is deleted from public apps page
             cy.logf("Now deleting the public app", Cypress.currentTest)
