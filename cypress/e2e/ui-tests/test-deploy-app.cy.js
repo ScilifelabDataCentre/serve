@@ -62,7 +62,6 @@ describe("Test deploying app", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    // We nned to add a test here for validating Site-dir option. See SS-1206 for details
     it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
@@ -244,6 +243,7 @@ describe("Test deploying app", () => {
     })
 
     // This test is skipped because it will only work against a Serve instance running on our cluster. should be switched on for the e2e tests against remote.
+    // We need to add a test here for validating Site-dir option. See SS-1206 for details
     it.skip("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
