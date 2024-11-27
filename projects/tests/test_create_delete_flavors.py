@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.test import TestCase
 
 from apps.models import Apps, CustomAppInstance, Subdomain
@@ -93,9 +94,6 @@ class FlavorTestCase(TestCase):
             description="some app description",
             app=app,
             project=project,
-            k8s_values={
-                "environment": {"pk": ""},
-            },
             flavor=flavor,
             subdomain=subdomain,
         )
@@ -106,6 +104,9 @@ class FlavorTestCase(TestCase):
         n_flavors_before = len(Flavor.objects.all())
         response = self.client.post(f"/projects/{project.slug}/deleteflavor/", {"flavor_pk": flavor.pk})
         self.assertEqual(response.status_code, 302)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("cannot be deleted", str(messages[0]))
         n_flavors_after = len(Flavor.objects.all())
 
         self.assertEqual(n_flavors_before, n_flavors_after)
