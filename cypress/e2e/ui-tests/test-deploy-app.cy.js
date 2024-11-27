@@ -80,6 +80,9 @@ describe("Test deploying app", () => {
         const createResources = Cypress.env('create_resources');
         const app_type = "Custom App"
         const app_source_code_public = "https://doi.org/example"
+        const default_url_subpath = "default/url/subpath/"
+        const changed_default_url_subpath = "changed/subpath/"
+        const invalid_default_url_subpath = "€% / ()"
 
         let volume_display_text = "project-vol (" + project_name + ")"
 
@@ -97,9 +100,15 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_path').clear().type(app_path)
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was created
             verifyAppStatus(app_name_project, "Running", "project")
+            // check that the default URL subpath was created
+            cy.contains('a', app_name_project)
+                  .should('have.attr', 'href')
+                  .and('include', default_url_subpath);
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public applications and models')
@@ -138,6 +147,8 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_path').clear().type(app_path)
             cy.get('#id_volume').select(volume_display_text)
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
 
             verifyAppStatus(app_name_public, "Running", "public")
@@ -146,6 +157,11 @@ describe("Test deploying app", () => {
             cy.wait(5000).then(() => {
               verifyAppStatus(app_name_public, "Running", "public")
             })
+
+            // check that the default URL subpath was created
+            cy.contains('a', app_name_public)
+                  .should('have.attr', 'href')
+                  .and('include', default_url_subpath);
 
             cy.visit("/apps")
             cy.get('h5.card-title').should('contain', app_name_public)
@@ -199,6 +215,9 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name_2)
             cy.get('#id_path').should('have.value', app_path)
             cy.get('#id_path').clear().type(app_path_2)
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            cy.get('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
+            cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
 
             // NB: it will get status "Running" but it won't work because the new port is incorrect
@@ -208,6 +227,11 @@ describe("Test deploying app", () => {
             cy.wait(5000).then(() => {
               verifyAppStatus(app_name_public_2, "Running", "link")
             })
+
+            // check that the default URL subpath was changed
+            cy.contains('a', app_name_public_2)
+                  .should('have.attr', 'href')
+                  .and('include', changed_default_url_subpath);
 
             // Check that the changes were saved
             cy.visit("/projects/")
@@ -221,6 +245,17 @@ describe("Test deploying app", () => {
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_path').should('have.value', app_path_2)
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            cy.get('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
+
+            // Make sure that giving invalid input in default_url_subpath field results in an error
+            cy.get('#id_default_url_subpath').clear().type(invalid_default_url_subpath) // provide invalid_default_url_subpath
+            cy.get('#submit-id-submit').contains('Submit').click() // this should trigger the error
+
+            // check this invalid_default_url_subpath error was matched
+            cy.get('.client-validation-feedback.client-validation-invalid')
+      .should('exist')
+      .and('include.text', 'Your custom URL subpath is not valid, please correct it');
 
             // Remove the created public app and verify that it is deleted from public apps page
             cy.logf("Now deleting the public app", Cypress.currentTest)
