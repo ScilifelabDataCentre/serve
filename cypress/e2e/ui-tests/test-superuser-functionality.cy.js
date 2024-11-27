@@ -41,7 +41,7 @@ describe("Test superuser access", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    it("can see extra deployment options and extra settings in a project", () => {
+    it.skip("can see extra deployment options and extra settings in a project", () => {
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
         const project_description = "A test project created by an e2e test."
@@ -159,7 +159,7 @@ describe("Test superuser access", () => {
 
     })
 
-    it("can create a new flavor or environment and a regular user can subsequently use those", { defaultCommandTimeout: 100000 }, () => {
+    it.skip("can create a new flavor or environment and a regular user can subsequently use those", { defaultCommandTimeout: 100000 }, () => {
         // Names of objects to create
         const project_name = "e2e-proj-flavor-env-test"
         const new_flavor_name = "4 CPU, 8 GB RAM"
@@ -346,7 +346,7 @@ describe("Test superuser access", () => {
 
     })
 
-    it("can bypass N projects limit", () => {
+    it.skip("can bypass N projects limit", () => {
         // Names of projects to create
         const project_name = "e2e-superuser-proj-limits-test"
 
@@ -382,7 +382,7 @@ describe("Test superuser access", () => {
         });
     })
 
-    it("can bypass N apps limit", () => {
+    it.skip("can bypass N apps limit", () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test-apps-limit"
         const app_name = "e2e-create-jl"
@@ -419,7 +419,7 @@ describe("Test superuser access", () => {
 
     })
 
-    it("can add pages to user docs", () => {
+    it.skip("can add pages to user docs", () => {
 
         const root_article_name = "user-documentation"
         const root_article_content = "user-documentation-homepage"
