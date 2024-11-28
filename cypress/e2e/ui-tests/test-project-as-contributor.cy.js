@@ -97,7 +97,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").contains('Create project').click() // should generate an error
 
-        // Check that the error message is correctly displayed
+        // Check that the error message is displayed
         cy.get('#flash-msg')
             .should('be.visible')
             .and('have.class', 'alert-danger')

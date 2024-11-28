@@ -41,11 +41,11 @@ describe("Test superuser access", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    // check if it can create multiple projects with same name.
     it("can see extra deployment options and extra settings in a project", () => {
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
         const project_description = "A test project created by an e2e test."
+        const project_description_duplicate = "A test project with an existing project name"
         const project_description_2 = "An alternative project description created by an e2e test."
 
         cy.visit("/projects/")
@@ -71,6 +71,48 @@ describe("Test superuser access", () => {
         cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
         cy.get('.card-text').should('contain', project_description)
 
+        // creating another project with the same name here. later it will be deleted.
+        cy.visit("/projects/")
+        cy.get("title").should("have.text", "My projects | SciLifeLab Serve (beta)")
+
+        cy.logf("Creating a project as a superuser with an existing project name", Cypress.currentTest)
+        // Click button for UI to create a new project with an existing project name
+        cy.get("a").contains('New project').click()
+        cy.url().should("include", "projects/templates")
+        cy.get('h3').should('contain', 'New project')
+
+        // Next click button to create a new blank project with an existing project name
+        cy.get("a").contains('Create').first().click()
+        cy.url().should("include", "projects/create/?template=")
+        cy.get('h3').should('contain', 'New project')
+
+        // Fill in the options for creating a new blank project with an existing project name
+        cy.get('input[name=name]').type(project_name) // this name already exists
+        cy.get('textarea[name=description]').type(project_description_duplicate) // this will be used to ensure to delete it
+        cy.get("input[name=save]").contains('Create project').click()
+        //cy.wait(5000) // sometimes it takes a while to create a project. Not needed because of cypress retryability.
+
+        cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
+        cy.get('.card-text').should('contain', project_description_duplicate)
+
+        // deleting the project with an existing project name
+        cy.logf("Deleting the the project with an existing project name from the settings menu", Cypress.currentTest)
+        cy.get('[data-cy="settings"]').click()
+        cy.get('a').contains("Delete").click()
+        .then((href) => {
+            cy.get('div#delete').should('have.css', 'display', 'block')
+            cy.get('#id_delete_button').parent().parent().find('button').contains('Delete').click()
+            .then((href) => {
+                cy.get('div#deleteModal').should('have.css', 'display', 'block')
+                cy.get('div#deleteModal').find('button').contains('Confirm').click()
+            })
+        // checking that the project with an existing project name is deleted
+        cy.visit("/projects/")
+        cy.contains(project_description_duplicate).should('not.exist')
+         })
+
+        // going to the previously created project's page
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
 
         cy.logf("Checking that project settings are available", Cypress.currentTest)
         cy.get('[data-cy="settings"]').click()
@@ -303,7 +345,7 @@ describe("Test superuser access", () => {
         })
     })
 
-    it("can create a persistent volume", () => {
+    it.skip("can create a persistent volume", () => {
         // This test is not used, since creating PVCs like this is not the correct way any more.
         // The correct way is to create a volume in the admin panel.
 
