@@ -65,11 +65,11 @@ describe("Test deploying app", () => {
     it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
-        const app_name_project = "e2e-streamlit-example-project"
-        const app_name_public = "e2e-streamlit-example-public"
-        const app_name_public_2 = "e2e-streamlit-example-2-public"
-        const app_description = "e2e-streamlit-description"
-        const app_description_2 = "e2e-streamlit-2-description"
+        const app_name_project = "e2e-custom-example-project"
+        const app_name_public = "e2e-custom-example-public"
+        const app_name_public_2 = "e2e-custom-example-2-public"
+        const app_description = "e2e-custom-description"
+        const app_description_2 = "e2e-custom-2-description"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const image_name_2 = "ghcr.io/scilifelabdatacentre/example-streamlit:230921-1443"
         const image_port = "8501"
