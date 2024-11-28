@@ -5,9 +5,9 @@ from django.template import Context, Template
 from django.test import TestCase
 
 from apps.forms import CustomAppForm
+from apps.helpers import validate_path_k8s_label_compatible
 from apps.models import Apps, AppStatus, Subdomain, VolumeInstance
 from apps.models.app_types.custom.custom import validate_default_url_subpath
-from apps.models.app_types.shiny import validate_shiny_site_dir
 from projects.models import Flavor, Project
 
 User = get_user_model()
@@ -293,7 +293,7 @@ valid_shiny_site_dir_list = [
 def test_valid_shiny_site_dir(valid_shiny_site_dir):
     valid_check = True
     try:
-        validate_shiny_site_dir(valid_shiny_site_dir)
+        validate_path_k8s_label_compatible(valid_shiny_site_dir)
     except ValidationError:
         valid_check = False
 
@@ -304,7 +304,7 @@ def test_valid_shiny_site_dir(valid_shiny_site_dir):
 def test_invalid_shiny_site_dir(invalid_shiny_site_dir):
     valid_check = True
     try:
-        validate_shiny_site_dir(invalid_shiny_site_dir)
+        validate_path_k8s_label_compatible(invalid_shiny_site_dir)
     except ValidationError:
         valid_check = False
 
