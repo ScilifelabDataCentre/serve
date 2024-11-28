@@ -65,11 +65,11 @@ describe("Test deploying app", () => {
     it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
-        const app_name_project = "e2e-streamlit-example-project"
-        const app_name_public = "e2e-streamlit-example-public"
-        const app_name_public_2 = "e2e-streamlit-example-2-public"
-        const app_description = "e2e-streamlit-description"
-        const app_description_2 = "e2e-streamlit-2-description"
+        const app_name_project = "e2e-custom-example-project"
+        const app_name_public = "e2e-custom-example-public"
+        const app_name_public_2 = "e2e-custom-example-2-public"
+        const app_description = "e2e-custom-description"
+        const app_description_2 = "e2e-custom-2-description"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
         const image_name_2 = "ghcr.io/scilifelabdatacentre/example-streamlit:230921-1443"
         const image_port = "8501"
@@ -452,6 +452,132 @@ describe("Test deploying app", () => {
             cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
 
             cy.logf("Deleting the tissuumaps app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            verifyAppStatus(app_name, "Deleted", "")
+
+            // check that the app is not visible under public apps
+            cy.visit('/apps/')
+            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public applications and models')
+            cy.contains('h5.card-title', app_name).should('not.exist')
+
+        } else {
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
+      }
+    })
+
+    it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // Simple test to create and delete a Gradio app
+        // Names of objects to create
+        const project_name = "e2e-deploy-app-test"
+        const app_name = "e2e-gradio-example"
+        const app_description = "e2e-gradio-description"
+        const source_code_url = "https://doi.org/example"
+        const image_name = "ghcr.io/scilifelabdatacentre/gradio-flower-classification:20241118-174426"
+        const image_port = "7860"
+        const createResources = Cypress.env('create_resources');
+        const app_type = "Gradio App"
+
+        if (createResources === true) {
+            // Create Gradio app
+            cy.logf("Creating a gradio app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_access').select('Public')
+            cy.get('#id_source_code_url').type(source_code_url)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+            // check that the app was created
+            verifyAppStatus(app_name, "Running", "public")
+
+            // Verify Gradio app values
+            cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('#id_name').should('have.value', app_name)
+            cy.get('#id_description').should('have.value', app_description)
+            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_image').should('have.value', image_name)
+            cy.get('#id_port').should('have.value', image_port)
+
+            // Delete the Gradio app
+            cy.logf("Deleting the gradio app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            verifyAppStatus(app_name, "Deleted", "")
+
+            // check that the app is not visible under public apps
+            cy.visit('/apps/')
+            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
+            cy.get('h3').should('contain', 'Public applications and models')
+            cy.contains('h5.card-title', app_name).should('not.exist')
+
+        } else {
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
+      }
+    })
+
+    it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // Simple test to create and delete a Streamlit app
+        // Names of objects to create
+        const project_name = "e2e-deploy-app-test"
+        const app_name = "e2e-streamlit-example"
+        const app_description = "e2e-streamlit-description"
+        const source_code_url = "https://doi.org/example"
+        const image_name = "ghcr.io/scilifelabdatacentre/streamlit-image-to-smiles:20241112-183549"
+        const image_port = "8501"
+        const createResources = Cypress.env('create_resources');
+        const app_type = "Streamlit App"
+
+        if (createResources === true) {
+            // Create Streamlit app
+            cy.logf("Creating a streamlit app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.get('#id_access').select('Public')
+            cy.get('#id_source_code_url').type(source_code_url)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#submit-id-submit').contains('Submit').click()
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+            // check that the app was created
+            verifyAppStatus(app_name, "Running", "public")
+
+            // Verify Streamlit app values
+            cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('#id_name').should('have.value', app_name)
+            cy.get('#id_description').should('have.value', app_description)
+            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_image').should('have.value', image_name)
+            cy.get('#id_port').should('have.value', image_port)
+
+            // Delete the Streamlit app
+            cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
