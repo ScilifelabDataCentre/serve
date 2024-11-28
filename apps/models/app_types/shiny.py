@@ -1,34 +1,12 @@
-import regex as re
-from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.helpers import validate_path_k8s_label_compatible
 from apps.models import (
     AppInstanceManager,
     BaseAppInstance,
     LogsEnabledMixin,
     SocialMixin,
 )
-
-
-def validate_shiny_site_dir(candidate):
-    """
-    Validates a shiny_site_dir path addition.
-    The RegexValidator will raise a ValidationError if the input does not match the regular expression.
-    It is up to the caller to handle the raised exception if desired.
-    """
-    error_message = (
-        "Please provide a valid path. "
-        "It can be empty. "
-        "Otherwise, it must be 63 characters or less. "
-        " It must begin and end with an alphanumeric character (a-z, or 0-9, or A-Z)."
-        " It could contain dashes ( - ), underscores ( _ ), dots ( . ), "
-        "and alphanumerics."
-    )
-
-    pattern = r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,61}[a-zA-Z0-9])?)?$"
-
-    if not re.match(pattern, candidate):
-        raise ValidationError(error_message)
 
 
 class ShinyInstanceManager(AppInstanceManager):
@@ -58,7 +36,9 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     container_waittime = models.IntegerField(default=20000)
     heartbeat_timeout = models.IntegerField(default=60000)
     heartbeat_rate = models.IntegerField(default=10000)
-    shiny_site_dir = models.CharField(validators=[validate_shiny_site_dir], max_length=255, default="", blank=True)
+    shiny_site_dir = models.CharField(
+        validators=[validate_path_k8s_label_compatible], max_length=255, default="", blank=True
+    )
 
     # The following three settings control the pre-init and seats behaviour (see documentation)
     # These settings override the Helm chart default values

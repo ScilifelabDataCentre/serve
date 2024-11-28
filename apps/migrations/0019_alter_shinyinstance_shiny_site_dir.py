@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             model_name="shinyinstance",
             name="shiny_site_dir",
             field=models.CharField(
-                blank=True, default="", max_length=255, validators=[apps.models.app_types.shiny.validate_shiny_site_dir]
+                blank=True, default="", max_length=255, validators=[apps.helpers.validate_path_k8s_label_compatible]
             ),
         ),
     ]
