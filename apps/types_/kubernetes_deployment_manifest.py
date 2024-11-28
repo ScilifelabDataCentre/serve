@@ -7,7 +7,6 @@ class KubernetesDeploymentManifest:
     """Represents a k8s deployment manifest"""
 
     _deployment_id = None
-    _path = None
     _manifest_content = None
 
     def __init__(self):
@@ -16,27 +15,39 @@ class KubernetesDeploymentManifest:
         now = datetime.now().strftime("%Y%m%d_%H%M%S")
         self._deployment_id = f"{now}_{str(uuid.uuid4())}"
 
-    def get_deployment_id(self):
+    def get_filepaths(self) -> dict[str, str]:
+        """Returns two filepaths for this deployment for the values file and deployment file."""
+        deployment_fileid = self.get_deployment_id()
+        values_file = f"charts/values/{deployment_fileid}.yaml"
+        deployment_file = f"charts/values/{deployment_fileid}_deployment.yaml"
+        _paths = {"values_file": values_file, "deployment_file": deployment_file}
+        return _paths
+
+    def get_deployment_id(self) -> str:
         """Gets the unique deployment id"""
         return self._deployment_id
 
-    def check_helm_version(self):
-        """Verifies that the Helm CLI is installed and accessible."""
-        command = "helm version"
-        # Execute the command
-        try:
-            result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
-            return result.stdout, None
-        except subprocess.CalledProcessError as e:
-            return e.stdout, e.stderr
+    def generate_manifest_yaml_from_template(
+        self, chart: str, values_file: str, namespace: str, save_to_file=False
+    ) -> tuple[str | None, str | None]:
+        """
+        Generate the manifest yaml for this deployment.
+        The Helm command should be run as a Celery task but Celery lacks support for class methods.
+        Therefore we import the Helm command function from the tasks module.
+        When run in unit tests, this needs to use syncronously using CELERY_ALWAYS_EAGER
+        """
 
-    def generate_manifest_yaml_from_template(self, chart, values_file, namespace, save_to_file=False):
-        """Generate the manifest yaml for this deployment"""
+        from ..tasks import helm_template
 
-        # Base command
-        command = f"helm template tmp-release-name {chart} {values_file} --namespace {namespace}"
-        # TODO: Run the command
-        return command
+        output, error = helm_template(chart, values_file, namespace)
+
+        if not error:
+            if save_to_file:
+                deployment_file = self.get_filepaths()["deployment_file"]
+                with open(deployment_file, "w") as f:
+                    f.write(output)
+
+        return output, error
 
     def validate_manifest_file(self):
         """Validates the manifest file for this deployment"""
@@ -49,3 +60,14 @@ class KubernetesDeploymentManifest:
     def validate_kubernetes_pod_patches_yaml(self):
         """Validates the kubernetes-pod-patches section"""
         pass
+
+    def check_helm_version(self) -> tuple[str | None, str | None]:
+        """Verifies that the Helm CLI is installed and accessible."""
+
+        command = "helm version"
+        # Execute the command
+        try:
+            result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
+            return result.stdout, None
+        except subprocess.CalledProcessError as e:
+            return e.stdout, e.stderr

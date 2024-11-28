@@ -121,6 +121,22 @@ def helm_delete(release_name, namespace="default"):
         return e.stdout, e.stderr
 
 
+@shared_task
+def helm_template(chart: str, values_file: str, namespace: str) -> tuple[str | None, str | None]:
+    """
+    Execute a Helm template command.
+    """
+
+    command = f"helm template tmp-release-name {chart} -f {values_file} --namespace {namespace}"
+    # Execute the command
+    try:
+        result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
+
+        return result.stdout, None
+    except subprocess.CalledProcessError as e:
+        return e.stdout, e.stderr
+
+
 def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
     command = f"helm get manifest {release_name} --namespace {namespace}"
     # command = f"kubectl get configmap cm -n default -o yaml | yq eval '.data[\"application.yml\"]'"
