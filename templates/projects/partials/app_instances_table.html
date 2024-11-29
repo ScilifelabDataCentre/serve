@@ -1,5 +1,4 @@
 {% load static %}
-
 <table id=""
     class="table table-hover my-0 no-footer table-bordered" role="grid">
     <thead>
@@ -40,7 +39,11 @@
             {% else %}
             <td class="sorting_1">{{ instance.name }}</td>
             {% endif %}
-            <td class="d-none d-xxl-table-cell">{{ instance.created_on | date:"d/n/y H:i" }} <i id="stockholm-timezone-tooltip" class="bi bi-clock"></i></td>
+            <td class="d-none d-xxl-table-cell">{{ instance.created_on | date:"d/n/y H:i" }}
+                <span
+                class="bi bi-clock" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ objs.timezone }}">
+                </span>
+            </td>
             <td>
                 <span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}">
                     {{ instance.app_status.status }}
@@ -112,17 +115,3 @@
         {% endfor %}
     </tbody>
 </table>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const tooltipElement = document.getElementById("stockholm-timezone-tooltip");
-    if (tooltipElement) {
-      tooltipElement.setAttribute("title", "Displaying Europe/Stockholm local time");
-
-      // Optional: Initialize Bootstrap tooltip if Bootstrap is being used
-      if (typeof bootstrap !== 'undefined') {
-        new bootstrap.Tooltip(tooltipElement);
-      }
-    }
-  });
-</script>

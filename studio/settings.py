@@ -291,10 +291,6 @@ LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "Europe/Stockholm"
 
-# TIME_ZONE = "UTC"
-
-USE_TZ = True
-
 USE_I18N = True
 
 
