@@ -129,6 +129,13 @@ def helm_template(chart: str, values_file: str, namespace: str) -> tuple[str | N
     Executes a Helm template command.
     """
     command = f"helm template tmp-release-name {chart} -f {values_file} --namespace {namespace}"
+
+    # Append version if deploying via ghcr
+    # TODO: Make dynamic
+    version = "1.4.2"
+    if version:
+        command += f" --version {version} --repository-cache /app/charts/.cache/helm/repository"
+
     # Execute the command
     try:
         result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
