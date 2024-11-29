@@ -2,6 +2,7 @@ import subprocess
 import uuid
 from datetime import datetime
 
+import kubernetes_validate
 import yaml
 
 
@@ -70,14 +71,38 @@ class KubernetesDeploymentManifest:
         if Path(deployment_file).is_file():
             subprocess.run(["rm", "-f", deployment_file])
 
-    def check_chart_and_values_with_linter(self, chart: str, values_file: str, namespace: str) -> dict[bool, str, str]:
-        """Check the deployment chart together with the values using Helm lint."""
-        from ..tasks import helm_lint
+    def validate_manifest(self, manifest_data: str) -> dict[bool, str]:
+        """
+        Validates manifest documents for this deployment.
+        Uses kubernetes-validate to validate in-memory.
 
-        output, error = helm_lint(chart, values_file, namespace)
+        Returns:
+        dict[bool,str]: is_valid, output
+        """
+        invalid_docs = []
 
-        # TODO: do something
-        return output, error
+        documents = list(yaml.safe_load_all(manifest_data))
+
+        for doc in documents:
+            try:
+                print(f"Validating document {doc['kind']}")
+
+                kubernetes_validate.validate(doc, "1.22", strict=True)
+
+            except kubernetes_validate.ValidationError as e:
+                invalid_docs.append(doc["kind"])
+                print(f"The kubernetes-validate tool found errors: {e}")
+
+            except Exception as e:
+                invalid_docs.append(doc["kind"])
+                print(f"An error occurred during validation: {e}")
+
+            output = f"Nr of docs with errors {len(invalid_docs)} of {len(documents)}"
+            print(output)
+
+        is_valid = len(invalid_docs) == 0
+
+        return is_valid, output
 
     def validate_manifest_file(self) -> dict[bool, str, str]:
         """

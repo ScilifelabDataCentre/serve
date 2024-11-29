@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import skip
 
 from django.test import TestCase
@@ -78,21 +79,6 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         self.assertEqual(actual, self.DEPLOYMENT_ID)
 
     """
-    Test method check_chart_and_values_with_linter
-    """
-
-    @skip("Helm lint does not yet work in the container.")
-    def test_check_chart_and_values_with_linter(self):
-        chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
-        values_file = self.kdm.get_filepaths()["values_file"]
-        namespace = "default"
-
-        output, error = self.kdm.check_chart_and_values_with_linter(chart, values_file, namespace)
-
-        self.assertIsNone(error)
-        self.assertIsNotNone(output)
-
-    """
     Test method generate_manifest_yaml_from_template without saving to a file.
     """
 
@@ -107,6 +93,33 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(type(output), str)
         self.assertIn("apiVersion: v1", output)
+
+    """
+    Test method validate_manifest.
+    This first runs generate manifest yaml to have manifest to validate.
+    It runs everything in memory without creating files (except for the values file).
+    """
+
+    def test_validate_manifest(self):
+        chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
+        values_file = self.kdm.get_filepaths()["values_file"]
+        namespace = "default"
+
+        # Generate the manifest yaml
+        output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=False)
+
+        self.assertIsNone(error)
+        self.assertIsNotNone(output)
+        self.assertEqual(type(output), str)
+        self.assertIn("apiVersion: v1", output)
+
+        # Validate the manifest documents
+        is_valid, output = self.kdm.validate_manifest(output)
+
+        if not is_valid:
+            print(output)
+
+        self.assertTrue(is_valid)
 
     """
     Test method generate_manifest_yaml_from_template saving to file and finally validating the manifest.
@@ -133,7 +146,6 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
 
         # Verify the saved file exists and contains content
         deployment_file = self.kdm.get_filepaths()["deployment_file"]
-        from pathlib import Path
 
         self.assertTrue(Path(deployment_file).is_file())
 
@@ -203,3 +215,31 @@ class BasicKubernetesDeploymentManifestTestCase(TestCase):
         self.assertIsNotNone(actual)
         self.assertEqual(type(actual), tuple)
         self.assertIn("version.BuildInfo", str(actual))
+
+
+class ValidateExistingKubernetesDeploymentManifestTestCase(TestCase):
+    """Validate any existing deployment files in the charts/values directory."""
+
+    def test_validate_manifests(self):
+        deployment_files = list(Path("charts/values").glob("*_deployment.yaml"))
+
+        print(f"Nr of manifest files to validate: {len(deployment_files)}")
+
+        for file in deployment_files:
+            f = open(file, "r")
+            manifest_data = f.read()
+
+            kdm = KubernetesDeploymentManifest()
+
+            # Validate the manifest documents
+            print(f"Validating deployment file {file}")
+            is_valid, output = kdm.validate_manifest(manifest_data)
+
+            if not is_valid:
+                print(output)
+
+            if "invalid" in file.name:
+                # Files named with invalid in the filename as expected to be invalid
+                self.assertFalse(is_valid)
+            else:
+                self.assertTrue(is_valid)
