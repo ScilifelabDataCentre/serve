@@ -49,9 +49,45 @@ class KubernetesDeploymentManifest:
 
         return output, error
 
-    def validate_manifest_file(self):
-        """Validates the manifest file for this deployment"""
-        pass
+    def _delete_deployment_file(self) -> None:
+        """Removes the deployment file if it exist."""
+        files = self.kdm.get_filepaths()
+        from pathlib import Path
+
+        deployment_file = files["deployment_file"]
+
+        if Path(deployment_file).is_file():
+            subprocess.run(["rm", "-f", deployment_file])
+
+    def check_chart_and_values_with_linter(self, chart: str, values_file: str, namespace: str) -> dict[bool, str, str]:
+        """Check the deployment chart together with the values using Helm lint."""
+        from ..tasks import helm_lint
+
+        output, error = helm_lint(chart, values_file, namespace)
+
+        # TODO: do something
+        return output, error
+
+    def validate_manifest_file(self) -> dict[bool, str, str]:
+        """
+        Validates the manifest file for this deployment.
+
+        TODO: Replace kubectl apply with kubernetes-validate
+
+        Returns:
+        dict[bool,str,str]: is_valid, output, validation_error
+        """
+        from ..tasks import kubectl_apply_dry
+
+        output, error = kubectl_apply_dry(self.get_filepaths()["deployment_file"], target_strategy="client")
+
+        if error:
+            return False, output, error
+
+        if output is not None and "error:" in output:
+            return False, output, error
+
+        return True, output, error
 
     def extract_kubernetes_pod_patches_from_manifest(self):
         """Extracts a section of the manifest yaml known as kubernetes-pod-patches"""

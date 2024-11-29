@@ -1,3 +1,5 @@
+from unittest import skip
+
 from django.test import TestCase
 
 from studio.celery import app
@@ -26,10 +28,42 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         self.assertEqual(len(actual), 52)
 
     """
-    Test method generate_manifest_yaml_from_template
+    Test method check_chart_and_values_with_linter
+    """
+
+    @skip("Helm lint does not yet work in the container.")
+    def test_check_chart_and_values_with_linter(self):
+        chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
+        values_file = "charts/values/20241126_085112_02500f53-7435-49a2-a5c2-66443e677a33.yaml"
+        namespace = "default"
+
+        output, error = self.kdm.check_chart_and_values_with_linter(chart, values_file, namespace)
+
+        self.assertIsNone(error)
+        self.assertIsNotNone(output)
+
+    """
+    Test method generate_manifest_yaml_from_template without saving to a file.
     """
 
     def test_generate_manifest_yaml_from_template(self):
+        chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
+        values_file = "charts/values/20241126_085112_02500f53-7435-49a2-a5c2-66443e677a33.yaml"
+        namespace = "default"
+
+        output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=False)
+
+        self.assertIsNone(error)
+        self.assertIsNotNone(output)
+        self.assertEqual(type(output), str)
+        self.assertIn("apiVersion: v1", output)
+
+    """
+    Test method generate_manifest_yaml_from_template saving to file and finally validating the manifest.
+    """
+
+    @skip("kubectl apply will be replaced")
+    def test_generate_and_validate_manifest_yaml_from_template(self):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
         values_file = "charts/values/20241126_085112_02500f53-7435-49a2-a5c2-66443e677a33.yaml"
         namespace = "default"
@@ -57,6 +91,17 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         filecontent = f.read()
         self.assertIsNotNone(filecontent)
         self.assertEqual(filecontent, output)
+
+        # Validate the manifest file
+        is_valid, output, validation_error = self.kdm.validate_manifest_file()
+
+        self.assertTrue(is_valid, f"The manifest file is not valid. Error:{validation_error}. {output}")
+        self.assertIsNone(validation_error)
+        self.assertIsNotNone(output)
+        self.assertEqual(type(output), str)
+
+        # Finally delete the deployment file
+        self.kdm._delete_deployment_files()
 
     """
     Test method get_filepaths

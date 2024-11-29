@@ -110,8 +110,10 @@ def helm_install(release_name, chart, namespace="default", values_file=None, ver
 
 
 @shared_task
-def helm_delete(release_name, namespace="default"):
-    # Base command
+def helm_delete(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
+    """
+    Executes a Helm delete command.
+    """
     command = f"helm uninstall {release_name} --namespace {namespace} --wait"
     # Execute the command
     try:
@@ -124,14 +126,42 @@ def helm_delete(release_name, namespace="default"):
 @shared_task
 def helm_template(chart: str, values_file: str, namespace: str) -> tuple[str | None, str | None]:
     """
-    Execute a Helm template command.
+    Executes a Helm template command.
     """
-
     command = f"helm template tmp-release-name {chart} -f {values_file} --namespace {namespace}"
     # Execute the command
     try:
         result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
+        return result.stdout, None
+    except subprocess.CalledProcessError as e:
+        return e.stdout, e.stderr
 
+
+@shared_task
+def helm_lint(chart: str, values_file: str, namespace: str) -> tuple[str | None, str | None]:
+    """
+    Executes a Helm lint command.
+    """
+    command = f"helm lint {chart} -f {values_file} --namespace {namespace}"
+    # Execute the command
+    try:
+        result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
+        return result.stdout, None
+    except subprocess.CalledProcessError as e:
+        return e.stdout, e.stderr
+
+
+@shared_task
+def kubectl_apply_dry(deployment_file: str, target_strategy: str = "client") -> tuple[str | None, str | None]:
+    """
+    Executes a kubectl apply --dry-run command.
+    NOTE: This does not appear to be working. To be replaced.
+    """
+    command = f"kubectl apply --dry-run={target_strategy} -f {deployment_file}"
+    # Execute the command
+    try:
+        result = subprocess.check_output(command, shell=True)
+        # result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
         return result.stdout, None
     except subprocess.CalledProcessError as e:
         return e.stdout, e.stderr
@@ -174,14 +204,26 @@ def deploy_resource(serialized_instance):
     else:
         version = None
         chart = instance.chart
-    # Create a unique identifier text for these deployment files:
-    now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    deployment_fileid = f"{now}_{str(uuid.uuid4())}"
+
+    # Use a KubernetesDeploymentManifest to manage the manifest validation and files
+    from types import KubernetesDeploymentManifest
+
+    kdm = KubernetesDeploymentManifest()
+
     # Save helm values file for internal reference
-    values_file = f"charts/values/{deployment_fileid}.yaml"
+    values_file = kdm.get_filepaths()["values_file"]
     with open(values_file, "w") as f:
         f.write(yaml.dump(values))
 
+    # In development, also generate and validate the k8s deployment manifest
+    if settings.DEBUG:
+        # TODO: make this into a nested function
+        output, error = kdm.generate_manifest_yaml_from_template(chart, values_file, values["namespace"])
+
+        # TODO: validate the yaml
+        # TODO: delete the file if valid
+
+    # Install the ap using Helm install
     release = values["subdomain"]
     output, error = helm_install(release, chart, values["namespace"], values_file, version)
     success = not error
@@ -202,7 +244,7 @@ def deploy_resource(serialized_instance):
         if error:
             logger.warning(f"Unable to get the deployment manifest for release {release}. Error: {error}")
         # Save the manifest yaml to this file:
-        deployment_file = f"charts/values/{deployment_fileid}_deployment.yaml"
+        deployment_file = kdm.get_filepaths()["deployment_file"]
         with open(deployment_file, "w") as f:
             f.write(output)
         if not error:
@@ -217,7 +259,7 @@ def deploy_resource(serialized_instance):
             logger.debug(f"Validation result={output}")
 
             if error:
-                logger.warning(f"Unable to get the deployment manifest for release {release}. Error: {error}")
+                logger.warning(f"Unable to validate the deployment manifest for release {release}. Error: {error}")
             else:
                 # Parse the output for any errors:
                 if output is not None and "error:" in output:
