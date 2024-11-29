@@ -289,7 +289,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Stockholm"
+
+# TIME_ZONE = "UTC"
+
+USE_TZ = True
 
 USE_I18N = True
 
@@ -370,7 +374,7 @@ STORAGECLASS = "local-path"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
-IP = os.environ.get("IP", "127.0.0.1")
+IP = os.environ.get("IP", "192.168.0.102")
 
 DOMAIN = f"studio.{IP}.nip.io"
 AUTH_DOMAIN = IP
