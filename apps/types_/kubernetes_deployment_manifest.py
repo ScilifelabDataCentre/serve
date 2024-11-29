@@ -2,6 +2,8 @@ import subprocess
 import uuid
 from datetime import datetime
 
+import yaml
+
 
 class KubernetesDeploymentManifest:
     """Represents a k8s deployment manifest"""
@@ -9,11 +11,14 @@ class KubernetesDeploymentManifest:
     _deployment_id = None
     _manifest_content = None
 
-    def __init__(self):
-        # Generate and set a unique deployment id
-        # Example pattern: "20241126_085112_02500f53-7435-49a2-a5c2-66443e677a33"
-        now = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._deployment_id = f"{now}_{str(uuid.uuid4())}"
+    def __init__(self, override_deployment_id: str = None):
+        if override_deployment_id:
+            self._deployment_id = override_deployment_id
+        else:
+            # Generate and set a unique deployment id
+            # Example pattern: "20241126_085112_02500f53-7435-49a2-a5c2-66443e677a33"
+            now = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self._deployment_id = f"{now}_{str(uuid.uuid4())}"
 
     def get_filepaths(self) -> dict[str, str]:
         """Returns two filepaths for this deployment for the values file and deployment file."""
@@ -27,8 +32,14 @@ class KubernetesDeploymentManifest:
         """Gets the unique deployment id"""
         return self._deployment_id
 
+    def save_as_values_file(self, values_data: str) -> None:
+        """Saves values data to a yaml file."""
+        values_file = self.get_filepaths()["values_file"]
+        with open(values_file, "w") as f:
+            f.write(values_data)
+
     def generate_manifest_yaml_from_template(
-        self, chart: str, values_file: str, namespace: str, save_to_file=False
+        self, chart: str, values_file: str, namespace: str, save_to_file: bool = False
     ) -> tuple[str | None, str | None]:
         """
         Generate the manifest yaml for this deployment.

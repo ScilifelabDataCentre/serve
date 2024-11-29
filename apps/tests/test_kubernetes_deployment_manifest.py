@@ -10,11 +10,61 @@ from ..types_.kubernetes_deployment_manifest import KubernetesDeploymentManifest
 class ValidKubernetesDeploymentManifestTestCase(TestCase):
     """Test case for a valid Kubernetes deployment."""
 
+    DEPLOYMENT_ID = "unittest-valid"
+
+    VALUES_DATA = r"""
+        appconfig:
+            allowContainerReuse: false
+            image: ghcr.io/alfredeen/shiny-example:main-20241022-0849
+            minimumSeatsAvailable: 1
+            path: /
+            port: 3839
+            proxycontainerwaittime: 20000
+            proxyheartbeatrate: 10000
+            proxyheartbeattimeout: 60000
+            seatsPerContainer: 1
+            site_dir: /srv/shiny-server/
+            appname: r9d95bb4a
+            apps:
+            volumeK8s: {}
+            flavor:
+            limits:
+                cpu: 2000m
+                ephemeral-storage: 5000Mi
+                memory: 4Gi
+            requests:
+                cpu: 500m
+                ephemeral-storage: 100Mi
+                memory: 1Gi
+            global:
+            auth_domain: 127.0.0.1
+            domain: studio.127.0.0.1.nip.io
+            protocol: http
+            name: Shiny test case 105
+            namespace: default
+            permission: project
+            project:
+            name: dp 241112
+            slug: dp-241112-ono
+            release: r9d95bb4a
+            service:
+            name: r9d95bb4a-shinyproxyapp
+            storageClass: local-path
+            subdomain: r9d95bb4a
+            """
+
     def setUp(self) -> None:
         # Execute any Celery tasks synchronously
         app.conf.update(CELERY_ALWAYS_EAGER=True)
 
-        self.kdm = KubernetesDeploymentManifest()
+        self.kdm = KubernetesDeploymentManifest(override_deployment_id=self.DEPLOYMENT_ID)
+        self.kdm.save_as_values_file(self.VALUES_DATA)
+
+        # Verify that the file exists
+        from pathlib import Path
+
+        values_file = self.kdm.get_filepaths()["values_file"]
+        self.assertTrue(Path(values_file).is_file())
 
     """
     Test method get_deployment_id
@@ -25,7 +75,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
 
         self.assertIsNotNone(actual)
         self.assertEqual(type(actual), str)
-        self.assertEqual(len(actual), 52)
+        self.assertEqual(actual, self.DEPLOYMENT_ID)
 
     """
     Test method check_chart_and_values_with_linter
@@ -34,7 +84,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
     @skip("Helm lint does not yet work in the container.")
     def test_check_chart_and_values_with_linter(self):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
-        values_file = "charts/values/20241126_085112_02500f53-7435-49a2-a5c2-66443e677a33.yaml"
+        values_file = self.kdm.get_filepaths()["values_file"]
         namespace = "default"
 
         output, error = self.kdm.check_chart_and_values_with_linter(chart, values_file, namespace)
@@ -48,7 +98,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
 
     def test_generate_manifest_yaml_from_template(self):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
-        values_file = "charts/values/20241126_085112_02500f53-7435-49a2-a5c2-66443e677a33.yaml"
+        values_file = self.kdm.get_filepaths()["values_file"]
         namespace = "default"
 
         output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=False)
@@ -65,7 +115,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
     @skip("kubectl apply will be replaced")
     def test_generate_and_validate_manifest_yaml_from_template(self):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
-        values_file = "charts/values/20241126_085112_02500f53-7435-49a2-a5c2-66443e677a33.yaml"
+        values_file = self.kdm.get_filepaths()["values_file"]
         namespace = "default"
 
         output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=True)
@@ -121,6 +171,27 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         self.assertIsNotNone(actual["deployment_file"])
         self.assertEqual(type(actual["deployment_file"]), str)
         self.assertIn("_deployment.yaml", actual["deployment_file"])
+
+
+class BasicKubernetesDeploymentManifestTestCase(TestCase):
+    """Test the basic functions of a Kubernetes deployment object."""
+
+    def setUp(self) -> None:
+        # Execute any Celery tasks synchronously
+        app.conf.update(CELERY_ALWAYS_EAGER=True)
+
+        self.kdm = KubernetesDeploymentManifest()
+
+    """
+    Test method get_deployment_id
+    """
+
+    def test_get_deployment_id(self):
+        actual = self.kdm.get_deployment_id()
+
+        self.assertIsNotNone(actual)
+        self.assertEqual(type(actual), str)
+        self.assertEqual(len(actual), 52)
 
     """
     Test method check_helm_version
