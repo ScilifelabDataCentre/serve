@@ -374,7 +374,7 @@ def save_instance_and_related_data(instance, form):
     instance.save(update_fields=["k8s_values", "url"])
 
 
-def validate_path_k8s_label_compatible(candidate: str):
+def validate_path_k8s_label_compatible(candidate: str) -> None:
     """
     Validates to be compatible with k8s labels specification.
     See: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
