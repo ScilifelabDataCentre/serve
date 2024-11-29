@@ -370,7 +370,7 @@ STORAGECLASS = "local-path"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
-IP = os.environ.get("IP", "192.168.0.102")
+IP = os.environ.get("IP", "127.0.0.1")
 
 DOMAIN = f"studio.{IP}.nip.io"
 AUTH_DOMAIN = IP
