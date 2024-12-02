@@ -38,6 +38,9 @@ DEBUG = os.getenv("DEBUG", default="False").lower() in ("true", "1", "t")
 # Since this file is only used for development, we can have this set to all hosts.
 ALLOWED_HOSTS = ["*"]
 
+# Timezone settings
+USE_TZ = True
+TIME_ZONE = "Europe/Stockholm"
 
 # For django-wiki
 SITE_ID = 1
