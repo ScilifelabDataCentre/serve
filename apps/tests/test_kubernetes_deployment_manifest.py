@@ -101,11 +101,11 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
     """
 
     def test_validate_manifest(self):
+        # First generate the manifest yaml
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
         values_file = self.kdm.get_filepaths()["values_file"]
         namespace = "default"
 
-        # Generate the manifest yaml
         output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=False)
 
         self.assertIsNone(error)
@@ -120,6 +120,67 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
             print(output)
 
         self.assertTrue(is_valid)
+
+    """
+    Test method extract_kubernetes_pod_patches_from_manifest
+    """
+
+    def test_extract_kubernetes_pod_patches_from_manifest(self):
+        # First generate the manifest yaml
+        chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
+        values_file = self.kdm.get_filepaths()["values_file"]
+        namespace = "default"
+
+        output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=False)
+
+        self.assertIsNone(error)
+        self.assertIsNotNone(output)
+
+        # Then extract the kubernetes-pod-patches section
+        actual = self.kdm.extract_kubernetes_pod_patches_from_manifest(output)
+
+        self.assertIsNotNone(actual, f"The manifest input was: {output}")
+        self.assertEqual(type(actual), str, f"The returned data is {actual}")
+        self.assertTrue(actual.startswith("- op: add"), f"The returned text is {actual}")
+        self.assertTrue(actual.endswith("name: tmp-release-name-shiny-configmap"), f"Text is:{actual}")
+        self.assertGreater(len(actual), 500)
+        self.assertLess(len(actual), 1000)
+
+    """
+    Test method validate_kubernetes_pod_patches_yaml
+    """
+
+    def test_validate_kubernetes_pod_patches_yaml(self):
+        kpp_text = r"""
+          - op: add
+            path: /spec/securityContext
+            value:
+              runAsUser: 999
+              runAsGroup: 999
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              privileged: false
+          - op: add
+            path: /spec/volumes
+            value:
+            - name: tmp-release-name-shiny-configmap
+              configMap:
+                name: tmp-release-name-shiny-configmap
+                items:
+                - key: shiny-server.conf
+                  path: shiny-server.conf
+          - op: add
+            path: /spec/containers/0/volumeMounts
+            value:
+            - mountPath: /etc/shiny-server/shiny-server.conf
+              subPath: shiny-server.conf
+              name: tmp-release-name-shiny-configmap
+"""
+
+        is_valid, output = self.kdm.validate_kubernetes_pod_patches_yaml(kpp_text)
+
+        self.assertTrue(is_valid, f"The input should be valid. {output}")
+        self.assertIsNone(output)
 
     """
     Test method get_filepaths
@@ -462,3 +523,39 @@ tls:
             print(output)
 
         self.assertFalse(is_valid)
+
+    """
+    Test method validate_kubernetes_pod_patches_yaml with invalid input
+    """
+
+    def test_validate_kubernetes_pod_patches_yaml(self):
+        kpp_text = r"""
+          - op: add
+            path: /spec/securityContext
+            value:
+              runAsUser: 999
+              runAsGroup: 999
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              privileged: false
+          - op: add
+            path BAD-HERE /spec/volumes
+            value:
+            - name: tmp-release-name-shiny-configmap
+              configMap:
+                name: tmp-release-name-shiny-configmap
+                items:
+                - key: shiny-server.conf
+                  path: shiny-server.conf
+          - op: add
+            path: /spec/containers/0/volumeMounts
+            value:
+            - mountPath: /etc/shiny-server/shiny-server.conf
+              subPath: shiny-server.conf
+              name: tmp-release-name-shiny-configmap
+"""
+
+        is_valid, output = self.kdm.validate_kubernetes_pod_patches_yaml(kpp_text)
+
+        self.assertFalse(is_valid, f"The input should be invalid. {output}")
+        self.assertIsNotNone(output)

@@ -105,22 +105,72 @@ class KubernetesDeploymentManifest:
                 invalid_docs.append(doc["kind"])
                 print(f"An error occurred during validation: {e}")
 
-            output = f"Nr of docs with errors {len(invalid_docs)} of {len(documents)}"
-            print(output)
+        output = f"Nr of docs with errors {len(invalid_docs)} of {len(documents)}"
+        print(output)
 
         is_valid = len(invalid_docs) == 0
 
         return is_valid, output
 
-    def extract_kubernetes_pod_patches_from_manifest(self):
-        """Extracts a section of the manifest yaml known as kubernetes-pod-patches"""
-        # TODO: Implement me
-        pass
+    def extract_kubernetes_pod_patches_from_manifest(self, manifest_data: str) -> str | None:
+        """
+        Extracts a section of the manifest yaml known as kubernetes-pod-patches.
 
-    def validate_kubernetes_pod_patches_yaml(self):
-        """Validates the kubernetes-pod-patches section"""
-        # TODO: Implement me
-        pass
+        Returns:
+        str: The subset text or None if not found in the manifest data.
+        Throws:
+        yaml.scanner.ScannerError if unable to parse yaml
+        """
+        start_index = manifest_data.find("kubernetes-pod-patches")
+
+        if start_index == -1:
+            return None
+
+        # Extract the kubernetes-pod-patches data from the YAML data
+        # Parse the yaml manifest into multiple documents
+        documents = list(yaml.safe_load_all(manifest_data))
+
+        # Search for the kubernetes-pod-patches section
+        for doc in documents:
+            if doc["kind"] == "ConfigMap":
+                application_yml_data = doc.get("data", {}).get("application.yml")
+
+                if application_yml_data:
+                    application_config = yaml.safe_load(application_yml_data)
+                    proxy_data = application_config.get("proxy")
+
+                    if proxy_data:
+                        specs_data = proxy_data.get("specs")
+
+                        if specs_data:
+                            kubernetes_pod_patches_data = None
+                            for spec in specs_data:
+                                kubernetes_pod_patches_data = spec.get("kubernetes-pod-patches")
+                                if kubernetes_pod_patches_data:
+                                    return kubernetes_pod_patches_data.strip()
+
+        return None
+
+    def validate_kubernetes_pod_patches_yaml(self, input: str) -> dict[bool, str]:
+        """
+        Validates the kubernetes-pod-patches section.
+
+        Returns:
+        dict[bool,str]: is_valid, message
+        """
+
+        try:
+            kubernetes_pod_patches = yaml.safe_load(input)
+
+            if not isinstance(kubernetes_pod_patches, list):
+                return False, "kubernetes-pod-patches should be a list"
+
+        except yaml.YAMLError as e:
+            return False, f"kubernetes-pod-patches is invalid YAML: {e}"
+        except ValueError as e:
+            return False, f"kubernetes-pod-patches is invalid: {e}"
+
+        return True, None
 
     def _validate_manifest_file(self) -> dict[bool, str, str]:
         """
