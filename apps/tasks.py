@@ -1,6 +1,5 @@
 import subprocess
 import uuid
-from datetime import datetime
 
 import yaml
 from celery import shared_task
@@ -163,9 +162,10 @@ def delete_resource(serialized_instance):
     if success:
         if instance.app.slug in ("volumeK8s", "netpolicy"):
             instance.app_status.status = "Deleted"
-            instance.deleted_on = datetime.now()
+            instance.deleted_on = timezone.now()
         else:
             instance.app_status.status = "Deleting..."
+            instance.deleted_on = timezone.now()
     else:
         instance.app_status.status = "FailedToDelete"
 
