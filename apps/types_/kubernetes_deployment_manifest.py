@@ -4,6 +4,7 @@ from datetime import datetime
 
 import kubernetes_validate
 import yaml
+import yaml.scanner
 
 
 class KubernetesDeploymentManifest:
@@ -81,13 +82,20 @@ class KubernetesDeploymentManifest:
         """
         invalid_docs = []
 
-        documents = list(yaml.safe_load_all(manifest_data))
+        # Parse the yaml manifest into multiple documents
+        try:
+            documents = list(yaml.safe_load_all(manifest_data))
+        except yaml.scanner.ScannerError as e:
+            return False, f"Unable to parse manifest yaml. ScannerError. {e}"
+        except Exception as e:
+            return False, f"Unable to parse manifest yaml. {e}"
 
+        # Now validate each manifest document
         for doc in documents:
             try:
                 print(f"Validating document {doc['kind']}")
 
-                kubernetes_validate.validate(doc, "1.22", strict=True)
+                kubernetes_validate.validate(doc, "1.28", strict=True)
 
             except kubernetes_validate.ValidationError as e:
                 invalid_docs.append(doc["kind"])
