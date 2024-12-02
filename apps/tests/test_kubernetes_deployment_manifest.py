@@ -122,50 +122,6 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         self.assertTrue(is_valid)
 
     """
-    Test method generate_manifest_yaml_from_template saving to file and finally validating the manifest.
-    """
-
-    @skip("kubectl apply will be replaced")
-    def test_generate_and_validate_manifest_yaml_from_template(self):
-        chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
-        values_file = self.kdm.get_filepaths()["values_file"]
-        namespace = "default"
-
-        output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=True)
-
-        self.assertIsNone(error)
-        self.assertIsNotNone(output)
-        self.assertEqual(type(output), str)
-        self.assertIn("apiVersion: v1", output)
-
-        # Verify the current working dir
-        import os
-
-        cwd = os.getcwd()
-        self.assertEqual(cwd, "/app")
-
-        # Verify the saved file exists and contains content
-        deployment_file = self.kdm.get_filepaths()["deployment_file"]
-
-        self.assertTrue(Path(deployment_file).is_file())
-
-        f = open(deployment_file, "r")
-        filecontent = f.read()
-        self.assertIsNotNone(filecontent)
-        self.assertEqual(filecontent, output)
-
-        # Validate the manifest file
-        is_valid, output, validation_error = self.kdm.validate_manifest_file()
-
-        self.assertTrue(is_valid, f"The manifest file is not valid. Error:{validation_error}. {output}")
-        self.assertIsNone(validation_error)
-        self.assertIsNotNone(output)
-        self.assertEqual(type(output), str)
-
-        # Finally delete the deployment file
-        self.kdm._delete_deployment_files()
-
-    """
     Test method get_filepaths
     """
 

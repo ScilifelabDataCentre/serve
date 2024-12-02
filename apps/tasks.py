@@ -159,10 +159,10 @@ def helm_lint(chart: str, values_file: str, namespace: str) -> tuple[str | None,
 
 
 @shared_task
-def kubectl_apply_dry(deployment_file: str, target_strategy: str = "client") -> tuple[str | None, str | None]:
+def _kubectl_apply_dry(deployment_file: str, target_strategy: str = "client") -> tuple[str | None, str | None]:
     """
     Executes a kubectl apply --dry-run command.
-    NOTE: This does not appear to be working. To be replaced.
+    NOTE: This does not appear to be working.
     """
     command = f"kubectl apply --dry-run={target_strategy} -f {deployment_file}"
     # Execute the command
@@ -186,25 +186,13 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
         return e.stdout, e.stderr
 
 
-def validate_manifest_file(manifest_file: str) -> tuple[str | None, str | None]:
-    """Validates a k8s deployment manifest file."""
-    command = f"kubectl apply --dry-run=client -f {manifest_file}"
-    # command = f"kubernetes-validate {manifest_file}"
-    # Execute the command
-    logger.debug(f"Executing command: {command}")
-    try:
-        result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
-        return result.stdout, None
-    except subprocess.CalledProcessError as e:
-        return e.stdout, e.stderr
-
-
 @shared_task
 @transaction.atomic
 def deploy_resource(serialized_instance):
     instance = deserialize(serialized_instance)
     logger.info("Deploying resource for instance %s", instance)
     values = instance.k8s_values
+    release = values["subdomain"]
     if "ghcr" in instance.chart:
         version = instance.chart.split(":")[-1]
         chart = "oci://" + instance.chart.split(":")[0]
@@ -224,14 +212,19 @@ def deploy_resource(serialized_instance):
 
     # In development, also generate and validate the k8s deployment manifest
     if settings.DEBUG:
-        # TODO: make this into a nested function
+        logger.debug(f"Generating and validating k8s deployment yaml for release {release} before deployment.")
+
         output, error = kdm.generate_manifest_yaml_from_template(chart, values_file, values["namespace"])
 
-        # TODO: validate the yaml
-        # TODO: delete the file if valid
+        # Validate the manifest yaml documents
+        is_valid, validation_output = kdm.validate_manifest(output)
+
+        if is_valid:
+            logger.debug(f"The deployment manifest file is valid of release {release}")
+        else:
+            logger.warning(f"The deployment manifest file is INVALID of release {release}. {validation_output}")
 
     # Install the ap using Helm install
-    release = values["subdomain"]
     output, error = helm_install(release, chart, values["namespace"], values_file, version)
     success = not error
 
@@ -245,7 +238,7 @@ def deploy_resource(serialized_instance):
 
     # In development, also generate and validate the k8s deployment manifest
     if settings.DEBUG:
-        logger.debug(f"Generating and validating k8s deployment yaml for release {release}")
+        logger.debug(f"Generating and validating k8s deployment yaml for release {release} after deployment.")
         # Get the deployment manifest yaml
         output, error = get_manifest_yaml(release)
         if error:
@@ -257,24 +250,6 @@ def deploy_resource(serialized_instance):
         if not error:
             # Validate the manifest yaml if there was no error
             logger.debug(f"Validating the deployment manifest yaml for release {release}")
-
-            # TODO: Remove when done testing:
-            deployment_file = "./charts/values/app_deployment_invalid.yaml"
-
-            output, error = validate_manifest_file(deployment_file)
-            # TODO: Remove this when done testing:
-            logger.debug(f"Validation result={output}")
-
-            if error:
-                logger.warning(f"Unable to validate the deployment manifest for release {release}. Error: {error}")
-            else:
-                # Parse the output for any errors:
-                if output is not None and "error:" in output:
-                    logger.warning(f"The manifest file for release {release} contains errors: {output}")
-                else:
-                    logger.debug(f"The manifest file for release {release} is valid: {deployment_file}")
-                    # Delete the file is there was no error and if it is valid
-                    subprocess.run(["rm", "-f", deployment_file])
 
     # TODO: Uncomment
     # subprocess.run(["rm", "-f", values_file])

@@ -104,11 +104,20 @@ class KubernetesDeploymentManifest:
 
         return is_valid, output
 
-    def validate_manifest_file(self) -> dict[bool, str, str]:
+    def extract_kubernetes_pod_patches_from_manifest(self):
+        """Extracts a section of the manifest yaml known as kubernetes-pod-patches"""
+        # TODO: Implement me
+        pass
+
+    def validate_kubernetes_pod_patches_yaml(self):
+        """Validates the kubernetes-pod-patches section"""
+        # TODO: Implement me
+        pass
+
+    def _validate_manifest_file(self) -> dict[bool, str, str]:
         """
         Validates the manifest file for this deployment.
-
-        TODO: Replace kubectl apply with kubernetes-validate
+        Note: This does not appear to be working, but kept for continues testing.
 
         Returns:
         dict[bool,str,str]: is_valid, output, validation_error
@@ -124,14 +133,6 @@ class KubernetesDeploymentManifest:
             return False, output, error
 
         return True, output, error
-
-    def extract_kubernetes_pod_patches_from_manifest(self):
-        """Extracts a section of the manifest yaml known as kubernetes-pod-patches"""
-        pass
-
-    def validate_kubernetes_pod_patches_yaml(self):
-        """Validates the kubernetes-pod-patches section"""
-        pass
 
     def check_helm_version(self) -> tuple[str | None, str | None]:
         """Verifies that the Helm CLI is installed and accessible."""
