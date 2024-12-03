@@ -41,7 +41,7 @@ class KubernetesDeploymentManifest:
             f.write(values_data)
 
     def generate_manifest_yaml_from_template(
-        self, chart: str, values_file: str, namespace: str, save_to_file: bool = False
+        self, chart: str, values_file: str, namespace: str, version: str = None, save_to_file: bool = False
     ) -> tuple[str | None, str | None]:
         """
         Generate the manifest yaml for this deployment.
@@ -52,7 +52,7 @@ class KubernetesDeploymentManifest:
 
         from ..tasks import helm_template
 
-        output, error = helm_template(chart, values_file, namespace)
+        output, error = helm_template(chart, values_file, namespace, version)
 
         if not error:
             if save_to_file:
@@ -175,7 +175,7 @@ class KubernetesDeploymentManifest:
     def _validate_manifest_file(self) -> dict[bool, str, str]:
         """
         Validates the manifest file for this deployment.
-        Note: This does not appear to be working, but kept for continues testing.
+        Note: This does not appear to be working, but kept for continued testing.
 
         Returns:
         dict[bool,str,str]: is_valid, output, validation_error

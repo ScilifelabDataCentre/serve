@@ -124,15 +124,15 @@ def helm_delete(release_name: str, namespace: str = "default") -> tuple[str | No
 
 
 @shared_task
-def helm_template(chart: str, values_file: str, namespace: str) -> tuple[str | None, str | None]:
+def helm_template(
+    chart: str, values_file: str, namespace: str = "default", version: str = None
+) -> tuple[str | None, str | None]:
     """
     Executes a Helm template command.
     """
     command = f"helm template tmp-release-name {chart} -f {values_file} --namespace {namespace}"
 
     # Append version if deploying via ghcr
-    # TODO: Make dynamic
-    version = "1.4.2"
     if version:
         command += f" --version {version} --repository-cache /app/charts/.cache/helm/repository"
 
@@ -162,7 +162,7 @@ def helm_lint(chart: str, values_file: str, namespace: str) -> tuple[str | None,
 def _kubectl_apply_dry(deployment_file: str, target_strategy: str = "client") -> tuple[str | None, str | None]:
     """
     Executes a kubectl apply --dry-run command.
-    NOTE: This does not appear to be working.
+    NOTE: This does not appear to be working, but kept for continued testing.
     """
     command = f"kubectl apply --dry-run={target_strategy} -f {deployment_file}"
     # Execute the command
@@ -201,7 +201,7 @@ def deploy_resource(serialized_instance):
         chart = instance.chart
 
     # Use a KubernetesDeploymentManifest to manage the manifest validation and files
-    from types import KubernetesDeploymentManifest
+    from apps.types_.kubernetes_deployment_manifest import KubernetesDeploymentManifest
 
     kdm = KubernetesDeploymentManifest()
 
@@ -210,21 +210,41 @@ def deploy_resource(serialized_instance):
     with open(values_file, "w") as f:
         f.write(yaml.dump(values))
 
+    valid_deployment = True
+    deployment_file = None
+
     # In development, also generate and validate the k8s deployment manifest
     if settings.DEBUG:
         logger.debug(f"Generating and validating k8s deployment yaml for release {release} before deployment.")
 
-        output, error = kdm.generate_manifest_yaml_from_template(chart, values_file, values["namespace"])
+        output, error = kdm.generate_manifest_yaml_from_template(
+            chart, values_file, values["namespace"], version, save_to_file=True
+        )
+
+        deployment_file = kdm.get_filepaths()["deployment_file"]
 
         # Validate the manifest yaml documents
         is_valid, validation_output = kdm.validate_manifest(output)
 
         if is_valid:
-            logger.debug(f"The deployment manifest file is valid of release {release}")
-        else:
-            logger.warning(f"The deployment manifest file is INVALID of release {release}. {validation_output}")
+            logger.debug(f"The deployment manifest file is valid for release {release}")
 
-    # Install the ap using Helm install
+            # Also validate the kubernetes-pod-patches section
+            kpp_data = kdm.extract_kubernetes_pod_patches_from_manifest(output)
+
+            if kpp_data:
+                is_valid, message = kdm.validate_kubernetes_pod_patches_yaml(kpp_data)
+
+                if not is_valid:
+                    logger.debug(f"The kubernetes-pod-patches section is invalid for release {release}. {message}")
+                    valid_deployment = False
+        else:
+            valid_deployment = False
+
+        if not valid_deployment:
+            logger.warning(f"The deployment manifest file is INVALID for release {release}. {validation_output}")
+
+    # Install the app using Helm install
     output, error = helm_install(release, chart, values["namespace"], values_file, version)
     success = not error
 
@@ -238,21 +258,15 @@ def deploy_resource(serialized_instance):
 
     # In development, also generate and validate the k8s deployment manifest
     if settings.DEBUG:
-        logger.debug(f"Generating and validating k8s deployment yaml for release {release} after deployment.")
-        # Get the deployment manifest yaml
-        output, error = get_manifest_yaml(release)
-        if error:
-            logger.warning(f"Unable to get the deployment manifest for release {release}. Error: {error}")
-        # Save the manifest yaml to this file:
-        deployment_file = kdm.get_filepaths()["deployment_file"]
-        with open(deployment_file, "w") as f:
-            f.write(output)
-        if not error:
-            # Validate the manifest yaml if there was no error
-            logger.debug(f"Validating the deployment manifest yaml for release {release}")
+        # Previously, we generated and validated the deployment after creation
+        # output, error = get_manifest_yaml(release)
+        pass
 
-    # TODO: Uncomment
-    # subprocess.run(["rm", "-f", values_file])
+    if valid_deployment:
+        # If valid, then delete both the values and deployment files (if exists)
+        subprocess.run(["rm", "-f", values_file])
+        if deployment_file:
+            subprocess.run(["rm", "-f", deployment_file])
 
 
 @shared_task

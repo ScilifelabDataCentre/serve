@@ -86,8 +86,11 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
         values_file = self.kdm.get_filepaths()["values_file"]
         namespace = "default"
+        version = "1.4.2"
 
-        output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=False)
+        output, error = self.kdm.generate_manifest_yaml_from_template(
+            chart, values_file, namespace, version, save_to_file=False
+        )
 
         self.assertIsNone(error)
         self.assertIsNotNone(output)
@@ -105,8 +108,11 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
         values_file = self.kdm.get_filepaths()["values_file"]
         namespace = "default"
+        version = "1.4.2"
 
-        output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=False)
+        output, error = self.kdm.generate_manifest_yaml_from_template(
+            chart, values_file, namespace, version, save_to_file=False
+        )
 
         self.assertIsNone(error)
         self.assertIsNotNone(output)
@@ -130,8 +136,11 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
         values_file = self.kdm.get_filepaths()["values_file"]
         namespace = "default"
+        version = "1.4.2"
 
-        output, error = self.kdm.generate_manifest_yaml_from_template(chart, values_file, namespace, save_to_file=False)
+        output, error = self.kdm.generate_manifest_yaml_from_template(
+            chart, values_file, namespace, version, save_to_file=False
+        )
 
         self.assertIsNone(error)
         self.assertIsNotNone(output)
