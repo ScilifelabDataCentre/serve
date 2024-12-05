@@ -18,7 +18,7 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
         return parsers[0]
 
     def select_renderer(
-            self, request: Request, renderers: list[BaseRenderer], format_suffix: str | None
+        self, request: Request, renderers: list[BaseRenderer], format_suffix: str | None
     ) -> tuple[BaseRenderer, str]:
         """
         Select the first renderer in the `.renderer_classes` list.
