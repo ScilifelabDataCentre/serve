@@ -138,7 +138,7 @@ class BaseAppInstance(models.Model):
                 name=(self.subdomain.subdomain if self.subdomain else "deleted") + "-" + self.app.slug,
             ),
             **self.subdomain.to_dict() if self.subdomain else {},
-            **self.flavor.to_dict() if self.flavor else {},
+            **self.flavor.to_dict(self.app.slug) if self.flavor else {},
             storageClass=settings.STORAGECLASS,
             namespace=settings.NAMESPACE,
             release=self.subdomain.subdomain if self.subdomain else "deleted",  # This is legacy and should be changed
