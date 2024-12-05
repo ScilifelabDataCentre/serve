@@ -1,6 +1,5 @@
 import collections
 import json
-from datetime import datetime
 
 from celery import shared_task
 from django.apps import apps
@@ -171,7 +170,7 @@ def delete_project(project_pk):
     delete_project_apps(project)
 
     project.status = "deleted"
-    project.deleted_on = datetime.now()
+    project.deleted_on = timezone.now()
     project.save()
 
 
