@@ -60,6 +60,39 @@ describe("Test login, profile page view, password change, password reset", () =>
         cy.get('div.col-8').should("contain", users.login_user.email)
     })
 
+    it("can edit user profile information", () => {
+
+        function editProfile(firstName, lastName, department) {
+
+            cy.url().should("include", "edit-profile/")
+
+            cy.get('#id_first_name').clear().type(firstName);
+            cy.get('#id_last_name').clear().type(lastName);
+            cy.get('#id_department').clear().type(department);
+            cy.get('#submit-id-save').click();
+
+            cy.contains(firstName).should('exist');
+            cy.contains(lastName).should('exist');
+            cy.contains(department).should('exist');
+        }
+
+
+        cy.loginViaUI(users.login_user.email, users.login_user.password)
+
+        cy.log("Editing and verifying userprofile by accessing it from the navbar")
+        cy.visit("/")
+        cy.get('button.btn-profile').click()
+        cy.get('li.btn-group').find('a').contains("Edit profile").click()
+        editProfile('changing first name', 'changing last name', 'changing department name');
+
+        cy.log("Editing and verifying userprofile by accessing it from the profile view")
+        cy.visit("/")
+        cy.get('button.btn-profile').click()
+        cy.get('li.btn-group').find('a').contains("My profile").click()
+        cy.get('button.btn-profile').contains('a', 'Edit').click();
+        editProfile('changing first name again', 'changing last name again', 'changing department name again');
+    })
+
     it("can change user password", () => {
         cy.loginViaUI(users.login_user.email, users.login_user.password)
         cy.visit("/")
