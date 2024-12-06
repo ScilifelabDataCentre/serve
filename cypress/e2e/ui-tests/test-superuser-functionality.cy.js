@@ -45,6 +45,7 @@ describe("Test superuser access", () => {
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
         const project_description = "A test project created by an e2e test."
+        const project_description_duplicate = "A test project with an existing project name"
         const project_description_2 = "An alternative project description created by an e2e test."
 
         cy.visit("/projects/")
@@ -69,7 +70,6 @@ describe("Test superuser access", () => {
         cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
         cy.get('.card-text').should('contain', project_description)
 
-
         cy.logf("Checking that project settings are available", Cypress.currentTest)
         cy.get('[data-cy="settings"]').click()
         cy.url().should("include", "settings")
@@ -86,6 +86,32 @@ describe("Test superuser access", () => {
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('.card-text').should('contain', project_description_2)
+
+        cy.logf("Check that creating another project with same existing project name will work for a superuser", Cypress.currentTest)
+        cy.visit("/projects/")
+        cy.get("a").contains('New project').click()
+        cy.get("a").contains('Create').first().click()
+        cy.get('input[name=name]').type(project_name) // this name already exists
+        cy.get('textarea[name=description]').type(project_description_duplicate) // this will be used to ensure to delete it
+        cy.get("input[name=save]").contains('Create project').click()
+        cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
+        cy.get('.card-text').should('contain', project_description_duplicate) // checking that project creation succeeded
+        // deleting the project with the duplicate name
+        cy.get('[data-cy="settings"]').click()
+        cy.get('a').contains("Delete").click()
+        .then((href) => {
+            cy.get('div#delete').should('have.css', 'display', 'block')
+            cy.get('#id_delete_button').parent().parent().find('button').contains('Delete').click()
+            .then((href) => {
+                cy.get('div#deleteModal').should('have.css', 'display', 'block')
+                cy.get('div#deleteModal').find('button').contains('Confirm').click()
+            })
+        // checking that the project with the duplicate name has been deleted
+        cy.visit("/projects/")
+        cy.contains(project_description_duplicate).should('not.exist')
+         })
+        // going to the previously created project's page
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
 
         cy.logf("Deleting the project from the settings menu", Cypress.currentTest)
         cy.get('[data-cy="settings"]').click()

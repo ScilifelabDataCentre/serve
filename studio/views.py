@@ -25,6 +25,7 @@ from projects.models import Project
 from studio.utils import get_logger
 
 from .helpers import do_delete_account
+from .negotiation import IgnoreClientContentNegotiation
 
 logger = get_logger(__name__)
 
@@ -109,6 +110,7 @@ class ModifiedSessionAuthentication(SessionAuthentication):
 class AuthView(APIView):
     authentication_classes = [ModifiedSessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated, AccessPermission]
+    content_negotiation_class = IgnoreClientContentNegotiation
 
     def get(self, request: Response, format: str | None = None) -> Response:
         content = {

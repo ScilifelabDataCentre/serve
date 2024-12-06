@@ -2,7 +2,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from django.core.exceptions import ObjectDoesNotExist
+import regex as re
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
@@ -371,3 +372,25 @@ def save_instance_and_related_data(instance, form):
     instance.set_k8s_values()
     instance.url = get_URI(instance)
     instance.save(update_fields=["k8s_values", "url"])
+
+
+def validate_path_k8s_label_compatible(candidate: str) -> None:
+    """
+    Validates to be compatible with k8s labels specification.
+    See: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
+    The RegexValidator will raise a ValidationError if the input does not match the regular expression.
+    It is up to the caller to handle the raised exception if desired.
+    """
+    error_message = (
+        "Please provide a valid path. "
+        "It can be empty. "
+        "Otherwise, it must be 63 characters or less. "
+        " It must begin and end with an alphanumeric character (a-z, or 0-9, or A-Z)."
+        " It could contain dashes ( - ), underscores ( _ ), dots ( . ), "
+        "and alphanumerics."
+    )
+
+    pattern = r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,61}[a-zA-Z0-9])?)?$"
+
+    if not re.match(pattern, candidate):
+        raise ValidationError(error_message)

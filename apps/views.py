@@ -7,6 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
@@ -193,7 +194,8 @@ def delete(request, project, app_slug, app_id):
     serialized_instance = instance.serialize()
 
     delete_resource.delay(serialized_instance)
-    # fix: in case appinstance is public swich to private
+    instance.deleted_on = timezone.now()
+    # fix: in case appinstance is public switch to private
     instance.access = "private"
     instance.save()
 
