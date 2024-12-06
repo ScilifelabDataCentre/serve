@@ -27,7 +27,7 @@ class FlavorTestCase(TestCase):
 
         project = Project.objects.get(name="test-flavor")
 
-        n_flavors_before = len(Flavor.objects.all())
+        n_flavors_before = Flavor.objects.count()
         response = self.client.post(
             f"/projects/{project.slug}/createflavor/",
             {
@@ -41,7 +41,7 @@ class FlavorTestCase(TestCase):
             },
         )
         self.assertEqual(response.status_code, 403)
-        n_flavors_after = len(Flavor.objects.all())
+        n_flavors_after = Flavor.objects.count()
 
         self.assertEqual(n_flavors_before, n_flavors_after)
 
@@ -49,10 +49,10 @@ class FlavorTestCase(TestCase):
         Test regular user not allowed to delete flavor
         """
         flavor_to_be_deleted = Flavor.objects.get(name="flavor-to-be-deleted")
-        n_flavors_before = len(Flavor.objects.all())
+        n_flavors_before = Flavor.objects.count()
         response = self.client.post(f"/projects/{project.slug}/deleteflavor/", {"flavor_pk": flavor_to_be_deleted.pk})
         self.assertEqual(response.status_code, 403)
-        n_flavors_after = len(Flavor.objects.all())
+        n_flavors_after = Flavor.objects.count()
         self.assertEqual(n_flavors_before, n_flavors_after)
 
     def test_flavor_creation_deletion_superuser(self):
@@ -61,7 +61,7 @@ class FlavorTestCase(TestCase):
         """
         self.client.login(username=test_superuser["email"], password=test_superuser["password"])
         project = Project.objects.get(name="test-flavor")
-        n_flavors_before = len(Flavor.objects.all())
+        n_flavors_before = Flavor.objects.count()
         response = self.client.post(
             f"/projects/{project.slug}/createflavor/",
             {
@@ -75,7 +75,7 @@ class FlavorTestCase(TestCase):
             },
         )
         self.assertEqual(response.status_code, 302)
-        n_flavors_after = len(Flavor.objects.all())
+        n_flavors_after = Flavor.objects.count()
 
         self.assertEqual(n_flavors_before + 1, n_flavors_after)
 
@@ -98,16 +98,16 @@ class FlavorTestCase(TestCase):
             subdomain=subdomain,
         )
 
-        can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor.pk)
+        can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor)
         self.assertFalse(can_flavor_be_deleted)
 
-        n_flavors_before = len(Flavor.objects.all())
+        n_flavors_before = Flavor.objects.count()
         response = self.client.post(f"/projects/{project.slug}/deleteflavor/", {"flavor_pk": flavor.pk})
         self.assertEqual(response.status_code, 302)
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
         self.assertIn("cannot be deleted", str(messages[0]))
-        n_flavors_after = len(Flavor.objects.all())
+        n_flavors_after = Flavor.objects.count()
 
         self.assertEqual(n_flavors_before, n_flavors_after)
 
@@ -117,12 +117,12 @@ class FlavorTestCase(TestCase):
 
         flavor_to_be_deleted = Flavor.objects.get(name="flavor-to-be-deleted")
 
-        can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor_to_be_deleted.pk)
+        can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor_to_be_deleted)
         self.assertTrue(can_flavor_be_deleted)
 
-        n_flavors_before = len(Flavor.objects.all())
+        n_flavors_before = Flavor.objects.count()
         response = self.client.post(f"/projects/{project.slug}/deleteflavor/", {"flavor_pk": flavor_to_be_deleted.pk})
         self.assertEqual(response.status_code, 302)
-        n_flavors_after = len(Flavor.objects.all())
+        n_flavors_after = Flavor.objects.count()
 
         self.assertEqual(n_flavors_before - 1, n_flavors_after)

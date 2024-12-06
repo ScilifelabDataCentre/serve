@@ -29,7 +29,7 @@ class EnvironmentTestCase(TestCase):
         project = Project.objects.get(name="test-env")
         app = Apps.objects.get(slug="someapp")
 
-        n_envs_before = len(Environment.objects.all())
+        n_envs_before = Environment.objects.count()
         response = self.client.post(
             f"/projects/{project.slug}/createenvironment/",
             {
@@ -41,7 +41,7 @@ class EnvironmentTestCase(TestCase):
             },
         )
         self.assertEqual(response.status_code, 403)
-        n_envs_after = len(Environment.objects.all())
+        n_envs_after = Environment.objects.count()
 
         self.assertEqual(n_envs_before, n_envs_after)
 
@@ -49,12 +49,12 @@ class EnvironmentTestCase(TestCase):
         Test regular user not allowed to delete environment
         """
         env_to_be_deleted = Environment.objects.get(name="env-to-be-deleted")
-        n_envs_before = len(Environment.objects.all())
+        n_envs_before = Environment.objects.count()
         response = self.client.post(
             f"/projects/{project.slug}/deleteenvironment/", {"environment_pk": env_to_be_deleted.pk}
         )
         self.assertEqual(response.status_code, 403)
-        n_envs_after = len(Environment.objects.all())
+        n_envs_after = Environment.objects.count()
         self.assertEqual(n_envs_before, n_envs_after)
 
     def test_environment_creation_deletion_superuser(self):
@@ -65,7 +65,7 @@ class EnvironmentTestCase(TestCase):
         project = Project.objects.get(name="test-env")
         app = Apps.objects.get(slug="someapp")
 
-        n_envs_before = len(Environment.objects.all())
+        n_envs_before = Environment.objects.count()
         response = self.client.post(
             f"/projects/{project.slug}/createenvironment/",
             {
@@ -76,7 +76,7 @@ class EnvironmentTestCase(TestCase):
             },
         )
         self.assertEqual(response.status_code, 302)
-        n_envs_after = len(Environment.objects.all())
+        n_envs_after = Environment.objects.count()
 
         self.assertEqual(n_envs_before + 1, n_envs_after)
 
@@ -97,16 +97,16 @@ class EnvironmentTestCase(TestCase):
             subdomain=subdomain,
         )
 
-        can_env_be_deleted = can_model_instance_be_deleted("environment", env.pk)
+        can_env_be_deleted = can_model_instance_be_deleted("environment", env)
         self.assertFalse(can_env_be_deleted)
 
-        n_envs_before = len(Environment.objects.all())
+        n_envs_before = Environment.objects.count()
         response = self.client.post(f"/projects/{project.slug}/deleteenvironment/", {"environment_pk": env.pk})
         self.assertEqual(response.status_code, 302)
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
         self.assertIn("cannot be deleted", str(messages[0]))
-        n_envs_after = len(Environment.objects.all())
+        n_envs_after = Environment.objects.count()
 
         self.assertEqual(n_envs_before, n_envs_after)
 
@@ -116,14 +116,14 @@ class EnvironmentTestCase(TestCase):
 
         env_to_be_deleted = Environment.objects.get(name="env-to-be-deleted")
 
-        can_env_be_deleted = can_model_instance_be_deleted("environment", env_to_be_deleted.pk)
+        can_env_be_deleted = can_model_instance_be_deleted("environment", env_to_be_deleted)
         self.assertTrue(can_env_be_deleted)
 
-        n_env_before = len(Environment.objects.all())
+        n_env_before = Environment.objects.count()
         response = self.client.post(
             f"/projects/{project.slug}/deleteenvironment/", {"environment_pk": env_to_be_deleted.pk}
         )
         self.assertEqual(response.status_code, 302)
-        n_envs_after = len(Environment.objects.all())
+        n_envs_after = Environment.objects.count()
 
         self.assertEqual(n_envs_before - 1, n_envs_after)

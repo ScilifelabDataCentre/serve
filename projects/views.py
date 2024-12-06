@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import Q
+from django.db.models import Model, Q
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -34,7 +34,6 @@ from .tasks import create_resources_from_template, delete_project
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
 AppCategories = apps.get_model(app_label=django_settings.APPCATEGORIES_MODEL)
-Model = apps.get_model(app_label=django_settings.MODELS_MODEL)
 User = get_user_model()
 
 
@@ -177,16 +176,14 @@ def change_description(request, project_slug):
     )
 
 
-def can_model_instance_be_deleted(field_name, instance):
+def can_model_instance_be_deleted(field_name: str, instance: Model) -> bool:
     """
     Check if a model instance can be deleted by ensuring no app in APP_REGISTRY
     references it via the specified field.
 
     Args:
-        request: The HTTP request object or None if called outside of request context.
-        model: The model class (e.g., Environment or Flavor).
-        field_name: The name of the field to check in APP_REGISTRY models.
-        instance: The instance to check.
+        field_name (str): The name of the field to check in APP_REGISTRY models.
+        instance (Model): The model instance to check.
 
     Returns:
         bool: True if the instance can be safely deleted, False otherwise.
@@ -241,7 +238,7 @@ def delete_environment(request, project_slug):
             pk = request.POST.get("environment_pk")
             environment = Environment.objects.get(pk=pk, project=project)
 
-            can_environment_be_deleted = can_model_instance_be_deleted("environment", pk)
+            can_environment_be_deleted = can_model_instance_be_deleted("environment", environment)
 
             if can_environment_be_deleted:
                 environment.delete()
@@ -307,7 +304,7 @@ def delete_flavor(request, project_slug):
             pk = request.POST.get("flavor_pk")
             flavor = Flavor.objects.get(pk=pk, project=project)
 
-            can_flavor_be_deleted = can_model_instance_be_deleted("flavor", pk)
+            can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor)
 
             if can_flavor_be_deleted:
                 flavor.delete()
