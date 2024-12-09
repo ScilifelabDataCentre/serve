@@ -153,7 +153,7 @@ class AppBaseForm(BaseForm):
 
         # Handle Volume field
         volume_queryset = (
-            VolumeInstance.objects.filter(project__pk=self.project_pk)
+            VolumeInstance.objects.filter(project__pk=self.project_pk).exclude(app_status__status="Deleted")
             if self.project_pk
             else VolumeInstance.objects.none()
         )

@@ -38,7 +38,6 @@ DEBUG = os.getenv("DEBUG", default="False").lower() in ("true", "1", "t")
 # Since this file is only used for development, we can have this set to all hosts.
 ALLOWED_HOSTS = ["*"]
 
-
 # For django-wiki
 SITE_ID = 1
 # wiki: Sign up, login and logout views should be accessible.
@@ -289,10 +288,16 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
+<<<<<<< HEAD
 TIME_ZONE = "Europe/Stockholm"
 
+=======
+>>>>>>> d03f5ad1bdb2115543749974bd5742533ac55142
 USE_I18N = True
 
+# Timezone settings
+USE_TZ = True
+TIME_ZONE = "Europe/Stockholm"
 
 # Media Files for Studio apps
 MEDIA_URL = "/media/"
