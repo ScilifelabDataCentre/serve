@@ -18,7 +18,9 @@ class EnvironmentTestCaseRegularUser(TestCase):
         self.project = Project.objects.create_project(name="test-env", owner=user, description="")
         User.objects.create_superuser(test_superuser["username"], test_superuser["email"], test_superuser["password"])
         self.app = Apps.objects.create(name="Some App", slug="someapp")
-        self.env_to_be_deleted = Environment.objects.create(app=self.app, name="env-to-be-deleted", project=self.project)
+        self.env_to_be_deleted = Environment.objects.create(
+            app=self.app, name="env-to-be-deleted", project=self.project
+        )
         self.client.login(username=test_user["email"], password=test_user["password"])
 
     def test_environment_creation_regular_user(self):
@@ -52,13 +54,16 @@ class EnvironmentTestCaseRegularUser(TestCase):
         n_envs_after = Environment.objects.count()
         self.assertEqual(n_envs_before, n_envs_after)
 
+
 class EnvironmentTestCaseSuperUser(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         self.project = Project.objects.create_project(name="test-env", owner=self.user, description="")
         User.objects.create_superuser(test_superuser["username"], test_superuser["email"], test_superuser["password"])
         self.app = Apps.objects.create(name="Some App", slug="someapp")
-        self.env_to_be_deleted = Environment.objects.create(app=self.app, name="env-to-be-deleted", project=self.project)
+        self.env_to_be_deleted = Environment.objects.create(
+            app=self.app, name="env-to-be-deleted", project=self.project
+        )
         self.client.login(username=test_superuser["email"], password=test_superuser["password"])
 
     def test_environment_creation_superuser(self):
@@ -83,7 +88,9 @@ class EnvironmentTestCaseSuperUser(TestCase):
         """
         Test it is not allowed to delete environment that is in use
         """
-        env_cannot_be_deleted = Environment.objects.create(app=self.app, name="env-cannot-be-deleted", project=self.project)
+        env_cannot_be_deleted = Environment.objects.create(
+            app=self.app, name="env-cannot-be-deleted", project=self.project
+        )
         subdomain = Subdomain.objects.create(subdomain="test_internal")
         self.app_instance = JupyterInstance.objects.create(
             access="public",
@@ -98,7 +105,9 @@ class EnvironmentTestCaseSuperUser(TestCase):
         self.assertFalse(can_env_be_deleted)
 
         n_envs_before = Environment.objects.count()
-        response = self.client.post(f"/projects/{self.project.slug}/deleteenvironment/", {"environment_pk": env_cannot_be_deleted.pk})
+        response = self.client.post(
+            f"/projects/{self.project.slug}/deleteenvironment/", {"environment_pk": env_cannot_be_deleted.pk}
+        )
         self.assertEqual(response.status_code, 302)
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
