@@ -175,7 +175,6 @@ def _kubectl_apply_dry(deployment_file: str, target_strategy: str = "client") ->
 
 def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
     command = f"helm get manifest {release_name} --namespace {namespace}"
-    # command = f"kubectl get configmap cm -n default -o yaml | yq eval '.data[\"application.yml\"]'"
     # Execute the command
     logger.debug(f"Executing command: {command}")
     try:

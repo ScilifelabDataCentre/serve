@@ -6,6 +6,10 @@ import kubernetes_validate
 import yaml
 import yaml.scanner
 
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
 
 class KubernetesDeploymentManifest:
     """Represents a k8s deployment manifest"""
@@ -13,7 +17,7 @@ class KubernetesDeploymentManifest:
     _deployment_id = None
     _manifest_content = None
 
-    def __init__(self, override_deployment_id: str = None):
+    def __init__(self, override_deployment_id: str | None = None):
         if override_deployment_id:
             self._deployment_id = override_deployment_id
         else:
@@ -93,20 +97,20 @@ class KubernetesDeploymentManifest:
         # Now validate each manifest document
         for doc in documents:
             try:
-                print(f"Validating document {doc['kind']}")
+                logger.debug(f"Validating document {doc['kind']}")
 
                 kubernetes_validate.validate(doc, "1.28", strict=True)
 
             except kubernetes_validate.ValidationError as e:
                 invalid_docs.append(doc["kind"])
-                print(f"The kubernetes-validate tool found errors: {e}")
+                logger.warning(f"The kubernetes-validate tool found errors: {e}")
 
             except Exception as e:
                 invalid_docs.append(doc["kind"])
-                print(f"An error occurred during validation: {e}")
+                logger.warning(f"An error occurred during validation: {e}")
 
         output = f"Nr of docs with errors {len(invalid_docs)} of {len(documents)}"
-        print(output)
+        logger.info(output)
 
         is_valid = len(invalid_docs) == 0
 
