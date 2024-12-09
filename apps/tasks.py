@@ -204,7 +204,7 @@ def deploy_resource(serialized_instance):
     kdm = KubernetesDeploymentManifest()
 
     # Save helm values file for internal reference
-    values_file = kdm.get_filepaths()["values_file"]
+    values_file, _ = kdm.get_filepaths()
     with open(values_file, "w") as f:
         f.write(yaml.dump(values))
 
@@ -219,10 +219,10 @@ def deploy_resource(serialized_instance):
             chart, values_file, values["namespace"], version, save_to_file=True
         )
 
-        deployment_file = kdm.get_filepaths()["deployment_file"]
+        _, deployment_file = kdm.get_filepaths()
 
         # Validate the manifest yaml documents
-        is_valid, validation_output = kdm.validate_manifest(output)
+        is_valid, validation_output, _ = kdm.validate_manifest(output)
 
         if is_valid:
             logger.debug(f"The deployment manifest file is valid for release {release}")
@@ -231,7 +231,7 @@ def deploy_resource(serialized_instance):
             kpp_data = kdm.extract_kubernetes_pod_patches_from_manifest(output)
 
             if kpp_data:
-                is_valid, message = kdm.validate_kubernetes_pod_patches_yaml(kpp_data)
+                is_valid, message, _ = kdm.validate_kubernetes_pod_patches_yaml(kpp_data)
 
                 if not is_valid:
                     logger.debug(f"The kubernetes-pod-patches section is invalid for release {release}. {message}")

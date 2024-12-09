@@ -1,19 +1,35 @@
+import os
 import subprocess
 import uuid
 from datetime import datetime
+from pathlib import Path
+from typing import NamedTuple
 
 import kubernetes_validate
 import yaml
 import yaml.scanner
+from django.conf import settings
 
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
 
 
+class K8SDeploymentFiles(NamedTuple):
+    values_file: Path
+    deployment_file: Path
+
+
+class ValidationResult(NamedTuple):
+    is_valid: bool
+    message: str
+    validation_error: str = None
+
+
 class KubernetesDeploymentManifest:
     """Represents a k8s deployment manifest"""
 
+    _charts_dir = os.path.join(str(settings.BASE_DIR), "charts", "values")
     _deployment_id = None
     _manifest_content = None
 
@@ -26,13 +42,12 @@ class KubernetesDeploymentManifest:
             now = datetime.now().strftime("%Y%m%d_%H%M%S")
             self._deployment_id = f"{now}_{str(uuid.uuid4())}"
 
-    def get_filepaths(self) -> dict[str, str]:
+    def get_filepaths(self) -> K8SDeploymentFiles:
         """Returns two filepaths for this deployment for the values file and deployment file."""
         deployment_fileid = self.get_deployment_id()
-        values_file = f"charts/values/{deployment_fileid}.yaml"
-        deployment_file = f"charts/values/{deployment_fileid}_deployment.yaml"
-        _paths = {"values_file": values_file, "deployment_file": deployment_file}
-        return _paths
+        values_file = f"{self._charts_dir}/{deployment_fileid}.yaml"
+        deployment_file = f"{self._charts_dir}/{deployment_fileid}_deployment.yaml"
+        return K8SDeploymentFiles(values_file, deployment_file)
 
     def get_deployment_id(self) -> str:
         """Gets the unique deployment id"""
@@ -40,7 +55,7 @@ class KubernetesDeploymentManifest:
 
     def save_as_values_file(self, values_data: str) -> None:
         """Saves values data to a yaml file."""
-        values_file = self.get_filepaths()["values_file"]
+        values_file, _ = self.get_filepaths()
         with open(values_file, "w") as f:
             f.write(values_data)
 
@@ -60,7 +75,7 @@ class KubernetesDeploymentManifest:
 
         if not error:
             if save_to_file:
-                deployment_file = self.get_filepaths()["deployment_file"]
+                _, deployment_file = self.get_filepaths()
                 with open(deployment_file, "w") as f:
                     f.write(output)
 
@@ -69,20 +84,19 @@ class KubernetesDeploymentManifest:
     def _delete_deployment_file(self) -> None:
         """Removes the deployment file if it exist."""
         files = self.kdm.get_filepaths()
-        from pathlib import Path
 
         deployment_file = files["deployment_file"]
 
         if Path(deployment_file).is_file():
             subprocess.run(["rm", "-f", deployment_file])
 
-    def validate_manifest(self, manifest_data: str) -> dict[bool, str]:
+    def validate_manifest(self, manifest_data: str) -> ValidationResult:
         """
         Validates manifest documents for this deployment.
         Uses kubernetes-validate to validate in-memory.
 
         Returns:
-        dict[bool,str]: is_valid, output
+        ValidationResult: is_valid, output
         """
         invalid_docs = []
 
@@ -90,9 +104,9 @@ class KubernetesDeploymentManifest:
         try:
             documents = list(yaml.safe_load_all(manifest_data))
         except yaml.scanner.ScannerError as e:
-            return False, f"Unable to parse manifest yaml. ScannerError. {e}"
+            return ValidationResult(False, f"Unable to parse manifest yaml. ScannerError. {e}")
         except Exception as e:
-            return False, f"Unable to parse manifest yaml. {e}"
+            return ValidationResult(False, f"Unable to parse manifest yaml. {e}")
 
         # Now validate each manifest document
         for doc in documents:
@@ -114,7 +128,7 @@ class KubernetesDeploymentManifest:
 
         is_valid = len(invalid_docs) == 0
 
-        return is_valid, output
+        return ValidationResult(is_valid, output)
 
     def extract_kubernetes_pod_patches_from_manifest(self, manifest_data: str) -> str | None:
         """
@@ -155,26 +169,26 @@ class KubernetesDeploymentManifest:
 
         return None
 
-    def validate_kubernetes_pod_patches_yaml(self, input: str) -> dict[bool, str]:
+    def validate_kubernetes_pod_patches_yaml(self, input: str) -> ValidationResult:
         """
         Validates the kubernetes-pod-patches section.
 
         Returns:
-        dict[bool,str]: is_valid, message
+        ValidationResult: is_valid, message
         """
 
         try:
             kubernetes_pod_patches = yaml.safe_load(input)
 
             if not isinstance(kubernetes_pod_patches, list):
-                return False, "kubernetes-pod-patches should be a list"
+                return ValidationResult(False, "kubernetes-pod-patches should be a list")
 
         except yaml.YAMLError as e:
-            return False, f"kubernetes-pod-patches is invalid YAML: {e}"
+            return ValidationResult(False, f"kubernetes-pod-patches is invalid YAML: {e}")
         except ValueError as e:
-            return False, f"kubernetes-pod-patches is invalid: {e}"
+            return ValidationResult(False, f"kubernetes-pod-patches is invalid: {e}")
 
-        return True, None
+        return ValidationResult(True, None)
 
     def _validate_manifest_file(self) -> dict[bool, str, str]:
         """
@@ -186,7 +200,8 @@ class KubernetesDeploymentManifest:
         """
         from ..tasks import kubectl_apply_dry
 
-        output, error = kubectl_apply_dry(self.get_filepaths()["deployment_file"], target_strategy="client")
+        _, deployment_file = self.get_filepaths()
+        output, error = kubectl_apply_dry(deployment_file, target_strategy="client")
 
         if error:
             return False, output, error
