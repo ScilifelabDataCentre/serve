@@ -1,4 +1,3 @@
-import os
 import subprocess
 import uuid
 from datetime import datetime
@@ -20,16 +19,19 @@ class K8SDeploymentFiles(NamedTuple):
     deployment_file: Path
 
 
-class ValidationResult(NamedTuple):
+class K8SManifestValidationResult(NamedTuple):
     is_valid: bool
     message: str
-    validation_error: str = None
+    validation_error: str | None = None
 
 
 class KubernetesDeploymentManifest:
     """Represents a k8s deployment manifest"""
 
-    _charts_dir = os.path.join(str(settings.BASE_DIR), "charts", "values")
+    # Use the configured k8s cluster version, e.g. "1.28"
+    CLUSTER_VERSION = settings.CLUSTER_VERSION if hasattr(settings, "CLUSTER_VERSION") else None
+
+    _charts_dir = Path(settings.BASE_DIR, "charts", "values")
     _deployment_id = None
     _manifest_content = None
 
@@ -90,13 +92,13 @@ class KubernetesDeploymentManifest:
         if Path(deployment_file).is_file():
             subprocess.run(["rm", "-f", deployment_file])
 
-    def validate_manifest(self, manifest_data: str) -> ValidationResult:
+    def validate_manifest(self, manifest_data: str) -> K8SManifestValidationResult:
         """
         Validates manifest documents for this deployment.
         Uses kubernetes-validate to validate in-memory.
 
         Returns:
-        ValidationResult: is_valid, output
+        K8SManifestValidationResult: is_valid, output
         """
         invalid_docs = []
 
@@ -104,16 +106,20 @@ class KubernetesDeploymentManifest:
         try:
             documents = list(yaml.safe_load_all(manifest_data))
         except yaml.scanner.ScannerError as e:
-            return ValidationResult(False, f"Unable to parse manifest yaml. ScannerError. {e}")
+            return K8SManifestValidationResult(False, f"Unable to parse manifest yaml. ScannerError. {e}")
         except Exception as e:
-            return ValidationResult(False, f"Unable to parse manifest yaml. {e}")
+            return K8SManifestValidationResult(False, f"Unable to parse manifest yaml. {e}")
 
         # Now validate each manifest document
         for doc in documents:
             try:
                 logger.debug(f"Validating document {doc['kind']}")
 
-                kubernetes_validate.validate(doc, "1.28", strict=True)
+                if self.CLUSTER_VERSION:
+                    kubernetes_validate.validate(doc, self.CLUSTER_VERSION, strict=True)
+                else:
+                    logger.info("Validating the k8s manifest without a set k8s version.")
+                    kubernetes_validate.validate(doc)
 
             except kubernetes_validate.ValidationError as e:
                 invalid_docs.append(doc["kind"])
@@ -128,7 +134,7 @@ class KubernetesDeploymentManifest:
 
         is_valid = len(invalid_docs) == 0
 
-        return ValidationResult(is_valid, output)
+        return K8SManifestValidationResult(is_valid, output)
 
     def extract_kubernetes_pod_patches_from_manifest(self, manifest_data: str) -> str | None:
         """
@@ -169,26 +175,26 @@ class KubernetesDeploymentManifest:
 
         return None
 
-    def validate_kubernetes_pod_patches_yaml(self, input: str) -> ValidationResult:
+    def validate_kubernetes_pod_patches_yaml(self, input: str) -> K8SManifestValidationResult:
         """
         Validates the kubernetes-pod-patches section.
 
         Returns:
-        ValidationResult: is_valid, message
+        K8SManifestValidationResult: is_valid, message
         """
 
         try:
             kubernetes_pod_patches = yaml.safe_load(input)
 
             if not isinstance(kubernetes_pod_patches, list):
-                return ValidationResult(False, "kubernetes-pod-patches should be a list")
+                return K8SManifestValidationResult(False, "kubernetes-pod-patches should be a list")
 
         except yaml.YAMLError as e:
-            return ValidationResult(False, f"kubernetes-pod-patches is invalid YAML: {e}")
+            return K8SManifestValidationResult(False, f"kubernetes-pod-patches is invalid YAML: {e}")
         except ValueError as e:
-            return ValidationResult(False, f"kubernetes-pod-patches is invalid: {e}")
+            return K8SManifestValidationResult(False, f"kubernetes-pod-patches is invalid: {e}")
 
-        return ValidationResult(True, None)
+        return K8SManifestValidationResult(True, None)
 
     def _validate_manifest_file(self) -> dict[bool, str, str]:
         """
@@ -212,7 +218,12 @@ class KubernetesDeploymentManifest:
         return True, output, error
 
     def check_helm_version(self) -> tuple[str | None, str | None]:
-        """Verifies that the Helm CLI is installed and accessible."""
+        """
+        Verifies that the Helm CLI is installed and accessible.
+
+        Returns:
+        tuple[str | None, str | None]: stdout, stderr
+        """
 
         command = "helm version"
         # Execute the command
