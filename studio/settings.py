@@ -287,12 +287,6 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
-
-<<<<<<< HEAD
-TIME_ZONE = "Europe/Stockholm"
-
-=======
->>>>>>> d03f5ad1bdb2115543749974bd5742533ac55142
 USE_I18N = True
 
 # Timezone settings
