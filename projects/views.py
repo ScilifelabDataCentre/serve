@@ -537,6 +537,7 @@ class DetailsView(View):
                     "title": category.name,
                     "instances": instances_per_category_list,
                     "apps": apps_per_category,
+                    "timezone": "Europe/Stockholm Timezone",
                 }
             )
 
