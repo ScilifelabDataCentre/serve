@@ -4,6 +4,7 @@ import uuid
 import yaml
 from celery import shared_task
 from django.apps import apps
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
@@ -108,10 +109,74 @@ def helm_install(release_name, chart, namespace="default", values_file=None, ver
 
 
 @shared_task
-def helm_delete(release_name, namespace="default"):
-    # Base command
+def helm_delete(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
+    """
+    Executes a Helm delete command.
+    """
     command = f"helm uninstall {release_name} --namespace {namespace} --wait"
     # Execute the command
+    try:
+        result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
+        return result.stdout, None
+    except subprocess.CalledProcessError as e:
+        return e.stdout, e.stderr
+
+
+@shared_task
+def helm_template(
+    chart: str, values_file: str, namespace: str = "default", version: str = None
+) -> tuple[str | None, str | None]:
+    """
+    Executes a Helm template command.
+    """
+    command = f"helm template tmp-release-name {chart} -f {values_file} --namespace {namespace}"
+
+    # Append version if deploying via ghcr
+    if version:
+        command += f" --version {version} --repository-cache /app/charts/.cache/helm/repository"
+
+    # Execute the command
+    try:
+        result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
+        return result.stdout, None
+    except subprocess.CalledProcessError as e:
+        return e.stdout, e.stderr
+
+
+@shared_task
+def helm_lint(chart: str, values_file: str, namespace: str) -> tuple[str | None, str | None]:
+    """
+    Executes a Helm lint command.
+    """
+    command = f"helm lint {chart} -f {values_file} --namespace {namespace}"
+    # Execute the command
+    try:
+        result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
+        return result.stdout, None
+    except subprocess.CalledProcessError as e:
+        return e.stdout, e.stderr
+
+
+@shared_task
+def _kubectl_apply_dry(deployment_file: str, target_strategy: str = "client") -> tuple[str | None, str | None]:
+    """
+    Executes a kubectl apply --dry-run command.
+    NOTE: This does not appear to be working, but kept for continued testing.
+    """
+    command = f"kubectl apply --dry-run={target_strategy} -f {deployment_file}"
+    # Execute the command
+    try:
+        result = subprocess.check_output(command, shell=True)
+        # result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
+        return result.stdout, None
+    except subprocess.CalledProcessError as e:
+        return e.stdout, e.stderr
+
+
+def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
+    command = f"helm get manifest {release_name} --namespace {namespace}"
+    # Execute the command
+    logger.debug(f"Executing command: {command}")
     try:
         result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
         return result.stdout, None
@@ -125,18 +190,60 @@ def deploy_resource(serialized_instance):
     instance = deserialize(serialized_instance)
     logger.info("Deploying resource for instance %s", instance)
     values = instance.k8s_values
+    release = values["subdomain"]
     if "ghcr" in instance.chart:
         version = instance.chart.split(":")[-1]
         chart = "oci://" + instance.chart.split(":")[0]
     else:
         version = None
         chart = instance.chart
+
+    # Use a KubernetesDeploymentManifest to manage the manifest validation and files
+    from apps.types_.kubernetes_deployment_manifest import KubernetesDeploymentManifest
+
+    kdm = KubernetesDeploymentManifest()
+
     # Save helm values file for internal reference
-    values_file = f"charts/values/{str(uuid.uuid4())}.yaml"
+    values_file, _ = kdm.get_filepaths()
     with open(values_file, "w") as f:
         f.write(yaml.dump(values))
 
-    output, error = helm_install(values["subdomain"], chart, values["namespace"], values_file, version)
+    valid_deployment = True
+    deployment_file = None
+
+    # In development, also generate and validate the k8s deployment manifest
+    if settings.DEBUG:
+        logger.debug(f"Generating and validating k8s deployment yaml for release {release} before deployment.")
+
+        output, error = kdm.generate_manifest_yaml_from_template(
+            chart, values_file, values["namespace"], version, save_to_file=True
+        )
+
+        _, deployment_file = kdm.get_filepaths()
+
+        # Validate the manifest yaml documents
+        is_valid, validation_output, _ = kdm.validate_manifest(output)
+
+        if is_valid:
+            logger.debug(f"The deployment manifest file is valid for release {release}")
+
+            # Also validate the kubernetes-pod-patches section
+            kpp_data = kdm.extract_kubernetes_pod_patches_from_manifest(output)
+
+            if kpp_data:
+                is_valid, message, _ = kdm.validate_kubernetes_pod_patches_yaml(kpp_data)
+
+                if not is_valid:
+                    logger.debug(f"The kubernetes-pod-patches section is invalid for release {release}. {message}")
+                    valid_deployment = False
+        else:
+            valid_deployment = False
+
+        if not valid_deployment:
+            logger.warning(f"The deployment manifest file is INVALID for release {release}. {validation_output}")
+
+    # Install the app using Helm install
+    output, error = helm_install(release, chart, values["namespace"], values_file, version)
     success = not error
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
@@ -147,7 +254,17 @@ def deploy_resource(serialized_instance):
     instance.app_status.save()
     instance.save()
 
-    subprocess.run(["rm", "-f", values_file])
+    # In development, also generate and validate the k8s deployment manifest
+    if settings.DEBUG:
+        # Previously, we generated and validated the deployment after creation
+        # output, error = get_manifest_yaml(release)
+        pass
+
+    if valid_deployment:
+        # If valid, then delete both the values and deployment files (if exists)
+        subprocess.run(["rm", "-f", values_file])
+        if deployment_file:
+            subprocess.run(["rm", "-f", deployment_file])
 
 
 @shared_task
