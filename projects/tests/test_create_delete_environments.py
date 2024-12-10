@@ -8,8 +8,8 @@ from projects.views import can_model_instance_be_deleted
 
 User = get_user_model()
 
-test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
-test_superuser = {"username": "superuser", "email": "superuser@test.com", "password": "bar"}
+TEST_USER = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
+TEST_SUPERUSER = {"username": "superuser", "email": "superuser@test.com", "password": "bar"}
 
 
 class EnvironmentTestCaseRegularUser(TestCase):
