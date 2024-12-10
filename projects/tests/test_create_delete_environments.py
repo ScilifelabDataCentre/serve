@@ -14,14 +14,14 @@ TEST_SUPERUSER = {"username": "superuser", "email": "superuser@test.com", "passw
 
 class EnvironmentTestCaseRegularUser(TestCase):
     def setUp(self):
-        user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
+        user = User.objects.create_user(TEST_USER["username"], TEST_USER["email"], TEST_USER["password"])
         self.project = Project.objects.create_project(name="test-env", owner=user, description="")
-        User.objects.create_superuser(test_superuser["username"], test_superuser["email"], test_superuser["password"])
+        User.objects.create_superuser(TEST_SUPERUSER["username"], TEST_SUPERUSER["email"], TEST_SUPERUSER["password"])
         self.app = Apps.objects.create(name="Some App", slug="someapp")
         self.env_to_be_deleted = Environment.objects.create(
             app=self.app, name="env-to-be-deleted", project=self.project
         )
-        self.client.login(username=test_user["email"], password=test_user["password"])
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
 
     def test_environment_creation_regular_user(self):
         """
@@ -57,14 +57,14 @@ class EnvironmentTestCaseRegularUser(TestCase):
 
 class EnvironmentTestCaseSuperUser(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
+        self.user = User.objects.create_user(TEST_USER["username"], TEST_USER["email"], TEST_USER["password"])
         self.project = Project.objects.create_project(name="test-env", owner=self.user, description="")
-        User.objects.create_superuser(test_superuser["username"], test_superuser["email"], test_superuser["password"])
+        User.objects.create_superuser(TEST_SUPERUSER["username"], TEST_SUPERUSER["email"], TEST_SUPERUSER["password"])
         self.app = Apps.objects.create(name="Some App", slug="someapp")
         self.env_to_be_deleted = Environment.objects.create(
             app=self.app, name="env-to-be-deleted", project=self.project
         )
-        self.client.login(username=test_superuser["email"], password=test_superuser["password"])
+        self.client.login(username=TEST_SUPERUSER["email"], password=TEST_SUPERUSER["password"])
 
     def test_environment_creation_superuser(self):
         """

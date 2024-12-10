@@ -8,16 +8,16 @@ from projects.views import can_model_instance_be_deleted
 
 User = get_user_model()
 
-test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
-test_superuser = {"username": "superuser", "email": "superuser@test.com", "password": "bar"}
+TEST_USER = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
+TEST_SUPERUSER = {"username": "superuser", "email": "superuser@test.com", "password": "bar"}
 
 
 class FlavorTestCaseRegularUser(TestCase):
     def setUp(self):
-        user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
+        user = User.objects.create_user(TEST_USER["username"], TEST_USER["email"], TEST_USER["password"])
         self.project = Project.objects.create_project(name="test-flavor", owner=user, description="")
         self.flavor_to_be_deleted = Flavor.objects.create(name="flavor-to-be-deleted", project=self.project)
-        self.client.login(username=test_user["email"], password=test_user["password"])
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
 
     def test_flavor_creation_regular_user(self):
         """
@@ -55,11 +55,11 @@ class FlavorTestCaseRegularUser(TestCase):
 
 class FlavorTestCaseSuperUser(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
+        self.user = User.objects.create_user(TEST_USER["username"], TEST_USER["email"], TEST_USER["password"])
         self.project = Project.objects.create_project(name="test-flavor", owner=self.user, description="")
-        User.objects.create_superuser(test_superuser["username"], test_superuser["email"], test_superuser["password"])
+        User.objects.create_superuser(TEST_SUPERUSER["username"], TEST_SUPERUSER["email"], TEST_SUPERUSER["password"])
         self.flavor_to_be_deleted = Flavor.objects.create(name="flavor-to-be-deleted", project=self.project)
-        self.client.login(username=test_superuser["email"], password=test_superuser["password"])
+        self.client.login(username=TEST_SUPERUSER["email"], password=TEST_SUPERUSER["password"])
 
     def test_flavor_creation_superuser(self):
         """
