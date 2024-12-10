@@ -5,7 +5,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase, override_settings
 
-from ..models import Project
+from ..models import Flavor, Project
 
 User = get_user_model()
 
@@ -26,6 +26,18 @@ class ProjectTestCase(TestCase):
         )
         _ = Project.objects.create_project(name="test-perm", owner=user, description="")
         user = User.objects.create_user(test_member["username"], test_member["email"], test_member["password"])
+        self.flavor = Flavor.objects.create(
+            cpu_req="500m",
+            cpu_lim="1000m",
+            mem_req="0.5Gi",
+            mem_lim="1Gi",
+            ephmem_req="200Mi",
+            ephmem_lim="500Mi",
+            gpu_req="1",
+            gpu_lim="1",
+            name="1 vCPU, 0.5 GB RAM",
+            project=None,
+        )
 
     def test_decrypt_key(self):
         project = Project.objects.filter(name="test-secret").first()
@@ -131,3 +143,13 @@ class ProjectTestCase(TestCase):
 
         result = Project.objects.user_can_create(user)
         self.assertFalse(result)
+
+    def test_flavor_to_dict_without_gpu(self):
+        flavor_dict = self.flavor.to_dict(app_slug="some-app")
+        self.assertNotIn("nvidia.com/gpu", flavor_dict["flavor"]["requests"])
+        self.assertNotIn("nvidia.com/gpu", flavor_dict["flavor"]["limits"])
+
+    def test_flavor_to_dict_with_gpu(self):
+        flavor_dict = self.flavor.to_dict(app_slug="jupyter-lab")
+        self.assertIn("nvidia.com/gpu", flavor_dict["flavor"]["requests"])
+        self.assertIn("nvidia.com/gpu", flavor_dict["flavor"]["limits"])

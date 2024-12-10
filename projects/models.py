@@ -86,7 +86,7 @@ class Flavor(models.Model):
     def __str__(self):
         return str(self.name)
 
-    def to_dict(self):
+    def to_dict(self, app_slug=None):
         flavor_dict = dict(
             flavor=dict(
                 requests={
@@ -101,8 +101,10 @@ class Flavor(models.Model):
                 },
             )
         )
-        if self.gpu_req and int(self.gpu_req) > 0:
-            flavor_dict["flavor"]["requests"]["nvidia.com/gpu"] = (self.gpu_req,)
+        # allow GPU only for specific apps.
+        apps_allowed_gpus = ["jupyter-lab"]
+        if self.gpu_req and int(self.gpu_req) > 0 and app_slug in apps_allowed_gpus:
+            flavor_dict["flavor"]["requests"]["nvidia.com/gpu"] = self.gpu_req
             flavor_dict["flavor"]["limits"]["nvidia.com/gpu"] = self.gpu_lim
 
         return flavor_dict
