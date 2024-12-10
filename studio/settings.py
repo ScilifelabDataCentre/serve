@@ -532,3 +532,6 @@ if not DEBUG:
     )
 
 LOKI_SVC = None
+
+# k8s cluster version for validation of manifests
+CLUSTER_VERSION = "1.28"
