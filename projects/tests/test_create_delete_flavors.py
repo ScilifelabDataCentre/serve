@@ -77,8 +77,9 @@ class FlavorTestCaseSuperUser(TestCase):
                 "mem_lim": "n",
                 "ephmem_lim": "n",
             },
+            follow=True,
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         n_flavors_after = Flavor.objects.count()
         self.assertEqual(n_flavors_before + 1, n_flavors_after)
 
@@ -106,9 +107,9 @@ class FlavorTestCaseSuperUser(TestCase):
 
         n_flavors_before = Flavor.objects.count()
         response = self.client.post(
-            f"/projects/{self.project.slug}/deleteflavor/", {"flavor_pk": flavor_cannot_be_deleted.pk}
+            f"/projects/{self.project.slug}/deleteflavor/", {"flavor_pk": flavor_cannot_be_deleted.pk}, follow=True
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
         self.assertIn("cannot be deleted", str(messages[0]))
@@ -125,9 +126,9 @@ class FlavorTestCaseSuperUser(TestCase):
 
         n_flavors_before = Flavor.objects.count()
         response = self.client.post(
-            f"/projects/{self.project.slug}/deleteflavor/", {"flavor_pk": self.flavor_to_be_deleted.pk}
+            f"/projects/{self.project.slug}/deleteflavor/", {"flavor_pk": self.flavor_to_be_deleted.pk}, follow=True
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         n_flavors_after = Flavor.objects.count()
 
         self.assertEqual(n_flavors_before - 1, n_flavors_after)

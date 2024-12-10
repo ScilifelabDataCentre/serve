@@ -79,8 +79,9 @@ class EnvironmentTestCaseSuperUser(TestCase):
                 "environment_image": "n",
                 "environment_app": self.app.pk,
             },
+            follow=True,
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         n_envs_after = Environment.objects.count()
         self.assertEqual(n_envs_before + 1, n_envs_after)
 
@@ -106,9 +107,11 @@ class EnvironmentTestCaseSuperUser(TestCase):
 
         n_envs_before = Environment.objects.count()
         response = self.client.post(
-            f"/projects/{self.project.slug}/deleteenvironment/", {"environment_pk": env_cannot_be_deleted.pk}
+            f"/projects/{self.project.slug}/deleteenvironment/",
+            {"environment_pk": env_cannot_be_deleted.pk},
+            follow=True,
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
         self.assertIn("cannot be deleted", str(messages[0]))
@@ -124,9 +127,11 @@ class EnvironmentTestCaseSuperUser(TestCase):
         self.assertTrue(can_env_be_deleted)
         n_envs_before = Environment.objects.count()
         response = self.client.post(
-            f"/projects/{self.project.slug}/deleteenvironment/", {"environment_pk": self.env_to_be_deleted.pk}
+            f"/projects/{self.project.slug}/deleteenvironment/",
+            {"environment_pk": self.env_to_be_deleted.pk},
+            follow=True,
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         n_envs_after = Environment.objects.count()
 
         self.assertEqual(n_envs_before - 1, n_envs_after)
