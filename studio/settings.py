@@ -287,7 +287,6 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
-
 USE_I18N = True
 
 # Timezone settings
@@ -533,3 +532,6 @@ if not DEBUG:
     )
 
 LOKI_SVC = None
+
+# k8s cluster version for validation of manifests
+CLUSTER_VERSION = "1.28"
