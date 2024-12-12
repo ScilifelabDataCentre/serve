@@ -9,6 +9,7 @@ from django.db.models import Q
 
 from apps.models.base.app_status import AppStatus
 from apps.models.base.app_template import Apps
+from apps.models.base.k8s_user_app_status import K8sUserAppStatus
 from apps.models.base.subdomain import Subdomain
 from projects.models import Flavor, Project
 
@@ -116,6 +117,11 @@ class BaseAppInstance(models.Model):
     subdomain = models.OneToOneField(
         Subdomain, on_delete=models.SET_NULL, related_name="%(class)s", null=True, blank=True
     )
+    k8s_user_app_status = models.OneToOneField(
+        K8sUserAppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True
+    )
+
+    # TODO: Break connection to model AppStatus and deprecate AppStatus
     app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
 
     url = models.URLField(blank=True, null=True)

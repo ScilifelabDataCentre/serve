@@ -16,6 +16,7 @@ from .models import (
     FilemanagerInstance,
     GradioInstance,
     JupyterInstance,
+    K8sUserAppStatus,
     NetpolicyInstance,
     RStudioInstance,
     ShinyInstance,
@@ -50,6 +51,14 @@ class AppsAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Apps, AppsAdmin)
+
+
+class K8sUserAppStatusAdmin(admin.ModelAdmin):
+    list_display = (
+        "status",
+        "time",
+    )
+    list_filter = ["status", "time"]
 
 
 class BaseAppAdmin(admin.ModelAdmin):
@@ -255,3 +264,4 @@ class StreamlitInstanceAdmin(BaseAppAdmin):
 admin.site.register(Subdomain)
 admin.site.register(AppCategories)
 admin.site.register(AppStatus, AppStatusAdmin)
+admin.site.register(K8sUserAppStatus, K8sUserAppStatusAdmin)
