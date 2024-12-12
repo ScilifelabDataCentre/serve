@@ -5,10 +5,11 @@ import logging
 import requests as r
 from django.apps import apps
 from django.conf import settings as django_settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import Q
+from django.db.models import Model, Q
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -20,7 +21,7 @@ from django.shortcuts import render, reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
-from guardian.shortcuts import assign_perm, remove_perm
+from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance
@@ -33,7 +34,6 @@ from .tasks import create_resources_from_template, delete_project
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
 AppCategories = apps.get_model(app_label=django_settings.APPCATEGORIES_MODEL)
-Model = apps.get_model(app_label=django_settings.MODELS_MODEL)
 User = get_user_model()
 
 
@@ -86,6 +86,9 @@ def settings(request, project_slug):
             Q(slug=project_slug),
         ).first()
 
+    if request.user.is_superuser and project.status == "deleted":
+        return HttpResponse("This project has been deleted by the user.")
+
     try:
         User._meta.get_field("is_user")
         platform_users = User.objects.filter(
@@ -102,7 +105,9 @@ def settings(request, project_slug):
         )
 
     environments = Environment.objects.filter(project=project)
-    apps = Apps.objects.all().order_by("slug", "-revision").distinct("slug")
+    apps_with_environment_option = (
+        Apps.objects.filter(environment__isnull=False).order_by("slug", "-revision").distinct("slug")
+    )
 
     flavors = Flavor.objects.filter(project=project)
 
@@ -171,26 +176,49 @@ def change_description(request, project_slug):
     )
 
 
+def can_model_instance_be_deleted(field_name: str, instance: Model) -> bool:
+    """
+    Check if a model instance can be deleted by ensuring no app in APP_REGISTRY
+    references it via the specified field.
+
+    Args:
+        field_name (str): The name of the field to check in APP_REGISTRY models.
+        instance (Model): The model instance to check.
+
+    Returns:
+        bool: True if the instance can be safely deleted, False otherwise.
+    """
+    for app_orm in APP_REGISTRY.iter_orm_models():
+        if hasattr(app_orm, field_name):
+            queryset = app_orm.objects.filter(**{field_name: instance})
+            if queryset.exists():
+                return False
+    return True
+
+
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_environment(request, project_slug):
-    # TODO: Ensure that user is allowed to create environment in this project.
-    if request.method == "POST":
-        project = Project.objects.get(slug=project_slug)
-        name = request.POST.get("environment_name")
-        repo = request.POST.get("environment_repository")
-        image = request.POST.get("environment_image")
-        app_pk = request.POST.get("environment_app")
-        app = Apps.objects.get(pk=app_pk)
-        environment = Environment(
-            name=name,
-            slug=name,
-            project=project,
-            repository=repo,
-            image=image,
-            app=app,
-        )
-        environment.save()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            # TODO: check input data
+            name = request.POST.get("environment_name")
+            repo = request.POST.get("environment_repository")
+            image = request.POST.get("environment_image")
+            app_pk = request.POST.get("environment_app")
+            app = Apps.objects.get(pk=app_pk)
+            environment = Environment(
+                name=name,
+                slug=name,
+                project=project,
+                repository=repo,
+                image=image,
+                app=app,
+            )
+            environment.save()
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
@@ -202,13 +230,24 @@ def create_environment(request, project_slug):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def delete_environment(request, project_slug):
-    if request.method == "POST":
-        project = Project.objects.get(slug=project_slug)
-        pk = request.POST.get("environment_pk")
-        # TODO: Check that the user has permission to delete this environment.
-        environment = Environment.objects.get(pk=pk, project=project)
-        environment.delete()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            pk = request.POST.get("environment_pk")
+            environment = Environment.objects.get(pk=pk, project=project)
 
+            can_environment_be_deleted = can_model_instance_be_deleted("environment", environment)
+
+            if can_environment_be_deleted:
+                environment.delete()
+            else:
+                messages.error(
+                    request,
+                    "Environment cannot be deleted because it is currently used by at least one app \
+                        (can also be a deleted app).",
+                )
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
@@ -220,29 +259,31 @@ def delete_environment(request, project_slug):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_flavor(request, project_slug):
-    # TODO: Ensure that user is allowed to create flavor in this project.
-    if request.method == "POST":
-        # TODO: Check input
-        project = Project.objects.get(slug=project_slug)
-        logger.info(request.POST)
-        name = request.POST.get("flavor_name")
-        cpu_req = request.POST.get("cpu_req")
-        mem_req = request.POST.get("mem_req")
-        ephmem_req = request.POST.get("ephmem_req")
-        cpu_lim = request.POST.get("cpu_lim")
-        mem_lim = request.POST.get("mem_lim")
-        ephmem_lim = request.POST.get("ephmem_lim")
-        flavor = Flavor(
-            name=name,
-            project=project,
-            cpu_req=cpu_req,
-            mem_req=mem_req,
-            cpu_lim=cpu_lim,
-            mem_lim=mem_lim,
-            ephmem_req=ephmem_req,
-            ephmem_lim=ephmem_lim,
-        )
-        flavor.save()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            # TODO: Check input
+            logger.info(request.POST)
+            name = request.POST.get("flavor_name")
+            cpu_req = request.POST.get("cpu_req")
+            mem_req = request.POST.get("mem_req")
+            ephmem_req = request.POST.get("ephmem_req")
+            cpu_lim = request.POST.get("cpu_lim")
+            mem_lim = request.POST.get("mem_lim")
+            ephmem_lim = request.POST.get("ephmem_lim")
+            flavor = Flavor(
+                name=name,
+                project=project,
+                cpu_req=cpu_req,
+                mem_req=mem_req,
+                cpu_lim=cpu_lim,
+                mem_lim=mem_lim,
+                ephmem_req=ephmem_req,
+                ephmem_lim=ephmem_lim,
+            )
+            flavor.save()
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
@@ -254,12 +295,25 @@ def create_flavor(request, project_slug):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def delete_flavor(request, project_slug):
-    if request.method == "POST":
-        project = Project.objects.get(slug=project_slug)
-        pk = request.POST.get("flavor_pk")
-        # TODO: Check that the user has permission to delete this flavor.
-        flavor = Flavor.objects.get(pk=pk, project=project)
-        flavor.delete()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            project = Project.objects.get(slug=project_slug)
+            pk = request.POST.get("flavor_pk")
+            flavor = Flavor.objects.get(pk=pk, project=project)
+
+            can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor)
+
+            if can_flavor_be_deleted:
+                flavor.delete()
+            else:
+                messages.error(
+                    request,
+                    "Flavor cannot be deleted because it is currently used by at least one app \
+                        (can also be a deleted app).",
+                )
 
     return HttpResponseRedirect(
         reverse(
@@ -387,7 +441,9 @@ class CreateProjectView(View):
 
         template = arr[0] if len(arr) > 0 else None
 
-        context = {"template": template}
+        context = {
+            "template": template,
+        }
 
         return render(
             request=request,
@@ -406,6 +462,30 @@ class CreateProjectView(View):
 
         name = request.POST.get("name", "default")[:200]
         description = request.POST.get("description", "")
+
+        # Ensure no duplicate project name for the common user
+
+        project_name_already_exists = (
+            Project.objects.filter(
+                owner=request.user,
+                name=name,
+            )
+            .exclude(status="deleted")
+            .exists()
+        )
+
+        if project_name_already_exists and not request.user.is_superuser:
+            pre_selected_template = request.GET.get("template")
+            template = ProjectTemplate.objects.filter(name=pre_selected_template).first()
+            context = {"template": template}
+            logger.error("A project with name '" + name + "' already exists.")
+
+            messages.error(
+                request,
+                "Project cannot be created because a project with name '" + name + "' already exists.",
+            )
+
+            return render(request, self.template_name, context)
 
         # Try to create database project object.
         try:
@@ -462,6 +542,10 @@ class DetailsView(View):
 
     def get(self, request, project_slug):
         project = Project.objects.get(slug=project_slug)
+
+        if request.user.is_superuser and project.status == "deleted":
+            return HttpResponse("This project has been deleted by the user.")
+
         resources = []
         app_ids = []
         if request.user.is_superuser:
@@ -503,6 +587,7 @@ class DetailsView(View):
                     "title": category.name,
                     "instances": instances_per_category_list,
                     "apps": apps_per_category,
+                    "timezone": "Europe/Stockholm Timezone",
                 }
             )
 
@@ -542,6 +627,11 @@ def delete(request, project_slug):
         project = Project.objects.filter(slug=project_slug).first()
 
     logger.info("SCHEDULING DELETION OF ALL INSTALLED APPS")
+    # remove permissions to see this project
+    users_with_permission = get_users_with_perms(project)
+    for user in users_with_permission:
+        remove_perm("can_view_project", user, project)
+    # set the status to 'deleted'
     project.status = "deleted"
     project.save()
     delete_project.delay(project.pk)

@@ -78,7 +78,7 @@
                                 {% else %}
                                     <a title="Launch the app" rel="Link to launch the app" href="{{ app.url }}" target="_blank" class="btn btn-primary">Open</a>
                                 {% endif %}
-                                {% if app.app.slug in 'shinyapp,shinyproxyapp,dashapp,customapp' %}
+                                {% if app.app.slug in 'shinyapp,shinyproxyapp,dashapp,customapp,gradio,streamlit' %}
                                 {% if app.pvc == None %}
                                 <a title="Instructions for running the app locally" rel="Instructions for running the app locally" href="#" class="icon-external" data-bs-toggle="modal" data-bs-target="#dockerInfoModal" data-app-name="{{ app.name }}" data-app-image="{{ app.image }}" data-app-port="{{ app.port }}">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" fill="#6d5476" class="bi bi-cloud-arrow-down-fill mb-0" viewBox="0 0 16 14" style="vertical-align: -webkit-baseline-middle">

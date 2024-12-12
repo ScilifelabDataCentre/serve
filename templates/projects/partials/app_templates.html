@@ -25,18 +25,8 @@
 
                                             {% if can_create %}
 
-                                                <!-- When models are launched REMOVE THIS -->
-                                                    {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
-                                                    <a class="btn btn-primary btn-sm"
-                                                        href="">Create</a>
-                                                    {% else %}
-                                                <!-- To here -->
                                                     <a class="btn btn-primary btn-sm"
                                                         href="{% url 'apps:create' project.slug app.slug  %}?from=overview">Create</a>
-
-                                                <!-- And here -->
-                                                    {% endif %}
-                                                <!-- To here -->
 
                                             {% else %}
                                             <button class="btn btn-secondary btn-sm" style="cursor: default;"

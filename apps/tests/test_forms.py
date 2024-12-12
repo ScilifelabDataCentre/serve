@@ -1,9 +1,13 @@
+import pytest
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.template import Context, Template
 from django.test import TestCase
 
 from apps.forms import CustomAppForm
+from apps.helpers import validate_path_k8s_label_compatible
 from apps.models import Apps, AppStatus, Subdomain, VolumeInstance
+from apps.models.app_types.custom.custom import validate_default_url_subpath
 from projects.models import Flavor, Project
 
 User = get_user_model()
@@ -44,6 +48,7 @@ class CustomAppFormTest(BaseAppFormTest):
             "port": 8000,
             "image": "ghcr.io/scilifelabdatacentre/image:tag",
             "tags": ["tag1", "tag2", "tag3"],
+            "default_url_subpath": "valid-default_url_subpath/",
         }
 
     def test_form_valid_data(self):
@@ -192,3 +197,115 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
         self.assertIn('value="private"', rendered_form)
         self.assertIn('value="link"', rendered_form)
         self.assertIn('value="public"', rendered_form)
+
+
+invalid_default_url_subpath_list = [
+    "invalid space",
+    'invalid_"_double_quote',
+    "invalid_<_less_than_sign",
+    "invalid_\\_backslash",
+    "invalid_|_pipe",
+    "invalid_^_caret",
+    "invalid_{_left_curly_brace",
+    "invalid_?_question_mark",
+]
+
+valid_default_url_subpath_list = [
+    "valid_ÄÄ_unicode_charecters",
+    "valid_aa/_forward_slash",
+    "valid_____underscore",
+    "_aa/bb/c_format",
+    "valid_-_hiphen",
+    "_ad-frt/fgh_cd_",
+    "ÅÄaad1234",
+]
+
+
+@pytest.mark.parametrize("valid_default_url_subpath", valid_default_url_subpath_list)
+def test_valid_default_url_subpath(valid_default_url_subpath):
+    valid_check = True
+    try:
+        validate_default_url_subpath(valid_default_url_subpath)
+    except ValidationError:
+        valid_check = False
+
+    assert valid_check
+
+
+@pytest.mark.parametrize("invalid_default_url_subpath", invalid_default_url_subpath_list)
+def test_invalid_default_url_subpath(invalid_default_url_subpath):
+    valid_check = True
+    try:
+        validate_default_url_subpath(invalid_default_url_subpath)
+    except ValidationError:
+        valid_check = False
+
+    assert not valid_check
+
+
+invalid_shiny_site_dir_list = [
+    "-invalidStart",  # Starts with a non-alphanumeric character
+    "invalidEnd-",  # Ends with a non-alphanumeric character
+    ".dotStart",  # Starts with a dot
+    "dotEnd.",  # Ends with a dot
+    "_underscoreStart",  # Starts with an underscore
+    "underscoreEnd_",  # Ends with an underscore
+    "label with spaces",  # Contains spaces
+    "label@value",  # Contains an invalid character (@)
+    "too_long_label_with_more_than_sixty_three_characters__1234567890",  # Exceeds 63 characters
+    "just-dashes-",  # Ends with a dash
+    "123#",  # Contains an invalid character (#)
+    ".....",  # Only contains dots
+    "-a",  # Starts with a dash
+    "_a_",  # Starts and ends with underscores
+    " ",  # Contains only whitespace
+]
+
+valid_shiny_site_dir_list = [
+    "",  # Empty string is allowed
+    "a",  # Single alphanumeric character
+    "validLabel",  # Alphanumeric characters only
+    "label-123",  # Contains a dash
+    "label_with_underscores",  # Contains underscores
+    "label.with.dots",  # Contains dots
+    "abc-def_ghi.jkl",  # Contains all allowed special characters
+    "label1",  # Ends with a number
+    "1stLabel",  # Starts with a number
+    "example-label",  # Simple example with a dash
+    "nested.label.value",  # Dots between words
+    "underscore_ending_label",  # Underscore in the middle
+    "valid-value-0123",  # Contains numbers and special characters
+    "long-valid-label-abcdefg-hijklmn-opqrstuv-wxyz",  # Long but within 63 characters
+    "labelvalue123456789",  # Combination of letters and numbers
+    "consecutive-dashes--allowed",  # Contains consecutive dashes
+    "consecutive_underscores__allowed",  # Contains consecutive underscores
+    "dots..in..between",  # Contains consecutive dots
+    "mixed__--..label",  # Contains a mix of consecutive allowed characters
+    "label---with---many---dashes",  # Multiple consecutive dashes in different parts
+    "label..with..dots",  # Multiple consecutive dots in between
+    "valid_--..mix_12",  # Combination of numbers, letters, and allowed characters
+    "simple.label-value_1-2-3",  # Mixed with numbers, dots, underscores, and dashes
+    "complex__label..value--mixed",  # A complex mix with all allowed characters in a consecutive manner
+]
+
+
+@pytest.mark.parametrize("valid_shiny_site_dir", valid_shiny_site_dir_list)
+def test_valid_shiny_site_dir(valid_shiny_site_dir):
+    valid_check = True
+    try:
+        validate_path_k8s_label_compatible(valid_shiny_site_dir)
+    except ValidationError:
+        valid_check = False
+
+    assert valid_check
+
+
+@pytest.mark.parametrize("invalid_shiny_site_dir", invalid_shiny_site_dir_list)
+def test_invalid_shiny_site_dir(invalid_shiny_site_dir):
+    valid_check = True
+    try:
+        validate_path_k8s_label_compatible(invalid_shiny_site_dir)
+    except ValidationError:
+        valid_check = False
+
+    assert not valid_check

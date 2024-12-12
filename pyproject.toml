@@ -52,6 +52,7 @@ Pillow = "10.2.0"
 flatten-json = "==0.1.13"
 PyYAML = "==6.0.1"
 Markdown = ">=3.4,<3.6"
+kubernetes-validate = "==1.31.0"
 
 # Logging
 django-structlog = "^7.1.0"
@@ -72,6 +73,7 @@ pytest-xdist = { version = "^3.5.0", optional = true }
 django-axes = {extras = ["ipware"], version = "^6.3.0"}
 django-password-validators = "^1.7.3"
 django-htmx = "^1.18.0"
+regex = "^2024.11.6"
 
 [tool.poetry.extras]
 linters = ["black", "isort", "flake8", "mypy"]
