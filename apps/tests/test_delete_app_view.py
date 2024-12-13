@@ -5,7 +5,14 @@ from django.test import Client, TestCase
 
 from projects.models import Project
 
-from ..models import AppCategories, Apps, AppStatus, JupyterInstance, Subdomain
+from ..models import (
+    AppCategories,
+    Apps,
+    AppStatus,
+    JupyterInstance,
+    K8sUserAppStatus,
+    Subdomain,
+)
 
 User = get_user_model()
 
@@ -26,6 +33,7 @@ class DeleteAppViewTestCase(TestCase):
         self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
+        k8s_user_app_status = K8sUserAppStatus.objects.create()
         app_status = AppStatus.objects.create(status="Created")
         self.app_instance = JupyterInstance.objects.create(
             access="public",
@@ -34,6 +42,7 @@ class DeleteAppViewTestCase(TestCase):
             app=self.app,
             project=self.project,
             subdomain=subdomain,
+            k8s_user_app_status=k8s_user_app_status,
             app_status=app_status,
         )
 

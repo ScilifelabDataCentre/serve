@@ -13,6 +13,13 @@ from apps.models.base.k8s_user_app_status import K8sUserAppStatus
 from apps.models.base.subdomain import Subdomain
 from projects.models import Flavor, Project
 
+USER_ACTION_STATUS_CHOICES = [
+    ("Creating", "Creating"),
+    ("Changing", "Changing"),
+    ("Deleting", "Deleting"),
+    ("Redeploying", "Redeploying"),
+]
+
 
 class AppInstanceManager(models.Manager):
     model_type = "appinstance"
@@ -117,10 +124,11 @@ class BaseAppInstance(models.Model):
     subdomain = models.OneToOneField(
         Subdomain, on_delete=models.SET_NULL, related_name="%(class)s", null=True, blank=True
     )
+
+    latest_user_action = models.CharField(max_length=15, default="Creating", choices=USER_ACTION_STATUS_CHOICES)
     k8s_user_app_status = models.OneToOneField(
         K8sUserAppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True
     )
-
     # TODO: Break connection to model AppStatus and deprecate AppStatus
     app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
 

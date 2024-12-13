@@ -11,6 +11,7 @@ from ..models import (
     CustomAppInstance,
     FilemanagerInstance,
     JupyterInstance,
+    K8sUserAppStatus,
     RStudioInstance,
     ShinyInstance,
     Subdomain,
@@ -42,6 +43,7 @@ class AppInstanceTestCase(TestCase):
         app_instance_list = []
         for i, model_class in enumerate(MODELS_LIST):
             subdomain = Subdomain.objects.create(subdomain=f"test_internal_{i}")
+            k8s_user_app_status = K8sUserAppStatus.objects.create()
             app_status = AppStatus.objects.create(status="Created")
 
             app_instance = model_class.objects.create(
@@ -51,6 +53,7 @@ class AppInstanceTestCase(TestCase):
                 app=app,
                 project=project,
                 subdomain=subdomain,
+                k8s_user_app_status=k8s_user_app_status,
                 app_status=app_status,
             )
             app_instance_list.append(app_instance)
