@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 import regex as re
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -9,7 +9,7 @@ from django.db import transaction
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
 from studio.utils import get_logger
 
-from .models import Apps, AppStatus, BaseAppInstance, Subdomain
+from .models import Apps, AppStatus, BaseAppInstance, K8sUserAppStatus, Subdomain
 
 logger = get_logger(__name__)
 
@@ -106,6 +106,89 @@ def handle_update_status_request(
     release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
 ) -> HandleUpdateStatusResponseCode:
     """
+    Helper function to handle update k8s user app status requests by determining if the request should be performed or
+    ignored.
+    Technically this function either updates or creates and persists a new K8sUserAppStatus object.
+
+    :param release str: The release id of the app instance, stored in the AppInstance.k8s_values dict in the subdomain.
+    :param new_status str: The new status code. Trimmed to max 15 chars if needed.
+    :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
+    :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
+    :returns: A value from the HandleUpdateStatusResponseCode enum.
+              Raises an ObjectDoesNotExist exception if the app instance does not exist.
+    """
+
+    if len(new_status) > 20:
+        new_status = new_status[:20]
+
+    try:
+        # Begin by verifying that the requested app instance exists
+        # We wrap the select and update tasks in a select_for_update lock
+        # to avoid race conditions.
+
+        # release takes on the value of the subdomain
+        subdomain = Subdomain.objects.get(subdomain=release)
+
+        with transaction.atomic():
+            instance = BaseAppInstance.objects.select_for_update().filter(subdomain=subdomain).last()
+            if instance is None:
+                logger.info(f"The specified app instance identified by release {release} was not found")
+                raise ObjectDoesNotExist
+
+            logger.debug(f"The app instance identified by release {release} exists. App name={instance.name}")
+
+            # Also get the latest k8s_user_app_status object for this app instance
+            if instance.k8s_user_app_status is None:
+                # Missing k8s_user_app_status so create one now
+                logger.debug(f"AppInstance {release} does not have an associated K8sUserAppStatus. Creating one now.")
+                k8s_user_app_status = K8sUserAppStatus.objects.create()
+                update_k8s_user_app_status(instance, k8s_user_app_status, new_status, event_ts, event_msg)
+                return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
+            else:
+                k8s_user_app_status = instance.k8s_user_app_status
+
+            logger.debug(
+                f"K8sUserAppStatus object was created or updated with status {k8s_user_app_status.status}, \
+                    ts={k8s_user_app_status.time}, {k8s_user_app_status.info}"
+            )
+
+            # Now determine whether to update the state and status
+
+            # Compare timestamps
+            time_ftm = "%Y-%m-%d %H:%M:%S"
+            if event_ts <= k8s_user_app_status.time:
+                msg = "The incoming event-ts is older than the current status ts so nothing to do."
+                msg += f"event_ts={event_ts.strftime(time_ftm)} vs \
+                    k8s_user_app_status.time={str(k8s_user_app_status.time.strftime(time_ftm))}"
+                logger.debug(msg)
+                return HandleUpdateStatusResponseCode.NO_ACTION
+
+            # The event is newer than the existing persisted object
+
+            if new_status == instance.k8s_user_app_status.status:
+                # The same status. Simply update the time.
+                logger.debug(f"The same status {new_status}. Simply update the time.")
+                update_status_time(k8s_user_app_status, event_ts, event_msg)
+                return HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
+
+            # Different status and newer time
+            logger.debug(
+                f"Different status and newer time. New status={new_status} vs Old={instance.k8s_user_app_status.status}"
+            )
+            status_object = instance.k8s_user_app_status
+            update_k8s_user_app_status(instance, status_object, new_status, event_ts, event_msg)
+            return HandleUpdateStatusResponseCode.UPDATED_STATUS
+
+    except Exception as err:
+        logger.error(f"Unable to fetch or update the specified app instance with release={release}. {err}, {type(err)}")
+        raise
+
+
+# TODO: Consider removing after refactoring.
+def _handle_update_status_request_old(
+    release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
+) -> HandleUpdateStatusResponseCode:
+    """
     Helper function to handle update app status requests by determining if the
     request should be performed or ignored.
 
@@ -116,6 +199,8 @@ def handle_update_status_request(
     :returns: A value from the HandleUpdateStatusResponseCode enum.
               Raises an ObjectDoesNotExist exception if the app instance does not exist.
     """
+
+    raise Exception("This method has been deprecated. To be removed.")
 
     if len(new_status) > 15:
         new_status = new_status[:15]
@@ -184,6 +269,38 @@ def handle_update_status_request(
 
 
 @transaction.atomic
+def update_k8s_user_app_status(
+    appinstance: BaseAppInstance,
+    status_object: K8sUserAppStatus,
+    status: str,
+    status_ts: datetime = None,
+    event_msg: str = None,
+):
+    """
+    Helper function to update the k8s user app status of an appinstance and a status object.
+    """
+    # Persist a new app statuss object
+    status_object.status = status
+    status_object.time = status_ts
+    status_object.info = event_msg
+    status_object.save()
+
+    # Must re-save the app statuss object with the new event ts
+    status_object.time = status_ts
+
+    if event_msg is None:
+        status_object.save(update_fields=["time"])
+    else:
+        status_object.info = event_msg
+        status_object.save(update_fields=["time", "info"])
+
+    # Update the app instance object
+    appinstance.k8s_user_app_status = status_object
+    appinstance.save(update_fields=["k8s_user_app_status"])
+
+
+# TODO: This may no longer be needed after refactoring.
+@transaction.atomic
 def update_status(appinstance, status_object, status, status_ts=None, event_msg=None):
     """
     Helper function to update the status of an appinstance and a status object.
@@ -209,7 +326,7 @@ def update_status(appinstance, status_object, status, status_ts=None, event_msg=
 
 
 @transaction.atomic
-def update_status_time(status_object, status_ts, event_msg=None):
+def update_status_time(status_object: Any, status_ts: datetime, event_msg: str = None):
     """
     Helper function to update the time of an app status event.
     """
