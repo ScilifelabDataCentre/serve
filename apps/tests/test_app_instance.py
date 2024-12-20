@@ -1,3 +1,4 @@
+import pytest
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.test import TestCase
@@ -6,11 +7,11 @@ from projects.models import Project
 
 from ..models import (
     Apps,
-    AppStatus,
     BaseAppInstance,
     CustomAppInstance,
     FilemanagerInstance,
     JupyterInstance,
+    K8sUserAppStatus,
     RStudioInstance,
     ShinyInstance,
     Subdomain,
@@ -42,7 +43,9 @@ class AppInstanceTestCase(TestCase):
         app_instance_list = []
         for i, model_class in enumerate(MODELS_LIST):
             subdomain = Subdomain.objects.create(subdomain=f"test_internal_{i}")
-            app_status = AppStatus.objects.create(status="Created")
+            k8s_user_app_status = K8sUserAppStatus.objects.create()
+            # TODO: Status.
+            # app_status = AppStatus.objects.create(status="Created")
 
             app_instance = model_class.objects.create(
                 access=access,
@@ -51,7 +54,8 @@ class AppInstanceTestCase(TestCase):
                 app=app,
                 project=project,
                 subdomain=subdomain,
-                app_status=app_status,
+                k8s_user_app_status=k8s_user_app_status,
+                # app_status=app_status,
             )
             app_instance_list.append(app_instance)
 
@@ -100,3 +104,39 @@ class AppInstanceTestCase(TestCase):
         result_list = [self.user.has_perm("can_access_app", app_instance) for app_instance in app_instance_list]
         print(result_list)
         self.assertFalse(any(result_list))
+
+
+@pytest.mark.parametrize(
+    "latest_user_action, k8s_user_app_status, expected",
+    [
+        # Creating / Changing
+        ("Creating", "ContainerCreating", "Creating"),
+        ("Creating", "PodInitializing", "Creating"),
+        ("Changing", "ContainerCreating", "Changing"),
+        ("Changing", "PodInitializing", "Changing"),
+        # Error (NotFound)
+        ("Creating", "NotFound", "Error (NotFound)"),
+        ("Changing", "NotFound", "Error (NotFound)"),
+        # Error
+        ("Creating", "CrashLoopBackoff", "Error"),
+        ("Creating", "ErrImagePull", "Error"),
+        ("Creating", "PostStartHookError", "Error"),
+        ("Changing", "CrashLoopBackoff", "Error"),
+        ("Changing", "ErrImagePull", "Error"),
+        ("Changing", "PostStartHookError", "Error"),
+        # Running
+        ("Creating", "Running", "Running"),
+        ("Changing", "Running", "Running"),
+        # Deleting
+        ("Deleting", "ContainerCreating", "Deleted"),
+        ("Deleting", "PodInitializing", "Deleted"),
+        ("Deleting", "NotFound", "Deleted"),
+        ("Deleting", "CrashLoopBackoff", "Deleted"),
+        ("Deleting", "ErrImagePull", "Deleted"),
+        ("Deleting", "PostStartHookError", "Deleted"),
+        ("Deleting", "Running", "Deleted"),
+    ],
+)
+def test_convert_to_app_status(latest_user_action, k8s_user_app_status, expected):
+    """Tests the static method BaseAppInstance.convert_to_app_status"""
+    assert BaseAppInstance.convert_to_app_status(latest_user_action, k8s_user_app_status) == expected

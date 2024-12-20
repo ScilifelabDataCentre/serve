@@ -11,7 +11,7 @@ from django.test import TestCase, TransactionTestCase
 from projects.models import Project
 
 from ..helpers import HandleUpdateStatusResponseCode, handle_update_status_request
-from ..models import AppCategories, Apps, AppStatus, JupyterInstance, Subdomain
+from ..models import AppCategories, Apps, JupyterInstance, K8sUserAppStatus, Subdomain
 
 utc = pytz.UTC
 
@@ -34,7 +34,7 @@ class UpdateAppStatusTestCase(TestCase):
     """Test case for requests operating on an existing app instance."""
 
     ACTUAL_RELEASE_NAME = "test-release-name"
-    INITIAL_STATUS = "Created"
+    INITIAL_STATUS = "Unknown"
     INITIAL_EVENT_TS = utc.localize(datetime.now())
 
     def setUp(self) -> None:
@@ -64,18 +64,19 @@ class UpdateAppStatusTestCase(TestCase):
         )
         print(f"######## {self.INITIAL_EVENT_TS}")
 
-    def setUpCreateAppStatus(self):
-        app_status = AppStatus.objects.create(status=self.INITIAL_STATUS)
-        app_status.time = self.INITIAL_EVENT_TS
-        app_status.save()
-        self.app_instance.app_status = app_status
-        self.app_instance.save(update_fields=["app_status"])
-        print(f"######## {app_status.time}")
+    def setUpCreateK8sUserAppStatus(self):
+        k8s_user_app_status = K8sUserAppStatus.objects.create(status=self.INITIAL_STATUS)
+        k8s_user_app_status.time = self.INITIAL_EVENT_TS
+        k8s_user_app_status.save()
+        self.app_instance.k8s_user_app_status = k8s_user_app_status
+        self.app_instance.save(update_fields=["k8s_user_app_status"])
+        print(f"######## {k8s_user_app_status.time}")
 
     def test_handle_old_event_time_should_ignore_update(self):
-        self.setUpCreateAppStatus()
-        older_ts = self.app_instance.app_status.time - timedelta(seconds=1)
-        actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, "NewStatus", older_ts)
+        self.setUpCreateK8sUserAppStatus()
+        older_ts = self.app_instance.k8s_user_app_status.time - timedelta(seconds=1)
+        new_status = "PodInitializing"
+        actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, new_status, older_ts)
 
         assert actual == HandleUpdateStatusResponseCode.NO_ACTION
 
@@ -84,14 +85,14 @@ class UpdateAppStatusTestCase(TestCase):
             k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.app_status.status == self.INITIAL_STATUS
-        actual_appstatus = actual_app_instance.app_status
-        assert actual_appstatus.status == self.INITIAL_STATUS
-        assert actual_appstatus.time == self.INITIAL_EVENT_TS
+        assert actual_app_instance.k8s_user_app_status.status == self.INITIAL_STATUS
+        actual_k8suser_appstatus = actual_app_instance.k8s_user_app_status
+        assert actual_k8suser_appstatus.status == self.INITIAL_STATUS
+        assert actual_k8suser_appstatus.time == self.INITIAL_EVENT_TS
 
     def test_handle_same_status_newer_time_should_update_time(self):
-        self.setUpCreateAppStatus()
-        newer_ts = self.app_instance.app_status.time + timedelta(seconds=1)
+        self.setUpCreateK8sUserAppStatus()
+        newer_ts = self.app_instance.k8s_user_app_status.time + timedelta(seconds=1)
         actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, self.INITIAL_STATUS, newer_ts)
 
         assert actual == HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
@@ -101,15 +102,16 @@ class UpdateAppStatusTestCase(TestCase):
             k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.app_status.status == self.INITIAL_STATUS
-        actual_appstatus = actual_app_instance.app_status
-        assert actual_appstatus.status == self.INITIAL_STATUS
-        assert actual_appstatus.time == newer_ts
+        assert actual_app_instance.k8s_user_app_status.status == self.INITIAL_STATUS
+        actual_k8suser_appstatus = actual_app_instance.k8s_user_app_status
+        assert actual_k8suser_appstatus.status == self.INITIAL_STATUS
+        assert actual_k8suser_appstatus.time == newer_ts
 
     def test_handle_different_status_newer_time_should_update_status(self):
-        self.setUpCreateAppStatus()
-        newer_ts = self.app_instance.app_status.time + timedelta(seconds=1)
-        new_status = self.INITIAL_STATUS + "-test01"
+        self.setUpCreateK8sUserAppStatus()
+        newer_ts = self.app_instance.k8s_user_app_status.time + timedelta(seconds=1)
+        # new_status = self.INITIAL_STATUS + "-test01"
+        new_status = "PodInitializing"
         actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, new_status, newer_ts)
 
         assert actual == HandleUpdateStatusResponseCode.UPDATED_STATUS
@@ -119,14 +121,15 @@ class UpdateAppStatusTestCase(TestCase):
             k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.app_status.status == new_status
-        actual_appstatus = actual_app_instance.app_status
-        assert actual_appstatus.status == new_status
-        assert actual_appstatus.time == newer_ts
+        assert actual_app_instance.k8s_user_app_status.status == new_status
+        actual_k8suser_appstatus = actual_app_instance.k8s_user_app_status
+        assert actual_k8suser_appstatus.status == new_status
+        assert actual_k8suser_appstatus.time == newer_ts
 
-    def test_handle_missing_app_status_should_create_and_update_status(self):
+    def test_handle_missing_k8s_user_app_status_should_create_and_update_status(self):
         newer_ts = self.INITIAL_EVENT_TS + timedelta(seconds=1)
-        new_status = self.INITIAL_STATUS + "-test02"
+        # new_status = self.INITIAL_STATUS + "-test02"
+        new_status = "PodInitializing"
         actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, new_status, newer_ts)
 
         assert actual == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
@@ -136,16 +139,22 @@ class UpdateAppStatusTestCase(TestCase):
             k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.app_status.status == new_status
-        actual_appstatus = actual_app_instance.app_status
-        assert actual_appstatus.status == new_status
-        assert actual_appstatus.time == newer_ts
+        assert actual_app_instance.k8s_user_app_status.status == new_status
+        actual_k8suser_appstatus = actual_app_instance.k8s_user_app_status
+        assert actual_k8suser_appstatus.status == new_status
+        assert actual_k8suser_appstatus.time == newer_ts
 
+    @pytest.mark.skip("Skipped because the k8s_user_app_status field is now restricted to a domain of values.")
     def test_handle_long_status_text_should_trim_status(self):
+        """
+        This test verifies that the status code can be trimmed to a max length of chars and used.
+        TODO: Revisit:
+        NOTE: This is undergoing refactoring and this test may no longer be valid.
+        """
         newer_ts = self.INITIAL_EVENT_TS + timedelta(seconds=1)
-        new_status = "LongStatusText-ThisPartLongerThan15Chars"
-        expected_status_text = new_status[:15]
-        assert len(expected_status_text) == 15
+        new_status = "LongStatusText-ThisPartLongerThan20Chars"
+        expected_status_text = new_status[:20]
+        assert len(expected_status_text) == 20
         actual = handle_update_status_request(self.ACTUAL_RELEASE_NAME, new_status, newer_ts)
 
         assert actual == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
@@ -155,10 +164,10 @@ class UpdateAppStatusTestCase(TestCase):
             k8s_values__contains={"release": self.ACTUAL_RELEASE_NAME}
         ).last()
 
-        assert actual_app_instance.app_status.status == expected_status_text
-        actual_appstatus = actual_app_instance.app_status
-        assert actual_appstatus.status == expected_status_text
-        assert actual_appstatus.time == newer_ts
+        assert actual_app_instance.k8s_user_app_status.status == expected_status_text
+        actual_k8suser_appstatus = actual_app_instance.k8s_user_app_status
+        assert actual_k8suser_appstatus.status == expected_status_text
+        assert actual_k8suser_appstatus.time == newer_ts
 
 
 '''
