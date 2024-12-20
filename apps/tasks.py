@@ -248,10 +248,11 @@ def deploy_resource(serialized_instance):
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 
+    # TODO: Status. Here we no longer save an app_status property.
     instance.info = dict(helm=helm_info)
-    instance.app_status.status = "Created" if success else "Failed"
+    # instance.app_status.status = "Created" if success else "Failed"
 
-    instance.app_status.save()
+    # instance.app_status.save()
     instance.save()
 
     # In development, also generate and validate the k8s deployment manifest
@@ -276,18 +277,25 @@ def delete_resource(serialized_instance):
     output, error = helm_delete(values["subdomain"], values["namespace"])
     success = not error
 
+    # TODO: Status. Save this to K8sUserAppStatus instead of app_status.
     if success:
+        # TODO: Status. User actions are now saved by views:
+        """
         if instance.app.slug in ("volumeK8s", "netpolicy"):
             instance.app_status.status = "Deleted"
         else:
             instance.app_status.status = "Deleting..."
+        """
+        logger.info(f"Successfully deleted resource type {instance.app.slug}, {values['subdomain']}")
     else:
-        instance.app_status.status = "FailedToDelete"
+        instance.k8s_user_app_status.status = "FailedToDelete"
+        instance.k8s_user_app_status.save()
+        # instance.app_status.status = "FailedToDelete"
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 
     instance.info = dict(helm=helm_info)
-    instance.app_status.save()
+    # instance.app_status.save()
     instance.save()
 
 

@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from guardian.shortcuts import assign_perm, remove_perm
 
-from apps.models import Apps, AppStatus, JupyterInstance, K8sUserAppStatus, Subdomain
+from apps.models import Apps, JupyterInstance, K8sUserAppStatus, Subdomain
 from common.models import EmailVerificationTable, UserProfile
 from projects.models import Project
 from scripts.app_instance_permissions import run
@@ -23,7 +23,7 @@ class AppInstancePermissionScriptTestCase(TestCase):
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
         k8s_user_app_status = K8sUserAppStatus.objects.create()
-        app_status = AppStatus.objects.create(status="Created")
+        # app_status = AppStatus.objects.create(status="Created")
         app_instance = JupyterInstance.objects.create(
             access=access,
             owner=user,
@@ -32,7 +32,7 @@ class AppInstancePermissionScriptTestCase(TestCase):
             project=project,
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
-            app_status=app_status,
+            # app_status=app_status,
         )
 
         return [project, app, app_instance]

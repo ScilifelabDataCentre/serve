@@ -9,7 +9,7 @@ from django.db import transaction
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
 from studio.utils import get_logger
 
-from .models import Apps, AppStatus, BaseAppInstance, K8sUserAppStatus, Subdomain
+from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
 
 logger = get_logger(__name__)
 
@@ -202,6 +202,7 @@ def _handle_update_status_request_old(
 
     raise Exception("This method has been deprecated. To be removed.")
 
+    """
     if len(new_status) > 15:
         new_status = new_status[:15]
 
@@ -266,6 +267,7 @@ def _handle_update_status_request_old(
     except Exception as err:
         logger.error(f"Unable to fetch or update the specified app instance with release={release}. {err}, {type(err)}")
         raise
+    """
 
 
 @transaction.atomic
@@ -351,6 +353,7 @@ def get_URI(instance):
     return URI
 
 
+# TODO: Status. Unit test this. mock deploy_resource()
 @transaction.atomic
 def create_instance_from_form(form, project, app_slug, app_id=None):
     """
@@ -380,7 +383,11 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
     if new_app:
         do_deploy = True
+        user_action = "Creating"
     else:
+        # Update an existing app
+        user_action = "Changing"
+
         # Only re-deploy existing apps if one of the following fields was changed:
         redeployment_fields = [
             "subdomain",
@@ -409,24 +416,32 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     instance = form.save(commit=False)
 
     # Handle status creation or retrieval
-    status = get_or_create_status(instance, app_id)
+    # TODO: Status. Check this use.
+    # We no longer update the app status based on user actions.
+    # status = get_or_create_status(instance, app_id)
+
     # Retrieve or create the subdomain
     subdomain, created = Subdomain.objects.get_or_create(
         subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user
     )
 
-    if app_id:
+    if not new_app:
+        # Previously: if app_id:
         handle_subdomain_change(instance, subdomain, subdomain_name)
 
     app_slug = handle_shiny_proxy_case(instance, app_slug, app_id)
 
     app = get_app(app_slug)
 
-    setup_instance(instance, subdomain, app, project, status)
+    # TODO: Status. Check this use:
+    setup_instance(instance, subdomain, app, project, user_action)
     save_instance_and_related_data(instance, form)
 
     if do_deploy:
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
+
+        # TODO: Status. Also set the last user action to Updating
+
         deploy_resource.delay(instance.serialize())
     else:
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
@@ -440,7 +455,8 @@ def get_subdomain_name(form):
 
 
 def get_or_create_status(instance, app_id):
-    return instance.app_status if app_id else AppStatus.objects.create()
+    raise Exception("Deprecated function.")
+    # return instance.app_status if app_id else AppStatus.objects.create()
 
 
 def handle_subdomain_change(instance, subdomain, subdomain_name):
@@ -474,13 +490,17 @@ def get_app(app_slug):
         raise ValueError(f"App with slug {app_slug} not found")
 
 
-def setup_instance(instance, subdomain, app, project, status, is_created_by_user=False):
+# TODO: Status.
+def setup_instance(instance, subdomain, app, project, user_action=None, is_created_by_user=False):
     instance.subdomain = subdomain
     instance.app = app
     instance.chart = instance.app.chart
     instance.project = project
     instance.owner = project.owner
-    instance.app_status = status
+    # TODO: Status. Is this unit tested?
+    instance.latest_user_action = user_action
+    # TODO: Status. We do not set app status any longer.
+    # instance.app_status = status
 
 
 def save_instance_and_related_data(instance, form):

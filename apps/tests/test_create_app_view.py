@@ -147,7 +147,8 @@ class CreateAppViewTestCase(TestCase):
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
         k8s_user_app_status = K8sUserAppStatus.objects.create()
-        app_status = AppStatus.objects.create(status="Created")
+        # TODO: Status.
+        # app_status = AppStatus.objects.create(status="Created")
         _ = JupyterInstance.objects.create(
             access="private",
             owner=self.user,
@@ -156,7 +157,7 @@ class CreateAppViewTestCase(TestCase):
             project=project,
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
-            app_status=app_status,
+            # app_status=app_status,
         )
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
@@ -220,7 +221,8 @@ class CreateAppViewTestCase(TestCase):
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
         k8s_user_app_status = K8sUserAppStatus.objects.create()
-        app_status = AppStatus.objects.create(status="Created")
+        # TODO: Status.
+        # app_status = AppStatus.objects.create(status="Created")
         _ = JupyterInstance.objects.create(
             access="private",
             owner=self.user,
@@ -229,7 +231,7 @@ class CreateAppViewTestCase(TestCase):
             project=project,
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
-            app_status=app_status,
+            # app_status=app_status,
         )
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
@@ -276,7 +278,8 @@ class CreateAppViewTestCase(TestCase):
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
         k8s_user_app_status = K8sUserAppStatus.objects.create()
-        app_status = AppStatus.objects.create(status="Created")
+        # TODO: Status.
+        # app_status = AppStatus.objects.create(status="Created")
         _ = JupyterInstance.objects.create(
             access="private",
             owner=self.user,
@@ -285,7 +288,7 @@ class CreateAppViewTestCase(TestCase):
             project=project,
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
-            app_status=app_status,
+            # app_status=app_status,
         )
 
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")

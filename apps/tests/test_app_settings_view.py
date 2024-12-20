@@ -32,7 +32,8 @@ class AppSettingsViewTestCase(TestCase):
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
         k8s_user_app_status = K8sUserAppStatus.objects.create()
-        app_status = AppStatus.objects.create(status="Created")
+        # TODO: Status.
+        # app_status = AppStatus.objects.create(status="Created")
         self.app_instance = CustomAppInstance.objects.create(
             access="public",
             owner=self.user,
@@ -41,7 +42,7 @@ class AppSettingsViewTestCase(TestCase):
             project=self.project,
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
-            app_status=app_status,
+            # app_status=app_status,
             k8s_values={
                 "environment": {"pk": ""},
             },
