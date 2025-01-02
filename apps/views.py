@@ -284,9 +284,11 @@ class CreateApp(View):
         user_can_create = False
 
         if app_id:
+            # Updating an existing app instance
             user_can_edit = model_class.objects.user_can_edit(request.user, project, app_slug)
             instance = model_class.objects.get(pk=app_id)
         else:
+            # Create a new app instance
             user_can_create = model_class.objects.user_can_create(request.user, project, app_slug)
             instance = None
 
