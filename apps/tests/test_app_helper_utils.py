@@ -19,9 +19,11 @@ class CreateAppInstanceTestCase(TestCase):
         self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
 
     def test_create_instance_from_form_valid_input(self):
+        # TODO: Status
         self.assertTrue(1 == 0)
 
     def test_create_instance_from_form_invalid_input(self):
+        # TODO: Status
         self.assertTrue(1 == 0)
 
 

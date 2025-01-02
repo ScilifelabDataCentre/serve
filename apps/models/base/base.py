@@ -27,7 +27,7 @@ class AppInstanceManager(models.Manager):
     def with_app_status(self):
         """
         Define and add a reusable, chainable annotation app_status.
-        The atn prefix is used to clarify that this value is computed on the fly.
+        The atn prefix stands for annotation and clarifies that this value is computed on the fly.
         """
         return self.get_queryset().annotate(
             atn_app_status=Case(
@@ -69,11 +69,8 @@ class AppInstanceManager(models.Manager):
             atn_app_status=BaseAppInstance.convert_to_app_status(F("latest_user_action"), F("k8s_user_app_status"))
         )
 
-    def get_apps_not_deleted(self):
+    def get_app_instances_not_deleted(self):
         """A queryset returning all user apps excluding Deleted apps."""
-        # TODO: Define a reusable queryset that returns all apps not set to Deleted.
-        queryset = self.with_app_status().exclude(atn_app_status="Deleted")
-        print(str(queryset.query))
         return self.with_app_status().exclude(atn_app_status="Deleted")
 
     def get_app_instances_of_project_filter(self, user, project, include_deleted=False, deleted_time_delta=None):
@@ -82,12 +79,14 @@ class AppInstanceManager(models.Manager):
         if not include_deleted:
             if deleted_time_delta is None:
                 # TODO: Status. Replace this
-                q &= self.get_apps_not_deleted()
                 # q &= ~Q(app_status__status="Deleted")
+                q &= ~Q(atn_app_status="Deleted")
+                # q &= ~Q(self.get_app_instances_not_deleted().query)
             else:
                 time_threshold = datetime.now() - timedelta(minutes=deleted_time_delta)
-                # q &= get_app_status()="Deleted" | Q(deleted_on__gte=time_threshold)
-                q &= self.get_apps_not_deleted() | Q(deleted_on__gte=time_threshold)
+                # q &= ~Q(app_status__status="Deleted") | Q(deleted_on__gte=time_threshold)
+                q &= ~Q(atn_app_status="Deleted") | Q(deleted_on__gte=time_threshold)
+                # q &= ~Q(self.get_app_instances_not_deleted().query) | Q(deleted_on__gte=time_threshold)
 
         if hasattr(self.model, "access"):
             q &= Q(owner=user) | Q(
@@ -115,15 +114,18 @@ class AppInstanceManager(models.Manager):
             order_by = "-created_on"
 
         if filter_func is None:
-            return self.filter(self.get_app_instances_of_project_filter(user=user, project=project)).order_by(order_by)[
-                :limit
-            ]
+            return (
+                self.with_app_status()
+                .filter(self.get_app_instances_of_project_filter(user=user, project=project))
+                .order_by(order_by)[:limit]
+            )
 
         if override_default_filter:
             return self.filter(filter_func).order_by(order_by)[:limit]
 
         return (
-            self.filter(self.get_app_instances_of_project_filter(user=user, project=project))
+            self.with_app_status()
+            .filter(self.get_app_instances_of_project_filter(user=user, project=project))
             .filter(filter_func)
             .order_by(order_by)[:limit]
         )
@@ -137,12 +139,17 @@ class AppInstanceManager(models.Manager):
         if not app.user_can_create:
             return False
 
-        num_of_app_instances = self.filter(
-            self.get_apps_not_deleted(),
-            # ~Q(app_status__status="Deleted"),
-            app__slug=app_slug,
-            project=project,
-        ).count()
+        num_of_app_instances = (
+            self.with_app_status()
+            .filter(
+                # TODO:
+                # ~Q(app_status__status="Deleted"),
+                ~Q(atn_app_status="Deleted"),
+                app__slug=app_slug,
+                project=project,
+            )
+            .count()
+        )
 
         has_perm = user.has_perm(f"apps.add_{self.model_type}")
         return limit is None or limit > num_of_app_instances or has_perm

@@ -1,6 +1,6 @@
 import pytest
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.test import TestCase, override_settings
 
 from projects.models import Project
@@ -32,7 +32,7 @@ MODELS_LIST = [
 ]
 
 
-class AppInstaceManagerTestCase(TestCase):
+class AppInstanceManagerTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
         self.project = Project.objects.create_project(
@@ -142,9 +142,45 @@ class AppInstaceManagerTestCase(TestCase):
         self.assertEqual(result.first().name, f"test_app_instance_{len(MODELS_LIST)-1}")
         self.assertEqual(result.last().name, "test_app_instance_0")
 
-    def test_get_apps_not_deleted(self):
-        # TODO: Status
-        self.assertEqual(1, 0)
+    # ---------- get_app_instances_of_project ---------- #
+
+
+class AppInstanceManagerDeleteAppTestCase(TestCase):
+    """Tests the AppInstanceManager model manager by deleting an app instance."""
+
+    def setUp(self):
+        self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
+        self.project = Project.objects.create_project(name="test-delete-app-instance", owner=self.user, description="")
+        self.app = Apps.objects.create(name="Serve App", slug="serve-app")
+
+        k8s_user_app_status = K8sUserAppStatus.objects.create(status="Running")
+
+        self.app_instance = BaseAppInstance.objects.create(
+            latest_user_action="Creating",
+            k8s_user_app_status=k8s_user_app_status,
+            owner=self.user,
+            app=self.app,
+            project=self.project,
+        )
+
+    def test_get_app_instances_not_deleted(self):
+        """Tests method get_app_instances_not_deleted"""
+
+        result = BaseAppInstance.objects.get_app_instances_not_deleted()
+
+        self.assertIsInstance(result, QuerySet)
+        self.assertEqual(len(result), 1)
+
+        # Set app instance to status Deleted to mimimic deleting an app and retry
+        # Merely setting the latest_user_action should be sufficient to make the delete
+        # filter exclude this app instance.
+        self.app_instance.latest_user_action = "Deleting"
+        self.app_instance.save()
+
+        result = BaseAppInstance.objects.get_app_instances_not_deleted()
+
+        self.assertIsInstance(result, QuerySet)
+        self.assertEqual(len(result), 0)
 
 
 @pytest.mark.parametrize(
@@ -180,10 +216,11 @@ class AppInstaceManagerTestCase(TestCase):
 )
 @pytest.mark.django_db
 def test_with_app_status(latest_user_action, k8s_user_app_status, expected_app_status):
-    """Tests the AppInstanceManager model mananger annotation atn_app_status."""
-    # Setup
+    """Tests the AppInstanceManager model manager annotation atn_app_status."""
+
+    # Setup: create an app instance
     user = User.objects.create_user("foo1", "foo@test.com", "bar")
-    project = Project.objects.create_project(name="test-perm", owner=user, description="")
+    project = Project.objects.create_project(name="test-app-status-codes", owner=user, description="")
     app = Apps.objects.create(name="Serve App", slug="serve-app")
 
     k8s_user_app_status = K8sUserAppStatus.objects.create(status=k8s_user_app_status)
