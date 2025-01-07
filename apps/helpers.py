@@ -3,10 +3,11 @@ from enum import Enum
 from typing import Any, Optional
 
 import regex as re
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 
-from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
+from apps.types_.subdomain import SubdomainCandidateName
 from studio.utils import get_logger
 
 from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
@@ -353,7 +354,6 @@ def get_URI(instance):
     return URI
 
 
-# TODO: Status. Unit test this. mock deploy_resource()
 @transaction.atomic
 def create_instance_from_form(form, project, app_slug, app_id=None):
     """
@@ -435,7 +435,9 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
     # TODO: Status. Check this use:
     setup_instance(instance, subdomain, app, project, user_action)
-    save_instance_and_related_data(instance, form)
+    id = save_instance_and_related_data(instance, form)
+
+    assert id > 0, "The instance id should be a positive int"
 
     if do_deploy:
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
@@ -445,6 +447,8 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
         deploy_resource.delay(instance.serialize())
     else:
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
+
+    return id
 
 
 def get_subdomain_name(form):
@@ -459,8 +463,21 @@ def get_or_create_status(instance, app_id):
     # return instance.app_status if app_id else AppStatus.objects.create()
 
 
-def handle_subdomain_change(instance, subdomain, subdomain_name):
+def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) -> None:
+    """
+    Detects if there has been a user-initiated subdomain change and if so,
+    then re-creates the app instance, also re-deploying the k8s resource.
+    """
     from .tasks import delete_resource
+
+    assert instance is not None, "instance is required"
+    # type(instance) is for example DashInstance
+
+    # assert instance.subdomain is not None, f"subdomain is required but is None for instance {instance.name}"
+    if instance.subdomain is None:
+        # TODO: Check this. It is possible for subdomain to be missing.
+        # But is this valid?
+        return
 
     if instance.subdomain.subdomain != subdomain_name:
         # The user modified the subdomain name
@@ -503,12 +520,19 @@ def setup_instance(instance, subdomain, app, project, user_action=None, is_creat
     # instance.app_status = status
 
 
-def save_instance_and_related_data(instance, form):
+def save_instance_and_related_data(instance: Any, form: Any) -> int:
+    """
+    Saves a new or re-saves an existing app instance to the database.
+
+    Returns:
+    - int: The Id of the new or updated app instance.
+    """
     instance.save()
     form.save_m2m()
     instance.set_k8s_values()
     instance.url = get_URI(instance)
     instance.save(update_fields=["k8s_values", "url"])
+    return instance.id
 
 
 def validate_path_k8s_label_compatible(candidate: str) -> None:
