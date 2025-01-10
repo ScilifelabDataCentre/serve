@@ -54,7 +54,7 @@ class CustomAppForm(AppBaseForm):
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
             SRVCommonDivField("port", placeholder="8000"),
-            SRVCommonDivField("image"),
+            SRVCommonDivField("image", placeholder="e.g. docker.io/username/image-name:image-tag"),
             Accordion(
                 AccordionGroup(
                     "Advanced settings",
