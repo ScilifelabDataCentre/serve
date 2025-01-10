@@ -241,7 +241,7 @@ class CreateApp(View):
 
     @transaction.atomic
     def post(self, request, project, app_slug, app_id=None):
-        # App id is used when updataing an instance
+        # App id is used when updating an existing app instance
 
         # TODO Same as in get method
         project_slug = project

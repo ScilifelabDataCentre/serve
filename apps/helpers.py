@@ -355,7 +355,7 @@ def get_URI(instance):
 
 
 @transaction.atomic
-def create_instance_from_form(form, project, app_slug, app_id=None):
+def create_instance_from_form(form, project, app_slug, app_id=None) -> int:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
     and the updating of existing ones based on the presence of an app_id.
@@ -373,6 +373,9 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     - ValueError: If the form does not have a 'subdomain' or if the specified app cannot be found.
     """
     from .tasks import deploy_resource
+
+    assert form is not None, "This function requires a form object"
+    assert project is not None, "This function requires a project object"
 
     new_app = app_id is None
 
@@ -416,24 +419,30 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     instance = form.save(commit=False)
 
     # Handle status creation or retrieval
-    # TODO: Status. Check this use.
+    # TODO: Remove after well tested
     # We no longer update the app status based on user actions.
     # status = get_or_create_status(instance, app_id)
 
+    # TODO: Clean up some of the asserts after well tested
     # Retrieve or create the subdomain
     subdomain, created = Subdomain.objects.get_or_create(
         subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user
     )
+    assert subdomain is not None
+    assert subdomain.subdomain == subdomain_name
+
+    subdomain = Subdomain.objects.get(subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user)
+    assert subdomain is not None
+    assert subdomain.subdomain == subdomain_name
+    assert subdomain.project.name == project.name, f"2 {subdomain.project} should equal {project.name}"
 
     if not new_app:
-        # Previously: if app_id:
         handle_subdomain_change(instance, subdomain, subdomain_name)
 
     app_slug = handle_shiny_proxy_case(instance, app_slug, app_id)
 
     app = get_app(app_slug)
 
-    # TODO: Status. Check this use:
     setup_instance(instance, subdomain, app, project, user_action)
     id = save_instance_and_related_data(instance, form)
 
@@ -441,9 +450,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
     if do_deploy:
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
-
-        # TODO: Status. Also set the last user action to Updating
-
         deploy_resource.delay(instance.serialize())
     else:
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
@@ -471,12 +477,10 @@ def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) 
     from .tasks import delete_resource
 
     assert instance is not None, "instance is required"
-    # type(instance) is for example DashInstance
 
-    # assert instance.subdomain is not None, f"subdomain is required but is None for instance {instance.name}"
     if instance.subdomain is None:
-        # TODO: Check this. It is possible for subdomain to be missing.
-        # But is this valid?
+        # The subdomain is not yet created, nothing to do
+        logger.debug("The subdomain is not yet created, nothing to do")
         return
 
     if instance.subdomain.subdomain != subdomain_name:
@@ -507,16 +511,14 @@ def get_app(app_slug):
         raise ValueError(f"App with slug {app_slug} not found")
 
 
-# TODO: Status.
 def setup_instance(instance, subdomain, app, project, user_action=None, is_created_by_user=False):
     instance.subdomain = subdomain
     instance.app = app
     instance.chart = instance.app.chart
     instance.project = project
     instance.owner = project.owner
-    # TODO: Status. Is this unit tested?
     instance.latest_user_action = user_action
-    # TODO: Status. We do not set app status any longer.
+    # TODO: Remove after well tested
     # instance.app_status = status
 
 

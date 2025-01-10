@@ -9,6 +9,7 @@ from django.test import TestCase
 from projects.models import Flavor, Project
 
 from ..app_registry import APP_REGISTRY
+from ..forms import DashForm
 from ..helpers import create_instance_from_form, get_subdomain_name
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
 from ..types_.subdomain import SubdomainTuple
@@ -58,10 +59,9 @@ class CreateAppInstanceTestCase(TestCase):
             self.assertIsNotNone(id)
             self.assertTrue(id > 0)
 
-            # Get app instance and verify the status codes
+            # Get app instance and verify the instance properties including status codes
             app_instance = DashInstance.objects.get(pk=id)
 
-            # Validate app instance properties
             self.assertIsNotNone(app_instance)
             self.assertEqual(app_instance.latest_user_action, "Creating")
             self.assertIsNone(app_instance.k8s_user_app_status)
@@ -79,10 +79,16 @@ class CreateAppInstanceTestCase(TestCase):
             self.assertTrue(
                 subdomain_name.startswith("r"), f"The subdomain should begin with r but was {subdomain_name}"
             )
+            self.assertFalse(app_instance.subdomain.is_created_by_user)
 
             mock_task.assert_called_once()
 
 
+# Mock the tasks that manipulate k8s resources.
+# Note that these are passed to the test functions in reverse order.
+# The delete_resource task is used sync (wuthout delay) in helpers.
+@patch("apps.tasks.deploy_resource.delay")
+@patch("apps.tasks.delete_resource")
 class UpdateExistingAppInstanceTestCase(TestCase):
     """
     Test case for helper function create_instance_from_form
@@ -102,15 +108,30 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             user_can_delete=False,
         )
 
-        self.subdomain_name = "test-subdomain"
-        subdomain = Subdomain.objects.create(subdomain=self.subdomain_name)
+        # Define the original values
+        self.name = "test-app-name-original"
+        self.description = "app-form-description"
+        self.port = 8000
+        self.image = "test-image-orig"
+        self.subdomain_name = "test-subdomain-update-app"
+        self.source_code_url = "https://someurlthatdoesnotexist.com"
+
+        is_created_by_user = True
+        subdomain = Subdomain.objects.create(
+            subdomain=self.subdomain_name, project=self.project, is_created_by_user=is_created_by_user
+        )
 
         k8s_user_app_status = K8sUserAppStatus.objects.create()
+
         self.app_instance = DashInstance.objects.create(
+            app=self.app,
             access="public",
             owner=self.user,
-            name="test-app-name-original",
-            app=self.app,
+            name=self.name,
+            description=self.description,
+            port=self.port,
+            image=self.image,
+            source_code_url=self.source_code_url,
             project=self.project,
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
@@ -120,90 +141,198 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertTrue(self.app_instance.id > 0)
         self.assertIsNotNone(self.app_instance.subdomain)
         self.assertIsNotNone(self.app_instance.subdomain.subdomain)
+        self.assertEqual(self.app_instance.subdomain.subdomain, self.subdomain_name)
+        self.assertTrue(self.app_instance.subdomain.is_created_by_user)
 
-    def test_update_instance_from_form_modify_port_should_redeploy(self):
+    def test_update_instance_from_form_modify_port_should_redeploy(self, mock_delete, mock_deploy):
         """
         Test function create_instance_from_form to update an existing app instance
         to modify properties that should result in a re-deployment.
+        The modified property in this test is the Port.
         """
 
         # Create the form data
-        # TODO: Need to investigate subdomain. Does it always need to be included?
-        # If included and the same, then get Subdomain already exists. Please choose another one.
+        # Fields requiring special consideration: tags, volume, subdomain
+        # In the below data dict, we modify the app port:
         data = {
-            "name": "test-app-name-new",
-            "description": "app-form-description",
+            "name": self.name,
+            "description": self.description,
             "access": "public",
             "port": 9999,
-            "image": "some-image",
-            "source_code_url": "https://someurlthatdoesnotexist.com",
+            "image": self.image,
+            "source_code_url": self.source_code_url,
+            "subdomain": self.subdomain_name,
         }
 
-        _, form_class = APP_REGISTRY.get(self.app_slug)
-        form = form_class(data, project_pk=self.project.pk)
+        changed_fields = ["port"]
+
+        # Apply the form and validate the result
+        self._verify_update_instance_from_form(data, changed_fields)
+
+        # Modifying the port should cause a re-deploy:
+        mock_deploy.assert_called_once()
+        # Not modifying the subdomain should not cause a delete:
+        mock_delete.assert_not_called()
+
+    def test_update_instance_from_form_modify_image_should_redeploy(self, mock_delete, mock_deploy):
+        """
+        Test function create_instance_from_form to update an existing app instance
+        to modify properties that should result in a re-deployment.
+        The modified property in this test is the Image.
+        """
+
+        # Create the form data
+        # Fields requiring special consideration: tags, volume, subdomain
+        # In the below data dict, we modify the app image:
+        data = {
+            "name": self.name,
+            "description": self.description,
+            "access": "public",
+            "port": self.port,
+            "image": "test-image-new",
+            "source_code_url": self.source_code_url,
+            "subdomain": self.subdomain_name,
+        }
+
+        changed_fields = ["image"]
+
+        # Apply the form and validate the result
+        self._verify_update_instance_from_form(data, changed_fields)
+
+        # Modifying the image should cause a re-deploy:
+        mock_deploy.assert_called_once()
+        # Not modifying the subdomain should not cause a delete:
+        mock_delete.assert_not_called()
+
+    def test_update_instance_from_form_modify_subdomain_should_redeploy(self, mock_delete, mock_deploy):
+        """
+        Test function create_instance_from_form to update an existing app instance
+        to modify properties that should result in a re-deployment.
+        The modified property in this test is the Subdomain.
+        Modifying the subdomain also results in a delete resource call.
+        """
+
+        # Create the form data
+        # Fields requiring special consideration: tags, volume, subdomain
+        # In the below data dict, we modify the app subdomain:
+        data = {
+            "name": self.name,
+            "description": self.description,
+            "access": "public",
+            "port": self.port,
+            "image": self.image,
+            "source_code_url": self.source_code_url,
+            "subdomain": "test-subdomain-update-app-new",
+        }
+
+        changed_fields = ["subdomain"]
+
+        # Apply the form and validate the result
+        self._verify_update_instance_from_form(data, changed_fields)
+
+        # Modifying the subdomain should cause a re-deploy:
+        mock_deploy.assert_called_once()
+        # Modifying the subdomain SHOULD cause a delete:
+        mock_delete.assert_called_once()
+
+    def test_update_instance_from_form_modify_no_redeploy_values(self, mock_delete, mock_deploy):
+        """
+        Test function create_instance_from_form to update an existing app instance
+        to modify only properties that should NOT result in a re-deployment.
+        """
+
+        f = DashForm()
+        self.assertIsNotNone(f)
+
+        model_class, form_class = APP_REGISTRY.get(self.app_slug)
+
+        instance = model_class.objects.get(pk=self.app_instance.id)
+        self.assertIsNotNone(instance)
+        self.assertIsInstance(instance, DashInstance)
+
+        # Create the form data
+        # Fields requiring special consideration: tags, volume, subdomain
+        # In the below data dict, we modify only properties that do not lead to re-deployment:
+        data = {
+            "name": "test-app-name-new",
+            "description": "app-form-description-new",
+            "access": "public",
+            "port": self.port,
+            "image": self.image,
+            "source_code_url": "https://someurlthatdoesnotexist.com/new",
+            "subdomain": self.subdomain_name,
+            "tags": None,
+        }
+
+        changed_fields = ["name", "description", "source_code_url"]
+
+        # Apply the form and validate the result
+        self._verify_update_instance_from_form(data, changed_fields)
+
+        # Not modifying any re-deployment fields should NOT cause a re-deploy:
+        mock_deploy.assert_not_called()
+        # Not modifying the subdomain should not cause a delete:
+        mock_delete.assert_not_called()
+
+    def _verify_update_instance_from_form(self, data: dict, changed_fields: list[str]) -> None:
+        """Helper function to verify the result of the create_instance_from_form function tests."""
+
+        f = DashForm()
+        self.assertIsNotNone(f)
+
+        model_class, form_class = APP_REGISTRY.get(self.app_slug)
+
+        instance = model_class.objects.get(pk=self.app_instance.id)
+        self.assertIsNotNone(instance)
+        self.assertIsInstance(instance, DashInstance)
+
+        # Perform the form validation and tests using an existing app instance
+        form = form_class(data, project_pk=self.project.pk, instance=instance)
 
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
-        with patch("apps.tasks.deploy_resource.delay") as mock_task:
-            id = create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+        self.assertIsNotNone(form.changed_data)
+        self.assertEqual(form.changed_data, changed_fields)
 
-            self.assertIsNotNone(id)
-            self.assertTrue(id > 0)
+        id = create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
 
-            # Get app instance and verify the status codes
-            app_instance = DashInstance.objects.get(pk=id)
+        self.assertIsNotNone(id)
+        self.assertTrue(id > 0)
 
-            # Validate app instance properties
-            self.assertIsNotNone(app_instance)
-            self.assertEqual(app_instance.latest_user_action, "Changing")
-            self.assertIsNone(app_instance.k8s_user_app_status)
-            self.assertEqual(app_instance.name, data.get("name"))
-            self.assertEqual(app_instance.description, data.get("description"))
-            self.assertEqual(app_instance.access, data.get("access"))
-            self.assertEqual(app_instance.port, data.get("port"))
-            self.assertEqual(app_instance.image, data.get("image"))
-            self.assertEqual(app_instance.source_code_url, data.get("source_code_url"))
+        # Get app instance and verify the instance properties including status codes
+        app_instance = DashInstance.objects.get(pk=id)
 
-            mock_task.assert_called_once()
+        self.assertIsNotNone(app_instance)
+        self.assertEqual(app_instance.latest_user_action, "Changing")
+        self.assertIsNotNone(app_instance.k8s_user_app_status)
+        self.assertIsNone(app_instance.k8s_user_app_status.status)
+        self.assertEqual(app_instance.name, data.get("name"))
+        self.assertEqual(app_instance.description, data.get("description"))
+        self.assertEqual(app_instance.access, data.get("access"))
+        self.assertEqual(app_instance.port, data.get("port"))
+        self.assertEqual(app_instance.image, data.get("image"))
+        self.assertEqual(app_instance.source_code_url, data.get("source_code_url"))
 
-    def test_update_instance_from_form_modify_image_should_redeploy(self):
-        """
-        Test function create_instance_from_form to update an existing app instance
-        to modify properties that should result in a re-deployment.
-        """
+        # Verify the subdomain. Determine from the data dict.
+        self.assertIsNotNone(app_instance.subdomain)
+        self.assertIsNotNone(app_instance.subdomain.subdomain)
 
-        pass
+        expected_subdomain_name = data.get("subdomain", None)
+        if expected_subdomain_name is None:
+            # The subdomain was not changed from the original
+            expected_subdomain_name = self.subdomain_name
 
-    def test_update_instance_from_form_modify_subdomain_should_redeploy(self):
-        """
-        Test function create_instance_from_form to update an existing app instance
-        to modify properties that should result in a re-deployment.
-        """
-
-        # is_created_by_user = False
-        # subdomain = SubdomainTuple(self.subdomain_name, is_created_by_user)
-
-        pass
-
-    def test_update_instance_from_form_modify_no_redeploy_values(self):
-        """
-        Test function create_instance_from_form to update an existing app instance
-        to modify only properties that do not result in a re-deployment.
-        """
-
-        # TODO:
-        pass
-
-        # mock_task.assert_ not called
+        self.assertEqual(app_instance.subdomain.subdomain, expected_subdomain_name)
+        self.assertTrue(app_instance.subdomain.is_created_by_user)
 
 
 @pytest.mark.django_db
 def test_get_subdomain_name():
     """Test function get_subdomain_name using form data with a subdomain."""
 
-    expected_subomain_name = "test-subdomain"
-    is_created_by_user = False
-    subdomain = SubdomainTuple(expected_subomain_name, is_created_by_user)
+    expected_subdomain_name = "test-subdomain-get-from-form"
+    is_created_by_user = True
+    subdomain = SubdomainTuple(expected_subdomain_name, is_created_by_user)
 
     data = {
         "name": "app-form-name",
@@ -223,9 +352,9 @@ def test_get_subdomain_name():
     subdomain_name, is_created_by_user = get_subdomain_name(form)
 
     assert (
-        subdomain_name == expected_subomain_name
+        subdomain_name == expected_subdomain_name
     ), f"The determined subdomain name {subdomain_name} should equal \
-        the expected name {expected_subomain_name}"
+        the expected name {expected_subdomain_name}"
 
     # The function overrides the input is_created_by_user setting it to True
     # because the user specified the subdomain.
