@@ -6,6 +6,7 @@ from apps.models import (
     LogsEnabledMixin,
     SocialMixin,
 )
+from apps.models.app_types.custom.custom import validate_default_url_subpath
 
 
 class DashInstanceManager(AppInstanceManager):
@@ -13,6 +14,9 @@ class DashInstanceManager(AppInstanceManager):
 
 
 class DashInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
+    default_url_subpath = models.CharField(
+        validators=[validate_default_url_subpath], max_length=255, default="", blank=True
+    )
     objects = DashInstanceManager()
     ACCESS_TYPES = (
         ("project", "Project"),
