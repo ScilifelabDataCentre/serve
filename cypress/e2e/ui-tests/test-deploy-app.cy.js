@@ -361,6 +361,8 @@ describe("Test deploying app", () => {
         const image_port = "8000"
         const createResources = Cypress.env('create_resources');
         const app_type = "Dash App"
+        const default_url_subpath = "default/url/subpath/"
+
 
         if (createResources === true) {
             // Create Dash app
@@ -374,6 +376,9 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
+
             cy.get('#submit-id-submit').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -392,7 +397,8 @@ describe("Test deploying app", () => {
             cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
-
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            cy.get('#id_default_url_subpath').should('have.value', default_url_subpath)
             // Delete the Dash app
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
