@@ -277,9 +277,8 @@ def delete_resource(serialized_instance):
     output, error = helm_delete(values["subdomain"], values["namespace"])
     success = not error
 
-    # TODO: Status. Save this to K8sUserAppStatus instead of app_status.
     if success:
-        # TODO: Status. User actions are now saved by views:
+        # TODO: Status. User actions are now saved by views and helpers:
         """
         if instance.app.slug in ("volumeK8s", "netpolicy"):
             instance.app_status.status = "Deleted"
@@ -288,9 +287,12 @@ def delete_resource(serialized_instance):
         """
         logger.info(f"Successfully deleted resource type {instance.app.slug}, {values['subdomain']}")
     else:
-        instance.k8s_user_app_status.status = "FailedToDelete"
-        instance.k8s_user_app_status.save()
+        # There is no need to save a FailedToDelete status
+        # We let the k8s event listener handle this event and together with
+        # the instance info we have sufficient troubleshooting information.
+
         # instance.app_status.status = "FailedToDelete"
+        logger.warn(f"FAILED to delete resource type {instance.app.slug}, {values['subdomain']}")
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 

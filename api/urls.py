@@ -53,6 +53,7 @@ urlpatterns = [
     # Internal API endpoints
     path("token-auth/", CustomAuthToken.as_view(), name="api_token_auth"),
     path("settings/", get_studio_settings),
+    # TODO: Consider renaming this endpoint to update-k8s-app-status
     path("app-status/", update_app_status),
     path("app-subdomain/validate/", get_subdomain_is_valid),
     path("app-subdomain/is-available/", get_subdomain_is_available),
