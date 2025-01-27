@@ -273,8 +273,13 @@ def delete_resource(serialized_instance):
     instance = deserialize(serialized_instance)
 
     values = instance.k8s_values
-    output, error = helm_delete(values["subdomain"], values["namespace"])
-    success = not error
+    
+    success = False
+    if values.get("subdomain") is not None: 
+        output, error = helm_delete(values["subdomain"], values["namespace"])
+        success = not error
+    else:
+        logger.error(f"Subdomain name does not exist. 'KeyError('subdomain')'")
 
     if success:
         if instance.app.slug in ("volumeK8s", "netpolicy"):
@@ -283,6 +288,8 @@ def delete_resource(serialized_instance):
             instance.app_status.status = "Deleting..."
     else:
         instance.app_status.status = "FailedToDelete"
+        
+        
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 
