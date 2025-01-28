@@ -1,6 +1,8 @@
 describe("Test deploying app", () => {
 
     // Tests performed as an authenticated user that creates and deletes apps.
+    // Note that these tests may depend on k8s deployments and may be long-running tests.
+    // Warning: some of these tests may intermittenly fail depending on the available resources.
 
     // The default command timeout should not be so long
     // Instead use longer timeouts on specific commands where deemed necessary and valid
@@ -9,8 +11,22 @@ describe("Test deploying app", () => {
     const longCmdTimeoutMs = 240000
 
     // Function to verify the displayed app status permission level
-    const verifyAppStatus = (app_name, expected_status, expected_permission) => {
+    // Function to verify the displayed app status and permission level
+    // TODO: add expected_k8s_app_status from data-k8s-app-status
+    const verifyAppStatus = (
+        app_name,
+        expected_status,
+        expected_permission,
+        expected_latest_user_action) => {
+
+        // The status span element has id with format: status-customapp-283
         cy.get('tr:contains("' + app_name + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', expected_status)
+
+        if (expected_latest_user_action != "") {
+            cy.get('tr:contains("' + app_name + '")').find('span').should('have.attr', 'data-app-action', expected_latest_user_action)
+        }
+
+        // The permission level span elment has id with format: permission-283
         if (expected_permission != "") {
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', expected_permission)
         }
@@ -277,9 +293,9 @@ describe("Test deploying app", () => {
       }
     })
 
-    // This test is skipped because it will only work against a Serve instance running on our cluster. should be switched on for the e2e tests against remote.
+    // This test may only work against a Serve instance running on our cluster.
     // We need to add a test here for validating Site-dir option. See SS-1206 for details
-    it.skip("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-shiny-example"
@@ -350,7 +366,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it.only("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Simple test to create and delete a Dash app
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"

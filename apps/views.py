@@ -153,11 +153,24 @@ class GetStatusView(View):
                 instances = orm_model.objects.filter(pk__in=arr)
 
                 for instance in instances:
+                    # TODO: Use the new app status value
+                    """
                     status_object = instance.app_status
                     if status_object:
                         status = status_object.status
                     else:
                         status = None
+                    """
+                    # TODO: Retest with another value
+                    status = "TEST-VIEW-STATUS"
+                    # status = "Waiting"
+
+                    # Also set the k8s app status
+                    k8s_app_status_object = instance.k8s_user_app_status
+                    if k8s_app_status_object:
+                        k8s_app_status = k8s_app_status_object.status
+                    else:
+                        k8s_app_status = None
 
                     status_group = (
                         "success" if status in status_success else "warning" if status in status_warning else "danger"
@@ -166,6 +179,8 @@ class GetStatusView(View):
                     obj = {
                         "status": status,
                         "statusGroup": status_group,
+                        "latestUserAction": instance.latest_user_action,
+                        "k8sStatus": k8s_app_status,
                     }
 
                     result[f"{instance.app.slug}-{instance.pk}"] = obj
@@ -192,6 +207,10 @@ def delete(request, project, app_slug, app_id):
         return HttpResponseForbidden()
 
     serialized_instance = instance.serialize()
+
+    # TODO: Set latest_user_action to Deleting
+    # This hides the app from the user UI
+    # instance.latest_user_action = "Deleting"
 
     delete_resource.delay(serialized_instance)
     instance.deleted_on = timezone.now()
