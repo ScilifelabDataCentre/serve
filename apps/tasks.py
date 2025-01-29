@@ -279,7 +279,9 @@ def delete_resource(serialized_instance):
         output, error = helm_delete(values["subdomain"], values["namespace"])
         success = not error
     else:
-        error_text = f"Subdomain name does not exist. App: {values['apps']['name']}, Project: {values['project']['slug']}"
+        error_text = (
+            f"Subdomain name does not exist. App: {values['apps']['name']}, Project: {values['project']['slug']}"
+        )
         output, error = error_text, error_text
         logger.error(error_text)
 
