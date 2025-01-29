@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("apps", "0020_alter_jupyterinstance_environment_and_more"),
+        ("apps", "0021_dashinstance_default_url_subpath"),
     ]
 
     operations = [

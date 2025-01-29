@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("apps", "0022_baseappinstance_k8s_user_app_status_and_more"),
+        ("apps", "0023_baseappinstance_k8s_user_app_status_and_more"),
     ]
 
     operations = [
