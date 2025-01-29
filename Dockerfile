@@ -32,7 +32,7 @@ RUN apk add --update --no-cache \
     curl
 
 # Install Poetry, change configs and install packages.
-RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.8.2 python3 - \
+RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.0.0 python3 - \
     && /root/.local/bin/poetry self add poetry-plugin-export \
     && /root/.local/bin/poetry config virtualenvs.create false \
     && /root/.local/bin/poetry config installer.max-workers 10 \
