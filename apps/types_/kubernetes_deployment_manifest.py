@@ -43,6 +43,7 @@ class KubernetesDeploymentManifest:
             # Example pattern: "20241126_085112_02500f53-7435-49a2-a5c2-66443e677a33"
             now = datetime.now().strftime("%Y%m%d_%H%M%S")
             self._deployment_id = f"{now}_{str(uuid.uuid4())}"
+
     def get_filepaths(self) -> K8SDeploymentFiles:
         """Returns two filepaths for this deployment for the values file and deployment file."""
         deployment_fileid = self.get_deployment_id()
