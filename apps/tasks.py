@@ -280,7 +280,7 @@ def delete_resource(serialized_instance):
         success = not error
     else:
         error_text = (
-            f"Subdomain name does not exist. App: {values['apps']['name']}, Project: {values['project']['slug']}"
+            f"Subdomain name does not exist. App: {values['name']}, Project: {values['project']['slug']}"
         )
         output, error = error_text, error_text
         logger.error(error_text)
