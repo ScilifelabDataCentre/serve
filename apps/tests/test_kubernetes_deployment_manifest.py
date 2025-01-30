@@ -1,5 +1,4 @@
 from pathlib import Path
-from unittest import skip
 
 from django.test import TestCase
 
@@ -64,7 +63,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         # Verify that the file exists
         from pathlib import Path
 
-        values_file = self.kdm.get_filepaths()["values_file"]
+        values_file, _ = self.kdm.get_filepaths()
         self.assertTrue(Path(values_file).is_file())
 
     """
@@ -84,7 +83,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
 
     def test_generate_manifest_yaml_from_template(self):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
-        values_file = self.kdm.get_filepaths()["values_file"]
+        values_file, _ = self.kdm.get_filepaths()
         namespace = "default"
         version = "1.4.2"
 
@@ -106,7 +105,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
     def test_validate_manifest(self):
         # First generate the manifest yaml
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
-        values_file = self.kdm.get_filepaths()["values_file"]
+        values_file, _ = self.kdm.get_filepaths()
         namespace = "default"
         version = "1.4.2"
 
@@ -120,7 +119,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         self.assertIn("apiVersion: v1", output)
 
         # Validate the manifest documents
-        is_valid, output = self.kdm.validate_manifest(output)
+        is_valid, output, _ = self.kdm.validate_manifest(output)
 
         if not is_valid:
             print(output)
@@ -134,7 +133,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
     def test_extract_kubernetes_pod_patches_from_manifest(self):
         # First generate the manifest yaml
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
-        values_file = self.kdm.get_filepaths()["values_file"]
+        values_file, _ = self.kdm.get_filepaths()
         namespace = "default"
         version = "1.4.2"
 
@@ -186,7 +185,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
               name: tmp-release-name-shiny-configmap
 """
 
-        is_valid, output = self.kdm.validate_kubernetes_pod_patches_yaml(kpp_text)
+        is_valid, output, _ = self.kdm.validate_kubernetes_pod_patches_yaml(kpp_text)
 
         self.assertTrue(is_valid, f"The input should be valid. {output}")
         self.assertIsNone(output)
@@ -196,20 +195,17 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
     """
 
     def test_get_file_paths(self):
-        actual = self.kdm.get_filepaths()
-
-        self.assertIsNotNone(actual)
-        self.assertEqual(type(actual), dict)
+        values_file, deployment_file = self.kdm.get_filepaths()
 
         # Verify the values filepath
-        self.assertIsNotNone(actual["values_file"])
-        self.assertEqual(type(actual["values_file"]), str)
-        self.assertIn(".yaml", actual["values_file"])
+        self.assertIsNotNone(values_file)
+        self.assertEqual(type(values_file), str)
+        self.assertIn(".yaml", values_file)
 
         # Verify the deployment filepath
-        self.assertIsNotNone(actual["deployment_file"])
-        self.assertEqual(type(actual["deployment_file"]), str)
-        self.assertIn("_deployment.yaml", actual["deployment_file"])
+        self.assertIsNotNone(deployment_file)
+        self.assertEqual(type(deployment_file), str)
+        self.assertIn("_deployment.yaml", deployment_file)
 
 
 class BasicKubernetesDeploymentManifestTestCase(TestCase):
@@ -260,7 +256,7 @@ class ValidateExistingKubernetesDeploymentManifestTestCase(TestCase):
 
             # Validate the manifest documents
             print(f"Validating deployment file {file}")
-            is_valid, output = kdm.validate_manifest(manifest_data)
+            is_valid, output, _ = kdm.validate_manifest(manifest_data)
 
             if not is_valid:
                 print(output)
@@ -526,7 +522,7 @@ tls:
 
     def test_validate_manifest(self):
         # Validate the manifest documents
-        is_valid, output = self.kdm.validate_manifest(self.DEPLOYMENT_DATA)
+        is_valid, output, _ = self.kdm.validate_manifest(self.DEPLOYMENT_DATA)
 
         if is_valid:
             print(output)
@@ -564,7 +560,7 @@ tls:
               name: tmp-release-name-shiny-configmap
 """
 
-        is_valid, output = self.kdm.validate_kubernetes_pod_patches_yaml(kpp_text)
+        is_valid, output, _ = self.kdm.validate_kubernetes_pod_patches_yaml(kpp_text)
 
         self.assertFalse(is_valid, f"The input should be invalid. {output}")
         self.assertIsNotNone(output)

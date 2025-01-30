@@ -3322,7 +3322,7 @@ rpds-py = ">=0.7.0"
 name = "regex"
 version = "2024.11.6"
 description = "Alternative regular expression module, to replace re."
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "regex-2024.11.6-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ff590880083d60acc0433f9c3f713c51f7ac6ebb9adf889c79a261ecf541aa91"},
@@ -4243,4 +4243,4 @@ tests = ["hypothesis", "moto", "pytest", "pytest-cov", "pytest-django", "pytest-
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "7c7277daf12d6ebaba228547c291a1f25e9104163c0f876ad68e6587ea9c165a"
+content-hash = "662d07b142b2325c30688c94694e286f698937e8806b2c8f595b85c7af7c5e5b"

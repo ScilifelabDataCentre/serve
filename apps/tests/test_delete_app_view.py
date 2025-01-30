@@ -79,5 +79,6 @@ class DeleteAppViewTestCase(TestCase):
             self.app_instance = JupyterInstance.objects.get(name="test_app_instance_public")
 
             self.assertEqual("private", self.app_instance.access)
+            self.assertIsNotNone(self.app_instance.deleted_on)
 
             mock_task.assert_called_once()

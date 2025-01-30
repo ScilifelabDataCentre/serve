@@ -16,12 +16,11 @@
                 <h1 class="h3 mb-3 card-title">Edit {{ form.instance.name }}</h1>
             {% else %}
                 <h1 class="h3 mb-3 card-title">Create {{ form.model_name }}</h1>
-                <p class="card-text">
+            {% endif %}
+                <div class="card-text">
                     {% block app_info %}
                     {% endblock %}
-                </p>
-            {% endif %}
-
+                </div>
             </div>
             <div>
                 {% crispy form %}

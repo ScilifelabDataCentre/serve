@@ -155,6 +155,9 @@ node_modules
 .DS_Store
 .idea/
 
+# Temporary Helm and k8s deployment files
+charts/values/
+
 # The media folder contents
 media/*
 !media/.gitkeep

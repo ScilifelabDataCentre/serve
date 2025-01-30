@@ -152,9 +152,9 @@ class HomeView(View):
     def get(self, request, app_id=0):
         published_apps_updated_on, request = get_public_apps(
             request, app_id=app_id, order_by="updated_on", order_reverse=True
-        )[
-            :6
-        ]  # we display only 6 apps
+        )
+        published_apps_updated_on = published_apps_updated_on[:6]  # we display only 6 apps
+        # TODO: add selection of N apps into the function so that it is optimized in the future with more apps in the db
 
         news_objects = NewsObject.objects.all().order_by("-created_on")
         link_all_news = False

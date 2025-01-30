@@ -1,6 +1,5 @@
 import subprocess
 import uuid
-from datetime import datetime
 
 import yaml
 from celery import shared_task
@@ -176,7 +175,6 @@ def _kubectl_apply_dry(deployment_file: str, target_strategy: str = "client") ->
 
 def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
     command = f"helm get manifest {release_name} --namespace {namespace}"
-    # command = f"kubectl get configmap cm -n default -o yaml | yq eval '.data[\"application.yml\"]'"
     # Execute the command
     logger.debug(f"Executing command: {command}")
     try:
@@ -206,7 +204,8 @@ def deploy_resource(serialized_instance):
     kdm = KubernetesDeploymentManifest()
 
     # Save helm values file for internal reference
-    values_file = kdm.get_filepaths()["values_file"]
+
+    values_file, _ = kdm.get_filepaths()
     with open(values_file, "w") as f:
         f.write(yaml.dump(values))
 
@@ -221,10 +220,10 @@ def deploy_resource(serialized_instance):
             chart, values_file, values["namespace"], version, save_to_file=True
         )
 
-        deployment_file = kdm.get_filepaths()["deployment_file"]
+        _, deployment_file = kdm.get_filepaths()
 
         # Validate the manifest yaml documents
-        is_valid, validation_output = kdm.validate_manifest(output)
+        is_valid, validation_output, _ = kdm.validate_manifest(output)
 
         if is_valid:
             logger.debug(f"The deployment manifest file is valid for release {release}")
@@ -233,7 +232,7 @@ def deploy_resource(serialized_instance):
             kpp_data = kdm.extract_kubernetes_pod_patches_from_manifest(output)
 
             if kpp_data:
-                is_valid, message = kdm.validate_kubernetes_pod_patches_yaml(kpp_data)
+                is_valid, message, _ = kdm.validate_kubernetes_pod_patches_yaml(kpp_data)
 
                 if not is_valid:
                     logger.debug(f"The kubernetes-pod-patches section is invalid for release {release}. {message}")
@@ -275,13 +274,19 @@ def delete_resource(serialized_instance):
     instance = deserialize(serialized_instance)
 
     values = instance.k8s_values
-    output, error = helm_delete(values["subdomain"], values["namespace"])
-    success = not error
+
+    success = False
+    if values.get("subdomain") is not None:
+        output, error = helm_delete(values["subdomain"], values["namespace"])
+        success = not error
+    else:
+        error_text = f"Subdomain name does not exist. App: {values['name']}, Project: {values['project']['slug']}"
+        output, error = error_text, error_text
+        logger.error(error_text)
 
     if success:
         if instance.app.slug in ("volumeK8s", "netpolicy"):
             instance.app_status.status = "Deleted"
-            instance.deleted_on = datetime.now()
         else:
             instance.app_status.status = "Deleting..."
     else:

@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import Q
+from django.db.models import Model, Q
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -34,7 +34,6 @@ from .tasks import create_resources_from_template, delete_project
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
 AppCategories = apps.get_model(app_label=django_settings.APPCATEGORIES_MODEL)
-Model = apps.get_model(app_label=django_settings.MODELS_MODEL)
 User = get_user_model()
 
 
@@ -106,7 +105,9 @@ def settings(request, project_slug):
         )
 
     environments = Environment.objects.filter(project=project)
-    apps = Apps.objects.all().order_by("slug", "-revision").distinct("slug")
+    apps_with_environment_option = (
+        Apps.objects.filter(environment__isnull=False).order_by("slug", "-revision").distinct("slug")
+    )
 
     flavors = Flavor.objects.filter(project=project)
 
@@ -175,26 +176,49 @@ def change_description(request, project_slug):
     )
 
 
+def can_model_instance_be_deleted(field_name: str, instance: Model) -> bool:
+    """
+    Check if a model instance can be deleted by ensuring no app in APP_REGISTRY
+    references it via the specified field.
+
+    Args:
+        field_name (str): The name of the field to check in APP_REGISTRY models.
+        instance (Model): The model instance to check.
+
+    Returns:
+        bool: True if the instance can be safely deleted, False otherwise.
+    """
+    for app_orm in APP_REGISTRY.iter_orm_models():
+        if hasattr(app_orm, field_name):
+            queryset = app_orm.objects.filter(**{field_name: instance})
+            if queryset.exists():
+                return False
+    return True
+
+
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_environment(request, project_slug):
-    # TODO: Ensure that user is allowed to create environment in this project.
-    if request.method == "POST":
-        project = Project.objects.get(slug=project_slug)
-        name = request.POST.get("environment_name")
-        repo = request.POST.get("environment_repository")
-        image = request.POST.get("environment_image")
-        app_pk = request.POST.get("environment_app")
-        app = Apps.objects.get(pk=app_pk)
-        environment = Environment(
-            name=name,
-            slug=name,
-            project=project,
-            repository=repo,
-            image=image,
-            app=app,
-        )
-        environment.save()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            # TODO: check input data
+            name = request.POST.get("environment_name")
+            repo = request.POST.get("environment_repository")
+            image = request.POST.get("environment_image")
+            app_pk = request.POST.get("environment_app")
+            app = Apps.objects.get(pk=app_pk)
+            environment = Environment(
+                name=name,
+                slug=name,
+                project=project,
+                repository=repo,
+                image=image,
+                app=app,
+            )
+            environment.save()
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
@@ -206,13 +230,24 @@ def create_environment(request, project_slug):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def delete_environment(request, project_slug):
-    if request.method == "POST":
-        project = Project.objects.get(slug=project_slug)
-        pk = request.POST.get("environment_pk")
-        # TODO: Check that the user has permission to delete this environment.
-        environment = Environment.objects.get(pk=pk, project=project)
-        environment.delete()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            pk = request.POST.get("environment_pk")
+            environment = Environment.objects.get(pk=pk, project=project)
 
+            can_environment_be_deleted = can_model_instance_be_deleted("environment", environment)
+
+            if can_environment_be_deleted:
+                environment.delete()
+            else:
+                messages.error(
+                    request,
+                    "Environment cannot be deleted because it is currently used by at least one app \
+                        (can also be a deleted app).",
+                )
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
@@ -224,29 +259,31 @@ def delete_environment(request, project_slug):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_flavor(request, project_slug):
-    # TODO: Ensure that user is allowed to create flavor in this project.
-    if request.method == "POST":
-        # TODO: Check input
-        project = Project.objects.get(slug=project_slug)
-        logger.info(request.POST)
-        name = request.POST.get("flavor_name")
-        cpu_req = request.POST.get("cpu_req")
-        mem_req = request.POST.get("mem_req")
-        ephmem_req = request.POST.get("ephmem_req")
-        cpu_lim = request.POST.get("cpu_lim")
-        mem_lim = request.POST.get("mem_lim")
-        ephmem_lim = request.POST.get("ephmem_lim")
-        flavor = Flavor(
-            name=name,
-            project=project,
-            cpu_req=cpu_req,
-            mem_req=mem_req,
-            cpu_lim=cpu_lim,
-            mem_lim=mem_lim,
-            ephmem_req=ephmem_req,
-            ephmem_lim=ephmem_lim,
-        )
-        flavor.save()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            # TODO: Check input
+            logger.info(request.POST)
+            name = request.POST.get("flavor_name")
+            cpu_req = request.POST.get("cpu_req")
+            mem_req = request.POST.get("mem_req")
+            ephmem_req = request.POST.get("ephmem_req")
+            cpu_lim = request.POST.get("cpu_lim")
+            mem_lim = request.POST.get("mem_lim")
+            ephmem_lim = request.POST.get("ephmem_lim")
+            flavor = Flavor(
+                name=name,
+                project=project,
+                cpu_req=cpu_req,
+                mem_req=mem_req,
+                cpu_lim=cpu_lim,
+                mem_lim=mem_lim,
+                ephmem_req=ephmem_req,
+                ephmem_lim=ephmem_lim,
+            )
+            flavor.save()
     return HttpResponseRedirect(
         reverse(
             "projects:settings",
@@ -258,12 +295,25 @@ def create_flavor(request, project_slug):
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def delete_flavor(request, project_slug):
-    if request.method == "POST":
-        project = Project.objects.get(slug=project_slug)
-        pk = request.POST.get("flavor_pk")
-        # TODO: Check that the user has permission to delete this flavor.
-        flavor = Flavor.objects.get(pk=pk, project=project)
-        flavor.delete()
+    project = Project.objects.get(slug=project_slug)
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    else:
+        if request.method == "POST":
+            project = Project.objects.get(slug=project_slug)
+            pk = request.POST.get("flavor_pk")
+            flavor = Flavor.objects.get(pk=pk, project=project)
+
+            can_flavor_be_deleted = can_model_instance_be_deleted("flavor", flavor)
+
+            if can_flavor_be_deleted:
+                flavor.delete()
+            else:
+                messages.error(
+                    request,
+                    "Flavor cannot be deleted because it is currently used by at least one app \
+                        (can also be a deleted app).",
+                )
 
     return HttpResponseRedirect(
         reverse(
@@ -537,6 +587,7 @@ class DetailsView(View):
                     "title": category.name,
                     "instances": instances_per_category_list,
                     "apps": apps_per_category,
+                    "timezone": "Europe/Stockholm Timezone",
                 }
             )
 
