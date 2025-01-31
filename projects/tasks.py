@@ -180,6 +180,7 @@ def delete_project_apps(project):
         queryset = orm_model.objects.filter(project=project)
         for instance in queryset:
             serialized_instance = instance.serialize()
+            # TODO: Also set instance to deleted
             delete_resource(serialized_instance)
 
 

@@ -19,25 +19,17 @@ describe("Test managing user app", () => {
         expected_permission,
         expected_latest_user_action) => {
 
-        // TODO: Testing:
-        expected_status = "TEST-JS-STATUS"
-        expected_latest_user_action = "TEST-JS-APPACTION"
-
-        //cy.get('tr:contains("' + app_name + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', expected_status)
-
         cy.get('tr:contains("' + app_name + '")').then(($approw) => {
-            // The status span element has id with format: status-customapp-283
+            // The status span element has id with format: status-customapp-nnn
             cy.get($approw).get('[data-cy="appstatus"]').should('contain', expected_status)
 
             if (expected_latest_user_action != "") {
                 cy.get($approw).get('[data-cy="appstatus"]').should('have.attr', 'data-app-action', expected_latest_user_action)
-                //cy.get('tr:contains("' + app_name + '")').find('span').should('have.attr', 'data-app-action', expected_latest_user_action)
             }
 
             // The permission level span elment has id with format: permission-283
             if (expected_permission != "") {
                 cy.get($approw).get('[data-cy="app-permission"]').should('contain', expected_permission)
-                //cy.get('tr:contains("' + app_name + '")').find('span').should('contain', expected_permission)
             }
         })
     };
@@ -416,9 +408,10 @@ describe("Test managing user app", () => {
 
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
-            cy.wait(5000).then(() => {
+            // TODO: This relies on the k8s event listener. Can be uncommented
+/*             cy.wait(5000).then(() => {
                 verifyAppStatus(app_name, "Running", "public", "Creating")
-              })
+            }) */
 
             // Verify Dash app values by opening the app settings form
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -439,9 +432,11 @@ describe("Test managing user app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
 
-            // check that the app is not visible under public apps
+            // verify that the app is not visible in the project overview
+            cy.get('tr:contains("' + app_name + '")').should('not.exist')
+
+            // verify that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')

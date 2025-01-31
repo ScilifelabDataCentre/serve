@@ -30,6 +30,8 @@ def delete_old_objects():
     def get_threshold(threshold):
         return timezone.now() - timezone.timedelta(days=threshold)
 
+    # TODO: Refactor to the new app latest user action
+
     # Handle deletion of apps in the "Develop" category
     for orm_model in APP_REGISTRY.iter_orm_models():
         old_develop_apps = orm_model.objects.filter(
@@ -292,7 +294,7 @@ def delete_resource(serialized_instance):
         # the instance info we have sufficient troubleshooting information.
 
         # instance.app_status.status = "FailedToDelete"
-        logger.warn(f"FAILED to delete resource type {instance.app.slug}, {values['subdomain']}")
+        logger.warn(f"FAILED to delete resource type {instance.app.slug}, {values['subdomain']}, error={error}")
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 

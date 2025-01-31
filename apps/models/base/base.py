@@ -28,6 +28,8 @@ class AppInstanceManager(models.Manager):
         """
         Define and add a reusable, chainable annotation app_status.
         The atn prefix stands for annotation and clarifies that this value is computed on the fly.
+        This repeats the logic of the class method convert_to_app_status below and is
+        therefore not DRY. However the implementation details are too different to be reused.
         """
         return self.get_queryset().annotate(
             atn_app_status=Case(
@@ -48,14 +50,15 @@ class AppInstanceManager(models.Manager):
                 ),
                 When(
                     latest_user_action="Creating",
-                    k8s_user_app_status__status__in=["ContainerCreating", "PodInitializing"],
+                    k8s_user_app_status__status__in=["ContainerCreating", "PodInitializing", ""],
                     then=Value("Creating"),
                 ),
                 When(
                     latest_user_action="Changing",
-                    k8s_user_app_status__status__in=["ContainerCreating", "PodInitializing"],
+                    k8s_user_app_status__status__in=["ContainerCreating", "PodInitializing", ""],
                     then=Value("Changing"),
                 ),
+                When(latest_user_action="Deleting", then=Value("Deleted")),
                 default=Value("Unknown"),
                 output_field=CharField(),
             )
@@ -202,11 +205,16 @@ class BaseAppInstance(models.Model):
     # Check the db, is the field still there?
     app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
 
-    # TODO: Status. Create function to get app_status
+    # Get the computed, dynamic app status value
+    # TODO: use this instead of app_status
     def get_app_status(self):
+        """Model function exposing the computed app status value."""
         # This model function replaces the old app_status field and related AppStatus model.
-        # TODO: Implement
-        raise Exception("Not yet implemented")
+        if self.k8s_user_app_status is None:
+            k8s_user_app_status = None
+        else:
+            k8s_user_app_status = self.k8s_user_app_status.status
+        return BaseAppInstance.convert_to_app_status(self.latest_user_action, k8s_user_app_status)
 
     url = models.URLField(blank=True, null=True)
     updated_on = models.DateTimeField(auto_now=True)
@@ -264,7 +272,12 @@ class BaseAppInstance(models.Model):
                 return "Error"
             case _, "Running":
                 return "Running"
+            case "Creating", _:
+                return "Creating"
+            case "Changing", _:
+                return "Changing"
             case _, _:
-                return f"Invalid input. No match for input {latest_user_action}, {k8s_user_app_status}"
+                return "Unknown"
+                # return f"Invalid input. No match for input {latest_user_action}, {k8s_user_app_status}"
 
         raise ValueError("Invalid input")

@@ -161,8 +161,8 @@ class GetStatusView(View):
                     else:
                         status = None
                     """
-                    # TODO: Retest with another value
-                    status = "TEST-VIEW-STATUS"
+                    # TODO: wrap in a try except
+                    status = instance.get_app_status()
                     # status = "Waiting"
 
                     # Also set the k8s app status
@@ -208,15 +208,17 @@ def delete(request, project, app_slug, app_id):
 
     serialized_instance = instance.serialize()
 
-    # TODO: Set latest_user_action to Deleting
-    # This hides the app from the user UI
-    # instance.latest_user_action = "Deleting"
-
     delete_resource.delay(serialized_instance)
-    instance.deleted_on = timezone.now()
+
     # fix: in case appinstance is public switch to private
     instance.access = "private"
-    instance.save()
+    # instance.save(update_fields=["access"])
+
+    # Set latest_user_action to Deleting
+    # This hides the app from the user UI
+    instance.latest_user_action = "Deleting"
+    instance.deleted_on = timezone.now()
+    instance.save(update_fields=["latest_user_action", "deleted_on", "access"])
 
     return HttpResponseRedirect(
         reverse(

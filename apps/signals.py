@@ -29,8 +29,19 @@ def pre_delete_helm_uninstall(sender, instance, **kwargs):
 
 
 # After status of app changes to Deleted, remove subdomain from BaseAppInstance
-@receiver(post_save, sender=AppStatus)
+@receiver(post_save, sender=BaseAppInstance)
 def post_delete_subdomain_remove(sender, instance, using, **kwargs):
+    # TODO: Status. Test this
+    if instance.latest_user_action == "Deleting":
+        baseapp_instance = BaseAppInstance.objects.get(app_status=instance)
+        baseapp_instance.subdomain = None
+        baseapp_instance.save()
+
+
+@receiver(post_save, sender=AppStatus)
+def post_delete_subdomain_remove_old(sender, instance, using, **kwargs):
+    raise Exception("Deprecated. An app delete should instead trigger signal post_delete_subdomain_remove")
+
     if instance.status == "Deleted":
         baseapp_instance = BaseAppInstance.objects.get(app_status=instance)
         baseapp_instance.subdomain = None

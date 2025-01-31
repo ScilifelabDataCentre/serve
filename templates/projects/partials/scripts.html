@@ -50,9 +50,9 @@
                         elements.forEach(element => {
                             const className = `badge bg-${statusGroup}`;
                             element.className = className;
-                            element.innerText = "TEST-JS-STATUS"; //status;
-                            element.dataset.appAction = "TEST-JS-APPACTION"; //latestUserAction;
-                            element.dataset.dataK8sAppStatus = "TEST-JS-K8SAPPSTATUS"; //k8sStatus;
+                            element.innerText = status;
+                            element.dataset.appAction = latestUserAction;
+                            element.dataset.k8sAppStatus = k8sStatus;
                         });
                     }
                 }

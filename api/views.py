@@ -517,6 +517,9 @@ class AppInstanceList(
         return HttpResponse("App created.", status=200)
 
     def destroy(self, request, *args, **kwargs):
+        # TODO: Revisit
+        raise Exception("api/AppInstanceList destroy. Is this function used?")
+
         appinstance = self.get_object()
         # Check that user is allowed to delete app:
         # Either user owns the app, or is a member of the project
