@@ -29,6 +29,7 @@ class ShinyForm(AppBaseForm):
         super()._setup_form_fields()
         self.fields["volume"].initial = None
         self.fields["volume"].widget = HiddenInput()
+        self.fields["path"].initial = "/home"
         self.fields["path"].widget = HiddenInput()
         self.fields["shiny_site_dir"].widget.attrs.update({"class": "textinput form-control"})
         self.fields["shiny_site_dir"].help_text = (
@@ -95,9 +96,6 @@ class ShinyForm(AppBaseForm):
 
         if volume and not path:
             self.add_error("path", "Path is required when volume is selected.")
-
-        if path and not volume:
-            self.add_error("path", "Warning, you have provided a path, but not selected a volume.")
 
         if path:
             # If new path matches current path, it is valid.
