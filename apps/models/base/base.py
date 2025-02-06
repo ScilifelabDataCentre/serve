@@ -17,13 +17,24 @@ USER_ACTION_STATUS_CHOICES = [
     ("Creating", "Creating"),
     ("Changing", "Changing"),
     ("Deleting", "Deleting"),
+    ("SystemDeleting", "SystemDeleting"),
     ("Redeploying", "Redeploying"),
 ]
+
+
+def get_status_defs():
+    status_success = settings.APPS_STATUS_SUCCESS
+    status_warning = settings.APPS_STATUS_WARNING
+    return status_success, status_warning
+
+
+status_success, status_warning = get_status_defs()
 
 
 class AppInstanceManager(models.Manager):
     model_type = "appinstance"
 
+    # TODO: Update unit test with SystemDeleting
     def with_app_status(self):
         """
         Define and add a reusable, chainable annotation app_status.
@@ -34,6 +45,7 @@ class AppInstanceManager(models.Manager):
         return self.get_queryset().annotate(
             atn_app_status=Case(
                 When(latest_user_action="Deleting", then=Value("Deleted")),
+                When(latest_user_action="SystemDeleting", then=Value("Deleted")),
                 When(
                     k8s_user_app_status__status__in=["CrashLoopBackoff", "ErrImagePull", "PostStartHookError"],
                     then=Value("Error"),
@@ -197,17 +209,18 @@ class BaseAppInstance(models.Model):
     )
 
     # 20241216: Refactoring of app status.
-    # TODO: Status. Break connection to model AppStatus and deprecate AppStatus
-    # Also need to migrate the model?
+    # Break connection to model AppStatus and deprecate AppStatus
+    # The model AppStatus and related FK app_status is retained for historical reasons
+    # app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
 
-    # Old: The model AppStatus and related FK app_status is retained for historical reasons
-    # Remove or make read-only?
-    # Check the db, is the field still there?
-    app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
+    # TODO: make use of this everywhere were needed
+    def set_latest_user_action(self, new_value: str) -> None:
+        """Convenience function to update the latest_user_action and save the model."""
+        self.latest_user_action = new_value
+        self.save(update_fields=["latest_user_action"])
 
     # Get the computed, dynamic app status value
-    # TODO: use this instead of app_status
-    def get_app_status(self):
+    def get_app_status(self) -> str:
         """Model function exposing the computed app status value."""
         # This model function replaces the old app_status field and related AppStatus model.
         if self.k8s_user_app_status is None:
@@ -215,6 +228,13 @@ class BaseAppInstance(models.Model):
         else:
             k8s_user_app_status = self.k8s_user_app_status.status
         return BaseAppInstance.convert_to_app_status(self.latest_user_action, k8s_user_app_status)
+
+    # TODO: unit test this
+    def get_status_group(self) -> str:
+        """Get the status group from the app status."""
+        status = self.get_app_status()
+        group = "success" if status in status_success else "warning" if status in status_warning else "danger"
+        return group
 
     url = models.URLField(blank=True, null=True)
     updated_on = models.DateTimeField(auto_now=True)
@@ -256,11 +276,14 @@ class BaseAppInstance(models.Model):
     def serialize(self):
         return json.loads(serializers.serialize("json", [self]))[0]
 
+    # TODO: Update unit test with SystemDeleting
     @staticmethod
     def convert_to_app_status(latest_user_action: str, k8s_user_app_status: str) -> str:
         """Converts latest user action and k8s pod status to app status"""
         match latest_user_action, k8s_user_app_status:
             case "Deleting", _:
+                return "Deleted"
+            case "SystemDeleting", _:
                 return "Deleted"
             case "Creating", "ContainerCreating" | "PodInitializing":
                 return "Creating"

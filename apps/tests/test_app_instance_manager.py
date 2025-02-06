@@ -174,8 +174,11 @@ class AppInstanceManagerDeleteAppTestCase(TestCase):
         # Set app instance to status Deleted to mimimic deleting an app and retry
         # Merely setting the latest_user_action should be sufficient to make the delete
         # filter exclude this app instance.
-        self.app_instance.latest_user_action = "Deleting"
-        self.app_instance.save()
+
+        # TODO:
+        # self.app_instance.latest_user_action = "Deleting"
+        # self.app_instance.save()
+        self.app_instance.set_latest_user_action("Deleting")
 
         result = BaseAppInstance.objects.get_app_instances_not_deleted()
 

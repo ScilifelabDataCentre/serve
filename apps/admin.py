@@ -64,12 +64,12 @@ class K8sUserAppStatusAdmin(admin.ModelAdmin):
 class BaseAppAdmin(admin.ModelAdmin):
     # TODO: Change status use to new status
     list_display = ("name", "display_owner", "display_project", "display_status", "display_subdomain", "chart")
-    readonly_fields = ("app_status", "id", "created_on")
-    list_filter = ["owner", "project", "app_status__status", "chart"]
+    readonly_fields = ("id", "created_on")
+    list_filter = ["owner", "project", "k8s_user_app_status__status", "chart"]
     actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
 
     def display_status(self, obj):
-        status_object = obj.app_status
+        status_object = obj.get_app_status()
         if status_object:
             return status_object.status
         else:

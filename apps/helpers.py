@@ -308,6 +308,9 @@ def update_status(appinstance, status_object, status, status_ts=None, event_msg=
     """
     Helper function to update the status of an appinstance and a status object.
     """
+
+    raise Exception("This function is deprecated and should not be used.")
+
     # Persist a new app statuss object
     status_object.status = status
     status_object.time = status_ts

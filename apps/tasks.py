@@ -24,19 +24,19 @@ def delete_old_objects():
     This function retrieves the old apps based on the given threshold, category, and model class.
     It then iterates through the subclasses of BaseAppInstance and deletes the old apps
     for both the "Develop" and "Manage Files" categories.
+    It skips app instances with action set to SystemDeleting.
     TODO: Make app categories and their corresponding thresholds variables in settings.py.
     """
 
     def get_threshold(threshold):
         return timezone.now() - timezone.timedelta(days=threshold)
 
-    # TODO: Refactor to the new app latest user action
-
     # Handle deletion of apps in the "Develop" category
     for orm_model in APP_REGISTRY.iter_orm_models():
         old_develop_apps = orm_model.objects.filter(
             created_on__lt=get_threshold(7), app__category__name="Develop"
-        ).exclude(app_status__status="Deleted")
+        ).exclude(latest_user_action="SystemDeleting")
+        # old: .exclude(app_status__status="Deleted")
 
         for app_ in old_develop_apps:
             delete_resource.delay(app_.serialize())
@@ -44,7 +44,9 @@ def delete_old_objects():
     # Handle deletion of non persistent file managers
     old_file_managers = FilemanagerInstance.objects.filter(
         created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False
-    ).exclude(app_status__status="Deleted")
+    ).exclude(latest_user_action="SystemDeleting")
+    # old: .exclude(app_status__status="Deleted")
+
     for app_ in old_file_managers:
         delete_resource.delay(app_.serialize())
 
@@ -52,10 +54,9 @@ def delete_old_objects():
 @app.task
 def clean_up_apps_in_database():
     """
-    This task retrieves apps that have been deleted (i.e. got status 'deleted') over a \
+    This task retrieves apps that have been deleted (i.e. got action 'Deleting') over a \
     specified amount of days ago and removes them from the database.
     TODO: Make apps_clean_up_threshold_days a variable in settings.py.
-
     """
 
     apps_clean_up_threshold_days = 425
@@ -67,7 +68,8 @@ def clean_up_apps_in_database():
     for orm_model in APP_REGISTRY.iter_orm_models():
         apps_to_be_cleaned_up = orm_model.objects.filter(
             deleted_on__lt=timezone.now() - timezone.timedelta(days=apps_clean_up_threshold_days),
-            app_status__status="Deleted",
+            latest_user_action__in=["Deleting", "SystemDeleting"],
+            # app_status__status="Deleted",
         )
 
         if apps_to_be_cleaned_up:
@@ -250,11 +252,9 @@ def deploy_resource(serialized_instance):
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 
-    # TODO: Status. Here we no longer save an app_status property.
     instance.info = dict(helm=helm_info)
     # instance.app_status.status = "Created" if success else "Failed"
 
-    # instance.app_status.save()
     instance.save()
 
     # In development, also generate and validate the k8s deployment manifest
@@ -275,31 +275,29 @@ def deploy_resource(serialized_instance):
 def delete_resource(serialized_instance):
     instance = deserialize(serialized_instance)
 
+    # These "apps" are not true user apps but rather handled
+    # by the Serve system. Therefore they are set to the SystemDeleting action.
+    if instance.app.slug in ("volumeK8s", "netpolicy"):
+        instance.latest_user_action = "SystemDeleting"
+
     values = instance.k8s_values
     output, error = helm_delete(values["subdomain"], values["namespace"])
     success = not error
 
     if success:
-        # TODO: Status. User actions are now saved by views and helpers:
-        """
-        if instance.app.slug in ("volumeK8s", "netpolicy"):
-            instance.app_status.status = "Deleted"
-        else:
-            instance.app_status.status = "Deleting..."
-        """
+        # User actions (Deleting) are now saved by views and helpers.
+        # So we do not save any statuses here.
         logger.info(f"Successfully deleted resource type {instance.app.slug}, {values['subdomain']}")
     else:
         # There is no need to save a FailedToDelete status
         # We let the k8s event listener handle this event and together with
         # the instance info we have sufficient troubleshooting information.
-
-        # instance.app_status.status = "FailedToDelete"
+        # This can occur if for example the deployment has already been deleted.
         logger.warn(f"FAILED to delete resource type {instance.app.slug}, {values['subdomain']}, error={error}")
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 
     instance.info = dict(helm=helm_info)
-    # instance.app_status.save()
     instance.save()
 
 

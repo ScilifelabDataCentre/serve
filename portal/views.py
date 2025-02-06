@@ -79,7 +79,7 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     app_orms = (app_model for app_model in APP_REGISTRY.iter_orm_models() if issubclass(app_model, SocialMixin))
 
     for app_orm in app_orms:
-        filters = ~Q(app_status__status="Deleted") & Q(access="public")
+        filters = ~Q(latest_user_action__in=["Deleting", "SystemDeleting"]) & Q(access="public")
         if collection:
             filters &= Q(collections__slug=collection)
         published_apps_qs = app_orm.objects.filter(filters)
@@ -98,7 +98,9 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
 
     for app in published_apps:
         try:
-            app.status_group = "success" if app.app_status.status in settings.APPS_STATUS_SUCCESS else "warning"
+            app.status_group = app.get_status_group()
+            # TODO: Remove after testing
+            # app.status_group = "success" if app.app_status.status in settings.APPS_STATUS_SUCCESS else "warning"
         except:  # noqa E722 TODO refactor: Add exception
             app.latest_status = "unknown"
             app.status_group = "unknown"

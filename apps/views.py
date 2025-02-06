@@ -25,12 +25,6 @@ logger = get_logger(__name__)
 User = get_user_model()
 
 
-def get_status_defs():
-    status_success = settings.APPS_STATUS_SUCCESS
-    status_warning = settings.APPS_STATUS_WARNING
-    return status_success, status_warning
-
-
 @method_decorator(
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
@@ -147,23 +141,13 @@ class GetStatusView(View):
 
         if len(body) > 0:
             arr = body.split(",")
-            status_success, status_warning = get_status_defs()
 
             for orm_model in APP_REGISTRY.iter_orm_models():
                 instances = orm_model.objects.filter(pk__in=arr)
 
                 for instance in instances:
-                    # TODO: Use the new app status value
-                    """
-                    status_object = instance.app_status
-                    if status_object:
-                        status = status_object.status
-                    else:
-                        status = None
-                    """
                     # TODO: wrap in a try except
                     status = instance.get_app_status()
-                    # status = "Waiting"
 
                     # Also set the k8s app status
                     k8s_app_status_object = instance.k8s_user_app_status
@@ -172,9 +156,7 @@ class GetStatusView(View):
                     else:
                         k8s_app_status = None
 
-                    status_group = (
-                        "success" if status in status_success else "warning" if status in status_warning else "danger"
-                    )
+                    status_group = instance.get_status_group()
 
                     obj = {
                         "status": status,
