@@ -174,11 +174,8 @@ class AppInstanceManagerDeleteAppTestCase(TestCase):
         # Set app instance to status Deleted to mimimic deleting an app and retry
         # Merely setting the latest_user_action should be sufficient to make the delete
         # filter exclude this app instance.
-
-        # TODO:
-        # self.app_instance.latest_user_action = "Deleting"
-        # self.app_instance.save()
-        self.app_instance.set_latest_user_action("Deleting")
+        self.app_instance.latest_user_action = "Deleting"
+        self.app_instance.save(update_fields=["latest_user_action"])
 
         result = BaseAppInstance.objects.get_app_instances_not_deleted()
 
@@ -215,6 +212,14 @@ class AppInstanceManagerDeleteAppTestCase(TestCase):
         ("Deleting", "ErrImagePull", "Deleted"),
         ("Deleting", "PostStartHookError", "Deleted"),
         ("Deleting", "Running", "Deleted"),
+        # SystemDeleting
+        ("SystemDeleting", "ContainerCreating", "Deleted"),
+        ("SystemDeleting", "PodInitializing", "Deleted"),
+        ("SystemDeleting", "NotFound", "Deleted"),
+        ("SystemDeleting", "CrashLoopBackoff", "Deleted"),
+        ("SystemDeleting", "ErrImagePull", "Deleted"),
+        ("SystemDeleting", "PostStartHookError", "Deleted"),
+        ("SystemDeleting", "Running", "Deleted"),
     ],
 )
 @pytest.mark.django_db

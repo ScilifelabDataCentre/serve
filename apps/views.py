@@ -146,7 +146,6 @@ class GetStatusView(View):
                 instances = orm_model.objects.filter(pk__in=arr)
 
                 for instance in instances:
-                    # TODO: wrap in a try except
                     status = instance.get_app_status()
 
                     # Also set the k8s app status

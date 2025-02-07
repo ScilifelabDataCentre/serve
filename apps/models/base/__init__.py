@@ -1,6 +1,4 @@
 from .app_categories import AppCategories
-
-# TODO: Status.
 from .app_status import AppStatus
 from .app_template import Apps
 from .base import AppInstanceManager, BaseAppInstance

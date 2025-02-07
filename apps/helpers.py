@@ -521,8 +521,6 @@ def setup_instance(instance, subdomain, app, project, user_action=None, is_creat
     instance.project = project
     instance.owner = project.owner
     instance.latest_user_action = user_action
-    # TODO: Remove after well tested
-    # instance.app_status = status
 
 
 def save_instance_and_related_data(instance: Any, form: Any) -> int:

@@ -99,8 +99,6 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     for app in published_apps:
         try:
             app.status_group = app.get_status_group()
-            # TODO: Remove after testing
-            # app.status_group = "success" if app.app_status.status in settings.APPS_STATUS_SUCCESS else "warning"
         except:  # noqa E722 TODO refactor: Add exception
             app.latest_status = "unknown"
             app.status_group = "unknown"

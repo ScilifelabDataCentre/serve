@@ -3,14 +3,7 @@ from django.test import Client, TestCase
 
 from projects.models import Project
 
-from ..models import (
-    AppCategories,
-    Apps,
-    AppStatus,
-    CustomAppInstance,
-    K8sUserAppStatus,
-    Subdomain,
-)
+from ..models import AppCategories, Apps, CustomAppInstance, K8sUserAppStatus, Subdomain
 
 User = get_user_model()
 
@@ -32,8 +25,7 @@ class AppSettingsViewTestCase(TestCase):
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
         k8s_user_app_status = K8sUserAppStatus.objects.create()
-        # TODO: Status.
-        # app_status = AppStatus.objects.create(status="Created")
+
         self.app_instance = CustomAppInstance.objects.create(
             access="public",
             owner=self.user,
@@ -42,7 +34,6 @@ class AppSettingsViewTestCase(TestCase):
             project=self.project,
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
-            # app_status=app_status,
             k8s_values={
                 "environment": {"pk": ""},
             },

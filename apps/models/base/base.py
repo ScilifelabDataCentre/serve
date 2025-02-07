@@ -12,6 +12,9 @@ from apps.models.base.app_template import Apps
 from apps.models.base.k8s_user_app_status import K8sUserAppStatus
 from apps.models.base.subdomain import Subdomain
 from projects.models import Flavor, Project
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
 
 USER_ACTION_STATUS_CHOICES = [
     ("Creating", "Creating"),
@@ -34,7 +37,6 @@ status_success, status_warning = get_status_defs()
 class AppInstanceManager(models.Manager):
     model_type = "appinstance"
 
-    # TODO: Update unit test with SystemDeleting
     def with_app_status(self):
         """
         Define and add a reusable, chainable annotation app_status.
@@ -70,18 +72,9 @@ class AppInstanceManager(models.Manager):
                     k8s_user_app_status__status__in=["ContainerCreating", "PodInitializing", ""],
                     then=Value("Changing"),
                 ),
-                When(latest_user_action="Deleting", then=Value("Deleted")),
                 default=Value("Unknown"),
                 output_field=CharField(),
             )
-        )
-
-    def _hide_with_app_status(self):
-        """Define and add a reusable, chainable annotation app_status."""
-        # TODO: Call a function from above
-        # The atn prefix is used to clarify that this value is computed on the fly
-        return self.get_queryset().annotate(
-            atn_app_status=BaseAppInstance.convert_to_app_status(F("latest_user_action"), F("k8s_user_app_status"))
         )
 
     def get_app_instances_not_deleted(self):
@@ -93,15 +86,10 @@ class AppInstanceManager(models.Manager):
 
         if not include_deleted:
             if deleted_time_delta is None:
-                # TODO: Status. Replace this
-                # q &= ~Q(app_status__status="Deleted")
                 q &= ~Q(atn_app_status="Deleted")
-                # q &= ~Q(self.get_app_instances_not_deleted().query)
             else:
                 time_threshold = datetime.now() - timedelta(minutes=deleted_time_delta)
-                # q &= ~Q(app_status__status="Deleted") | Q(deleted_on__gte=time_threshold)
                 q &= ~Q(atn_app_status="Deleted") | Q(deleted_on__gte=time_threshold)
-                # q &= ~Q(self.get_app_instances_not_deleted().query) | Q(deleted_on__gte=time_threshold)
 
         if hasattr(self.model, "access"):
             q &= Q(owner=user) | Q(
@@ -157,8 +145,6 @@ class AppInstanceManager(models.Manager):
         num_of_app_instances = (
             self.with_app_status()
             .filter(
-                # TODO:
-                # ~Q(app_status__status="Deleted"),
                 ~Q(atn_app_status="Deleted"),
                 app__slug=app_slug,
                 project=project,
@@ -213,12 +199,6 @@ class BaseAppInstance(models.Model):
     # The model AppStatus and related FK app_status is retained for historical reasons
     # app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
 
-    # TODO: make use of this everywhere were needed
-    def set_latest_user_action(self, new_value: str) -> None:
-        """Convenience function to update the latest_user_action and save the model."""
-        self.latest_user_action = new_value
-        self.save(update_fields=["latest_user_action"])
-
     # Get the computed, dynamic app status value
     def get_app_status(self) -> str:
         """Model function exposing the computed app status value."""
@@ -229,7 +209,6 @@ class BaseAppInstance(models.Model):
             k8s_user_app_status = self.k8s_user_app_status.status
         return BaseAppInstance.convert_to_app_status(self.latest_user_action, k8s_user_app_status)
 
-    # TODO: unit test this
     def get_status_group(self) -> str:
         """Get the status group from the app status."""
         status = self.get_app_status()
@@ -276,7 +255,6 @@ class BaseAppInstance(models.Model):
     def serialize(self):
         return json.loads(serializers.serialize("json", [self]))[0]
 
-    # TODO: Update unit test with SystemDeleting
     @staticmethod
     def convert_to_app_status(latest_user_action: str, k8s_user_app_status: str) -> str:
         """Converts latest user action and k8s pod status to app status"""
@@ -300,7 +278,9 @@ class BaseAppInstance(models.Model):
             case "Changing", _:
                 return "Changing"
             case _, _:
+                logger.warn(
+                    f"Invalid input to convert_to_app_status. No match for {latest_user_action}, {k8s_user_app_status}"
+                )
                 return "Unknown"
-                # return f"Invalid input. No match for input {latest_user_action}, {k8s_user_app_status}"
 
         raise ValueError("Invalid input")

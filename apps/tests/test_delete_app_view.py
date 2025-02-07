@@ -12,7 +12,6 @@ User = get_user_model()
 test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
 
 
-# TODO: Add K8sUserAppStatus?
 class DeleteAppViewTestCase(TestCase):
     def setUp(self) -> None:
         self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
@@ -28,7 +27,7 @@ class DeleteAppViewTestCase(TestCase):
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
         k8s_user_app_status = K8sUserAppStatus.objects.create()
-        # app_status = AppStatus.objects.create(status="Created")
+
         self.app_instance = JupyterInstance.objects.create(
             access="public",
             owner=self.user,
@@ -37,7 +36,6 @@ class DeleteAppViewTestCase(TestCase):
             project=self.project,
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
-            # app_status=app_status,
         )
 
     def get_data(self, user=None):
