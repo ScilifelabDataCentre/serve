@@ -351,11 +351,24 @@ class GrantAccessToProjectView(View):
             project.authorized.add(selected_user)
             assign_perm("can_view_project", selected_user, project)
 
+            project_uri = f"{request.get_host()}/projects/{project.slug}"
+            email_body = f"""\
+Hi {selected_username},
+
+You have been added to the project {project.name} on SciLifeLab Serve (https://serve.scilifelab.se) by {request.user.username}. You can now view the project here: {project_uri}
+If you have any questions get in touch with us at serve@scilifelab.se.
+
+Thank you for signing up for our service. We are excited to have you on board!
+
+Best regards,  
+The Data Centre team
+"""
+
             try:
                 # Notify user
                 send_mail(
                     f"You've been added to {project.name}",
-                    f"Hi {selected_username}! You can now view the following project: {project.name}.",
+                    email_body,
                     settings.EMAIL_HOST_USER,
                     [selected_username],
                     fail_silently=False,
