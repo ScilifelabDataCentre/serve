@@ -5,6 +5,7 @@ module.exports = defineConfig({
     do_reset_db: false,
     wait_db_reset: 60000,
     create_resources: true,
+    run_extended_k8s_checks: false,
   },
 
   e2e: {

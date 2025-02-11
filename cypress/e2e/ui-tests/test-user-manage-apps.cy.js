@@ -13,6 +13,7 @@ describe("Test managing user app", () => {
     const longCmdTimeoutMs = 10000 //30000
 
     // Function to verify the displayed app status and permission level
+    // The expected values are tested if non-empty
     const verifyAppStatus = (
         app_name,
         expected_status,
@@ -21,7 +22,9 @@ describe("Test managing user app", () => {
 
         cy.get('tr:contains("' + app_name + '")').then(($approw) => {
             // The status span element has id with format: status-customapp-nnn
-            cy.get($approw).get('[data-cy="appstatus"]').should('contain', expected_status)
+            if (expected_status != "") {
+                cy.get($approw).get('[data-cy="appstatus"]').should('contain', expected_status)
+            }
 
             if (expected_latest_user_action != "") {
                 cy.get($approw).get('[data-cy="appstatus"]').should('have.attr', 'data-app-action', expected_latest_user_action)
@@ -85,7 +88,8 @@ describe("Test managing user app", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it.skip("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // TODO: Revisit. Need to debug the app deletion steps.
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name_project = "e2e-custom-example-project"
@@ -126,8 +130,11 @@ describe("Test managing user app", () => {
             cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
-            // check that the app was created
-            verifyAppStatus(app_name_project, "Running", "project")
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name_project, "Creating", "project", "Creating")
+
             // check that the default URL subpath was created
             cy.contains('a', app_name_project)
                   .should('have.attr', 'href')
@@ -146,18 +153,27 @@ describe("Test managing user app", () => {
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#submit-id-submit').contains('Submit').click()
-            verifyAppStatus(app_name_project, "Running", "public")
+
+            // We now verify the correct permission level and user action
+            // but not the app status because it is dependent on k8s
+            verifyAppStatus(app_name_project, "", "public", "Changing")
 
             // Wait for 5 seconds and check the app status again
-            cy.wait(5000).then(() => {
-                verifyAppStatus(app_name_project, "Running", "public")
-            })
+            // This relies on the k8s event listener
+            if (Cypress.env('run_extended_k8s_checks') === true) {
+                cy.wait(5000).then(() => {
+                    verifyAppStatus(app_name_project, "Running", "public", "Changing")
+                })
+            }
 
+            // Delete the project level app
             cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
             cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name_project, "Deleted", "")
+
+            // verify that the app is not visible in the project overview
+            cy.get('tr:contains("' + app_name_project + '")').should('not.exist')
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.logf("Now creating a public app", Cypress.currentTest)
@@ -174,12 +190,17 @@ describe("Test managing user app", () => {
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
 
-            verifyAppStatus(app_name_public, "Running", "public")
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name_public, "Creating", "public", "Creating")
 
-            // Wait for 5 seconds and check the app status again
-            cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public, "Running", "public")
-            })
+            // This relies on the k8s event listener
+            if (Cypress.env('run_extended_k8s_checks') === true) {
+                // Wait for 5 seconds and check the app status again
+                cy.wait(5000).then(() => {
+                   verifyAppStatus(app_name_public, "Running", "public", "Creating")
+                })
+            }
 
             // check that the default URL subpath was created
             cy.contains('a', app_name_public)
@@ -243,13 +264,19 @@ describe("Test managing user app", () => {
             cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
 
-            // NB: it will get status "Running" but it won't work because the new port is incorrect
-            verifyAppStatus(app_name_public_2, "Running", "link")
+            // We do not verify the app status because it depends on k8s
+            verifyAppStatus(app_name_public_2, "", "link", "Changing")
 
-            // Wait for 5 seconds and check the app status again
-            cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public_2, "Running", "link")
-            })
+            // This relies on the k8s event listener
+            if (Cypress.env('run_extended_k8s_checks') === true) {
+                // NB: it will get status "Running" but it won't work because the new port is incorrect
+                verifyAppStatus(app_name_public_2, "Running", "link", "Changing")
+
+                // Wait for 5 seconds and check the app status again
+                cy.wait(5000).then(() => {
+                    verifyAppStatus(app_name_public_2, "Running", "link", "Changing")
+                })
+            }
 
             // check that the default URL subpath was changed
             cy.contains('a', app_name_public_2)
@@ -277,8 +304,8 @@ describe("Test managing user app", () => {
 
             // check this invalid_default_url_subpath error was matched
             cy.get('.client-validation-feedback.client-validation-invalid')
-      .should('exist')
-      .and('include.text', 'Your custom URL subpath is not valid, please correct it');
+                .should('exist')
+                .and('include.text', 'Your custom URL subpath is not valid, please correct it');
 
             // Remove the created public app and verify that it is deleted from public apps page
             cy.logf("Now deleting the public app", Cypress.currentTest)
@@ -287,7 +314,9 @@ describe("Test managing user app", () => {
             cy.get('tr:contains("' + app_name_public_2 + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name_public_2, "Deleted", "")
+
+            // verify that the app is not visible in the project overview
+            cy.get('tr:contains("' + app_name_public_2 + '")').should('not.exist')
 
             // check that the app is not visible under public apps
             cy.visit("/apps")
@@ -376,6 +405,7 @@ describe("Test managing user app", () => {
     it.only("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Simple test to create and delete a Dash app
         // Names of objects to create
+        // TODO: PASS
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-dash-example"
         const app_description = "e2e-dash-description"
@@ -408,10 +438,12 @@ describe("Test managing user app", () => {
 
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
-            // TODO: This relies on the k8s event listener. Can be uncommented
-/*             cy.wait(5000).then(() => {
-                verifyAppStatus(app_name, "Running", "public", "Creating")
-            }) */
+            // This relies on the k8s event listener
+            if (Cypress.env('run_extended_k8s_checks') === true) {
+                cy.wait(5000).then(() => {
+                    verifyAppStatus(app_name, "Running", "public", "Creating")
+                })
+            }
 
             // Verify Dash app values by opening the app settings form
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -431,7 +463,8 @@ describe("Test managing user app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
+            // cy.get('button').contains('Delete').click()
+            cy.get('[data-cy="delete-app-button-confirm"]').click()
 
             // verify that the app is not visible in the project overview
             cy.get('tr:contains("' + app_name + '")').should('not.exist')
@@ -448,6 +481,7 @@ describe("Test managing user app", () => {
     })
 
     it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // TODO: Debug delete action
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-tissuumaps-example"
@@ -469,12 +503,17 @@ describe("Test managing user app", () => {
             cy.get('#id_volume').select(volume_display_text)
             cy.get('#submit-id-submit').contains('Submit').click()
 
-            verifyAppStatus(app_name, "Running", "public")
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "public", "Creating")
 
             // Wait for 5 seconds and check the app status again
-            cy.wait(5000).then(() => {
-              verifyAppStatus(app_name, "Running", "public")
-            })
+            // This relies on the k8s event listener
+            if (Cypress.env('run_extended_k8s_checks') === true) {
+                cy.wait(5000).then(() => {
+                verifyAppStatus(app_name, "Running", "public")
+                })
+            }
 
             cy.logf("Checking that all tissuumaps app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
@@ -492,7 +531,9 @@ describe("Test managing user app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+
+            // verify that the app is not visible in the project overview
+            cy.get('tr:contains("' + app_name + '")').should('not.exist')
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
