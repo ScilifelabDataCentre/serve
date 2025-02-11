@@ -361,7 +361,7 @@ If you have any questions get in touch with us at serve@scilifelab.se
 
 Thank you for signing up for our service. We are excited to have you on board!
 
-Best regards,  
+Best regards,
 The Data Centre team
 """
 
