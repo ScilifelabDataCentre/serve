@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
+from django.core.mail import send_mail
 from django.db.models import Model, Q
 from django.http import (
     HttpResponse,
@@ -349,6 +350,19 @@ class GrantAccessToProjectView(View):
 
             project.authorized.add(selected_user)
             assign_perm("can_view_project", selected_user, project)
+
+            try:
+                # Notify user
+                send_mail(
+                    f"You've been added to {project.name}",
+                    f"Hi {selected_username}! You can now view the following project: {project.name}.",
+                    settings.EMAIL_HOST_USER,
+                    [selected_username],
+                    fail_silently=False,
+                )
+
+            except Exception as err:
+                logger.exception(f"Unable to send email to user: {str(err)}", exc_info=True)
 
             log = ProjectLog(
                 project=project,
