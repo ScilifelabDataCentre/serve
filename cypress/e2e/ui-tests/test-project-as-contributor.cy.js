@@ -49,6 +49,7 @@ describe("Test project contributor user functionality", () => {
 
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
+        const project_name_2 = "An alternative project name created by an e2e test."
         const project_title_name = project_name + " | SciLifeLab Serve (beta)"
         const project_description = "A test project created by an e2e test."
         const project_description_2 = "An alternative project description created by an e2e test."
@@ -101,6 +102,13 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('.card-text').should('contain', project_description_2)
+
+        cy.logf("Change project name", Cypress.currentTest)
+        cy.get('textarea[name=name]').clear().type(project_name_2)
+        cy.get('button').contains('Save').click()
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+        cy.get('.card-text').should('contain', project_name_2)
 
         cy.logf("Check that creating another project with same existing project name will create an error", Cypress.currentTest)
         cy.visit("/projects/")
