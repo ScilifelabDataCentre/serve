@@ -355,8 +355,9 @@ class GrantAccessToProjectView(View):
             email_body = f"""\
 Hi {selected_username},
 
-You have been added to the project {project.name} on SciLifeLab Serve (https://serve.scilifelab.se) by {request.user.username}. You can now view the project here: {project_uri}
-If you have any questions get in touch with us at serve@scilifelab.se.
+You have been added to the project {project.name} on SciLifeLab Serve (https://serve.scilifelab.se) by {request.user.username}
+You can now view the project here: {project_uri}
+If you have any questions get in touch with us at serve@scilifelab.se
 
 Thank you for signing up for our service. We are excited to have you on board!
 
