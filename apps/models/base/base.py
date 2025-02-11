@@ -7,7 +7,6 @@ from django.core import serializers
 from django.db import models
 from django.db.models import Case, CharField, F, Q, Value, When
 
-from apps.models.base.app_status import AppStatus
 from apps.models.base.app_template import Apps
 from apps.models.base.k8s_user_app_status import K8sUserAppStatus
 from apps.models.base.subdomain import Subdomain
