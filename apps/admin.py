@@ -16,6 +16,7 @@ from .models import (
     FilemanagerInstance,
     GradioInstance,
     JupyterInstance,
+    MLFlowInstance,
     NetpolicyInstance,
     RStudioInstance,
     ShinyInstance,
@@ -198,6 +199,12 @@ class NetpolicyInstanceAdmin(BaseAppAdmin):
 @admin.register(DashInstance)
 class DashInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + ("image",)
+
+
+@admin.register(MLFlowInstance)
+class MLFlowAppInstanceAdmin(BaseAppAdmin):
+    # list any fields that you want be listed in the admin pannel.
+    list_display = BaseAppAdmin.list_display
 
 
 @admin.register(CustomAppInstance)
