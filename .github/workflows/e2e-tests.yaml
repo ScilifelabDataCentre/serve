@@ -127,13 +127,13 @@ jobs:
           config: pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }}
           quiet: true
       - name: Save cypress screenshot artifacts on failure
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: cypress-screenshots
           path: cypress/screenshots
       - name: Save cypress video artifacts on failure
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: cypress-videos

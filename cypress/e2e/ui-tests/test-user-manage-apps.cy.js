@@ -1,119 +1,126 @@
-describe("Test managing user app", () => {
+if (Cypress.env('create_resources') === true) {
 
-    // Tests performed as an authenticated user that creates and deletes apps.
-    // Note that these tests are meant to be relatively fast running UI tests
-    // and therefore do not wait for results from k8s.
-    // For tests involving k8s, see integration tests.
+    // All of these tests rely on creating resources
 
-    // The default command timeout should not be so long
-    // Instead use longer timeouts on specific commands where deemed necessary and valid
-    const defaultCmdTimeoutMs = 5000 //10000
-    // The longer timeout is often used when waiting for k8s operations to complete
-    // TODO: this timeout is lowered:
-    const longCmdTimeoutMs = 10000 //30000
+    describe("Test managing user app", () => {
 
-    // Function to verify the displayed app status and permission level
-    // The expected values are tested if non-empty
-    const verifyAppStatus = (
-        app_name,
-        expected_status,
-        expected_permission,
-        expected_latest_user_action) => {
+        // Tests performed as an authenticated user that creates and deletes apps.
+        // Note that these tests are meant to be relatively fast running UI tests
+        // and therefore do not wait for results from k8s.
+        // For tests involving k8s, see integration tests.
 
-        cy.get('tr:contains("' + app_name + '")').then(($approw) => {
-            // The status span element has id with format: status-customapp-nnn
-            if (expected_status != "") {
-                cy.get($approw).get('[data-cy="appstatus"]').should('contain', expected_status)
+        // The default command timeout should not be so long
+        // Instead use longer timeouts on specific commands where deemed necessary and valid
+        const defaultCmdTimeoutMs = 5000 //10000
+        // The longer timeout is often used when waiting for k8s operations to complete
+        // TODO: this timeout is lowered:
+        const longCmdTimeoutMs = 10000 //30000
+
+        // Cypress env variables with default value
+        let env_run_extended_k8s_checks
+
+        // Function to verify the displayed app status and permission level
+        // The expected values are tested if non-empty
+        const verifyAppStatus = (
+            app_name,
+            expected_status,
+            expected_permission,
+            expected_latest_user_action) => {
+
+            cy.get('tr:contains("' + app_name + '")').then(($approw) => {
+                // The status span element has id with format: status-customapp-nnn
+                if (expected_status != "") {
+                    cy.get($approw).get('[data-cy="appstatus"]').should('contain', expected_status)
+                }
+
+                if (expected_latest_user_action != "") {
+                    cy.get($approw).get('[data-cy="appstatus"]').should('have.attr', 'data-app-action', expected_latest_user_action)
+                }
+
+                // The permission level span elment has id with format: permission-283
+                if (expected_permission != "") {
+                    cy.get($approw).get('[data-cy="app-permission"]').should('contain', expected_permission)
+                }
+            })
+        };
+
+        // user: e2e_tests_deploy_app_user
+        let users
+
+
+        before({ defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            cy.logf("Begin before() hook", Cypress.currentTest)
+
+            env_run_extended_k8s_checks = Cypress.env('run_extended_k8s_checks') ?? false
+
+            // do db reset if needed
+            if (Cypress.env('do_reset_db') === true) {
+                cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
+                cy.exec("./cypress/e2e/db-reset.sh");
+                cy.wait(Cypress.env('wait_db_reset'));
             }
-
-            if (expected_latest_user_action != "") {
-                cy.get($approw).get('[data-cy="appstatus"]').should('have.attr', 'data-app-action', expected_latest_user_action)
+            else {
+                cy.logf("Skipping resetting the db state.", Cypress.currentTest);
             }
+            // hmm, longer timeout here does not seem to have an impact
+            cy.visit("/", {
+                timeout: 45000,
+                retryOnStatusCodeFailure: true,
+                retryOnNetworkFailure: true,
+            })
+            // seed the db with a user
+            cy.logf("Running seed-deploy-app-user.py", Cypress.currentTest)
+            cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
+            // username in fixture must match username in db-reset.sh
+            cy.fixture('users.json').then(function (data) {
+                users = data
 
-            // The permission level span elment has id with format: permission-283
-            if (expected_permission != "") {
-                cy.get($approw).get('[data-cy="app-permission"]').should('contain', expected_permission)
-            }
-        })
-    };
+                cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password)
+            })
+            const project_name = "e2e-deploy-app-test"
+            cy.createBlankProject(project_name)
 
-    // user: e2e_tests_deploy_app_user
-    let users
-
-
-    before({ defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        cy.logf("Begin before() hook", Cypress.currentTest)
-
-        // do db reset if needed
-        if (Cypress.env('do_reset_db') === true) {
-            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
-            cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(Cypress.env('wait_db_reset'));
-        }
-        else {
-            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
-        }
-        // hmm, longer timeout here does not seem to have an impact
-        cy.visit("/", {
-            timeout: 45000,
-            retryOnStatusCodeFailure: true,
-            retryOnNetworkFailure: true,
-        })
-        // seed the db with a user
-        cy.logf("Running seed-deploy-app-user.py", Cypress.currentTest)
-        cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
-        // username in fixture must match username in db-reset.sh
-        cy.fixture('users.json').then(function (data) {
-            users = data
-
-            cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password)
-        })
-        const project_name = "e2e-deploy-app-test"
-        cy.createBlankProject(project_name)
-
-        cy.logf("End before() hook", Cypress.currentTest)
-    })
-
-    beforeEach(() => {
-        cy.logf("Begin beforeEach() hook", Cypress.currentTest)
-
-        // username in fixture must match username in db-reset.sh
-        cy.logf("Logging in", Cypress.currentTest)
-        cy.fixture('users.json').then(function (data) {
-            users = data
-
-            cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password)
+            cy.logf("End before() hook", Cypress.currentTest)
         })
 
-        cy.logf("End beforeEach() hook", Cypress.currentTest)
-    })
+        beforeEach(() => {
+            cy.logf("Begin beforeEach() hook", Cypress.currentTest)
 
-    it.skip("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // TODO: Revisit. Need to debug the app deletion steps.
-        // Names of objects to create
-        const project_name = "e2e-deploy-app-test"
-        const app_name_project = "e2e-custom-example-project"
-        const app_name_public = "e2e-custom-example-public"
-        const app_name_public_2 = "e2e-custom-example-2-public"
-        const app_description = "e2e-custom-description"
-        const app_description_2 = "e2e-custom-2-description"
-        const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
-        const image_name_2 = "ghcr.io/scilifelabdatacentre/example-streamlit:230921-1443"
-        const image_port = "8501"
-        const image_port_2 = "8502"
-        const app_path = "/home/username"
-        const app_path_2 = "/home/username/app"
-        const link_privacy_type_note = "some-text-on-link-only-app"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "Custom App"
-        const app_source_code_public = "https://doi.org/example"
-        const default_url_subpath = "default/url/subpath/"
-        const changed_default_url_subpath = "changed/subpath/"
-        const invalid_default_url_subpath = "€% / ()"
+            // username in fixture must match username in db-reset.sh
+            cy.logf("Logging in", Cypress.currentTest)
+            cy.fixture('users.json').then(function (data) {
+                users = data
 
-        let volume_display_text = "project-vol (" + project_name + ")"
+                cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password)
+            })
 
-        if (createResources === true) {
+            cy.logf("End beforeEach() hook", Cypress.currentTest)
+        })
+
+        it.skip("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // TODO: Revisit. Need to debug the app deletion steps.
+            // Names of objects to create
+            const project_name = "e2e-deploy-app-test"
+            const app_name_project = "e2e-custom-example-project"
+            const app_name_public = "e2e-custom-example-public"
+            const app_name_public_2 = "e2e-custom-example-2-public"
+            const app_description = "e2e-custom-description"
+            const app_description_2 = "e2e-custom-2-description"
+            const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
+            const image_name_2 = "ghcr.io/scilifelabdatacentre/example-streamlit:230921-1443"
+            const image_port = "8501"
+            const image_port_2 = "8502"
+            const app_path = "/home/username"
+            const app_path_2 = "/home/username/app"
+            const link_privacy_type_note = "some-text-on-link-only-app"
+            const app_type = "Custom App"
+            const app_source_code_public = "https://doi.org/example"
+            const default_url_subpath = "default/url/subpath/"
+            const changed_default_url_subpath = "changed/subpath/"
+            const invalid_default_url_subpath = "€% / ()"
+
+            let volume_display_text = "project-vol (" + project_name + ")"
+
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
@@ -137,8 +144,8 @@ describe("Test managing user app", () => {
 
             // check that the default URL subpath was created
             cy.contains('a', app_name_project)
-                  .should('have.attr', 'href')
-                  .and('include', default_url_subpath);
+                .should('have.attr', 'href')
+                .and('include', default_url_subpath);
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public applications and models')
@@ -160,7 +167,7 @@ describe("Test managing user app", () => {
 
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
-            if (Cypress.env('run_extended_k8s_checks') === true) {
+            if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
                     verifyAppStatus(app_name_project, "Running", "public", "Changing")
                 })
@@ -195,17 +202,17 @@ describe("Test managing user app", () => {
             verifyAppStatus(app_name_public, "Creating", "public", "Creating")
 
             // This relies on the k8s event listener
-            if (Cypress.env('run_extended_k8s_checks') === true) {
+            if (env_run_extended_k8s_checks === true) {
                 // Wait for 5 seconds and check the app status again
                 cy.wait(5000).then(() => {
-                   verifyAppStatus(app_name_public, "Running", "public", "Creating")
+                verifyAppStatus(app_name_public, "Running", "public", "Creating")
                 })
             }
 
             // check that the default URL subpath was created
             cy.contains('a', app_name_public)
-                  .should('have.attr', 'href')
-                  .and('include', default_url_subpath);
+                .should('have.attr', 'href')
+                .and('include', default_url_subpath);
 
             cy.visit("/apps")
             cy.get('h5.card-title').should('contain', app_name_public)
@@ -268,7 +275,7 @@ describe("Test managing user app", () => {
             verifyAppStatus(app_name_public_2, "", "link", "Changing")
 
             // This relies on the k8s event listener
-            if (Cypress.env('run_extended_k8s_checks') === true) {
+            if (env_run_extended_k8s_checks === true) {
                 // NB: it will get status "Running" but it won't work because the new port is incorrect
                 verifyAppStatus(app_name_public_2, "Running", "link", "Changing")
 
@@ -280,8 +287,8 @@ describe("Test managing user app", () => {
 
             // check that the default URL subpath was changed
             cy.contains('a', app_name_public_2)
-                  .should('have.attr', 'href')
-                  .and('include', changed_default_url_subpath);
+                .should('have.attr', 'href')
+                .and('include', changed_default_url_subpath);
 
             // Check that the changes were saved
             cy.visit("/projects/")
@@ -323,26 +330,20 @@ describe("Test managing user app", () => {
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name_public_2).should('not.exist')
+        })
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
-    })
+        // This test is skipped because it will only work against a Serve instance running on our cluster. should be switched on for the e2e tests against remote.
+        // We need to add a test here for validating Site-dir option. See SS-1206 for details
+        it.skip("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Names of objects to create
+            const project_name = "e2e-deploy-app-test"
+            const app_name = "e2e-shiny-example"
+            const app_description = "e2e-shiny-description"
+            const source_code_url = "https://doi.org/example"
+            const image_name = "ghcr.io/scilifelabdatacentre/shiny-adhd-medication-sweden:20240117-062031"
+            const image_port = "3838"
+            const app_type = "Shiny App"
 
-    // This test is skipped because it will only work against a Serve instance running on our cluster. should be switched on for the e2e tests against remote.
-    // We need to add a test here for validating Site-dir option. See SS-1206 for details
-    it.skip("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // Names of objects to create
-        const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-shiny-example"
-        const app_description = "e2e-shiny-description"
-        const source_code_url = "https://doi.org/example"
-        const image_name = "ghcr.io/scilifelabdatacentre/shiny-adhd-medication-sweden:20240117-062031"
-        const image_port = "3838"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "Shiny App"
-
-        if (createResources === true) {
             cy.logf("Creating a shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -396,26 +397,20 @@ describe("Test managing user app", () => {
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
+        })
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
-    })
+        it.only("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Simple test to create and delete a Dash app
+            // Names of objects to create
+            // TODO: PASS
+            const project_name = "e2e-deploy-app-test"
+            const app_name = "e2e-dash-example"
+            const app_description = "e2e-dash-description"
+            const source_code_url = "https://doi.org/example"
+            const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
+            const image_port = "8000"
+            const app_type = "Dash App"
 
-    it.only("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // Simple test to create and delete a Dash app
-        // Names of objects to create
-        // TODO: PASS
-        const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-dash-example"
-        const app_description = "e2e-dash-description"
-        const source_code_url = "https://doi.org/example"
-        const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
-        const image_port = "8000"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "Dash App"
-
-        if (createResources === true) {
             // Create Dash app
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
@@ -439,7 +434,7 @@ describe("Test managing user app", () => {
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
-            if (Cypress.env('run_extended_k8s_checks') === true) {
+            if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
                     verifyAppStatus(app_name, "Running", "public", "Creating")
                 })
@@ -461,10 +456,12 @@ describe("Test managing user app", () => {
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            // cy.get('button').contains('Delete').click()
-            cy.get('[data-cy="delete-app-button-confirm"]').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
 
             // verify that the app is not visible in the project overview
             cy.get('tr:contains("' + app_name + '")').should('not.exist')
@@ -474,24 +471,23 @@ describe("Test managing user app", () => {
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
+        })
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
-    })
+        it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Names of objects to create
+            // TODO: PASS
+            const project_name = "e2e-deploy-app-test"
+            const app_name = "e2e-tissuumaps-example"
+            const app_description = "e2e-tissuumaps-description"
+            const app_type = "TissUUmaps App"
 
-    it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // TODO: Debug delete action
-        // Names of objects to create
-        const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-tissuumaps-example"
-        const app_description = "e2e-tissuumaps-description"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "TissUUmaps App"
+            let volume_display_text = "project-vol (" + project_name + ")"
 
-        let volume_display_text = "project-vol (" + project_name + ")"
+            if (env_create_resources === false) {
+                cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
+                return
+            }
 
-        if (createResources === true) {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
@@ -509,7 +505,7 @@ describe("Test managing user app", () => {
 
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
-            if (Cypress.env('run_extended_k8s_checks') === true) {
+            if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
                 verifyAppStatus(app_name, "Running", "public")
                 })
@@ -528,9 +524,12 @@ describe("Test managing user app", () => {
             cy.logf("Deleting the tissuumaps app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
 
             // verify that the app is not visible in the project overview
             cy.get('tr:contains("' + app_name + '")').should('not.exist')
@@ -540,25 +539,20 @@ describe("Test managing user app", () => {
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
+        })
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
-    })
+        it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Simple test to create and delete a Gradio app
+            // Names of objects to create
+            // TODO: PASS
+            const project_name = "e2e-deploy-app-test"
+            const app_name = "e2e-gradio-example"
+            const app_description = "e2e-gradio-description"
+            const source_code_url = "https://doi.org/example"
+            const image_name = "ghcr.io/scilifelabdatacentre/gradio-flower-classification:20241118-174426"
+            const image_port = "7860"
+            const app_type = "Gradio App"
 
-    it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // Simple test to create and delete a Gradio app
-        // Names of objects to create
-        const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-gradio-example"
-        const app_description = "e2e-gradio-description"
-        const source_code_url = "https://doi.org/example"
-        const image_name = "ghcr.io/scilifelabdatacentre/gradio-flower-classification:20241118-174426"
-        const image_port = "7860"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "Gradio App"
-
-        if (createResources === true) {
             // Create Gradio app
             cy.logf("Creating a gradio app", Cypress.currentTest)
             cy.visit("/projects/")
@@ -574,8 +568,10 @@ describe("Test managing user app", () => {
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
-            // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "public", "Creating")
 
             // Verify Gradio app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -593,35 +589,35 @@ describe("Test managing user app", () => {
             cy.logf("Deleting the gradio app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
+
+            // verify that the app is not visible in the project overview
+            cy.get('tr:contains("' + app_name + '")').should('not.exist')
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
+        })
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
-    })
+        it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Simple test to create and delete a Streamlit app
+            // Names of objects to create
+            // TODO: PASS
+            const project_name = "e2e-deploy-app-test"
+            const app_name = "e2e-streamlit-example"
+            const app_description = "e2e-streamlit-description"
+            const source_code_url = "https://doi.org/example"
+            const image_name = "ghcr.io/scilifelabdatacentre/streamlit-image-to-smiles:20241112-183549"
+            const image_port = "8501"
+            const app_type = "Streamlit App"
 
-    it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // Simple test to create and delete a Streamlit app
-        // Names of objects to create
-        const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-streamlit-example"
-        const app_description = "e2e-streamlit-description"
-        const source_code_url = "https://doi.org/example"
-        const image_name = "ghcr.io/scilifelabdatacentre/streamlit-image-to-smiles:20241112-183549"
-        const image_port = "8501"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "Streamlit App"
-
-        if (createResources === true) {
             // Create Streamlit app
             cy.logf("Creating a streamlit app", Cypress.currentTest)
             cy.visit("/projects/")
@@ -637,8 +633,10 @@ describe("Test managing user app", () => {
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
-            // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "public", "Creating")
 
             // Verify Streamlit app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -656,36 +654,36 @@ describe("Test managing user app", () => {
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
+
+            // verify that the app is not visible in the project overview
+            cy.get('tr:contains("' + app_name + '")').should('not.exist')
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
+        })
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
-    })
+        it("can modify app settings resulting in NO k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // An advanced test to verify user can modify app settings such as the name and description
+            // Names of objects to create
+            // TODO: PASS
+            const project_name = "e2e-deploy-app-test"
+            const app_name = "e2e-change-app-settings-no-redeploy"
+            const app_name_edited = app_name + "-edited"
+            const app_description = "e2e-change-app-settings-description"
+            const source_code_url = "https://doi.org/example"
+            const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
+            const image_port = "8000"
+            const app_type = "Dash App"
 
-    it("can modify app settings resulting in NO k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // An advanced test to verify user can modify app settings such as the name and description
-        // Names of objects to create
-        const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-change-app-settings-no-redeploy"
-        const app_name_edited = app_name + "-edited"
-        const app_description = "e2e-change-app-settings-description"
-        const source_code_url = "https://doi.org/example"
-        const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
-        const image_port = "8000"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "Dash App"
-
-        if (createResources === true) {
             // Create Dash app
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
@@ -701,8 +699,10 @@ describe("Test managing user app", () => {
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
-            // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "public", "Creating")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -720,8 +720,8 @@ describe("Test managing user app", () => {
             cy.logf("Editing the dash app settings (non redeployment fields)", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a').contains('Settings').click()
             // Here we change the app name from app_name to app_name_edited
             cy.get('#id_name').type("-edited")
             cy.get('#id_description').type(", edited description.")
@@ -729,49 +729,53 @@ describe("Test managing user app", () => {
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
-            // Verify that the app status still equals Running
-            verifyAppStatus(app_name_edited, "Running", "public")
 
-            // Wait for 20 seconds and check the app status again
-            // This is a brittle part of the test, therefore we wait a longer time to see if the status (incorrectly) changes
-            cy.wait(20000).then(() => {
-              verifyAppStatus(app_name_edited, "Running", "public")
-            })
+            // Verify that the app status by checking latest user action:
+            verifyAppStatus(app_name_edited, "", "public", "Changing")
+
+            // The final app status and latest user action:
+            // Wait for 5 seconds and check the app status again
+            // This relies on the k8s event listener
+            if (env_run_extended_k8s_checks === true) {
+                cy.wait(5000).then(() => {
+                    verifyAppStatus(app_name_edited, "Running", "public", "Creating")
+                })
+            }
 
             // Delete the Dash app
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_edited + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name_edited + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name_edited, "Deleted", "")
+            cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
+
+            // verify that the app is not visible in the project overview
+            cy.get('tr:contains("' + app_name_edited + '")').should('not.exist')
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name_edited).should('not.exist')
+        })
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
-    })
+        it("can modify app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // An advanced test to verify user can modify app settings resulting in k8s redeployment (image)
+            // still shows the correct app status.
+            // Names of objects to create
+            // TODO: PASS
+            const project_name = "e2e-deploy-app-test"
+            const app_name = "e2e-change-app-settings-redeploy"
+            const app_description = "e2e-change-app-settings-description"
+            const source_code_url = "https://doi.org/example"
+            const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
+            const image_port = "8000"
+            const app_type = "Dash App"
 
-    it("can modify app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // An advanced test to verify user can modify app settings resulting in k8s redeployment (image)
-        // still shows the correct app status.
-        // Names of objects to create
-        const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-change-app-settings-redeploy"
-        const app_description = "e2e-change-app-settings-description"
-        const source_code_url = "https://doi.org/example"
-        const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
-        const image_port = "8000"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "Dash App"
-
-        if (createResources === true) {
             // Create Dash app
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
@@ -787,8 +791,10 @@ describe("Test managing user app", () => {
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
-            // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "public", "Creating")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -813,8 +819,18 @@ describe("Test managing user app", () => {
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
+
+            verifyAppStatus(app_name, "", "public", "Changing")
+
+            // The final app status and latest user action:
+            // Wait for 5 seconds and check the app status again
+            // This relies on the k8s event listener
             // Verify that the app status now equals Image Error
-            verifyAppStatus(app_name, "Image Error", "public")
+            if (env_run_extended_k8s_checks === true) {
+                cy.wait(5000).then(() => {
+                    verifyAppStatus(app_name, "Error", "public", "Changing")
+                })
+            }
 
             // Edit Dash app: modify the app image back to a valid image
             cy.logf("Editing the dash app settings field Image to a valid value", Cypress.currentTest)
@@ -827,47 +843,57 @@ describe("Test managing user app", () => {
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
-            // Verify that the app status now equals Running
-            verifyAppStatus(app_name, "Running", "public")
 
+            verifyAppStatus(app_name, "", "public", "Changing")
+
+            // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
-            cy.wait(5000).then(() => {
-              verifyAppStatus(app_name, "Running", "public")
-            })
+            // This relies on the k8s event listener
+            // Verify that the app status now equals Running
+            if (env_run_extended_k8s_checks === true) {
+                cy.wait(5000).then(() => {
+                    verifyAppStatus(app_name, "Running", "public", "Changing")
+                })
+
+                // Wait for 5 seconds and check the app status again
+                cy.wait(5000).then(() => {
+                    verifyAppStatus(app_name, "Running", "public", "Changing")
+                })
+            }
 
             // Delete the Dash app
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
+
+            // verify that the app is not visible in the project overview
+            cy.get('tr:contains("' + app_name + '")').should('not.exist')
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
+        })
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
-    })
+        it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // A test to verify creating an app and changing the subdomain
+            // TODO: PASS
+            const project_name = "e2e-deploy-app-test"
+            const app_name = "e2e-subdomain-change"
+            const app_description = "e2e-subdomain-change-description"
+            const source_code_url = "https://doi.org/example"
+            const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
+            const image_port = "8000"
+            const app_type = "Dash App"
+            const subdomain_change = "subdomain-change"
 
-    it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // A test to verify creating an app and changing the subdomain
-        const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-subdomain-change"
-        const app_description = "e2e-subdomain-change-description"
-        const source_code_url = "https://doi.org/example"
-        const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
-        const image_port = "8000"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "Dash App"
-        const subdomain_change = "subdomain-change"
-
-        if (createResources === true) {
             // Create Dash app without custom subdomain
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
@@ -882,9 +908,11 @@ describe("Test managing user app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
-            cy.get('h3').should('have.text', project_name);
-            // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+            cy.get('h3').should('have.text', project_name)
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "public", "Creating")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -909,56 +937,59 @@ describe("Test managing user app", () => {
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
-            // Verify that the app status now equals Running
-            verifyAppStatus(app_name, "Running", "public")
+
+            // Verify that the app latest user action
+            verifyAppStatus(app_name, "", "public", "Changing")
 
             // Wait for 5 seconds and check the app status again
-            cy.wait(5000).then(() => {
-                verifyAppStatus(app_name, "Running", "public")
-              })
+            // This relies on the k8s event listener
+            if (env_run_extended_k8s_checks === true) {
+                cy.wait(5000).then(() => {
+                    verifyAppStatus(app_name, "Running", "public", "Changing")
+                })
+            }
 
             // Delete the Dash app
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
+
+            // verify that the app is not visible in the project overview
+            cy.get('tr:contains("' + app_name + '")').should('not.exist')
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public applications and models')
             cy.contains('h5.card-title', app_name).should('not.exist')
+        })
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
+        it("can set and change custom subdomain several times", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // An advanced test to verify creating apps and changing subdomains. Steps taken:
+            // 1. Create app e2e-subdomain-example, subdomain=subdomain-test
+            // 2. Attempt create app e2e-second-subdomain-example, using subdomain=subdomain-test
+            // 3. Create app e2e-second-subdomain-example, subdomain=subdomain-test2
+            // 4. Change the subdomain of the first app to subdomain=subdomain-test3
+            // Names of objects to create
+            // TODO: WE ARE HERE !!!
+            const project_name = "e2e-deploy-app-test"
+            const app_name = "e2e-subdomain-example"
+            const app_name_2 = "e2e-second-subdomain-example"
+            const app_description = "e2e-subdomain-description"
+            const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
+            const app_type = "Custom App"
+            const subdomain = "subdomain-test"
+            const subdomain_2 = "subdomain-test2"
+            const subdomain_3 = "subdomain-test3"
 
-    })
+            let volume_display_text = "project-vol (" + project_name + ")"
 
-    it("can set and change custom subdomain several times", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-        // An advanced test to verify creating apps and changing subdomains. Steps taken:
-        // 1. Create app e2e-subdomain-example, subdomain=subdomain-test
-        // 2. Attempt create app e2e-second-subdomain-example, using subdomain=subdomain-test
-        // 3. Create app e2e-second-subdomain-example, subdomain=subdomain-test2
-        // 4. Change the subdomain of the first app to subdomain=subdomain-test3
-        // Names of objects to create
-        const project_name = "e2e-deploy-app-test"
-        const app_name = "e2e-subdomain-example"
-        const app_name_2 = "e2e-second-subdomain-example"
-        const app_description = "e2e-subdomain-description"
-        const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
-        const createResources = Cypress.env('create_resources');
-        const app_type = "Custom App"
-        const subdomain = "subdomain-test"
-        const subdomain_2 = "subdomain-test2"
-        const subdomain_3 = "subdomain-test3"
-
-        let volume_display_text = "project-vol (" + project_name + ")"
-
-        if (createResources === true) {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             // Create an app and set a custom subdomain for it
@@ -976,6 +1007,11 @@ describe("Test managing user app", () => {
 
             // create the app
             cy.get('#submit-id-submit').contains('Submit').click()
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "public", "Creating")
+
             // check that the app was created with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain)
 
@@ -998,6 +1034,11 @@ describe("Test managing user app", () => {
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available');
             // create the app
             cy.get('#submit-id-submit').contains('Submit').click()
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name_2, "Creating", "public", "Creating")
+
             // check that the app was created with the correct subdomain
             cy.get('a').contains(app_name_2).should('have.attr', 'href').and('include', subdomain_2)
 
@@ -1010,60 +1051,63 @@ describe("Test managing user app", () => {
             cy.get('#id_subdomain').clear().type(subdomain_3)
 
             cy.get('#submit-id-submit').contains('Submit').click()
+
+            // Check that the app latest user action is Changing
+            verifyAppStatus(app_name, "", "public", "Changing")
+
             // check that the app was updated with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_3)
 
-            // Verify that the app status is not Deleted (Deleting and Created ok)
-            cy.get('tr:contains("' + app_name + '")').find('span').should('not.contain', 'Deleted')
-            // Finally verify status equals Running
-            verifyAppStatus(app_name, "Running", "") // TODO: Here. Fix this!
-
+            // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
-            cy.wait(5000).then(() => {
-              verifyAppStatus(app_name, "Running", "")
-            })
+            // This relies on the k8s event listener
+            if (env_run_extended_k8s_checks === true) {
+                cy.wait(5000).then(() => {
+                    // Verify that the app status is not Deleted (Deleting and Created ok)
+                    cy.get('tr:contains("' + app_name + '")').find('span').should('not.contain', 'Deleted')
 
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
+                    verifyAppStatus(app_name, "Running", "public", "Changing")
+                })
+            }
+        })
+
+        // this test is skipped now because app statuses do not work as expected in the CI; needs to be enabled when running against a running dev instance
+        it.skip("see correct statuses when deploying apps", {}, () => {
+            // These tests are to check that the event listener works as expected
+
+            const project_name = "e2e-deploy-app-test"
+            const app_name_statuses = "e2e-app-statuses"
+            const app_description = "e2e-subdomain-description"
+            const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
+            const app_type = "Custom App"
+
+            if (env_create_resources === true) {
+                cy.visit("/projects/")
+                cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+                // Create an app with project permissions
+                cy.logf("Now creating an app with a non-existent image reference - expecting Image Error", Cypress.currentTest)
+                cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+                cy.get('#id_name').type(app_name_statuses)
+                cy.get('#id_description').type(app_description)
+                cy.get('#id_access').select('Project')
+                cy.get('#id_port').type("8501")
+                cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
+                cy.get('#submit-id-submit').contains('Submit').click()
+                // Check that the app was created. Using custom timeout of 5 secs
+                cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Image Error')
+                cy.logf("Now updating the app to give a correct image reference - expecting Running", Cypress.currentTest)
+                cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
+                cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
+                cy.get('#id_image').clear().type(image_name)
+                cy.get('#submit-id-submit').contains('Submit').click()
+                // Using longer custom timeout for correct image to be set to Running
+                cy.get('tr:contains("' + app_name_statuses + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
+            } else {
+                cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
+        }
+        })
+
     })
 
-    // this test is skipped now because app statuses do not work as expected in the CI; needs to be enabled when running against a running dev instance
-    it.skip("see correct statuses when deploying apps", {}, () => {
-        // These tests are to check that the event listener works as expected
-
-        const createResources = Cypress.env('create_resources');
-        const project_name = "e2e-deploy-app-test"
-        const app_name_statuses = "e2e-app-statuses"
-        const app_description = "e2e-subdomain-description"
-        const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
-        const app_type = "Custom App"
-
-        if (createResources === true) {
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-
-            // Create an app with project permissions
-            cy.logf("Now creating an app with a non-existent image reference - expecting Image Error", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-            cy.get('#id_name').type(app_name_statuses)
-            cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Project')
-            cy.get('#id_port').type("8501")
-            cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
-            cy.get('#submit-id-submit').contains('Submit').click()
-            // Check that the app was created. Using custom timeout of 5 secs
-            cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Image Error')
-            cy.logf("Now updating the app to give a correct image reference - expecting Running", Cypress.currentTest)
-            cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
-            cy.get('#id_image').clear().type(image_name)
-            cy.get('#submit-id-submit').contains('Submit').click()
-            // Using longer custom timeout for correct image to be set to Running
-            cy.get('tr:contains("' + app_name_statuses + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
-        } else {
-            cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-      }
-    })
-
-})
+}

@@ -69,11 +69,10 @@ class BaseAppAdmin(admin.ModelAdmin):
     actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
 
     def display_status(self, obj):
-        status_object = obj.get_app_status()
-        if status_object:
-            return status_object.status
-        else:
-            "No status"
+        try:
+            return obj.get_app_status()
+        except:  # noqa E722 OK here
+            return "No status"
 
     display_status.short_description = "Status"
 
