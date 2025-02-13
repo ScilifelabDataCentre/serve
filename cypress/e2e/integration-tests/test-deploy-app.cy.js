@@ -1,5 +1,11 @@
 describe("Test deploying app", () => {
 
+    // TODO: This entire test class needs to be reworked.
+    // There are good test ideas here but there needs to be made some fixes
+    // and improvements similar to in ui-tests/test-user-manage-apps.cy.js
+    // Note that this test class however can and should also test the k8s
+    // integration much more.
+
     // Tests performed as an authenticated user that creates and deletes apps.
     // Note that these tests may depend on k8s deployments and may be long-running tests.
     // Warning: some of these tests may intermittenly fail depending on the available resources.

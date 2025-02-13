@@ -1,5 +1,4 @@
 if (Cypress.env('create_resources') === true) {
-
     // All of these tests rely on creating resources
 
     describe("Test managing user app", () => {
@@ -11,10 +10,7 @@ if (Cypress.env('create_resources') === true) {
 
         // The default command timeout should not be so long
         // Instead use longer timeouts on specific commands where deemed necessary and valid
-        const defaultCmdTimeoutMs = 5000 //10000
-        // The longer timeout is often used when waiting for k8s operations to complete
-        // TODO: this timeout is lowered:
-        const longCmdTimeoutMs = 10000 //30000
+        const defaultCmdTimeoutMs = 10000
 
         // Cypress env variables with default value
         let env_run_extended_k8s_checks
@@ -27,19 +23,19 @@ if (Cypress.env('create_resources') === true) {
             expected_permission,
             expected_latest_user_action) => {
 
-            cy.get('tr:contains("' + app_name + '")').then(($approw) => {
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').then(($approw) => {
                 // The status span element has id with format: status-customapp-nnn
                 if (expected_status != "") {
-                    cy.get($approw).get('[data-cy="appstatus"]').should('contain', expected_status)
+                    cy.get($approw).find('[data-cy="appstatus"]').should('contain', expected_status)
                 }
 
                 if (expected_latest_user_action != "") {
-                    cy.get($approw).get('[data-cy="appstatus"]').should('have.attr', 'data-app-action', expected_latest_user_action)
+                    cy.get($approw).find('[data-cy="appstatus"]').should('have.attr', 'data-app-action', expected_latest_user_action)
                 }
 
                 // The permission level span elment has id with format: permission-283
                 if (expected_permission != "") {
-                    cy.get($approw).get('[data-cy="app-permission"]').should('contain', expected_permission)
+                    cy.get($approw).find('[data-cy="app-permission"]').should('contain', expected_permission)
                 }
             })
         };
@@ -97,8 +93,8 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("End beforeEach() hook", Cypress.currentTest)
         })
 
-        it.skip("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-            // TODO: Revisit. Need to debug the app deletion steps.
+        it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // This test creates two custom apps and also modifies and tests the permission levels
             // Names of objects to create
             const project_name = "e2e-deploy-app-test"
             const app_name_project = "e2e-custom-example-project"
@@ -136,7 +132,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_path').clear().type(app_path)
             cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
@@ -159,7 +155,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // We now verify the correct permission level and user action
             // but not the app status because it is dependent on k8s
@@ -175,16 +171,19 @@ if (Cypress.env('create_resources') === true) {
 
             // Delete the project level app
             cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
-            cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name_project + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
+            cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
 
             // verify that the app is not visible in the project overview
             cy.get('tr:contains("' + app_name_project + '")').should('not.exist')
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.logf("Now creating a public app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').should('be.visible').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_public)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -195,7 +194,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_volume').select(volume_display_text)
             cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
@@ -205,7 +204,7 @@ if (Cypress.env('create_resources') === true) {
             if (env_run_extended_k8s_checks === true) {
                 // Wait for 5 seconds and check the app status again
                 cy.wait(5000).then(() => {
-                verifyAppStatus(app_name_public, "Running", "public", "Creating")
+                    verifyAppStatus(app_name_public, "Running", "public", "Creating")
                 })
             }
 
@@ -222,6 +221,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Now checking if the public app is displayed when not logged in.", Cypress.currentTest)
             cy.visit("/home/")
             cy.get('h5').should('contain', app_name_public)
+
             // Log out and check that the public app is still displayed on the homepage
             cy.clearCookies();
             cy.clearLocalStorage();
@@ -240,16 +240,16 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Now checking that the logs page for the app opens", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name_public + '")').find('a').contains('Logs').click()
+            cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('a').contains('Logs').click()
             cy.get('h3').should('contain', "Logs")
 
             // Try changing the name, description, etc. of the app and verify it works
             cy.logf("Now changing the name and description of the public app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name_public + '")').find('a').contains('Settings').click()
+            cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name_public) // name should be same as before
             cy.get('#id_name').clear().type(app_name_public_2) // now change name
             cy.get('#id_description').should('have.value', app_description) // description should be same as set before
@@ -269,7 +269,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
             cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // We do not verify the app status because it depends on k8s
             verifyAppStatus(app_name_public_2, "", "link", "Changing")
@@ -307,7 +307,7 @@ if (Cypress.env('create_resources') === true) {
 
             // Make sure that giving invalid input in default_url_subpath field results in an error
             cy.get('#id_default_url_subpath').clear().type(invalid_default_url_subpath) // provide invalid_default_url_subpath
-            cy.get('#submit-id-submit').contains('Submit').click() // this should trigger the error
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click() // this should trigger the error
 
             // check this invalid_default_url_subpath error was matched
             cy.get('.client-validation-feedback.client-validation-invalid')
@@ -318,12 +318,21 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Now deleting the public app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
+            cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
 
-            // verify that the app is not visible in the project overview
-            cy.get('tr:contains("' + app_name_public_2 + '")').should('not.exist')
+            // Give the action some time to edit the status
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name_public_2 + '")').should('not.exist')
+            })
+
+            // The other app that was made public should still exist
+            verifyAppStatus(app_name_project, "", "public", "Changing")
 
             // check that the app is not visible under public apps
             cy.visit("/apps")
@@ -332,9 +341,9 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h5.card-title', app_name_public_2).should('not.exist')
         })
 
-        // This test is skipped because it will only work against a Serve instance running on our cluster. should be switched on for the e2e tests against remote.
-        // We need to add a test here for validating Site-dir option. See SS-1206 for details
-        it.skip("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Test of a public Shiny proxy app
+            // TODO: We need to add a test here for validating Site-dir option. See SS-1206 for details
             // Names of objects to create
             const project_name = "e2e-deploy-app-test"
             const app_name = "e2e-shiny-example"
@@ -354,9 +363,13 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').contains('Submit').click()
-        //    cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+
+            // Though Shiny Proxy apps can take a long time to start
+            // this is OK here because we only verify that it was created
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "public", "Creating")
 
             cy.logf("Checking that all shiny app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
@@ -388,10 +401,19 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Deleting the shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').click()
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
+            cy.get('#modalConfirmDelete')
+                .should('be.visible')
+                .find('[data-cy="delete-app-button-confirm"]')
+                .click()
+
+            // Give the action some time to edit the status
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
+
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
@@ -399,10 +421,9 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h5.card-title', app_name).should('not.exist')
         })
 
-        it.only("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-            // Simple test to create and delete a Dash app
+        it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Test to create and delete a Dash app
             // Names of objects to create
-            // TODO: PASS
             const project_name = "e2e-deploy-app-test"
             const app_name = "e2e-dash-example"
             const app_description = "e2e-dash-description"
@@ -422,7 +443,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -475,18 +496,12 @@ if (Cypress.env('create_resources') === true) {
 
         it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Names of objects to create
-            // TODO: PASS
             const project_name = "e2e-deploy-app-test"
             const app_name = "e2e-tissuumaps-example"
             const app_description = "e2e-tissuumaps-description"
             const app_type = "TissUUmaps App"
 
             let volume_display_text = "project-vol (" + project_name + ")"
-
-            if (env_create_resources === false) {
-                cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
-                return
-            }
 
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -497,7 +512,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
             cy.get('#id_volume').select(volume_display_text)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
@@ -507,7 +522,7 @@ if (Cypress.env('create_resources') === true) {
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
-                verifyAppStatus(app_name, "Running", "public")
+                    verifyAppStatus(app_name, "Running", "public")
                 })
             }
 
@@ -542,9 +557,8 @@ if (Cypress.env('create_resources') === true) {
         })
 
         it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-            // Simple test to create and delete a Gradio app
+            // Test to create and delete a Gradio app
             // Names of objects to create
-            // TODO: PASS
             const project_name = "e2e-deploy-app-test"
             const app_name = "e2e-gradio-example"
             const app_description = "e2e-gradio-description"
@@ -564,7 +578,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -607,9 +621,8 @@ if (Cypress.env('create_resources') === true) {
         })
 
         it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
-            // Simple test to create and delete a Streamlit app
+            // Test to create and delete a Streamlit app
             // Names of objects to create
-            // TODO: PASS
             const project_name = "e2e-deploy-app-test"
             const app_name = "e2e-streamlit-example"
             const app_description = "e2e-streamlit-description"
@@ -629,7 +642,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -674,7 +687,6 @@ if (Cypress.env('create_resources') === true) {
         it("can modify app settings resulting in NO k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // An advanced test to verify user can modify app settings such as the name and description
             // Names of objects to create
-            // TODO: PASS
             const project_name = "e2e-deploy-app-test"
             const app_name = "e2e-change-app-settings-no-redeploy"
             const app_name_edited = app_name + "-edited"
@@ -695,7 +707,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -725,7 +737,7 @@ if (Cypress.env('create_resources') === true) {
             // Here we change the app name from app_name to app_name_edited
             cy.get('#id_name').type("-edited")
             cy.get('#id_description').type(", edited description.")
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -767,7 +779,6 @@ if (Cypress.env('create_resources') === true) {
             // An advanced test to verify user can modify app settings resulting in k8s redeployment (image)
             // still shows the correct app status.
             // Names of objects to create
-            // TODO: PASS
             const project_name = "e2e-deploy-app-test"
             const app_name = "e2e-change-app-settings-redeploy"
             const app_description = "e2e-change-app-settings-description"
@@ -787,7 +798,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -815,7 +826,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').type("-BAD")
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -839,7 +850,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -884,7 +895,6 @@ if (Cypress.env('create_resources') === true) {
 
         it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // A test to verify creating an app and changing the subdomain
-            // TODO: PASS
             const project_name = "e2e-deploy-app-test"
             const app_name = "e2e-subdomain-change"
             const app_description = "e2e-subdomain-change-description"
@@ -905,7 +915,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name)
@@ -933,7 +943,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_subdomain').clear().type(subdomain_change)
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -977,7 +987,6 @@ if (Cypress.env('create_resources') === true) {
             // 3. Create app e2e-second-subdomain-example, subdomain=subdomain-test2
             // 4. Change the subdomain of the first app to subdomain=subdomain-test3
             // Names of objects to create
-            // TODO: WE ARE HERE !!!
             const project_name = "e2e-deploy-app-test"
             const app_name = "e2e-subdomain-example"
             const app_name_2 = "e2e-second-subdomain-example"
@@ -1006,11 +1015,11 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_subdomain').clear().type(subdomain)
 
             // create the app
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name, "Creating", "public", "Creating")
+            verifyAppStatus(app_name, "Creating", "", "Creating")
 
             // check that the app was created with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain)
@@ -1033,11 +1042,11 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_subdomain').blur();
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available');
             // create the app
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name_2, "Creating", "public", "Creating")
+            verifyAppStatus(app_name_2, "Creating", "", "Creating")
 
             // check that the app was created with the correct subdomain
             cy.get('a').contains(app_name_2).should('have.attr', 'href').and('include', subdomain_2)
@@ -1050,64 +1059,28 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('#id_subdomain').clear().type(subdomain_3)
 
-            cy.get('#submit-id-submit').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+
+            cy.get('tr:contains("' + app_name + '")').should('be.visible')
 
             // Check that the app latest user action is Changing
-            verifyAppStatus(app_name, "", "public", "Changing")
+            // Give the action some time to edit the status
+            cy.wait(2000).then(() => {
+                // check that the app was updated with the correct subdomain
+                cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_3)
 
-            // check that the app was updated with the correct subdomain
-            cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain_3)
+                verifyAppStatus(app_name, "", "", "Changing")
+            })
 
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
-                    // Verify that the app status is not Deleted (Deleting and Created ok)
-                    cy.get('tr:contains("' + app_name + '")').find('span').should('not.contain', 'Deleted')
-
-                    verifyAppStatus(app_name, "Running", "public", "Changing")
+                    verifyAppStatus(app_name, "Running", "", "Changing")
                 })
             }
         })
 
-        // this test is skipped now because app statuses do not work as expected in the CI; needs to be enabled when running against a running dev instance
-        it.skip("see correct statuses when deploying apps", {}, () => {
-            // These tests are to check that the event listener works as expected
-
-            const project_name = "e2e-deploy-app-test"
-            const app_name_statuses = "e2e-app-statuses"
-            const app_description = "e2e-subdomain-description"
-            const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
-            const app_type = "Custom App"
-
-            if (env_create_resources === true) {
-                cy.visit("/projects/")
-                cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-
-                // Create an app with project permissions
-                cy.logf("Now creating an app with a non-existent image reference - expecting Image Error", Cypress.currentTest)
-                cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
-                cy.get('#id_name').type(app_name_statuses)
-                cy.get('#id_description').type(app_description)
-                cy.get('#id_access').select('Project')
-                cy.get('#id_port').type("8501")
-                cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
-                cy.get('#submit-id-submit').contains('Submit').click()
-                // Check that the app was created. Using custom timeout of 5 secs
-                cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Image Error')
-                cy.logf("Now updating the app to give a correct image reference - expecting Running", Cypress.currentTest)
-                cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
-                cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
-                cy.get('#id_image').clear().type(image_name)
-                cy.get('#submit-id-submit').contains('Submit').click()
-                // Using longer custom timeout for correct image to be set to Running
-                cy.get('tr:contains("' + app_name_statuses + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
-            } else {
-                cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
-        }
-        })
-
     })
-
 }

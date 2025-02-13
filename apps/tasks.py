@@ -255,7 +255,8 @@ def deploy_resource(serialized_instance):
     instance.info = dict(helm=helm_info)
     # instance.app_status.status = "Created" if success else "Failed"
 
-    instance.save()
+    # Only update the info field to avoid overriding other modified fields elsewhere
+    instance.save(update_fields=["info"])
 
     # In development, also generate and validate the k8s deployment manifest
     if settings.DEBUG:
