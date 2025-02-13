@@ -25,7 +25,6 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance
-
 from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException
@@ -371,7 +370,7 @@ The Data Centre team
                 send_email_task(
                     subject=f"You've been added to {project.name} on SciLifeLab Serve",
                     message=email_body,
-                    recipient_list=[selected_username]
+                    recipient_list=[selected_username],
                 )
 
             except Exception as err:
