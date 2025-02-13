@@ -8,10 +8,18 @@ class MlflowAppManager(AppInstanceManager):
 class MLFlowInstance(BaseAppInstance):
     objects = MlflowAppManager()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.app.user_can_see_secrets = True
+
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
         k8s_values["tracking"] = {
-            "auth": {"enabled": True},
+            "auth": {
+                "enabled": True,
+                # "username": self.basic_auth.username,
+                # "password": self.basic_auth.password,
+            },
             "ingress": {
                 "enabled": True,
                 "ingressClassName": "nginx",

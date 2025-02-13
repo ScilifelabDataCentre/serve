@@ -1,3 +1,5 @@
+import base64
+import subprocess
 from datetime import datetime
 
 import requests
@@ -295,3 +297,40 @@ class CreateApp(View):
             # Maybe this makes typing hard.
         else:
             return None
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class SecretsView(View):
+    template = "apps/secrets_view.html"
+
+    def get(self, request, project, app_slug, app_id):
+        instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
+        if subdomain := instance.subdomain:
+            username = subprocess.run(
+                (
+                    "kubectl get secret "
+                    f"--namespace default {subdomain.subdomain}-mlflow-tracking "
+                    '-o jsonpath="{.data.admin-user}"'
+                ).split(),
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout
+            username = base64.b64decode(username).decode()
+            password = subprocess.run(
+                (
+                    "kubectl get secret "
+                    f"--namespace default {subdomain.subdomain}-mlflow-tracking "
+                    '-o jsonpath="{.data.admin-password}"'
+                ).split(),
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout
+            password = base64.b64decode(password).decode()
+
+        context = {"mlflow_username": username, "mlflow_password": password}
+        return render(request, self.template, context)

@@ -45,6 +45,7 @@ class AppsAdmin(admin.ModelAdmin):
         "user_can_create",
         "user_can_edit",
         "user_can_delete",
+        "user_can_see_secrets",
         "slug",
     )
     list_filter = ("user_can_create",)

@@ -93,7 +93,13 @@
                             Settings
                         </a>
                         {% endif %}
-
+                      {% if instance.app.user_can_see_secrets %}
+                        <a class="dropdown-item default"
+                           href="{% url 'apps:secrets' project.slug instance.app.slug instance.pk %}?from=overview">
+                          <i class="bi bi-key me-1"></i>
+                          Secrets
+                        </a>
+                      {% endif %}
                         {% if instance.app.user_can_delete %}
 
                         <a class="dropdown-item bg-danger text-white confirm-delete default"
