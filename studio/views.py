@@ -180,6 +180,7 @@ def delete_account_post_handler(request: Response, user_id: int) -> Response:
                 email = request.user.email
                 logger.debug(f"User account was deleted (set to inactive). Now sending email to user email {email}")
 
+                # TODO use send_email_task instead
                 send_mail(
                     "User account deleted from SciLifeLab Serve",
                     f"The user account {request.user.username} was deleted from SciLifeLab Serve as requested.",

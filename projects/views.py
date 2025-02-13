@@ -9,7 +9,6 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
-from django.core.mail import send_mail
 from django.db.models import Model, Q
 from django.http import (
     HttpResponse,
@@ -26,6 +25,8 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance
+
+from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException
 from .forms import PublishProjectToGitHub
@@ -366,13 +367,11 @@ The Data Centre team
 """
 
             try:
-                # Notify user
-                send_mail(
-                    f"You've been added to {project.name}",
-                    email_body,
-                    settings.EMAIL_HOST_USER,
-                    [selected_username],
-                    fail_silently=False,
+                # Notify user via email
+                send_email_task(
+                    subject=f"You've been added to {project.name} on SciLifeLab Serve",
+                    message=email_body,
+                    recipient_list=[selected_username]
                 )
 
             except Exception as err:
