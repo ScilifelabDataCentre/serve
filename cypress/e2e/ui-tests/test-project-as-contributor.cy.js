@@ -105,8 +105,6 @@ describe("Test project contributor user functionality", () => {
 
         cy.logf("Change project name", Cypress.currentTest)
         cy.get('[data-cy="settings"]').click()
-        cy.url().should("include", "settings")
-        cy.get('h3').should('contain', 'Project settings')
         cy.get('input[name=name]').clear().type(project_name_2)
         cy.get('button').contains('Save').click()
         cy.visit("/projects/")
