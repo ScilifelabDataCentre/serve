@@ -154,11 +154,16 @@ def change_description(request, project_slug):
     ).first()
 
     if request.method == "POST":
+        name = request.POST.get("name", "")
         description = request.POST.get("description", "")
         if description != "":
             project.description = description
         else:
             project.description = None
+
+        if name != "":
+            project.name = name
+
         project.save()
 
         log = ProjectLog(
