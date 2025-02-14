@@ -206,7 +206,14 @@ class BaseAppInstance(models.Model):
             k8s_user_app_status = None
         else:
             k8s_user_app_status = self.k8s_user_app_status.status
-        return BaseAppInstance.convert_to_app_status(self.latest_user_action, k8s_user_app_status)
+
+        status = BaseAppInstance.convert_to_app_status(self.latest_user_action, k8s_user_app_status)
+        if status.lower() == "unknown":
+            logger.warn(
+                f"Invalid input to convert_to_app_status for app {self}. No match for \
+                    {self.latest_user_action}, {k8s_user_app_status}"
+            )
+        return status
 
     def get_status_group(self) -> str:
         """Get the status group from the app status."""
@@ -277,7 +284,7 @@ class BaseAppInstance(models.Model):
             case "Changing", _:
                 return "Changing"
             case _, _:
-                logger.warn(
+                logger.debug(
                     f"Invalid input to convert_to_app_status. No match for {latest_user_action}, {k8s_user_app_status}"
                 )
                 return "Unknown"
