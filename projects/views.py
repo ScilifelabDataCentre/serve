@@ -357,6 +357,7 @@ class GrantAccessToProjectView(View):
             assign_perm("can_view_project", selected_user, project)
 
             project_uri = f"{request.get_host()}/projects/{project.slug}"
+            ## The backslash below is used to ignore a newline
             email_body = f"""\
 Hi {selected_username},
 
