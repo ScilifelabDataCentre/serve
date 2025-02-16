@@ -13,17 +13,16 @@
 <div class="container-sm py-5">
 
     <!-- Main Content Here -->
-    <div class="card border-0 shadow p-4">
+    <div class="card h-100 border-0 shadow">
+        <div class="card-header d-flex card-header-text justify-content-between">
+            <div>
+                <h3 class="card-title mb-0 fw-bold">Edit User Profile</h3>
+            </div>
+        </div>
+        <form method="post">
         <div class="card-body">
             <div class="row">
                 <div class="col">
-                    <div class="row">
-                        <div class="col">
-                            <h3 class="card-title mb-0">Edit my user profile</h3>
-                        </div>
-                    </div>
-
-                    <form method="post">
                         {% csrf_token %}
                         <div class="row pt-4">
                             <h6 class="fw-bold">Account</h6>
@@ -99,19 +98,6 @@
                             </div>
                         </div>
 
-                        <div class="row pt-1">
-                            <div class="d-flex justify-content-end">
-
-                                <a href="/" class="btn me-2">Cancel</a>
-                                <input type="submit" name="save" value="Submit" class="btn btn-primary ms-2"
-                                    id="submit-id-save">
-                            </div>
-                        </div>
-
-                    </form>
-
-
-
                     <div class="row pt-2">
                         <h5>Delete Account</h5>
                         <p>
@@ -124,6 +110,11 @@
             </div>
 
         </div>
+        <div class="card-footer d-flex card-footer-text justify-content-between">
+            <a href="/" class="btn me-2">Cancel</a>
+            <input type="submit" name="save" value="Submit" class="btn btn-primary ms-2" id="submit-id-save">
+        </div>
     </div>
+</form>
 </div>
 {% endblock content %}
