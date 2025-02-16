@@ -9,33 +9,38 @@
                 </a>
             </div>
         {% if not minimum %}
-            <div class="col-12 col-lg-9 d-flex justify-content-lg-end justify-content-center py-2">
-                <ul class="nav text-center justify-content-center align-items-center">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'portal:home' %}" target="_self" title="Homepage">
+            <div class="col-12 col-lg-9 d-flex justify-content-lg-end justify-content-center py-2 zero-padding">
+                <ul class="nav text-center justify-content-center align-items-center" >
+                    <li class="nav-item mx-1">
+                        <a class="nav-link serve-main-nav {% if request.path == '/' %}active{% endif %}" href="{% url 'portal:home' %}" target="_self" title="Homepage">
                             <i class="fa-solid fa-home d-block mx-auto"></i>
                             Home
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'portal:apps' %}" target="_self" title="Apps">
+                    <li class="nav-item mx-1">
+                        <a class="nav-link serve-main-nav {% if request.path == '/apps/' %}active{% endif %}" href="{% url 'portal:apps' %}" target="_self" title="Apps">
                             Apps & Models
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/docs/" target="_self" title="User guide">
-                            User guide
+                    <li class="nav-item mx-1">
+                        <a class="nav-link serve-main-nav {% if '/docs/' in request.path %}active{% endif %}" href="/docs/" target="_self" title="User guide">
+                            User Guide
+                        </a>
+                    </li>
+                    <li class="nav-item mx-1">
+                        <a class="nav-link serve-main-nav {% if '/about/' in request.path %}active{% endif %}" href="{% url 'portal:about' %}" target="_self" title="About">
+                            About
                         </a>
                     </li>
                     {% if request.user.is_authenticated %}
-
-                    <li class="nav-item ">
-                        <a class="nav-link" href="{% url 'projects:index' %}" target="_self" title="My projects">
-                            My projects
+                    <li class="nav-item mx-1">
+                        <a class="nav-link serve-main-nav {% if '/projects/' in request.path %}active{% endif %}" href="{% url 'projects:index' %}" target="_self" title="My projects">
+                            My Projects
                         </a>
                     </li>
-                    <li class="btn-group">
-                        <button type="button" class="btn btn-profile dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="{{request.user.email}}">
+                    <li class="nav-separator"></li>
+                    <li class="btn-group mx-1">
+                        <button type="button" class="btn btn-profile dropdown-toggle {% if request.path == '/edit-profile/' %}active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false" title="{{request.user.email}}">
                             <i class="bi bi-person-circle"></i> Profile
                         </button>
                         <ul class="dropdown-menu">
@@ -48,11 +53,9 @@
                             </form>
                         </ul>
                     </li>
-
-
                     {% else %}
-
-                    <li class="nav-item flex-wrap">
+                    <li class="nav-separator"></li>
+                    <li class="nav-item flex-wrap mx-1">
                         <a class="btn btn-profile order-lg-2 order-1 mx-2 {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'common:signup' %}">
                             <i class="bi bi-person-plus"></i> Register
                         </a>
