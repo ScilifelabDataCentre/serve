@@ -2,10 +2,11 @@
 {% load custom_tags %}
 
                 <div class="card h-100 border-0 shadow">
-                    <div class="card-body d-flex flex-column m-1">
-                        <div class="col-12 d-flex flex-row pb-2 align-items-center">
-                            <div class="col-8 d-flex">
-                                <h5 class="card-title bg-white">{{ app.name }}</h5>
+                    <div class="card-header d-flex card-footer-text justify-content-between align-items-center">
+                        <div class="col-12 d-flex flex-row align-items-center">
+                            <div class="col-8 d-flex align-items-center">
+                                <h5 class="card-title fw-bold align-items-center m-0 me-1">{{ app.name }}</h5>
+                                <i data-bs-toggle="tooltip" data-bs-placement="top" data-bs-delay='{"show":"500", "hide":"0"}' title="Waiting" style="color:orange;{% if app.status_group == "success" %}display: none;{% endif %}" class="bi bi-circle-fill align-items-center mt-1"></i>
                             </div>
                             <div class="col-4 d-flex justify-content-end">
                                 {% static 'images/logos/apps/' as static_url %}
@@ -15,6 +16,8 @@
                             </div>
                         </div>
 
+                    </div>
+                    <div class="card-body d-flex flex-column">
                         <div id="app-{{ app.id }}" class="card-text description-app">
                             <p>
                                 {% if app.description|length > 349 %}
@@ -26,13 +29,13 @@
                             </p>
                             <ul class="list-unstyled">
                                 <li class="list-group-item row">
-                                    <div class="col-3"><span class="value-label">Owner:</span></div>
-                                    <div class="col-9">{{ app.owner.first_name }} {{ app.owner.last_name }}</div>
+                                    <div class="col-12"><span class="value-label fw-bold">Owner: </span>{{ app.owner.first_name }} {{ app.owner.last_name }}</div>
+                                    <div class="col-9"></div>
                                 </li>
                             </ul>
                         </div>
 
-                        <div class="row d-flex flex-column pb-4">
+                        <div class="row d-flex flex-column">
                             <div class="col-12">
                                 {% if request.session.app_tags|exists:app.id %}
                                 {% with app.tags.all as tags %}
@@ -71,44 +74,27 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="row mt-auto align-items-center">
-                            <div class="col-8">
-                                {% if "Serve" in app.app.name or app.app.name == "Python Model Deployment" %}
-                                    <a class="btn btn-primary" onclick="copyClip('{{app.url}}')">Copy API Endpoint</a>
-                                {% else %}
-                                    <a title="Launch the app" rel="Link to launch the app" href="{{ app.url }}" target="_blank" class="btn btn-primary">Open</a>
-                                {% endif %}
-                                {% if app.app.slug in 'shinyapp,shinyproxyapp,dashapp,customapp,gradio,streamlit' %}
-                                {% if app.pvc == None %}
-                                <a title="Instructions for running the app locally" rel="Instructions for running the app locally" href="#" class="icon-external" data-bs-toggle="modal" data-bs-target="#dockerInfoModal" data-app-name="{{ app.name }}" data-app-image="{{ app.image }}" data-app-port="{{ app.port }}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" fill="#6d5476" class="bi bi-cloud-arrow-down-fill mb-0" viewBox="0 0 16 14" style="vertical-align: -webkit-baseline-middle">
-                                        <path d="M8 2a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 6.095 0 7.555 0 9.318 0 11.366 1.708 13 3.781 13h8.906C14.502 13 16 11.57 16 9.773c0-1.636-1.242-2.969-2.834-3.194C12.923 3.999 10.69 2 8 2m2.354 6.854-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 9.293V5.5a.5.5 0 0 1 1 0v3.793l1.146-1.147a.5.5 0 0 1 .708.708"/>
-                                      </svg>
-                                </a>
-                                {% endif %}
-                                {% endif %}
-                                {% if app.source_code_url %}
-                                <a id="source-code-url" target="_blank" title="Source code of the app" rel="Link to the source code of the app" href="{{ app.source_code_url }}" class="icon-external">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#6d5476" class="bi bi-code-square" viewBox="0 0 16 16" style="vertical-align: -webkit-baseline-middle">
-                                        <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
-                                        <path d="M6.854 4.646a.5.5 0 0 1 0 .708L4.207 8l2.647 2.646a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 0 1 .708 0m2.292 0a.5.5 0 0 0 0 .708L11.793 8l-2.647 2.646a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708 0"/>
-                                      </svg>
-                                </a>
-                                {% endif %}
-                            </div>
-                            <div class="col-4 text-end">
-                                {% if app.status_group == "success" %}
-                                <span class="badge bg-success">Running</span>
-                                {% else %}
-                                <span class="badge bg-warning">Waiting</span>
-                                {% endif %}
-                            </div>
-                        </div>
-
                         <div class="clearfix"></div>
                     </div>
 
-                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-lime-025">
+                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between">
+                        <div>
+                        {% if app.app.slug in 'shinyapp,shinyproxyapp,dashapp,customapp,gradio,streamlit' %}
+                            {% if app.pvc == None %}
+                            <a title="Instructions for running the app locally" rel="Instructions for running the app locally" href="#" class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#dockerInfoModal" data-app-name="{{ app.name }}" data-app-image="{{ app.image }}" data-app-port="{{ app.port }}"><i class="bi bi-download"></i> Run Locally</a>
+                            {% endif %}
+                            {% endif %}
+                            {% if app.source_code_url %}
+                            <a id="source-code-url" target="_blank" title="Source code of the app" rel="Link to the source code of the app" href="{{ app.source_code_url }}" class="btn btn-outline-dark btn-sm"> <i class="bi bi-code-slash"></i> Source Code</a>
+                            {% endif %}
+                            </div>
+                            {% if "Serve" in app.app.name or app.app.name == "Python Model Deployment" %}
+                                <a class="btn btn-primary btn-sm" onclick="copyClip('{{app.url}}')">Copy API Endpoint</a>
+                            {% else %}
+                                <a title="Launch the app" rel="Link to launch the app" href="{{ app.url }}" target="_blank" class="btn btn-primary btn-sm">Launch</a>
+                            {% endif %}
+                    </div>
+                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-lime-025 rounded-bottom">
                         <div class="text-start">
                             <span>{{ app.app.name }}</span>
                         </div>
