@@ -102,3 +102,106 @@ label.required::before {
     border: #e5626b!important;
     color: white!important;
 }
+
+.nav-link.serve-main-nav.active {
+    font-weight: bolder!important;
+    font-size: 1.1rem!important;
+}
+
+.nav-link.serve-main-nav.active:after {
+    width: 100%;
+}
+
+.nav-link.serve-main-nav:focus:after {
+    width: 100%;
+}
+
+.nav-link.serve-main-nav:hover {
+    font-weight: bolder!important;
+}
+
+.nav-item:after {
+    height: 50%!important;
+}
+
+@media screen and (min-width: 1200px) {
+    .nav-separator {
+        border-right:2px solid #e8eaea;
+        height:100%;
+        margin-right:1rem;
+    }
+}
+
+@media screen and (max-width: 1200px) {
+    .zero-padding {
+        padding-left: 0!important;
+        padding-right: 0!important;
+    }
+    .nav-separator {
+        display: none;
+}
+}
+
+.nav-separator {
+    border-right:2px solid #e8eaea;
+    margin-right:1rem;
+}
+
+.btn.active {
+    background: #a7c947!important;
+}
+
+.bg-gradient-dark {
+    background-image: linear-gradient(310deg, #141727, #3a416f);
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: #8392ab;
+    --bs-btn-border-color: #8392ab;
+    --bs-btn-hover-color: #000;
+    --bs-btn-hover-bg: #8392ab;
+    --bs-btn-hover-border-color: #8392ab;
+    --bs-btn-focus-shadow-rgb: 131, 146, 171;
+    --bs-btn-active-color: #000;
+    --bs-btn-active-bg: #8392ab;
+    --bs-btn-active-border-color: #8392ab;
+    --bs-btn-active-shadow: none;
+    --bs-btn-disabled-color: #8392ab;
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: #8392ab;
+    --bs-gradient: none;
+}
+
+.wrong .bi-check {
+    display: none;
+}
+.good .bi-x {
+    display: none;
+}
+
+.bi-download {
+    -webkit-text-stroke: 0.5px;
+}
+
+.bi-code-slash {
+    -webkit-text-stroke: 0.5px;
+}
+
+.badge-grape {
+    background-color: var(--serve-grape-075)!important;
+    color: white!important;
+}
+
+.table-apps {
+    border-radius: 5px!important;
+    overflow: hidden!important;
+    border-width: 3px!important;
+}
+
+.table-apps>:not(caption)>* {
+    border-width: 2px 0;
+}
+
+.table-apps>:not(caption)>*>* {
+    border-width: 0 2px;
+}
