@@ -7,49 +7,60 @@
 <div class="container-sm py-5">
 
     <!-- Main Content Here -->
-    <div class="card border-0 shadow p-4">
+    <div class="card h-100 border-0 shadow">
+        <div class="card-header d-flex card-header-text justify-content-between">
+            <div>
+                <h3 class="card-title mb-0 fw-bold">My User Profile</h3>
+                </div>
+                <button type="button" type="submit" aria-expanded="false" onclick="location.href='{% url 'common:edit-profile' %}'" class="btn btn-primary"><i class="bi bi-pencil-square"></i> Edit</button>
+        </div>
         <div class="card-body">
             <div class="row">
                 <div class="col">
-                    <div class="row">
-                        <div class="col">
-                            <h3 class="card-title mb-0">My user profile</h3>
+                    <form>
+                        <div class="row pt-4">
+                            <h6 class="fw-bold">Account</h6>
                         </div>
-                        <div class="col">
-                            <button type="button" type="submit" aria-expanded="false" class="btn btn-profile">
-                                <a href="{% url 'common:edit-profile' %}"> <i class="bi bi-pencil-square"></i> Edit </a>
-                            </button>
+
+                        <div class="row pt-1">
+                            <div class="col-4"><label for="id_email">Email address:</label></div>
+                            <div class="col-8 fw-bold"><input type="text" name="email" value="{{user.email}}" class="form-control" maxlength="254" disabled aria-describedby="id_email_helptext" id="id_email"></div>
+                            <div class="col-4"></div>
+
                         </div>
+
+                        <div class="row pt-4">
+                            <h6 class="fw-bold">Contact</h6>
                         </div>
-                    <div class="row pt-4">
-                        <h6 class="fw-bold">Account</h6>
-                    </div>
-                    <div class="row pt-1">
-                        <div class="col-4">Email address</div>
-                        <div class="col-8 fw-bold">{{user.email}}</div>
-                    </div>
 
-                    <div class="row pt-4">
-                        <h6 class="fw-bold">Contact</h6>
-                    </div>
-                    <div class="row">
-                        <div class="col-4">First name</div>
-                        <div class="col-8 fw-bold">{{user.first_name}}</div>
-                    </div>
-                    <div class="row pt-1">
-                        <div class="col-4">Last name</div>
-                        <div class="col-8 fw-bold">{{user.last_name}}</div>
-                    </div>
+                        <div class="row">
+                            <div class="col-4"><label for="id_first_name">First name:</label></div>
+                            <div class="col-8 fw-bold">
+                            <input type="text" name="first_name" disabled value="{{user.first_name}}" class="form-control" maxlength="30" minlength="1" id="id_first_name">
 
-                    <div class="row pt-1">
-                        <div class="col-4">Affiliation</div>
-                        <div id="userAffiliation" class="col-8 fw-bold">{{user_profile.affiliation}}</div>
-                    </div>
-                    <div class="row pt-1">
-                        <div class="col-4">Department</div>
-                        <div class="col-8 fw-bold">{{user_profile.department}}</div>
-                    </div>
+                            </div>
+                        </div>
 
+                        <div class="row pt-1">
+                            <div class="col-4"><label for="id_last_name">Last name:</label></div>
+                            <div class="col-8 fw-bold"><input type="text" disabled name="last_name" value="{{user.last_name}}" class="form-control" maxlength="30" minlength="1" id="id_last_name"></div>
+
+                        </div>
+
+                        <div class="row pt-1">
+                            <div class="col-4"><label for="id_affiliation">University:</label></div>
+                            <div class="col-8 fw-bold"><input type="text" name="affiliation" disabled value="{{user_profile.affiliation}}" class="form-control" id="userAffiliation"></div>
+                            <div class="col-4"></div>
+                        </div>
+
+                        <div class="row pt-1">
+                            <div class="col-4"><label for="id_department">Department:</label></div>
+                            <div class="col-8 fw-bold"><input type="text" name="department" disabled value="{{user_profile.department}}" class="form-control" list="list__department-list" aria-describedby="id_department_helptext" id="id_department"></div>
+                            <div class="col-4"></div>
+
+
+                        </div>
+                    </form>
                     <div class="row pt-5">
                         <h5>Delete Account</h5>
                         <p>
@@ -57,15 +68,14 @@
                         </p>
                     </div>
 
-                    <div class="row mt-5 p-3 small text-white bg-teal">
-                        <p>Last login: {{user.last_login}} </p>
-                        <p>Account created: {{user.date_joined.date}}</p>
-                    </div>
-
                 </div>
 
             </div>
 
+        </div>
+        <div class="card-footer d-flex card-footer-text justify-content-between bg-teal fs-6 text-white pb-0">
+                <p>Last login: {{user.last_login}} </p>
+                <p>Account created: {{user.date_joined.date}}</p>
         </div>
     </div>
 </div>
@@ -97,7 +107,7 @@
             success: function(data){
                 if (typeof data !== "undefined") {
                     let name = data.data.name
-                    $("#userAffiliation").text(name)
+                    $("#userAffiliation").val(name)
                 }
             },
             error: function (request, status, error) {
