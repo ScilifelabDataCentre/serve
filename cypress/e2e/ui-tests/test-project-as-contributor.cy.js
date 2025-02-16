@@ -49,6 +49,7 @@ describe("Test project contributor user functionality", () => {
 
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
+        const project_name_2 = "An alternative project name created by an e2e test."
         const project_title_name = project_name + " | SciLifeLab Serve (beta)"
         const project_description = "A test project created by an e2e test."
         const project_description_2 = "An alternative project description created by an e2e test."
@@ -102,23 +103,30 @@ describe("Test project contributor user functionality", () => {
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('.card-text').should('contain', project_description_2)
 
+        cy.logf("Change project name", Cypress.currentTest)
+        cy.get('[data-cy="settings"]').click()
+        cy.get('input[name=name]').clear().type(project_name_2)
+        cy.get('button').contains('Save').click()
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name_2).should('contain', project_name_2)
+
         cy.logf("Check that creating another project with same existing project name will create an error", Cypress.currentTest)
         cy.visit("/projects/")
         cy.get("a").contains('New project').click()
         cy.get("a").contains('Create').first().click()
-        cy.get('input[name=name]').type(project_name) // same name used before
+        cy.get('input[name=name]').type(project_name_2) // same name used before
         cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").contains('Create project').click() // should generate an error
         // Check that the error message is displayed
         cy.get('#flash-msg')
             .should('be.visible')
             .and('have.class', 'alert-danger')
-            .and('contain.text', `Project cannot be created because a project with name '${project_name}' already exists.`);
+            .and('contain.text', `Project cannot be created because a project with name '${project_name_2}' already exists.`);
         cy.logf("Error is successfully generated when trying to create a new project with the same existing project name", Cypress.currentTest)
 
         // go back to the previously created project
         cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
+        cy.contains('.card-title', project_name_2).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
 
         cy.logf("Delete the project from the settings menu", Cypress.currentTest)
         cy.get('[data-cy="settings"]').click()
@@ -130,7 +138,7 @@ describe("Test project contributor user functionality", () => {
                 cy.get('div#deleteModal').should('have.css', 'display', 'block')
                 cy.get('div#deleteModal').find('button').contains('Confirm').click()
             })
-        cy.contains(project_name).should('not.exist')
+        cy.contains(project_name_2).should('not.exist')
 
         })
     })

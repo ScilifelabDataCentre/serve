@@ -25,6 +25,7 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance
+from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException
 from .forms import PublishProjectToGitHub
@@ -153,11 +154,16 @@ def change_description(request, project_slug):
     ).first()
 
     if request.method == "POST":
+        name = request.POST.get("name", "")
         description = request.POST.get("description", "")
         if description != "":
             project.description = description
         else:
             project.description = None
+
+        if name != "":
+            project.name = name
+
         project.save()
 
         log = ProjectLog(
@@ -349,6 +355,32 @@ class GrantAccessToProjectView(View):
 
             project.authorized.add(selected_user)
             assign_perm("can_view_project", selected_user, project)
+
+            project_uri = f"{request.get_host()}/projects/{project.slug}"
+            # The backslash below is used to ignore a newline
+            email_body = f"""\
+Hi {selected_username},
+
+{request.user.username} added you to the project {project.name} on SciLifeLab Serve (https://serve.scilifelab.se)
+You can now view the project here: {project_uri}
+If you have any questions get in touch with us at serve@scilifelab.se
+
+Thank you for signing up for our service. We are excited to have you on board!
+
+Best regards,
+The Data Centre team
+"""
+
+            try:
+                # Notify user via email
+                send_email_task(
+                    subject=f"You've been added to {project.name} on SciLifeLab Serve",
+                    message=email_body,
+                    recipient_list=[selected_username],
+                )
+
+            except Exception as err:
+                logger.exception(f"Unable to send email to user: {str(err)}", exc_info=True)
 
             log = ProjectLog(
                 project=project,
