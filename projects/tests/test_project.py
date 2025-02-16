@@ -145,11 +145,11 @@ class ProjectTestCase(TestCase):
         self.assertFalse(result)
 
     def test_flavor_to_dict_without_gpu(self):
-        flavor_dict = self.flavor.to_dict(app_slug="some-app")
+        flavor_dict = self.flavor.to_dict(gpu_enabled_app=False)
         self.assertNotIn("nvidia.com/gpu", flavor_dict["flavor"]["requests"])
         self.assertNotIn("nvidia.com/gpu", flavor_dict["flavor"]["limits"])
 
     def test_flavor_to_dict_with_gpu(self):
-        flavor_dict = self.flavor.to_dict(app_slug="jupyter-lab")
+        flavor_dict = self.flavor.to_dict(gpu_enabled_app=True)
         self.assertIn("nvidia.com/gpu", flavor_dict["flavor"]["requests"])
         self.assertIn("nvidia.com/gpu", flavor_dict["flavor"]["limits"])
