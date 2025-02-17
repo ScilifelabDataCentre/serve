@@ -17,6 +17,16 @@ class MLFlowInstance(BaseAppInstance):
                 "ingressClassName": "nginx",
                 "hostname": self.url.split("://")[1] if self.url is not None else self.url,
             },
+            "resources": {
+                "requests": {"cpu": "1", "memory": "512Mi", "ephemeral-storage": "512Mi"},
+                "limits": {"cpu": "2", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+            },
+        }
+        k8s_values["run"] = {
+            "resources": {
+                "requests": {"cpu": "1", "memory": "512Mi", "ephemeral-storage": "512Mi"},
+                "limits": {"cpu": "2", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+            }
         }
         return k8s_values
 
