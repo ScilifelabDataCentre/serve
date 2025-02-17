@@ -14,9 +14,14 @@ class FilemanagerForm(AppBaseForm):
         super()._setup_form_helper()
 
         self.footer = Div(
-            Button("cancel", "Cancel", css_class="btn-outline-dark", onclick="window.history.back()"),
+            Button(
+                "cancel",
+                "Cancel",
+                css_class="btn-outline-dark btn-outline-cancel me-2",
+                onclick="window.history.back()",
+            ),
             Submit("submit", "Activate", css_class="btn-profile text-dark"),
-            css_class="card-footer d-flex justify-content-between",
+            css_class="card-footer d-flex justify-content-end",
         )
         body = Div(
             Div(

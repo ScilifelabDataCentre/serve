@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Edit my user profile{% endblock %}
+{% block title %}Edit Profile{% endblock %}
 
 {% load static %}
 {% load is_login_signup_disabled %}
@@ -16,7 +16,7 @@
     <div class="card h-100 border-0 shadow">
         <div class="card-header d-flex card-header-text justify-content-between">
             <div>
-                <h3 class="card-title mb-0 fw-bold">Edit User Profile</h3>
+                <h3 class="card-title mb-0 fw-bold">Edit Profile</h3>
             </div>
         </div>
         <form method="post">
@@ -110,8 +110,8 @@
             </div>
 
         </div>
-        <div class="card-footer d-flex card-footer-text justify-content-between">
-            <a href="/" class="btn me-2">Cancel</a>
+        <div class="card-footer d-flex card-footer-text justify-content-end">
+            <a href="/" class="btn btn-outline-dark btn-outline-cancel me-2">Cancel</a>
             <input type="submit" name="save" value="Submit" class="btn btn-primary ms-2" id="submit-id-save">
         </div>
     </div>

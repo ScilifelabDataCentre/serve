@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}My user profile{% endblock title %}
+{% block title %}My Profile{% endblock title %}
 
 {% block content %}
 <!-- Begin Page Content -->
@@ -10,7 +10,7 @@
     <div class="card h-100 border-0 shadow">
         <div class="card-header d-flex card-header-text justify-content-between">
             <div>
-                <h3 class="card-title mb-0 fw-bold">My User Profile</h3>
+                <h3 class="card-title mb-0 fw-bold">My Profile</h3>
                 </div>
                 <button type="button" type="submit" aria-expanded="false" onclick="location.href='{% url 'common:edit-profile' %}'" class="btn btn-primary"><i class="bi bi-pencil-square"></i> Edit</button>
         </div>

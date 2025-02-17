@@ -17,8 +17,8 @@
         <tr class="odd">
 
             {% static 'images/logos/apps/' as static_url %}
-            <td><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
-                    alt="App Logo" style="max-height:25px;"></td>
+            <td style="text-align: center;"><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
+                    alt="App Logo" style="max-width:25px;min-width:20px;"></td>
             <td class="d-none d-xxl-table-cell ">{{ instance.app.name }}</td>
             {% if instance.url %}
             <td class="sorting_1">

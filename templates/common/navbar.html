@@ -18,23 +18,18 @@
                         </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link serve-main-nav {% if request.path == '/apps/' %}active{% endif %}" href="{% url 'portal:apps' %}" target="_self" title="Apps">
+                        <a class="nav-link serve-main-nav {% if request.path == '/apps/' %}active{% endif %}" href="{% url 'portal:apps' %}" target="_self" title="Apps & Models">
                             Apps & Models
                         </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link serve-main-nav {% if '/docs/' in request.path %}active{% endif %}" href="/docs/" target="_self" title="User guide">
+                        <a class="nav-link serve-main-nav {% if '/docs/' in request.path %}active{% endif %}" href="/docs/" target="_self" title="User Guide">
                             User Guide
-                        </a>
-                    </li>
-                    <li class="nav-item mx-1">
-                        <a class="nav-link serve-main-nav {% if '/about/' in request.path %}active{% endif %}" href="{% url 'portal:about' %}" target="_self" title="About">
-                            About
                         </a>
                     </li>
                     {% if request.user.is_authenticated %}
                     <li class="nav-item mx-1">
-                        <a class="nav-link serve-main-nav {% if '/projects/' in request.path %}active{% endif %}" href="{% url 'projects:index' %}" target="_self" title="My projects">
+                        <a class="nav-link serve-main-nav {% if '/projects/' in request.path %}active{% endif %}" href="{% url 'projects:index' %}" target="_self" title="My Projects">
                             My Projects
                         </a>
                     </li>
@@ -54,6 +49,11 @@
                         </ul>
                     </li>
                     {% else %}
+                    <li class="nav-item mx-1">
+                        <a class="nav-link serve-main-nav {% if '/about/' in request.path %}active{% endif %}" href="{% url 'portal:about' %}" target="_self" title="About">
+                            About
+                        </a>
+                    </li>
                     <li class="nav-separator"></li>
                     <li class="nav-item flex-wrap mx-1">
                         <a class="btn btn-profile order-lg-2 order-1 mx-2 {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'common:signup' %}">
