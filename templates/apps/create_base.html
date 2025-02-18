@@ -50,9 +50,9 @@ document.addEventListener("DOMContentLoaded", function() {
             type: "GET",
             url: api_url,
             data: { "query": query },
-            beforeSend: function () {
+            //beforeSend: function () {
                 //console.log("Fetching Docker image suggestions for:", query);
-            }
+            //}
         });
 
         request.done(function (data) {
@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         request.fail(function (jqXHR, textStatus, errorThrown) {
-            console.error(`Error fetching Docker images: ${textStatus}, ${errorThrown}`);
+            //console.error(`Error fetching Docker images: ${textStatus}, ${errorThrown}`);
         });
     }
 
@@ -79,9 +79,9 @@ document.addEventListener("DOMContentLoaded", function() {
     imageInput.on("input", fetchDockerImageSuggestions);
 
     // Just for demo purposes, when the user hits Enter
-    imageInput.on("change", function () {
+    //imageInput.on("change", function () {
         //console.log("Final selection:", imageInput.val());
-    });
+    //});
 });
 
     function clearSubdomainValidation() {
@@ -183,7 +183,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const displayValue = subdomainValue || "subdomain_name";
             customDefaultUrlFormModifiedUrlText.innerHTML = `${displayValue}.{% get_setting 'DOMAIN' %}/</b>`;
         } catch (error) {
-            console.log("No custom url subpath option in this app type.");
+            //console.log("No custom url subpath option in this app type.");
         }
     }
 
