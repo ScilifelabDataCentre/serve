@@ -17,6 +17,16 @@ class MLFlowInstance(BaseAppInstance):
                 "ingressClassName": "nginx",
                 "hostname": self.url.split("://")[1] if self.url is not None else self.url,
             },
+            "pdb": {"create": False},
+        }
+        k8s_values["minio"] = {"pbd": {"create": False}}
+        k8s_values["postgresql"] = {
+            "primary": {
+                "pdb": {"create": False},
+            },
+            "readReplicas": {
+                "pdb": {"create": False},
+            },
         }
         return k8s_values
 
