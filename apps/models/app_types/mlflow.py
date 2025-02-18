@@ -1,3 +1,5 @@
+from platform import release
+
 from apps.models import AppInstanceManager, BaseAppInstance
 
 
@@ -10,12 +12,20 @@ class MLFlowInstance(BaseAppInstance):
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
+        k8s_values["commonLabels"] = {
+            "release": self.subdomain.subdomain,
+            "app": "mlflow",
+            "project": self.project.slug,
+        }
         k8s_values["tracking"] = {
             "auth": {"enabled": True},
             "ingress": {
                 "enabled": True,
                 "ingressClassName": "nginx",
                 "hostname": self.url.split("://")[1] if self.url is not None else self.url,
+            },
+            "podLabels": {
+                "type": "app",
             },
         }
         return k8s_values
