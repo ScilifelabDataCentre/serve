@@ -1,3 +1,5 @@
+from django.db import models
+
 from apps.models import AppInstanceManager, BaseAppInstance
 
 
@@ -7,6 +9,8 @@ class MlflowAppManager(AppInstanceManager):
 
 class MLFlowInstance(BaseAppInstance):
     objects = MlflowAppManager()
+    ACCESS_TYPES = (("project", "Project"),)
+    access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
@@ -19,7 +23,7 @@ class MLFlowInstance(BaseAppInstance):
             },
             "pdb": {"create": False},
         }
-        k8s_values["minio"] = {"pbd": {"create": False}}
+        k8s_values["minio"] = {"pdb": {"create": False}}
         k8s_values["postgresql"] = {
             "primary": {
                 "pdb": {"create": False},
