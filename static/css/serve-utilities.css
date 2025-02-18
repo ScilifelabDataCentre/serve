@@ -191,17 +191,3 @@ label.required::before {
     background-color: var(--serve-grape-075)!important;
     color: white!important;
 }
-
-.table-apps {
-    border-radius: 5px!important;
-    overflow: hidden!important;
-    border-width: 3px!important;
-}
-
-.table-apps>:not(caption)>* {
-    border-width: 2px 0;
-}
-
-.table-apps>:not(caption)>*>* {
-    border-width: 0 2px;
-}
