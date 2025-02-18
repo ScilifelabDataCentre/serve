@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", function() {
             url: api_url,
             data: { "query": query },
             beforeSend: function () {
-                console.log("Fetching Docker image suggestions for:", query);
+                //console.log("Fetching Docker image suggestions for:", query);
             }
         });
 
@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Just for demo purposes, when the user hits Enter
     imageInput.on("change", function () {
-        console.log("Final selection:", imageInput.val());
+        //console.log("Final selection:", imageInput.val());
     });
 });
 

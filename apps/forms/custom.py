@@ -9,16 +9,16 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.mixins import ContainerImageMixin
 from apps.models import CustomAppInstance, VolumeInstance
 from projects.models import Flavor
 
 __all__ = ["CustomAppForm"]
 
 
-class CustomAppForm(AppBaseForm):
+class CustomAppForm(ContainerImageMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
-    image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
 
@@ -36,6 +36,9 @@ class CustomAppForm(AppBaseForm):
                 f" on the Serve <a href='{apps_url}'>Apps & Models</a> page."
             )
         )
+
+        # Setup container image field from mixin
+        self._setup_container_image_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -56,17 +59,8 @@ class CustomAppForm(AppBaseForm):
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
             SRVCommonDivField("port", placeholder="8000"),
-            # Docker image input with datalist
-            Div(
-                Field(
-                    "image",
-                    css_class="form-control",
-                    placeholder="e.g. docker.io/username/image-name:image-tag",
-                    list="docker-image-list",
-                ),
-                HTML('<datalist id="docker-image-list"></datalist>'),
-                css_class="mb-3",
-            ),
+            # Container image field
+            self._setup_container_image_helper(),
             Accordion(
                 AccordionGroup(
                     "Advanced settings",
@@ -104,50 +98,6 @@ class CustomAppForm(AppBaseForm):
                 self.add_error("path", 'Path must start with "/home"')
 
         return path
-
-    def clean_image(self):
-        cleaned_data = super().clean()
-
-        image = cleaned_data.get("image", "").strip()
-
-        if not image:
-            self.add_error("image", "Docker image field cannot be empty.")
-            return image
-
-        # Ignore non-Docker images for now
-        if "docker.io" not in image:
-            return image
-
-        # Split image into repository and tag
-        if ":" in image:
-            repository, tag = image.rsplit(":", 1)
-        else:
-            repository, tag = image, "latest"
-
-        repository = repository.replace("docker.io/", "", 1)
-
-        # Ensure repository is in the correct format
-        # The request to Docker hub will fail otherwise
-        if "/" not in repository:
-            repository = f"library/{repository}"
-
-        # Docker Hub API endpoint for checking the image
-        docker_api_url = f"{settings.DOCKER_HUB_TAG_SEARCH}{repository}/tags/{tag}"
-
-        try:
-            response = requests.get(docker_api_url, timeout=5)
-            if response.status_code != 200:
-                self.add_error(
-                    "image",
-                    f"Docker image '{image}' is not publicly available on Docker Hub. "
-                    "The URL you have entered may be incorrect, or the image might be private.",
-                )
-                return image
-        except requests.RequestException:
-            self.add_error("image", "Could not validate the Docker image. Please try again.")
-            return image
-
-        return image
 
     class Meta:
         model = CustomAppInstance
