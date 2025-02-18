@@ -1,5 +1,3 @@
-from platform import release
-
 from apps.models import AppInstanceManager, BaseAppInstance
 
 
