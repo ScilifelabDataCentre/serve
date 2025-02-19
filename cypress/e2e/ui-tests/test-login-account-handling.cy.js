@@ -57,7 +57,7 @@ describe("Test login, profile page view, password change, password reset", () =>
         cy.get('li.btn-group').find('a').contains("My profile").click()
         cy.url().should("include", "user/profile/")
 
-        cy.get('div.col-8').should("contain", users.login_user.email)
+        cy.get('#id_email').should("contain.value", users.login_user.email)
     })
 
     it("can edit user profile information", () => {
@@ -71,9 +71,9 @@ describe("Test login, profile page view, password change, password reset", () =>
             cy.get('#id_department').clear().type(department);
             cy.get('#submit-id-save').click();
 
-            cy.contains(firstName).should('exist');
-            cy.contains(lastName).should('exist');
-            cy.contains(department).should('exist');
+            cy.get('#id_first_name').should("contain.value", firstName);
+            cy.get('#id_last_name').should("contain.value", lastName);
+            cy.get('#id_department').should("contain.value", department);
         }
 
 
@@ -89,7 +89,7 @@ describe("Test login, profile page view, password change, password reset", () =>
         cy.visit("/")
         cy.get('button.btn-profile').click()
         cy.get('li.btn-group').find('a').contains("My profile").click()
-        cy.get('button.btn-profile').contains('a', 'Edit').click();
+        cy.get('button.btn-primary').contains('Edit').click();
         editProfile('changing first name again', 'changing last name again', 'changing department name again');
     })
 
