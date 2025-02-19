@@ -268,7 +268,7 @@ describe("Test superuser access", () => {
 
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type_flavor + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type_flavor + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_flavor)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
@@ -302,7 +302,7 @@ describe("Test superuser access", () => {
 
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type_env + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type_env + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_env)
             cy.logf("Checking that Jupyter Lab has the four different environments", Cypress.currentTest)
             // Check the environment dropdown options
@@ -448,14 +448,14 @@ describe("Test superuser access", () => {
             .then(() => {
                 cy.logf("Create 3 jupyter lab instances (current limit)", Cypress.currentTest)
                 Cypress._.times(3, () => {
-                        cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
+                        cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                         cy.get('#id_name').type(app_name)
                         cy.get('#submit-id-submit').contains('Submit').click()
                 });
                 cy.logf("Check that the button to create another one still works", Cypress.currentTest)
-                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('have.attr', 'href')
+                cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').should('have.attr', 'href')
                 cy.logf("Check that it is possible to create another one and therefore bypass the limit", Cypress.currentTest)
-                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
+                cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                 cy.get('#id_name').type(app_name)
                 cy.get('#submit-id-submit').contains('Submit').click()
                 cy.get('tr:contains("' + app_name + '")').its('length').should('eq', 4) // we now have an extra app
