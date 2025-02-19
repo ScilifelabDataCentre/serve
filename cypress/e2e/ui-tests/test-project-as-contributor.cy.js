@@ -49,6 +49,7 @@ describe("Test project contributor user functionality", () => {
 
         // Names of objects to create
         const project_name = "e2e-create-default-proj-test"
+        const project_name_2 = "An alternative project name created by an e2e test."
         const project_title_name = project_name + " | SciLifeLab Serve (beta)"
         const project_description = "A test project created by an e2e test."
         const project_description_2 = "An alternative project description created by an e2e test."
@@ -102,23 +103,30 @@ describe("Test project contributor user functionality", () => {
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('.card-text').should('contain', project_description_2)
 
+        cy.logf("Change project name", Cypress.currentTest)
+        cy.get('[data-cy="settings"]').click()
+        cy.get('input[name=name]').clear().type(project_name_2)
+        cy.get('button').contains('Save').click()
+        cy.visit("/projects/")
+        cy.contains('.card-title', project_name_2).should('contain', project_name_2)
+
         cy.logf("Check that creating another project with same existing project name will create an error", Cypress.currentTest)
         cy.visit("/projects/")
         cy.get("a").contains('New project').click()
         cy.get("a").contains('Create').first().click()
-        cy.get('input[name=name]').type(project_name) // same name used before
+        cy.get('input[name=name]').type(project_name_2) // same name used before
         cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").contains('Create project').click() // should generate an error
         // Check that the error message is displayed
         cy.get('#flash-msg')
             .should('be.visible')
             .and('have.class', 'alert-danger')
-            .and('contain.text', `Project cannot be created because a project with name '${project_name}' already exists.`);
+            .and('contain.text', `Project cannot be created because a project with name '${project_name_2}' already exists.`);
         cy.logf("Error is successfully generated when trying to create a new project with the same existing project name", Cypress.currentTest)
 
         // go back to the previously created project
         cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
+        cy.contains('.card-title', project_name_2).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
 
         cy.logf("Delete the project from the settings menu", Cypress.currentTest)
         cy.get('[data-cy="settings"]').click()
@@ -130,7 +138,7 @@ describe("Test project contributor user functionality", () => {
                 cy.get('div#deleteModal').should('have.css', 'display', 'block')
                 cy.get('div#deleteModal').find('button').contains('Confirm').click()
             })
-        cy.contains(project_name).should('not.exist')
+        cy.contains(project_name_2).should('not.exist')
 
         })
     })
@@ -179,12 +187,12 @@ describe("Test project contributor user functionality", () => {
                 // Check that the app limits work using Jupyter Lab as example
                 // step 1. create 3 jupyter lab instances (current limit)
                 Cypress._.times(3, () => {
-                        cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
+                        cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                         cy.get('#id_name').type("e2e-create-jl")
                         cy.get('#submit-id-submit').contains('Submit').click()
                   });
                 // step 2. check that the button to create another one does not work
-                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('not.have.attr', 'href')
+                cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('button:contains("Create")').should('not.have.attr', 'href')
                 // step 3. check that it is not possible to create another one using direct url
                 let projectURL
                     cy.url().then(url => {
@@ -308,7 +316,7 @@ describe("Test project contributor user functionality", () => {
 
         // Create private app
         cy.logf("Now creating a private app", Cypress.currentTest)
-        cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+        cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#id_name').type(private_app_name)
         cy.get('#id_access').select('Private')
         cy.get('#submit-id-submit').contains('Submit').click() // create app
@@ -316,7 +324,7 @@ describe("Test project contributor user functionality", () => {
 
         // Create project app
         cy.logf("Now creating a project app", Cypress.currentTest)
-        cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+        cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#id_name').type(project_app_name)
         cy.get('#id_access').select('Project')
         cy.get('#submit-id-submit').contains('Submit').click() // create app
@@ -414,8 +422,7 @@ describe("Test project contributor user functionality", () => {
         cy.logf("Activating file managing tools", Cypress.currentTest)
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-
-        cy.get('div.card-body:contains("File Manager")').find('a:contains("Create")').click()
+        cy.get('div.card-body:contains("File Manager")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#submit-id-submit').click()
 
         cy.get('tr:contains("File Manager")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
