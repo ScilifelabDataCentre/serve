@@ -372,7 +372,7 @@ The SciLifeLab Serve team
             try:
                 # Notify user via email
                 send_email_task(
-                    subject=f"You've been added to a project on SciLifeLab Serve",
+                    subject="You've been added to a project on SciLifeLab Serve",
                     message=email_body,
                     recipient_list=[selected_username],
                 )
