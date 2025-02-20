@@ -187,12 +187,12 @@ describe("Test project contributor user functionality", () => {
                 // Check that the app limits work using Jupyter Lab as example
                 // step 1. create 3 jupyter lab instances (current limit)
                 Cypress._.times(3, () => {
-                        cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').click()
+                        cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                         cy.get('#id_name').type("e2e-create-jl")
                         cy.get('#submit-id-submit').contains('Submit').click()
                   });
                 // step 2. check that the button to create another one does not work
-                cy.get('[data-cy="create-app-card"]').contains('Jupyter Lab').parent().siblings().find('.btn').should('not.have.attr', 'href')
+                cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('button:contains("Create")').should('not.have.attr', 'href')
                 // step 3. check that it is not possible to create another one using direct url
                 let projectURL
                     cy.url().then(url => {
@@ -316,7 +316,7 @@ describe("Test project contributor user functionality", () => {
 
         // Create private app
         cy.logf("Now creating a private app", Cypress.currentTest)
-        cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+        cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#id_name').type(private_app_name)
         cy.get('#id_access').select('Private')
         cy.get('#submit-id-submit').contains('Submit').click() // create app
@@ -324,7 +324,7 @@ describe("Test project contributor user functionality", () => {
 
         // Create project app
         cy.logf("Now creating a project app", Cypress.currentTest)
-        cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+        cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#id_name').type(project_app_name)
         cy.get('#id_access').select('Project')
         cy.get('#submit-id-submit').contains('Submit').click() // create app
@@ -422,8 +422,7 @@ describe("Test project contributor user functionality", () => {
         cy.logf("Activating file managing tools", Cypress.currentTest)
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-
-        cy.get('div.card-body:contains("File Manager")').find('a:contains("Create")').click()
+        cy.get('div.card-body:contains("File Manager")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#submit-id-submit').click()
 
         cy.get('tr:contains("File Manager")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')

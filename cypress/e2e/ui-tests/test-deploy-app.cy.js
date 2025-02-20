@@ -92,7 +92,7 @@ describe("Test deploying app", () => {
 
             // Create an app with project permissions
             cy.logf("Now creating a project app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
@@ -111,7 +111,7 @@ describe("Test deploying app", () => {
                   .and('include', default_url_subpath);
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name_project).should('not.exist')
 
             // make this app public as an update and check that it works
@@ -138,7 +138,7 @@ describe("Test deploying app", () => {
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.logf("Now creating a public app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_public)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -269,7 +269,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name_public_2).should('not.exist')
 
         } else {
@@ -294,7 +294,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -342,7 +342,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -369,7 +369,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -411,7 +411,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -434,7 +434,7 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
             cy.logf("Creating a tisuumaps app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -469,7 +469,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -494,7 +494,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a gradio app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -532,7 +532,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -557,7 +557,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a streamlit app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -595,7 +595,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -621,7 +621,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -681,7 +681,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name_edited).should('not.exist')
 
         } else {
@@ -707,7 +707,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -778,7 +778,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -803,7 +803,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -860,7 +860,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -894,7 +894,7 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             // Create an app and set a custom subdomain for it
             cy.logf("Now creating an app with a custom subdomain", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             // fill out other fields
             cy.get('#id_name').clear().type(app_name)
             cy.get('#id_description').clear().type(app_description)
@@ -912,7 +912,7 @@ describe("Test deploying app", () => {
 
             // Try using the same subdomain the second time
             cy.logf("Now trying to create an app with an already taken subdomain", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
 
             cy.get('#id_name').clear().type(app_name_2)
             cy.get('#id_port').clear().type("8501")
@@ -976,7 +976,7 @@ describe("Test deploying app", () => {
 
             // Create an app with project permissions
             cy.logf("Now creating an app with a non-existent image reference - expecting Image Error", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_statuses)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
