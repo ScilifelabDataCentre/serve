@@ -43,7 +43,7 @@
       "description": "",
       "name": "MLFlow",
       "slug": "mlflow",
-      "logo": "default-logo.svg",
+      "logo": "mlflow-logo.png",
       "priority": "400",
       "table_field": {
         "url": "https://{{ release }}.{{ global.domain }}"
