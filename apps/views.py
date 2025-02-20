@@ -308,6 +308,8 @@ class SecretsView(View):
 
     def get(self, request, project, app_slug, app_id):
         instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
+
+        username, password = "Unavailable", "Unavailable"
         if subdomain := instance.subdomain:
             username = subprocess.run(
                 (
@@ -332,5 +334,5 @@ class SecretsView(View):
             ).stdout
             password = base64.b64decode(password).decode()
 
-        context = {"mlflow_username": username, "mlflow_password": password}
+        context = {"mlflow_username": username, "mlflow_password": password, "mlflow_url": instance.url}
         return render(request, self.template, context)

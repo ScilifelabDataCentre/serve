@@ -1,5 +1,7 @@
 from django.db import models
 
+from django.utils.crypto import get_random_string
+
 from apps.models import AppInstanceManager, BaseAppInstance
 
 
@@ -14,7 +16,6 @@ class MLFlowInstance(BaseAppInstance):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.app.user_can_see_secrets = True
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
@@ -24,11 +25,7 @@ class MLFlowInstance(BaseAppInstance):
             "project": self.project.slug,
         }
         k8s_values["tracking"] = {
-            "auth": {
-                "enabled": True,
-                # "username": self.basic_auth.username,
-                # "password": self.basic_auth.password,
-            },
+            "auth": {"enabled": True, "username": get_random_string(10), "password": get_random_string(20)},
             "ingress": {
                 "enabled": True,
                 "ingressClassName": "nginx",

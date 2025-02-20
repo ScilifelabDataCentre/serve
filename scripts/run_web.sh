@@ -42,6 +42,10 @@ if $INIT; then
     python manage.py runscript admin_token
 fi
 
+if $CONFIGUREONLY; then
+    echo "Configuration only mode. Exiting..."
+    exit 0
+fi
 echo "Starting the Studio server..."
 
 if $DEBUG ; then
