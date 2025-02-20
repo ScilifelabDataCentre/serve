@@ -361,20 +361,18 @@ class GrantAccessToProjectView(View):
             email_body = f"""\
 Hi {selected_username},
 
-{request.user.username} added you to the project {project.name} on SciLifeLab Serve (https://serve.scilifelab.se)
-You can now view the project here: {project_uri}
+{request.user.username} added you to the project {project.name} on SciLifeLab Serve (https://serve.scilifelab.se).
+You can now view the project here: {project_uri}.
 If you have any questions get in touch with us at serve@scilifelab.se
 
-Thank you for signing up for our service. We are excited to have you on board!
-
 Best regards,
-The Data Centre team
+The SciLifeLab Serve team
 """
 
             try:
                 # Notify user via email
                 send_email_task(
-                    subject=f"You've been added to {project.name} on SciLifeLab Serve",
+                    subject=f"You've been added to a project on SciLifeLab Serve",
                     message=email_body,
                     recipient_list=[selected_username],
                 )
