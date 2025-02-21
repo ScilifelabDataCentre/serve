@@ -367,6 +367,11 @@ NAMESPACE = "default"
 KUBE_API_REQUEST_TIMEOUT = 1
 STORAGECLASS = "local-path"
 
+# Docker hub API
+DOCKER_HUB_IMAGE_SEARCH = "https://hub.docker.com/v2/search/repositories/"
+DOCKER_HUB_TAG_SEARCH = "https://hub.docker.com/v2/repositories/"
+
+
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
 IP = os.environ.get("IP", "127.0.0.1")

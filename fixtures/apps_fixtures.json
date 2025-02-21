@@ -316,7 +316,7 @@
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "Apps built with Gradio, Streamlit, Flask, etc.",
       "gpu_enabled": true,
-      "logo": "default-logo.svg",
+      "logo": "custom-app-logo.svg",
       "name": "Custom App",
       "priority": "400",
       "slug": "customapp",
