@@ -6,16 +6,16 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.mixins import ContainerImageMixin
 from apps.models import ShinyInstance
 from projects.models import Flavor
 
 __all__ = ["ShinyForm"]
 
 
-class ShinyForm(AppBaseForm):
+class ShinyForm(ContainerImageMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
-    image = forms.CharField(max_length=255, required=True)
     shiny_site_dir = forms.CharField(max_length=255, required=False, label="Path to site_dir")
 
     def __init__(self, *args, **kwargs):
@@ -23,6 +23,9 @@ class ShinyForm(AppBaseForm):
 
         if self.instance and self.instance.pk:
             self.initial_subdomain = self.instance.subdomain.subdomain
+
+        # Setup container image field from mixin
+        self._setup_container_image_field()
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -60,7 +63,8 @@ class ShinyForm(AppBaseForm):
             ),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
             SRVCommonDivField("port", placeholder="3838"),
-            SRVCommonDivField("image", placeholder="e.g. docker.io/username/image-name:image-tag"),
+            # Container image field
+            self._setup_container_image_helper(),
             Accordion(
                 AccordionGroup(
                     "Advanced settings",
