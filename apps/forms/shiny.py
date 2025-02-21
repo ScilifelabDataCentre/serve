@@ -6,7 +6,7 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.models import ShinyInstance, VolumeInstance
+from apps.models import ShinyInstance
 from projects.models import Flavor
 
 __all__ = ["ShinyForm"]
@@ -29,7 +29,7 @@ class ShinyForm(AppBaseForm):
         super()._setup_form_fields()
         self.fields["volume"].initial = None
         self.fields["volume"].widget = HiddenInput()
-        self.fields["path"].initial = "/home"
+        self.fields["path"].initial = "/srv/shiny-server/"
         self.fields["path"].widget = HiddenInput()
         self.fields["shiny_site_dir"].widget.attrs.update({"class": "textinput form-control"})
         self.fields["shiny_site_dir"].help_text = (
@@ -51,7 +51,7 @@ class ShinyForm(AppBaseForm):
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
             Field("volume"),
-            Field("path", placeholder="/home/..."),
+            Field("path", placeholder="/srv/shiny-server/..."),
             SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
