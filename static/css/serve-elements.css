@@ -51,6 +51,29 @@
     --bs-gradient: none;
 }
 
+.btn-outline-dark.btn-outline-cancel:hover {
+    background-color: #ffffff00;
+    box-shadow: 0 0.5rem 1rem rgba(var(--bs-body-color-rgb), .15) !important;
+    color: #222529;
+    outline-offset: -1px;
+    outline:2px solid #282a2e;
+}
+
+.btn-primary:hover {
+    outline-offset: -1px;
+    outline:2px solid var(--serve-dark-grey);
+}
+
+.btn-danger:hover {
+    outline-offset: -1px;
+    outline:2px solid #bb2d3b;
+}
+
+.btn-profile:hover {
+    outline-offset: -1px;
+    outline:2px solid var(--serve-lime);
+}
+
 /* serve button for scrolling to top */
 .btn-top {
     position: fixed;

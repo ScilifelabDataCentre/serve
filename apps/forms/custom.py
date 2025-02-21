@@ -1,22 +1,24 @@
+import requests
 from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Field, Layout, MultiField
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.mixins import ContainerImageMixin
 from apps.models import CustomAppInstance, VolumeInstance
 from projects.models import Flavor
 
 __all__ = ["CustomAppForm"]
 
 
-class CustomAppForm(AppBaseForm):
+class CustomAppForm(ContainerImageMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
-    image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
 
@@ -34,6 +36,9 @@ class CustomAppForm(AppBaseForm):
                 f" on the Serve <a href='{apps_url}'>Apps & Models</a> page."
             )
         )
+
+        # Setup container image field from mixin
+        self._setup_container_image_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -54,7 +59,8 @@ class CustomAppForm(AppBaseForm):
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
             SRVCommonDivField("port", placeholder="8000"),
-            SRVCommonDivField("image", placeholder="e.g. docker.io/username/image-name:image-tag"),
+            # Container image field
+            self._setup_container_image_helper(),
             Accordion(
                 AccordionGroup(
                     "Advanced settings",

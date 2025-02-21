@@ -17,6 +17,7 @@ from .models import (
     GradioInstance,
     JupyterInstance,
     K8sUserAppStatus,
+    MLFlowInstance,
     NetpolicyInstance,
     RStudioInstance,
     ShinyInstance,
@@ -45,6 +46,7 @@ class AppsAdmin(admin.ModelAdmin):
         "user_can_create",
         "user_can_edit",
         "user_can_delete",
+        "user_can_see_secrets",
         "slug",
     )
     list_filter = ("user_can_create",)
@@ -207,6 +209,12 @@ class NetpolicyInstanceAdmin(BaseAppAdmin):
 @admin.register(DashInstance)
 class DashInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + ("image",)
+
+
+@admin.register(MLFlowInstance)
+class MLFlowAppInstanceAdmin(BaseAppAdmin):
+    # list any fields that you want be listed in the admin pannel.
+    list_display = BaseAppAdmin.list_display
 
 
 @admin.register(CustomAppInstance)

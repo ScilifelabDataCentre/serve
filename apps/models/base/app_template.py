@@ -7,6 +7,7 @@ class Apps(models.Model):
     user_can_create = models.BooleanField(default=True)
     user_can_edit = models.BooleanField(default=True)
     user_can_delete = models.BooleanField(default=True)
+    user_can_see_secrets = models.BooleanField(default=False)
     access = models.CharField(max_length=20, blank=True, null=True, default="public")
     category = models.ForeignKey(
         "AppCategories",

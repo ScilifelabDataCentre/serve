@@ -14,7 +14,7 @@ describe("Tests of the public pages of the website", () => {
     it("should open the Apps and models page on link click", () => {
         cy.get("li.nav-item a").contains("Apps & Models").click()
         cy.url().should("include", "/apps")
-        cy.get('h3').should('contain', 'Public applications and models')
+        cy.get('h3').should('contain', 'Public Applications & Models')
         cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
 
         if (Cypress.env('do_reset_db') === true) {
@@ -35,7 +35,7 @@ describe("Tests of the public pages of the website", () => {
     })
 
     it("should open the User guide page on link click", () => {
-        cy.get("li.nav-item a").contains("User guide").click()
+        cy.get("li.nav-item a").contains("User Guide").click()
         cy.url().should("include", "/docs/")
         cy.get('[data-cy="sidebar-title"]').should('contain', 'user guide') // check that the sidebar title is there, comes from our templates
     })

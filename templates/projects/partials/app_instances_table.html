@@ -17,11 +17,12 @@
         <tr class="odd" id="app-{{ instance.pk }}" data-cy="approw">
 
             {% static 'images/logos/apps/' as static_url %}
-            <td><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
-                    alt="App Logo" style="max-height:25px;"></td>
+            <td style="text-align: center;"><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
+                    alt="App Logo" style="max-width:25px;min-width:20px;"></td>
             <td class="d-none d-xxl-table-cell ">{{ instance.app.name }}</td>
             {% if instance.url %}
             <td class="sorting_1">
+              {# 2025-02-20 I believe this fist if statement could be removed #}
                 {% if "Serv" in instance.app.name or instance.app.name == "Python Model Deployment" %}
                     <a onclick="copyClip('{{instance.table_field.url}}')">
                         {{ instance.name }}
@@ -30,6 +31,10 @@
                             <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
                         </svg>
                     </a>
+                {% elif instance.app.name == "MLFlow" %}
+                  <a href="{% url 'apps:secrets' project.slug instance.app.slug instance.pk %}?from=overview">
+                    {{ instance.name }} <i class="bi bi-key"></i>
+                  </a>
                 {% else %}
                 <a href="{{ instance.url }}" target="_blank">
                     {{ instance.name }} <i class="bi bi-box-arrow-up-right"></i>
@@ -49,6 +54,7 @@
                     Refreshing...
                     <!-- {{ instance.get_app_status }} -->
                 </span>
+              {% if instance.app.name != "MLFlow" %}
                 {% if instance.access %}
                     {% if instance.access == 'public' %}
                     <span class="badge bg-success" id="permission-{{ instance.pk }}" data-cy="app-permission">
@@ -94,7 +100,13 @@
                             Settings
                         </a>
                         {% endif %}
-
+                      {% if instance.app.user_can_see_secrets %}
+                        <a class="dropdown-item default"
+                           href="{% url 'apps:secrets' project.slug instance.app.slug instance.pk %}?from=overview">
+                          <i class="bi bi-key me-1"></i>
+                          Secrets
+                        </a>
+                      {% endif %}
                         {% if instance.app.user_can_delete %}
 
                         <a class="dropdown-item bg-danger text-white confirm-delete default"

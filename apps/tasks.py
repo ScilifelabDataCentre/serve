@@ -208,6 +208,7 @@ def deploy_resource(serialized_instance):
     kdm = KubernetesDeploymentManifest()
 
     # Save helm values file for internal reference
+
     values_file, _ = kdm.get_filepaths()
     with open(values_file, "w") as f:
         f.write(yaml.dump(values))
@@ -282,8 +283,15 @@ def delete_resource(serialized_instance):
         instance.latest_user_action = "SystemDeleting"
 
     values = instance.k8s_values
-    output, error = helm_delete(values["subdomain"], values["namespace"])
-    success = not error
+
+    success = False
+    if values.get("subdomain") is not None:
+        output, error = helm_delete(values["subdomain"], values["namespace"])
+        success = not error
+    else:
+        error_text = f"Subdomain name does not exist. App: {values['name']}, Project: {values['project']['slug']}"
+        output, error = error_text, error_text
+        logger.error(error_text)
 
     if success:
         # User actions (Deleting) are now saved by views and helpers.

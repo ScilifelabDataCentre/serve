@@ -71,7 +71,7 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
         unique_app_ids_ = set()
         unique_apps_ = []
         for app in queryset:
-            if app.id not in app_ids_to_exclude and app_id not in unique_app_ids_:
+            if app.id not in app_ids_to_exclude and app.id not in unique_app_ids_:
                 unique_app_ids_.add(app.id)
                 unique_apps_.append(app)
         return unique_apps_, unique_app_ids_

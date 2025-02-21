@@ -32,6 +32,58 @@
 
 <script>
 
+// Fetch docker image suggestions and populate the datalist
+document.addEventListener("DOMContentLoaded", function() {
+    const imageInput = $("#id_image");
+    const datalist = $("#docker-image-list");
+
+    function fetchDockerImageSuggestions() {
+        let query = imageInput.val().trim();
+        if (query.length < 3) {
+            datalist.empty();
+            return;
+        }
+
+        let api_url = window.location.origin + "/api/docker_image_search/";
+
+        let request = $.ajax({
+            type: "GET",
+            url: api_url,
+            data: { "query": query },
+            //beforeSend: function () {
+                //console.log("Fetching Docker image suggestions for:", query);
+            //}
+        });
+
+        request.done(function (data) {
+            // Clear existing suggestions
+            datalist.empty();
+
+            if (data && data.images) {
+                // Create possible image options
+                let options = data.images.map(function (image) {
+                    return $("<option>").val(image)[0];
+                });
+
+                // Append available options
+                datalist.append(options);
+            }
+        });
+
+        request.fail(function (jqXHR, textStatus, errorThrown) {
+            //console.error(`Error fetching Docker images: ${textStatus}, ${errorThrown}`);
+        });
+    }
+
+    // Run function on input
+    imageInput.on("input", fetchDockerImageSuggestions);
+
+    // Just for demo purposes, when the user hits Enter
+    //imageInput.on("change", function () {
+        //console.log("Final selection:", imageInput.val());
+    //});
+});
+
     function clearSubdomainValidation() {
         // Must clear django form validation message
         $("#id_subdomain").each(function() {
@@ -131,7 +183,7 @@
             const displayValue = subdomainValue || "subdomain_name";
             customDefaultUrlFormModifiedUrlText.innerHTML = `${displayValue}.{% get_setting 'DOMAIN' %}/</b>`;
         } catch (error) {
-            console.log("No custom url subpath option in this app type.");
+            //console.log("No custom url subpath option in this app type.");
         }
     }
 
