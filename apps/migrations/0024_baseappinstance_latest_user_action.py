@@ -6,10 +6,24 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("apps", "0023_k8suserappstatus"),
+        ("apps", "0023_apps_gpu_enabled"),
     ]
 
     operations = [
+        migrations.CreateModel(
+            name="K8sUserAppStatus",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("info", models.JSONField(blank=True, null=True)),
+                ("status", models.CharField(max_length=15, null=True)),
+                ("time", models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                "verbose_name": "k8s User App Status",
+                "verbose_name_plural": "k8s User App Statuses",
+                "get_latest_by": "time",
+            },
+        ),
         migrations.AddField(
             model_name="baseappinstance",
             name="latest_user_action",
