@@ -19,6 +19,7 @@ class Apps(models.Model):
     chart_archive = models.FileField(upload_to="apps/", null=True, blank=True)
     created_on = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True, null=True, default="")
+    gpu_enabled = models.BooleanField(default=False)
     logo = models.CharField(max_length=512, null=True, blank=True)
     name = models.CharField(max_length=512)
     priority = models.IntegerField(default=100)
