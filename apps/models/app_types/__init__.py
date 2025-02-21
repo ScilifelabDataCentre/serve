@@ -4,6 +4,7 @@ from .custom.streamlit import StreamlitAppInstanceManager, StreamlitInstance
 from .dash import DashInstance, DashInstanceManager
 from .filemanager import FilemanagerInstance, FilemanagerInstanceManager
 from .jupyter import JupyterInstance, JupyterInstanceManager
+from .mlflow import MlflowAppManager, MLFlowInstance
 from .netpolicy import NetpolicyInstance, NetpolicyInstanceManager
 from .rstudio import RStudioInstance, RStudioInstanceManager
 from .shiny import ShinyInstance, ShinyInstanceManager

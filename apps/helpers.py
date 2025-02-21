@@ -371,6 +371,8 @@ def save_instance_and_related_data(instance, form):
     form.save_m2m()
     instance.set_k8s_values()
     instance.url = get_URI(instance)
+    # For MLFLOW, we need to set the k8s_values again to update the URL
+    instance.set_k8s_values()
     instance.save(update_fields=["k8s_values", "url"])
 
 

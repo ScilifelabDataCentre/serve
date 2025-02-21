@@ -12,12 +12,14 @@ from apps.forms import (
     VolumeForm,
     VSCodeForm,
 )
+from apps.forms.mlflow import MLFlowAppForm
 from apps.models import (
     CustomAppInstance,
     DashInstance,
     FilemanagerInstance,
     GradioInstance,
     JupyterInstance,
+    MLFlowInstance,
     NetpolicyInstance,
     RStudioInstance,
     ShinyInstance,
@@ -43,3 +45,4 @@ APP_REGISTRY.register("tissuumaps", ModelFormTuple(TissuumapsInstance, Tissuumap
 APP_REGISTRY.register("filemanager", ModelFormTuple(FilemanagerInstance, FilemanagerForm))
 APP_REGISTRY.register("gradio", ModelFormTuple(GradioInstance, GradioForm))
 APP_REGISTRY.register("streamlit", ModelFormTuple(StreamlitInstance, StreamlitForm))
+APP_REGISTRY.register("mlflow", ModelFormTuple(MLFlowInstance, MLFlowAppForm))

@@ -11,4 +11,5 @@ urlpatterns = [
     path("create/<app_slug>", views.CreateApp.as_view(), name="create"),
     path("settings/<app_slug>/<app_id>", views.CreateApp.as_view(), name="appsettings"),
     path("delete/<app_slug>/<app_id>", views.delete, name="delete"),
+    path("secrets/<app_slug>/<app_id>", views.SecretsView.as_view(), name="secrets"),
 ]
