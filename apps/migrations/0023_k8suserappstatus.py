@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("apps", "0021_dashinstance_default_url_subpath"),
+        ("apps", "0022_mlflowinstance_apps_user_can_see_secrets"),
     ]
 
     operations = [
