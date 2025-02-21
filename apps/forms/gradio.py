@@ -3,22 +3,25 @@ from django import forms
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.mixins import ContainerImageMixin
 from apps.models import GradioInstance
 from projects.models import Flavor
 
 __all__ = ["GradioForm"]
 
 
-class GradioForm(AppBaseForm):
+class GradioForm(ContainerImageMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
-    image = forms.CharField(max_length=255, required=True)
     path = forms.CharField(max_length=255, required=False)
 
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
         self.fields["volume"].initial = None
+
+        # Setup container image field from mixin
+        self._setup_container_image_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -39,7 +42,8 @@ class GradioForm(AppBaseForm):
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
             SRVCommonDivField("port", placeholder="7860"),
-            SRVCommonDivField("image", placeholder="e.g. docker.io/username/image-name:image-tag"),
+            # Container image field
+            self._setup_container_image_helper(),
             css_class="card-body",
         )
         self.helper.layout = Layout(body, self.footer)

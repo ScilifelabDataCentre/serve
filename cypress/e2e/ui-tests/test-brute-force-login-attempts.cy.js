@@ -41,7 +41,7 @@ describe("Test brute force login attempts are blocked", () => {
         cy.get('button.btn-profile').click()
         cy.get('li.btn-group').find('a').contains("My profile").click()
         cy.url().should("include", "user/profile/")
-        cy.get('div.col-8').should("contain", users.brute_force_login_user.email)
+        cy.get('#id_email').should("contain.value", users.brute_force_login_user.email)
 
         // Sign out before logging in again
         cy.logf("Sign out before logging in again", Cypress.currentTest)
