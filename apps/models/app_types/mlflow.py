@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.crypto import get_random_string
 
 from apps.models import AppInstanceManager, BaseAppInstance
 
@@ -12,6 +13,9 @@ class MLFlowInstance(BaseAppInstance):
     ACCESS_TYPES = (("project", "Project"),)
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
         k8s_values["commonLabels"] = {
@@ -20,7 +24,7 @@ class MLFlowInstance(BaseAppInstance):
             "project": self.project.slug,
         }
         k8s_values["tracking"] = {
-            "auth": {"enabled": True},
+            "auth": {"enabled": True, "username": get_random_string(10), "password": get_random_string(20)},
             "ingress": {
                 "enabled": True,
                 "ingressClassName": "nginx",

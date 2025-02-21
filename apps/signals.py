@@ -1,9 +1,9 @@
-from django.db.models.signals import post_delete, post_save, pre_delete
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
 
 from apps.app_registry import APP_REGISTRY
-from apps.models import AppStatus, BaseAppInstance
+from apps.models import AppStatus, BaseAppInstance, MLFlowInstance
 from studio.utils import get_logger
 
 from .tasks import helm_delete
@@ -35,6 +35,12 @@ def post_delete_subdomain_remove(sender, instance, using, **kwargs):
         baseapp_instance = BaseAppInstance.objects.get(app_status=instance)
         baseapp_instance.subdomain = None
         baseapp_instance.save()
+
+
+@receiver(post_save, sender=MLFlowInstance)
+def set_mlflow_user_can_see_secrets(sender, instance, **kwargs):
+    instance.app.user_can_see_secrets = True
+    instance.app.save()
 
 
 def update_permission(sender, instance, created, **kwargs):
