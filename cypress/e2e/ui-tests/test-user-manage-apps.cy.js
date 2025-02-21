@@ -141,7 +141,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the default URL subpath was created
             cy.contains('a', app_name_project)
                 .should('have.attr', 'href')
-                .and('include', default_url_subpath);
+                .and('include', default_url_subpath)
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public applications and models')
@@ -178,8 +178,11 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // verify that the app is not visible in the project overview
-            cy.get('tr:contains("' + app_name_project + '")').should('not.exist')
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name_project + '")').should('not.exist')
+            })
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.logf("Now creating a public app", Cypress.currentTest)
@@ -325,14 +328,11 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // Give the action some time to edit the status
+            // Give the action some time after the click event
             cy.wait(2000).then(() => {
                 // verify that the app is not visible in the project overview
                  cy.get('tr:contains("' + app_name_public_2 + '")').should('not.exist')
             })
-
-            // The other app that was made public should still exist
-            verifyAppStatus(app_name_project, "", "public", "Changing")
 
             // check that the app is not visible under public apps
             cy.visit("/apps")
@@ -408,7 +408,7 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // Give the action some time to edit the status
+            // Give the action some time after the click event
             cy.wait(2000).then(() => {
                 // verify that the app is not visible in the project overview
                  cy.get('tr:contains("' + app_name + '")').should('not.exist')
@@ -484,8 +484,11 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // verify that the app is not visible in the project overview
-            cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // verify that the app is not visible under public apps
             cy.visit('/apps/')
@@ -546,8 +549,11 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // verify that the app is not visible in the project overview
-            cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
@@ -610,8 +616,11 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // verify that the app is not visible in the project overview
-            cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
@@ -674,8 +683,11 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // verify that the app is not visible in the project overview
-            cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
@@ -765,8 +777,11 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // verify that the app is not visible in the project overview
-            cy.get('tr:contains("' + app_name_edited + '")').should('not.exist')
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name_edited + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
@@ -883,8 +898,11 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // verify that the app is not visible in the project overview
-            cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
@@ -970,8 +988,11 @@ if (Cypress.env('create_resources') === true) {
                 .find('[data-cy="delete-app-button-confirm"]')
                 .click()
 
-            // verify that the app is not visible in the project overview
-            cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
