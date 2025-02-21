@@ -204,6 +204,7 @@ def deploy_resource(serialized_instance):
     kdm = KubernetesDeploymentManifest()
 
     # Save helm values file for internal reference
+
     values_file, _ = kdm.get_filepaths()
     with open(values_file, "w") as f:
         f.write(yaml.dump(values))

@@ -3,11 +3,12 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import pytz
+import requests
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.template import loader
 from django.utils.safestring import mark_safe
 from django_filters.rest_framework import DjangoFilterBackend
@@ -57,6 +58,7 @@ from .serializers import (
     ProjectTemplateSerializer,
     UserSerializer,
 )
+from .utils import fetch_docker_hub_images_and_tags
 
 logger = get_logger(__name__)
 
@@ -956,3 +958,19 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
     # GET verb
     logger.info("API method update_app_status called with GET verb.")
     return Response({"message": "DEBUG: GET"})
+
+
+@api_view(["GET"])
+@permission_classes(
+    (
+        # IsAuthenticated,
+    )
+)
+def docker_image_search(request):
+    query = request.GET.get("query", "").strip()
+    if not query:
+        return JsonResponse({"error": "Query parameter is required"}, status=400)
+
+    docker_images = fetch_docker_hub_images_and_tags(query)
+
+    return JsonResponse({"images": docker_images})
