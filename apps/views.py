@@ -304,13 +304,16 @@ class CreateApp(View):
     name="dispatch",
 )
 class SecretsView(View):
+    """This view is used to display the secrets only of an MLFlow instance for now"""
+
     template = "apps/secrets_view.html"
 
     def get(self, request, project, app_slug, app_id):
         instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
 
-        username, password = "Unavailable", "Unavailable"
-        if subdomain := instance.subdomain:
+        username, password = None, None
+        if instance.app_status.status == "Running":
+            subdomain = instance.subdomain
             username = subprocess.run(
                 (
                     "kubectl get secret "

@@ -53,16 +53,18 @@
                 <span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}">
                     {{ instance.app_status.status }}
                 </span>
+              {% if instance.app.name != "MLFlow" %}
                 {% if instance.access %}
-                    {% if instance.access == 'public' %}
+                  {% if instance.access == 'public' %}
                     <span class="badge bg-success">
-                        {{ instance.access }}
-                    </span>
-                    {% else %}
+                          {{ instance.access }}
+                      </span>
+                  {% else %}
                     <span class="badge bg-secondary">
-                        {{ instance.access }}
-                    </span>
-                    {% endif %}
+                          {{ instance.access }}
+                      </span>
+                  {% endif %}
+                {% endif %}
                 {% endif %}
             </td>
             <td class="d-none d-xxl-table-cell" id="tags-{{ instance.pk }}">
