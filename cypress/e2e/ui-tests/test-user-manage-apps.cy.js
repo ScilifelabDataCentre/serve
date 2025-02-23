@@ -122,7 +122,7 @@ if (Cypress.env('create_resources') === true) {
 
             // Create an app with project permissions
             cy.logf("Now creating a project app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
@@ -144,7 +144,7 @@ if (Cypress.env('create_resources') === true) {
                 .and('include', default_url_subpath)
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name_project).should('not.exist')
 
             // make this app public as an update and check that it works
@@ -186,7 +186,7 @@ if (Cypress.env('create_resources') === true) {
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.logf("Now creating a public app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').should('be.visible').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_public)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -337,7 +337,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name_public_2).should('not.exist')
         })
 
@@ -356,7 +356,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Creating a shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -417,7 +417,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
         })
 
@@ -431,18 +431,25 @@ if (Cypress.env('create_resources') === true) {
             const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
             const image_port = "8000"
             const app_type = "Dash App"
+            const default_url_subpath = "default/url/subpath/"
 
             // Create Dash app
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+
+            // cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click() // Go to Advanced settings
+            cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
+
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -472,6 +479,8 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
+            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click() // Go to Advanced settings
+            cy.get('#id_default_url_subpath').should('have.value', default_url_subpath)
 
             // Delete the Dash app
             cy.logf("Deleting the dash app", Cypress.currentTest)
@@ -490,10 +499,10 @@ if (Cypress.env('create_resources') === true) {
                  cy.get('tr:contains("' + app_name + '")').should('not.exist')
             })
 
-            // verify that the app is not visible under public apps
+            // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
         })
 
@@ -510,7 +519,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
             cy.logf("Creating a tisuumaps app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -558,7 +567,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
         })
 
@@ -577,7 +586,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Creating a gradio app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -625,7 +634,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
         })
 
@@ -644,7 +653,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Creating a streamlit app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -692,7 +701,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
         })
 
@@ -712,7 +721,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -786,7 +795,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name_edited).should('not.exist')
         })
 
@@ -806,7 +815,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -907,7 +916,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
         })
 
@@ -926,7 +935,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -997,7 +1006,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
         })
 
@@ -1024,7 +1033,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             // Create an app and set a custom subdomain for it
             cy.logf("Now creating an app with a custom subdomain", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             // fill out other fields
             cy.get('#id_name').clear().type(app_name)
             cy.get('#id_description').clear().type(app_description)
@@ -1047,7 +1056,7 @@ if (Cypress.env('create_resources') === true) {
 
             // Try using the same subdomain the second time
             cy.logf("Now trying to create an app with an already taken subdomain", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
 
             cy.get('#id_name').clear().type(app_name_2)
             cy.get('#id_port').clear().type("8501")
