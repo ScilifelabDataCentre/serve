@@ -46,7 +46,7 @@ class BaseForm(forms.ModelForm):
         self.fields["name"].initial = ""
 
         # Initialize the tags field to existing tags or empty list
-        if self.instance and self.instance.pk:
+        if self.instance and self.instance.pk and hasattr(self.instance, "tags"):
             self.instance.refresh_from_db()
             self._original_tags = list(self.instance.tags.all())
         else:
@@ -140,7 +140,7 @@ class BaseForm(forms.ModelForm):
     def changed_data(self):
         # Override the default changed_data to handle the tags field
         changed_data = super().changed_data
-        if "tags" in changed_data:
+        if "tags" in changed_data and hasattr(self.instance, "tags"):
             new_tags = self.cleaned_data.get("tags", [])
             if list(new_tags) == self._original_tags:
                 changed_data.remove("tags")
