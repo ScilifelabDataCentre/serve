@@ -26,6 +26,10 @@
     --serve-medium-grey: #a6a6a6;
     --serve-dark-grey: #3f3f3f;
 
+    --serve-yellow: #fffdab;
+    --serve-yellow-075: #fffdabb0;
+    --serve-yellow-050: #fffdab70;
+
     --scaleout-black: #191919;
     --scaleout-red: #E0746D;
     --scaleout-yellow: #EBD886;
@@ -149,4 +153,15 @@
 
 .text-red {
     color: var(--scaleout-red);
+}
+
+.bg-yellow {
+    background-color: var(--serve-yellow);
+}
+
+.bg-yellow-075 {
+    background-color: var(--serve-yellow-075);
+}
+.bg-yellow-050 {
+    background-color: var(--serve-yellow-050);
 }

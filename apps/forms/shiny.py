@@ -1,20 +1,21 @@
-from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
+from crispy_forms.bootstrap import Accordion, AccordionGroup, Field, PrependedText
 from crispy_forms.layout import Div, Layout
 from django import forms
+from django.forms.widgets import HiddenInput
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.mixins import ContainerImageMixin
 from apps.models import ShinyInstance
 from projects.models import Flavor
 
 __all__ = ["ShinyForm"]
 
 
-class ShinyForm(AppBaseForm):
+class ShinyForm(ContainerImageMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
-    image = forms.CharField(max_length=255, required=True)
     shiny_site_dir = forms.CharField(max_length=255, required=False, label="Path to site_dir")
 
     def __init__(self, *args, **kwargs):
@@ -23,9 +24,16 @@ class ShinyForm(AppBaseForm):
         if self.instance and self.instance.pk:
             self.initial_subdomain = self.instance.subdomain.subdomain
 
+        # Setup container image field from mixin
+        self._setup_container_image_field()
+
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
+        self.fields["volume"].initial = None
+        self.fields["volume"].widget = HiddenInput()
+        self.fields["path"].initial = "/srv/shiny-server/"
+        self.fields["path"].widget = HiddenInput()
         self.fields["shiny_site_dir"].widget.attrs.update({"class": "textinput form-control"})
         self.fields["shiny_site_dir"].help_text = (
             "Provide a path to the Shiny app inside your " "Docker image if it is different from /srv/shiny-server/"
@@ -45,6 +53,8 @@ class ShinyForm(AppBaseForm):
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
+            Field("volume"),
+            Field("path", placeholder="/srv/shiny-server/..."),
             SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
@@ -53,7 +63,8 @@ class ShinyForm(AppBaseForm):
             ),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
             SRVCommonDivField("port", placeholder="3838"),
-            SRVCommonDivField("image", placeholder="e.g. docker.io/username/image-name:image-tag"),
+            # Container image field
+            self._setup_container_image_helper(),
             Accordion(
                 AccordionGroup(
                     "Advanced settings",
@@ -81,12 +92,33 @@ class ShinyForm(AppBaseForm):
 
         return shiny_site_dir
 
+    def clean_path(self):
+        cleaned_data = super().clean()
+
+        path = cleaned_data.get("path", None)
+        volume = cleaned_data.get("volume", None)
+
+        if volume and not path:
+            self.add_error("path", "Path is required when volume is selected.")
+
+        if path:
+            # If new path matches current path, it is valid.
+            if self.instance and getattr(self.instance, "path", None) == path:
+                return path
+            # Verify that path starts with "/home"
+            path = path.strip().rstrip("/").lower().replace(" ", "")
+            if not path.startswith("/home"):
+                self.add_error("path", 'Path must start with "/home"')
+
+        return path
+
     class Meta:
         model = ShinyInstance
         fields = [
             "name",
             "description",
             "volume",
+            "path",
             "flavor",
             "access",
             "note_on_linkonly_privacy",

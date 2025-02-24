@@ -7,6 +7,7 @@ class Apps(models.Model):
     user_can_create = models.BooleanField(default=True)
     user_can_edit = models.BooleanField(default=True)
     user_can_delete = models.BooleanField(default=True)
+    user_can_see_secrets = models.BooleanField(default=False)
     access = models.CharField(max_length=20, blank=True, null=True, default="public")
     category = models.ForeignKey(
         "AppCategories",
@@ -18,6 +19,7 @@ class Apps(models.Model):
     chart_archive = models.FileField(upload_to="apps/", null=True, blank=True)
     created_on = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True, null=True, default="")
+    gpu_enabled = models.BooleanField(default=False)
     logo = models.CharField(max_length=512, null=True, blank=True)
     name = models.CharField(max_length=512)
     priority = models.IntegerField(default=100)

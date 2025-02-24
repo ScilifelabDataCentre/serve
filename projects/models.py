@@ -86,7 +86,7 @@ class Flavor(models.Model):
     def __str__(self):
         return str(self.name)
 
-    def to_dict(self):
+    def to_dict(self, gpu_enabled_app=False):
         flavor_dict = dict(
             flavor=dict(
                 requests={
@@ -101,8 +101,9 @@ class Flavor(models.Model):
                 },
             )
         )
-        if self.gpu_req and int(self.gpu_req) > 0:
-            flavor_dict["flavor"]["requests"]["nvidia.com/gpu"] = (self.gpu_req,)
+        # allow GPU only for apps that are flagged gpu enabled in app template.
+        if self.gpu_req and int(self.gpu_req) > 0 and gpu_enabled_app:
+            flavor_dict["flavor"]["requests"]["nvidia.com/gpu"] = self.gpu_req
             flavor_dict["flavor"]["limits"]["nvidia.com/gpu"] = self.gpu_lim
 
         return flavor_dict
