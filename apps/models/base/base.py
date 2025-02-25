@@ -143,7 +143,7 @@ class BaseAppInstance(models.Model):
             storageClass=settings.STORAGECLASS,
             namespace=settings.NAMESPACE,
             release=self.subdomain.subdomain if self.subdomain else "deleted",  # This is legacy and should be changed
-            ingress=dict(clientMaxBodySize=self.upload_size),
+            ingress=dict(clientMaxBodySize=f"{self.upload_size}M"),
         )
 
         # Add global values
