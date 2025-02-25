@@ -55,7 +55,15 @@ admin.site.register(Apps, AppsAdmin)
 
 
 class BaseAppAdmin(admin.ModelAdmin):
-    list_display = ("name", "display_owner", "display_project", "display_status", "display_subdomain", "chart")
+    list_display = (
+        "name",
+        "display_owner",
+        "display_project",
+        "display_status",
+        "display_subdomain",
+        "chart",
+        "upload_size",
+    )
     readonly_fields = ("id", "created_on")
     list_filter = ["owner", "project", "app_status__status", "chart"]
     actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
