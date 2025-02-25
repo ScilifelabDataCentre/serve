@@ -321,7 +321,7 @@ class SecretsView(View):
             username = subprocess.run(
                 (
                     "kubectl get secret "
-                    f"--namespace default {subdomain.subdomain}-mlflow-tracking "
+                    f"--namespace {settings.NAMESPACE} {subdomain.subdomain}-mlflow-tracking "
                     '-o jsonpath="{.data.admin-user}"'
                 ).split(),
                 check=True,
@@ -332,7 +332,7 @@ class SecretsView(View):
             password = subprocess.run(
                 (
                     "kubectl get secret "
-                    f"--namespace default {subdomain.subdomain}-mlflow-tracking "
+                    f"--namespace {settings.NAMESPACE} {subdomain.subdomain}-mlflow-tracking "
                     '-o jsonpath="{.data.admin-password}"'
                 ).split(),
                 check=True,
