@@ -277,11 +277,6 @@ def deploy_resource(serialized_instance):
 def delete_resource(serialized_instance):
     instance = deserialize(serialized_instance)
 
-    # These "apps" are not true user apps but rather handled
-    # by the Serve system. Therefore they are set to the SystemDeleting action.
-    if instance.app.slug in ("volumeK8s", "netpolicy"):
-        instance.latest_user_action = "SystemDeleting"
-
     values = instance.k8s_values
 
     success = False
@@ -307,7 +302,16 @@ def delete_resource(serialized_instance):
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 
     instance.info = dict(helm=helm_info)
-    instance.save()
+
+    # Note: when we save the app instance object here, we should not overwrite properties
+    # with old values, therefore we carefully restrict the updated fields.
+    if instance.app.slug in ("volumeK8s", "netpolicy"):
+        # These "apps" are not true user apps but rather handled
+        # by the Serve system. Therefore they are set to the SystemDeleting action.
+        instance.latest_user_action = "SystemDeleting"
+        instance.save(update_fields=["latest_user_action", "info"])
+    else:
+        instance.save(update_fields=["info"])
 
 
 def deserialize(serialized_instance):
