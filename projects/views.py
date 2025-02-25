@@ -1,8 +1,5 @@
-import base64
-import datetime
 import logging
 
-import requests as r
 from django.apps import apps
 from django.conf import settings as django_settings
 from django.contrib import messages
@@ -24,11 +21,9 @@ from guardian.decorators import permission_required_or_403
 from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
-from apps.models import BaseAppInstance
 from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException
-from .forms import PublishProjectToGitHub
 from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
 from .tasks import create_resources_from_template, delete_project
 
