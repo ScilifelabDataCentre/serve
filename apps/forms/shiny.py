@@ -107,7 +107,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
                 return path
             # Verify that path starts with "/home" or "/srv"
             path = path.strip().rstrip("/").lower().replace(" ", "")
-            if not path.startswith("/home") and not path.startswith("/srv"):
+            if not path.startswith(("/home", "/srv")):
                 self.add_error("path", 'Path must start with "/home" or "/srv"')
 
         return path
