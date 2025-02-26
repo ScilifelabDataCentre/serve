@@ -112,7 +112,7 @@ def handle_update_status_request(
     Technically this function either updates or creates and persists a new K8sUserAppStatus object.
 
     :param release str: The release id of the app instance, stored in the AppInstance.k8s_values dict in the subdomain.
-    :param new_status str: The new status code. Trimmed to max 15 chars if needed.
+    :param new_status str: The new status code. Trimmed to max 20 chars if needed.
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
     :returns: A value from the HandleUpdateStatusResponseCode enum.

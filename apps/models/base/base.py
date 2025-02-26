@@ -48,7 +48,7 @@ class AppInstanceManager(models.Manager):
                 When(latest_user_action="Deleting", then=Value("Deleted")),
                 When(latest_user_action="SystemDeleting", then=Value("Deleted")),
                 When(
-                    k8s_user_app_status__status__in=["CrashLoopBackoff", "ErrImagePull", "PostStartHookError"],
+                    k8s_user_app_status__status__in=["CrashLoopBackOff", "ErrImagePull", "PostStartHookError"],
                     then=Value("Error"),
                 ),
                 When(
@@ -277,7 +277,7 @@ class BaseAppInstance(models.Model):
                 return "Changing"
             case _, "NotFound":
                 return "Error (NotFound)"
-            case _, "CrashLoopBackoff" | "ErrImagePull" | "PostStartHookError":
+            case _, "CrashLoopBackOff" | "ErrImagePull" | "PostStartHookError":
                 return "Error"
             case _, "Running":
                 return "Running"
