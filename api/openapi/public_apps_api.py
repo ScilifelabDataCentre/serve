@@ -124,7 +124,6 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         app_instance["app_status"] = app_status
 
         if app_instance.get("access", False) != "public":
-            logger.info("This app is non-existent or not public")
             raise NotFound("This app is non-existent or not public")
 
         app_type_info = Apps.objects.get(id=app_instance["app_id"])

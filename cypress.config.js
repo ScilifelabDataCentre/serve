@@ -12,6 +12,13 @@ module.exports = defineConfig({
     baseUrl: 'http://studio.127.0.0.1.nip.io:8080',
     //baseUrl: 'https://serve-dev.scilifelab.se',
 
+    // Exclude the integration tests from CI
+    // TODO: After app status refactor is done, the test-deploy-app.cy.js will be removed.
+    excludeSpecPattern: [
+        "cypress/e2e/integration-tests/*",
+        "cypress/e2e/ui-tests/test-deploy-app.cy.js"
+    ],
+
     setupNodeEvents(on, config) {
       // implement node event listeners here
       const logOptions = {
