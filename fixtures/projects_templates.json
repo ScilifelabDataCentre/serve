@@ -35,7 +35,7 @@
             "image": "serve-jupyterlab-datascience:250213-1352",
             "repository": "ghcr.io/scilifelabdatacentre"
           },
-          "Jupyter Lab Pytorch": {
+          "Jupyter Lab PyTorch": {
             "app": "jupyter-lab",
             "image": "serve-jupyterlab-pytorch:250213-1119",
             "repository": "ghcr.io/scilifelabdatacentre"

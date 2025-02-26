@@ -223,6 +223,7 @@ class BaseAppInstance(models.Model):
 
     url = models.URLField(blank=True, null=True)
     updated_on = models.DateTimeField(auto_now=True)
+    upload_size = models.PositiveIntegerField(default=100, help_text="Max upload size in MB")
 
     class Meta:
         permissions = [("can_access_app", "Can access app service")]
@@ -245,6 +246,7 @@ class BaseAppInstance(models.Model):
             storageClass=settings.STORAGECLASS,
             namespace=settings.NAMESPACE,
             release=self.subdomain.subdomain if self.subdomain else "deleted",  # This is legacy and should be changed
+            ingress=dict(clientMaxBodySize=f"{self.upload_size}M"),
         )
 
         # Add global values

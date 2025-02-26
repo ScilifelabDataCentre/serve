@@ -356,7 +356,7 @@ describe("Test superuser access", () => {
             [
                 'Jupyter Lab Minimal (Default)',
                 'Jupyter Lab Data Science',
-                'Jupyter Lab Pytorch',
+                'Jupyter Lab PyTorch',
                 'Jupyter Lab Tensorflow'
             ].forEach((name) => {
             cy.get('@envSelect').contains('option', name);

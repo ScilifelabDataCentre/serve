@@ -64,8 +64,16 @@ class K8sUserAppStatusAdmin(admin.ModelAdmin):
 
 
 class BaseAppAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "display_owner",
+        "display_project",
+        "display_status",
+        "display_subdomain",
+        "chart",
+        "upload_size",
+    )
     # TODO: Test new status properties in admin
-    list_display = ("name", "display_owner", "display_project", "display_status", "display_subdomain", "chart")
     readonly_fields = ("id", "created_on")
     list_filter = ["owner", "project", "k8s_user_app_status__status", "chart"]
     actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
