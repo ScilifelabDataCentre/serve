@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.models import Apps, AppStatus, CustomAppInstance, Subdomain
+from apps.models import Apps, CustomAppInstance, K8sUserAppStatus, Subdomain
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -25,12 +25,13 @@ class PublicAppsApiTests(APITestCase):
 
     @classmethod
     def setUpTestData(cls):
+        # Create a public app with status Running
         cls.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         cls.project = Project.objects.create_project(name="test-perm", owner=cls.user, description="")
         cls.app = Apps.objects.create(name="Some App", slug="customapp")
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
-        app_status = AppStatus.objects.create(status="Running")
+        k8s_user_app_status = K8sUserAppStatus.objects.create(status="Running")
         cls.app_instance = CustomAppInstance.objects.create(
             access="public",
             owner=cls.user,
@@ -42,7 +43,7 @@ class PublicAppsApiTests(APITestCase):
                 "environment": {"pk": ""},
             },
             subdomain=subdomain,
-            app_status=app_status,
+            k8s_user_app_status=k8s_user_app_status,
         )
 
     def test_public_apps_list(self):
@@ -80,7 +81,6 @@ class PublicAppsApiTests(APITestCase):
         self.assertEqual(actual["id"], self.app_instance.id)
         self.assertIsNotNone(actual["name"])
         self.assertEqual(actual["name"], self.app_instance.name)
-        self.assertTrue(actual["app_id"] > 0)
         self.assertEqual(actual["description"], self.app_instance.description)
         updated_on = datetime.fromisoformat(actual["updated_on"][:-1])
         self.assertEqual(datetime.date(updated_on), datetime.date(self.app_instance.updated_on))

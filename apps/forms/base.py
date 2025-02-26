@@ -45,6 +45,13 @@ class BaseForm(forms.ModelForm):
         # Handle name
         self.fields["name"].initial = ""
 
+        # Initialize the tags field to existing tags or empty list
+        if self.instance and self.instance.pk:
+            self.instance.refresh_from_db()
+            self._original_tags = list(self.instance.tags.all())
+        else:
+            self._original_tags = []
+
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel
         self.footer = Div(
@@ -88,6 +95,13 @@ class BaseForm(forms.ModelForm):
 
         return note_on_linkonly_privacy
 
+    def clean_tags(self):
+        cleaned_data = super().clean()
+        tags = cleaned_data.get("tags", None)
+        if tags is None:
+            return []
+        return tags
+
     def validate_subdomain(self, subdomain_input):
         # If user did not input subdomain, set it to our standard release name
         if not subdomain_input:
@@ -121,6 +135,16 @@ class BaseForm(forms.ModelForm):
             raise forms.ValidationError(error_message)
 
         return SubdomainTuple(subdomain_input, True)
+
+    @property
+    def changed_data(self):
+        # Override the default changed_data to handle the tags field
+        changed_data = super().changed_data
+        if "tags" in changed_data:
+            new_tags = self.cleaned_data.get("tags", [])
+            if list(new_tags) == self._original_tags:
+                changed_data.remove("tags")
+        return changed_data
 
     class Meta:
         # Specify model to be used
@@ -158,7 +182,9 @@ class AppBaseForm(BaseForm):
 
         # Handle Volume field
         volume_queryset = (
-            VolumeInstance.objects.filter(project__pk=self.project_pk).exclude(app_status__status="Deleted")
+            VolumeInstance.objects.filter(project__pk=self.project_pk).exclude(
+                latest_user_action__in=["Deleting", "SystemDeleting"]
+            )
             if self.project_pk
             else VolumeInstance.objects.none()
         )

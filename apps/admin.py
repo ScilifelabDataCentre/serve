@@ -16,6 +16,7 @@ from .models import (
     FilemanagerInstance,
     GradioInstance,
     JupyterInstance,
+    K8sUserAppStatus,
     MLFlowInstance,
     NetpolicyInstance,
     RStudioInstance,
@@ -54,6 +55,14 @@ class AppsAdmin(admin.ModelAdmin):
 admin.site.register(Apps, AppsAdmin)
 
 
+class K8sUserAppStatusAdmin(admin.ModelAdmin):
+    list_display = (
+        "status",
+        "time",
+    )
+    list_filter = ["status", "time"]
+
+
 class BaseAppAdmin(admin.ModelAdmin):
     list_display = (
         "name",
@@ -64,16 +73,16 @@ class BaseAppAdmin(admin.ModelAdmin):
         "chart",
         "upload_size",
     )
+    # TODO: Test new status properties in admin
     readonly_fields = ("id", "created_on")
-    list_filter = ["owner", "project", "app_status__status", "chart"]
+    list_filter = ["owner", "project", "k8s_user_app_status__status", "chart"]
     actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
 
     def display_status(self, obj):
-        status_object = obj.app_status
-        if status_object:
-            return status_object.status
-        else:
-            "No status"
+        try:
+            return obj.get_app_status()
+        except:  # noqa E722 OK here
+            return "No status"
 
     display_status.short_description = "Status"
 
@@ -271,3 +280,4 @@ class StreamlitInstanceAdmin(BaseAppAdmin):
 admin.site.register(Subdomain)
 admin.site.register(AppCategories)
 admin.site.register(AppStatus, AppStatusAdmin)
+admin.site.register(K8sUserAppStatus, K8sUserAppStatusAdmin)

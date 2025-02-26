@@ -1,4 +1,4 @@
-FROM python:3.12.3-alpine3.19 as builder
+FROM python:3.12.3-alpine3.19 AS builder
 
 LABEL maintainer="serve@scilifelab.se"
 WORKDIR /app

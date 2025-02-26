@@ -5,26 +5,90 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import serializers
 from django.db import models
-from django.db.models import Q
+from django.db.models import Case, CharField, F, Q, Value, When
 
-from apps.models.base.app_status import AppStatus
 from apps.models.base.app_template import Apps
+from apps.models.base.k8s_user_app_status import K8sUserAppStatus
 from apps.models.base.subdomain import Subdomain
 from projects.models import Flavor, Project
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
+
+USER_ACTION_STATUS_CHOICES = [
+    ("Creating", "Creating"),
+    ("Changing", "Changing"),
+    ("Deleting", "Deleting"),
+    ("SystemDeleting", "SystemDeleting"),
+    ("Redeploying", "Redeploying"),
+]
+
+
+def get_status_defs():
+    status_success = settings.APPS_STATUS_SUCCESS
+    status_warning = settings.APPS_STATUS_WARNING
+    return status_success, status_warning
+
+
+status_success, status_warning = get_status_defs()
 
 
 class AppInstanceManager(models.Manager):
     model_type = "appinstance"
+
+    def with_app_status(self):
+        """
+        Define and add a reusable, chainable annotation app_status.
+        The atn prefix stands for annotation and clarifies that this value is computed on the fly.
+        This repeats the logic of the class method convert_to_app_status below and is
+        therefore not DRY. However the implementation details are too different to be reused.
+        """
+        return self.get_queryset().annotate(
+            atn_app_status=Case(
+                When(latest_user_action="Deleting", then=Value("Deleted")),
+                When(latest_user_action="SystemDeleting", then=Value("Deleted")),
+                When(
+                    k8s_user_app_status__status__in=["CrashLoopBackoff", "ErrImagePull", "PostStartHookError"],
+                    then=Value("Error"),
+                ),
+                When(
+                    latest_user_action__in=["Creating", "Changing"],
+                    k8s_user_app_status__status="NotFound",
+                    then=Value("Error (NotFound)"),
+                ),
+                When(
+                    latest_user_action__in=["Creating", "Changing"],
+                    k8s_user_app_status__status="Running",
+                    then=Value("Running"),
+                ),
+                When(
+                    latest_user_action="Creating",
+                    k8s_user_app_status__status__in=["ContainerCreating", "PodInitializing", ""],
+                    then=Value("Creating"),
+                ),
+                When(
+                    latest_user_action="Changing",
+                    k8s_user_app_status__status__in=["ContainerCreating", "PodInitializing", ""],
+                    then=Value("Changing"),
+                ),
+                default=Value("Unknown"),
+                output_field=CharField(),
+            )
+        )
+
+    def get_app_instances_not_deleted(self):
+        """A queryset returning all user apps excluding Deleted apps."""
+        return self.with_app_status().exclude(atn_app_status="Deleted")
 
     def get_app_instances_of_project_filter(self, user, project, include_deleted=False, deleted_time_delta=None):
         q = Q()
 
         if not include_deleted:
             if deleted_time_delta is None:
-                q &= ~Q(app_status__status="Deleted")
+                q &= ~Q(atn_app_status="Deleted")
             else:
                 time_threshold = datetime.now() - timedelta(minutes=deleted_time_delta)
-                q &= ~Q(app_status__status="Deleted") | Q(deleted_on__gte=time_threshold)
+                q &= ~Q(atn_app_status="Deleted") | Q(deleted_on__gte=time_threshold)
 
         if hasattr(self.model, "access"):
             q &= Q(owner=user) | Q(
@@ -52,15 +116,18 @@ class AppInstanceManager(models.Manager):
             order_by = "-created_on"
 
         if filter_func is None:
-            return self.filter(self.get_app_instances_of_project_filter(user=user, project=project)).order_by(order_by)[
-                :limit
-            ]
+            return (
+                self.with_app_status()
+                .filter(self.get_app_instances_of_project_filter(user=user, project=project))
+                .order_by(order_by)[:limit]
+            )
 
         if override_default_filter:
             return self.filter(filter_func).order_by(order_by)[:limit]
 
         return (
-            self.filter(self.get_app_instances_of_project_filter(user=user, project=project))
+            self.with_app_status()
+            .filter(self.get_app_instances_of_project_filter(user=user, project=project))
             .filter(filter_func)
             .order_by(order_by)[:limit]
         )
@@ -74,11 +141,15 @@ class AppInstanceManager(models.Manager):
         if not app.user_can_create:
             return False
 
-        num_of_app_instances = self.filter(
-            ~Q(app_status__status="Deleted"),
-            app__slug=app_slug,
-            project=project,
-        ).count()
+        num_of_app_instances = (
+            self.with_app_status()
+            .filter(
+                ~Q(atn_app_status="Deleted"),
+                app__slug=app_slug,
+                project=project,
+            )
+            .count()
+        )
 
         has_perm = user.has_perm(f"apps.add_{self.model_type}")
         return limit is None or limit > num_of_app_instances or has_perm
@@ -116,7 +187,32 @@ class BaseAppInstance(models.Model):
     subdomain = models.OneToOneField(
         Subdomain, on_delete=models.SET_NULL, related_name="%(class)s", null=True, blank=True
     )
-    app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
+
+    latest_user_action = models.CharField(max_length=15, default="Creating", choices=USER_ACTION_STATUS_CHOICES)
+    k8s_user_app_status = models.OneToOneField(
+        K8sUserAppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True
+    )
+
+    # 20241216: Refactoring of app status.
+    # Break connection to model AppStatus and deprecate AppStatus
+    # The model AppStatus and related FK app_status is retained for historical reasons
+    # app_status = models.OneToOneField(AppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True)
+
+    # Get the computed, dynamic app status value
+    def get_app_status(self) -> str:
+        """Model function exposing the computed app status value."""
+        # This model function replaces the old app_status field and related AppStatus model.
+        if self.k8s_user_app_status is None:
+            k8s_user_app_status = None
+        else:
+            k8s_user_app_status = self.k8s_user_app_status.status
+        return BaseAppInstance.convert_to_app_status(self.latest_user_action, k8s_user_app_status)
+
+    def get_status_group(self) -> str:
+        """Get the status group from the app status."""
+        status = self.get_app_status()
+        group = "success" if status in status_success else "warning" if status in status_warning else "danger"
+        return group
 
     url = models.URLField(blank=True, null=True)
     updated_on = models.DateTimeField(auto_now=True)
@@ -159,3 +255,33 @@ class BaseAppInstance(models.Model):
 
     def serialize(self):
         return json.loads(serializers.serialize("json", [self]))[0]
+
+    @staticmethod
+    def convert_to_app_status(latest_user_action: str, k8s_user_app_status: str) -> str:
+        """Converts latest user action and k8s pod status to app status"""
+        match latest_user_action, k8s_user_app_status:
+            case "Deleting", _:
+                return "Deleted"
+            case "SystemDeleting", _:
+                return "Deleted"
+            case "Creating", "ContainerCreating" | "PodInitializing":
+                return "Creating"
+            case "Changing", "ContainerCreating" | "PodInitializing":
+                return "Changing"
+            case _, "NotFound":
+                return "Error (NotFound)"
+            case _, "CrashLoopBackoff" | "ErrImagePull" | "PostStartHookError":
+                return "Error"
+            case _, "Running":
+                return "Running"
+            case "Creating", _:
+                return "Creating"
+            case "Changing", _:
+                return "Changing"
+            case _, _:
+                logger.warn(
+                    f"Invalid input to convert_to_app_status. No match for {latest_user_action}, {k8s_user_app_status}"
+                )
+                return "Unknown"
+
+        raise ValueError("Invalid input")

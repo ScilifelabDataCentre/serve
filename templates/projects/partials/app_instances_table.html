@@ -14,7 +14,7 @@
     </thead>
     <tbody>
         {% for instance in objs.instances %}
-        <tr class="odd">
+        <tr class="odd" id="app-{{ instance.pk }}" data-cy="approw">
 
             {% static 'images/logos/apps/' as static_url %}
             <td style="text-align: center;"><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
@@ -49,22 +49,22 @@
                 class="bi bi-clock" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ objs.timezone }}">
                 </span>
             </td>
-            <td>
-                <span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}">
-                    {{ instance.app_status.status }}
+            <td data-cy="appstatus-cell">
+                <span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
+                    Refreshing...
+                    <!-- {{ instance.get_app_status }} -->
                 </span>
               {% if instance.app.name != "MLFlow" %}
                 {% if instance.access %}
-                  {% if instance.access == 'public' %}
-                    <span class="badge bg-success">
-                          {{ instance.access }}
-                      </span>
-                  {% else %}
-                    <span class="badge bg-secondary">
-                          {{ instance.access }}
-                      </span>
-                  {% endif %}
-                {% endif %}
+                    {% if instance.access == 'public' %}
+                    <span class="badge bg-success" id="permission-{{ instance.pk }}" data-cy="app-permission">
+                        {{ instance.access }}
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary" id="permission-{{ instance.pk }}" data-cy="app-permission">
+                        {{ instance.access }}
+                    </span>
+                    {% endif %}
                 {% endif %}
             </td>
             <td class="d-none d-xxl-table-cell" id="tags-{{ instance.pk }}">
