@@ -117,7 +117,7 @@ label.required::before {
 }
 
 .nav-link.serve-main-nav:hover {
-    font-weight: bolder!important;
+    color: #103c3f!important;
 }
 
 .nav-item:after {
