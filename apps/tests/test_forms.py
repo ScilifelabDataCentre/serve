@@ -6,7 +6,7 @@ from django.test import TestCase
 
 from apps.forms import CustomAppForm
 from apps.helpers import validate_path_k8s_label_compatible
-from apps.models import Apps, AppStatus, Subdomain, VolumeInstance
+from apps.models import Apps, K8sUserAppStatus, Subdomain, VolumeInstance
 from apps.models.app_types.custom.custom import validate_default_url_subpath
 from projects.models import Flavor, Project
 
@@ -27,7 +27,7 @@ class BaseAppFormTest(TestCase):
             project=self.project,
             size=1,
             subdomain=Subdomain.objects.create(subdomain="subdomain", project=self.project),
-            app_status=AppStatus.objects.create(status="Created"),
+            k8s_user_app_status=K8sUserAppStatus.objects.create(),
         )
         self.flavor = Flavor.objects.create(name="flavor", project=self.project)
 
@@ -84,7 +84,8 @@ class CustomAppFormTest(BaseAppFormTest):
         instance = form.save(commit=False)
         instance.project = self.project
         instance.owner = self.user
-        instance.app_status = AppStatus.objects.create(status="Created")
+        instance.k8s_user_app_status = K8sUserAppStatus.objects.create()
+        # instance.app_status = AppStatus.objects.create(status="Created")
         instance.app = self.app
 
         # Fetch subdomain and set
