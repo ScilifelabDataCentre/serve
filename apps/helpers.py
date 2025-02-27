@@ -182,7 +182,7 @@ def handle_update_status_request(
 
     except Exception as err:
         logger.error(f"Unable to fetch or update the specified app instance with release={release}. {err}, {type(err)}")
-        raise from err
+        raise
 
 
 # TODO: Consider removing after refactoring.
