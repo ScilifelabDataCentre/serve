@@ -860,7 +860,7 @@ if (Cypress.env('create_resources') === true) {
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
-            // Verify that the app status now equals Image Error
+            // Verify that the app status now equals Error
             if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
                     verifyAppStatus(app_name, "Error", "public", "Changing")
