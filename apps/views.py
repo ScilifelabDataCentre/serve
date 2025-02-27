@@ -20,6 +20,7 @@ from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
 from .helpers import create_instance_from_form
+from .models import BaseAppInstance
 from .tasks import delete_resource
 
 logger = get_logger(__name__)
@@ -313,10 +314,10 @@ class SecretsView(View):
     template = "apps/secrets_view.html"
 
     def get(self, request, project, app_slug, app_id):
-        instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
+        instance: BaseAppInstance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
 
         username, password = None, None
-        if instance.app_status.status == "Running":
+        if instance.get_app_status() == "Running":
             subdomain = instance.subdomain
             username = subprocess.run(
                 (
