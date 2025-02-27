@@ -97,10 +97,7 @@ class BaseForm(forms.ModelForm):
 
     def clean_tags(self):
         cleaned_data = super().clean()
-        tags = cleaned_data.get("tags", None)
-        if tags is None:
-            return []
-        return tags
+        return cleaned_data.get("tags", [])
 
     def validate_subdomain(self, subdomain_input):
         # If user did not input subdomain, set it to our standard release name

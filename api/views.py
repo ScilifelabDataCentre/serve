@@ -520,7 +520,7 @@ class AppInstanceList(
 
     def destroy(self, request, *args, **kwargs):
         # TODO: Revisit
-        raise Exception("api/AppInstanceList destroy. Is this function used?")
+        raise RuntimeError("api/AppInstanceList destroy. Is this function used?")
 
         appinstance = self.get_object()
         # Check that user is allowed to delete app:

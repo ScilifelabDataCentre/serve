@@ -182,12 +182,12 @@ def handle_update_status_request(
 
     except Exception as err:
         logger.error(f"Unable to fetch or update the specified app instance with release={release}. {err}, {type(err)}")
-        raise
+        raise from err
 
 
 # TODO: Consider removing after refactoring.
 def _handle_update_status_request_old(
-    release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
+    release: str, new_status: str, event_ts: datetime, event_msg: str | None = None
 ) -> HandleUpdateStatusResponseCode:
     """
     Helper function to handle update app status requests by determining if the
@@ -201,7 +201,7 @@ def _handle_update_status_request_old(
               Raises an ObjectDoesNotExist exception if the app instance does not exist.
     """
 
-    raise Exception("This method has been deprecated. To be removed.")
+    raise DeprecationWarning("This method has been deprecated. To be removed.")
 
     """
     if len(new_status) > 15:
@@ -309,7 +309,7 @@ def update_status(appinstance, status_object, status, status_ts=None, event_msg=
     Helper function to update the status of an appinstance and a status object.
     """
 
-    raise Exception("This function is deprecated and should not be used.")
+    raise DeprecationWarning("This function is deprecated and should not be used.")
 
     # Persist a new app statuss object
     status_object.status = status
@@ -332,7 +332,7 @@ def update_status(appinstance, status_object, status, status_ts=None, event_msg=
 
 
 @transaction.atomic
-def update_status_time(status_object: Any, status_ts: datetime, event_msg: str = None):
+def update_status_time(status_object: Any, status_ts: datetime, event_msg: str | None = None):
     """
     Helper function to update the time of an app status event.
     """
