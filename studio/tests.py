@@ -23,7 +23,6 @@ class AppInstancePermissionScriptTestCase(TestCase):
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
         k8s_user_app_status = K8sUserAppStatus.objects.create()
-        # app_status = AppStatus.objects.create(status="Created")
         app_instance = JupyterInstance.objects.create(
             access=access,
             owner=user,
@@ -32,7 +31,6 @@ class AppInstancePermissionScriptTestCase(TestCase):
             project=project,
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
-            # app_status=app_status,
         )
 
         return [project, app, app_instance]

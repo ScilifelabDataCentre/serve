@@ -69,7 +69,6 @@ def clean_up_apps_in_database():
         apps_to_be_cleaned_up = orm_model.objects.filter(
             deleted_on__lt=timezone.now() - timezone.timedelta(days=apps_clean_up_threshold_days),
             latest_user_action__in=["Deleting", "SystemDeleting"],
-            # app_status__status="Deleted",
         )
 
         if apps_to_be_cleaned_up:

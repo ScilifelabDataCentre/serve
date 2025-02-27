@@ -223,7 +223,7 @@ class AppInstanceManagerDeleteAppTestCase(TestCase):
     ],
 )
 @pytest.mark.django_db
-def test_with_app_status(latest_user_action, k8s_user_app_status, expected_app_status):
+def test_annotate_with_app_status(latest_user_action, k8s_user_app_status, expected_app_status):
     """Tests the AppInstanceManager model manager annotation atn_app_status."""
 
     # Setup: create an app instance
@@ -242,7 +242,7 @@ def test_with_app_status(latest_user_action, k8s_user_app_status, expected_app_s
     )
 
     # Apply the annotation
-    annotated_app = BaseAppInstance.objects.with_app_status().get(id=app_instance.id)
+    annotated_app = BaseAppInstance.objects.annotate_with_app_status().get(id=app_instance.id)
 
     # Verify the annotated values
     assert annotated_app.atn_app_status == expected_app_status

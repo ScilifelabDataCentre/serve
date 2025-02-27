@@ -185,92 +185,6 @@ def handle_update_status_request(
         raise
 
 
-# TODO: Consider removing after refactoring.
-def _handle_update_status_request_old(
-    release: str, new_status: str, event_ts: datetime, event_msg: str | None = None
-) -> HandleUpdateStatusResponseCode:
-    """
-    Helper function to handle update app status requests by determining if the
-    request should be performed or ignored.
-
-    :param release str: The release id of the app instance, stored in the AppInstance.k8s_values dict in the subdomain.
-    :param new_status str: The new status code. Trimmed to max 15 chars if needed.
-    :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
-    :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
-    :returns: A value from the HandleUpdateStatusResponseCode enum.
-              Raises an ObjectDoesNotExist exception if the app instance does not exist.
-    """
-
-    raise DeprecationWarning("This method has been deprecated. To be removed.")
-
-    """
-    if len(new_status) > 15:
-        new_status = new_status[:15]
-
-    try:
-        # Begin by verifying that the requested app instance exists
-        # We wrap the select and update tasks in a select_for_update lock
-        # to avoid race conditions.
-
-        # release takes on the value of the subdomain
-        subdomain = Subdomain.objects.get(subdomain=release)
-
-        with transaction.atomic():
-            instance = BaseAppInstance.objects.select_for_update().filter(subdomain=subdomain).last()
-            if instance is None:
-                logger.info(f"The specified app instance identified by release {release} was not found")
-                raise ObjectDoesNotExist
-
-            logger.debug(f"The app instance identified by release {release} exists. App name={instance.name}")
-
-            # Also get the latest app status object for this app instance
-            if instance.app_status is None:
-                # Missing app status so create one now
-                logger.debug(f"AppInstance {release} does not have an associated AppStatus. Creating one now.")
-                app_status = AppStatus.objects.create()
-                update_status(instance, app_status, new_status, event_ts, event_msg)
-                return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
-            else:
-                app_status = instance.app_status
-
-            logger.debug(
-                f"AppStatus object was created or updated with status {app_status.status}, ts={app_status.time}, \
-                {app_status.info}"
-            )
-
-            # Now determine whether to update the state and status
-
-            # Compare timestamps
-            time_ftm = "%Y-%m-%d %H:%M:%S"
-            if event_ts <= app_status.time:
-                msg = "The incoming event-ts is older than the current status ts so nothing to do."
-                msg += f"event_ts={event_ts.strftime(time_ftm)} vs \
-                    app_status.time={str(app_status.time.strftime(time_ftm))}"
-                logger.debug(msg)
-                return HandleUpdateStatusResponseCode.NO_ACTION
-
-            # The event is newer than the existing persisted object
-
-            if new_status == instance.app_status.status:
-                # The same status. Simply update the time.
-                logger.debug(f"The same status {new_status}. Simply update the time.")
-                update_status_time(app_status, event_ts, event_msg)
-                return HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
-
-            # Different status and newer time
-            logger.debug(
-                f"Different status and newer time. New status={new_status} vs Old={instance.app_status.status}"
-            )
-            status_object = instance.app_status
-            update_status(instance, status_object, new_status, event_ts, event_msg)
-            return HandleUpdateStatusResponseCode.UPDATED_STATUS
-
-    except Exception as err:
-        logger.error(f"Unable to fetch or update the specified app instance with release={release}. {err}, {type(err)}")
-        raise
-    """
-
-
 @transaction.atomic
 def update_k8s_user_app_status(
     appinstance: BaseAppInstance,
@@ -302,14 +216,13 @@ def update_k8s_user_app_status(
     appinstance.save(update_fields=["k8s_user_app_status"])
 
 
-# TODO: This may no longer be needed after refactoring.
 @transaction.atomic
 def update_status(appinstance, status_object, status, status_ts=None, event_msg=None):
     """
     Helper function to update the status of an appinstance and a status object.
     """
 
-    raise DeprecationWarning("This function is deprecated and should not be used.")
+    raise DeprecationWarning("This function is deprecated. To be removed.")
 
     # Persist a new app statuss object
     status_object.status = status
@@ -421,12 +334,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None) -> int:
 
     instance = form.save(commit=False)
 
-    # Handle status creation or retrieval
-    # TODO: Remove after well tested
-    # We no longer update the app status based on user actions.
-    # status = get_or_create_status(instance, app_id)
-
-    # TODO: Clean up some of the asserts after well tested
     # Retrieve or create the subdomain
     subdomain, created = Subdomain.objects.get_or_create(
         subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user
@@ -437,7 +344,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None) -> int:
     subdomain = Subdomain.objects.get(subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user)
     assert subdomain is not None
     assert subdomain.subdomain == subdomain_name
-    assert subdomain.project.name == project.name, f"2 {subdomain.project} should equal {project.name}"
 
     if not new_app:
         handle_subdomain_change(instance, subdomain, subdomain_name)
@@ -447,9 +353,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None) -> int:
     app = get_app(app_slug)
 
     setup_instance(instance, subdomain, app, project, user_action)
-    id = save_instance_and_related_data(instance, form)
-
-    assert id > 0, "The instance id should be a positive int"
+    instance_id = save_instance_and_related_data(instance, form)
 
     if do_deploy:
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
@@ -457,7 +361,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None) -> int:
     else:
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
 
-    return id
+    return instance_id
 
 
 def get_subdomain_name(form):
@@ -468,7 +372,7 @@ def get_subdomain_name(form):
 
 
 def get_or_create_status(instance, app_id):
-    raise Exception("Deprecated function.")
+    raise DeprecationWarning("Deprecated function. To be removed.")
     # return instance.app_status if app_id else AppStatus.objects.create()
 
 

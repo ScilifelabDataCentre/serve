@@ -73,7 +73,6 @@ class BaseAppAdmin(admin.ModelAdmin):
         "chart",
         "upload_size",
     )
-    # TODO: Test new status properties in admin
     readonly_fields = ("id", "created_on")
     list_filter = ["owner", "project", "k8s_user_app_status__status", "chart"]
     actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
@@ -81,7 +80,8 @@ class BaseAppAdmin(admin.ModelAdmin):
     def display_status(self, obj):
         try:
             return obj.get_app_status()
-        except:  # noqa E722 OK here
+        except Exception as err:
+            logger.warn("Error getting app status: %s", err)
             return "No status"
 
     display_status.short_description = "Status"

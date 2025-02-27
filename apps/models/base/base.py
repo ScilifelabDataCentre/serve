@@ -36,7 +36,7 @@ status_success, status_warning = get_status_defs()
 class AppInstanceManager(models.Manager):
     model_type = "appinstance"
 
-    def with_app_status(self):
+    def annotate_with_app_status(self):
         """
         Define and add a reusable, chainable annotation app_status.
         The atn prefix stands for annotation and clarifies that this value is computed on the fly.
@@ -78,7 +78,7 @@ class AppInstanceManager(models.Manager):
 
     def get_app_instances_not_deleted(self):
         """A queryset returning all user apps excluding Deleted apps."""
-        return self.with_app_status().exclude(atn_app_status="Deleted")
+        return self.annotate_with_app_status().exclude(atn_app_status="Deleted")
 
     def get_app_instances_of_project_filter(self, user, project, include_deleted=False, deleted_time_delta=None):
         q = Q()
@@ -117,7 +117,7 @@ class AppInstanceManager(models.Manager):
 
         if filter_func is None:
             return (
-                self.with_app_status()
+                self.annotate_with_app_status()
                 .filter(self.get_app_instances_of_project_filter(user=user, project=project))
                 .order_by(order_by)[:limit]
             )
@@ -126,7 +126,7 @@ class AppInstanceManager(models.Manager):
             return self.filter(filter_func).order_by(order_by)[:limit]
 
         return (
-            self.with_app_status()
+            self.annotate_with_app_status()
             .filter(self.get_app_instances_of_project_filter(user=user, project=project))
             .filter(filter_func)
             .order_by(order_by)[:limit]
@@ -142,7 +142,7 @@ class AppInstanceManager(models.Manager):
             return False
 
         num_of_app_instances = (
-            self.with_app_status()
+            self.annotate_with_app_status()
             .filter(
                 ~Q(atn_app_status="Deleted"),
                 app__slug=app_slug,

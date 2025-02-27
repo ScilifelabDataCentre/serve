@@ -28,7 +28,6 @@ class BaseAppFormTest(TestCase):
             size=1,
             subdomain=Subdomain.objects.create(subdomain="subdomain", project=self.project),
             k8s_user_app_status=K8sUserAppStatus.objects.create(),
-            # app_status=AppStatus.objects.create(status="Created"),
         )
         self.flavor = Flavor.objects.create(name="flavor", project=self.project)
 
