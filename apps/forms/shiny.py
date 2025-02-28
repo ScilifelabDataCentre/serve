@@ -98,7 +98,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
 
         if volume and not path:
             self.add_error("path", "Path is required when volume is selected.")
-        
+
         if path and not volume:
             self.add_error("path", "Warning, you have provided a path, but not selected a volume.")
 
