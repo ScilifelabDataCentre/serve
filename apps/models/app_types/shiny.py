@@ -31,7 +31,7 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
     port = models.IntegerField(default=3838)
     image = models.CharField(max_length=255)
-    path = models.CharField(max_length=255, default="/")
+    path = models.CharField(max_length=255, default="/", blank=True)
     proxy = models.BooleanField(default=True)
     container_waittime = models.IntegerField(default=20000)
     heartbeat_timeout = models.IntegerField(default=60000)
