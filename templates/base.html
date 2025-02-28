@@ -89,6 +89,7 @@
                     const confirmBtnElement = document.createElement("button")
                     confirmBtnElement.classList = "btn btn-danger"
                     confirmBtnElement.setAttribute("type", "button")
+                    confirmBtnElement.setAttribute("data-cy", "delete-app-button-confirm")
                     confirmBtnElement.innerText = "Delete"
 
                     modalFooter.appendChild(confirmBtnElement)

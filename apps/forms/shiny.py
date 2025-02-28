@@ -31,9 +31,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
         # Handle Volume field
         super()._setup_form_fields()
         self.fields["volume"].initial = None
-        self.fields["volume"].widget = HiddenInput()
-        self.fields["path"].initial = "/srv/shiny-server/"
-        self.fields["path"].widget = HiddenInput()
+        self.fields["path"].initial = ""
         self.fields["shiny_site_dir"].widget.attrs.update({"class": "textinput form-control"})
         self.fields["shiny_site_dir"].help_text = (
             "Provide a path to the Shiny app inside your " "Docker image if it is different from /srv/shiny-server/"
@@ -54,7 +52,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
             Field("volume"),
-            Field("path", placeholder="/srv/shiny-server/..."),
+            SRVCommonDivField("path", placeholder="/srv/shiny-server/..."),
             SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
@@ -100,6 +98,9 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
 
         if volume and not path:
             self.add_error("path", "Path is required when volume is selected.")
+
+        if path and not volume:
+            self.add_error("path", "Warning, you have provided a mount path, but not selected a volume.")
 
         if path:
             # If new path matches current path, it is valid.

@@ -71,6 +71,16 @@ class DashForm(ContainerImageMixin, AppBaseForm):
 
         self.helper.layout = Layout(body, self.footer)
 
+    @property
+    def changed_data(self):
+        # Override the default changed_data to handle that volume not part of this app type.
+        # Parent's changed_data attribute is also a @property.
+        # TODO: Consider adding to all app forms that do not contain volume.
+        changed_data = super().changed_data
+        if "volume" in changed_data:
+            changed_data.remove("volume")
+        return changed_data
+
     class Meta:
         model = DashInstance
         fields = [

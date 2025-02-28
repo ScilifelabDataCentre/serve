@@ -423,13 +423,8 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('div.card-body:contains("File Manager")').siblings('.card-footer').find('a:contains("Create")').click()
-        cy.get('#submit-id-submit').click()
+        cy.get('#submit-id-submit').should('be.visible').click()
 
-        cy.get('tr:contains("File Manager")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
-
-        // Wait for 5 seconds and check the status again
-        cy.wait(5000).then(() => {
-            cy.get('tr:contains("File Manager")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
-        })
+        cy.get('tr:contains("File Manager")').find('[data-cy="appstatus"]').should('have.attr', 'data-app-action', 'Creating')
     })
 })

@@ -519,6 +519,9 @@ class AppInstanceList(
         return HttpResponse("App created.", status=200)
 
     def destroy(self, request, *args, **kwargs):
+        # TODO: Revisit
+        raise RuntimeError("api/AppInstanceList destroy. Is this function used?")
+
         appinstance = self.get_object()
         # Check that user is allowed to delete app:
         # Either user owns the app, or is a member of the project
@@ -892,9 +895,9 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
 
             new_status = request.data["new-status"]
 
-            if len(new_status) > 15:
-                logger.debug(f"Status code is longer than 15 chars so shortening: {new_status}")
-                new_status = new_status[:15]
+            if len(new_status) > 20:
+                logger.debug(f"Status code is longer than 20 chars so shortening: {new_status}")
+                new_status = new_status[:20]
 
             event_ts = datetime.strptime(request.data["event-ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
             event_ts = utc.localize(event_ts)
@@ -947,8 +950,8 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
                 return Response(f"Unknown return code from handle_update_status_request() = {result}", 500)
 
         except ObjectDoesNotExist:
-            # This is often not a problem. It typically happens during app re-deployemnts.
-            logger.warning(f"The specified app instance was not found release={release}")
+            # This is often not a problem. It typically happens during app re-deployments.
+            logger.info(f"The specified app instance was not found release={release}")
             return Response(f"The specified app instance was not found {release=}", 404)
 
         except Exception as err:

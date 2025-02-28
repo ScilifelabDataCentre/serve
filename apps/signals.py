@@ -28,9 +28,18 @@ def pre_delete_helm_uninstall(sender, instance, **kwargs):
         logger.error(f"Could not find helm release for {instance}")
 
 
-# After status of app changes to Deleted, remove subdomain from BaseAppInstance
-@receiver(post_save, sender=AppStatus)
+# After status of app changes to Deleting, remove subdomain from BaseAppInstance
+@receiver(post_save, sender=BaseAppInstance)
 def post_delete_subdomain_remove(sender, instance, using, **kwargs):
+    if instance.latest_user_action in ["Deleting", "SystemDeleting"] and instance.subdomain is not None:
+        instance.subdomain = None
+        instance.save(update_fields=["subdomain"])
+
+
+@receiver(post_save, sender=AppStatus)
+def post_delete_subdomain_remove_old(sender, instance, using, **kwargs):
+    raise RuntimeError("Deprecated. An app delete should instead trigger signal post_delete_subdomain_remove")
+
     if instance.status == "Deleted":
         baseapp_instance = BaseAppInstance.objects.get(app_status=instance)
         baseapp_instance.subdomain = None

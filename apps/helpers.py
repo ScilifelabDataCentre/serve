@@ -1,15 +1,16 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 import regex as re
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 
-from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
+from apps.types_.subdomain import SubdomainCandidateName
 from studio.utils import get_logger
 
-from .models import Apps, AppStatus, BaseAppInstance, Subdomain
+from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
 
 logger = get_logger(__name__)
 
@@ -106,19 +107,20 @@ def handle_update_status_request(
     release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
 ) -> HandleUpdateStatusResponseCode:
     """
-    Helper function to handle update app status requests by determining if the
-    request should be performed or ignored.
+    Helper function to handle update k8s user app status requests by determining if the request should be performed or
+    ignored.
+    Technically this function either updates or creates and persists a new K8sUserAppStatus object.
 
     :param release str: The release id of the app instance, stored in the AppInstance.k8s_values dict in the subdomain.
-    :param new_status str: The new status code. Trimmed to max 15 chars if needed.
+    :param new_status str: The new status code. Trimmed to max 20 chars if needed.
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
     :returns: A value from the HandleUpdateStatusResponseCode enum.
               Raises an ObjectDoesNotExist exception if the app instance does not exist.
     """
 
-    if len(new_status) > 15:
-        new_status = new_status[:15]
+    if len(new_status) > 20:
+        new_status = new_status[:20]
 
     try:
         # Begin by verifying that the requested app instance exists
@@ -136,46 +138,46 @@ def handle_update_status_request(
 
             logger.debug(f"The app instance identified by release {release} exists. App name={instance.name}")
 
-            # Also get the latest app status object for this app instance
-            if instance.app_status is None:
-                # Missing app status so create one now
-                logger.debug(f"AppInstance {release} does not have an associated AppStatus. Creating one now.")
-                app_status = AppStatus.objects.create()
-                update_status(instance, app_status, new_status, event_ts, event_msg)
+            # Also get the latest k8s_user_app_status object for this app instance
+            if instance.k8s_user_app_status is None:
+                # Missing k8s_user_app_status so create one now
+                logger.debug(f"AppInstance {release} does not have an associated K8sUserAppStatus. Creating one now.")
+                k8s_user_app_status = K8sUserAppStatus.objects.create()
+                update_k8s_user_app_status(instance, k8s_user_app_status, new_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS
             else:
-                app_status = instance.app_status
+                k8s_user_app_status = instance.k8s_user_app_status
 
             logger.debug(
-                f"AppStatus object was created or updated with status {app_status.status}, ts={app_status.time}, \
-                {app_status.info}"
+                f"K8sUserAppStatus object was created or updated with status {k8s_user_app_status.status}, \
+                    ts={k8s_user_app_status.time}, {k8s_user_app_status.info}"
             )
 
             # Now determine whether to update the state and status
 
             # Compare timestamps
             time_ftm = "%Y-%m-%d %H:%M:%S"
-            if event_ts <= app_status.time:
+            if event_ts <= k8s_user_app_status.time:
                 msg = "The incoming event-ts is older than the current status ts so nothing to do."
                 msg += f"event_ts={event_ts.strftime(time_ftm)} vs \
-                    app_status.time={str(app_status.time.strftime(time_ftm))}"
+                    k8s_user_app_status.time={str(k8s_user_app_status.time.strftime(time_ftm))}"
                 logger.debug(msg)
                 return HandleUpdateStatusResponseCode.NO_ACTION
 
             # The event is newer than the existing persisted object
 
-            if new_status == instance.app_status.status:
+            if new_status == instance.k8s_user_app_status.status:
                 # The same status. Simply update the time.
                 logger.debug(f"The same status {new_status}. Simply update the time.")
-                update_status_time(app_status, event_ts, event_msg)
+                update_status_time(k8s_user_app_status, event_ts, event_msg)
                 return HandleUpdateStatusResponseCode.UPDATED_TIME_OF_STATUS
 
             # Different status and newer time
             logger.debug(
-                f"Different status and newer time. New status={new_status} vs Old={instance.app_status.status}"
+                f"Different status and newer time. New status={new_status} vs Old={instance.k8s_user_app_status.status}"
             )
-            status_object = instance.app_status
-            update_status(instance, status_object, new_status, event_ts, event_msg)
+            status_object = instance.k8s_user_app_status
+            update_k8s_user_app_status(instance, status_object, new_status, event_ts, event_msg)
             return HandleUpdateStatusResponseCode.UPDATED_STATUS
 
     except Exception as err:
@@ -184,10 +186,44 @@ def handle_update_status_request(
 
 
 @transaction.atomic
+def update_k8s_user_app_status(
+    appinstance: BaseAppInstance,
+    status_object: K8sUserAppStatus,
+    status: str,
+    status_ts: datetime = None,
+    event_msg: str = None,
+):
+    """
+    Helper function to update the k8s user app status of an appinstance and a status object.
+    """
+    # Persist a new app statuss object
+    status_object.status = status
+    status_object.time = status_ts
+    status_object.info = event_msg
+    status_object.save()
+
+    # Must re-save the app statuss object with the new event ts
+    status_object.time = status_ts
+
+    if event_msg is None:
+        status_object.save(update_fields=["time"])
+    else:
+        status_object.info = event_msg
+        status_object.save(update_fields=["time", "info"])
+
+    # Update the app instance object
+    appinstance.k8s_user_app_status = status_object
+    appinstance.save(update_fields=["k8s_user_app_status"])
+
+
+@transaction.atomic
 def update_status(appinstance, status_object, status, status_ts=None, event_msg=None):
     """
     Helper function to update the status of an appinstance and a status object.
     """
+
+    raise DeprecationWarning("This function is deprecated. To be removed.")
+
     # Persist a new app statuss object
     status_object.status = status
     status_object.time = status_ts
@@ -209,7 +245,7 @@ def update_status(appinstance, status_object, status, status_ts=None, event_msg=
 
 
 @transaction.atomic
-def update_status_time(status_object, status_ts, event_msg=None):
+def update_status_time(status_object: Any, status_ts: datetime, event_msg: str | None = None):
     """
     Helper function to update the time of an app status event.
     """
@@ -235,7 +271,7 @@ def get_URI(instance):
 
 
 @transaction.atomic
-def create_instance_from_form(form, project, app_slug, app_id=None):
+def create_instance_from_form(form, project, app_slug, app_id=None) -> int:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
     and the updating of existing ones based on the presence of an app_id.
@@ -254,6 +290,9 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
     """
     from .tasks import deploy_resource
 
+    assert form is not None, "This function requires a form object"
+    assert project is not None, "This function requires a project object"
+
     new_app = app_id is None
 
     logger.debug(f"Creating or updating a user app via UI form for app_id={app_id}, new_app={new_app}")
@@ -263,7 +302,11 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
     if new_app:
         do_deploy = True
+        user_action = "Creating"
     else:
+        # Update an existing app
+        user_action = "Changing"
+
         # Only re-deploy existing apps if one of the following fields was changed:
         redeployment_fields = [
             "subdomain",
@@ -291,28 +334,34 @@ def create_instance_from_form(form, project, app_slug, app_id=None):
 
     instance = form.save(commit=False)
 
-    # Handle status creation or retrieval
-    status = get_or_create_status(instance, app_id)
     # Retrieve or create the subdomain
     subdomain, created = Subdomain.objects.get_or_create(
         subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user
     )
+    assert subdomain is not None
+    assert subdomain.subdomain == subdomain_name
 
-    if app_id:
+    subdomain = Subdomain.objects.get(subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user)
+    assert subdomain is not None
+    assert subdomain.subdomain == subdomain_name
+
+    if not new_app:
         handle_subdomain_change(instance, subdomain, subdomain_name)
 
     app_slug = handle_shiny_proxy_case(instance, app_slug, app_id)
 
     app = get_app(app_slug)
 
-    setup_instance(instance, subdomain, app, project, status)
-    save_instance_and_related_data(instance, form)
+    setup_instance(instance, subdomain, app, project, user_action)
+    instance_id = save_instance_and_related_data(instance, form)
 
     if do_deploy:
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
         deploy_resource.delay(instance.serialize())
     else:
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
+
+    return instance_id
 
 
 def get_subdomain_name(form):
@@ -323,11 +372,23 @@ def get_subdomain_name(form):
 
 
 def get_or_create_status(instance, app_id):
-    return instance.app_status if app_id else AppStatus.objects.create()
+    raise DeprecationWarning("Deprecated function. To be removed.")
+    # return instance.app_status if app_id else AppStatus.objects.create()
 
 
-def handle_subdomain_change(instance, subdomain, subdomain_name):
+def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) -> None:
+    """
+    Detects if there has been a user-initiated subdomain change and if so,
+    then re-creates the app instance, also re-deploying the k8s resource.
+    """
     from .tasks import delete_resource
+
+    assert instance is not None, "instance is required"
+
+    if instance.subdomain is None:
+        # The subdomain is not yet created, nothing to do
+        logger.debug("The subdomain is not yet created, nothing to do")
+        return
 
     if instance.subdomain.subdomain != subdomain_name:
         # The user modified the subdomain name
@@ -357,16 +418,22 @@ def get_app(app_slug):
         raise ValueError(f"App with slug {app_slug} not found")
 
 
-def setup_instance(instance, subdomain, app, project, status, is_created_by_user=False):
+def setup_instance(instance, subdomain, app, project, user_action=None, is_created_by_user=False):
     instance.subdomain = subdomain
     instance.app = app
     instance.chart = instance.app.chart
     instance.project = project
     instance.owner = project.owner
-    instance.app_status = status
+    instance.latest_user_action = user_action
 
 
-def save_instance_and_related_data(instance, form):
+def save_instance_and_related_data(instance: Any, form: Any) -> int:
+    """
+    Saves a new or re-saves an existing app instance to the database.
+
+    Returns:
+    - int: The Id of the new or updated app instance.
+    """
     instance.save()
     form.save_m2m()
     instance.set_k8s_values()
@@ -374,6 +441,7 @@ def save_instance_and_related_data(instance, form):
     # For MLFLOW, we need to set the k8s_values again to update the URL
     instance.set_k8s_values()
     instance.save(update_fields=["k8s_values", "url"])
+    return instance.id
 
 
 def validate_path_k8s_label_compatible(candidate: str) -> None:

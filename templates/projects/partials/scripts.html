@@ -41,14 +41,19 @@
                 for (const key in json) {
                     if (Object.hasOwnProperty.call(json, key)) {
                         console.log(key)
-                        const { status, statusGroup } = json[key]
+                        const { status, statusGroup, latestUserAction, k8sStatus } = json[key]
+                        // To match elements with id with this pattern: id="status-customapp-nnn"
                         const querySelector = `#status-${key}`
                         const elements = document.querySelectorAll(querySelector);
 
+                        // Update both the status, the class style, and data attributes
                         elements.forEach(element => {
                             const className = `badge bg-${statusGroup}`;
                             element.className = className;
                             element.innerText = status;
+                            element.dataset.appAction = latestUserAction;
+                            element.dataset.k8sAppStatus = k8sStatus;
+                            element.title = k8sStatus;
                         });
                     }
                 }

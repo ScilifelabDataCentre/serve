@@ -1,5 +1,6 @@
+import pytest
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.test import TestCase, override_settings
 
 from projects.models import Project
@@ -10,6 +11,7 @@ from ..models import (
     CustomAppInstance,
     FilemanagerInstance,
     JupyterInstance,
+    K8sUserAppStatus,
     RStudioInstance,
     ShinyInstance,
     Subdomain,
@@ -30,7 +32,7 @@ MODELS_LIST = [
 ]
 
 
-class AppInstaceManagerTestCase(TestCase):
+class AppInstanceManagerTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
         self.project = Project.objects.create_project(
@@ -139,3 +141,108 @@ class AppInstaceManagerTestCase(TestCase):
         self.assertEqual(len(result), len(MODELS_LIST))
         self.assertEqual(result.first().name, f"test_app_instance_{len(MODELS_LIST)-1}")
         self.assertEqual(result.last().name, "test_app_instance_0")
+
+    # ---------- get_app_instances_of_project ---------- #
+
+
+class AppInstanceManagerDeleteAppTestCase(TestCase):
+    """Tests the AppInstanceManager model manager by deleting an app instance."""
+
+    def setUp(self):
+        self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
+        self.project = Project.objects.create_project(name="test-delete-app-instance", owner=self.user, description="")
+        self.app = Apps.objects.create(name="Serve App", slug="serve-app")
+
+        k8s_user_app_status = K8sUserAppStatus.objects.create(status="Running")
+
+        self.app_instance = BaseAppInstance.objects.create(
+            latest_user_action="Creating",
+            k8s_user_app_status=k8s_user_app_status,
+            owner=self.user,
+            app=self.app,
+            project=self.project,
+        )
+
+    def test_get_app_instances_not_deleted(self):
+        """Tests method get_app_instances_not_deleted"""
+
+        result = BaseAppInstance.objects.get_app_instances_not_deleted()
+
+        self.assertIsInstance(result, QuerySet)
+        self.assertEqual(len(result), 1)
+
+        # Set app instance to status Deleted to mimimic deleting an app and retry
+        # Merely setting the latest_user_action should be sufficient to make the delete
+        # filter exclude this app instance.
+        self.app_instance.latest_user_action = "Deleting"
+        self.app_instance.save(update_fields=["latest_user_action"])
+
+        result = BaseAppInstance.objects.get_app_instances_not_deleted()
+
+        self.assertIsInstance(result, QuerySet)
+        self.assertEqual(len(result), 0)
+
+
+@pytest.mark.parametrize(
+    "latest_user_action, k8s_user_app_status, expected_app_status",
+    [
+        # Creating / Changing
+        ("Creating", "ContainerCreating", "Creating"),
+        ("Creating", "PodInitializing", "Creating"),
+        ("Changing", "ContainerCreating", "Changing"),
+        ("Changing", "PodInitializing", "Changing"),
+        # Error (NotFound)
+        ("Creating", "NotFound", "Error (NotFound)"),
+        ("Changing", "NotFound", "Error (NotFound)"),
+        # Error
+        ("Creating", "CrashLoopBackOff", "Error"),
+        ("Creating", "ErrImagePull", "Error"),
+        ("Creating", "PostStartHookError", "Error"),
+        ("Changing", "CrashLoopBackOff", "Error"),
+        ("Changing", "ErrImagePull", "Error"),
+        ("Changing", "PostStartHookError", "Error"),
+        # Running
+        ("Creating", "Running", "Running"),
+        ("Changing", "Running", "Running"),
+        # Deleting
+        ("Deleting", "ContainerCreating", "Deleted"),
+        ("Deleting", "PodInitializing", "Deleted"),
+        ("Deleting", "NotFound", "Deleted"),
+        ("Deleting", "CrashLoopBackOff", "Deleted"),
+        ("Deleting", "ErrImagePull", "Deleted"),
+        ("Deleting", "PostStartHookError", "Deleted"),
+        ("Deleting", "Running", "Deleted"),
+        # SystemDeleting
+        ("SystemDeleting", "ContainerCreating", "Deleted"),
+        ("SystemDeleting", "PodInitializing", "Deleted"),
+        ("SystemDeleting", "NotFound", "Deleted"),
+        ("SystemDeleting", "CrashLoopBackOff", "Deleted"),
+        ("SystemDeleting", "ErrImagePull", "Deleted"),
+        ("SystemDeleting", "PostStartHookError", "Deleted"),
+        ("SystemDeleting", "Running", "Deleted"),
+    ],
+)
+@pytest.mark.django_db
+def test_annotate_with_app_status(latest_user_action, k8s_user_app_status, expected_app_status):
+    """Tests the AppInstanceManager model manager annotation atn_app_status."""
+
+    # Setup: create an app instance
+    user = User.objects.create_user("foo1", "foo@test.com", "bar")
+    project = Project.objects.create_project(name="test-app-status-codes", owner=user, description="")
+    app = Apps.objects.create(name="Serve App", slug="serve-app")
+
+    k8s_user_app_status = K8sUserAppStatus.objects.create(status=k8s_user_app_status)
+
+    app_instance = BaseAppInstance.objects.create(
+        latest_user_action=latest_user_action,
+        k8s_user_app_status=k8s_user_app_status,
+        owner=user,
+        app=app,
+        project=project,
+    )
+
+    # Apply the annotation
+    annotated_app = BaseAppInstance.objects.annotate_with_app_status().get(id=app_instance.id)
+
+    # Verify the annotated values
+    assert annotated_app.atn_app_status == expected_app_status

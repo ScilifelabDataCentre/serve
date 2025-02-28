@@ -8,6 +8,9 @@ from apps.models import AppInstanceManager, BaseAppInstance
 class NetpolicyInstanceManager(AppInstanceManager):
     model_type = "netpolicyinstance"
 
+    # Note: This is almost identical to the same method inherited by AppInstanceManager
+    # TODO: Remove after sufficient testing
+    """
     def get_app_instances_of_project_filter(self, user, project, include_deleted=False, deleted_time_delta=None):
         q = Q()
 
@@ -22,6 +25,7 @@ class NetpolicyInstanceManager(AppInstanceManager):
         q &= Q(project=project)
 
         return q
+    """
 
 
 class NetpolicyInstance(BaseAppInstance):

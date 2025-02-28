@@ -20,17 +20,12 @@ from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
 from .helpers import create_instance_from_form
+from .models import BaseAppInstance
 from .tasks import delete_resource
 
 logger = get_logger(__name__)
 
 User = get_user_model()
-
-
-def get_status_defs():
-    status_success = settings.APPS_STATUS_SUCCESS
-    status_warning = settings.APPS_STATUS_WARNING
-    return status_success, status_warning
 
 
 @method_decorator(
@@ -149,25 +144,27 @@ class GetStatusView(View):
 
         if len(body) > 0:
             arr = body.split(",")
-            status_success, status_warning = get_status_defs()
 
             for orm_model in APP_REGISTRY.iter_orm_models():
                 instances = orm_model.objects.filter(pk__in=arr)
 
                 for instance in instances:
-                    status_object = instance.app_status
-                    if status_object:
-                        status = status_object.status
-                    else:
-                        status = None
+                    status = instance.get_app_status()
 
-                    status_group = (
-                        "success" if status in status_success else "warning" if status in status_warning else "danger"
-                    )
+                    # Also set the k8s app status
+                    k8s_app_status_object = instance.k8s_user_app_status
+                    if k8s_app_status_object:
+                        k8s_app_status = k8s_app_status_object.status
+                    else:
+                        k8s_app_status = None
+
+                    status_group = instance.get_status_group()
 
                     obj = {
                         "status": status,
                         "statusGroup": status_group,
+                        "latestUserAction": instance.latest_user_action,
+                        "k8sStatus": k8s_app_status,
                     }
 
                     result[f"{instance.app.slug}-{instance.pk}"] = obj
@@ -196,10 +193,16 @@ def delete(request, project, app_slug, app_id):
     serialized_instance = instance.serialize()
 
     delete_resource.delay(serialized_instance)
-    instance.deleted_on = timezone.now()
+
     # fix: in case appinstance is public switch to private
     instance.access = "private"
-    instance.save()
+    # instance.save(update_fields=["access"])
+
+    # Set latest_user_action to Deleting
+    # This hides the app from the user UI
+    instance.latest_user_action = "Deleting"
+    instance.deleted_on = timezone.now()
+    instance.save(update_fields=["latest_user_action", "deleted_on", "access"])
 
     return HttpResponseRedirect(
         reverse(
@@ -243,7 +246,7 @@ class CreateApp(View):
 
     @transaction.atomic
     def post(self, request, project, app_slug, app_id=None):
-        # App id is used when updataing an instance
+        # App id is used when updating an existing app instance
 
         # TODO Same as in get method
         project_slug = project
@@ -286,9 +289,11 @@ class CreateApp(View):
         user_can_create = False
 
         if app_id:
+            # Updating an existing app instance
             user_can_edit = model_class.objects.user_can_edit(request.user, project, app_slug)
             instance = model_class.objects.get(pk=app_id)
         else:
+            # Create a new app instance
             user_can_create = model_class.objects.user_can_create(request.user, project, app_slug)
             instance = None
 
@@ -309,10 +314,10 @@ class SecretsView(View):
     template = "apps/secrets_view.html"
 
     def get(self, request, project, app_slug, app_id):
-        instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
+        instance: BaseAppInstance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
 
         username, password = None, None
-        if instance.app_status.status == "Running":
+        if instance.get_app_status() == "Running":
             subdomain = instance.subdomain
             username = subprocess.run(
                 (
