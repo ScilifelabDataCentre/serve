@@ -50,7 +50,7 @@
                 </span>
             </td>
             <td data-cy="appstatus-cell">
-                <span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
+                <span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}" title="" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
                     Refreshing...
                     <!-- {{ instance.get_app_status }} -->
                 </span>
