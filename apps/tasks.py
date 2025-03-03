@@ -1,5 +1,5 @@
+import re
 import subprocess
-import uuid
 
 import yaml
 from celery import shared_task
@@ -16,6 +16,8 @@ from studio.utils import get_logger
 from .models import FilemanagerInstance
 
 logger = get_logger(__name__)
+
+CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
 
 
 @app.task
@@ -194,9 +196,15 @@ def deploy_resource(serialized_instance):
     logger.info("Deploying resource for instance %s", instance)
     values = instance.k8s_values
     release = values["subdomain"]
+    chart: str = instance.chart
     if "ghcr" in instance.chart:
         version = instance.chart.split(":")[-1]
         chart = "oci://" + instance.chart.split(":")[0]
+    elif chart.startswith("oci://"):
+        match = CHART_REGEX.match(chart)
+        if match:
+            chart = match.group("chart")
+            version = match.group("version")
     else:
         version = None
         chart = instance.chart
