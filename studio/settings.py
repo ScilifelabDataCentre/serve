@@ -371,6 +371,14 @@ STORAGECLASS = "local-path"
 DOCKER_HUB_IMAGE_SEARCH = "https://hub.docker.com/v2/search/repositories/"
 DOCKER_HUB_TAG_SEARCH = "https://hub.docker.com/v2/repositories/"
 
+# GHCR API
+GITHUB_API_URL = "https://api.github.com"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GHCR_PER_PAGE = 100
+GHCR_IMAGE_SEARCH = (
+    f"{GITHUB_API_URL}/orgs/ScilifelabDataCentre/packages?package_type=container&per_page={GHCR_PER_PAGE}"
+)
+GHCR_TAG_SEARCH = f"{GITHUB_API_URL}/orgs/ScilifelabDataCentre/packages/container"
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
