@@ -47,7 +47,7 @@
           },
           "Default RStudio": {
             "app": "rstudio",
-            "image": "serve-rstudio:231030-1146",
+            "image": "serve-rstudio:250304-1611",
             "repository": "ghcr.io/scilifelabdatacentre"
           }
         },
