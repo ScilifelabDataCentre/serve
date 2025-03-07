@@ -97,6 +97,31 @@ nav#article-menu.navbar.navbar-expand-md.nav-pills a {
   margin-bottom:7px
 }
 
+/* Tables */
+
+.wiki-article table {
+  margin: 1rem 0 1rem;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.wiki-article table,
+.wiki-article th,
+.wiki-article td {
+  border: 1px solid var(--serve-medium-grey);
+  padding: 0 0.3rem;
+}
+
+.wiki-article table a {
+  color: var(--serve-teal);
+  text-decoration: none;
+}
+
+.wiki-article table a:hover,
+.wiki-article table a:focus {
+  color: var(--serve-teal);
+}
+
 /* Other */
 
 #article-container pre {
