@@ -1,3 +1,18 @@
+from enum import Enum
+
+
+class HandleUpdateStatusResponseCode(Enum):
+    NO_ACTION = 0
+    UPDATED_STATUS = 1
+    UPDATED_TIME_OF_STATUS = 2
+    CREATED_FIRST_STATUS = 3
+
+
+class ActionSourceCode(Enum):
+    USER = 0
+    SYSTEM = 1
+
+
 HELP_MESSAGE_MAP = {
     "name": "Display name for the application. This is the name visible on the app catalogue if the app is public",
     "description": "Provide a detailed description of your app. "

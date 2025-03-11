@@ -19,6 +19,7 @@ from projects.models import Project
 from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
+from .constants import ActionSourceCode
 from .helpers import create_instance_from_form
 from .models import BaseAppInstance
 from .tasks import delete_resource
@@ -192,7 +193,7 @@ def delete(request, project, app_slug, app_id):
 
     serialized_instance = instance.serialize()
 
-    delete_resource.delay(serialized_instance)
+    delete_resource.delay(serialized_instance, ActionSourceCode.USER.value)
 
     # fix: in case appinstance is public switch to private
     instance.access = "private"
