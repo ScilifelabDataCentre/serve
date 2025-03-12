@@ -9,7 +9,7 @@ from django.test import TestCase
 from projects.models import Flavor, Project
 
 from ..app_registry import APP_REGISTRY
-from ..constants import ActionSourceCode
+from ..constants import AppActionOrigin
 from ..forms import DashForm
 from ..helpers import create_instance_from_form, get_subdomain_name
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
@@ -234,7 +234,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         # Modifying the subdomain should cause a re-deploy:
         mock_deploy.assert_called_once()
         # Modifying the subdomain SHOULD cause a delete:
-        mock_delete.assert_called_once_with(ANY, ActionSourceCode.USER.value)
+        mock_delete.assert_called_once_with(ANY, AppActionOrigin.USER.value)
 
     def test_update_instance_from_form_modify_no_redeploy_values(self, mock_delete, mock_deploy):
         """

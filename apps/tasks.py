@@ -10,7 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.app_registry import APP_REGISTRY
-from apps.constants import ActionSourceCode
+from apps.constants import AppActionOrigin
 from studio.celery import app
 from studio.utils import get_logger
 
@@ -45,7 +45,7 @@ def delete_old_objects():
         # old: .exclude(app_status__status="Deleted")
 
         for app_ in old_develop_apps:
-            delete_resource.delay(app_.serialize(), ActionSourceCode.SYSTEM.value)
+            delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
 
     # Handle deletion of non persistent file managers
     old_file_managers = FilemanagerInstance.objects.filter(
@@ -54,7 +54,7 @@ def delete_old_objects():
     # old: .exclude(app_status__status="Deleted")
 
     for app_ in old_file_managers:
-        delete_resource.delay(app_.serialize(), ActionSourceCode.SYSTEM.value)
+        delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
 
 
 @app.task
@@ -296,12 +296,12 @@ def delete_resource(serialized_instance, initiated_by_str: str):
 
     Parameters:
     - serialized_instance: A serialized version of the app to be deleted.
-    - initiated_by_str: A string of enum ActionSourceCode indicating the source of the deletion (user|system).
+    - initiated_by_str: A string of enum AppActionOrigin indicating the source of the deletion (user|system).
     """
     logger.debug(f"Type of serialized_instance is {type(serialized_instance)}")
 
-    initiated_by = ActionSourceCode(initiated_by_str)
-    assert initiated_by == ActionSourceCode.USER or initiated_by == ActionSourceCode.SYSTEM
+    initiated_by = AppActionOrigin(initiated_by_str)
+    assert initiated_by == AppActionOrigin.USER or initiated_by == AppActionOrigin.SYSTEM
 
     instance = deserialize(serialized_instance)
 
@@ -334,7 +334,7 @@ def delete_resource(serialized_instance, initiated_by_str: str):
     # Note: when we save the app instance object here, we should not overwrite properties
     # with old values, therefore we carefully restrict the updated fields.
     # if instance.app.slug in ("volumeK8s", "netpolicy"):
-    if initiated_by == ActionSourceCode.SYSTEM:
+    if initiated_by == AppActionOrigin.SYSTEM:
         # The delete resource action was initiated by the Serve system.
         # This is a common scenario for "apps" such as volumeK8s, netpolicy, notebooks and file managers.
         instance.latest_user_action = "SystemDeleting"

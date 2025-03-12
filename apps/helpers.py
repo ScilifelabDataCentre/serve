@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 
-from apps.constants import ActionSourceCode, HandleUpdateStatusResponseCode
+from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
 from studio.utils import get_logger
 
@@ -387,7 +387,7 @@ def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) 
     if instance.subdomain.subdomain != subdomain_name:
         # The user modified the subdomain name
         # In this special case, we avoid async task.
-        delete_resource(instance.serialize(), ActionSourceCode.USER.value)
+        delete_resource(instance.serialize(), AppActionOrigin.USER.value)
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])

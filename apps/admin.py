@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from studio.utils import get_logger
 
-from .constants import ActionSourceCode
+from .constants import AppActionOrigin
 from .helpers import get_URI
 from .models import (
     AppCategories,
@@ -158,7 +158,7 @@ class BaseAppAdmin(admin.ModelAdmin):
             instance.latest_user_action = "Deleting"
             instance.deleted_on = timezone.now()
             instance.save(update_fields=["latest_user_action", "deleted_on"])
-            delete_resource.delay(instance.serialize(), ActionSourceCode.USER.value)
+            delete_resource.delay(instance.serialize(), AppActionOrigin.USER.value)
             info_dict = instance.info
             if info_dict:
                 success = info_dict["helm"].get("success", False)

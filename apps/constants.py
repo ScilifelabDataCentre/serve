@@ -1,16 +1,17 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class HandleUpdateStatusResponseCode(Enum):
+class HandleUpdateStatusResponseCode(IntEnum):
     NO_ACTION = 0
     UPDATED_STATUS = 1
     UPDATED_TIME_OF_STATUS = 2
     CREATED_FIRST_STATUS = 3
 
 
-class ActionSourceCode(Enum):
-    USER = 0
-    SYSTEM = 1
+class AppActionOrigin(IntEnum):
+    UNSET = 0
+    USER = 1
+    SYSTEM = 2
 
 
 HELP_MESSAGE_MAP = {
