@@ -1,3 +1,5 @@
+import re
+
 import requests
 from crispy_forms.layout import HTML, Div, Field, MultiField
 from django import forms
@@ -40,12 +42,46 @@ class ContainerImageMixin:
             css_class="mb-3",
         )
 
+    def _validate_ghcr_image(self, image_url):
+        """Validate that the GHCR image exists in packages of a user or an organisation."""
+        # regex match:
+        # ghcr\.io/ - ghcr.io
+        # (?P) used to capture a named group eg. owner, image and tag
+        # [\w-]+ allow more than 1 character of letters, numbers underscores and hyphens
+        match = re.match(r"ghcr\.io/(?P<owner>[\w-]+)/(?P<image>[\w-]+):(?P<tag>[\w.-]+)", image_url)
+        if not match:
+            return False
+
+        owner, image, tag = match.group("owner"), match.group("image"), match.group("tag")
+        url_user = f"https://api.github.com/users/{owner}/packages/container/{image}/versions"
+        url_org = f"https://api.github.com/orgs/{owner}/packages/container/{image}/versions"
+
+        headers = {"Authorization": f"Bearer {settings.GITHUB_TOKEN}", "Accept": "application/vnd.github+json"}
+
+        # TODO Using a nested for-loop for better readability, improve this code if possible
+        for url in (url_user, url_org):
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                versions = response.json()
+                for version in versions:
+                    container_tags = version["metadata"]["container"].get("tags", [])
+                    if (container_tags) and (tag in container_tags):
+                        return True
+
+        return False
+
     def clean_image(self):
         """Validate the container image input."""
         image = self.cleaned_data.get("image", "").strip()
         if not image:
             self.add_error("image", "Container image field cannot be empty.")
             return image
+
+        if "ghcr.io" in image:
+            try:
+                assert self._validate_ghcr_image(image)
+            except AssertionError:
+                self.add_error("image", "Could not find the image on GHCR. Please try again.")
 
         # Ignore non-Docker images for now
         if "docker.io" not in image:

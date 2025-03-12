@@ -58,7 +58,7 @@ from .serializers import (
     ProjectTemplateSerializer,
     UserSerializer,
 )
-from .utils import fetch_docker_hub_images_and_tags, fetch_ghcr_images_and_tags
+from .utils import fetch_docker_hub_images_and_tags
 
 logger = get_logger(__name__)
 
@@ -975,8 +975,5 @@ def container_image_search(request):
         return JsonResponse({"error": "Query parameter is required"}, status=400)
 
     docker_images = fetch_docker_hub_images_and_tags(query)
-    ghcr_images = fetch_ghcr_images_and_tags(settings.GITHUB_TOKEN, query)
 
-    all_images = docker_images + ghcr_images
-
-    return JsonResponse({"images": all_images})
+    return JsonResponse({"images": docker_images})
