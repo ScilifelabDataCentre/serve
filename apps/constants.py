@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 
 
 class HandleUpdateStatusResponseCode(IntEnum):
@@ -8,10 +8,10 @@ class HandleUpdateStatusResponseCode(IntEnum):
     CREATED_FIRST_STATUS = 3
 
 
-class AppActionOrigin(IntEnum):
-    UNSET = 0
-    USER = 1
-    SYSTEM = 2
+class AppActionOrigin(StrEnum):
+    UNSET = "UNSET"
+    USER = "USER"
+    SYSTEM = "SYSTEM"
 
 
 HELP_MESSAGE_MAP = {
