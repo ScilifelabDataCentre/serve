@@ -39,9 +39,11 @@ def delete_old_objects():
 
     # Handle deletion of apps in the "Develop" category
     for orm_model in APP_REGISTRY.iter_orm_models():
-        old_develop_apps = orm_model.objects.filter(
-            created_on__lt=get_threshold(7), app__category__name="Develop"
-        ).exclude(latest_user_action="SystemDeleting")
+        old_develop_apps = (
+            orm_model.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
+            .exclude(latest_user_action="SystemDeleting")
+            .exclude(app__slug="mlflow")
+        )
         # old: .exclude(app_status__status="Deleted")
 
         for app_ in old_develop_apps:
