@@ -78,10 +78,9 @@ class ContainerImageMixin:
             return image
 
         if "ghcr.io" in image:
-            try:
-                assert self._validate_ghcr_image(image)
-            except AssertionError:
+            if not self._validate_ghcr_image(image):
                 self.add_error("image", "Could not find the image on GHCR. Please try again.")
+                return image
 
         # Ignore non-Docker images for now
         if "docker.io" not in image:
