@@ -2,9 +2,11 @@ import time
 
 from django.contrib import admin, messages
 from django.db.models.query import QuerySet
+from django.utils import timezone
 
 from studio.utils import get_logger
 
+from .constants import AppActionOrigin
 from .helpers import get_URI
 from .models import (
     AppCategories,
@@ -151,7 +153,12 @@ class BaseAppAdmin(admin.ModelAdmin):
 
         for instance in queryset:
             instance.set_k8s_values()
-            delete_resource.delay(instance.serialize())
+            # Set latest_user_action to Deleting
+            # This hides the app from the user UI
+            instance.latest_user_action = "Deleting"
+            instance.deleted_on = timezone.now()
+            instance.save(update_fields=["latest_user_action", "deleted_on"])
+            delete_resource.delay(instance.serialize(), AppActionOrigin.USER.value)
             info_dict = instance.info
             if info_dict:
                 success = info_dict["helm"].get("success", False)

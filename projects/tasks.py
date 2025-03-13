@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from apps.app_registry import APP_REGISTRY
+from apps.constants import AppActionOrigin
 from apps.helpers import create_instance_from_form
 from apps.models import BaseAppInstance, VolumeInstance
 from apps.tasks import delete_resource
@@ -180,9 +181,12 @@ def delete_project_apps(project):
         queryset = orm_model.objects.filter(project=project)
         for instance in queryset:
             serialized_instance = instance.serialize()
+            # Set latest_user_action to Deleting
+            # This hides the app from the user UI
             instance.latest_user_action = "Deleting"
-            instance.save(update_fields=["latest_user_action"])
-            delete_resource(serialized_instance)
+            instance.deleted_on = timezone.now()
+            instance.save(update_fields=["latest_user_action", "deleted_on"])
+            delete_resource(serialized_instance, AppActionOrigin.USER.value)
 
 
 @shared_task
