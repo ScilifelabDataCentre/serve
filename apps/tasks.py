@@ -10,6 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.app_registry import APP_REGISTRY
+from apps.constants import AppActionOrigin
 from studio.celery import app
 from studio.utils import get_logger
 
@@ -23,6 +24,9 @@ CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
 @app.task
 def delete_old_objects():
     """
+    Execution of this function is considered a System-initiated action, hence action=SystemDeleting
+    and initiated_by=SYSTEM.
+
     This function retrieves the old apps based on the given threshold, category, and model class.
     It then iterates through the subclasses of BaseAppInstance and deletes the old apps
     for both the "Develop" and "Manage Files" categories.
@@ -35,13 +39,15 @@ def delete_old_objects():
 
     # Handle deletion of apps in the "Develop" category
     for orm_model in APP_REGISTRY.iter_orm_models():
-        old_develop_apps = orm_model.objects.filter(
-            created_on__lt=get_threshold(7), app__category__name="Develop"
-        ).exclude(latest_user_action="SystemDeleting")
+        old_develop_apps = (
+            orm_model.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
+            .exclude(latest_user_action="SystemDeleting")
+            .exclude(app__slug="mlflow")
+        )
         # old: .exclude(app_status__status="Deleted")
 
         for app_ in old_develop_apps:
-            delete_resource.delay(app_.serialize())
+            delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
 
     # Handle deletion of non persistent file managers
     old_file_managers = FilemanagerInstance.objects.filter(
@@ -50,7 +56,7 @@ def delete_old_objects():
     # old: .exclude(app_status__status="Deleted")
 
     for app_ in old_file_managers:
-        delete_resource.delay(app_.serialize())
+        delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
 
 
 @app.task
@@ -281,7 +287,24 @@ def deploy_resource(serialized_instance):
 
 @shared_task
 @transaction.atomic
-def delete_resource(serialized_instance):
+def delete_resource(serialized_instance, initiated_by_str: str):
+    """
+    Deletes a cluster resource object.
+    For deletes that are initiated by the system itself (such as recurring tasks),
+    the field latest_user_action is set to SystemDeleting. Deletes initiated by end users
+    are instead handled by views.
+    Note that initiated by is needed because this information cannot be determined
+    from the latest_user_action as this is sometimes set after the deletion of the resource.
+
+    Parameters:
+    - serialized_instance: A serialized version of the app to be deleted.
+    - initiated_by_str: A string of enum AppActionOrigin indicating the source of the deletion (user|system).
+    """
+    logger.debug(f"Type of serialized_instance is {type(serialized_instance)}")
+
+    initiated_by = AppActionOrigin(initiated_by_str)
+    assert initiated_by == AppActionOrigin.USER or initiated_by == AppActionOrigin.SYSTEM
+
     instance = deserialize(serialized_instance)
 
     values = instance.k8s_values
@@ -303,8 +326,8 @@ def delete_resource(serialized_instance):
         # There is no need to save a FailedToDelete status
         # We let the k8s event listener handle this event and together with
         # the instance info we have sufficient troubleshooting information.
-        # This can occur if for example the deployment has already been deleted.
-        logger.warn(f"FAILED to delete resource type {instance.app.slug}, {values['subdomain']}, error={error}")
+        # Note: This can occur if for example the deployment has already been deleted.
+        logger.info(f"Failed to delete resource type {instance.app.slug}, {values['subdomain']}, error={error}")
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 
@@ -312,11 +335,13 @@ def delete_resource(serialized_instance):
 
     # Note: when we save the app instance object here, we should not overwrite properties
     # with old values, therefore we carefully restrict the updated fields.
-    if instance.app.slug in ("volumeK8s", "netpolicy"):
-        # These "apps" are not true user apps but rather handled
-        # by the Serve system. Therefore they are set to the SystemDeleting action.
+    # if instance.app.slug in ("volumeK8s", "netpolicy"):
+    if initiated_by == AppActionOrigin.SYSTEM:
+        # The delete resource action was initiated by the Serve system.
+        # This is a common scenario for "apps" such as volumeK8s, netpolicy, notebooks and file managers.
         instance.latest_user_action = "SystemDeleting"
-        instance.save(update_fields=["latest_user_action", "info"])
+        instance.deleted_on = timezone.now()
+        instance.save(update_fields=["latest_user_action", "deleted_on", "info"])
     else:
         instance.save(update_fields=["info"])
 
