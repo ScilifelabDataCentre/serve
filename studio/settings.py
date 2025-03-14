@@ -368,10 +368,11 @@ KUBE_API_REQUEST_TIMEOUT = 1
 STORAGECLASS = "local-path"
 
 # Docker hub API
-DOCKER_HUB_IMAGE_SEARCH = "https://hub.docker.com/v2/search/repositories/"
-DOCKER_HUB_TAG_SEARCH = "https://hub.docker.com/v2/repositories/"
+DOCKER_HUB_REPO_SEARCH = "https://hub.docker.com/v2/search/repositories"
+DOCKER_HUB_TAG_SEARCH = "https://hub.docker.com/v2/repositories"
 
 # GHCR API
+GITHUB_API = "https://api.github.com"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 # This can be simply "localhost", but it's better to test with a

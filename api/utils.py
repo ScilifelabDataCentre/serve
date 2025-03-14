@@ -9,7 +9,7 @@ def fetch_docker_hub_images_and_tags(query: str) -> List[str]:
     Fetch Docker images and latest tags matching a query.
     This function fetches images with the highest pull count.
     """
-    image_search_url = f"{settings.DOCKER_HUB_IMAGE_SEARCH}?query={query}"
+    image_search_url = f"{settings.DOCKER_HUB_REPO_SEARCH}?query={query}"
     try:
         response = requests.get(image_search_url, timeout=3)
         response.raise_for_status()
@@ -26,7 +26,7 @@ def fetch_docker_hub_images_and_tags(query: str) -> List[str]:
         repo_name = repo["repo_name"]
 
         # Fetch available tags
-        tags_search_url = f"{settings.DOCKER_HUB_TAG_SEARCH}{repo_name}/tags/?page_size=3"
+        tags_search_url = f"{settings.DOCKER_HUB_TAG_SEARCH}/{repo_name}/tags/?page_size=3"
         try:
             tag_response = requests.get(tags_search_url, timeout=2)
             tag_response.raise_for_status()

@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Any, Optional
 
 import regex as re
+import requests
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
@@ -464,3 +465,91 @@ def validate_path_k8s_label_compatible(candidate: str) -> None:
 
     if not re.match(pattern, candidate):
         raise ValidationError(error_message)
+
+
+def check_ghcr_owner_type(owner: str):
+    """Determines whether a GHCR owner is a User or an Organization."""
+
+    gh_owner_url = f"{settings.GITHUB_API}/users/{owner}"
+    headers = {"Accept": "application/vnd.github+json"}
+
+    try:
+        response = requests.get(gh_owner_url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        owner_type = data.get("type")
+        if owner_type in {"User", "Organization"}:
+            return owner_type
+
+        raise ValidationError("Invalid response structure from GitHub API for Owner type.")
+
+    except requests.RequestException as e:
+        raise ValidationError(f"Failed to fetch GHCR owner type: {e}")
+
+
+def validate_ghcr_image(image: str):
+    """Validates whether a given GHCR image exists."""
+
+    # regex match:
+    # ghcr\.io/ - ghcr.io
+    # (?P) used to capture a named group eg. owner, image and tag
+    # [\w-]+ allow more than 1 character of letters, numbers underscores and hyphens
+    match = re.match(r"ghcr\.io/(?P<owner>[\w-]+)/(?P<image>[\w-]+):(?P<tag>[\w.-]+)", image)
+
+    if not match:
+        raise ValidationError("Invalid image URL format. Please try again.")
+
+    owner, image_name, tag = match.group("owner"), match.group("image"), match.group("tag")
+
+    owner_type = check_ghcr_owner_type(owner)
+    if owner_type == "Organization":
+        image_url = f"https://api.github.com/orgs/{owner}/packages/container/{image_name}/versions"
+    elif owner_type == "User":
+        image_url = f"https://api.github.com/users/{owner}/packages/container/{image_name}/versions"
+    else:
+        raise ValidationError("Could not recognise the GHCR owner. Please try again.")
+
+    headers = {"Authorization": f"Bearer {settings.GITHUB_TOKEN}", "Accept": "application/vnd.github+json"}
+
+    try:
+        response = requests.get(image_url, headers=headers)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        raise ValidationError(f"The specified GHCR image was not found.: {e}")
+
+    try:
+        versions = response.json()
+        for version in versions:
+            container_metadata = version["metadata"]["container"]
+            tags = container_metadata.get("tags", [])
+            if tag in tags:
+                return image
+    except KeyError:
+        raise ValidationError("Unable to find GHCR image tag. Please try again.")
+
+
+def validate_docker_image(image: str):
+    """Validates whether a given Docker image exists on Docker Hub."""
+
+    if ":" in image:
+        repository, tag = image.rsplit(":", 1)
+    else:
+        repository, tag = image, "latest"
+
+    repository = repository.replace("docker.io/", "", 1)
+
+    # Ensure repository is in the correct format
+    if "/" not in repository:
+        repository = f"library/{repository}"
+
+    docker_api_url = f"{settings.DOCKER_HUB_TAG_SEARCH}/{repository}/tags/{tag}"
+
+    try:
+        response = requests.get(docker_api_url, timeout=5)
+        response.raise_for_status()
+    except requests.RequestException:
+        raise ValidationError(
+            f"Docker image '{image}' is not publicly available on Docker Hub. "
+            "The URL you have entered may be incorrect, or the image might be private."
+        )
