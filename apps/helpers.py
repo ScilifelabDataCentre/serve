@@ -525,6 +525,9 @@ def validate_ghcr_image(image: str):
             tags = container_metadata.get("tags", [])
             if tag in tags:
                 return image
+
+        raise ValidationError(f"Tag '{tag}' not found in GHCR image. Please try again.")
+
     except KeyError:
         raise ValidationError("Unable to find GHCR image tag. Please try again.")
 

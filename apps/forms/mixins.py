@@ -4,6 +4,7 @@ import requests
 from crispy_forms.layout import HTML, Div, Field, MultiField
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 from apps.helpers import validate_docker_image, validate_ghcr_image
 
@@ -55,14 +56,14 @@ class ContainerImageMixin:
         if "ghcr.io" in image:
             try:
                 validate_ghcr_image(image)
-            except Exception as e:
+            except ValidationError as e:
                 self.add_error("image", f"Error validating GHCR image: {str(e)}")
                 return image
 
         if "docker.io" in image:
             try:
                 validate_docker_image(image)
-            except Exception as e:
+            except ValidationError as e:
                 self.add_error("image", f"Error validating Docker image: {str(e)}")
                 return image
 
