@@ -184,14 +184,13 @@ class HomeView(View):
         for event in events_objects:
             event.description_html = markdown.markdown(event.description)
             event.past = True if event.start_time.date() < timezone.now().date() else False
-
         context = {
             "published_apps_updated_on": published_apps_updated_on,
-            "news_objects": news_objects,
+            "news_objects": news_objects if len(news_objects) == 0 else reversed(news_objects),
             "link_all_news": link_all_news,
             "collection_objects": collection_objects,
             "link_all_collections": link_all_collections,
-            "events_objects": events_objects,
+            "events_objects": events_objects if len(events_objects) == 0 else reversed(events_objects),
             "link_all_events": link_all_events,
         }
 
