@@ -406,6 +406,43 @@ class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
         return f"{self.__class__.__name__}({self.data})"
 
 
+class ChangePasswordForm(BootstrapErrorFormMixin, PasswordChangeForm):
+    old_password = forms.CharField(
+        min_length=10,
+        label="Old Password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+    new_password1 = forms.CharField(
+        min_length=10,
+        label="New Password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        help_text=mark_safe(password_validators_help_text_html()),
+    )
+    new_password2 = forms.CharField(
+        min_length=10,
+        label="Confirm password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+    required_css_class = "required"
+
+    class Meta:
+        model = User
+
+    def add_error_classes(self) -> None:
+        """
+        Add bootstrap error classes to fields and move errors from new_password2 to new_password1
+        so that errors are displayed in one place on the left side of the form
+        """
+        super().add_error_classes()
+        if "new_password1" in self.errors or "new_password2" in self.errors:
+            self.fields["new_password1"].widget.attrs.update({"class": "form-control is-invalid"})
+            self.fields["new_password2"].widget.attrs.update({"class": "form-control is-invalid"})
+            errors_p1 = self.errors.get("new_password1", [])
+            self.errors["new_password1"] = errors_p1 + self.errors.get("new_password2", [])
+            if "new_password2" in self.errors:
+                del self.errors["new_password2"]
+
+
 class ProfileEditForm(ProfileForm):
     class Meta(ProfileForm.Meta):
         exclude = [

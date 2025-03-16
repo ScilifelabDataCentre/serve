@@ -73,7 +73,7 @@ function PasswordEvents(password_element_name, password2_element_name, data, url
             }
           });
     });
-    
+
     password2.addEventListener("input", () => {
         data.password = password.value;
         $.ajax({
@@ -91,5 +91,5 @@ function PasswordEvents(password_element_name, password2_element_name, data, url
           }
         });
     });
-    
+
 }
