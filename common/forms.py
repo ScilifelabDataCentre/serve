@@ -6,12 +6,16 @@ from typing import Optional, Sequence
 
 from django import forms
 from django.conf import settings
-from django.contrib.auth import password_validation
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import (
+    get_password_validators,
+    password_validators_help_texts,
+)
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.db import transaction
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from common.models import EmailVerificationTable, UserProfile
@@ -38,6 +42,38 @@ EMAIL_ALLOW_REGEX = re.compile(
     ),
     re.IGNORECASE,
 )
+
+
+# Custom helptext for password validators used in signup and change password forms
+def password_validators_help_text_html(
+    password_validators=get_password_validators(settings.AUTH_PASSWORD_VALIDATORS),
+):
+    """
+    Return an HTML string with all help texts of all configured validators
+    in an <ul>.
+    """
+    help_texts = []
+    for validator, settings_validator in zip(password_validators, settings.AUTH_PASSWORD_VALIDATORS):
+        help_texts.append(
+            {
+                "help_text": password_validators_help_texts([validator]),
+                "validator": settings_validator["NAME"].split(".")[-1],
+                "name": settings_validator["NAME"],
+            }
+        )
+    help_texts.append(
+        {"help_text": ["Your passwords should match"], "validator": "PasswordMatch", "name": "PasswordMatch"}
+    )
+    help_items = [
+        format_html(
+            """<li class='d-flex requirements text-muted {}'><i class='bi bi-check text-success me-2'>
+            </i><i class='bi bi-x text-danger me-2'></i>{}</li>""",
+            help_text["validator"],
+            help_text["help_text"][0],
+        )
+        for help_text in help_texts
+    ]
+    return '<ul class="list-unstyled mb-0" id="password_alert">%s</ul>' % "".join(help_items) if help_items else ""
 
 
 class ListTextWidget(forms.TextInput):
@@ -115,13 +151,13 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
         ),
     )
     password1 = forms.CharField(
-        min_length=8,
+        min_length=10,
         label="Password",
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
-        help_text=password_validation.password_validators_help_text_html(),
+        help_text=mark_safe(password_validators_help_text_html()),
     )
     password2 = forms.CharField(
-        min_length=8,
+        min_length=10,
         label="Confirm password",
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
     )

@@ -23,7 +23,7 @@ from .views import (
     get_subdomain_is_available,
     get_subdomain_is_valid,
     update_app_status,
-    validate_password_request
+    validate_password_request,
 )
 
 app_name = "api"
