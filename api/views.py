@@ -26,11 +26,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from apps.helpers import (
-    HandleUpdateStatusResponseCode,
-    get_select_options,
-    handle_update_status_request,
-)
+from apps.constants import HandleUpdateStatusResponseCode
+from apps.helpers import get_select_options, handle_update_status_request
 from apps.models import AppCategories, Apps, BaseAppInstance, Subdomain
 from apps.tasks import delete_resource
 from apps.types_.subdomain import SubdomainCandidateName

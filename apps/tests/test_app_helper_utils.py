@@ -1,6 +1,6 @@
 """This module is used to test the helper functions that are used by user app instance functionality."""
 
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -9,6 +9,7 @@ from django.test import TestCase
 from projects.models import Flavor, Project
 
 from ..app_registry import APP_REGISTRY
+from ..constants import AppActionOrigin
 from ..forms import DashForm
 from ..helpers import create_instance_from_form, get_subdomain_name
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
@@ -86,7 +87,7 @@ class CreateAppInstanceTestCase(TestCase):
 
 # Mock the tasks that manipulate k8s resources.
 # Note that these are passed to the test functions in reverse order.
-# The delete_resource task is used sync (wuthout delay) in helpers.
+# The delete_resource task is used sync (without delay) in helpers.
 @patch("apps.tasks.deploy_resource.delay")
 @patch("apps.tasks.delete_resource")
 class UpdateExistingAppInstanceTestCase(TestCase):
@@ -233,7 +234,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         # Modifying the subdomain should cause a re-deploy:
         mock_deploy.assert_called_once()
         # Modifying the subdomain SHOULD cause a delete:
-        mock_delete.assert_called_once()
+        mock_delete.assert_called_once_with(ANY, AppActionOrigin.USER.value)
 
     def test_update_instance_from_form_modify_no_redeploy_values(self, mock_delete, mock_deploy):
         """

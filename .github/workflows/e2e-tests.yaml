@@ -59,9 +59,9 @@ jobs:
           sed -i 's/GID=1000/GID=127/g' .env
 
       - name: A job to install MicroK8s
-        uses: balchua/microk8s-actions@v0.4.2
+        uses: balchua/microk8s-actions@v0.4.3
         with:
-          channel: '1.28/stable'
+          channel: '1.31/stable'
           addons: '["dns", "rbac", "hostpath-storage", "ingress", "helm"]'
 
       - name: Test and config MicroK8s
@@ -126,6 +126,9 @@ jobs:
           working-directory: ${{env.working-directory}}
           config: pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }}
           quiet: true
+        env:
+          ELECTRON_DISABLE_GPU: true
+
       - name: Save cypress screenshot artifacts on failure
         uses: actions/upload-artifact@v4
         if: failure()

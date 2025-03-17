@@ -1,3 +1,19 @@
+from enum import IntEnum, StrEnum
+
+
+class HandleUpdateStatusResponseCode(IntEnum):
+    NO_ACTION = 0
+    UPDATED_STATUS = 1
+    UPDATED_TIME_OF_STATUS = 2
+    CREATED_FIRST_STATUS = 3
+
+
+class AppActionOrigin(StrEnum):
+    UNSET = "UNSET"
+    USER = "USER"
+    SYSTEM = "SYSTEM"
+
+
 HELP_MESSAGE_MAP = {
     "name": "Display name for the application. This is the name visible on the app catalogue if the app is public",
     "description": "Provide a detailed description of your app. "

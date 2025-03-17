@@ -41,7 +41,7 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.0.0 python3 -
         else /root/.local/bin/poetry install -n -q --no-cache --all-extras --no-root; \
         fi
 
-FROM bitnami/kubectl:1.28.6 as kubectl
+FROM bitnami/kubectl:1.31.4 as kubectl
 FROM alpine/helm:3.14.0 as helm
 FROM python:3.12.3-alpine3.19 as runtime
 

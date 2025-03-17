@@ -1,5 +1,4 @@
 from datetime import datetime
-from enum import Enum
 from typing import Any, Optional
 
 import regex as re
@@ -8,6 +7,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 
+from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
 from studio.utils import get_logger
 
@@ -97,13 +97,6 @@ def handle_permissions(parameters, project):
     return access
 
 
-class HandleUpdateStatusResponseCode(Enum):
-    NO_ACTION = 0
-    UPDATED_STATUS = 1
-    UPDATED_TIME_OF_STATUS = 2
-    CREATED_FIRST_STATUS = 3
-
-
 def handle_update_status_request(
     release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
 ) -> HandleUpdateStatusResponseCode:
@@ -135,6 +128,7 @@ def handle_update_status_request(
             instance = BaseAppInstance.objects.select_for_update().filter(subdomain=subdomain).last()
             if instance is None:
                 logger.info(f"The specified app instance identified by release {release} was not found")
+                # TODO: This should not raise an exception. It is not a problematic event.
                 raise ObjectDoesNotExist
 
             logger.debug(f"The app instance identified by release {release} exists. App name={instance.name}")
@@ -394,7 +388,7 @@ def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) 
     if instance.subdomain.subdomain != subdomain_name:
         # The user modified the subdomain name
         # In this special case, we avoid async task.
-        delete_resource(instance.serialize())
+        delete_resource(instance.serialize(), AppActionOrigin.USER.value)
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])

@@ -10,7 +10,8 @@ from django.test import TestCase, TransactionTestCase
 
 from projects.models import Project
 
-from ..helpers import HandleUpdateStatusResponseCode, handle_update_status_request
+from ..constants import HandleUpdateStatusResponseCode
+from ..helpers import handle_update_status_request
 from ..models import AppCategories, Apps, JupyterInstance, K8sUserAppStatus, Subdomain
 
 utc = pytz.UTC
