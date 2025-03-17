@@ -34,15 +34,15 @@ class MLFlowInstance(BaseAppInstance):
                 "type": "app",
             },
             "resources": {
-                "requests": {"cpu": "1", "memory": "512Mi", "ephemeral-storage": "512Mi"},
-                "limits": {"cpu": "2", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+                "requests": {"cpu": "1", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+                "limits": {"cpu": "2", "memory": "2Gi", "ephemeral-storage": "2Gi"},
             },
             "pdb": {"create": False},
         }
         k8s_values["run"] = {
             "resources": {
-                "requests": {"cpu": "1", "memory": "512Mi", "ephemeral-storage": "512Mi"},
-                "limits": {"cpu": "2", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+                "requests": {"cpu": "1", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+                "limits": {"cpu": "2", "memory": "2Gi", "ephemeral-storage": "2Gi"},
             }
         }
         k8s_values["minio"] = {"pdb": {"create": False}}
