@@ -966,7 +966,7 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
         # IsAuthenticated,
     )
 )
-def docker_image_search(request):
+def container_image_search(request):
     query = request.GET.get("query", "").strip()
     if not query:
         return JsonResponse({"error": "Query parameter is required"}, status=400)
