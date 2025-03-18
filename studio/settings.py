@@ -373,7 +373,7 @@ DOCKER_HUB_TAG_SEARCH = "https://hub.docker.com/v2/repositories"
 
 # GHCR API
 GITHUB_API = "https://api.github.com"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io

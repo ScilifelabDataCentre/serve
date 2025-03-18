@@ -504,7 +504,7 @@ def validate_ghcr_image(image: str):
     else:
         raise ValidationError("Could not recognise the GHCR owner. Please try again.")
 
-    headers = {"Authorization": f"Bearer {settings.GITHUB_TOKEN}", "Accept": "application/vnd.github+json"}
+    headers = {"Authorization": f"Bearer {settings.GITHUB_API_TOKEN}", "Accept": "application/vnd.github+json"}
 
     try:
         response = requests.get(image_url, headers=headers)
