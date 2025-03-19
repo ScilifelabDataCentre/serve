@@ -995,6 +995,12 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
                     200,
                 )
 
+            elif result == HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND:
+                return Response(
+                    f"OK. OBJECT_NOT_FOUND. The specified app instance was not found {release=}",
+                    404,
+                )
+
             else:
                 logger.error(f"Unknown return code from handle_update_status_request() = {result}", exc_info=True)
                 return Response(f"Unknown return code from handle_update_status_request() = {result}", 500)
