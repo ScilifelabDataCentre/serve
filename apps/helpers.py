@@ -110,7 +110,6 @@ def handle_update_status_request(
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
     :returns: A value from the HandleUpdateStatusResponseCode enum.
-              Raises an ObjectDoesNotExist exception if the app instance does not exist.
     """
 
     if len(new_status) > 20:
@@ -128,8 +127,7 @@ def handle_update_status_request(
             instance = BaseAppInstance.objects.select_for_update().filter(subdomain=subdomain).last()
             if instance is None:
                 logger.info(f"The specified app instance identified by release {release} was not found")
-                # TODO: This should not raise an exception. It is not a problematic event.
-                raise ObjectDoesNotExist
+                return HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND
 
             logger.debug(f"The app instance identified by release {release} exists. App name={instance.name}")
 
@@ -174,6 +172,10 @@ def handle_update_status_request(
             status_object = instance.k8s_user_app_status
             update_k8s_user_app_status(instance, status_object, new_status, event_ts, event_msg)
             return HandleUpdateStatusResponseCode.UPDATED_STATUS
+
+    except ObjectDoesNotExist:
+        logger.info(f"No such subdomain exists identified by release={release}")
+        return HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND
 
     except Exception as err:
         logger.error(f"Unable to fetch or update the specified app instance with release={release}. {err}, {type(err)}")
