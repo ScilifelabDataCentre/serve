@@ -14,7 +14,7 @@ class StreamlitInstance(AbstractCustomAppInstance, BaseAppInstance):
         # TODO Change this to actual command to run gradio app
         k8s_values["appconfig"][
             "startupCommand"
-        ] = f"streamlit run app.py --server.address=0.0.0.0 --server.port={self.port} --server.maxUploadSize 100"
+        ] = f"streamlit run app.py --server.address=0.0.0.0 --server.port={self.port} --server.maxUploadSize=100"
         return k8s_values
 
     class Meta:
