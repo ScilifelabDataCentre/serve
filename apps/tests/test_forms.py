@@ -46,7 +46,7 @@ class CustomAppFormTest(BaseAppFormTest):
             "source_code_url": "http://example.com",
             "note_on_linkonly_privacy": None,
             "port": 8000,
-            "image": "ghcr.io/scilifelabdatacentre/image:tag",
+            "image": "mock.io/scilifelabdatacentre/image:tag",
             "tags": ["tag1", "tag2", "tag3"],
             "default_url_subpath": "valid-default_url_subpath/",
         }

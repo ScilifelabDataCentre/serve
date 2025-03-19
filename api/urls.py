@@ -18,7 +18,7 @@ from .views import (
     ProjectList,
     ProjectTemplateList,
     ResourceList,
-    docker_image_search,
+    container_image_search,
     get_subdomain_input_html,
     get_subdomain_is_available,
     get_subdomain_is_valid,
@@ -62,4 +62,5 @@ urlpatterns = [
     path("htmx/subdomain-input/", get_subdomain_input_html, name="get_subdomain_input_html"),
     path("validate_password/", validate_password_request, name="validate_password"),
     path("docker_image_search/", docker_image_search, name="docker_image_search"),
+    path("container_image_search/", container_image_search, name="container_image_search"),
 ]
