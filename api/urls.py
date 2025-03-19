@@ -23,6 +23,7 @@ from .views import (
     get_subdomain_is_available,
     get_subdomain_is_valid,
     update_app_status,
+    validate_password_request,
 )
 
 app_name = "api"
@@ -59,5 +60,6 @@ urlpatterns = [
     path("app-subdomain/validate/", get_subdomain_is_valid),
     path("app-subdomain/is-available/", get_subdomain_is_available),
     path("htmx/subdomain-input/", get_subdomain_input_html, name="get_subdomain_input_html"),
+    path("validate_password/", validate_password_request, name="validate_password"),
     path("container_image_search/", container_image_search, name="container_image_search"),
 ]

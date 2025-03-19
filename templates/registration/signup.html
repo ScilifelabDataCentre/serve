@@ -141,7 +141,12 @@
                                         {% endif %}
                                     </div>
 
-                                  <div class="form-text">{{form.password1.help_text}}</div>
+                                <div class="form-text">
+
+                                          <div class="alert alert-password mb-0" role="alert" id="password_requirements">
+                                            {{form.password1.help_text}}
+                                          </div>
+                                </div>
 
 
                                 </div>
@@ -183,4 +188,16 @@
     </div>
     {% endif %}
 </div>
+<script src="{% static 'js/password_validation.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+
+    const password = document.getElementById("id_password1");
+    const password_element_name = "id_password1";
+    const password2_element_name = "id_password2";
+    const url = "{% url 'api:validate_password' %}"
+    const data = {password: password.value, email: "{{ user.email }}", first_name: "{{ user.first_name }}", last_name: "{{ user.last_name}}"};
+    PasswordEvents(password_element_name, password2_element_name, data, url);
+  });
+</script>
 {% endblock %}
