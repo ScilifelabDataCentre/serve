@@ -6,6 +6,7 @@ class HandleUpdateStatusResponseCode(IntEnum):
     UPDATED_STATUS = 1
     UPDATED_TIME_OF_STATUS = 2
     CREATED_FIRST_STATUS = 3
+    OBJECT_NOT_FOUND = 4
 
 
 class AppActionOrigin(StrEnum):

@@ -8,7 +8,7 @@ if $INIT; then
 
     if [ -n "${RESET_DB}" ] && [ "${RESET_DB}" = "true" ] && [ -n "${DEBUG}" ] && [ "${DEBUG}" = "true" ]; then
         echo "RESETTING DATABASE..."
-        python manage.py reset_db --no-input
+        python manage.py reset_db --no-input --close-sessions
         echo "Uninstalling all Helm releases in serve-dev namespace"
         helm uninstall $(helm ls --all --short -n serve-dev) -n serve-dev
     fi
