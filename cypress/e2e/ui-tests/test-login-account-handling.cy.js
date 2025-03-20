@@ -98,7 +98,7 @@ describe("Test login, profile page view, password change, password reset", () =>
         cy.visit("/")
         cy.get('button.btn-profile').click()
         cy.get('li.btn-group').find('a').contains("Change password").click()
-        cy.url().should("include", "accounts/password_change/")
+        cy.url().should("include", "password-change/")
 
         cy.get('input[name=old_password]').type(users.login_user.password)
         cy.get('input[name=new_password1]').type(users.login_user.reset_password)
