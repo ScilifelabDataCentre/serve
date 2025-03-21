@@ -854,6 +854,9 @@ if (Cypress.env('create_resources') === true) {
             // Stay on the Settings page
             cy.url().should("include", "/apps/settings")
 
+            // Verify that the input field has the error class
+            cy.get('#id_image').should('have.class', 'is-invalid');
+
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
