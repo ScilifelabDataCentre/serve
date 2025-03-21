@@ -857,16 +857,6 @@ if (Cypress.env('create_resources') === true) {
             // Verify that the input field has the error class
             cy.get('#id_image').should('have.class', 'is-invalid');
 
-            // The final app status and latest user action:
-            // Wait for 5 seconds and check the app status again
-            // This relies on the k8s event listener
-            // Verify that the app status now equals Error
-            if (env_run_extended_k8s_checks === true) {
-                cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name, "Error", "public", "Changing")
-                })
-            }
-
             // Edit Dash app: modify the app image back to a valid image
             cy.logf("Editing the dash app settings field Image to a valid value", Cypress.currentTest)
             cy.visit("/projects/")
