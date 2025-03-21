@@ -851,11 +851,8 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').type("-BAD")
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
-            // Back on project page
-            cy.url().should("not.include", "/apps/settings")
-            cy.get('h3').should('have.text', project_name);
-
-            verifyAppStatus(app_name, "", "public", "Changing")
+            // Stay on the Settings page
+            cy.url().should("include", "/apps/settings")
 
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
