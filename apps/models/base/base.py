@@ -190,7 +190,7 @@ class BaseAppInstance(models.Model):
 
     latest_user_action = models.CharField(max_length=15, default="Creating", choices=USER_ACTION_STATUS_CHOICES)
     k8s_user_app_status = models.OneToOneField(
-        K8sUserAppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True
+        K8sUserAppStatus, on_delete=models.RESTRICT, related_name="%(class)s", null=True, blank=True
     )
 
     # 20241216: Refactoring of app status.
