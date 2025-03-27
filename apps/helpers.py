@@ -506,6 +506,10 @@ def validate_ghcr_image(image: str):
     else:
         raise ValidationError("Could not recognise the GHCR owner. Please try again.")
 
+    # Return the image if the GitHub API token is missing
+    if settings.GITHUB_API_TOKEN in ["", None]:
+        return image
+
     headers = {"Authorization": f"Bearer {settings.GITHUB_API_TOKEN}", "Accept": "application/vnd.github+json"}
 
     try:
