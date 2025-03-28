@@ -8,6 +8,7 @@
             <th tabindex="0" rowspan="1" colspan="1">Name</th>
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Created</th>
             <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
+            <th class="" tabindex="0" rowspan="1" colspan="1">Permissions</th>
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Tags</th>
             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
         </tr>
@@ -54,6 +55,15 @@
                     Refreshing...
                     <!-- {{ instance.get_app_status }} -->
                 </span>
+              <!--
+              {% if instance.k8s_user_app_status.status != "Running"%}
+                <span class="small text-danger bg-light border border-light rounded">
+                    {{ instance.k8s_user_app_status.status }}
+                </span>
+              {% endif %}
+              -->
+            </td>
+            <td>
               {% if instance.app.name != "MLFlow" %}
                 {% if instance.access %}
                     {% if instance.access == 'public' %}
