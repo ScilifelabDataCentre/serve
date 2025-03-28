@@ -9,6 +9,7 @@ app_name = "portal"
 urlpatterns = [
     path("home/", views.HomeView.as_view(), name="home-explicit"),
     path("about/", views.about, name="about"),
+    path("about/roadmap/", views.roadmap, name="roadmap"),
     path("teaching/", views.teaching, name="teaching"),
     path("privacy/", views.privacy, name="privacy"),
     path("apps/", views.public_apps, name="apps"),
