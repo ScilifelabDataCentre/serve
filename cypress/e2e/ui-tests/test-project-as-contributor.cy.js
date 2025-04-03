@@ -181,7 +181,7 @@ describe("Test project contributor user functionality", () => {
         cy.get("a").contains('Create').first().click()
         cy.get('input[name=name]').type(project_name)
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(5000) // sometimes it takes a while to create a project
+        cy.wait(10000) // sometimes it takes a while to create a project
             .then((href) => {
                 cy.logf(href, Cypress.currentTest)
                 // Check that the app limits work using Jupyter Lab as example
@@ -225,7 +225,7 @@ describe("Test project contributor user functionality", () => {
             cy.get('input[name=name]').type(`${project_name}-${i + 1}`);
             cy.get("input[name=save]").contains('Create project').click()
         });
-        cy.wait(5000) // sometimes it takes a while to create a project but just waiting once at the end should be enough
+        cy.wait(10000) // sometimes it takes a while to create a project but just waiting once at the end should be enough
 
         // Now check that it is not possible to create another project
         // not possible to click the button to create a new project
