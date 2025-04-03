@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block title %}Roadmap{% endblock %}
+
+{% block content %}
+
+  <div class="row">
+    <div class="col">
+      <h3>Current work</h3>
+      <p>
+      <ul>
+        <li>
+          <p>
+            <b>Integration of MLFLow for ML experiment tracking</b>
+          </p>
+          <p>
+            We will allow users of SciLifeLab Serve to launch their own instances of the platform <a
+            href="https://mlflow.org/">MLFlow</a> that allows to keep track of models and artifacts in machine learning
+            work. Users will be able to send data to their instance from anywhere where they are doing training or
+            analyses.
+          </p>
+          <p>
+            <i>Released Q1 2025</i>
+          </p>
+        </li>
+        <li>
+          <p>
+            <b>Support for model deployment with GPUs</b>
+          </p>
+          <p>
+            We will allow users to publish models with access to GPUs to run inferences. We will start with a few pilot
+            projects before making it widely available. Get in touch with us if you are interested in being a pilot
+            user.
+          </p>
+          <p>
+            <i>Planned Q2 2025</i>
+          </p>
+        </li>
+      </ul>
+      </p>
+      <h3>Near-term work</h3>
+      <p>
+      <ul>
+        <li>
+          <p>
+            <b>Metadata and FAIR improvements</b>
+          </p>
+          <p>
+            We will be collecting additional information about applications and models published on SciLifeLab Serve
+            (such as list of authors and source of funding). We will also be registering Digital Object Identifiers
+            (DOIs) to allow tracking of metadata and citation of applications and models.
+          </p>
+          <p>
+            <i>Planned Q3 2025</i>
+          </p>
+        </li>
+        <li>
+          <p>
+            <b>Improved web accessibility of the website</b>
+          </p>
+          <p>
+            We will review and update our webpages to meet the Web Content Accessibility Guidelines (WCAG) 2.2.
+          </p>
+          <p>
+            <i>Planned Q3 2025</i>
+          </p>
+        </li>
+        <li>
+          <p>
+            <b>Access to an API endpoint to interact with LLM(s)</b>
+          </p>
+          <p>
+            We will provide an API endpoint for application developers that will allow their apps to interact with one
+            or more LLMs. The apps will then need to be made available through SciLifeLab Serve.
+          </p>
+          <p>
+            <i>Planned Q3 2025</i>
+          </p>
+        </li>
+      </ul>
+      </p>
+      <h3>Long-term work</h3>
+      <p>
+      <ul>
+        <li>
+          <p>
+            <b>LLM-empowered application creation</b>
+          </p>
+          <p>
+            We will integrate an interface allowing to build data science applications by interacting with an LLM
+            through a chat interface. These applications can then be published on SciLifeLab Serve.
+          </p>
+          <p>
+            <i>Planned Q4 2025</i>
+          </p>
+        </li>
+      </ul>
+      </p>
+
+    </div>
+  </div>
+
+{% endblock %}

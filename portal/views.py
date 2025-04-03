@@ -203,6 +203,11 @@ def about(request):
     return render(request, template, locals())
 
 
+def roadmap(request):
+    template = "portal/roadmap.html"
+    return render(request, template, locals())
+
+
 def teaching(request):
     template = "portal/teaching.html"
     return render(request, template, locals())
