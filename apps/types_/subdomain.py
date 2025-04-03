@@ -50,9 +50,10 @@ class SubdomainCandidateName:
 
         # Check if the subdomain adheres to helm rules
         regex_validator = RegexValidator(
-            regex=r"^(?!-)[a-z0-9-]{3,53}(?<!-)$",
+            regex=r"^(?!-)(?!.*mlflow)[a-z0-9-]{3,53}(?<!-)$",
             message="Subdomain must be 3-53 characters long, contain only lowercase letters, digits, hyphens, "
-            "and cannot start or end with a hyphen",
+            "cannot contain 'mlflow', "
+            "and cannot start or end with a hyphen.",
         )
 
         regex_validator(self.__name)
