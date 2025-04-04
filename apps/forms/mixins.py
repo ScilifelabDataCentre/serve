@@ -53,6 +53,9 @@ class ContainerImageMixin:
             self.add_error("image", "Container image field cannot be empty.")
             return image
 
+        if settings.DEBUG:
+            return image
+
         if "ghcr.io" in image:
             try:
                 validate_ghcr_image(image)
