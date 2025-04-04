@@ -851,21 +851,10 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').type("-BAD")
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
-            // Back on project page
-            cy.url().should("not.include", "/apps/settings")
-            cy.get('h3').should('have.text', project_name);
-
-            verifyAppStatus(app_name, "", "public", "Changing")
-
-            // The final app status and latest user action:
-            // Wait for 5 seconds and check the app status again
-            // This relies on the k8s event listener
-            // Verify that the app status now equals Error
-            if (env_run_extended_k8s_checks === true) {
-                cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name, "Error", "public", "Changing")
-                })
-            }
+            // Stay on the Settings page
+            cy.url().should("include", "/apps/settings")
+            // Verify that the input field has the error class
+            cy.get('#id_image').should('have.class', 'is-invalid');
 
             // Edit Dash app: modify the app image back to a valid image
             cy.logf("Editing the dash app settings field Image to a valid value", Cypress.currentTest)
