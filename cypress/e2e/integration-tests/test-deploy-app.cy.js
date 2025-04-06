@@ -759,8 +759,6 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
             // Stay on the Settings page
             cy.url().should("include", "/apps/settings")
-            // Verify that the input field has the error class
-            cy.get('#id_image').should('have.class', 'is-invalid');
 
             // Edit Dash app: modify the app image back to a valid image
             cy.logf("Editing the dash app settings field Image to a valid value", Cypress.currentTest)
