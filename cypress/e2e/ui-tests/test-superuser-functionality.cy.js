@@ -469,7 +469,7 @@ describe("Test superuser access", () => {
             cy.get('input[name=name]').type(project_name)
             cy.get("input[name=save]").should('be.visible').contains('Create project').click()
         });
-        cy.wait(10000) // sometimes it takes a while to create a project but just waiting once at the end should be enough
+        cy.wait(15000) // sometimes it takes a while to create a project but just waiting once at the end should be enough
 
         cy.logf("Check that it is still possible to click the button to create a new project", Cypress.currentTest)
         cy.visit("/projects/")
