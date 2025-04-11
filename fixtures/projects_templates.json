@@ -60,7 +60,7 @@
           "2 vCPU, 4 GB RAM": {
             "cpu": {
               "limit": "2000m",
-              "requirement": "500m"
+              "requirement": "100m"
             },
             "ephmem": {
               "limit": "5000Mi",

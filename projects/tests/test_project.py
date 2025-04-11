@@ -27,7 +27,7 @@ class ProjectTestCase(TestCase):
         _ = Project.objects.create_project(name="test-perm", owner=user, description="")
         user = User.objects.create_user(test_member["username"], test_member["email"], test_member["password"])
         self.flavor = Flavor.objects.create(
-            cpu_req="500m",
+            cpu_req="100m",
             cpu_lim="1000m",
             mem_req="0.5Gi",
             mem_lim="1Gi",
