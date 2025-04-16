@@ -6,12 +6,16 @@ from typing import Optional, Sequence
 
 from django import forms
 from django.conf import settings
-from django.contrib.auth import password_validation
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import (
+    get_password_validators,
+    password_validators_help_texts,
+)
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.db import transaction
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from common.models import EmailVerificationTable, UserProfile
@@ -38,6 +42,38 @@ EMAIL_ALLOW_REGEX = re.compile(
     ),
     re.IGNORECASE,
 )
+
+
+# Custom helptext for password validators used in signup and change password forms
+def password_validators_help_text_html(
+    password_validators=get_password_validators(settings.AUTH_PASSWORD_VALIDATORS),
+):
+    """
+    Return an HTML string with all help texts of all configured validators
+    in an <ul>.
+    """
+    help_texts = []
+    for validator, settings_validator in zip(password_validators, settings.AUTH_PASSWORD_VALIDATORS):
+        help_texts.append(
+            {
+                "help_text": password_validators_help_texts([validator]),
+                "validator": settings_validator["NAME"].split(".")[-1],
+                "name": settings_validator["NAME"],
+            }
+        )
+    help_texts.append(
+        {"help_text": ["Your passwords should match"], "validator": "PasswordMatch", "name": "PasswordMatch"}
+    )
+    help_items = [
+        format_html(
+            """<li class='d-flex requirements text-muted {}'><i class='bi bi-check text-success me-2'>
+            </i><i class='bi bi-x text-danger me-2'></i>{}</li>""",
+            help_text["validator"],
+            help_text["help_text"][0],
+        )
+        for help_text in help_texts
+    ]
+    return '<ul class="list-unstyled mb-0" id="password_alert">%s</ul>' % "".join(help_items) if help_items else ""
 
 
 class ListTextWidget(forms.TextInput):
@@ -115,13 +151,13 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
         ),
     )
     password1 = forms.CharField(
-        min_length=8,
+        min_length=10,
         label="Password",
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
-        help_text=password_validation.password_validators_help_text_html(),
+        help_text=mark_safe(password_validators_help_text_html()),
     )
     password2 = forms.CharField(
-        min_length=8,
+        min_length=10,
         label="Confirm password",
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
     )
@@ -368,6 +404,43 @@ class UserEditForm(BootstrapErrorFormMixin, forms.ModelForm):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.data})"
+
+
+class ChangePasswordForm(BootstrapErrorFormMixin, PasswordChangeForm):
+    old_password = forms.CharField(
+        min_length=10,
+        label="Old Password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+    new_password1 = forms.CharField(
+        min_length=10,
+        label="New Password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        help_text=mark_safe(password_validators_help_text_html()),
+    )
+    new_password2 = forms.CharField(
+        min_length=10,
+        label="Confirm password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+    required_css_class = "required"
+
+    class Meta:
+        model = User
+
+    def add_error_classes(self) -> None:
+        """
+        Add bootstrap error classes to fields and move errors from new_password2 to new_password1
+        so that errors are displayed in one place on the left side of the form
+        """
+        super().add_error_classes()
+        if "new_password1" in self.errors or "new_password2" in self.errors:
+            self.fields["new_password1"].widget.attrs.update({"class": "form-control is-invalid"})
+            self.fields["new_password2"].widget.attrs.update({"class": "form-control is-invalid"})
+            errors_p1 = self.errors.get("new_password1", [])
+            self.errors["new_password1"] = errors_p1 + self.errors.get("new_password2", [])
+            if "new_password2" in self.errors:
+                del self.errors["new_password2"]
 
 
 class ProfileEditForm(ProfileForm):

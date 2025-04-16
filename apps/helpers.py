@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 import regex as re
+import requests
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
@@ -109,7 +110,6 @@ def handle_update_status_request(
     :param event_ts timestamp: A JSON-formatted timestamp in UTC, e.g. 2024-01-25T16:02:50.00Z.
     :param event_msg json dict: An optional json dict containing pod-msg and/or container-msg.
     :returns: A value from the HandleUpdateStatusResponseCode enum.
-              Raises an ObjectDoesNotExist exception if the app instance does not exist.
     """
 
     if len(new_status) > 20:
@@ -127,8 +127,7 @@ def handle_update_status_request(
             instance = BaseAppInstance.objects.select_for_update().filter(subdomain=subdomain).last()
             if instance is None:
                 logger.info(f"The specified app instance identified by release {release} was not found")
-                # TODO: This should not raise an exception. It is not a problematic event.
-                raise ObjectDoesNotExist
+                return HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND
 
             logger.debug(f"The app instance identified by release {release} exists. App name={instance.name}")
 
@@ -173,6 +172,10 @@ def handle_update_status_request(
             status_object = instance.k8s_user_app_status
             update_k8s_user_app_status(instance, status_object, new_status, event_ts, event_msg)
             return HandleUpdateStatusResponseCode.UPDATED_STATUS
+
+    except ObjectDoesNotExist:
+        logger.info(f"No such subdomain exists identified by release={release}")
+        return HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND
 
     except Exception as err:
         logger.error(f"Unable to fetch or update the specified app instance with release={release}. {err}, {type(err)}")
@@ -458,3 +461,98 @@ def validate_path_k8s_label_compatible(candidate: str) -> None:
 
     if not re.match(pattern, candidate):
         raise ValidationError(error_message)
+
+
+def check_ghcr_owner_type(owner: str):
+    """Determines whether a GHCR owner is a User or an Organization."""
+
+    gh_owner_url = f"{settings.GITHUB_API}/users/{owner}"
+    headers = {"Accept": "application/vnd.github+json"}
+
+    try:
+        response = requests.get(gh_owner_url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        owner_type = data.get("type")
+        if owner_type in {"User", "Organization"}:
+            return owner_type
+
+        raise ValidationError("Invalid response structure from GitHub API for Owner type.")
+
+    except requests.RequestException as e:
+        raise ValidationError(f"Failed to fetch GHCR owner type: {e}")
+
+
+def validate_ghcr_image(image: str):
+    """Validates whether a given GHCR image exists."""
+
+    # regex match:
+    # ghcr\.io/ - ghcr.io
+    # (?P) used to capture a named group eg. owner, image and tag
+    # [\w-]+ allow more than 1 character of letters, numbers underscores and hyphens
+    match = re.match(r"ghcr\.io/(?P<owner>[\w-]+)/(?P<image>[\w-]+):(?P<tag>[\w.-]+)", image)
+
+    if not match:
+        raise ValidationError("Invalid image URL format. Please try again.")
+
+    owner, image_name, tag = match.group("owner"), match.group("image"), match.group("tag")
+
+    owner_type = check_ghcr_owner_type(owner)
+    if owner_type == "Organization":
+        image_url = f"https://api.github.com/orgs/{owner}/packages/container/{image_name}/versions"
+    elif owner_type == "User":
+        image_url = f"https://api.github.com/users/{owner}/packages/container/{image_name}/versions"
+    else:
+        raise ValidationError("Could not recognise the GHCR owner. Please try again.")
+
+    # Return the image if the GitHub API token is missing
+    if settings.GITHUB_API_TOKEN in ["", None]:
+        return image
+
+    headers = {"Authorization": f"Bearer {settings.GITHUB_API_TOKEN}", "Accept": "application/vnd.github+json"}
+
+    try:
+        response = requests.get(image_url, headers=headers)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        raise ValidationError(f"The specified GHCR image was not found.: {e}")
+
+    try:
+        versions = response.json()
+        for version in versions:
+            container_metadata = version["metadata"]["container"]
+            tags = container_metadata.get("tags", [])
+            if tag in tags:
+                return image
+
+        raise ValidationError(f"Tag '{tag}' not found in GHCR image. Please try again.")
+
+    except KeyError:
+        raise ValidationError("Unable to find GHCR image tag. Please try again.")
+
+
+def validate_docker_image(image: str):
+    """Validates whether a given Docker image exists on Docker Hub."""
+
+    if ":" in image:
+        repository, tag = image.rsplit(":", 1)
+    else:
+        repository, tag = image, "latest"
+
+    repository = repository.replace("docker.io/", "", 1)
+
+    # Ensure repository is in the correct format
+    if "/" not in repository:
+        repository = f"library/{repository}"
+
+    docker_api_url = f"{settings.DOCKER_HUB_TAG_SEARCH}/{repository}/tags/{tag}"
+
+    try:
+        response = requests.get(docker_api_url, timeout=5)
+        response.raise_for_status()
+    except requests.RequestException:
+        raise ValidationError(
+            f"Docker image '{image}' is not publicly available on Docker Hub. "
+            "The URL you have entered may be incorrect, or the image might be private."
+        )

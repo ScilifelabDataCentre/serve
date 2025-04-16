@@ -6,6 +6,10 @@ import pytz
 import requests
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import (
+    get_password_validators,
+    validate_password,
+)
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -856,6 +860,55 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
     return HttpResponse(response_html)
 
 
+@api_view(["GET"])
+@permission_classes(
+    (
+        # IsAuthenticated,
+    )
+)
+def validate_password_request(request: HttpRequest) -> HttpResponse:
+    """
+    Implementation of the API method at endpoint /api/validate_password/
+    Supports the GET verb.
+
+    The service contract for the GET action is as follows:
+    :param str password: The password for validation.
+    :param str email: The email of the user.
+    :param str first_name: The first name of the user.
+    :param str last_name: The last name of the user.
+    :returns: An http status code and dict containing {"isValid": bool, "message": str,"validator_name": str}
+
+    Example request: /api/validate_password/?password=password&email=email&first_name=first_name&last_name=last_name
+    """
+    validator_response = []
+    user = User(
+        email=request.GET.get("email"), first_name=request.GET.get("first_name"), last_name=request.GET.get("last_name")
+    )
+    for validator, settings_validator in zip(
+        get_password_validators(settings.AUTH_PASSWORD_VALIDATORS), settings.AUTH_PASSWORD_VALIDATORS
+    ):
+        try:
+            validate_password(password=request.GET.get("password"), user=user, password_validators=[validator])
+            validator_response.append(
+                {
+                    "isValid": True,
+                    "message": None,
+                    "validator_name": settings_validator["NAME"].split(".")[-1],
+                    "password": request.GET.get("password"),
+                }
+            )
+        except ValidationError as e:
+            validator_response.append(
+                {
+                    "isValid": False,
+                    "message": e,
+                    "validator_name": settings_validator["NAME"].split(".")[-1],
+                    "password": request.GET.get("password"),
+                }
+            )
+    return Response(validator_response)
+
+
 @api_view(["GET", "POST"])
 @permission_classes(
     (
@@ -942,6 +995,12 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
                     200,
                 )
 
+            elif result == HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND:
+                return Response(
+                    f"OK. OBJECT_NOT_FOUND. The specified app instance was not found {release=}",
+                    404,
+                )
+
             else:
                 logger.error(f"Unknown return code from handle_update_status_request() = {result}", exc_info=True)
                 return Response(f"Unknown return code from handle_update_status_request() = {result}", 500)
@@ -966,7 +1025,7 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
         # IsAuthenticated,
     )
 )
-def docker_image_search(request):
+def container_image_search(request):
     query = request.GET.get("query", "").strip()
     if not query:
         return JsonResponse({"error": "Query parameter is required"}, status=400)

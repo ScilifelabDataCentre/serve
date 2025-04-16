@@ -24,11 +24,12 @@ test_user = {"username": "foo@test.com", "email": "foo@test.com", "password": "b
 class UpdateAppStatusNonExistingAppTestCase(TestCase):
     """Test case for request of non-existing app instance."""
 
-    def test_handle_nonexisting_app_should_raise_exception(self):
+    def test_handle_nonexisting_app(self):
         release = "non-existing-app-release"
 
-        with self.assertRaises(ObjectDoesNotExist):
-            handle_update_status_request(release, "NewStatus", datetime.now)
+        actual = handle_update_status_request(release, "NewStatus", datetime.now)
+
+        assert actual == HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND
 
 
 class UpdateAppStatusTestCase(TestCase):

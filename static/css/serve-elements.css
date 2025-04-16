@@ -247,3 +247,34 @@ a.icon-external:hover::after, a:focus::after, a.active::after {
 a.collection-logo:hover::after, a:focus::after, a.active::after {
     width: 0;
 }
+
+.invalid .bi-check {
+    display: none;
+}
+.valid .bi-x {
+    display: none;
+}
+
+.bi-check {
+    -webkit-text-stroke: 1px;
+}
+
+.bi-x {
+    -webkit-text-stroke: 1px;
+}
+
+.alert-password {
+    --bs-alert-color: #664d03!important;
+    --bs-alert-bg: #a8a49c1c!important;
+    /* --bs-alert-bg: #faf0dc!important;
+    --bs-alert-border-color: #faf0dc!important; */
+    --bs-alert-border-color: #a8a49c1c!important;
+}
+
+.alert-password-success {
+    --bs-alert-color: #664d03!important;
+    --bs-alert-bg: #d1e7dd5e!important;
+    /* --bs-alert-bg: #d1e7dd!important;
+    --bs-alert-border-color: #d1e7dd!important; */
+    --bs-alert-border-color: #d1e7dd5e!important;
+}

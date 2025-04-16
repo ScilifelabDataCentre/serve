@@ -10,5 +10,6 @@ urlpatterns = [
     path("signup/", views.SignUpView.as_view(), name="signup"),
     path("verify/", views.VerifyView.as_view(), name="verify"),
     path("edit-profile/", views.EditProfileView.as_view(), name="edit-profile"),
+    path("password-change/", views.ChangePasswordView.as_view(), name="password-change"),
     path("admin_profile_edit_disabled/", views.EditProfileView.as_view(), name="admin_profile_edit_disabled"),
 ]

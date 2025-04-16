@@ -46,11 +46,17 @@
                         const querySelector = `#status-${key}`
                         const elements = document.querySelectorAll(querySelector);
 
+                        let statusTxt = status;
+
+                        if (status != "Running" && k8sStatus != null && k8sStatus != "") {
+                            statusTxt = status + ": " + k8sStatus;
+                        }
+
                         // Update both the status, the class style, and data attributes
                         elements.forEach(element => {
                             const className = `badge bg-${statusGroup}`;
                             element.className = className;
-                            element.innerText = status;
+                            element.innerText = statusTxt;
                             element.dataset.appAction = latestUserAction;
                             element.dataset.k8sAppStatus = k8sStatus;
                             element.title = k8sStatus;

@@ -749,19 +749,16 @@ describe("Test deploying app", () => {
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
-            // Edit Dash app: modify the app image to an invalid image
+            // Edit Dash app: modify the app image to an invalid or empty image
             cy.logf("Editing the dash app settings field Image to an invalid value", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('#id_image').type("-BAD")
+            cy.get('#id_image').clear()
             cy.get('#submit-id-submit').contains('Submit').click()
-            // Back on project page
-            cy.url().should("not.include", "/apps/settings")
-            cy.get('h3').should('have.text', project_name);
-            // Verify that the app status now equals Image Error
-            verifyAppStatus(app_name, "Image Error", "public")
+            // Stay on the Settings page
+            cy.url().should("include", "/apps/settings")
 
             // Edit Dash app: modify the app image back to a valid image
             cy.logf("Editing the dash app settings field Image to a valid value", Cypress.currentTest)

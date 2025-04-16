@@ -1,7 +1,12 @@
+import re
+
 import requests
 from crispy_forms.layout import HTML, Div, Field, MultiField
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ValidationError
+
+from apps.helpers import validate_docker_image, validate_ghcr_image
 
 
 class ContainerImageMixin:
@@ -43,41 +48,23 @@ class ContainerImageMixin:
     def clean_image(self):
         """Validate the container image input."""
         image = self.cleaned_data.get("image", "").strip()
+
         if not image:
             self.add_error("image", "Container image field cannot be empty.")
             return image
 
-        # Ignore non-Docker images for now
-        if "docker.io" not in image:
-            return image
-
-        # Split image into repository and tag
-        if ":" in image:
-            repository, tag = image.rsplit(":", 1)
-        else:
-            repository, tag = image, "latest"
-
-        repository = repository.replace("docker.io/", "", 1)
-
-        # Ensure repository is in the correct format
-        # The request to Docker hub will fail otherwise
-        if "/" not in repository:
-            repository = f"library/{repository}"
-
-        # Docker Hub API endpoint for checking the image
-        docker_api_url = f"{settings.DOCKER_HUB_TAG_SEARCH}{repository}/tags/{tag}"
-
-        try:
-            response = requests.get(docker_api_url, timeout=5)
-            if response.status_code != 200:
-                self.add_error(
-                    "image",
-                    f"Docker image '{image}' is not publicly available on Docker Hub. "
-                    "The URL you have entered may be incorrect, or the image might be private.",
-                )
+        if "ghcr.io" in image:
+            try:
+                validate_ghcr_image(image)
+            except ValidationError as e:
+                self.add_error("image", f"Error validating GHCR image: {str(e)}")
                 return image
-        except requests.RequestException:
-            self.add_error("image", "Could not validate the Docker image. Please try again.")
-            return image
+
+        if "docker.io" in image:
+            try:
+                validate_docker_image(image)
+            except ValidationError as e:
+                self.add_error("image", f"Error validating Docker image: {str(e)}")
+                return image
 
         return image

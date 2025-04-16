@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import password_validators_help_texts
+from django.contrib.auth.views import PasswordChangeView
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from django.db import transaction
@@ -14,6 +16,7 @@ from django.views.generic import CreateView, TemplateView
 from studio.utils import get_logger
 
 from .forms import (
+    ChangePasswordForm,
     ProfileEditForm,
     ProfileForm,
     SignUpForm,
@@ -238,3 +241,9 @@ class EditProfileView(TemplateView):
             return render(
                 request, self.template_name, {"form": user_form_details, "profile_form": profile_form_details}
             )
+
+
+@method_decorator(login_required, name="dispatch")
+class ChangePasswordView(PasswordChangeView):
+    form_class = ChangePasswordForm
+    template_name = "registration/password_change_form.html"
