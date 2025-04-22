@@ -6,7 +6,7 @@ module.exports = defineConfig({
     wait_db_reset: 60000,
     create_resources: true,
     run_extended_k8s_checks: false,
-    POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET: process.env.POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET,
+    populate_test_data_management_views_secret: process.env.POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET,
     manage_test_data_via_django_endpoint_views: true
   },
 
