@@ -1,23 +1,34 @@
 describe("Test login, profile page view, password change, password reset", () => {
 
     let users
+    let TEST_USER_DATA
 
     before(() => {
         cy.logf("Begin before() hook", Cypress.currentTest)
 
-        // do db reset if needed
-        if (Cypress.env('do_reset_db') === true) {
-            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
-            cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(Cypress.env('wait_db_reset'));
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+            cy.log("Populating test data via Django endpoint");
+            cy.fixture('users.json').then(function (data) {
+                TEST_USER_DATA = data.login_user;
+                cy.populateTestUser(TEST_USER_DATA);
+            })
         }
         else {
-            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+            // do db reset if needed
+            if (Cypress.env('do_reset_db') === true) {
+                cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
+                cy.exec("./cypress/e2e/db-reset.sh");
+                cy.wait(Cypress.env('wait_db_reset'));
+            }
+            else {
+                cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+            }
+            // seed the db with a user
+            cy.visit("/")
+            cy.logf("Running seed-login-user.py", Cypress.currentTest)
+            cy.exec("./cypress/e2e/db-seed-login-user.sh")
+
         }
-        // seed the db with a user
-        cy.visit("/")
-        cy.logf("Running seed-login-user.py", Cypress.currentTest)
-        cy.exec("./cypress/e2e/db-seed-login-user.sh")
 
         cy.fixture('users.json').then(function (data) {
             users = data;
@@ -25,7 +36,6 @@ describe("Test login, profile page view, password change, password reset", () =>
 
         cy.logf("End before() hook", Cypress.currentTest)
     })
-
 
     it("can login an existing user through the UI when input is valid", () => {
 
@@ -140,6 +150,18 @@ describe("Test login, profile page view, password change, password reset", () =>
         cy.get("p").should("contain", "We've emailed you instructions for setting your password.")
 
         // TO-DO: add steps to check that email was sent, click on the link, set new password, check that it is possible to log in with new password
+    })
+
+    after(() => {
+
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+            cy.log("Cleaning up test data via Django endpoint");
+            cy.cleanupTestUser(TEST_USER_DATA);
+            cy.logf("End after() hook", Cypress.currentTest)
+
+        }
+
+
     })
 
 })

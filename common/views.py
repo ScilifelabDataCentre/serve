@@ -1,18 +1,26 @@
+import json
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import password_validators_help_texts
 from django.contrib.auth.views import PasswordChangeView
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Q
+from django.http import HttpResponseForbidden, JsonResponse
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import HttpResponse, redirect, render
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
+from django.views import View
+from django.views.decorators.csrf import csrf_protect
 from django.views.generic import CreateView, TemplateView
 
+from common.management.manage_test_data import TestDataManager
 from studio.utils import get_logger
 
 from .forms import (
@@ -247,3 +255,263 @@ class EditProfileView(TemplateView):
 class ChangePasswordView(PasswordChangeView):
     form_class = ChangePasswordForm
     template_name = "registration/password_change_form.html"
+
+
+class PopulateTestUserView(View):
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        """Secure endpoint for test superuser creation with validation and error handling"""
+        # production guard and secret validation
+        if not settings.DEBUG:
+            logger.warning("Production access attempt to test endpoint")
+            return HttpResponseForbidden("Test functionality disabled in production")
+
+        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
+            logger.error("Invalid secret attempt")
+            return HttpResponseForbidden("Authorization failed")
+
+        try:
+            body = json.loads(request.body)
+            required_keys = {"user_data"}
+            if not required_keys.issubset(body):
+                missing = required_keys - body.keys()
+                raise ValueError(f"Missing required data: {missing}")
+
+            manager = TestDataManager(user_data=body["user_data"])
+
+            _ = manager.create_user()
+
+            return JsonResponse({"success": True, "user": body["user_data"]["username"]})
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON payload")
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            logger.error(f"Test user creation failed: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+class PopulateTestSuperUserView(View):
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        """Secure endpoint for test superuser creation with validation and error handling"""
+        # production guard and secret validation
+        if not settings.DEBUG:
+            logger.warning("Production access attempt to test endpoint")
+            return HttpResponseForbidden("Test functionality disabled in production")
+
+        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
+            logger.error("Invalid secret attempt")
+            return HttpResponseForbidden("Authorization failed")
+
+        try:
+            body = json.loads(request.body)
+            required_keys = {"user_data"}
+            if not required_keys.issubset(body):
+                missing = required_keys - body.keys()
+                raise ValueError(f"Missing required data: {missing}")
+
+            manager = TestDataManager(user_data=body["user_data"])
+
+            _ = manager.create_superuser()
+
+            return JsonResponse({"success": True, "superuser": body["user_data"]["username"]})
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON payload")
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            logger.error(f"Test superuser creation failed: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+class CleanupTestUserView(View):
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        """Secure endpoint for test user deletion with validation and error handling"""
+        # production guard and secret validation
+        if not settings.DEBUG:
+            logger.warning("Production access attempt to test endpoint")
+            return HttpResponseForbidden("Test functionality disabled in production")
+
+        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
+            logger.error("Invalid secret attempt")
+            return HttpResponseForbidden("Authorization failed")
+
+        try:
+            body = json.loads(request.body)
+            required_keys = {"user_data"}
+            if not required_keys.issubset(body):
+                missing = required_keys - body.keys()
+                raise ValueError(f"Missing required data: {missing}")
+
+            manager = TestDataManager(user_data=body["user_data"])
+
+            count = manager.delete_user()
+
+            return JsonResponse({"success": True, "user": body["user_data"]["username"], "users deleted": count})
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON payload")
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            logger.error(f"Test user deletion failed: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+class PopulateTestProjectView(View):
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        """Secure endpoint for test project deletion with validation and error handling"""
+        # production guard and secret validation
+        if not settings.DEBUG:
+            logger.warning("Production access attempt to test endpoint")
+            return HttpResponseForbidden("Test functionality disabled in production")
+
+        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
+            logger.error("Invalid secret attempt")
+            return HttpResponseForbidden("Authorization failed")
+
+        try:
+            body = json.loads(request.body)
+            required_keys = {"user_data", "project_data"}
+            if not required_keys.issubset(body):
+                missing = required_keys - body.keys()
+                raise ValueError(f"Missing required data: {missing}")
+
+            manager = TestDataManager(
+                user_data=body["user_data"],
+                project_data=body["project_data"],
+            )
+
+            project = manager.create_project()
+
+            return JsonResponse({"success": True, "user": body["user_data"]["username"], "project": project.name})
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON payload")
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            logger.error(f"Test project creation failed: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+class CleanupTestProjectView(View):
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        """Secure endpoint for test project deletion with validation and error handling"""
+        # production guard and secret validation
+        if not settings.DEBUG:
+            logger.warning("Production access attempt to test endpoint")
+            return HttpResponseForbidden("Test functionality disabled in production")
+
+        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
+            logger.error("Invalid secret attempt")
+            return HttpResponseForbidden("Authorization failed")
+
+        try:
+            body = json.loads(request.body)
+            required_keys = {"user_data", "project_data"}
+            if not required_keys.issubset(body):
+                missing = required_keys - body.keys()
+                raise ValueError(f"Missing required data: {missing}")
+
+            manager = TestDataManager(
+                user_data=body["user_data"],
+                project_data=body["project_data"],
+            )
+
+            count = manager.delete_project()
+
+            return JsonResponse({"success": True, "user": body["user_data"]["username"], "projects deleted": count})
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON payload")
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            logger.error(f"Test project deletion failed: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+class CleanupAllTestProjectsView(View):
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        """Secure endpoint for all test projects deletion with validation and error handling"""
+        # production guard and secret validation
+        if not settings.DEBUG:
+            logger.warning("Production access attempt to test endpoint")
+            return HttpResponseForbidden("Test functionality disabled in production")
+
+        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
+            logger.error("Invalid secret attempt")
+            return HttpResponseForbidden("Authorization failed")
+
+        try:
+            body = json.loads(request.body)
+            required_keys = {"user_data"}
+            if not required_keys.issubset(body):
+                missing = required_keys - body.keys()
+                raise ValueError(f"Missing required data: {missing}")
+
+            manager = TestDataManager(user_data=body["user_data"])
+
+            count = manager.delete_all_projects()
+
+            return JsonResponse({"success": True, "user": body["user_data"]["username"], "projects deleted": count})
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON payload")
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            logger.error(f"Test all projects deletion failed: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+class PopulateTestAppView(View):
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        """Secure endpoint for test app creation with validation and error handling"""
+        # production guard and secret validation
+        if not settings.DEBUG:
+            logger.warning("Production access attempt to test endpoint")
+            return HttpResponseForbidden("Test functionality disabled in production")
+
+        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
+            logger.error("Invalid secret attempt")
+            return HttpResponseForbidden("Authorization failed")
+
+        try:
+            body = json.loads(request.body)
+            required_keys = {"user_data", "project_data", "app_data"}
+            if not required_keys.issubset(body):
+                missing = required_keys - body.keys()
+                raise ValueError(f"Missing required data: {missing}")
+
+            manager = TestDataManager(
+                user_data=body["user_data"], project_data=body["project_data"], app_data=body["app_data"]
+            )
+
+            status = manager.create_app()
+
+            return JsonResponse(
+                {
+                    "success": status,
+                    "app": body["app_data"]["name"],
+                    "user": body["user_data"]["username"],
+                    "project": body["project_data"]["project_name"],
+                }
+            )
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON payload")
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            logger.error(f"Test app creation failed: {e}")
+            return JsonResponse({"error": str(e)}, status=500)

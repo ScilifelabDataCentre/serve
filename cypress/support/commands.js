@@ -145,3 +145,91 @@ Cypress.Commands.add('logf', (msg, currentTest, args = []) => {
         cy.log(msg, `(TEST: ${currentTest.title}, ${new Date().getTime()})`)
     }
 })
+
+Cypress.Commands.add('getCSRFToken', () => {
+  cy.visit('/accounts/login/'); // Visit a page that sets CSRF cookie
+  cy.getCookie('csrftoken').then((cookie) => {
+    return cookie.value;
+  });
+});
+
+
+Cypress.Commands.add('manageTestData', (options) => {
+  const {
+    endpoint,
+    data,
+    clearSessions = false
+  } = options;
+
+  if (clearSessions) {
+    Cypress.session.clearAllSavedSessions();
+  }
+
+  cy.getCSRFToken().then((csrfToken) => {
+    cy.request({
+      method: 'POST',
+      url: `/devtools/${endpoint}/`,
+      headers: {
+        'X-Envoy-Secret': Cypress.env('populate_test_data_management_views_secret'),
+        'X-CSRFToken': csrfToken
+      },
+      body: data
+    });
+  });
+});
+
+Cypress.Commands.add('populateTestUser', (userData) => {
+  cy.manageTestData({
+    endpoint: 'populate-test-user',
+    data: { user_data: userData }
+  });
+});
+
+Cypress.Commands.add('populateTestSuperUser', (userData) => {
+  cy.manageTestData({
+    endpoint: 'populate-test-superuser',
+    data: { user_data: userData }
+  });
+});
+
+Cypress.Commands.add('cleanupTestUser', (userData) => {
+  cy.manageTestData({
+    endpoint: 'cleanup-test-user',
+    data: { user_data: userData },
+    clearSessions: true
+  });
+});
+
+Cypress.Commands.add('populateTestProject', (userData, projectData) => {
+  cy.manageTestData({
+    endpoint: 'populate-test-project',
+    data: { user_data: userData, project_data: projectData }
+  });
+});
+
+Cypress.Commands.add('cleanupTestProject', (userData, projectData) => {
+  cy.manageTestData({
+    endpoint: 'cleanup-test-project',
+    data: { user_data: userData, project_data: projectData },
+    clearSessions: true
+  });
+});
+
+Cypress.Commands.add('cleanupAllTestProjects', (userData) => {
+  cy.manageTestData({
+    endpoint: 'cleanup-all-test-projects',
+    data: { user_data: userData },
+    clearSessions: true
+  });
+});
+
+Cypress.Commands.add('populateTestApp', (userData, projectData, appData) => {
+  cy.manageTestData({
+    endpoint: 'populate-test-app',
+    data: {
+      user_data: userData,
+      project_data: projectData,
+      app_data: appData
+    }
+  });
+});

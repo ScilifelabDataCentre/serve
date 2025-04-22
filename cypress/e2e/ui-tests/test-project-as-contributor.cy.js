@@ -11,22 +11,49 @@ describe("Test project contributor user functionality", () => {
     // user: e2e_tests_contributor_tester
     let users
 
+    let TEST_CONTRIBUTOR_USER_DATA
+
+    const TEST_CONTRIBUTOR_PROJECT_DATA = {
+        project_name: "e2e-delete-proj-test",
+        project_description: "e2e-delete-proj-test-desc",
+      };
+
+    let TEST_COLLABORATOR_USER_DATA
+
+    const TEST_COLLABORATOR_PROJECT_DATA = {
+        project_name: "e2e-collaborator-proj-test",
+        project_description: "e2e-collaborator-proj-test-desc",
+      };
+
     before(() => {
         cy.logf("Begin before() hook", Cypress.currentTest)
 
-        // do db reset if needed
-        if (Cypress.env('do_reset_db') === true) {
-            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
-            cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(Cypress.env('wait_db_reset'));
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+            cy.log("Populating test data via Django endpoint");
+            cy.fixture('users.json').then(function (data) {
+                TEST_CONTRIBUTOR_USER_DATA = data.contributor;
+                cy.populateTestUser(TEST_CONTRIBUTOR_USER_DATA);
+                cy.populateTestProject(TEST_CONTRIBUTOR_USER_DATA, TEST_CONTRIBUTOR_PROJECT_DATA);
+                TEST_COLLABORATOR_USER_DATA = data.contributor_collaborator;
+                cy.populateTestUser(TEST_COLLABORATOR_USER_DATA);
+                cy.populateTestProject(TEST_COLLABORATOR_USER_DATA, TEST_COLLABORATOR_PROJECT_DATA);
+            });
         }
         else {
-            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+            // do db reset if needed
+            if (Cypress.env('do_reset_db') === true) {
+                cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
+                cy.exec("./cypress/e2e/db-reset.sh");
+                cy.wait(Cypress.env('wait_db_reset'));
+            }
+            else {
+                cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+            }
+            // seed the db with a user
+            cy.visit("/")
+            cy.logf("Running seed_contributor.py", Cypress.currentTest)
+            cy.exec("./cypress/e2e/db-seed-contributor.sh")
         }
-        // seed the db with a user
-        cy.visit("/")
-        cy.logf("Running seed_contributor.py", Cypress.currentTest)
-        cy.exec("./cypress/e2e/db-seed-contributor.sh")
 
         cy.logf("End before() hook", Cypress.currentTest)
     })
@@ -426,5 +453,18 @@ describe("Test project contributor user functionality", () => {
         cy.get('#submit-id-submit').should('be.visible').click()
 
         cy.get('tr:contains("File Manager")').find('[data-cy="appstatus"]').should('have.attr', 'data-app-action', 'Creating')
+    })
+
+    after(() => {
+
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+            cy.log("Cleaning up test data via Django endpoint");
+            cy.cleanupAllTestProjects(TEST_CONTRIBUTOR_USER_DATA);
+            cy.cleanupAllTestProjects(TEST_COLLABORATOR_USER_DATA);
+            cy.cleanupTestUser(TEST_CONTRIBUTOR_USER_DATA);
+            cy.cleanupTestUser(TEST_COLLABORATOR_USER_DATA);
+        }
+
+        cy.logf("End after() hook", Cypress.currentTest)
     })
 })
