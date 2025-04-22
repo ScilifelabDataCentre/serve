@@ -53,7 +53,7 @@ SECURITY_CONFIGS = [
     (
         PopulateTestSuperUserView,
         "/devtools/populate-test-superuser/",
-        {"user_data": user_data, "project_data": project_data, "app_data": app_data},
+        {"user_data": superuser_data, "project_data": project_data, "app_data": app_data},
     ),
     (
         PopulateTestProjectView,
