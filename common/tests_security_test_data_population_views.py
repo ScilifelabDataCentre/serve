@@ -95,11 +95,6 @@ def factory():
 
 
 @pytest.fixture
-def valid_secret():
-    return settings.POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET
-
-
-@pytest.fixture
 def csrf_token(factory):
     """Generate a valid CSRF token"""
     request = factory.get("/dummy-url/")
@@ -108,13 +103,13 @@ def csrf_token(factory):
 
 # Security check tests
 @pytest.mark.parametrize("view_class,endpoint,payload", SECURITY_CONFIGS)
-def test_development_environment_check(view_class, endpoint, payload, factory, valid_secret, csrf_token):
+def test_development_environment_check(view_class, endpoint, payload, factory, csrf_token):
     settings.DEBUG = False
     request = factory.post(
         endpoint,
         json.dumps(payload),
         content_type="application/json",
-        headers={"X-Envoy-Secret": valid_secret, "X-CSRFToken": csrf_token},
+        headers={"X-CSRFToken": csrf_token},
     )
     request.COOKIES["csrftoken"] = csrf_token
     response = view_class.as_view()(request)
@@ -122,31 +117,15 @@ def test_development_environment_check(view_class, endpoint, payload, factory, v
     assert "Test functionality disabled in production" in str(response.content)
 
 
-@pytest.mark.parametrize("view_class,endpoint,payload", SECURITY_CONFIGS)
-def test_invalid_secret_check(view_class, endpoint, payload, factory, csrf_token):
-    # Test invalid secret
-    settings.DEBUG = True
-    request = factory.post(
-        endpoint,
-        json.dumps(payload),
-        content_type="application/json",
-        headers={"X-Envoy-Secret": "invalid-secret", "X-CSRFToken": csrf_token},
-    )
-    request.COOKIES["csrftoken"] = csrf_token
-    response = view_class.as_view()(request)
-    assert isinstance(response, HttpResponseForbidden)
-    assert "Authorization failed" in str(response.content)
-
-
 # Invalid JSON test
 @pytest.mark.parametrize("view_class,endpoint,_", SECURITY_CONFIGS)
-def test_invalid_json_check(view_class, endpoint, _, factory, valid_secret, csrf_token):
+def test_invalid_json_check(view_class, endpoint, _, factory, csrf_token):
     settings.DEBUG = True
     request = factory.post(
         endpoint,
         "invalid{json",
         content_type="application/json",
-        headers={"X-Envoy-Secret": valid_secret, "X-CSRFToken": csrf_token},
+        headers={"X-CSRFToken": csrf_token},
     )
     request.COOKIES["csrftoken"] = csrf_token
     response = view_class.as_view()(request)
@@ -155,13 +134,11 @@ def test_invalid_json_check(view_class, endpoint, _, factory, valid_secret, csrf
 
 
 @pytest.mark.parametrize("view_class,endpoint,payload", SECURITY_CONFIGS)
-def test_csrf_protection_check(view_class, endpoint, payload, factory, valid_secret, csrf_token):
+def test_csrf_protection_check(view_class, endpoint, payload, factory, csrf_token):
     settings.DEBUG = True
 
     # Test missing CSRF token
-    request = factory.post(
-        endpoint, json.dumps(payload), content_type="application/json", headers={"X-Envoy-Secret": valid_secret}
-    )
+    request = factory.post(endpoint, json.dumps(payload), content_type="application/json", headers={})
     response = view_class.as_view()(request)
     assert response.status_code == 403
     assert "CSRF" in str(response.content)
@@ -171,7 +148,7 @@ def test_csrf_protection_check(view_class, endpoint, payload, factory, valid_sec
         endpoint,
         json.dumps(payload),
         content_type="application/json",
-        headers={"X-Envoy-Secret": valid_secret, "X-CSRFToken": "invalid-token"},
+        headers={"X-CSRFToken": "invalid-token"},
     )
     request.COOKIES["csrftoken"] = csrf_token  # Cookie/header mismatch
     response = view_class.as_view()(request)
@@ -181,14 +158,14 @@ def test_csrf_protection_check(view_class, endpoint, payload, factory, valid_sec
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("view_class,endpoint,payload", USER_CONFIGS)
-def test_valid_user(view_class, endpoint, payload, factory, valid_secret, csrf_token):
+def test_valid_user(view_class, endpoint, payload, factory, csrf_token):
     settings.DEBUG = True
 
     request = factory.post(
         endpoint,
         json.dumps(payload),
         content_type="application/json",
-        headers={"X-Envoy-Secret": valid_secret, "X-CSRFToken": csrf_token},
+        headers={"X-CSRFToken": csrf_token},
     )
     request.COOKIES["csrftoken"] = csrf_token
     response = view_class.as_view()(request)

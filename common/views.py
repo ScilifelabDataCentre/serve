@@ -266,10 +266,6 @@ class PopulateTestUserView(View):
             logger.warning("Production access attempt to test endpoint")
             return HttpResponseForbidden("Test functionality disabled in production")
 
-        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
-            logger.error("Invalid secret attempt")
-            return HttpResponseForbidden("Authorization failed")
-
         try:
             body = json.loads(request.body)
             required_keys = {"user_data"}
@@ -296,14 +292,10 @@ class PopulateTestSuperUserView(View):
     @method_decorator(csrf_protect)
     def post(self, request):
         """Secure endpoint for test superuser creation with validation and error handling"""
-        # production guard and secret validation
+        # production guard
         if not settings.DEBUG:
             logger.warning("Production access attempt to test endpoint")
             return HttpResponseForbidden("Test functionality disabled in production")
-
-        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
-            logger.error("Invalid secret attempt")
-            return HttpResponseForbidden("Authorization failed")
 
         try:
             body = json.loads(request.body)
@@ -331,14 +323,10 @@ class CleanupTestUserView(View):
     @method_decorator(csrf_protect)
     def post(self, request):
         """Secure endpoint for test user deletion with validation and error handling"""
-        # production guard and secret validation
+        # production guard
         if not settings.DEBUG:
             logger.warning("Production access attempt to test endpoint")
             return HttpResponseForbidden("Test functionality disabled in production")
-
-        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
-            logger.error("Invalid secret attempt")
-            return HttpResponseForbidden("Authorization failed")
 
         try:
             body = json.loads(request.body)
@@ -366,14 +354,10 @@ class PopulateTestProjectView(View):
     @method_decorator(csrf_protect)
     def post(self, request):
         """Secure endpoint for test project deletion with validation and error handling"""
-        # production guard and secret validation
+        # production guard
         if not settings.DEBUG:
             logger.warning("Production access attempt to test endpoint")
             return HttpResponseForbidden("Test functionality disabled in production")
-
-        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
-            logger.error("Invalid secret attempt")
-            return HttpResponseForbidden("Authorization failed")
 
         try:
             body = json.loads(request.body)
@@ -404,14 +388,10 @@ class CleanupTestProjectView(View):
     @method_decorator(csrf_protect)
     def post(self, request):
         """Secure endpoint for test project deletion with validation and error handling"""
-        # production guard and secret validation
+        # production guard
         if not settings.DEBUG:
             logger.warning("Production access attempt to test endpoint")
             return HttpResponseForbidden("Test functionality disabled in production")
-
-        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
-            logger.error("Invalid secret attempt")
-            return HttpResponseForbidden("Authorization failed")
 
         try:
             body = json.loads(request.body)
@@ -442,14 +422,10 @@ class CleanupAllTestProjectsView(View):
     @method_decorator(csrf_protect)
     def post(self, request):
         """Secure endpoint for all test projects deletion with validation and error handling"""
-        # production guard and secret validation
+        # production guard
         if not settings.DEBUG:
             logger.warning("Production access attempt to test endpoint")
             return HttpResponseForbidden("Test functionality disabled in production")
-
-        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
-            logger.error("Invalid secret attempt")
-            return HttpResponseForbidden("Authorization failed")
 
         try:
             body = json.loads(request.body)
@@ -477,14 +453,10 @@ class PopulateTestAppView(View):
     @method_decorator(csrf_protect)
     def post(self, request):
         """Secure endpoint for test app creation with validation and error handling"""
-        # production guard and secret validation
+        # production guard
         if not settings.DEBUG:
             logger.warning("Production access attempt to test endpoint")
             return HttpResponseForbidden("Test functionality disabled in production")
-
-        if request.headers.get("X-Envoy-Secret") != getattr(settings, "POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET", ""):
-            logger.error("Invalid secret attempt")
-            return HttpResponseForbidden("Authorization failed")
 
         try:
             body = json.loads(request.body)

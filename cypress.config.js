@@ -1,5 +1,4 @@
 const { defineConfig } = require("cypress");
-const dotenvOutput = require('dotenv').config()
 
 module.exports = defineConfig({
   env: {
@@ -7,12 +6,11 @@ module.exports = defineConfig({
     wait_db_reset: 60000,
     create_resources: true,
     run_extended_k8s_checks: false,
-    populate_test_data_management_views_secret: dotenvOutput.parsed.POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET,
     manage_test_data_via_django_endpoint_views: true
   },
 
   e2e: {
-    baseUrl: 'http://studio.127.0.0.1.nip.io:8080',
+    baseUrl: 'http://studio.130.229.151.103.nip.io:8080',
     //baseUrl: 'https://serve-dev.scilifelab.se',
 
     // Exclude the integration tests from CI

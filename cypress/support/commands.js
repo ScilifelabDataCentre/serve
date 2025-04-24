@@ -170,7 +170,6 @@ Cypress.Commands.add('manageTestData', (options) => {
       method: 'POST',
       url: `/devtools/${endpoint}/`,
       headers: {
-        'X-Envoy-Secret': Cypress.env('populate_test_data_management_views_secret'),
         'X-CSRFToken': csrfToken
       },
       body: data
