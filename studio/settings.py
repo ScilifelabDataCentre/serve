@@ -545,5 +545,3 @@ LOKI_SVC = None
 
 # k8s cluster version for validation of manifests
 CLUSTER_VERSION = "1.31"
-
-POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET = os.getenv("POPULATE_TEST_DATA_MANAGEMENT_VIEWS_SECRET")
