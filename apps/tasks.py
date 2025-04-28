@@ -14,7 +14,7 @@ from apps.constants import AppActionOrigin
 from studio.celery import app
 from studio.utils import get_logger
 
-from .models import FilemanagerInstance
+from .models import BaseAppInstance, FilemanagerInstance
 
 logger = get_logger(__name__)
 
@@ -198,9 +198,11 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
 @shared_task
 @transaction.atomic
 def deploy_resource(serialized_instance):
-    instance = deserialize(serialized_instance)
+    instance: BaseAppInstance = deserialize(serialized_instance)
     logger.info("Deploying resource for instance %s", instance)
     values = instance.k8s_values
+    if instance.k8s_values_override:
+        values.update(instance.k8s_values_override)
     release = values["subdomain"]
     chart: str = instance.chart
     if "ghcr" in instance.chart:

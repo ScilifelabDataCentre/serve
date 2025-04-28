@@ -177,7 +177,22 @@ class BaseAppInstance(models.Model):
         related_name="%(class)s",
         null=True,
     )
-    k8s_values = models.JSONField(blank=True, null=True)
+    k8s_values = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="k8s values for this app instance. "
+                  "It's not possible to change this field directly as "
+                  "it's set automatically on model save. "
+                  "In order to change it, use k8s_values_override.",
+    )
+    k8s_values_override = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="Override k8s values for this app instance."
+                  "This follows general logic of k8s values: "
+                  "if this field is set, then first "
+                  "k8s_values is used, then k8s_values_override. ",
+    )
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
