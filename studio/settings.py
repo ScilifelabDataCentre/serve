@@ -461,6 +461,7 @@ APPS_PER_PROJECT_LIMIT = {
     "mongodb": 0,
     "netpolicy": 0,
     "filemanager": 1,
+    "depictio": 1,
 }
 
 PROJECTS_PER_USER_LIMIT = 10

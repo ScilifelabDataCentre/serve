@@ -15,6 +15,7 @@ from .models import (
     BaseAppInstance,
     CustomAppInstance,
     DashInstance,
+    DepictioInstance,
     FilemanagerInstance,
     GradioInstance,
     JupyterInstance,
@@ -282,6 +283,11 @@ class StreamlitInstanceAdmin(BaseAppAdmin):
         "port",
         "user_id",
     )
+
+
+@admin.register(DepictioInstance)
+class DepictioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display
 
 
 admin.site.register(Subdomain)
