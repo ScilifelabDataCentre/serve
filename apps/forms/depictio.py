@@ -1,11 +1,11 @@
-from crispy_forms.layout import Layout, Div
-from apps.forms.base import BaseForm
-from apps.models import DepictioInstance
-from apps.forms.field.common import SRVCommonDivField
+from crispy_forms.layout import Div, Layout
 
-__all__ = [
-    "DepictioForm"
-]
+from apps.forms.base import BaseForm
+from apps.forms.field.common import SRVCommonDivField
+from apps.models import DepictioInstance
+
+__all__ = ["DepictioForm"]
+
 
 class DepictioForm(BaseForm):
     def _setup_form_fields(self):
