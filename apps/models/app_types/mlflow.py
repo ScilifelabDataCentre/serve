@@ -40,6 +40,9 @@ class MLFlowInstance(BaseAppInstance):
                 "limits": {"cpu": "8", "memory": "16Gi", "ephemeral-storage": "30Gi"},
             },
             "pdb": {"create": False},
+            # This fixes this issue:
+            # https://mlflow.org/docs/2.21.3/tracking/server#handling-timeout-when-uploadingdownloading-large-artifacts
+            "extraArgs": {'--gunicorn-opts="--timeout=360"'},
         }
         k8s_values["run"] = {
             "resources": {
