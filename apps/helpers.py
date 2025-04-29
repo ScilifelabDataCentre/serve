@@ -1,14 +1,19 @@
+import json
 from datetime import datetime
 from typing import Any, Optional
 
 import regex as re
 import requests
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
+from django.forms.models import model_to_dict
+from django.utils import timezone
 
 from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
+from projects.models import Project
 from studio.utils import get_logger
 
 from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
@@ -556,3 +561,92 @@ def validate_docker_image(image: str):
             f"Docker image '{image}' is not publicly available on Docker Hub. "
             "The URL you have entered may be incorrect, or the image might be private."
         )
+
+
+def generate_schema_org_description(app_instance):
+    """Generate schema.org structured data for App, User, and Project models."""
+
+    user_instance = User.objects.get(id=app_instance.owner_id)
+    logger.error(vars(user_instance))
+
+    project_instance = Project.objects.get(owner_id=app_instance.owner_id)
+    logger.error(vars(project_instance))
+
+    # Convert models to dictionaries (exclude internal fields)
+    app_data = model_to_dict(app_instance, exclude=["_state"])
+    user_data = model_to_dict(user_instance, exclude=["_state", "password"])
+    project_data = model_to_dict(project_instance, exclude=["_state"])
+
+    # Add special fields that aren't in model fields
+    app_data.update(
+        {
+            "k8s_values": app_instance.k8s_values,  # If using JSONField
+            "info": app_instance.info,
+            "url": app_instance.url,
+        }
+    )
+
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "name": "Application Deployment Metadata",
+        "description": "Structured metadata for deployed applications, users, and projects",
+        "dateCreated": timezone.now().isoformat(),
+        "creator": {"@type": "Organization", "name": "SciLifeLab Data Centre", "url": "https://www.scilifelab.se"},
+        "hasPart": [
+            # App Schema (SoftwareApplication)
+            {
+                "@type": "SoftwareApplication",
+                "name": app_data.get("name"),
+                "url": app_data.get("url"),
+                "softwareVersion": app_data.get("chart"),
+                "dateCreated": app_data.get("created_on").isoformat() if app_data.get("created_on") else None,
+                "dateModified": app_data.get("updated_on").isoformat() if app_data.get("updated_on") else None,
+                "applicationCategory": "Cloud Application",
+                "operatingSystem": "Kubernetes",
+                "softwareRequirements": {
+                    "cpu": app_data.get("k8s_values", {}).get("flavor", {}).get("requests", {}).get("cpu"),
+                    "memory": app_data.get("k8s_values", {}).get("flavor", {}).get("requests", {}).get("memory"),
+                    "storage": app_data.get("k8s_values", {})
+                    .get("flavor", {})
+                    .get("requests", {})
+                    .get("ephemeral-storage"),
+                },
+                "author": {
+                    "@type": "Person",
+                    "name": f"{user_data.get('first_name')} {user_data.get('last_name')}",
+                    "email": user_data.get("email"),
+                },
+            },
+            # User Schema (Person)
+            {
+                "@type": "Person",
+                "name": f"{user_data.get('first_name')} {user_data.get('last_name')}",
+                "email": user_data.get("email"),
+                "memberOf": {"@type": "Project", "name": project_data.get("name")},
+                "dateJoined": user_data.get("date_joined").isoformat() if user_data.get("date_joined") else None,
+            },
+            # Project Schema (Project)
+            {
+                "@type": "Project",
+                "name": project_data.get("name"),
+                "description": project_data.get("description"),
+                "dateCreated": project_data.get("created_at").isoformat() if project_data.get("created_at") else None,
+                "projectStatus": project_data.get("status"),
+                "funder": {"@type": "Person", "name": f"{user_data.get('first_name')} {user_data.get('last_name')}"},
+                "resourceUsage": project_data.get("apps_per_project"),
+                "isPartOf": {"@type": "Organization", "name": "SciLifeLab Data Centre"},
+            },
+        ],
+    }
+
+    # Remove None values
+    def remove_none(obj):
+        if isinstance(obj, dict):
+            return {k: remove_none(v) for k, v in obj.items() if v is not None}
+        elif isinstance(obj, list):
+            return [remove_none(elem) for elem in obj]
+        else:
+            return obj
+
+    return json.dumps(remove_none(schema), indent=2)
