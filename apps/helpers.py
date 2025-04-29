@@ -567,10 +567,8 @@ def generate_schema_org_description(app_instance):
     """Generate schema.org structured data for App, User, and Project models."""
 
     user_instance = User.objects.get(id=app_instance.owner_id)
-    logger.error(vars(user_instance))
 
     project_instance = Project.objects.get(owner_id=app_instance.owner_id)
-    logger.error(vars(project_instance))
 
     # Convert models to dictionaries (exclude internal fields)
     app_data = model_to_dict(app_instance, exclude=["_state"])
