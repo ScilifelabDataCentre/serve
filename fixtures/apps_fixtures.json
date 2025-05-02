@@ -214,7 +214,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.2",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.6",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "Apps built with Gradio, Streamlit, Flask, etc.",
       "gpu_enabled": true,
@@ -392,7 +392,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.2",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.6",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "gradio-logo.svg",
@@ -410,7 +410,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.2",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.6",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "streamlit-logo.svg",
