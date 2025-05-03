@@ -59,12 +59,12 @@
                         </ul>
                     </li>
                     {% else %}
-                    <li class="nav-item mx-1">
+                    {% comment %} <li class="nav-item mx-1">
                         <a class="nav-link serve-main-nav {% if '/about/' in request.path %}active{% endif %}" target="_self" href="{% url 'portal:about' %}" title="About">
                             <i class="align-middle" data-feather="info"></i>
                             <span style="vertical-align:middle;">About</span>
                         </a>
-                    </li>
+                    </li> {% endcomment %}
                     <li class="nav-item mx-1">
                         <a class="nav-link serve-main-nav badge rounded-pill text-bg-serve mx-3 {% if '/about/' in request.path %}active{% endif %}" target="_self" title="Submit App" type="button" data-bs-toggle="modal" data-bs-target="#SubmitAppModal">
                             <i class="align-middle" data-feather="upload-cloud"></i>
@@ -90,8 +90,22 @@
         </div>
     </div>
 </nav>
-  <!-- Modal -->
-  <div class="modal fade" id="SubmitAppModal" tabindex="-1" role="dialog" aria-labelledby="SubmitAppModalTitle" aria-hidden="true">
+{% if not minumum %}
+  {% for obj in maintenance_mode %}
+    {% if obj.message_in_header %}
+          <div class="row d-flex justify-content-center" style="margin-top: -1rem;">
+              <div class="text-center">
+                  <div class="alert alert-warning border" role="alert">
+                      <i class="bi-exclamation-triangle mx-2"></i>
+                      {{ obj.message_in_header | safe }}
+                  </div>
+              </div>
+          </div>
+    {% endif %}
+  {% endfor %}
+{% endif %}
+<!-- Modal -->
+<div class="modal fade" id="SubmitAppModal" tabindex="-1" role="dialog" aria-labelledby="SubmitAppModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-header">
@@ -119,19 +133,3 @@
 <script>
     feather.replace();
 </script>
-{% if not minumum %}
-  {% for obj in maintenance_mode %}
-    {% if obj.message_in_header %}
-      <div class="container">
-          <div class="row d-flex justify-content-center">
-              <div class="col-12 col-md-8 text-center">
-                  <div class="alert alert-warning border" role="alert">
-                      <p class="mb-0 fs-5"><i class="bi-exclamation-triangle"></i></p>
-                      <p>{{ obj.message_in_header | safe }}</p>
-                  </div>
-              </div>
-          </div>
-      </div>
-    {% endif %}
-  {% endfor %}
-{% endif %}
