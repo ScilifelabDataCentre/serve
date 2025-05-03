@@ -8,40 +8,68 @@
 
 
 <div class="container">
-    <div class="row">
+    <div class="row carousel-off">
         <div class="col-12 d-flex align-items-center justify-content-center mb-2">
             <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="max-width:400px;width:60%">
         </div>
         <div class="col-12 col-lg-8 offset-lg-2 d-flex align-items-center justify-content-center mb-4">
-            SciLifeLab Serve (beta) is a platform offering machine learning model serving, app hosting, web-based integrated development environments, and other tools to life science researchers affiliated with a Swedish research institute.
+            <span class="text-center">
+                SciLifeLab Serve (beta) is a platform offering machine learning model serving, app hosting, and other tools to life science researchers affiliated with a Swedish research institute.
+            </span>
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 mb-3 mb-md-0 shadow" data-aos="fade">
-                <i class="bi bi-robot fs-1"></i>
+            <div class="card text-center mb-3 mb-md-0 shadow" data-aos="fade">
                 <div class="card-body">
-                  <h5 class="card-title">Machine Learning model serving</h5>
-                  <p class="card-text">Deploy your trained models and obtain API endpoints for inference requests. We support deployment of models packaged as Docker images.</p>
+                    <div class="rounded-top" style="min-height: 6rem;">
+                        <div class="row">
+                            <div class="col d-flex justify-content-end">
+                                <img style="max-width:100%;" src="{% static 'images/api.png' %}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                  <h5 class="card-title fw-bold">Machine Learning model serving</h5>
+                  <p class="card-text">Deploy your trained models and obtain API endpoints for inference requests.</p>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 mb-3 mb-md-0 shadow" data-aos="fade">
-                <i class="bi bi-window-stack fs-1"></i>
+            <div class="card text-center mb-3 mb-md-0 shadow" data-aos="fade">
                 <div class="card-body">
-                  <h5 class="card-title">ML model demo apps</h5>
-                  <p class="card-text">Share web apps with a graphical user interface to allow users to make inferences with custom input. We support apps built using Gradio, Streamlit, Flask, FastAPI, etc.</p>
+                    <div class="rounded-top" style="min-height: 6rem;">
+                        <div class="row">
+                            <div class="col d-flex justify-content-end">
+                                <img style="max-width:100%;" src="{% static 'images/predgui.png' %}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                  <i class="bi bi-window-stack fs-1 carousel-icon-display"></i>
+                  <h5 class="card-title fw-bold">ML model demo apps</h5>
+                  <p class="card-text">Share web apps with a graphical user interface to allow users to make inferences with custom input.</p>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4 d-flex align-items-stretch">
-            <div class="card text-center py-2 mb-3 mb-md-0 shadow " data-aos="fade" >
-                <i class="bi bi-bar-chart-line fs-1"></i>
+            <div class="card text-center mb-3 mb-md-0 shadow " data-aos="fade" >
                 <div class="card-body">
-                  <h5 class="card-title">Data and analysis apps</h5>
-                  <p class="card-text">Share web  apps with interactive visualisations, analyses, text, tables, etc. We support apps built using R Shiny, Plotly Dash, etc.</p>
+                    <div class="rounded-top" style="min-height: 6rem;">
+                        <div class="row">
+                            <div class="col d-flex justify-content-end">
+                                <img style="max-width:100%;" src="{% static 'images/shiny-app.png' %}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <i class="bi bi-bar-chart-line fs-1 carousel-icon-display"></i>
+                    <h5 class="card-title fw-bold">Data visualisation and analysis apps</h5>
+                    <p class="card-text">Share web  apps with interactive visualisations, analyses, text, tables, etc based on publicly available data.</p>
                 </div>
             </div>
         </div>
@@ -59,8 +87,104 @@
         {% endcomment %}
 
     </div>
+    <div class="row carousel-on">
+        {% comment %} <div class="col-12 d-flex align-items-center justify-content-center mb-2">
+            <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="max-width:400px;width:60%">
+        </div> {% endcomment %}
+        <div class="col-12 col-lg-8 offset-lg-2 d-flex align-items-center justify-content-center mb-4">
 
+            <span class="text-center my-2">
+                <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve" style="max-width:160px;width:60%;vertical-align: text-bottom;">
+                (beta) is a platform offering machine learning model serving, app hosting, web-based integrated development environments, and other tools to life science researchers affiliated with a Swedish research institute.
+            </span>
+        </div>
 
+        <div id="carouselExampleControls" class="carousel slide pb-3 carousel-fade" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+                <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="2" aria-label="Slide 3"></button>
+              </div>
+            <div class="carousel-inner">
+              <div class="carousel-item active">
+                <div class="cards-wrapper">
+                    <div class="col-md-6 d-flex align-items-stretch px-2 carousel-display">
+                        <div class="card text-center pb-0 mb-3 mb-md-0 shadow rounded" data-aos="fade">
+                            <img src="{% static 'images/api.png' %}" class="card-img-top pt-3 px-3" alt="...">
+                            <div class="card-footer">
+                                <h5 class="card-title fw-bold">Machine Learning model serving</h5>
+                                <p class="card-text">Deploy your trained models and obtain API endpoints for inference requests. We support deployment of models packaged as docker images.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-stretch px-2 carousel-display">
+                        <div class="card text-center pb-0 mb-3 mb-md-0 shadow rounded" data-aos="fade">
+                            <img src="{% static 'images/predgui.png' %}" class="card-img-top pt-3 px-3" alt="...">
+                            <div class="card-footer">
+                                <h5 class="card-title fw-bold">Machine Learning model demo apps</h5>
+                              <p class="card-text">Share web apps with a graphical user interface to allow users to make inferences with custom input. We support apps built using Gradio, Streamlit, etc.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <div class="cards-wrapper">
+                    <div class="col-md-6 d-flex align-items-stretch px-2 carousel-display">
+                        <div class="card text-center pb-0 mb-3 mb-md-0 shadow rounded" data-aos="fade">
+                            <img src="{% static 'images/predgui.png' %}" class="card-img-top pt-3 px-3" alt="...">
+                            <div class="card-footer">
+                                <h5 class="card-title fw-bold">Machine Learning model demo apps</h5>
+                              <p class="card-text">Share web apps with a graphical user interface to allow users to make inferences with custom input. We support apps built using Gradio, Streamlit, etc.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-stretch px-2 carousel-display">
+                        <div class="card text-center pb-0 mb-3 mb-md-0 shadow rounded" data-aos="fade">
+                            <img src="{% static 'images/shiny-app.png' %}" class="card-img-top pt-3 px-3" alt="...">
+                            <div class="card-footer">
+                                <h5 class="card-title fw-bold">Data visualisation and analysis apps</h5>
+                                <p class="card-text">Share web  apps with interactive visualisations, analyses, text, tables, etc based on publicly available data. We support apps built using R Shiny, Plotly Dash, etc.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+              </div>
+              <div class="carousel-item">
+                <div class="cards-wrapper">
+                    <div class="col-md-6 d-flex align-items-stretch px-2 carousel-display">
+                        <div class="card text-center pb-0 mb-3 mb-md-0 shadow rounded" data-aos="fade" >
+                            <img src="{% static 'images/shiny-app.png' %}" class="card-img-top pt-3 px-3" alt="...">
+                            <div class="card-footer">
+                                <h5 class="card-title fw-bold">Data visualisation and analysis apps</h5>
+                                <p class="card-text">Share web  apps with interactive visualisations, analyses, text, tables, etc based on publicly available data. We support apps built using R Shiny, Plotly Dash, etc.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-stretch px-2 carousel-display">
+                        <div class="card text-center pb-0 mb-3 mb-md-0 shadow rounded" data-aos="fade">
+                            <img src="{% static 'images/api.png' %}" class="card-img-top pt-3 px-3" alt="...">
+                            <div class="card-footer">
+                                <h5 class="card-title fw-bold">Machine Learning model serving</h5>
+                                <p class="card-text">Deploy your trained models and obtain API endpoints for inference requests. We support deployment of models packaged as docker images.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+          </div>
+        </div>
+
+    </div>
 
     <div class="row text-center justify-content-center border rounded bg-light mt-5">
         <div class="col-12 text-center">
