@@ -5,20 +5,22 @@
 {% get_image_tag as imagetag_text %}
 {% get_setting "DEBUG" as debug_mode %}
 
-<div class="footer border-top bg-light text-muted small pt-4 mt-auto">
-
-    <div class="container">
-
+<div class="footer border-top bg-light text-muted small mt-auto">
     {# In case we want to display a maintenance message or similar#}
     {% for obj in maintenance_mode %}
     {% if obj.message_in_footer %}
-        <div class="alert alert-warning small" role="alert">
-            {{ obj.message_in_footer }}
-          </div>
+    <div class="row d-flex justify-content-center">
+        <div class="text-center">
+            <div class="alert alert-warning border" role="alert">
+                {{ obj.message_in_footer | safe }}
+            </div>
+        </div>
+    </div>
     {% endif %}
     {% endfor %}
+    <div class="container">
 
-    <div class="row pb-2">
+    <div class="row pt-4 pb-2">
             <div class="col-md-2 col-lg-2 col-xl-1">
                 <ul class="list-unstyled">
                     <li><a href="{% url 'portal:home' %}">Home</a></li>
