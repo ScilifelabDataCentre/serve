@@ -194,12 +194,11 @@
 
           {% for app in published_apps_updated_on %}
         <div class="col-12 col-md-6 align-items-stretch mt-4 mb-2">
-                <div class="card border-0 shadow my-2" data-aos="slide-up">
+                <div class="card border-0 shadow my-2 rounded" data-aos="slide-up">
+                    <a href="{{ app.url }}" class="stretched-link" target="_blank">
                     <div class="card-body text-start">
                         <div class="card-title d-flex justify-content-between align-items-center m-0">
-                            <a href="{{ app.url }}" target="_blank">
-                                <h5 class="">{{ app.name|truncatechars:30 }}</h5>
-                            </a>
+                            <h5 class="">{{ app.name|truncatechars:30 }}</h5>
                             <div>
                                 {% static 'images/logos/apps/' as static_url %}
                                 <img style="height:40px;"
@@ -211,7 +210,7 @@
                             {{ app.description|truncatechars:100 }}
                         </div>
                     </div>
-
+                </a>
                     <div class="card-footer d-flex text-muted card-footer-text justify-content-between bg-teal-075">
                         <div class="text-start">
                             <span>{{ app.app.name }}</span>
@@ -225,6 +224,7 @@
                         </div>
                     </div>
                 </div>
+
         </div>
         {% endfor %}
 
@@ -234,10 +234,13 @@
     </div>
 
     {% if collection_objects %}
-    <div class="row text-center mt-5 align-items-center" id="collections">
+    <div class="row text-center mt-5 align-items-center rounded" id="collections">
         <div class="col-12 text-center">
             <h3>Collections
             </h3>
+            <div class="col-md-12">
+                <p class="text-center small">Collections are groups of apps and models published on SciLifeLab Serve belonging to a research community, organization, or topic. <a href="/docs/collections/">Start a new collection?</a></p>
+            </div>
             <hr class="m-0 bg-teal border-0 mb-1" style="height: 2px;">
         </div>
 
@@ -252,10 +255,6 @@
                 </a>
             </div>
             {% endfor %}
-            <div class="col-md-3 my-2">
-                <p class="text-start small">Collections are groups of apps and models published on SciLifeLab Serve belonging to a research community, organization, or topic. <a href="/docs/collections/">Start a new collection?</a></p>
-            </div>
-
             {% if link_all_collections %}
             <div class="col-12 text-center">
                 <a class="text-muted" href="{% url 'portal:collections_index' %}" target="_self" title="News">Browse all collections</a>
@@ -263,30 +262,30 @@
             {% endif %}
     </div>
     {% endif %}
-
-    {% if events_objects %}
     <div class="row text-center mt-5">
+    {% if events_objects %}
+        <div class="col-12 col-md-6 align-items-stretch mt-4 mb-2">
         <div class="col-12 text-center">
             <h3>Events</h3>
             <hr class="m-0 bg-grape border-0" style="height: 2px;">
         </div>
 
             {% for event in events_objects %}
-            <div class="col-md-4">
-                <div class="card border bg-white my-2 my-md-4" data-aos="slide-up">
+            <div class="col-md-12">
+                <div class="card border bg-white my-2 my-md-4 rounded" data-aos="slide-up">
 
                     <a href="{% url 'portal:events' %}#{{ event.title|slugify }}" class="stretched-link">
                     <div class="card-body text-start py-0">
-                        <div class="card-title d-flex justify-content-between align-items-center">
+                        <div class="card-title d-flex align-items-center" style="display: flow!important;">
                             {{ event.future }}
                             <div class="row">
-                                <div class="d-sm-none d-md-block col-lg-4 col-xl-3">
-                                        <div class="px-2 pb-1 mt-3 d-flex flex-column rounded {% if event.past %}bg-teal-075{% else %}bg-teal{% endif %}">
+                                <div class="d-sm-none d-md-block col-lg-2 col-xl-2">
+                                        <div class="px-2 pb-2 mt-3 d-flex flex-column rounded {% if event.past %}bg-teal-075{% else %}bg-teal{% endif %}">
                                         <div class="fs-5 mx-auto text-light">{{ event.start_time|date:"j" }}</div>
                                         <div class="mx-auto text-light small">{{ event.start_time|date:"M" }}</div>
                                         </div>
                                 </div>
-                                <div class="col-sm-12 col-lg-8 col-lx-9">
+                                <div class="col-sm-10 col-lg-10 col-lx-10">
                                     <div class="card-body">
                                     <h5>{{ event.title }}</h5>
                                     <p><b>
@@ -314,9 +313,8 @@
             {% endif %}
     </div>
     {% endif %}
-
     {% if news_objects %}
-    <div class="row text-center mt-5">
+        <div class="col-12 col-md-6 align-items-stretch mt-4 mb-2">
         <div class="col-12 text-center">
             <h3>News
             </h3>
@@ -324,8 +322,8 @@
         </div>
 
             {% for news in news_objects %}
-            <div class="col-md-4">
-                <div class="card border bg-white my-4" data-aos="slide-up">
+            <div class="col-md-12">
+                <div class="card border bg-white my-4 rounded" data-aos="slide-up">
 
                     <p class="text-muted card-footer-text text-end p-1 m-0">{{ news.created_on|date:"M. j, Y, H:i" }}</p>
                     <a href="{% url 'portal:news' %}#{{ news.title|slugify }}" class="stretched-link">
@@ -349,6 +347,6 @@
             {% endif %}
     </div>
     {% endif %}
-
+</div>
 </div>
 {% endblock %}
