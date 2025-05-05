@@ -33,7 +33,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
                 ephemeral-storage: 5000Mi
                 memory: 4Gi
             requests:
-                cpu: 500m
+                cpu: 100m
                 ephemeral-storage: 100Mi
                 memory: 1Gi
             global:
@@ -315,7 +315,7 @@ application.yml: |
     - container-cmd:
         - /usr/bin/shiny-server
         container-cpu-limit: 2000m
-        container-cpu-request: 500m
+        container-cpu-request: 100m
         container-image: ghcr.io/somerepo/shiny:v1
         container-memory-limit: 4Gi
         container-memory-request: 1Gi
