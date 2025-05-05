@@ -279,7 +279,7 @@ describe("Test superuser access", () => {
         cy.get('[data-cy="settings"]').should('be.visible').click()
         cy.get('.list-group').find('a').should('be.visible').contains('Flavors').click()
         cy.get('input[name="flavor_name"]').type(new_flavor_name)
-        cy.get('input[name="cpu_req"]').clear().type("500m")
+        cy.get('input[name="cpu_req"]').clear().type("100m")
         cy.get('input[name="cpu_lim"]').clear().type("4000m")
         cy.get('input[name="mem_req"]').clear().type("2Gi")
         cy.get('input[name="mem_lim"]').clear().type("8Gi")
@@ -287,7 +287,7 @@ describe("Test superuser access", () => {
 
         cy.get('.list-group').should('be.visible').find('a').contains('Flavors').click()
         cy.get('input[name="flavor_name"]').type(new_flavor_name_unused)
-        cy.get('input[name="cpu_req"]').clear().type("500m")
+        cy.get('input[name="cpu_req"]').clear().type("100m")
         cy.get('input[name="cpu_lim"]').clear().type("4000m")
         cy.get('input[name="mem_req"]').clear().type("2Gi")
         cy.get('input[name="mem_lim"]').clear().type("8Gi")

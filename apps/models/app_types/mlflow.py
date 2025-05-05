@@ -12,6 +12,7 @@ class MLFlowInstance(BaseAppInstance):
     objects = MlflowAppManager()
     ACCESS_TYPES = (("project", "Project"),)
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
+    upload_size = 1000  # MB
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -29,20 +30,24 @@ class MLFlowInstance(BaseAppInstance):
                 "enabled": True,
                 "ingressClassName": "nginx",
                 "hostname": self.url.split("://")[1] if self.url is not None else self.url,
+                "clientMaxBodySize": f"{self.upload_size}M",
             },
             "podLabels": {
                 "type": "app",
             },
             "resources": {
                 "requests": {"cpu": "1", "memory": "1Gi", "ephemeral-storage": "1Gi"},
-                "limits": {"cpu": "2", "memory": "2Gi", "ephemeral-storage": "2Gi"},
+                "limits": {"cpu": "8", "memory": "16Gi", "ephemeral-storage": "30Gi"},
             },
             "pdb": {"create": False},
+            # This fixes this issue:
+            # https://mlflow.org/docs/2.21.3/tracking/server#handling-timeout-when-uploadingdownloading-large-artifacts
+            "extraArgs": {'--gunicorn-opts="--timeout=360"'},
         }
         k8s_values["run"] = {
             "resources": {
                 "requests": {"cpu": "1", "memory": "1Gi", "ephemeral-storage": "1Gi"},
-                "limits": {"cpu": "2", "memory": "2Gi", "ephemeral-storage": "2Gi"},
+                "limits": {"cpu": "8", "memory": "16Gi", "ephemeral-storage": "30Gi"},
             }
         }
         k8s_values["minio"] = {"pdb": {"create": False}}
