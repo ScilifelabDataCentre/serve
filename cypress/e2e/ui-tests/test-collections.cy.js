@@ -62,7 +62,7 @@ describe("Test collections functionality", () => {
 
         cy.logf("Creating a collection", Cypress.currentTest)
         // log in as admin
-        cy.visit("/whale/")
+        cy.visit("/admin/")
         cy.get('#id_username').type('no-reply-collections-user@scilifelab.se')
         cy.get('#id_password').type('tesT12345@')
         cy.get('input').contains('Log in').click()
