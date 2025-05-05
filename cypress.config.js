@@ -6,6 +6,7 @@ module.exports = defineConfig({
     wait_db_reset: 60000,
     create_resources: true,
     run_extended_k8s_checks: false,
+    manage_test_data_via_django_endpoint_views: true
   },
 
   e2e: {

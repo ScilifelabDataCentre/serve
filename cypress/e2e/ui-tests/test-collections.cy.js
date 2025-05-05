@@ -3,22 +3,49 @@ describe("Test collections functionality", () => {
     // Tests performed as an authenticated user that has superuser privileges because that's the one that can currently create collections
     // user: no-reply-collections-user@scilifelab.se"
 
+    let TEST_USER_DATA
+    const TEST_PROJECT_DATA = {
+        project_name: "e2e-collections-test-proj",
+        project_description: "e2e-collections-test-proj-desc",
+    };
+
     before(() => {
         cy.logf("Begin before() hook", Cypress.currentTest)
 
-        // do db reset if needed
-        if (Cypress.env('do_reset_db') === true) {
-            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
-            cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(Cypress.env('wait_db_reset'));
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+            cy.log("Populating test data via Django endpoint");
+            const TEST_APP_DATA = {
+                app_slug: "dashapp",
+                name: "collection-app-name",
+                description: "collection-app-description",
+                access: "public",
+                port: 8000,
+                image: "ghcr.io/scilifelabdatacentre/example-dash:latest",
+                source_code_url: "https://someurlthatdoesnotexist.com"
+              };
+
+            cy.fixture('users.json').then(function (data) {
+                TEST_USER_DATA = data.collections_user;
+                cy.populateTestSuperUser(TEST_USER_DATA);
+                cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
+                cy.populateTestApp(TEST_USER_DATA, TEST_PROJECT_DATA, TEST_APP_DATA);
+            });
         }
         else {
-            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+            // do db reset if needed
+            if (Cypress.env('do_reset_db') === true) {
+                cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
+                cy.exec("./cypress/e2e/db-reset.sh");
+                cy.wait(Cypress.env('wait_db_reset'));
+            }
+            else {
+                cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+            }
+            // seed the db with a user
+            cy.visit("/")
+            cy.logf("Running seed_collections_user.py", Cypress.currentTest)
+            cy.exec("./cypress/e2e/db-seed-collections-user.sh")
         }
-        // seed the db with a user
-        cy.visit("/")
-        cy.logf("Running seed_collections_user.py", Cypress.currentTest)
-        cy.exec("./cypress/e2e/db-seed-collections-user.sh")
 
         cy.logf("End before() hook", Cypress.currentTest)
     })
@@ -91,5 +118,18 @@ describe("Test collections functionality", () => {
                })
             })
     })
+
+    after(() => {
+
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+            cy.log("Cleaning up test data via Django endpoint");
+            cy.cleanupTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
+            cy.cleanupTestUser(TEST_USER_DATA);
+        }
+
+        cy.logf("End after() hook", Cypress.currentTest)
+    })
+
+
 
 })

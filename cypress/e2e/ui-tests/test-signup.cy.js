@@ -1,6 +1,7 @@
 describe("Test sign up", () => {
 
     let users
+    let TEST_USER_DATA
 
     before(() => {
         cy.logf("Begin before() hook", Cypress.currentTest)
@@ -15,14 +16,16 @@ describe("Test sign up", () => {
     beforeEach(() => {
         cy.logf("Begin beforeEach() hook", Cypress.currentTest)
 
-        // reset and seed the database prior to every test
-        if (Cypress.env('do_reset_db') === true) {
-            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
-            cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(Cypress.env('wait_db_reset'));
-        }
-        else {
-            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === false) {
+            // reset and seed the database prior to every test
+            if (Cypress.env('do_reset_db') === true) {
+                cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
+                cy.exec("./cypress/e2e/db-reset.sh");
+                cy.wait(Cypress.env('wait_db_reset'));
+            }
+            else {
+                cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+            }
         }
 
         cy.logf("End beforeEach() hook", Cypress.currentTest)
@@ -126,6 +129,17 @@ describe("Test sign up", () => {
         cy.get('input[name=password2]').type("second_password");
         cy.get("input#submit-id-save").click();
         cy.get('[id="validation_password1"]').should('exist')
+    })
+
+    after(() => {
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+            cy.log("Cleaning up test data via Django endpoint");
+            cy.fixture('users.json').then(function (data) {
+            TEST_USER_DATA = data.signup_user;
+            cy.cleanupTestUser(TEST_USER_DATA);
+        });
+        }
+        cy.logf("End after() hook", Cypress.currentTest)
     })
 
 })
