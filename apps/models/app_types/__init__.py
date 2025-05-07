@@ -2,6 +2,7 @@ from .custom import CustomAppInstance, CustomAppInstanceManager
 from .custom.gradio import GradioAppInstanceManager, GradioInstance
 from .custom.streamlit import StreamlitAppInstanceManager, StreamlitInstance
 from .dash import DashInstance, DashInstanceManager
+from .depictio import DepictioAppManager, DepictioInstance
 from .filemanager import FilemanagerInstance, FilemanagerInstanceManager
 from .jupyter import JupyterInstance, JupyterInstanceManager
 from .mlflow import MlflowAppManager, MLFlowInstance

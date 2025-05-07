@@ -2,6 +2,7 @@ from apps.forms.field.custom import CustomField  # isort:skip
 from .base import AppBaseForm, BaseForm
 from .custom import CustomAppForm
 from .dash import DashForm
+from .depictio import DepictioForm
 from .filemanager import FilemanagerForm
 from .gradio import GradioForm
 from .jupyter import JupyterForm
