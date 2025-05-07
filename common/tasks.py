@@ -148,8 +148,7 @@ def alert_pause_dormant_users() -> None:
 
 @app.task(ignore_result=True)
 def send_email_task(
-        subject: str, message: str, recipient_list: list[str], html_message: str | None = None,
-        fail_silently: bool = False
+    subject: str, message: str, recipient_list: list[str], html_message: str | None = None, fail_silently: bool = False
 ) -> None:
     """
     Send message content if html_message is None, otherwise send html_message.
