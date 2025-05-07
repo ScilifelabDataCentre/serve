@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import Group, User
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage, send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -52,7 +52,6 @@ def handle_deleted_users() -> None:
                 "Remove deleted user from SciLifeLab Serve",
                 f"The user with id {user.id} deleted their account over {threshold_days} days ago. "
                 "Please permanently remove the user from SciLifeLab Serve according to the routines.",
-                settings.EMAIL_FROM,
                 [ADMIN_EMAIL],
             )
 
@@ -138,7 +137,6 @@ def alert_pause_dormant_users() -> None:
                 "a long time. Please sign in to SciLifeLab Serve to keep your user account active. Otherwise your "
                 "account will be paused after 2 weeks. If you want to access it again, you will need to get in touch "
                 "with our support team to reactivate it.",
-                settings.EMAIL_FROM,
                 [user.email],
                 fail_silently=False,
             )
@@ -150,16 +148,18 @@ def alert_pause_dormant_users() -> None:
 
 @app.task(ignore_result=True)
 def send_email_task(
-    subject: str, message: str, html_message: str | None, recipient_list: list[str], fail_silently: bool = False
+        subject: str, message: str, recipient_list: list[str], html_message: str | None = None,
+        fail_silently: bool = False
 ) -> None:
-    send_mail(
-        subject,
-        message,
-        settings.EMAIL_FROM,
-        recipient_list,
-        html_message=html_message,
-        fail_silently=fail_silently,
-    )
+    """
+    Send message content if html_message is None, otherwise send html_message.
+    """
+    logger.info("Sending email to %s", recipient_list)
+    mail_subject = subject
+    mail_message = message if html_message is None else html_message
+    email = EmailMessage(mail_subject, mail_message, settings.EMAIL_FROM, to=recipient_list)
+    email.content_subtype = "html" if html_message else "plain"
+    email.send(fail_silently=fail_silently)
 
 
 def send_verification_email_task(email: str, token: str) -> None:

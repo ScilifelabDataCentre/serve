@@ -183,7 +183,6 @@ def delete_account_post_handler(request: Response, user_id: int) -> Response:
                 send_email_task(
                     "User account deleted from SciLifeLab Serve",
                     f"The user account {request.user.username} was deleted from SciLifeLab Serve as requested.",
-                    settings.EMAIL_FROM,
                     [email],
                     fail_silently=False,
                 )
