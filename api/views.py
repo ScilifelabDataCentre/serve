@@ -869,9 +869,9 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
 def validate_password_request(request: HttpRequest) -> HttpResponse:
     """
     Implementation of the API method at endpoint /api/validate_password/
-    Supports the GET verb.
+    Supports the POST verb.
 
-    The service contract for the GET action is as follows:
+    The service contract for the POST action is as follows:
     :param str password: The password for validation.
     :param str email: The email of the user.
     :param str first_name: The first name of the user.
