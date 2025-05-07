@@ -879,9 +879,7 @@ def validate_password_request(request: HttpRequest) -> HttpResponse:
     :returns: An http status code and dict containing {"isValid": bool, "message": str,"validator_name": str}
     """
     validator_response = []
-    user = User(
-        email=request.data["email"], first_name=request.data["first_name"], last_name=request.data["last_name"]
-    )
+    user = User(email=request.data["email"], first_name=request.data["first_name"], last_name=request.data["last_name"])
     for validator, settings_validator in zip(
         get_password_validators(settings.AUTH_PASSWORD_VALIDATORS), settings.AUTH_PASSWORD_VALIDATORS
     ):
