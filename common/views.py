@@ -1,11 +1,8 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.password_validation import password_validators_help_texts
 from django.contrib.auth.views import PasswordChangeView
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.mail import send_mail
 from django.db import transaction
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import HttpResponse, redirect, render
@@ -25,6 +22,7 @@ from .forms import (
     UserForm,
 )
 from .models import EmailVerificationTable, UserProfile
+from .tasks import send_email_task
 
 logger = get_logger(__name__)
 
@@ -130,12 +128,11 @@ class VerifyView(TemplateView):
                     messages.success(request, "Email verified successfully!")
                 else:
                     # If user is not approved, we send an email to the admin to approve the account.
-                    send_mail(
+                    send_email_task(
                         "User has verified their email address",
                         f"Please go to the admin page to activate account for {user.email}",
-                        settings.EMAIL_HOST_USER,
+                        settings.EMAIL_FROM,
                         ["serve@scilifelab.se"],
-                        fail_silently=False,
                     )
                     messages.success(
                         request, "Your email address has been verified. Please wait for admin to approve your account."

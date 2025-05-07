@@ -1,5 +1,3 @@
-import time
-
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.mail import send_mail
@@ -50,13 +48,12 @@ def handle_deleted_users() -> None:
                 f"User {user.id} was deleted over {threshold_days} days ago. Now sending email to Serve admins."
             )
 
-            send_mail(
+            send_email_task(
                 "Remove deleted user from SciLifeLab Serve",
                 f"The user with id {user.id} deleted their account over {threshold_days} days ago. "
                 "Please permanently remove the user from SciLifeLab Serve according to the routines.",
-                settings.EMAIL_HOST_USER,
+                settings.EMAIL_FROM,
                 [ADMIN_EMAIL],
-                fail_silently=False,
             )
 
         else:
@@ -135,13 +132,13 @@ def alert_pause_dormant_users() -> None:
                     ({threshold_alert}). Sending a warning email."
             )
 
-            send_mail(
+            send_email_task(
                 "Please sign in to SciLifeLab Serve to keep your account active",
                 "Your user account at SciLifeLab Serve (https://serve.scilifelab.se) has not been signed into for "
                 "a long time. Please sign in to SciLifeLab Serve to keep your user account active. Otherwise your "
                 "account will be paused after 2 weeks. If you want to access it again, you will need to get in touch "
                 "with our support team to reactivate it.",
-                settings.EMAIL_HOST_USER,
+                settings.EMAIL_FROM,
                 [user.email],
                 fail_silently=False,
             )
@@ -152,14 +149,16 @@ def alert_pause_dormant_users() -> None:
 
 
 @app.task(ignore_result=True)
-def send_email_task(subject: str, message: str, html_message: str | None, recipient_list: list[str]) -> None:
+def send_email_task(
+    subject: str, message: str, html_message: str | None, recipient_list: list[str], fail_silently: bool = False
+) -> None:
     send_mail(
         subject,
         message,
-        settings.EMAIL_HOST_USER,
+        settings.EMAIL_FROM,
         recipient_list,
         html_message=html_message,
-        fail_silently=False,
+        fail_silently=fail_silently,
     )
 
 

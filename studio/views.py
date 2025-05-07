@@ -6,7 +6,6 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.mail import send_mail
 from django.db.models import Q
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -20,6 +19,7 @@ from rest_framework.views import APIView
 from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance, Subdomain
 from common.models import UserProfile
+from common.tasks import send_email_task
 from models.models import Model
 from projects.models import Project
 from studio.utils import get_logger
@@ -180,11 +180,10 @@ def delete_account_post_handler(request: Response, user_id: int) -> Response:
                 email = request.user.email
                 logger.debug(f"User account was deleted (set to inactive). Now sending email to user email {email}")
 
-                # TODO use send_email_task instead
-                send_mail(
+                send_email_task(
                     "User account deleted from SciLifeLab Serve",
                     f"The user account {request.user.username} was deleted from SciLifeLab Serve as requested.",
-                    settings.EMAIL_HOST_USER,
+                    settings.EMAIL_FROM,
                     [email],
                     fail_silently=False,
                 )
