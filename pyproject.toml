@@ -217,3 +217,15 @@ module = [
 	"yaml.*",
 	]
 ignore_missing_imports = true
+
+[tool.coverage]
+    [tool.coverage.run]
+    omit = [
+        '*/migrations/*',
+        '*/__init__.py',
+        'tests/*',
+        '*/tests/*',
+    ]
+
+    [tool.coverage.report]
+    skip_empty = true
