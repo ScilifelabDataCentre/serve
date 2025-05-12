@@ -94,8 +94,8 @@
   {% for obj in maintenance_mode %}
     {% if obj.message_in_header %}
           <div class="row d-flex justify-content-center" style="margin-top: -1rem;">
-              <div class="text-center">
-                  <div class="alert alert-warning border" role="alert">
+              <div class="alert alert-warning border" role="alert">
+                  <div class="text-center mx-4">
                       <i class="bi-exclamation-triangle mx-2"></i>
                       {{ obj.message_in_header | safe }}
                   </div>
