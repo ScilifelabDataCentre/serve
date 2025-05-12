@@ -1,23 +1,17 @@
 """This module is used to test the helper functions that are used by user app instance functionality."""
 
-import json
 from unittest.mock import ANY, patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from common.management.manage_test_data import TestDataManager
 from projects.models import Flavor, Project
 
 from ..app_registry import APP_REGISTRY
 from ..constants import AppActionOrigin
 from ..forms import DashForm
-from ..helpers import (
-    create_instance_from_form,
-    generate_schema_org_description,
-    get_subdomain_name,
-)
+from ..helpers import create_instance_from_form, get_subdomain_name
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
 from ..types_.subdomain import SubdomainTuple
 
@@ -393,93 +387,3 @@ def test_get_subdomain_name_no_subdomain_in_form():
     # Example subdomain name pattern: rd5d576b4
     assert subdomain_name.startswith("r"), f"The subdomain should begin with r but was {subdomain_name}"
     assert is_created_by_user is False, f"is_created_by_user should be False but was {is_created_by_user}"
-
-
-@pytest.mark.django_db
-def test_schema_org_description():
-    user_data = {
-        "affiliation": "uu",
-        "department": "unit_test_schema_org_description_user_department_name",
-        "email": "unit_test_schema_org_description_user_email@scilifelab.uu.se",
-        "first_name": "unit_test_schema_org_description_user_first_name",
-        "last_name": "unit_test_schema_org_description_user_last_name",
-        "username": "unit_test_schema_org_description_user_name",
-        "password": "tesT12345@",
-    }
-
-    project_data = {
-        "project_name": "unit_test_schema_org_description_project_name",
-        "project_description": "unit_test_schema_org_description_project_description",
-    }
-
-    manager = TestDataManager(user_data=user_data)
-    user = manager.create_user()
-    project = Project.objects.create_project(
-        name=project_data["project_name"], owner=user, description=project_data["project_description"]
-    )
-    app = Apps.objects.create(
-        name="Unit test schema org description app type", slug="unit_test_schema_org_description_slug"
-    )
-    subdomain = Subdomain.objects.create(subdomain="unit_test_schema_org_description_subdomain")
-    k8s_user_app_status = K8sUserAppStatus.objects.create()
-    app_instance = DashInstance.objects.create(
-        access="private",
-        owner=user,
-        name="unit_test_schema_org_description_app_name",
-        description="unit_test_schema_org_description_app_description",
-        port=8000,
-        image="ghcr.io/scilifelabdatacentre/example-dash:latest",
-        source_code_url="https://someurlthatdoesnotexist.com",
-        app=app,
-        project=project,
-        subdomain=subdomain,
-        k8s_user_app_status=k8s_user_app_status,
-    )
-
-    schema_description = generate_schema_org_description(app_instance)
-    print(schema_description)
-    schema_dict = json.loads(schema_description)
-
-    # Check 'hasPart' entries
-    has_part = schema_dict["hasPart"]
-    assert len(has_part) == 3, "'hasPart' does not have three entries"
-
-    # Application assertions
-    software_app = next(item for item in has_part if item["@type"] == "SoftwareApplication")
-    assert (
-        software_app["name"] == "unit_test_schema_org_description_app_name"
-    ), f"App name '{software_app['name']}' should match 'unit_test_schema_org_description_app_name'"
-
-    assert software_app["author"] == {
-        "@type": "Person",
-        "name": f"{user_data['first_name']} {user_data['last_name']}",
-        "email": user_data["email"],
-    }, f"Author info mismatch, type should be 'Person', name should be \
-            '{user_data['first_name']} {user_data['last_name']}' email should be \
-                '{user_data['last_name']}'"
-
-    # Person assertions
-    person = next(item for item in has_part if item["@type"] == "Person")
-    assert (
-        person["name"] == f"{user_data['first_name']} {user_data['last_name']}"
-    ), f"person  \
-        name '{user_data['last_name']}' should match {user_data['first_name']} {user_data['last_name']}"
-    assert (
-        person["email"] == user_data["email"]
-    ), f"person email '{person['email']}' should match '{user_data['email']}'"
-    assert person["memberOf"] == {
-        "@type": "Project",
-        "name": project_data["project_name"],
-    }, f"Person's project type should match 'Project' and \
-            project name should match '{project_data['project_name']}'"
-
-    # Project assertions
-    project_entry = next(item for item in has_part if item["@type"] == "Project")
-    assert (
-        project_entry["name"] == project_data["project_name"]
-    ), f"project name \
-        '{project_entry['name']}' should match '{project_data['project_name']}'"
-    assert (
-        project_entry["description"] == project_data["project_description"]
-    ), f"project description\
-        '{project_entry['description']}' should match '{project_data['project_description']}'"

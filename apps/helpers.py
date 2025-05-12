@@ -1,19 +1,14 @@
-import json
 from datetime import datetime
 from typing import Any, Optional
 
 import regex as re
 import requests
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
-from django.forms.models import model_to_dict
-from django.utils import timezone
 
 from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
-from projects.models import Project
 from studio.utils import get_logger
 
 from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
@@ -561,104 +556,3 @@ def validate_docker_image(image: str):
             f"Docker image '{image}' is not publicly available on Docker Hub. "
             "The URL you have entered may be incorrect, or the image might be private."
         )
-
-
-def generate_schema_org_description(app_instance):
-    """Generate schema.org structured data for App, User, and Project models."""
-
-    # Safely get related objects
-    try:
-        user_instance = User.objects.get(id=app_instance.owner_id)
-    except User.DoesNotExist:
-        raise ValueError(f"User with id {app_instance.owner_id} does not exist")
-
-    try:
-        project_instance = Project.objects.get(id=app_instance.project_id)
-    except Project.DoesNotExist:
-        raise ValueError(f"Project with id {app_instance.project_id} does not exist")
-
-    # Convert models to dictionaries with safe defaults
-    app_data = model_to_dict(app_instance, exclude=["_state"])
-    user_data = model_to_dict(user_instance, exclude=["_state", "password"])
-    project_data = model_to_dict(project_instance, exclude=["_state"])
-
-    # Safely add special fields
-    app_data.update(
-        {"k8s_values": app_instance.k8s_values or {}, "info": app_instance.info or {}, "url": app_instance.url or {}}
-    )
-
-    # Helper function to safely get nested values
-    def get_nested(data, *keys, default=None):
-        for key in keys:
-            try:
-                data = data[key]
-            except (KeyError, TypeError):
-                return default
-        return data
-
-    # Build software requirements safely
-    software_requirements = {}
-    if app_data["k8s_values"]:
-        requests = get_nested(app_data["k8s_values"], "flavor", "requests", default={})
-        software_requirements = {
-            "cpu": requests.get("cpu"),
-            "memory": requests.get("memory"),
-            "storage": requests.get("ephemeral-storage"),
-        }
-
-    schema = {
-        "@context": "https://schema.org",
-        "@type": "Dataset",
-        "name": "Application Deployment Metadata",
-        "description": "Structured metadata for deployed applications, users, and projects",
-        "dateCreated": timezone.now().isoformat(),
-        "creator": {"@type": "Organization", "name": "SciLifeLab Data Centre", "url": "https://www.scilifelab.se"},
-        "hasPart": [
-            {
-                "@type": "SoftwareApplication",
-                "name": app_data.get("name"),
-                "url": app_data.get("url") if app_data.get("url") else None,
-                "softwareVersion": app_data.get("chart"),
-                "sourceCodeURL": app_data.get("source_code_url"),
-                "dateCreated": app_data.get("created_on").isoformat() if app_data.get("created_on") else None,
-                "dateModified": app_data.get("updated_on").isoformat() if app_data.get("updated_on") else None,
-                "applicationCategory": "Cloud Application",
-                "operatingSystem": "Kubernetes",
-                "softwareRequirements": {k: v for k, v in software_requirements.items() if v is not None},
-                "author": {
-                    "@type": "Person",
-                    "name": f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip(),
-                    "email": user_data.get("email"),
-                },
-            },
-            # User Schema (Person)
-            {
-                "@type": "Person",
-                "name": f"{user_data.get('first_name')} {user_data.get('last_name')}",
-                "email": user_data.get("email"),
-                "memberOf": {"@type": "Project", "name": project_data.get("name")},
-                "dateJoined": user_data.get("date_joined").isoformat() if user_data.get("date_joined") else None,
-            },
-            # Project Schema (Project)
-            {
-                "@type": "Project",
-                "name": project_data.get("name"),
-                "description": project_data.get("description"),
-                "dateCreated": project_data.get("created_at").isoformat() if project_data.get("created_at") else None,
-                "projectStatus": project_data.get("status"),
-                "funder": {"@type": "Person", "name": f"{user_data.get('first_name')} {user_data.get('last_name')}"},
-                "resourceUsage": project_data.get("apps_per_project"),
-                "isPartOf": {"@type": "Organization", "name": "SciLifeLab Data Centre"},
-            },
-        ],
-    }
-
-    # Clean null values function
-    def clean_nulls(obj):
-        if isinstance(obj, dict):
-            return {k: clean_nulls(v) for k, v in obj.items() if v is not None}
-        elif isinstance(obj, list):
-            return [clean_nulls(elem) for elem in obj if elem is not None]
-        return obj
-
-    return json.dumps(clean_nulls(schema), indent=2)
