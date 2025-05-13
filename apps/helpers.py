@@ -563,7 +563,7 @@ def validate_docker_image(image: str):
         )
 
 
-def generate_schema_org_description(app_instance):
+def generate_schema_org_description(app_instance: BaseAppInstance) -> str:
     """Generate schema.org structured data for App, User, and Project models."""
 
     # Safely get related objects
