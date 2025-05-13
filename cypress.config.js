@@ -15,7 +15,7 @@ module.exports = defineConfig({
 
     // Exclude the integration tests from CI
     excludeSpecPattern: [
-        "cypress/e2e/integration-tests/*"
+        "cypress/e2e/ui-tests/*"
     ],
 
     setupNodeEvents(on, config) {

@@ -1,3 +1,6 @@
+if (Cypress.env('create_resources') === true) {
+    // All of these tests rely on creating resources
+
 describe("Test deploying app", () => {
 
     // TODO: This entire test class needs to be reworked.
@@ -40,32 +43,48 @@ describe("Test deploying app", () => {
 
     // user: e2e_tests_deploy_app_user
     let users
+    let TEST_USER_DATA
+    const TEST_PROJECT_DATA = {
+        project_name: "e2e-deploy-app-test",
+        project_description: "e2e-deploy-app-test-desc",
+    };
 
 
     before({ defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         cy.logf("Begin before() hook", Cypress.currentTest)
 
-        // do db reset if needed
-        if (Cypress.env('do_reset_db') === true) {
-            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
-            cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(Cypress.env('wait_db_reset'));
-        }
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+                cy.log("Populating test data via Django endpoint");
+                cy.fixture('users.json').then(function (data) {
+                    TEST_USER_DATA = data.deploy_app_user;
+                    cy.populateTestUser(TEST_USER_DATA);
+                    cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
+                })
+            }
         else {
-            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
-        }
-        // seed the db with a user
-        cy.visit("/")
-        cy.logf("Running seed-deploy-app-user.py", Cypress.currentTest)
-        cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
-        // username in fixture must match username in db-reset.sh
-        cy.fixture('users.json').then(function (data) {
-            users = data
 
-            cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password)
-        })
-        const project_name = "e2e-deploy-app-test"
-        cy.createBlankProject(project_name)
+            // do db reset if needed
+            if (Cypress.env('do_reset_db') === true) {
+                cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
+                cy.exec("./cypress/e2e/db-reset.sh");
+                cy.wait(Cypress.env('wait_db_reset'));
+            }
+            else {
+                cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+            }
+            // seed the db with a user
+            cy.visit("/")
+            cy.logf("Running seed-deploy-app-user.py", Cypress.currentTest)
+            cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
+            // username in fixture must match username in db-reset.sh
+            cy.fixture('users.json').then(function (data) {
+                users = data
+
+                cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password)
+            })
+            const project_name = "e2e-deploy-app-test"
+            cy.createBlankProject(project_name)
+        }
 
         cy.logf("End before() hook", Cypress.currentTest)
     })
@@ -389,7 +408,8 @@ describe("Test deploying app", () => {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            //cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -1010,4 +1030,18 @@ describe("Test deploying app", () => {
       }
     })
 
+    after(() => {
+
+            if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+
+                cy.log("Cleaning up test data via Django endpoint");
+                cy.cleanupTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
+                cy.cleanupTestUser(TEST_USER_DATA);
+            }
+
+            cy.logf("End after() hook", Cypress.currentTest)
+    })
+
 })
+
+}
