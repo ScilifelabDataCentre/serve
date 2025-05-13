@@ -1,10 +1,14 @@
+from collections import Counter
 from datetime import datetime, timezone
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from rest_framework import viewsets
+from rest_framework.request import Request
 
 from apps.models import BaseAppInstance
+from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -17,13 +21,22 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
     about the content in the system.
 
     The top-level elements nested under data include:
-    - stats-date
-    - TODO
+    - stats_date_utz
+    - stats_success
+    - stats_message
+    - stats_notes
+    - n_projects
+    - n_users
+    - n_apps
+    - apps_by_type
+    - new_users_by_year
+    - users_by_university
+    - apps_by_image_registry
     """
 
     # A dict of pre-defined app types in the system.
     # Undefined app types are dynamically added during processing.
-    # TODO: consider using APP_REGISTRY
+    # APP_REGISTRY is not used because its terminaology is sligtly different.
     apps_by_type: dict[str, int] = {
         "customapp": 0,
         "dashapp": 0,
@@ -33,13 +46,13 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         "tissuumapsapp": 0,
     }
 
-    def get_stats(self, request):
+    def get_stats(self, request: Request) -> Any:
         logger.info("Open API resource content-stats called")
 
-        stats = {}
+        stats: dict[str, Any] = {}
 
-        success = True
-        success_msg = None
+        success: bool = True
+        success_msg: str | None = None
 
         # Set to default values
         n_default: int = -1
@@ -48,11 +61,11 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         n_users = n_default
         n_apps = n_default
 
-        new_users_by_year: list = []
+        new_users_by_year: dict[int, int] = {}
 
-        users_by_univ: list = []
+        users_by_univ: dict[str, int] = {}
 
-        apps_by_image_registry: dict = {
+        apps_by_image_registry: dict[str, int] = {
             "dockerhub": 0,
             "ghcr": 0,
         }
@@ -67,11 +80,33 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
 
         # Users
         try:
-            n_users = User.objects.filter(is_active=True).count()
+            users = User.objects.filter(is_active=True).filter(is_superuser=False)
+
+            n_users = users.count()
+
+            # Get a list of years that users joined
+            # and group by year and convert to dict
+            user_dates = list(users.values_list("date_joined", flat=True).order_by("date_joined"))
+            user_years = [dt.year for dt in user_dates]
+            new_users_by_year = dict(Counter(user_years))
         except Exception as e:
             success = False
-            success_msg = _append_status_msg(success_msg, "Error setting number of users (n_users).")
-            logger.warning(f"Unable to get the number of active users: {e}", exc_info=True)
+            success_msg = _append_status_msg(
+                success_msg, "Error setting user information (n_users or new_users_by_year)."
+            )
+            logger.warning(f"Unable to get user information: {e}", exc_info=True)
+
+        # User affiliation from UserProfile
+        try:
+            user_profiles = UserProfile.objects.filter(user__is_active=True).filter(user__is_superuser=False)
+            user_affiliation = list(user_profiles.values_list("affiliation", flat=True).order_by("affiliation"))
+            users_by_univ = dict(Counter(user_affiliation))
+        except Exception as e:
+            success = False
+            success_msg = _append_status_msg(
+                success_msg, "Error setting user information (n_users or new_users_by_year)."
+            )
+            logger.warning(f"Unable to get user information: {e}", exc_info=True)
 
         # Apps
         # Since we loop over apps to retrieve image registry info,
@@ -109,6 +144,9 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         stats["stats_date_utz"] = datetime.now(timezone.utc)
         stats["stats_success"] = success
         stats["stats_message"] = success_msg
+        stats[
+            "stats_notes"
+        ] = "The number of users (n_users) in 2023 is the number of all active users registered in 2023 or earlier."
 
         # Add content-specific elements
         stats["n_projects"] = n_projects
@@ -118,21 +156,6 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         stats["new_users_by_year"] = new_users_by_year
         stats["users_by_university"] = users_by_univ
         stats["apps_by_image_registry"] = apps_by_image_registry
-
-        # Apps
-        """
-        app = apps[0]
-        stats["app1_name"] = app.name
-        stats["app1_chart"] = app.app.chart
-        stats["app1_app_name"] = app.app.name
-        stats["app1_app_category.slug"] = app.app.category.slug
-        stats["app1_app_slug"] = app.app.slug
-
-        model_class = apps.model
-        fields = model_class._meta.get_fields()
-        column_names = [field.name for field in fields]
-        stats["apps_fields"] = column_names
-        """
 
         data = {"data": stats}
 
@@ -147,7 +170,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
             ContentStatsAPI.apps_by_type[app_type] = 1
 
 
-def _append_status_msg(status_msg: str, new_msg: str) -> str:
+def _append_status_msg(status_msg: str | None, new_msg: str) -> str:
     """Simple helper function to format status messages."""
     if status_msg is None:
         return new_msg
