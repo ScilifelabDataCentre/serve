@@ -120,12 +120,21 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
                     n_apps += 1
 
                     # Collect app image registry information
-                    if app.chart is None:
-                        raise Exception("This app has no chart")
-                    elif "ghcr.io" in app.chart:
-                        apps_by_image_registry["ghcr"] += 1
+                    image = None
+                    if app.k8s_values is not None and "appconfig" in app.k8s_values:
+                        app_config = app.k8s_values["appconfig"]
+                        if "image" in app_config and app_config["image"] is not None:
+                            image = app_config["image"]
+
+                    if image is None:
+                        logger.info(
+                            "An app is missing image information so it was skipped from the image registry counts."
+                        )
                     else:
-                        apps_by_image_registry["dockerhub"] += 1
+                        if "ghcr.io" in image:
+                            apps_by_image_registry["ghcr"] += 1
+                        else:
+                            apps_by_image_registry["dockerhub"] += 1
 
                     # Collect app type information
                     if "shiny" in app.app.slug:
