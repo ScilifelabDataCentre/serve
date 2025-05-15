@@ -76,7 +76,7 @@ describe("Test deploying app", () => {
                     .should('contain', expected_permission);
             }
 
-            
+
             // Verify data-k8s-app-status if specified
             if (expected_data_k8s_app_status != "") {
                 cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
@@ -190,7 +190,7 @@ describe("Test deploying app", () => {
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was created
-            verifyAppStatus(app_name_project, "Running", "Running", "Running", "project")
+            verifyAppStatus(app_name_project, "Running", "", "Running", "project")
             // check that the default URL subpath was created
             cy.contains('a', app_name_project)
                   .should('have.attr', 'href')
@@ -200,7 +200,7 @@ describe("Test deploying app", () => {
             // Verify heading with correct text and encoding
             cy.get('h3').should('contain', 'Public Applications & Models');
             cy.contains('h5.card-title', app_name_project).should('not.exist')
-        
+
             // Verify empty state when no apps exist
             // cy.get('.tag-list').should('be.empty');
             cy.contains('h5.card-title', app_name_project).should('not.exist');
@@ -214,11 +214,11 @@ describe("Test deploying app", () => {
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#submit-id-submit').contains('Submit').click()
-            verifyAppStatus(app_name_project, "Running", "Running", "Running", "public")
+            verifyAppStatus(app_name_project, "Running", "", "Running", "public")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-                verifyAppStatus(app_name_project,  "Running", "Running", "Running", "public")
+                verifyAppStatus(app_name_project,  "Running", "", "Running", "public")
             })
 
             cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
@@ -232,7 +232,7 @@ describe("Test deploying app", () => {
             cy.logf("Now creating a public app", Cypress.currentTest)
             // cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
-           
+
             cy.get('#id_name').type(app_name_public)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -245,11 +245,11 @@ describe("Test deploying app", () => {
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
 
-            verifyAppStatus(app_name_public,  "Running", "Running", "Running", "public")
+            verifyAppStatus(app_name_public,  "Running", "", "Running", "public")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public,  "Running", "Running", "Running", "public")
+              verifyAppStatus(app_name_public,  "Running", "", "Running", "public")
             })
 
             // check that the default URL subpath was created
@@ -315,11 +315,11 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
 
             // NB: it will get status "Running" but it won't work because the new port is incorrect
-            verifyAppStatus(app_name_public_2,  "Running", "Running", "Running", "link")
+            verifyAppStatus(app_name_public_2,  "Running", "", "Running", "link")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public_2,  "Running", "Running", "Running", "link")
+              verifyAppStatus(app_name_public_2,  "Running", "", "Running", "link")
             })
 
             // check that the default URL subpath was changed
