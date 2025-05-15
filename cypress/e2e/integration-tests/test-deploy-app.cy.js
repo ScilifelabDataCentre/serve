@@ -22,6 +22,7 @@ describe("Test deploying app", () => {
     // Function to verify the displayed app status permission level
     // Function to verify the displayed app status and permission level
     // TODO: add expected_k8s_app_status from data-k8s-app-status
+    /*
     const verifyAppStatus = (
         app_name,
         expected_status,
@@ -33,13 +34,56 @@ describe("Test deploying app", () => {
 
         if (expected_latest_user_action != "") {
             cy.get('tr:contains("' + app_name + '")').find('span').should('have.attr', 'data-app-action', expected_latest_user_action)
-        }
+         }
 
         // The permission level span elment has id with format: permission-283
         if (expected_permission != "") {
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', expected_permission)
         }
     };
+    */
+   const verifyAppStatus = (
+    app_name,
+    expected_status,
+    expected_latest_user_action,
+    expected_data_k8s_app_status,
+    expected_permission
+) => {
+    // Find the application row with timeout
+    cy.contains('a', app_name, { timeout: longCmdTimeoutMs })
+        .closest('tr')
+        .within(() => {
+            // Verify application status with explicit timeout
+            //cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+            //    .should('contain', expected_status)
+            //    .and('have.attr', 'title', expected_status);
+
+            // Verify latest user action if specified
+            if (expected_status != "") {
+                cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+                    .should('have.attr', 'title', expected_status);
+            }
+
+            // Verify latest user action if specified
+            if (expected_latest_user_action != "") {
+                cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+                    .should('have.attr', 'data-app-action', expected_latest_user_action);
+            }
+
+            // Verify permission level if specified
+            if (expected_permission != "") {
+                cy.get('[data-cy="app-permission"]', { timeout: longCmdTimeoutMs })
+                    .should('contain', expected_permission);
+            }
+
+            
+            // Verify data-k8s-app-status if specified
+            if (expected_data_k8s_app_status != "") {
+                cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+                    .should('have.attr', 'data-k8s-app-status', expected_data_k8s_app_status);
+            }
+        });
+};
 
     // user: e2e_tests_deploy_app_user
     let users
@@ -103,7 +147,7 @@ describe("Test deploying app", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it.only("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name_project = "e2e-custom-example-project"
@@ -133,7 +177,8 @@ describe("Test deploying app", () => {
 
             // Create an app with project permissions
             cy.logf("Now creating a project app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            // cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
@@ -145,15 +190,20 @@ describe("Test deploying app", () => {
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was created
-            verifyAppStatus(app_name_project, "Running", "project")
+            verifyAppStatus(app_name_project, "Running", "Running", "Running", "project")
             // check that the default URL subpath was created
             cy.contains('a', app_name_project)
                   .should('have.attr', 'href')
                   .and('include', default_url_subpath);
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get('h3').should('contain', 'Public applications and models')
+            // Verify heading with correct text and encoding
+            cy.get('h3').should('contain', 'Public Applications & Models');
             cy.contains('h5.card-title', app_name_project).should('not.exist')
+        
+            // Verify empty state when no apps exist
+            // cy.get('.tag-list').should('be.empty');
+            cy.contains('h5.card-title', app_name_project).should('not.exist');
 
             // make this app public as an update and check that it works
             cy.logf("Now making the project app public", Cypress.currentTest)
@@ -164,22 +214,25 @@ describe("Test deploying app", () => {
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#submit-id-submit').contains('Submit').click()
-            verifyAppStatus(app_name_project, "Running", "public")
+            verifyAppStatus(app_name_project, "Running", "Running", "Running", "public")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-                verifyAppStatus(app_name_project, "Running", "public")
+                verifyAppStatus(app_name_project,  "Running", "Running", "Running", "public")
             })
 
             cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
             cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name_project, "Deleted", "")
+            //Not visible anymore, not possible to catch it
+            //verifyAppStatus(app_name_project, "Deleted", "")
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.logf("Now creating a public app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            // cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+           
             cy.get('#id_name').type(app_name_public)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -192,11 +245,11 @@ describe("Test deploying app", () => {
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
 
-            verifyAppStatus(app_name_public, "Running", "public")
+            verifyAppStatus(app_name_public,  "Running", "Running", "Running", "public")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public, "Running", "public")
+              verifyAppStatus(app_name_public,  "Running", "Running", "Running", "public")
             })
 
             // check that the default URL subpath was created
@@ -262,11 +315,11 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
 
             // NB: it will get status "Running" but it won't work because the new port is incorrect
-            verifyAppStatus(app_name_public_2, "Running", "link")
+            verifyAppStatus(app_name_public_2,  "Running", "Running", "Running", "link")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public_2, "Running", "link")
+              verifyAppStatus(app_name_public_2,  "Running", "Running", "Running", "link")
             })
 
             // check that the default URL subpath was changed
@@ -305,12 +358,14 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_public_2 + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name_public_2, "Deleted", "")
+            // can not select it, not there
+            // verifyAppStatus(app_name_public_2, "Deleted", "")
 
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            // Verify heading with correct text and encoding
+            cy.get('h3').should('contain', 'Public Applications & Models');
             cy.contains('h5.card-title', app_name_public_2).should('not.exist')
 
         } else {
@@ -391,7 +446,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    it.only("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Simple test to create and delete a Dash app
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
