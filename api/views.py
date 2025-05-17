@@ -1,6 +1,7 @@
 import json
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pytz
 import requests
@@ -1033,3 +1034,170 @@ def container_image_search(request):
     docker_images = fetch_docker_hub_images_and_tags(query)
 
     return JsonResponse({"images": docker_images})
+
+
+# TODO: Consider adding and using a new permission class here for static auth tokens
+@api_view(["GET"])
+@permission_classes(())
+def get_content_review(request: HttpRequest) -> HttpResponse:
+    """
+    Implementation of the API method at endpoint /api/content-review/
+    Supports the GET verb.
+
+    The service contract for the GET action is as follows:
+    :param str token: A static token for access of the API resource.
+    :param int from_hours: The number of hours to fetch data for. Default is 48 hours.
+    :returns: An http status code and dict containing the internal content review data.
+
+    The top-level elements nested under data include:
+    - stats_date_utz
+    - stats_from_hours
+    - stats_success
+    - stats_message
+    - n_recent_active_users
+    - n_recent_inactive_users
+    - n_recent_projects
+    - n_recent_apps
+    - n_apps_link
+    - n_apps_not_running
+    - n_apps_status_error
+    - n_apps_suspect_status
+
+    Example request: /api/content-review/?token=<token>&from_hours=168
+    """
+
+    token: str = request.GET.get("token")
+    if token is None:
+        return JsonResponse({"error": "Unauthorized. The token parameter is required"}, status=401)
+
+    if not validate_static_token(token):
+        return JsonResponse({"error": "Unauthorized. The token is incorrect."}, status=401)
+
+    try:
+        from_hours: int = request.GET.get("from_hours")
+        if from_hours is None:
+            from_hours = 48
+
+        from_hours = int(from_hours)
+        time_threshold: datetime = datetime.now(timezone.utc) - timedelta(hours=from_hours)
+    except Exception:
+        return JsonResponse({"error": "The input token_hours in invalid."}, status=403)
+
+    stats: dict[str, Any] = {}
+
+    success: bool = True
+    success_msg: str | None = None
+
+    # Set to default values
+    n_default: int = -1
+
+    n_recent_projects = n_default
+    n_recent_active_users = n_default
+    n_recent_inactive_users = n_default
+    n_recent_apps = n_default
+    n_apps_link = n_default
+    n_apps_not_running = n_default
+    # n_apps_suspect_status = n_default
+    # n_apps_status_error = n_default
+
+    # Recently registered users
+    try:
+        n_recent_active_users = (
+            User.objects.filter(is_active=True)
+            .filter(is_superuser=False)
+            .filter(date_joined__gte=time_threshold)
+            .count()
+        )
+
+        n_recent_inactive_users = (
+            User.objects.filter(is_active=False)
+            .filter(is_superuser=False)
+            .filter(date_joined__gte=time_threshold)
+            .count()
+        )
+    except Exception as e:
+        success = False
+        success_msg = _append_status_msg(success_msg, "Error setting number of recent users (n_recent_users).")
+        logger.warning(f"Unable to get the number of recent users: {e}", exc_info=True)
+
+    # Recently created projects
+    try:
+        n_recent_projects = (
+            Project.objects.filter(status="active").filter(created_at__gte=time_threshold).distinct("pk").count()
+        )
+    except Exception as e:
+        success = False
+        success_msg = _append_status_msg(success_msg, "Error setting number of recent projects (n_recent_projects).")
+        logger.warning(f"Unable to get the number of recent projects: {e}", exc_info=True)
+
+    # Apps
+    # We loop over the apps queryset to capture all app-related information.
+    try:
+        # Recently created user apps
+        apps = BaseAppInstance.objects.get_app_instances_not_deleted()
+
+        n_recent_apps = 0
+        n_apps_link = 0
+        n_apps_not_running = 0
+        # n_apps_suspect_status = 0
+        # n_apps_status_error = 0
+
+        for app in apps:
+            if app.app.category.slug == "serve":
+                # We are only interested in category Serve
+                if app.created_on > time_threshold:
+                    n_recent_apps += 1
+
+                # User apps with link only access
+                access = getattr(app, "access", None)
+                if access == "link":
+                    n_apps_link += 1
+
+                # Non-running user apps
+                if app.atn_app_status != "Running":
+                    n_apps_not_running += 1
+
+                # n_apps_status_error
+
+                # Suspect user app status
+                # TODO: Consider implementing. Could possible use k8s_user_app_status
+                # if app.atn_app_status in ""
+                # n_apps_suspect_status
+
+    except Exception as e:
+        success = False
+        success_msg = _append_status_msg(success_msg, f"Error setting app information. {e}")
+        logger.warning(f"Unable to get the app information: {e}", exc_info=True)
+
+    # Add the generic top-level elements
+    stats["stats_date_utz"] = datetime.now(timezone.utc)
+    stats["stats_from_hours"] = from_hours
+    stats["stats_success"] = success
+    stats["stats_message"] = success_msg
+
+    # Add content-specific elements
+    stats["n_recent_active_users"] = n_recent_active_users
+    stats["n_recent_inactive_users"] = n_recent_inactive_users
+    stats["n_recent_projects"] = n_recent_projects
+
+    stats["n_recent_apps"] = n_recent_apps
+    stats["n_apps_link"] = n_apps_link
+    stats["n_apps_not_running"] = n_apps_not_running
+    # stats["n_apps_status_error"] = n_apps_status_error
+
+    data = {"data": stats}
+
+    return JsonResponse(data)
+
+
+def validate_static_token(token: str) -> bool:
+    # TODO: This token will be made dynamic in the future
+    return token == "T7?fK9!pL2$vN4!"
+
+
+def _append_status_msg(status_msg: str | None, new_msg: str) -> str:
+    """Simple helper function to format status messages."""
+    if status_msg is None:
+        return new_msg
+    else:
+        return f"{status_msg} {new_msg}"
