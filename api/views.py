@@ -1054,14 +1054,8 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
     - stats_from_hours
     - stats_success
     - stats_message
-    - n_recent_active_users
-    - n_recent_inactive_users
-    - n_recent_projects
-    - n_recent_apps
-    - n_apps_link
-    - n_apps_not_running
-    - n_apps_status_error
-    - n_apps_suspect_status
+    - several elements for recent users, projects and apps
+    - several elements for link-only apps, non-running apps, errors apps
 
     Example request: /api/content-review/?token=<token>&from_hours=168
     """
@@ -1097,8 +1091,8 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
     n_recent_apps = n_default
     n_apps_link = n_default
     n_apps_not_running = n_default
-    # n_apps_suspect_status = n_default
-    # n_apps_status_error = n_default
+    n_apps_status_error = n_default
+    n_apps_suspect_status = n_default
 
     # Recently registered users
     try:
@@ -1138,9 +1132,13 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
 
         n_recent_apps = 0
         n_apps_link = 0
+        apps_link = []
         n_apps_not_running = 0
-        # n_apps_suspect_status = 0
-        # n_apps_status_error = 0
+        apps_not_running = []
+        n_apps_status_error = 0
+        apps_status_error = []
+        n_apps_suspect_status = 0
+        apps_suspect_status = []
 
         for app in apps:
             if app.app.category.slug == "serve":
@@ -1149,20 +1147,39 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
                     n_recent_apps += 1
 
                 # User apps with link only access
-                access = getattr(app, "access", None)
-                if access == "link":
-                    n_apps_link += 1
+                if app.k8s_values is not None and "permission" in app.k8s_values:
+                    if app.k8s_values["permission"] == "link":
+                        n_apps_link += 1
+                        apps_link.append(app.name[:6])
 
                 # Non-running user apps
                 if app.atn_app_status != "Running":
                     n_apps_not_running += 1
+                    apps_not_running.append(app.name[:6])
 
-                # n_apps_status_error
+                if app.atn_app_status.startswith("Error"):
+                    n_apps_status_error += 1
+                    apps_status_error.append(app.name[:6])
 
                 # Suspect user app status
-                # TODO: Consider implementing. Could possible use k8s_user_app_status
-                # if app.atn_app_status in ""
-                # n_apps_suspect_status
+                # Defined by if latest user action is either Creating or Changing
+                # but the k8s status is missing or Running and the app is older than
+                # 5 minutes (to account for deployments in progress)
+                if (
+                    app.latest_user_action in ["Creating", "Changing"]
+                    and (app.k8s_user_app_status is None or app.k8s_user_app_status.status != "Running")
+                    and app.created_on < datetime.now(timezone.utc) - timedelta(minutes=5)
+                ):
+                    n_apps_suspect_status += 1
+                    k8s_status = None if app.k8s_user_app_status is None else app.k8s_user_app_status.status
+                    apps_suspect_status.append(
+                        {
+                            "name": app.name[:6],
+                            "action": app.latest_user_action,
+                            "k8s_status": k8s_status,
+                            "created": app.created_on,
+                        }
+                    )
 
     except Exception as e:
         success = False
@@ -1182,8 +1199,13 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
 
     stats["n_recent_apps"] = n_recent_apps
     stats["n_apps_link"] = n_apps_link
+    stats["apps_link"] = apps_link
     stats["n_apps_not_running"] = n_apps_not_running
-    # stats["n_apps_status_error"] = n_apps_status_error
+    stats["apps_not_running"] = apps_not_running
+    stats["n_apps_status_error"] = n_apps_status_error
+    stats["apps_status_error"] = apps_status_error
+    stats["n_apps_suspect_status"] = n_apps_suspect_status
+    stats["apps_suspect_status"] = apps_suspect_status
 
     data = {"data": stats}
 

@@ -1,6 +1,5 @@
 import json
 import os
-import unittest
 from datetime import datetime
 from unittest.mock import patch
 
@@ -41,12 +40,12 @@ class ApiTests(APITestCase):
         cls.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
         # Create a project
         cls.project = Project.objects.create_project(name="test-perm", owner=cls.user, description="")
-        # Create a public app with status ImagePullBackOff
+        # Create a public app with status Error (k8s status CrashLoopBackOff)
         cls.category = AppCategories.objects.create(name="Serve", priority=100, slug="serve")
         cls.app = Apps.objects.create(name="Some App", slug="customapp", category=cls.category)
 
         subdomain = Subdomain.objects.create(subdomain="test_internal")
-        k8s_user_app_status = K8sUserAppStatus.objects.create(status="ImagePullBackOff")
+        k8s_user_app_status = K8sUserAppStatus.objects.create(status="CrashLoopBackOff")
         cls.app_instance = CustomAppInstance.objects.create(
             access="link",
             owner=cls.user,
@@ -56,6 +55,7 @@ class ApiTests(APITestCase):
             project=cls.project,
             k8s_values={
                 "environment": {"pk": ""},
+                "permission": "link",
             },
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
@@ -104,6 +104,5 @@ class ApiTests(APITestCase):
         self.assertEqual(actual["n_recent_apps"], 1)
         self.assertEqual(actual["n_apps_link"], 1)
         self.assertEqual(actual["n_apps_not_running"], 1)
-        self.assertEqual(actual["n_apps_not_running"], 1)
-
-        # TODO: complete
+        self.assertEqual(actual["n_apps_status_error"], 1)
+        self.assertEqual(actual["n_apps_suspect_status"], 0)
