@@ -59,8 +59,9 @@ function PasswordEvents(password_element_name, password2_element_name, data, url
         data.password = password.value;
         $.ajax({
             url: url,
-            data: data,
-            type: "GET",
+            data: JSON.stringify(data),
+            type: "POST",
+            contentType: "application/json; charset=utf-8",
             dataType: "json",
             success: (data) => {
               var el = document.querySelector(".PasswordMatch")
@@ -78,8 +79,9 @@ function PasswordEvents(password_element_name, password2_element_name, data, url
         data.password = password.value;
         $.ajax({
           url: url,
-          data: data,
-          type: "GET",
+          data: JSON.stringify(data),
+          type: "POST",
+          contentType: "application/json; charset=utf-8",
           dataType: "json",
           success: (data) => {
             var el = document.querySelector(".PasswordMatch")
