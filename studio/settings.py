@@ -245,6 +245,9 @@ AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
 AXES_DISABLE_ACCESS_LOG = True
 # The custom view template to display on locked out event
 AXES_LOCKOUT_TEMPLATE = "registration/locked_out.html"
+# Configure AXES to use the real user client IP considering reverse proxy deployments
+AXES_IPWARE_PROXY_COUNT = None  # Number of reverse proxies in front of Django (None or 1)
+AXES_IPWARE_META_PRECEDENCE_ORDER = ["HTTP_X_FORWARDED_FOR", "HTTP_X_REAL_IP", "REMOTE_ADDR"]
 
 # Django guardian 403 templates
 GUARDIAN_RENDER_403 = True
