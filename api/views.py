@@ -1075,7 +1075,7 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
         from_hours = int(from_hours)
         time_threshold: datetime = datetime.now(timezone.utc) - timedelta(hours=from_hours)
     except Exception:
-        return JsonResponse({"error": "The input token_hours in invalid."}, status=403)
+        return JsonResponse({"error": "The input from_hours in invalid."}, status=403)
 
     stats: dict[str, Any] = {}
 
