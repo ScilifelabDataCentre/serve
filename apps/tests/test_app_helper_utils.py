@@ -7,7 +7,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from common.management.manage_test_data import TestDataManager
+from common.tests.manage_test_data import TestDataManager
 from projects.models import Flavor, Project
 
 from ..app_registry import APP_REGISTRY
