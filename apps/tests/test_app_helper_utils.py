@@ -437,7 +437,6 @@ def test_schema_org_description():
     )
 
     schema_description = generate_schema_org_description(app_instance)
-    print(schema_description)
     schema_dict = json.loads(schema_description)
 
     # Check 'hasPart' entries

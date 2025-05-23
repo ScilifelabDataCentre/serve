@@ -587,24 +587,25 @@ def generate_schema_org_description(app_instance: BaseAppInstance) -> str:
         {"k8s_values": app_instance.k8s_values or {}, "info": app_instance.info or {}, "url": app_instance.url or {}}
     )
 
-    # Helper function to safely get nested values
-    def get_nested(data, *keys, default=None):
-        for key in keys:
-            try:
-                data = data[key]
-            except (KeyError, TypeError):
-                return default
-        return data
-
     # Build software requirements safely
     software_requirements = {}
     if app_data["k8s_values"]:
-        requests = get_nested(app_data["k8s_values"], "flavor", "requests", default={})
-        software_requirements = {
-            "cpu": requests.get("cpu"),
-            "memory": requests.get("memory"),
-            "storage": requests.get("ephemeral-storage"),
-        }
+        requests = requests = app_data["k8s_values"].get("flavor", {}).get("requests", {})
+        limits = app_data["k8s_values"].get("flavor", {}).get("limits", {})
+
+        # Resource mapping: (schema_field_name, k8s_field_name)
+        resource_mapping = [
+            ("cpu", "cpu"),
+            ("gpu", "nvidia.com/gpu"),
+            ("memory", "memory"),
+            ("storage", "ephemeral-storage"),
+        ]
+
+        for field_name, k8s_name in resource_mapping:
+            if requests.get(k8s_name):
+                software_requirements[f"{field_name}Request"] = requests[k8s_name]
+            if limits.get(k8s_name):
+                software_requirements[f"{field_name}Limit"] = limits[k8s_name]
 
     schema = {
         "@context": "https://schema.org",
@@ -661,4 +662,8 @@ def generate_schema_org_description(app_instance: BaseAppInstance) -> str:
             return [clean_nulls(elem) for elem in obj if elem is not None]
         return obj
 
-    return json.dumps(clean_nulls(schema), indent=2)
+    schema_json = json.dumps(clean_nulls(schema), indent=2)
+
+    logger.info(f"Generated schema.org description of app '{app_data.get('name')}' as follows:\n{schema_json}")
+
+    return schema_json
