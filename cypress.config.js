@@ -10,12 +10,14 @@ module.exports = defineConfig({
   },
 
   e2e: {
+    // switch to serve-dev base url to execute the integration tests on dev
     baseUrl: 'http://studio.127.0.0.1.nip.io:8080',
-    //baseUrl: 'https://serve-dev.scilifelab.se',
+    // baseUrl: 'https://serve-dev.scilifelab.se',
 
     // Exclude the integration tests from CI
+    // Remove it to execute it on dev
     excludeSpecPattern: [
-        "cypress/e2e/ui-tests/*"
+        "cypress/e2e/integration-tests/*"
     ],
 
     setupNodeEvents(on, config) {
