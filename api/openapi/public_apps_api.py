@@ -51,24 +51,35 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
                 # Note: It is not possible to use BaseAppInstance.objects.get_app_instances_not_deleted here
                 # This is the reason for looping over model_class instead
                 if hasattr(model_class, "description") and hasattr(model_class, "access"):
-                    queryset = model_class.objects.filter(access="public").values(
-                        "id",
-                        "name",
-                        "app_id",
-                        "url",
-                        "description",
-                        "created_on",
-                        "updated_on",
-                        "latest_user_action",
-                        "k8s_user_app_status",
+                    queryset = (
+                        model_class.objects.filter(access="public")
+                        .select_related("k8s_user_app_status")
+                        .values(
+                            "id",
+                            "name",
+                            "app_id",
+                            "url",
+                            "description",
+                            "created_on",
+                            "updated_on",
+                            "latest_user_action",
+                            "k8s_user_app_status",
+                            "k8s_user_app_status__status",
+                        )
                     )
+
                     # Using a dictionary to avoid duplicates for shiny apps
                     for item in queryset:
-                        # Do not include deleted apps
+                        # k8s_user_app_status must be the string text version, not id
+                        item["k8s_user_app_status"] = item.get("k8s_user_app_status__status")
+                        del item["k8s_user_app_status__status"]
+
                         app_status = BaseAppInstance.convert_to_app_status(
                             item.get("latest_user_action"),
                             item.get("k8s_user_app_status"),
                         )
+
+                        # Do not include deleted apps
                         if app_status != "Deleted":
                             item["app_status"] = app_status
                             list_apps_dict[item["id"]] = item
@@ -76,15 +87,13 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
                 # Order the combined list by "created_on"
                 list_apps = sorted(list_apps_dict.values(), key=lambda x: x["created_on"], reverse=True)
 
-                # Truncate to limit
+                # Truncate to limit (after sorting is done)
                 if limit is not None and limit > 0:
                     # This list is small enough that slicing is performant
                     list_apps = list_apps[:limit]
 
             for app in list_apps:
                 assert app["app_status"] != "Deleted"
-
-                app["k8s_user_app_status"] = K8sUserAppStatus.objects.get(id=app["k8s_user_app_status"]).status
 
                 app["app_type"] = Apps.objects.get(id=app["app_id"]).name
 
@@ -106,8 +115,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         This endpoint retrieves a single public app instance.
         :returns dict: A dict of app information.
         """
-        logger.info("PublicAppsAPI. Entered retrieve method with pk = %s", pk)
-        logger.info("Requested API version %s", self.request.version)
+        logger.info("PublicAppsAPI. Entered retrieve method. Requested API version %s", request.version)
 
         model_class = APP_REGISTRY.get_orm_model(app_slug)
 
@@ -142,7 +150,9 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
 
         app_status = BaseAppInstance.convert_to_app_status(
             app_instance.get("latest_user_action"),
-            app_instance.get("k8s_user_app_status"),
+            # app_instance.get("k8s_user_app_status"),
+            # TODO: fix
+            "Running",
         )
 
         if app_status == "Deleted":
