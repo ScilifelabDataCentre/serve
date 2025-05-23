@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     "guardian",
     "crispy_forms",
     "crispy_bootstrap5",
+    "waffle",
     "common",
     "portal",
     "projects",
@@ -116,6 +117,7 @@ MIDDLEWARE = (
         "axes.middleware.AxesMiddleware",
         "studio.middleware.ExceptionLoggingMiddleware",
         "django_htmx.middleware.HtmxMiddleware",
+        "waffle.middleware.WaffleMiddleware",
     ]
     + DJANGO_WIKI_MIDDLEWARE
     + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])

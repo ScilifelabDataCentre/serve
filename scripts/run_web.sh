@@ -18,6 +18,9 @@ if $INIT; then
     python manage.py makemigrations
     python manage.py migrate
 
+    python manage.py migrate waffle
+    python manage.py waffle_flag enable_depictio --create --everyone
+
     #Replace storageclass in project template fixture
     sed -i "s/microk8s-hostpath/$STUDIO_STORAGECLASS/g" ./fixtures/projects_templates.json
 

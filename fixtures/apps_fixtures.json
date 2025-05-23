@@ -56,24 +56,6 @@
   },
   {
     "fields": {
-      "category": "develop",
-      "chart": "/app/fixtures/depictio-0.1.0",
-      "created_on": "2025-04-28T10:25:37.815Z",
-      "description": "",
-      "name": "Depictio",
-      "slug": "depictio",
-      "logo": "depictio-logo.png",
-      "priority": "400",
-      "table_field": {
-        "url": "https://{{ release }}.{{ global.domain }}"
-      },
-      "updated_on": "2025-04-28T10:25:37.815Z"
-    },
-    "model": "apps.apps",
-    "pk": 40
-  },
-  {
-    "fields": {
       "category": "serve",
       "chart": "apps/tensorflow-serve/chart",
       "created_on": "2021-02-19T21:34:37.815Z",
@@ -442,5 +424,23 @@
     },
     "model": "apps.apps",
     "pk": 35
+  },
+  {
+    "fields": {
+      "category": "serve",
+      "chart": "/app/fixtures/depictio-0.0.4",
+      "created_on": "2025-04-28T10:25:37.815Z",
+      "description": "",
+      "name": "Depictio",
+      "slug": "depictio",
+      "logo": "depictio-logo.png",
+      "priority": "400",
+      "table_field": {
+        "url": "https://{{ release }}.{{ global.domain }}"
+      },
+      "updated_on": "2025-04-28T10:25:37.815Z"
+    },
+    "model": "apps.apps",
+    "pk": 40
   }
 ]

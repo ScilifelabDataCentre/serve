@@ -9,7 +9,7 @@ class DepictioAppManager(AppInstanceManager):
 
 class DepictioInstance(BaseAppInstance, SocialMixin):
     objects = DepictioAppManager()
-    ACCESS_TYPES = (("project", "Project"),)
+    ACCESS_TYPES = (("public", "Public"),)
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
 
     def __init__(self, *args, **kwargs):
@@ -17,6 +17,33 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
+        k8s_values["commonLabels"] = {
+            "release": self.subdomain.subdomain,
+            "app": "depictio",
+            "project": self.project.slug,
+        }
+        k8s_values["tracking"] = {
+            "ingress": {
+                "enabled": True,
+                "ingressClassName": "nginx",
+                "hostname": self.url.split("://")[1] if self.url is not None else self.url,
+            },
+            "podLabels": {
+                "type": "app",
+            },
+            "resources": {
+                "requests": {"cpu": "1", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+                "limits": {"cpu": "2", "memory": "2Gi", "ephemeral-storage": "2Gi"},
+            },
+            "pdb": {"create": False},
+        }
+        k8s_values["run"] = {
+            "resources": {
+                "requests": {"cpu": "1", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+                "limits": {"cpu": "2", "memory": "2Gi", "ephemeral-storage": "2Gi"},
+            }
+        }
+
         k8s_values["permission"] = str(self.access)
         return k8s_values
 
