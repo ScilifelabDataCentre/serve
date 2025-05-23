@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+import json
 import logging
 import os
 import sys
@@ -101,6 +101,7 @@ INSTALLED_APPS = [
     "axes",  # django-axes for brute force login protection
     "django_password_validators",  # django-password-validators for password validation
     "django_htmx",
+    "gmailapi_backend",
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = (
@@ -244,6 +245,9 @@ AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
 AXES_DISABLE_ACCESS_LOG = True
 # The custom view template to display on locked out event
 AXES_LOCKOUT_TEMPLATE = "registration/locked_out.html"
+# Configure AXES to use the real user client IP considering reverse proxy deployments
+AXES_IPWARE_PROXY_COUNT = None  # Number of reverse proxies in front of Django (None or 1)
+AXES_IPWARE_META_PRECEDENCE_ORDER = ["HTTP_X_FORWARDED_FOR", "HTTP_X_REAL_IP", "REMOTE_ADDR"]
 
 # Django guardian 403 templates
 GUARDIAN_RENDER_403 = True
@@ -420,15 +424,26 @@ PUBLICMODELOBJECT_MODEL = "portal.PublicModelObject"
 
 # Email
 EMAIL_BACKEND = (
-    "django.core.mail.backends.smtp.EmailBackend" if not DEBUG else "django.core.mail.backends.console.EmailBackend"
+    "gmailapi_backend.service.GmailApiBackend" if not DEBUG else "django.core.mail.backends.console.EmailBackend"
 )
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_USE_TLS = False
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL_FROM = "noreply-serve@scilifelab.se"
+GMAIL_USER = "noreply-serve@scilifelab.se"
+GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
+GOOGLE_SERVICE_ACCOUNT = json.dumps(
+    {
+        "type": os.getenv("GOOGLE_SERVICE_ACCOUNT_TYPE"),
+        "project_id": os.getenv("GOOGLE_SERVICE_ACCOUNT_PROJECT_ID"),
+        "private_key_id": os.getenv("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_ID"),
+        "private_key": os.getenv("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY", "").replace("\\n", "\n"),
+        "client_email": os.getenv("GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL"),
+        "client_id": os.getenv("GOOGLE_SERVICE_ACCOUNT_CLIENT_ID"),
+        "auth_uri": os.getenv("GOOGLE_SERVICE_ACCOUNT_AUTH_URI"),
+        "token_uri": os.getenv("GOOGLE_SERVICE_ACCOUNT_TOKEN_URI"),
+        "auth_provider_x509_cert_url": os.getenv("GOOGLE_SERVICE_ACCOUNT_AUTH_PROVIDER_X509_CERT_URL"),
+        "client_x509_cert_url": os.getenv("GOOGLE_SERVICE_ACCOUNT_CLIENT_X509_CERT_URL"),
+        "universe_domain": os.getenv("GOOGLE_SERVICE_ACCOUNT_UNIVERSE_DOMAIN"),
+    }
+)
 
 
 MIGRATION_MODULES = {

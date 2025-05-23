@@ -1,6 +1,7 @@
 import json
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pytz
 import requests
@@ -860,7 +861,7 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
     return HttpResponse(response_html)
 
 
-@api_view(["GET"])
+@api_view(["POST"])
 @permission_classes(
     (
         # IsAuthenticated,
@@ -869,32 +870,27 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
 def validate_password_request(request: HttpRequest) -> HttpResponse:
     """
     Implementation of the API method at endpoint /api/validate_password/
-    Supports the GET verb.
+    Supports the POST verb.
 
-    The service contract for the GET action is as follows:
+    The service contract for the POST action is as follows:
     :param str password: The password for validation.
     :param str email: The email of the user.
     :param str first_name: The first name of the user.
     :param str last_name: The last name of the user.
     :returns: An http status code and dict containing {"isValid": bool, "message": str,"validator_name": str}
-
-    Example request: /api/validate_password/?password=password&email=email&first_name=first_name&last_name=last_name
     """
     validator_response = []
-    user = User(
-        email=request.GET.get("email"), first_name=request.GET.get("first_name"), last_name=request.GET.get("last_name")
-    )
+    user = User(email=request.data["email"], first_name=request.data["first_name"], last_name=request.data["last_name"])
     for validator, settings_validator in zip(
         get_password_validators(settings.AUTH_PASSWORD_VALIDATORS), settings.AUTH_PASSWORD_VALIDATORS
     ):
         try:
-            validate_password(password=request.GET.get("password"), user=user, password_validators=[validator])
+            validate_password(password=request.data["password"], user=user, password_validators=[validator])
             validator_response.append(
                 {
                     "isValid": True,
                     "message": None,
                     "validator_name": settings_validator["NAME"].split(".")[-1],
-                    "password": request.GET.get("password"),
                 }
             )
         except ValidationError as e:
@@ -903,7 +899,6 @@ def validate_password_request(request: HttpRequest) -> HttpResponse:
                     "isValid": False,
                     "message": e,
                     "validator_name": settings_validator["NAME"].split(".")[-1],
-                    "password": request.GET.get("password"),
                 }
             )
     return Response(validator_response)
@@ -1033,3 +1028,192 @@ def container_image_search(request):
     docker_images = fetch_docker_hub_images_and_tags(query)
 
     return JsonResponse({"images": docker_images})
+
+
+# TODO: Consider adding and using a new permission class here for static auth tokens
+@api_view(["GET"])
+@permission_classes(())
+def get_content_review(request: HttpRequest) -> HttpResponse:
+    """
+    Implementation of the API method at endpoint /api/content-review/
+    Supports the GET verb.
+
+    The service contract for the GET action is as follows:
+    :param str token: A static token for access of the API resource.
+    :param int from_hours: The number of hours to fetch data for. Default is 48 hours.
+    :returns: An http status code and dict containing the internal content review data.
+
+    The top-level elements nested under data include:
+    - stats_date_utz
+    - stats_from_hours
+    - stats_success
+    - stats_message
+    - several elements for recent users, projects and apps
+    - several elements for link-only apps, non-running apps, errors apps
+
+    Example request: /api/content-review/?token=<token>&from_hours=168
+    """
+
+    token: str = request.GET.get("token")
+    if token is None:
+        return JsonResponse({"error": "Unauthorized. The token parameter is required"}, status=401)
+
+    if not validate_static_token(token):
+        return JsonResponse({"error": "Unauthorized. The token is incorrect."}, status=401)
+
+    try:
+        from_hours: int = request.GET.get("from_hours")
+        if from_hours is None:
+            from_hours = 48
+
+        from_hours = int(from_hours)
+        time_threshold: datetime = datetime.now(timezone.utc) - timedelta(hours=from_hours)
+    except Exception:
+        return JsonResponse({"error": "The input from_hours in invalid."}, status=403)
+
+    stats: dict[str, Any] = {}
+
+    success: bool = True
+    success_msg: str | None = None
+
+    # Set to default values
+    n_default: int = -1
+
+    n_recent_projects = n_default
+    n_recent_active_users = n_default
+    n_recent_inactive_users = n_default
+    n_recent_apps = n_default
+    n_apps_link = n_default
+    n_apps_not_running = n_default
+    n_apps_status_error = n_default
+    n_apps_suspect_status = n_default
+
+    # Recently registered users
+    try:
+        n_recent_active_users = (
+            User.objects.filter(is_active=True)
+            .filter(is_superuser=False)
+            .filter(date_joined__gte=time_threshold)
+            .count()
+        )
+
+        n_recent_inactive_users = (
+            User.objects.filter(is_active=False)
+            .filter(is_superuser=False)
+            .filter(date_joined__gte=time_threshold)
+            .count()
+        )
+    except Exception as e:
+        success = False
+        success_msg = _append_status_msg(success_msg, "Error setting number of recent users (n_recent_users).")
+        logger.warning(f"Unable to get the number of recent users: {e}", exc_info=True)
+
+    # Recently created projects
+    try:
+        n_recent_projects = (
+            Project.objects.filter(status="active").filter(created_at__gte=time_threshold).distinct("pk").count()
+        )
+    except Exception as e:
+        success = False
+        success_msg = _append_status_msg(success_msg, "Error setting number of recent projects (n_recent_projects).")
+        logger.warning(f"Unable to get the number of recent projects: {e}", exc_info=True)
+
+    # Apps
+    # We loop over the apps queryset to capture all app-related information.
+    try:
+        # Recently created user apps
+        apps = BaseAppInstance.objects.get_app_instances_not_deleted()
+
+        n_recent_apps = 0
+        n_apps_link = 0
+        apps_link = []
+        n_apps_not_running = 0
+        apps_not_running = []
+        n_apps_status_error = 0
+        apps_status_error = []
+        n_apps_suspect_status = 0
+        apps_suspect_status = []
+
+        for app in apps:
+            if app.app.category.slug == "serve":
+                # We are only interested in category Serve
+                if app.created_on > time_threshold:
+                    n_recent_apps += 1
+
+                # User apps with link only access
+                if app.k8s_values is not None and "permission" in app.k8s_values:
+                    if app.k8s_values["permission"] == "link":
+                        n_apps_link += 1
+                        apps_link.append(app.name[:6])
+
+                # Non-running user apps
+                if app.atn_app_status != "Running":
+                    n_apps_not_running += 1
+                    apps_not_running.append(app.name[:6])
+
+                if app.atn_app_status.startswith("Error"):
+                    n_apps_status_error += 1
+                    apps_status_error.append(app.name[:6])
+
+                # Suspect user app status
+                # Defined by if latest user action is either Creating or Changing
+                # but the k8s status is missing or Running and the app is older than
+                # 5 minutes (to account for deployments in progress)
+                if (
+                    app.latest_user_action in ["Creating", "Changing"]
+                    and (app.k8s_user_app_status is None or app.k8s_user_app_status.status != "Running")
+                    and app.created_on < datetime.now(timezone.utc) - timedelta(minutes=5)
+                ):
+                    n_apps_suspect_status += 1
+                    k8s_status = None if app.k8s_user_app_status is None else app.k8s_user_app_status.status
+                    apps_suspect_status.append(
+                        {
+                            "name": app.name[:6],
+                            "action": app.latest_user_action,
+                            "k8s_status": k8s_status,
+                            "created": app.created_on,
+                        }
+                    )
+
+    except Exception as e:
+        success = False
+        success_msg = _append_status_msg(success_msg, f"Error setting app information. {e}")
+        logger.warning(f"Unable to get the app information: {e}", exc_info=True)
+
+    # Add the generic top-level elements
+    stats["stats_date_utz"] = datetime.now(timezone.utc)
+    stats["stats_from_hours"] = from_hours
+    stats["stats_success"] = success
+    stats["stats_message"] = success_msg
+
+    # Add content-specific elements
+    stats["n_recent_active_users"] = n_recent_active_users
+    stats["n_recent_inactive_users"] = n_recent_inactive_users
+    stats["n_recent_projects"] = n_recent_projects
+
+    stats["n_recent_apps"] = n_recent_apps
+    stats["n_apps_link"] = n_apps_link
+    stats["apps_link"] = apps_link
+    stats["n_apps_not_running"] = n_apps_not_running
+    stats["apps_not_running"] = apps_not_running
+    stats["n_apps_status_error"] = n_apps_status_error
+    stats["apps_status_error"] = apps_status_error
+    stats["n_apps_suspect_status"] = n_apps_suspect_status
+    stats["apps_suspect_status"] = apps_suspect_status
+
+    data = {"data": stats}
+
+    return JsonResponse(data)
+
+
+def validate_static_token(token: str) -> bool:
+    # TODO: This token will be made dynamic in the future
+    return token == "T7?fK9!pL2$vN4!"
+
+
+def _append_status_msg(status_msg: str | None, new_msg: str) -> str:
+    """Simple helper function to format status messages."""
+    if status_msg is None:
+        return new_msg
+    else:
+        return f"{status_msg} {new_msg}"
