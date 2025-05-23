@@ -62,6 +62,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
                             "description",
                             "created_on",
                             "updated_on",
+                            "access",
                             "latest_user_action",
                             "k8s_user_app_status",
                             "k8s_user_app_status__status",
@@ -103,60 +104,75 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
                 # Remove misleading app_id from the final output because it only refers to the app type
                 del app["app_id"]
 
-        except Exception as err:
-            logger.error("Unable to collect a list of the public apps. %s", err)
-            return JsonResponse({"error": f"Unable to collect a list of the public apps. {err}"}, status=500)
+        except Exception as e:
+            logger.error("Unable to collect a list of the public apps. %s", e)
+            return JsonResponse({"error": f"Unable to collect a list of the public apps. {e}"}, status=500)
 
         data = {"data": list_apps}
         return JsonResponse(data)
 
-    def retrieve(self, request, app_slug=None, pk=None):
+    def retrieve(self, request: Request, pk_in: int) -> Any:
         """
         This endpoint retrieves a single public app instance.
+        :pk_in: The primary key of the public app to return.
         :returns dict: A dict of app information.
         """
         logger.info("PublicAppsAPI. Entered retrieve method. Requested API version %s", request.version)
 
+        # Handle user input parameters
+        if pk_in is None or pk_in < 1:
+            return JsonResponse({"error": "The input app id in invalid."}, status=403)
+
+        # First retrieve the app slug by id
+        app = BaseAppInstance.objects.filter(pk=pk_in).first()
+
+        if app is None:
+            raise NotFound("An app with this id does not exist.")
+
+        app_slug = app.app.slug
         model_class = APP_REGISTRY.get_orm_model(app_slug)
 
-        if model_class is None:
-            logger.error("App slug has no corresponding model class")
-            raise NotFound("Invalid app slug")
+        if not hasattr(model_class, "description") or not hasattr(model_class, "access"):
+            raise NotFound("An app with this id does not exist (incorrect type).")
 
         try:
-            queryset = model_class.objects.all().values(
-                "id",
-                "name",
-                "app_id",
-                "url",
-                "description",
-                "created_on",
-                "updated_on",
-                "access",
-                "latest_user_action",
-                "k8s_user_app_status",
+            queryset = (
+                model_class.objects.filter(pk=pk_in)
+                .filter(access="public")
+                .select_related("k8s_user_app_status")
+                .values(
+                    "id",
+                    "name",
+                    "app_id",
+                    "url",
+                    "description",
+                    "created_on",
+                    "updated_on",
+                    "access",
+                    "latest_user_action",
+                    "k8s_user_app_status",
+                    "k8s_user_app_status__status",
+                )
             )
 
-            logger.info("Queryset: %s", queryset)
-        except FieldError as e:
-            message = f"Error in field: {e}"
-            logger.error("App type is not available in public view. %s", message)
-            raise NotFound("App type is not available in public view")
+        except Exception as e:
+            logger.error("Unable to get public app. %s", e)
+            return JsonResponse({"error": f"Unable to get public app. {e}"}, status=500)
 
-        app_instance = get_object_or_404(queryset, pk=pk)
+        app_instance = get_object_or_404(queryset, pk=pk_in)
         if app_instance is None:
-            logger.error("App instance is not available")
-            raise NotFound("App instance is not available")
+            raise NotFound("A public app with the requested id does not exist.")
+
+        # k8s_user_app_status must be the string text version, not id
+        app_instance["k8s_user_app_status"] = app_instance.get("k8s_user_app_status__status")
+        del app_instance["k8s_user_app_status__status"]
 
         app_status = BaseAppInstance.convert_to_app_status(
             app_instance.get("latest_user_action"),
-            # app_instance.get("k8s_user_app_status"),
-            # TODO: fix
-            "Running",
+            app_instance.get("k8s_user_app_status"),
         )
 
         if app_status == "Deleted":
-            logger.info("This app has been deleted")
             raise NotFound("This app has been deleted")
 
         app_instance["app_status"] = app_status
@@ -171,5 +187,4 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         del app_instance["app_id"]
 
         data = {"app": app_instance}
-        logger.info("API call successful")
         return JsonResponse(data)
