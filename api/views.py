@@ -861,7 +861,7 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
     return HttpResponse(response_html)
 
 
-@api_view(["GET"])
+@api_view(["POST"])
 @permission_classes(
     (
         # IsAuthenticated,
@@ -870,32 +870,27 @@ def get_subdomain_input_html(request: HttpRequest) -> HttpResponse:
 def validate_password_request(request: HttpRequest) -> HttpResponse:
     """
     Implementation of the API method at endpoint /api/validate_password/
-    Supports the GET verb.
+    Supports the POST verb.
 
-    The service contract for the GET action is as follows:
+    The service contract for the POST action is as follows:
     :param str password: The password for validation.
     :param str email: The email of the user.
     :param str first_name: The first name of the user.
     :param str last_name: The last name of the user.
     :returns: An http status code and dict containing {"isValid": bool, "message": str,"validator_name": str}
-
-    Example request: /api/validate_password/?password=password&email=email&first_name=first_name&last_name=last_name
     """
     validator_response = []
-    user = User(
-        email=request.GET.get("email"), first_name=request.GET.get("first_name"), last_name=request.GET.get("last_name")
-    )
+    user = User(email=request.data["email"], first_name=request.data["first_name"], last_name=request.data["last_name"])
     for validator, settings_validator in zip(
         get_password_validators(settings.AUTH_PASSWORD_VALIDATORS), settings.AUTH_PASSWORD_VALIDATORS
     ):
         try:
-            validate_password(password=request.GET.get("password"), user=user, password_validators=[validator])
+            validate_password(password=request.data["password"], user=user, password_validators=[validator])
             validator_response.append(
                 {
                     "isValid": True,
                     "message": None,
                     "validator_name": settings_validator["NAME"].split(".")[-1],
-                    "password": request.GET.get("password"),
                 }
             )
         except ValidationError as e:
@@ -904,7 +899,6 @@ def validate_password_request(request: HttpRequest) -> HttpResponse:
                     "isValid": False,
                     "message": e,
                     "validator_name": settings_validator["NAME"].split(".")[-1],
-                    "password": request.GET.get("password"),
                 }
             )
     return Response(validator_response)
