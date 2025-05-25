@@ -159,13 +159,21 @@ label.required::before {
         flex-direction: row;
     }
     .display-about {
+        display: none!important;
+    }
+    .display-submit-app {
         display: none;
     }
     /* .flex-fill {
         flex: 0.5 0.5 auto !important;
     } */
 }
-
+.carousel-single-width {
+        width: 50%!important;
+}
+.carousel-display {
+        width: 50%!important;
+    }
 .carousel-off {
     display: none!important;
 }
@@ -180,11 +188,14 @@ label.required::before {
     .serve-nav {
         flex-direction: column;
     }
-    .carousel-display-none {
+    /* .carousel-display-none {
         display: none!important;
+    } */
+    .carousel-single-width {
+        width: 80%!important;
     }
     .carousel-display {
-        width: 90%!important;
+        display: none!important;
     }
     .carousel-icon-display {
         display: block!important;
