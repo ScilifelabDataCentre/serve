@@ -54,7 +54,7 @@ describe("Tests of the public pages of the website", () => {
 	    cy.get("title").should("have.text", "Home | SciLifeLab Serve (beta)")
     })
 
-    it.only("should open the App landing page on link click", () => {
+    it("should open the App landing page on link click", () => {
         //data to create a test app
         const TEST_USER = {
             "affiliation": "uu",
