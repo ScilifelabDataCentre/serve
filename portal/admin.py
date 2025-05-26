@@ -10,6 +10,8 @@ from .models import (
 
 
 class CollectionAdmin(admin.ModelAdmin):
+    search_fields = ("name", "maintainer__username")
+    list_display = ("name", "maintainer", "website")
     readonly_fields = ["connected_apps"]
 
     def connected_apps(self, obj):
@@ -20,10 +22,12 @@ class CollectionAdmin(admin.ModelAdmin):
 
 class EventsAdmin(admin.ModelAdmin):
     list_display = ("title", "start_time")
+    search_fields = ["title"]
 
 
 class NewsAdmin(admin.ModelAdmin):
     list_display = ("title", "created_on")
+    search_fields = ["title"]
 
 
 admin.site.register(Collection, CollectionAdmin)
