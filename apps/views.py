@@ -1,7 +1,9 @@
 import base64
+import json
 import subprocess
 from datetime import datetime
 
+import dateutil.parser
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -15,12 +17,13 @@ from django.views import View
 from guardian.decorators import permission_required_or_403
 
 from apps.types_.subdomain import SubdomainCandidateName
+from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
 from .constants import AppActionOrigin
-from .helpers import create_instance_from_form
+from .helpers import create_instance_from_form, generate_schema_org_description
 from .models import BaseAppInstance
 from .tasks import delete_resource
 
@@ -351,3 +354,76 @@ class SecretsView(View):
 
         context = {"mlflow_username": username, "mlflow_password": password, "mlflow_url": instance.url}
         return render(request, self.template, context)
+
+
+def app_metadata(request, project, app_slug, app_id):
+    # University mapping with consistent formatting
+    UNIVERSITY_NAMES = {
+        "bth": "Blekinge Tekniska Högskola (Blekinge Institute of Technology)",
+        "chalmers": "Chalmers tekniska högskola (Chalmers University of Technology)",
+        "du": "Högskolan Dalarna (Dalarna University)",
+        "fhs": "Försvarshögskolan (Swedish Defence University)",
+        "gih": "Gymnastik- och idrottshögskolan (Swedish School of Sport and Health Sciences)",
+        "gu": "Göteborgs universitet (University of Gothenburg)",
+        "hb": "Högskolan i Borås (University of Borås)",
+        "hh": "Högskolan i Halmstad (Halmstad University)",
+        "hhs": "Handelshögskolan i Stockholm (Stockholm School of Economics)",
+        "hig": "Högskolan i Gävle (University of Gävle)",
+        "his": "Högskolan i Skövde (University of Skövde)",
+        "hkr": "Högskolan Kristianstad (Kristianstad University)",
+        "hv": "Högskolan Väst (University West)",
+        "ju": "Högskolan i Jönköping (Jönköping University)",
+        "kau": "Karlstads universitet (Karlstad University)",
+        "ki": "Karolinska Institutet (Karolinska Institute)",
+        "kth": "Kungliga Tekniska Högskolan (Royal Institute of Technology)",
+        "liu": "Linköpings universitet (Linköping University)",
+        "lnu": "Linnéuniversitetet (Linnaeus University)",
+        "ltu": "Luleå tekniska universitet (Luleå University of Technology)",
+        "lu": "Lunds universitet (Lund University)",
+        "lth": "Lunds tekniska högskola (Faculty of Engineering, Lund University)",
+        "mau": "Malmö universitet (Malmö University)",
+        "mdu": "Mälardalens universitet (Mälardalen University)",
+        "miun": "Mittuniversitetet (Mid Sweden University)",
+        "oru": "Örebro universitet (Örebro University)",
+        "sh": "Södertörns högskola (Södertörn University)",
+        "slu": "Sveriges lantbruksuniversitet (Swedish University of Agricultural Sciences)",
+        "su": "Stockholms universitet (Stockholm University)",
+        "umu": "Umeå universitet (Umeå University)",
+        "uu": "Uppsala universitet (Uppsala University)",
+    }
+
+    # Get app model instance
+    model_class = APP_REGISTRY.get_orm_model(app_slug)
+    if not model_class:
+        logger.error(f"Missing model for slug: {app_slug}")
+        raise PermissionDenied("Application model not found")
+
+    app = model_class.objects.get(pk=app_id)
+
+    # Generate and parse schema
+    schema_dict = json.loads(generate_schema_org_description(app))
+    schema_dict["hasPart"][1]["dateJoined"] = dateutil.parser.parse(schema_dict["hasPart"][1]["dateJoined"])
+
+    # Add owner information
+    try:
+        user = User.objects.get(id=app.owner_id)
+        if user_profile := UserProfile.objects.filter(user=user).first():
+            schema_dict.update(
+                {
+                    "department": user_profile.department,
+                    "affiliation": UNIVERSITY_NAMES.get(user_profile.affiliation, user_profile.affiliation),
+                }
+            )
+    except User.DoesNotExist:
+        logger.warning(f"Missing user for app owner: {app.name}")
+
+    # Handle JSON export
+    if request.GET.get("format") == "json":
+        response = HttpResponse(
+            generate_schema_org_description(app),
+            content_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="SciLifeLab_Serve_App_{app.name}_metadata.json"'},
+        )
+        return response
+
+    return render(request, "common/app_metadata.html", {"app": app, "schema_dict": schema_dict})

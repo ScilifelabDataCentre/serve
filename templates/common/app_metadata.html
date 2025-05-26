@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">{{ app.name }}</h2>
+               <!-- <div class="badge bg-primary">Version {{ app.chart|default:"1.0.0" }}</div> -->
+
+                {% if "Serve" in app.app.name or app.app.name == "Python Model Deployment" %}
+                                <a class="btn btn-primary" onclick="copyClip('{{app.url}}')">Copy API Endpoint</a>
+                            {% else %}
+                                <a title="Launch the app" rel="Link to launch the app" href="{{ app.url }}" target="_blank" class="btn btn-primary">Launch</a>
+                            {% endif %}
+
+                                {% static 'images/logos/apps/' as static_url %}
+                                <img class="img-fluid float-end img-cover" style="height:50px;"
+                                    src="{{static_url}}{{app.app.logo}}"
+                                    alt="App Logo" title="{{app.app.name}}">
+                            </div>
+
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <!-- Left Column - Metadata Details -->
+                <div class="col-md-7">
+                    <div class="mb-4">
+                        <h3 class="border-bottom pb-2">Application</h3>
+
+                        <dl class="row">
+                            <dt class="col-sm-4">Name</dt>
+                            <dd class="col-sm-8">{{ app.name }}</dd>
+
+                            <dt class="col-sm-4">Type</dt>
+                            <dd class="col-sm-8">{{ app.app.name }}</dd>
+
+                        <dt class="col-sm-4">URL</dt>
+                            <dd class="col-sm-8">
+                                <a href="{{ app.url }}" target="_blank">
+                                    {{ app.url }}
+                                </a>
+                            </dd>
+
+                        <dt class="col-sm-4">Source Code</dt>
+                            <dd class="col-sm-8">
+                                <a href="{{ schema_dict.hasPart.0.sourceCodeURL }}" target="_blank">
+                                    {{ schema_dict.hasPart.0.sourceCodeURL }}
+                                </a>
+                            </dd>
+
+                        <dt class="col-sm-4">Image</dt>
+                            <dd class="col-sm-8">{{ app.image }}</dd>
+
+
+
+                             <dt class="col-sm-4">Created</dt>
+                            <dd class="col-sm-8">{{ app.created_on|date:"d M, Y" }}</dd>
+
+                            <dt class="col-sm-4">Updated</dt>
+                            <dd class="col-sm-8">{{ app.updated_on|date:"d M, Y" }}</dd>
+
+                            <dt class="col-sm-4">Tags</dt>
+                            <dd class="col-sm-8">{{ app.tags.all }}</dd>
+
+                             </dl>
+
+
+                        <p class="col-sm-12">{{ app.description }}</p>
+
+
+
+                    </div>
+
+                    <div class="mb-4">
+                        <h3 class="border-bottom pb-2">Software</h3>
+                        <dl class="row">
+
+                            <dt class="col-sm-4">Type</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.0.applicationCategory }}</dd>
+
+                            <dt class="col-sm-4">Operating System</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.0.operatingSystem }}</dd>
+
+                            <dt class="col-sm-4">Version</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.0.softwareVersion }}</dd>
+                        </dl>
+                    </div>
+
+                    <div class="mb-4">
+                        <h3 class="border-bottom pb-2">Resource</h3>
+                        <div class="row">
+
+                            <dt class="col-sm-4">CPU Request</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.0.softwareRequirements.cpuRequest }}</dd>
+
+                            <dt class="col-sm-4">CPU Limit</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.0.softwareRequirements.cpuLimit }}</dd>
+
+                            <dt class="col-sm-4">Memory Request</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.0.softwareRequirements.memoryRequest }}</dd>
+
+                            <dt class="col-sm-4">Memory Limit</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.0.softwareRequirements.memoryLimit }}</dd>
+
+                            <dt class="col-sm-4">Storage Request</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.0.softwareRequirements.storageRequest }}</dd>
+
+                            <dt class="col-sm-4">Storage Limit</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.0.softwareRequirements.storageLimit }}</dd>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h3 class="border-bottom pb-2">Project</h3>
+
+                        <dl class="row">
+                            <dt class="col-sm-4">Name</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.2.name }}</dd>
+
+                            <dt class="col-sm-4">Status</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.2.projectStatus }}</dd>
+
+                            <dt class="col-sm-4">Created</dt>
+                            <dd class="col-sm-8">{{ schema_dict.hasPart.1.dateJoined }} (Europe/Stockholm)</dd>
+                        </dl>
+
+                        <div class="mb-4">
+                        <p class="col-sm-12">{{ schema_dict.hasPart.2.description }}</p>
+                    </div>
+
+                    </div>
+                </div>
+
+                <div class="col-md-5 align-items-center">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Owner</h5>
+                            <div>
+                                    <div id="owner_name">{{ schema_dict.hasPart.1.name }}</div>
+                                    <div id="owner_email">{{ schema_dict.hasPart.1.email }}</div>
+                                    <div id="owner_dept">{{ schema_dict.department }}</div>
+                                    <div id="owner_aff">{{ schema_dict.affiliation }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+
+
+
+        </div>
+
+        <div class="card-footer bg-transparent">
+            <div>
+                <a href="{% url 'apps:app-metadata' app.project.slug app.app.slug app.pk %}?format=json"
+                   class="btn btn-lg btn-primary">
+                    <i class="bi bi-download me-2"></i>
+                    Download All Metadata (JSON)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
