@@ -428,7 +428,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "/app/fixtures/depictio-0.0.4",
+      "chart": "ghcr.io/depictio/depictio-helm/depictio:0.0.4",
       "created_on": "2025-04-28T10:25:37.815Z",
       "description": "",
       "name": "Depictio",
