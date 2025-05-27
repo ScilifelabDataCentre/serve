@@ -279,8 +279,22 @@ class BaseAppInstance(models.Model):
         return json.loads(serializers.serialize("json", [self]))[0]
 
     @staticmethod
-    def convert_to_app_status(latest_user_action: str, k8s_user_app_status: str) -> str:
+    def convert_to_app_status(latest_user_action: str | None, k8s_user_app_status: str | None) -> str:
         """Converts latest user action and k8s pod status to app status"""
+
+        # The arguments passed in must be the text value versions rather than
+        # the integer id repesentations. Hence these checks.
+
+        if latest_user_action is not None and not isinstance(latest_user_action, str):
+            raise TypeError(
+                f"Argument latest_user_action must be a string or None, but is {type(latest_user_action).__name__}"
+            )
+
+        if k8s_user_app_status is not None and not isinstance(k8s_user_app_status, str):
+            raise TypeError(
+                f"Argument k8s_user_app_status must be a string or None, but is {type(k8s_user_app_status).__name__}"
+            )
+
         match latest_user_action, k8s_user_app_status:
             case "Deleting", _:
                 return "Deleted"
