@@ -1,14 +1,19 @@
+import json
 from datetime import datetime
 from typing import Any, Optional
 
 import regex as re
 import requests
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
+from django.forms.models import model_to_dict
+from django.utils import timezone
 
 from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
+from projects.models import Project
 from studio.utils import get_logger
 
 from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
@@ -556,3 +561,43 @@ def validate_docker_image(image: str):
             f"Docker image '{image}' is not publicly available on Docker Hub. "
             "The URL you have entered may be incorrect, or the image might be private."
         )
+
+
+def get_university_suffix_information(university_sufffix: str) -> str:
+    """Provide University name from official suffix, ex. uu -> Uppsala universitet (Uppsala University)"""
+    # University mapping with consistent formatting
+    UNIVERSITY_NAMES = {
+        "bth": "Blekinge Tekniska Högskola (Blekinge Institute of Technology)",
+        "chalmers": "Chalmers tekniska högskola (Chalmers University of Technology)",
+        "du": "Högskolan Dalarna (Dalarna University)",
+        "fhs": "Försvarshögskolan (Swedish Defence University)",
+        "gih": "Gymnastik- och idrottshögskolan (Swedish School of Sport and Health Sciences)",
+        "gu": "Göteborgs universitet (University of Gothenburg)",
+        "hb": "Högskolan i Borås (University of Borås)",
+        "hh": "Högskolan i Halmstad (Halmstad University)",
+        "hhs": "Handelshögskolan i Stockholm (Stockholm School of Economics)",
+        "hig": "Högskolan i Gävle (University of Gävle)",
+        "his": "Högskolan i Skövde (University of Skövde)",
+        "hkr": "Högskolan Kristianstad (Kristianstad University)",
+        "hv": "Högskolan Väst (University West)",
+        "ju": "Högskolan i Jönköping (Jönköping University)",
+        "kau": "Karlstads universitet (Karlstad University)",
+        "ki": "Karolinska Institutet (Karolinska Institute)",
+        "kth": "Kungliga Tekniska Högskolan (Royal Institute of Technology)",
+        "liu": "Linköpings universitet (Linköping University)",
+        "lnu": "Linnéuniversitetet (Linnaeus University)",
+        "ltu": "Luleå tekniska universitet (Luleå University of Technology)",
+        "lu": "Lunds universitet (Lund University)",
+        "lth": "Lunds tekniska högskola (Faculty of Engineering, Lund University)",
+        "mau": "Malmö universitet (Malmö University)",
+        "mdu": "Mälardalens universitet (Mälardalen University)",
+        "miun": "Mittuniversitetet (Mid Sweden University)",
+        "oru": "Örebro universitet (Örebro University)",
+        "sh": "Södertörns högskola (Södertörn University)",
+        "slu": "Sveriges lantbruksuniversitet (Swedish University of Agricultural Sciences)",
+        "su": "Stockholms universitet (Stockholm University)",
+        "umu": "Umeå universitet (Umeå University)",
+        "uu": "Uppsala universitet (Uppsala University)",
+    }
+
+    return UNIVERSITY_NAMES.get(university_sufffix, university_sufffix)

@@ -23,7 +23,11 @@ from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
 from .constants import AppActionOrigin
-from .helpers import create_instance_from_form, generate_schema_org_description
+from .helpers import (
+    create_instance_from_form,
+    generate_schema_org_description,
+    get_university_suffix_information,
+)
 from .models import BaseAppInstance
 from .tasks import delete_resource
 
@@ -357,41 +361,6 @@ class SecretsView(View):
 
 
 def app_metadata(request, project, app_slug, app_id):
-    # University mapping with consistent formatting
-    UNIVERSITY_NAMES = {
-        "bth": "Blekinge Tekniska Högskola (Blekinge Institute of Technology)",
-        "chalmers": "Chalmers tekniska högskola (Chalmers University of Technology)",
-        "du": "Högskolan Dalarna (Dalarna University)",
-        "fhs": "Försvarshögskolan (Swedish Defence University)",
-        "gih": "Gymnastik- och idrottshögskolan (Swedish School of Sport and Health Sciences)",
-        "gu": "Göteborgs universitet (University of Gothenburg)",
-        "hb": "Högskolan i Borås (University of Borås)",
-        "hh": "Högskolan i Halmstad (Halmstad University)",
-        "hhs": "Handelshögskolan i Stockholm (Stockholm School of Economics)",
-        "hig": "Högskolan i Gävle (University of Gävle)",
-        "his": "Högskolan i Skövde (University of Skövde)",
-        "hkr": "Högskolan Kristianstad (Kristianstad University)",
-        "hv": "Högskolan Väst (University West)",
-        "ju": "Högskolan i Jönköping (Jönköping University)",
-        "kau": "Karlstads universitet (Karlstad University)",
-        "ki": "Karolinska Institutet (Karolinska Institute)",
-        "kth": "Kungliga Tekniska Högskolan (Royal Institute of Technology)",
-        "liu": "Linköpings universitet (Linköping University)",
-        "lnu": "Linnéuniversitetet (Linnaeus University)",
-        "ltu": "Luleå tekniska universitet (Luleå University of Technology)",
-        "lu": "Lunds universitet (Lund University)",
-        "lth": "Lunds tekniska högskola (Faculty of Engineering, Lund University)",
-        "mau": "Malmö universitet (Malmö University)",
-        "mdu": "Mälardalens universitet (Mälardalen University)",
-        "miun": "Mittuniversitetet (Mid Sweden University)",
-        "oru": "Örebro universitet (Örebro University)",
-        "sh": "Södertörns högskola (Södertörn University)",
-        "slu": "Sveriges lantbruksuniversitet (Swedish University of Agricultural Sciences)",
-        "su": "Stockholms universitet (Stockholm University)",
-        "umu": "Umeå universitet (Umeå University)",
-        "uu": "Uppsala universitet (Uppsala University)",
-    }
-
     # Get app model instance
     model_class = APP_REGISTRY.get_orm_model(app_slug)
     if not model_class:
@@ -411,7 +380,7 @@ def app_metadata(request, project, app_slug, app_id):
             schema_dict.update(
                 {
                     "department": user_profile.department,
-                    "affiliation": UNIVERSITY_NAMES.get(user_profile.affiliation, user_profile.affiliation),
+                    "affiliation": get_university_suffix_information(user_profile.affiliation),
                 }
             )
     except User.DoesNotExist:
