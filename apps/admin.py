@@ -299,6 +299,8 @@ class DepictioInstanceAdmin(BaseAppAdmin):
 
 
 admin.site.register(Subdomain)
+
+
 class SubdomainAdmin(admin.ModelAdmin):
     list_display = (
         "subdomain",

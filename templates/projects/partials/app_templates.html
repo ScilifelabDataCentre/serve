@@ -4,7 +4,7 @@
 
 <div class="row g-2 py-2 mx-2">
     {% for app in objs.apps %}
-    
+
     {% if app.slug == 'depictio' %}
         {% flag "enable_depictio" %}
         <!-- Depictio app card is only shown when the feature flag is enabled -->
