@@ -383,9 +383,10 @@ def app_metadata(request, project, app_slug, app_id):
                     "affiliation": get_university_suffix_information(user_profile.affiliation),
                 }
             )
-    except User.DoesNotExist:
-        logger.warning(f"Missing user for app owner: {app.name}")
-
+    except User.DoesNotExist as error:
+        logger.error(f"Missing user for app owner: {app.name}")
+        raise ValueError(f"User with id {app.owner_id} does not exist") from error
+    
     # Handle JSON export
     if request.GET.get("format") == "json":
         response = HttpResponse(
