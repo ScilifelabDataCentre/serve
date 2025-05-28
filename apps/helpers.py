@@ -569,8 +569,8 @@ def generate_schema_org_description(app_instance: BaseAppInstance) -> str:
     # Safely get related objects
     try:
         user_instance = User.objects.get(id=app_instance.owner_id)
-    except User.DoesNotExist:
-        raise ValueError(f"User with id {app_instance.owner_id} does not exist")
+    except User.DoesNotExist as error:
+        raise ValueError(f"User with id {app_instance.owner_id} does not exist") from error
 
     try:
         project_instance = Project.objects.get(id=app_instance.project_id)
