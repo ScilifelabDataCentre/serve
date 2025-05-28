@@ -177,7 +177,22 @@ class BaseAppInstance(models.Model):
         related_name="%(class)s",
         null=True,
     )
-    k8s_values = models.JSONField(blank=True, null=True)
+    k8s_values = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="k8s values for this app instance. "
+        "It's not possible to change this field directly as "
+        "it's set automatically on model save. "
+        "In order to change it, use k8s_values_override.",
+    )
+    k8s_values_override = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="Override k8s values for this app instance."
+        "This follows general logic of k8s values: "
+        "if this field is set, then first "
+        "k8s_values is used, then k8s_values_override. ",
+    )
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
@@ -264,8 +279,22 @@ class BaseAppInstance(models.Model):
         return json.loads(serializers.serialize("json", [self]))[0]
 
     @staticmethod
-    def convert_to_app_status(latest_user_action: str, k8s_user_app_status: str) -> str:
+    def convert_to_app_status(latest_user_action: str | None, k8s_user_app_status: str | None) -> str:
         """Converts latest user action and k8s pod status to app status"""
+
+        # The arguments passed in must be the text value versions rather than
+        # the integer id repesentations. Hence these checks.
+
+        if latest_user_action is not None and not isinstance(latest_user_action, str):
+            raise TypeError(
+                f"Argument latest_user_action must be a string or None, but is {type(latest_user_action).__name__}"
+            )
+
+        if k8s_user_app_status is not None and not isinstance(k8s_user_app_status, str):
+            raise TypeError(
+                f"Argument k8s_user_app_status must be a string or None, but is {type(k8s_user_app_status).__name__}"
+            )
+
         match latest_user_action, k8s_user_app_status:
             case "Deleting", _:
                 return "Deleted"

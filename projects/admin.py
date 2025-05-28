@@ -10,6 +10,7 @@ admin.site.register(BasicAuth)
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
+    search_fields = ("name", "owner__username", "project_template__name", "status")
     list_display = ("name", "owner", "status", "updated_at", "project_template")
     list_filter = ["owner", "status", "project_template"]
     actions = ["update_app_limits"]
@@ -22,11 +23,13 @@ class ProjectAdmin(admin.ModelAdmin):
 
 @admin.register(Flavor)
 class FlavorAdmin(admin.ModelAdmin):
+    search_fields = ("name", "project__name")
     list_display = ("name", "project", "updated_at")
     list_filter = ["project"]
 
 
 @admin.register(Environment)
 class EnvironmentAdmin(admin.ModelAdmin):
+    search_fields = ("name", "project__name")
     list_display = ("name", "project", "updated_at")
     list_filter = ["project"]

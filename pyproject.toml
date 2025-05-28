@@ -75,6 +75,7 @@ django-axes = {extras = ["ipware"], version = "^6.3.0"}
 django-password-validators = "^1.7.3"
 django-htmx = "^1.18.0"
 regex = "^2024.11.6"
+django-gmailapi-json-backend = "^1.10"
 
 [tool.poetry.extras]
 linters = ["black", "isort", "flake8", "mypy"]
@@ -218,3 +219,15 @@ module = [
 	"yaml.*",
 	]
 ignore_missing_imports = true
+
+[tool.coverage]
+    [tool.coverage.run]
+    omit = [
+        '*/migrations/*',
+        '*/__init__.py',
+        'tests/*',
+        '*/tests/*',
+    ]
+
+    [tool.coverage.report]
+    skip_empty = true

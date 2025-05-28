@@ -197,3 +197,17 @@ class AppInstanceStatusTestCase(TestCase):
 def test_convert_to_app_status(latest_user_action, k8s_user_app_status, expected):
     """Tests the static method BaseAppInstance.convert_to_app_status"""
     assert BaseAppInstance.convert_to_app_status(latest_user_action, k8s_user_app_status) == expected
+
+
+def test_convert_to_app_status_no_match_input():
+    assert BaseAppInstance.convert_to_app_status("no-match-value", "no-match-value") == "Unknown"
+
+
+def test_convert_to_app_status_invalid_input_param1_type_should_raise_exception():
+    with pytest.raises(TypeError):
+        BaseAppInstance.convert_to_app_status(123, "ContainerCreating")
+
+
+def test_convert_to_app_status_invalid_input_param2_type_should_raise_exception():
+    with pytest.raises(TypeError):
+        BaseAppInstance.convert_to_app_status("Creating", 123)

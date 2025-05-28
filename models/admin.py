@@ -4,6 +4,7 @@ from .models import Metadata, Model, ModelLog, ObjectType
 
 
 class ModelAdmin(admin.ModelAdmin):
+    search_fields = ("name", "project__name", "object_type__name")
     empty_value_display = "-"
     list_display = ("name", "version", "project_name", "object_type_name")
 
