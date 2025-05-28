@@ -6,6 +6,7 @@
     {% for app in objs.apps %}
 
     {% if app.slug == 'depictio' %}
+        <!-- TODO Remove flag once Depictio is stable -->
         {% flag "enable_depictio" %}
         <!-- Depictio app card is only shown when the feature flag is enabled -->
         <div class="col-12 col-sm-6 col-md-4 col-xl-3">
