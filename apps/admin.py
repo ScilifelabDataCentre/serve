@@ -293,14 +293,6 @@ class StreamlitInstanceAdmin(BaseAppAdmin):
     )
 
 
-@admin.register(DepictioInstance)
-class DepictioInstanceAdmin(BaseAppAdmin):
-    list_display = BaseAppAdmin.list_display
-
-
-admin.site.register(Subdomain)
-
-
 class SubdomainAdmin(admin.ModelAdmin):
     list_display = (
         "subdomain",
@@ -308,6 +300,11 @@ class SubdomainAdmin(admin.ModelAdmin):
     )
     search_fields = ("subdomain", "project__name")
     list_filter = ("subdomain", "project")
+
+
+@admin.register(DepictioInstance)
+class DepictioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display
 
 
 admin.site.register(Subdomain, SubdomainAdmin)

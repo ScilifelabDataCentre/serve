@@ -22,27 +22,6 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
             "app": "depictio",
             "project": self.project.slug,
         }
-        k8s_values["tracking"] = {
-            "ingress": {
-                "enabled": True,
-                "ingressClassName": "nginx",
-                "hostname": self.url.split("://")[1] if self.url is not None else self.url,
-            },
-            "podLabels": {
-                "type": "app",
-            },
-            "resources": {
-                "requests": {"cpu": "0.5", "memory": "1Gi", "ephemeral-storage": "1Gi"},
-                "limits": {"cpu": "1", "memory": "2Gi", "ephemeral-storage": "2Gi"},
-            },
-            "pdb": {"create": False},
-        }
-        k8s_values["run"] = {
-            "resources": {
-                "requests": {"cpu": "0.5", "memory": "1Gi", "ephemeral-storage": "1Gi"},
-                "limits": {"cpu": "1", "memory": "2Gi", "ephemeral-storage": "2Gi"},
-            }
-        }
 
         k8s_values["permission"] = str(self.access)
         return k8s_values
