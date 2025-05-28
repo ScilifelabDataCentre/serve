@@ -10,7 +10,7 @@ class DepictioAppManager(AppInstanceManager):
 class DepictioInstance(BaseAppInstance, SocialMixin):
     objects = DepictioAppManager()
     ACCESS_TYPES = (("public", "Public"),)
-    access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
+    access = models.CharField(max_length=20, default="public", choices=ACCESS_TYPES)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -32,15 +32,15 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
                 "type": "app",
             },
             "resources": {
-                "requests": {"cpu": "1", "memory": "1Gi", "ephemeral-storage": "1Gi"},
-                "limits": {"cpu": "2", "memory": "2Gi", "ephemeral-storage": "2Gi"},
+                "requests": {"cpu": "0.5", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+                "limits": {"cpu": "1", "memory": "2Gi", "ephemeral-storage": "2Gi"},
             },
             "pdb": {"create": False},
         }
         k8s_values["run"] = {
             "resources": {
-                "requests": {"cpu": "1", "memory": "1Gi", "ephemeral-storage": "1Gi"},
-                "limits": {"cpu": "2", "memory": "2Gi", "ephemeral-storage": "2Gi"},
+                "requests": {"cpu": "0.5", "memory": "1Gi", "ephemeral-storage": "1Gi"},
+                "limits": {"cpu": "1", "memory": "2Gi", "ephemeral-storage": "2Gi"},
             }
         }
 
