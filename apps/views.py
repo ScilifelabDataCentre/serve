@@ -386,7 +386,7 @@ def app_metadata(request, project, app_slug, app_id):
     except User.DoesNotExist as error:
         logger.error(f"Missing user for app owner: {app.name}")
         raise ValueError(f"User with id {app.owner_id} does not exist") from error
-    
+
     # Handle JSON export
     if request.GET.get("format") == "json":
         response = HttpResponse(
