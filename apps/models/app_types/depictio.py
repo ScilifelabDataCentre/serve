@@ -25,7 +25,7 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
 
         k8s_values["ingress"]["annotations"] = {
             "nginx.ingress.kubernetes.io/custom-http-errors": "503",
-            "nginx.ingress.kubernetes.io/default-backend": "nginx-errors"
+            "nginx.ingress.kubernetes.io/default-backend": "nginx-errors",
         }
 
         k8s_values["permission"] = str(self.access)
