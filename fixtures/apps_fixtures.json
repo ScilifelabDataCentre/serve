@@ -430,7 +430,7 @@
       "category": "serve",
       "chart": "ghcr.io/depictio/depictio-helm/depictio:0.0.4",
       "created_on": "2025-04-28T10:25:37.815Z",
-      "description": "",
+      "description": "Depictio is an app that allows dashboards creation from bioinformatics workflows outputs.",
       "name": "Depictio",
       "slug": "depictio",
       "logo": "depictio-logo.png",
