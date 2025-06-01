@@ -15,6 +15,7 @@ from .models import (
     BaseAppInstance,
     CustomAppInstance,
     DashInstance,
+    DepictioInstance,
     FilemanagerInstance,
     GradioInstance,
     JupyterInstance,
@@ -66,6 +67,14 @@ class K8sUserAppStatusAdmin(admin.ModelAdmin):
 
 
 class BaseAppAdmin(admin.ModelAdmin):
+    search_fields = (
+        "name",
+        "owner__username",
+        "project__name",
+        "subdomain__subdomain",
+        "k8s_user_app_status__status",
+        "chart",
+    )
     list_display = (
         "name",
         "display_owner",
@@ -284,7 +293,21 @@ class StreamlitInstanceAdmin(BaseAppAdmin):
     )
 
 
-admin.site.register(Subdomain)
+class SubdomainAdmin(admin.ModelAdmin):
+    list_display = (
+        "subdomain",
+        "project__name",
+    )
+    search_fields = ("subdomain", "project__name")
+    list_filter = ("subdomain", "project")
+
+
+@admin.register(DepictioInstance)
+class DepictioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display
+
+
+admin.site.register(Subdomain, SubdomainAdmin)
 admin.site.register(AppCategories)
 admin.site.register(AppStatus, AppStatusAdmin)
 admin.site.register(K8sUserAppStatus, K8sUserAppStatusAdmin)

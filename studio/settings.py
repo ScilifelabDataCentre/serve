@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
+
 import json
 import logging
 import os
@@ -92,6 +93,7 @@ INSTALLED_APPS = [
     "guardian",
     "crispy_forms",
     "crispy_bootstrap5",
+    "waffle",
     "common",
     "portal",
     "projects",
@@ -117,6 +119,7 @@ MIDDLEWARE = (
         "axes.middleware.AxesMiddleware",
         "studio.middleware.ExceptionLoggingMiddleware",
         "django_htmx.middleware.HtmxMiddleware",
+        "waffle.middleware.WaffleMiddleware",
     ]
     + DJANGO_WIKI_MIDDLEWARE
     + (STRUCTLOG_MIDDLEWARE if not DEBUG else [])
@@ -476,6 +479,7 @@ APPS_PER_PROJECT_LIMIT = {
     "mongodb": 0,
     "netpolicy": 0,
     "filemanager": 1,
+    "depictio": 1,
 }
 
 PROJECTS_PER_USER_LIMIT = 10

@@ -1,50 +1,101 @@
 {% load can_create_app %}
 {% load static %}
+{% load waffle_tags %}
 
 <div class="row g-2 py-2 mx-2">
     {% for app in objs.apps %}
 
-    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-        <div class="card h-100" data-cy="create-app-card">
-            <div class="card-body">
-                <div class="row g-0 w-100 h-100">
-                    <div class="col-8 d-flex align-items-bottom flex-column">
-                        <div class="pt-2">
-                            <h5>{{ app.name }}</h5>
-                        </div>
-                        <div class="align-items-end d-flex h-100">
-                            <div>
-                                <div class="row">
-                                    <div class="col small">
-                                        <p>{{ app.description }}</p>
+    {% if app.slug == 'depictio' %}
+        <!-- TODO Remove flag once Depictio is stable -->
+        {% flag "enable_depictio" %}
+        <!-- Depictio app card is only shown when the feature flag is enabled -->
+        <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+            <div class="card h-100" data-cy="create-app-card">
+                <div class="card-body">
+                    <div class="row g-0 w-100 h-100">
+                        <div class="col-8 d-flex align-items-bottom flex-column">
+                            <div class="pt-2">
+                                <h5>{{ app.name }}</h5>
+                            </div>
+                            <div class="align-items-end d-flex h-100">
+                                <div>
+                                    <div class="row">
+                                        <div class="col small">
+                                            <p>{{ app.description }}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-4">
-                        {% static 'images/logos/apps/' as static_url %}
-                        <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-75"
-                            alt="App Logo">
+                        <div class="col-4">
+                            {% static 'images/logos/apps/' as static_url %}
+                            <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-75"
+                                alt="App Logo">
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="card-footer d-flex justify-content-end">
-                {% can_create_app request.user project app as can_create %}
-                {% if can_create %}
-                <a class="btn btn-primary btn-sm" href="{% url 'apps:create' project.slug app.slug  %}?from=overview">Create</a>
-                {% else %}
-                <button class="btn btn-secondary btn-sm" style="cursor: default;" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Max number of apps of this type reached. Please email serve@scilifelab.se to request to change the app limits.">
-                Create
-                </button>
+                <div class="card-footer d-flex justify-content-end">
+                    {% can_create_app request.user project app as can_create %}
+                    {% if can_create %}
+                    <a class="btn btn-primary btn-sm" href="{% url 'apps:create' project.slug app.slug %}?from=overview">Create</a>
+                    {% else %}
+                    <button class="btn btn-secondary btn-sm" style="cursor: default;" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Max number of apps of this type reached. Please email serve@scilifelab.se to request to change the app limits.">
+                    Create
+                    </button>
+                    {% endif %}
+                </div>
+                {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
+                <div class="disabled-overlay">
+                    <p>{{ app.name }} will be available soon</p>
+                </div>
                 {% endif %}
             </div>
-            {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
-            <div class="disabled-overlay">
-                <p>{{ app.name }} will be available soon</p>
-            </div>
-            {% endif %}
         </div>
-    </div>
+        {% endflag %}
+    {% else %}
+        <!-- Regular app cards for non-Depictio apps -->
+        <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+            <div class="card h-100" data-cy="create-app-card">
+                <div class="card-body">
+                    <div class="row g-0 w-100 h-100">
+                        <div class="col-8 d-flex align-items-bottom flex-column">
+                            <div class="pt-2">
+                                <h5>{{ app.name }}</h5>
+                            </div>
+                            <div class="align-items-end d-flex h-100">
+                                <div>
+                                    <div class="row">
+                                        <div class="col small">
+                                            <p>{{ app.description }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            {% static 'images/logos/apps/' as static_url %}
+                            <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-75"
+                                alt="App Logo">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-end">
+                    {% can_create_app request.user project app as can_create %}
+                    {% if can_create %}
+                    <a class="btn btn-primary btn-sm" href="{% url 'apps:create' project.slug app.slug %}?from=overview">Create</a>
+                    {% else %}
+                    <button class="btn btn-secondary btn-sm" style="cursor: default;" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Max number of apps of this type reached. Please email serve@scilifelab.se to request to change the app limits.">
+                    Create
+                    </button>
+                    {% endif %}
+                </div>
+                {% if "Serv" in app.name or app.name == "Python Model Deployment" %}
+                <div class="disabled-overlay">
+                    <p>{{ app.name }} will be available soon</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
     {% endfor %}
 </div>

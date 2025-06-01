@@ -1,6 +1,7 @@
 from apps.forms import (
     CustomAppForm,
     DashForm,
+    DepictioForm,
     FilemanagerForm,
     GradioForm,
     JupyterForm,
@@ -16,6 +17,7 @@ from apps.forms.mlflow import MLFlowAppForm
 from apps.models import (
     CustomAppInstance,
     DashInstance,
+    DepictioInstance,
     FilemanagerInstance,
     GradioInstance,
     JupyterInstance,
@@ -46,3 +48,4 @@ APP_REGISTRY.register("filemanager", ModelFormTuple(FilemanagerInstance, Fileman
 APP_REGISTRY.register("gradio", ModelFormTuple(GradioInstance, GradioForm))
 APP_REGISTRY.register("streamlit", ModelFormTuple(StreamlitInstance, StreamlitForm))
 APP_REGISTRY.register("mlflow", ModelFormTuple(MLFlowInstance, MLFlowAppForm))
+APP_REGISTRY.register("depictio", ModelFormTuple(DepictioInstance, DepictioForm))
