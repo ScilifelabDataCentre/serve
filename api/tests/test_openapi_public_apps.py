@@ -68,8 +68,7 @@ class PublicAppsApiTests(APITestCase):
     def test_public_apps_single_app(self):
         """Tests the API resource public-apps get single object"""
         id = str(self.app_instance.id)
-        app_slug = self.app_instance.app.slug
-        url = os.path.join(self.BASE_API_URL, "public-apps", app_slug, id)
+        url = os.path.join(self.BASE_API_URL, "public-apps", id)
         response = self.client.get(url, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -88,13 +87,7 @@ class PublicAppsApiTests(APITestCase):
 
     def test_public_apps_single_app_notfound(self):
         """Tests the API resource public-apps get single object for a non-existing id"""
-        id = "-1"
-        app_slug = self.app_instance.app.slug
-        url = os.path.join(self.BASE_API_URL, "public-apps", app_slug, id)
-        response = self.client.get(url, format="json")
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-        app_slug = "invalid_app_slug"
-        url = os.path.join(self.BASE_API_URL, "public-apps", app_slug, id)
+        id = "999"
+        url = os.path.join(self.BASE_API_URL, "public-apps", id)
         response = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

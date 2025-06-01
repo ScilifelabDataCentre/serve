@@ -22,7 +22,7 @@ urlpatterns = [
     path("api-info", APIInfo.as_view({"get": "get_api_info"})),
     # The Public apps resource API
     path("public-apps", PublicAppsAPI.as_view({"get": "list_apps"})),
-    path("public-apps/<str:app_slug>/<int:pk>", PublicAppsAPI.as_view({"get": "retrieve"})),
+    path("public-apps/<int:pk_in>", PublicAppsAPI.as_view({"get": "retrieve"})),
     # The Content statistics resource API
     path("content-stats", ContentStatsAPI.as_view({"get": "get_stats"})),
     # Supplementary lookups API
