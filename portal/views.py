@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.views.generic import View
 
 from apps.app_registry import APP_REGISTRY
-from apps.models import BaseAppInstance, SocialMixin
+from apps.models import Apps, BaseAppInstance, SocialMixin
 from studio.utils import get_logger
 
 from .models import EventsObject, NewsObject
@@ -102,15 +102,25 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
         except:  # noqa E722 TODO refactor: Add exception
             app.latest_status = "unknown"
             app.status_group = "unknown"
-
+    organizations = []
+    departments = []
+    tags = []
     # Extract app config for use in Django templates
     for app in published_apps:
+        organizations.append(app.owner.userprofile.affiliation)
+        if app.owner.userprofile.department not in [None, ""]:
+            dep = app.owner.userprofile.department.replace("Department of", "").replace("Division of ", "")
+            app.owner.userprofile.department = dep
+            departments.append(dep)
+        tags.extend(app.tags.get_tag_list())
         if getattr(app, "k8s_values", False):
             app.image = app.k8s_values.get("appconfig", {}).get("image", "Not available")
             app.port = app.k8s_values.get("appconfig", {}).get("port", "Not available")
             app.userid = app.k8s_values.get("appconfig", {}).get("userid", "Not available")
             app.pvc = app.k8s_values.get("apps", {}).get("volumeK8s") or None
-
+    unique_organizations = set(organizations)
+    unique_departments = set(departments)
+    unique_tags = set(tags)
     # create session object to store ids for tag seacrh if it does not exist
     if "app_tag_filters" not in request.session:
         request.session["app_tag_filters"] = []
@@ -137,11 +147,16 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
         published_apps = tagged_published_apps
 
     request.session.modified = True
-    return published_apps, request
+    return published_apps, request, unique_organizations, unique_departments, unique_tags
 
 
 def public_apps(request, app_id=0):
-    published_apps, request = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
+    published_apps, request, unique_organizations, unique_departments, unique_tags = get_public_apps(
+        request, app_id=app_id, order_by="updated_on", order_reverse=True
+    )
+    exclude_list = ["ShinyProxy App", "Tensorflow Serving", "PyTorch Serve", "Python Model Deployment"]
+    serve_category_apps = Apps.objects.filter(Q(category__name="Serve")).exclude(name__in=exclude_list)
+    # serve_category_apps.remove(["ShinyProxy App"])
     template = "portal/apps.html"
     return render(request, template, locals())
 
@@ -150,7 +165,7 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, app_id=0):
-        published_apps_updated_on, request = get_public_apps(
+        published_apps_updated_on, request, unique_organizations, unique_depatments, unique_tags = get_public_apps(
             request, app_id=app_id, order_by="updated_on", order_reverse=True
         )
         published_apps_updated_on = published_apps_updated_on[:6]  # we display only 6 apps

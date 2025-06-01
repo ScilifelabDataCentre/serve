@@ -13,7 +13,7 @@
                 <ul class="nav text-center justify-content-center align-items-center" >
                     <li class="nav-item mx-1">
                         <a class="nav-link serve-main-nav {% if request.path == '/' %}active{% endif %}" href="{% url 'portal:home' %}" target="_self" title="Homepage">
-                            <i class="fa-solid fa-home d-block mx-auto"></i>
+                            {% comment %} <i class="fa-solid fa-home d-block mx-auto"></i> {% endcomment %}
                             Home
                         </a>
                     </li>
