@@ -12,4 +12,5 @@ urlpatterns = [
     path("settings/<app_slug>/<app_id>", views.CreateApp.as_view(), name="appsettings"),
     path("delete/<app_slug>/<app_id>", views.delete, name="delete"),
     path("secrets/<app_slug>/<app_id>", views.SecretsView.as_view(), name="secrets"),
+    path("metadata/<app_slug>/<app_id>", views.app_metadata, name="app-metadata"),
 ]

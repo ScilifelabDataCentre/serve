@@ -1,17 +1,24 @@
 """This module is used to test the helper functions that are used by user app instance functionality."""
 
+import json
 from unittest.mock import ANY, patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from schema import And, Regex, Schema
 
+from common.tests.manage_test_data import TestDataManager
 from projects.models import Flavor, Project
 
 from ..app_registry import APP_REGISTRY
 from ..constants import AppActionOrigin
 from ..forms import DashForm
-from ..helpers import create_instance_from_form, get_subdomain_name
+from ..helpers import (
+    create_instance_from_form,
+    generate_schema_org_compliant_app_metadata,
+    get_subdomain_name,
+)
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
 from ..types_.subdomain import SubdomainTuple
 
@@ -387,3 +394,171 @@ def test_get_subdomain_name_no_subdomain_in_form():
     # Example subdomain name pattern: rd5d576b4
     assert subdomain_name.startswith("r"), f"The subdomain should begin with r but was {subdomain_name}"
     assert is_created_by_user is False, f"is_created_by_user should be False but was {is_created_by_user}"
+
+
+@pytest.mark.django_db
+def test_schema_org_compliant_app_metadata_validation():
+    # creating the app metadata
+    user_data = {
+        "affiliation": "uu",
+        "department": "unit_test_schema_org_description_user_department_name",
+        "email": "unit_test_schema_org_description_user_email@scilifelab.uu.se",
+        "first_name": "unit_test_schema_org_description_user_first_name",
+        "last_name": "unit_test_schema_org_description_user_last_name",
+        "username": "unit_test_schema_org_description_user_name",
+        "password": "tesT12345@",
+    }
+
+    project_data = {
+        "project_name": "unit_test_schema_org_description_project_name",
+        "project_description": "unit_test_schema_org_description_project_description",
+    }
+
+    manager = TestDataManager(user_data=user_data)
+    user = manager.create_user()
+    project = Project.objects.create_project(
+        name=project_data["project_name"], owner=user, description=project_data["project_description"]
+    )
+    app = Apps.objects.create(
+        name="Unit test schema org description app type", slug="unit_test_schema_org_description_slug"
+    )
+    subdomain = Subdomain.objects.create(subdomain="unit_test_schema_org_description_subdomain")
+    k8s_user_app_status = K8sUserAppStatus.objects.create()
+    app_instance = DashInstance.objects.create(
+        access="public",
+        owner=user,
+        name="unit_test_schema_org_description_app_name",
+        description="unit_test_schema_org_description_app_description",
+        port=8000,
+        image="ghcr.io/scilifelabdatacentre/example-dash:latest",
+        source_code_url="https://someurlthatdoesnotexist.com",
+        app=app,
+        project=project,
+        subdomain=subdomain,
+        k8s_user_app_status=k8s_user_app_status,
+    )
+
+    schema_description = generate_schema_org_compliant_app_metadata(app_instance)
+    schema_dict = json.loads(schema_description)
+    schema_dict["hasPart"][0]["url"] = "https://someurlthatdoesnotexist.com"
+
+    # now testing three cases
+
+    # 1. should be valid
+    is_valid, error = validate_schema(schema_dict)
+    assert is_valid, f"Schema validation failed: {error}"
+
+    # 2. value is number instead of string, which is not permited.
+    schema_dict["description"] = 23532
+    is_valid, error = validate_schema(schema_dict)
+    assert is_valid is False, "Schema validation should fail because value is changed"
+
+    # 3. adding a new field is not permitted
+    schema_dict["adding_a_new_field"] = "somevalue"
+    is_valid, error = validate_schema(schema_dict)
+    assert is_valid is False, "Schema validation should fail because a new value is added"
+
+
+def validate_schema(schema_dict: dict):
+    """Validate schema.org structure using local schema definition"""
+    # Helper schemas
+    iso_date = And(str, Regex(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{2}:\d{2}$"))
+
+    # Define expected schema structure
+    schema_validator = Schema(
+        {
+            "@context": "https://schema.org",
+            "@type": "Dataset",
+            "name": "Application Deployment Metadata",
+            "description": (
+                "Structured metadata for applications, users, and projects deployed on "
+                "the SciLifeLab Serve platform (https://serve.scilifelab.se/)."
+            ),
+            "dateCreated": iso_date,
+            "creator": {
+                "@type": "Organization",
+                "name": "SciLifeLab Data Centre",
+                "url": "https://www.scilifelab.se/data",
+            },
+            "hasPart": [
+                {
+                    "@type": "SoftwareApplication",
+                    "name": str,
+                    "description": str,
+                    "url": And(str, Regex(r"^https?://")),  # {},#
+                    "softwareVersion": str,
+                    "author": {
+                        "@type": "Person",
+                        "name": str,
+                        "email": And(str, Regex(r".+@.+")),
+                        "affiliation": {
+                            "@type": "Organization",
+                            "name": str,
+                            "additionalProperty": {"@type": "PropertyValue", "name": "department", "value": str},
+                        },
+                    },
+                    "applicationCategory": "Cloud Application",
+                    "operatingSystem": "Kubernetes",
+                    "additionalProperty": [
+                        {"@type": "PropertyValue", "name": "appImage", "value": str},
+                        {"@type": "PropertyValue", "name": "appCreated", "value": iso_date},
+                        {"@type": "PropertyValue", "name": "appUpdated", "value": iso_date},
+                        {"@type": "PropertyValue", "name": "cpuRequest", "value": And(str, Regex(r"^\d+m$"))},
+                        {"@type": "PropertyValue", "name": "cpuLimit", "value": And(str, Regex(r"^\d+m$"))},
+                        {"@type": "PropertyValue", "name": "memoryRequest", "value": And(str, Regex(r"^\d+[KMG]i$"))},
+                        {"@type": "PropertyValue", "name": "memoryLimit", "value": And(str, Regex(r"^\d+[KMG]i$"))},
+                        {"@type": "PropertyValue", "name": "storageRequest", "value": And(str, Regex(r"^\d+[KMG]i$"))},
+                        {"@type": "PropertyValue", "name": "storageLimit", "value": And(str, Regex(r"^\d+[KMG]i$"))},
+                    ],
+                    "hasPart": {"@type": "SoftwareSourceCode", "codeRepository": And(str, Regex(r"^https?://"))},
+                }
+            ],
+            "about": {
+                "@type": "Project",
+                "name": str,
+                "description": str,
+                "additionalProperty": [
+                    {"@type": "PropertyValue", "name": "dateCreated", "value": iso_date},
+                    *[
+                        {"@type": "PropertyValue", "name": name, "value": And(str, Regex(r"^\d+$"))}
+                        for name in [
+                            "minio",
+                            "mlflow",
+                            "vscode",
+                            "dashapp",
+                            "mongodb",
+                            "reducer",
+                            "rstudio",
+                            "combiner",
+                            "shinyapp",
+                            "customapp",
+                            "netpolicy",
+                            "volumeK8s",
+                            "tissuumaps",
+                            "filemanager",
+                            "jupyter-lab",
+                            "mlflow-serve",
+                            "mongo-express",
+                            "pytorch-serve",
+                            "shinyproxyapp",
+                            "tensorflow-serve",
+                            "depictio",
+                        ]
+                    ],
+                ],
+                "funder": {"@type": "Person", "name": str, "email": And(str, Regex(r".+@.+"))},
+                "parentOrganization": {
+                    "@type": "Organization",
+                    "name": str,
+                    "additionalProperty": {"@type": "PropertyValue", "name": "department", "value": str},
+                },
+            },
+        },
+        ignore_extra_keys=False,
+    )  # Strict validation - no extra fields allowed
+
+    try:
+        schema_validator.validate(schema_dict)
+        return True, None
+    except Exception as e:
+        return False, str(e)

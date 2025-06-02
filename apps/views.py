@@ -1,7 +1,9 @@
 import base64
+import json
 import subprocess
 from datetime import datetime
 
+import dateutil.parser
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -20,7 +22,10 @@ from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
 from .constants import AppActionOrigin
-from .helpers import create_instance_from_form
+from .helpers import (
+    create_instance_from_form,
+    generate_schema_org_compliant_app_metadata,
+)
 from .models import BaseAppInstance
 from .tasks import delete_resource
 
@@ -351,3 +356,30 @@ class SecretsView(View):
 
         context = {"mlflow_username": username, "mlflow_password": password, "mlflow_url": instance.url}
         return render(request, self.template, context)
+
+
+def app_metadata(request, project, app_slug, app_id):
+    # Get app model instance
+    model_class = APP_REGISTRY.get_orm_model(app_slug)
+    if not model_class:
+        logger.error(f"Missing model for slug: {app_slug}")
+        raise PermissionDenied("Application model not found")
+
+    app = model_class.objects.get(pk=app_id)
+
+    # Generate and parse schema
+    schema_dict = json.loads(generate_schema_org_compliant_app_metadata(app))
+    schema_dict["about"]["additionalProperty"][0]["value"] = dateutil.parser.parse(
+        schema_dict["about"]["additionalProperty"][0]["value"]
+    )
+
+    # Handle JSON export
+    if request.GET.get("format") == "json":
+        response = HttpResponse(
+            generate_schema_org_compliant_app_metadata(app),
+            content_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="SciLifeLab_Serve_App_{app.name}_metadata.json"'},
+        )
+        return response
+
+    return render(request, "common/app_metadata.html", {"app": app, "schema_dict": schema_dict})

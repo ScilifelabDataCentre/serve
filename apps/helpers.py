@@ -1,14 +1,20 @@
+import json
 from datetime import datetime
 from typing import Any, Optional
 
 import regex as re
 import requests
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
+from django.forms.models import model_to_dict
+from django.utils import timezone
 
 from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
+from common.models import UserProfile
+from projects.models import Project
 from studio.utils import get_logger
 
 from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
@@ -556,3 +562,190 @@ def validate_docker_image(image: str):
             f"Docker image '{image}' is not publicly available on Docker Hub. "
             "The URL you have entered may be incorrect, or the image might be private."
         )
+
+
+def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) -> str:
+    """Generate schema.org structured data for App, User, and Project models."""
+
+    # Safely get related objects
+    try:
+        user_instance = User.objects.get(id=app_instance.owner_id)
+    except User.DoesNotExist as error:
+        raise ValueError(f"User with id {app_instance.owner_id} does not exist") from error
+
+    try:
+        project_instance = Project.objects.get(id=app_instance.project_id)
+    except Project.DoesNotExist:
+        raise ValueError(f"Project with id {app_instance.project_id} does not exist")
+
+    # Convert models to dictionaries with safe defaults
+    app_data = model_to_dict(app_instance, exclude=["_state"])
+    user_data = model_to_dict(user_instance, exclude=["_state", "password"])
+    project_data = model_to_dict(project_instance, exclude=["_state"])
+
+    if user_profile := UserProfile.objects.filter(user=user_instance).first():
+        user_data.update(
+            {
+                "department": user_profile.department,
+                "affiliation": get_university_suffix_information(user_profile.affiliation),
+            }
+        )
+
+    # Safely add special fields
+    app_data.update(
+        {"k8s_values": app_instance.k8s_values or {}, "info": app_instance.info or {}, "url": app_instance.url or {}}
+    )
+
+    # Build software requirements as PropertyValue list
+    additional_property = []
+    app_values = {
+        "appImage": app_instance.image,
+        "appCreated": app_instance.created_on.isoformat(),
+        "appUpdated": app_instance.updated_on.isoformat(),
+    }
+    for value_name in app_values.keys():
+        additional_property.append({"@type": "PropertyValue", "name": value_name, "value": app_values[value_name]})
+
+    if app_data["k8s_values"]:
+        requests = app_data["k8s_values"].get("flavor", {}).get("requests", {})
+        limits = app_data["k8s_values"].get("flavor", {}).get("limits", {})
+
+        resource_mapping = [
+            ("cpu", "cpu"),
+            ("gpu", "nvidia.com/gpu"),
+            ("memory", "memory"),
+            ("storage", "ephemeral-storage"),
+        ]
+
+        for field_name, k8s_name in resource_mapping:
+            if requests.get(k8s_name):
+                additional_property.append(
+                    {"@type": "PropertyValue", "name": f"{field_name}Request", "value": requests[k8s_name]}
+                )
+            if limits.get(k8s_name):
+                additional_property.append(
+                    {"@type": "PropertyValue", "name": f"{field_name}Limit", "value": limits[k8s_name]}
+                )
+
+    # Build project resource usage properties
+    project_properties = []
+    project_properties.append(
+        {"@type": "PropertyValue", "name": "dateCreated", "value": project_instance.created_at.isoformat()}
+    )
+    if project_data.get("apps_per_project"):
+        for app_name, count in project_data["apps_per_project"].items():
+            project_properties.append({"@type": "PropertyValue", "name": app_name, "value": str(count)})
+
+    # Construct new schema structure
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "name": "Application Deployment Metadata",
+        "description": (
+            "Structured metadata for applications, users, and projects deployed on "
+            "the SciLifeLab Serve platform (https://serve.scilifelab.se/)."
+        ),
+        "dateCreated": timezone.now().isoformat(),
+        "creator": {"@type": "Organization", "name": "SciLifeLab Data Centre", "url": "https://www.scilifelab.se/data"},
+        "hasPart": [
+            {
+                "@type": "SoftwareApplication",
+                "name": app_data.get("name"),
+                "description": app_data.get("description"),
+                "url": app_data.get("url"),
+                "softwareVersion": app_data.get("chart"),
+                "author": {
+                    "@type": "Person",
+                    "name": f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}",
+                    "email": user_data.get("email"),
+                    "affiliation": {
+                        "@type": "Organization",
+                        "name": user_data.get("affiliation"),
+                        "additionalProperty": {
+                            "@type": "PropertyValue",
+                            "name": "department",
+                            "value": user_data.get("department"),
+                        },
+                    },
+                },
+                "applicationCategory": "Cloud Application",
+                "operatingSystem": "Kubernetes",
+                "additionalProperty": additional_property,
+                "hasPart": {"@type": "SoftwareSourceCode", "codeRepository": app_data.get("source_code_url")},
+            }
+        ],
+        "about": {
+            "@type": "Project",
+            "name": project_data.get("name"),
+            "description": project_data.get("description"),
+            "additionalProperty": project_properties,
+            "funder": {
+                "@type": "Person",
+                "name": f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}",
+                "email": user_data.get("email"),
+            },
+            "parentOrganization": {
+                "@type": "Organization",
+                "name": user_data.get("affiliation"),
+                "additionalProperty": {
+                    "@type": "PropertyValue",
+                    "name": "department",
+                    "value": user_data.get("department"),
+                },
+            },
+        },
+    }
+
+    # Clean null values function
+    def clean_nulls(obj):
+        if isinstance(obj, dict):
+            return {k: clean_nulls(v) for k, v in obj.items() if v is not None}
+        elif isinstance(obj, list):
+            return [clean_nulls(elem) for elem in obj if elem is not None]
+        return obj
+
+    schema_json = json.dumps(clean_nulls(schema), indent=2)
+
+    logger.info(f"Generated schema.org description of app '{app_data.get('name')}' as follows:\n{schema_json}")
+
+    return schema_json
+
+
+def get_university_suffix_information(university_sufffix: str) -> str:
+    """Provide University name from official suffix, ex. uu -> Uppsala universitet (Uppsala University)"""
+    # University mapping with consistent formatting
+    UNIVERSITY_NAMES = {
+        "bth": "Blekinge Tekniska Högskola (Blekinge Institute of Technology)",
+        "chalmers": "Chalmers tekniska högskola (Chalmers University of Technology)",
+        "du": "Högskolan Dalarna (Dalarna University)",
+        "fhs": "Försvarshögskolan (Swedish Defence University)",
+        "gih": "Gymnastik- och idrottshögskolan (Swedish School of Sport and Health Sciences)",
+        "gu": "Göteborgs universitet (University of Gothenburg)",
+        "hb": "Högskolan i Borås (University of Borås)",
+        "hh": "Högskolan i Halmstad (Halmstad University)",
+        "hhs": "Handelshögskolan i Stockholm (Stockholm School of Economics)",
+        "hig": "Högskolan i Gävle (University of Gävle)",
+        "his": "Högskolan i Skövde (University of Skövde)",
+        "hkr": "Högskolan Kristianstad (Kristianstad University)",
+        "hv": "Högskolan Väst (University West)",
+        "ju": "Högskolan i Jönköping (Jönköping University)",
+        "kau": "Karlstads universitet (Karlstad University)",
+        "ki": "Karolinska Institutet (Karolinska Institute)",
+        "kth": "Kungliga Tekniska Högskolan (Royal Institute of Technology)",
+        "liu": "Linköpings universitet (Linköping University)",
+        "lnu": "Linnéuniversitetet (Linnaeus University)",
+        "ltu": "Luleå tekniska universitet (Luleå University of Technology)",
+        "lu": "Lunds universitet (Lund University)",
+        "lth": "Lunds tekniska högskola (Faculty of Engineering, Lund University)",
+        "mau": "Malmö universitet (Malmö University)",
+        "mdu": "Mälardalens universitet (Mälardalen University)",
+        "miun": "Mittuniversitetet (Mid Sweden University)",
+        "oru": "Örebro universitet (Örebro University)",
+        "sh": "Södertörns högskola (Södertörn University)",
+        "slu": "Sveriges lantbruksuniversitet (Swedish University of Agricultural Sciences)",
+        "su": "Stockholms universitet (Stockholm University)",
+        "umu": "Umeå universitet (Umeå University)",
+        "uu": "Uppsala universitet (Uppsala University)",
+    }
+
+    return UNIVERSITY_NAMES.get(university_sufffix, university_sufffix)
