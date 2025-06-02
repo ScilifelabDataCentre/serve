@@ -406,7 +406,7 @@ describe("Test deploying app", () => {
     // to skip it now. As we have Django endpoints, so it can be locally tested directly
     // in the Serve-dev instance.
     // We need to add a test here for validating Site-dir option. See SS-1206 for details
-    it.only("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
 
         //delete previous test apps in case the test failed
         cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
@@ -469,8 +469,9 @@ describe("Test deploying app", () => {
 
             cy.logf("Checking that source code URL is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
-            cy.get('a#source-code-url').should('have.attr', 'href', source_code_url)
-
+            cy.contains('.card', app_name).within(() => {
+                cy.get('a#source-code-url').should('have.attr', 'href', source_code_url)
+            })
             cy.visit("/projects/")
             cy.logf("Deleting the shiny app", Cypress.currentTest)
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
