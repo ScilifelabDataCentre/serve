@@ -201,7 +201,7 @@
     </div>
   </div>
 </div>
-
+{% if published_apps|length > 0 %}
 <script>
     var options = {
     valueNames: [ 'card-title', 'card-description', 'card-username', 'card-department', 'card-institution', 'card-app-type','card-keyword'],
@@ -415,6 +415,7 @@
         });
     }
   </script>
+  {% endif %}
 {# Including code for modals displaying Docker info #}
 {% include 'common/app_card_docker_info.html' %}
 {# Including code hiding and showing longer app descriptions #}
