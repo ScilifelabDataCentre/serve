@@ -334,7 +334,7 @@
                 } else {
                   columnBools.push(false);
                 }
-                
+
               } else {
                 var match = item.values()[column];
                 if (match !== "" && searchValues.includes(match)) {
@@ -343,7 +343,7 @@
                   columnBools.push(false);
                 }
               }
-              
+
            });
            if (columnBools.length != 0 && columnBools.every(function(e) { return e==true; })) {
                 return true;

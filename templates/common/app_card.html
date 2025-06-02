@@ -30,13 +30,13 @@
                             <ul class="list-unstyled">
                                 <li class="list-group-item row">
                                     <div class="col-12"><span class="value-label fw-bold card-username">{{ app.owner.first_name }} {{ app.owner.last_name }}</span></div>
-                                    
+
                                     <div class="d-flex text-muted justify-content-between rounded-bottom">
                                         <div class="text-start"><span class="text-muted value-label fw-bold card-font-sm card-institution">{% if app.owner.userprofile %}{{ app.owner.userprofile.affiliation | university_name }}{% endif %}</span></div>
                                         <div class="text-end"><span class="text-muted value-label fw-bold card-font-sm card-department">{% if app.owner.userprofile %}{{ app.owner.userprofile.department }}{% endif %}</span></div>
 
                                     </div>
-                                    
+
                                     <div class="col-9"></div>
                                 </li>
                             </ul>
