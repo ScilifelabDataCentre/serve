@@ -30,12 +30,13 @@
                             <ul class="list-unstyled">
                                 <li class="list-group-item row">
                                     <div class="col-12"><span class="value-label fw-bold card-username">{{ app.owner.first_name }} {{ app.owner.last_name }}</span></div>
-
+                                    
                                     <div class="d-flex text-muted justify-content-between rounded-bottom">
-                                        <div class="text-start"><span class="text-muted value-label fw-bold card-font-sm card-institution">{{ app.owner.userprofile.affiliation | university_name }}</span></div>
-                                        <div class="text-end"><span class="text-muted value-label fw-bold card-font-sm card-department">{{ app.owner.userprofile.department }}</span></div>
+                                        <div class="text-start"><span class="text-muted value-label fw-bold card-font-sm card-institution">{% if app.owner.userprofile %}{{ app.owner.userprofile.affiliation | university_name }}{% endif %}</span></div>
+                                        <div class="text-end"><span class="text-muted value-label fw-bold card-font-sm card-department">{% if app.owner.userprofile %}{{ app.owner.userprofile.department }}{% endif %}</span></div>
 
                                     </div>
+                                    
                                     <div class="col-9"></div>
                                 </li>
                             </ul>
@@ -44,11 +45,16 @@
                         <div class="row d-flex flex-column">
                             <div class="col-12">
                                 {% with app.tags.all as tags %}
+                                <span class="visually-hidden card-keyword">{{ tags|title }}</span>
                                 {% for tag in tags %}
                                 <a class="tag me-2 mb-1">
-                                    <span class="badge text-bg-primary badge-grape badge-ico">
+                                    <span class="badge text-bg-primary badge-grape badge-ico" style="margin-right: -0.2rem;">
                                         <div class="fas fa-tag fa-sm me-1"></div>
-                                    </span><span class="badge text-bg-primary badge-grape badge-ico-text card-font-xs card-keyword">{{ tag|title }}</span>
+                                        <span class="tag-name">{{ tag|title }}</span>
+                                    </span>
+                                    {% comment %} <span class="badge text-bg-primary badge-grape badge-ico">
+                                        <div class="fas fa-tag fa-sm me-1"></div>
+                                    </span><span class="badge text-bg-primary badge-grape badge-ico-text card-font-xs">{{ tag|title }}</span> {% endcomment %}
                                 </a>
                                 {% endfor %}
                                 {% endwith %}

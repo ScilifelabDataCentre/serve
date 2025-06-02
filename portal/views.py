@@ -107,11 +107,14 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     tags = []
     # Extract app config for use in Django templates
     for app in published_apps:
-        organizations.append(app.owner.userprofile.affiliation)
-        if app.owner.userprofile.department not in [None, ""]:
-            dep = app.owner.userprofile.department.replace("Department of", "").replace("Division of ", "")
-            app.owner.userprofile.department = dep
-            departments.append(dep)
+        try:
+            organizations.append(app.owner.userprofile.affiliation)
+            if app.owner.userprofile.department not in [None, ""]:
+                dep = app.owner.userprofile.department.replace("Department of", "").replace("Division of ", "")
+                app.owner.userprofile.department = dep
+                departments.append(dep)
+        except Exception as e:
+            print("There is no Userprofile.")
         tags.extend(app.tags.get_tag_list())
         if getattr(app, "k8s_values", False):
             app.image = app.k8s_values.get("appconfig", {}).get("image", "Not available")

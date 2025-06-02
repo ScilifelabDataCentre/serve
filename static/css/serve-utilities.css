@@ -204,12 +204,27 @@ label.required::before {
         flex: 0.5 0.5 auto !important;
     } */
 }
+
+.show-filter-search {
+    display: flex!important;
+}
+
+.hide-filter-search-reset {
+    display: none!important;
+}
+
 @media screen and (max-width: 767px) {
     .carousel-off {
         display: block!important;
     }
     .carousel-on {
         display: none!important;
+    }
+    .show-filter-search {
+    display: none!important;
+    }
+    .hide-filter-search-reset {
+    display: block!important;
     }
 }
 .card-text {
@@ -271,17 +286,13 @@ label.required::before {
 .badge-ico {
     background-color: rgba(206, 199, 199, 0.476)!important; ;
     color: var(--serve-grape-075)!important;
-    border-top-right-radius: 0!important;
-    border-bottom-right-radius: 0!important;
-    padding-right: 0.05rem!important;
-    padding-left: 0.3rem!important;
+    font-weight: 400 !important;
+    font-size: 0.7rem!important;
 }
 
 .badge-ico-text {
     background-color: #dad7dbe3 !important;
     color: #495057 !important;
-    border-top-left-radius: 0!important;
-    border-bottom-left-radius: 0!important;
     font-weight: 400 !important;
 }
 
@@ -404,3 +415,15 @@ label.required::before {
 
 .carousel-control-next {  background-color:  var(--serve-grape-075)!important; }
 .carousel-control-prev {  background-color:  var(--serve-grape-075)!important; }
+
+.btn-xs {
+    --bs-btn-padding-y: 0.15rem;
+    --bs-btn-padding-x: 0.25rem;
+    --bs-btn-font-size: 0.8rem;
+    --bs-btn-border-radius: 0.25rem;
+}
+
+.break {
+  flex-basis: 100%;
+  height: 0;
+}
