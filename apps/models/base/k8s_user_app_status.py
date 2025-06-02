@@ -8,6 +8,8 @@ K8S_USER_APP_STATUS_CHOICES = [
     ("ImagePullBackOff", "ImagePullBackOff"),
     ("PostStartHookError", "PostStartHookError"),
     ("Unknown", "Unknown"),
+    ("Running", "Running"),
+    ("Deleted", "Deleted"),
 ]
 
 

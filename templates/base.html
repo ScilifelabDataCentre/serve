@@ -8,6 +8,7 @@
     {# This is for django wiki #}
     {% render_block "css" %}
     {% include 'common/common_head.html' %}
+    {% include 'common/analytics.html' %}
     {% block extra_head %} {% endblock %}
 </head>
 
@@ -163,8 +164,6 @@
     </script>
 
     {% block extra_scripts %} {% endblock %}
-
-    {% include 'common/analytics.html' %}
 
     {# This is for django wiki #}
     {% render_block "js" %}
