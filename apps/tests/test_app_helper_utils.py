@@ -1,6 +1,5 @@
 """This module is used to test the helper functions that are used by user app instance functionality."""
 
-
 from unittest.mock import ANY, patch
 
 import pytest
