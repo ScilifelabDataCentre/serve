@@ -16,56 +16,137 @@ describe("Test deploying app", () => {
     // The longer timeout is often used when waiting for k8s operations to complete
     const longCmdTimeoutMs = 240000
 
-    // Function to verify the displayed app status permission level
-    // Function to verify the displayed app status and permission level
-    // TODO: add expected_k8s_app_status from data-k8s-app-status
-    const verifyAppStatus = (
-        app_name,
-        expected_status,
-        expected_permission,
-        expected_latest_user_action) => {
+    // Function to verify the displayed app status
+    // Function to verify the displayed app permission level
+    // Function to verify the expected_latest_user_action from data-app-action
+    // Function to verify the expected_k8s_app_status from data-k8s-app-status
 
-        // The status span element has id with format: status-customapp-283
-        cy.get('tr:contains("' + app_name + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', expected_status)
+   const verifyAppStatus = (
+    app_name,
+    expected_status,
+    expected_latest_user_action,
+    expected_data_k8s_app_status,
+    expected_permission
+) => {
+    // Find the application row with timeout
+    cy.contains('a', app_name, { timeout: longCmdTimeoutMs })
+        .closest('tr')
+        .within(() => {
 
-        if (expected_latest_user_action != "") {
-            cy.get('tr:contains("' + app_name + '")').find('span').should('have.attr', 'data-app-action', expected_latest_user_action)
+            // Verify application status with explicit timeout
+            if (expected_status != "") {
+                cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+                    .should('have.attr', 'title', expected_status);
+            }
+
+            // Verify latest user action if specified with explicit timeout
+            if (expected_latest_user_action != "") {
+                cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+                    .should('have.attr', 'data-app-action', expected_latest_user_action);
+            }
+
+            // Verify data-k8s-app-status if specified with explicit timeout
+            if (expected_data_k8s_app_status != "") {
+                cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+                    .should('have.attr', 'data-k8s-app-status', expected_data_k8s_app_status);
+            }
+
+            // Verify permission level if specified with explicit timeout
+            if (expected_permission != "") {
+                cy.get('[data-cy="app-permission"]', { timeout: longCmdTimeoutMs })
+                    .should('contain', expected_permission);
+            }
+        });
+};
+    // if any previous test is failed then that app will remain.
+    // this may fail the next test too.
+    // So, before starting a next test, we are ensuring
+    // one more time that the previous app is deleted.
+    const deleteAppIfExists = (app_name, project_name) => {
+
+        cy.visit("/projects/");
+
+        cy.contains('.card-title', project_name)
+                .parents('.card-body')
+                .siblings('.card-footer')
+                .find('a:contains("Open")')
+                .first()
+                .click();
+
+        // Check if app exists
+        cy.get('body').then(($body) => {
+        if ($body.find(`tr:contains("${app_name}")`).length) {
+            cy.log(`Deleting existing app: ${app_name}`);
+
+            // Delete workflow
+            cy.get(`tr:contains("${app_name}")`)
+                .find('i.bi-three-dots-vertical')
+                .click();
+
+            cy.get(`tr:contains("${app_name}")`)
+                .find('a.confirm-delete')
+                .click();
+
+            cy.get('button').contains('Delete').click();
+
+            // Verify deletion
+            cy.contains(`tr:contains("${app_name}")`).should('not.exist');
+            cy.log(`Successfully deleted app: ${app_name}`);
         }
-
-        // The permission level span elment has id with format: permission-283
-        if (expected_permission != "") {
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', expected_permission)
+        else {
+            cy.log(`No app named "${app_name}" found - skipping deletion`);
         }
+        });
     };
+
+
 
     // user: e2e_tests_deploy_app_user
     let users
+    let TEST_USER_DATA
+    const TEST_PROJECT_DATA = {
+        project_name: "e2e-deploy-app-test",
+        project_description: "e2e-deploy-app-test-desc",
+    };
 
 
     before({ defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         cy.logf("Begin before() hook", Cypress.currentTest)
 
-        // do db reset if needed
-        if (Cypress.env('do_reset_db') === true) {
-            cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
-            cy.exec("./cypress/e2e/db-reset.sh");
-            cy.wait(Cypress.env('wait_db_reset'));
-        }
-        else {
-            cy.logf("Skipping resetting the db state.", Cypress.currentTest);
-        }
-        // seed the db with a user
-        cy.visit("/")
-        cy.logf("Running seed-deploy-app-user.py", Cypress.currentTest)
-        cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
-        // username in fixture must match username in db-reset.sh
-        cy.fixture('users.json').then(function (data) {
-            users = data
+        if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+                cy.log("Populating test data via Django endpoint");
+                cy.fixture('users.json').then(function (data) {
+                    TEST_USER_DATA = data.deploy_app_user;
+                    cy.populateTestUser(TEST_USER_DATA);
+                    cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
+                })
+            }
 
-            cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password)
-        })
-        const project_name = "e2e-deploy-app-test"
-        cy.createBlankProject(project_name)
+        else {
+
+            // do db reset if needed
+            if (Cypress.env('do_reset_db') === true) {
+                cy.logf("Resetting db state. Running db-reset.sh", Cypress.currentTest);
+                cy.exec("./cypress/e2e/db-reset.sh");
+                cy.wait(Cypress.env('wait_db_reset'));
+            }
+            else {
+                cy.logf("Skipping resetting the db state.", Cypress.currentTest);
+            }
+            // seed the db with a user
+            cy.visit("/")
+            cy.logf("Running seed-deploy-app-user.py", Cypress.currentTest)
+            cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh")
+            // username in fixture must match username in db-reset.sh
+            cy.fixture('users.json').then(function (data) {
+                users = data
+
+                cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password)
+            })
+            const project_name = "e2e-deploy-app-test"
+            cy.createBlankProject(project_name)
+        }
+
 
         cy.logf("End before() hook", Cypress.currentTest)
     })
@@ -114,7 +195,7 @@ describe("Test deploying app", () => {
 
             // Create an app with project permissions
             cy.logf("Now creating a project app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
@@ -126,15 +207,20 @@ describe("Test deploying app", () => {
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
             // check that the app was created
-            verifyAppStatus(app_name_project, "Running", "project")
+            verifyAppStatus(app_name_project, "Running", "Creating", "Running", "project")
             // check that the default URL subpath was created
             cy.contains('a', app_name_project)
                   .should('have.attr', 'href')
                   .and('include', default_url_subpath);
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get('h3').should('contain', 'Public applications and models')
+            // Verify heading with correct text and encoding
+            cy.get('h3').should('contain', 'Public Applications & Models');
             cy.contains('h5.card-title', app_name_project).should('not.exist')
+
+            // Verify empty state when no apps exist
+            // cy.get('.tag-list').should('be.empty');
+            cy.contains('h5.card-title', app_name_project).should('not.exist');
 
             // make this app public as an update and check that it works
             cy.logf("Now making the project app public", Cypress.currentTest)
@@ -145,22 +231,31 @@ describe("Test deploying app", () => {
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#submit-id-submit').contains('Submit').click()
-            verifyAppStatus(app_name_project, "Running", "public")
+            verifyAppStatus(app_name_project, "Running", "Changing", "Running", "public")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-                verifyAppStatus(app_name_project, "Running", "public")
+                verifyAppStatus(app_name_project,  "Running", "Changing", "Running", "public")
             })
 
             cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name_project, "Deleted", "")
+
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name_project + '")').should('not.exist')
+            })
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.logf("Now creating a public app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+
             cy.get('#id_name').type(app_name_public)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -173,11 +268,11 @@ describe("Test deploying app", () => {
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').contains('Submit').click()
 
-            verifyAppStatus(app_name_public, "Running", "public")
+            verifyAppStatus(app_name_public,  "Running", "Creating", "Running", "public")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public, "Running", "public")
+              verifyAppStatus(app_name_public,  "Running", "Creating", "Running", "public")
             })
 
             // check that the default URL subpath was created
@@ -243,11 +338,11 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').contains('Submit').click()
 
             // NB: it will get status "Running" but it won't work because the new port is incorrect
-            verifyAppStatus(app_name_public_2, "Running", "link")
+            verifyAppStatus(app_name_public_2,  "Running", "Changing", "Running", "link")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public_2, "Running", "link")
+              verifyAppStatus(app_name_public_2,  "Running", "Changing", "Running", "link")
             })
 
             // check that the default URL subpath was changed
@@ -279,19 +374,26 @@ describe("Test deploying app", () => {
       .should('exist')
       .and('include.text', 'Your custom URL subpath is not valid, please correct it');
 
-            // Remove the created public app and verify that it is deleted from public apps page
+            // Delete the created public app and verify that it is deleted from public apps page
             cy.logf("Now deleting the public app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name_public_2, "Deleted", "")
+
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name_public_2 + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            // Verify heading with correct text and encoding
+            cy.get('h3').should('contain', 'Public Applications & Models');
             cy.contains('h5.card-title', app_name_public_2).should('not.exist')
 
         } else {
@@ -299,9 +401,19 @@ describe("Test deploying app", () => {
       }
     })
 
-    // This test may only work against a Serve instance running on our cluster.
+    // This test may only work against a Serve instance running on our cluster. as
+    // it takes a huge amount of time. It does not work on GitHub CI. So it's better
+    // to skip it now. As we have Django endpoints, so it can be locally tested directly
+    // in the Serve-dev instance.
     // We need to add a test here for validating Site-dir option. See SS-1206 for details
     it("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-custom-example-project", "e2e-deploy-app-test")
+        deleteAppIfExists("e2e-custom-example-2-public", "e2e-deploy-app-test")
+
+
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-shiny-example"
@@ -316,7 +428,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -324,7 +436,10 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').contains('Submit').click()
-        //    cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running') // for now commented out because it takes shinyproxy a really long time to start up and therefore status "Running" can take 5 minutes to show up
+
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
+
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
 
             cy.logf("Checking that all shiny app settings were saved", Cypress.currentTest)
@@ -344,7 +459,9 @@ describe("Test deploying app", () => {
             cy.get('.card-text').find('p').should('contain', app_description)
 
             cy.logf("Checking that instructions for running the app locally are displayed on public apps page", Cypress.currentTest)
-            cy.get('a[data-bs-target="#dockerInfoModal"]').click()
+            cy.contains('.card', app_name).within(() => {
+                cy.get('a[data-bs-target="#dockerInfoModal"]').click()
+            })
             cy.get('div#dockerInfoModal').should('be.visible')
             cy.get('code').first().should('contain', image_name)
             cy.get('code').first().should('contain', image_port)
@@ -352,19 +469,26 @@ describe("Test deploying app", () => {
 
             cy.logf("Checking that source code URL is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
-            cy.get('a#source-code-url').should('have.attr', 'href', source_code_url)
-
-            cy.logf("Deleting the shiny app", Cypress.currentTest)
+            cy.contains('.card', app_name).within(() => {
+                cy.get('a#source-code-url').should('have.attr', 'href', source_code_url)
+            })
             cy.visit("/projects/")
+            cy.logf("Deleting the shiny app", Cypress.currentTest)
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Deleted')
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
+
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -372,7 +496,12 @@ describe("Test deploying app", () => {
       }
     })
 
-    it.only("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-shiny-example", "e2e-deploy-app-test")
+
         // Simple test to create and delete a Dash app
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
@@ -389,7 +518,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -401,7 +530,7 @@ describe("Test deploying app", () => {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -422,12 +551,17 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -436,6 +570,11 @@ describe("Test deploying app", () => {
     })
 
     it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-dash-example", "e2e-deploy-app-test")
+
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-tissuumaps-example"
@@ -450,18 +589,19 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
             cy.logf("Creating a tisuumaps app", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
             cy.get('#id_volume').select(volume_display_text)
             cy.get('#submit-id-submit').contains('Submit').click()
 
-            verifyAppStatus(app_name, "Running", "public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name, "Running", "public")
+              verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
             })
 
             cy.logf("Checking that all tissuumaps app settings were saved", Cypress.currentTest)
@@ -480,12 +620,17 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -494,6 +639,11 @@ describe("Test deploying app", () => {
     })
 
     it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-tissuumaps-example", "e2e-deploy-app-test")
+
         // Simple test to create and delete a Gradio app
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
@@ -510,7 +660,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a gradio app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -522,7 +672,7 @@ describe("Test deploying app", () => {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
 
             // Verify Gradio app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -543,12 +693,17 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -557,6 +712,11 @@ describe("Test deploying app", () => {
     })
 
     it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-gradio-example", "e2e-deploy-app-test")
+
         // Simple test to create and delete a Streamlit app
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
@@ -573,7 +733,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a streamlit app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -585,7 +745,7 @@ describe("Test deploying app", () => {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
 
             // Verify Streamlit app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -606,12 +766,17 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -620,6 +785,11 @@ describe("Test deploying app", () => {
     })
 
     it("can modify app settings resulting in NO k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-streamlit-example", "e2e-deploy-app-test")
+
         // An advanced test to verify user can modify app settings such as the name and description
         // Names of objects to create
         const project_name = "e2e-deploy-app-test"
@@ -637,7 +807,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -649,7 +819,7 @@ describe("Test deploying app", () => {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -677,12 +847,12 @@ describe("Test deploying app", () => {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
             // Verify that the app status still equals Running
-            verifyAppStatus(app_name_edited, "Running", "public")
+            verifyAppStatus(app_name_edited,"Running", "Changing", "Running", "public")
 
             // Wait for 20 seconds and check the app status again
             // This is a brittle part of the test, therefore we wait a longer time to see if the status (incorrectly) changes
             cy.wait(20000).then(() => {
-              verifyAppStatus(app_name_edited, "Running", "public")
+              verifyAppStatus(app_name_edited, "Running", "Changing", "Running", "public")
             })
 
             // Delete the Dash app
@@ -692,12 +862,20 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_edited + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_edited + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name_edited, "Deleted", "")
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name_edited + '")').should('not.exist')
+            })
+
+            // The app name is not visible anymore, so not possible to catch it in verifyAppStatus()
+            // verifyAppStatus(app_name_edited, "Deleted", "")
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name_edited).should('not.exist')
 
         } else {
@@ -706,6 +884,11 @@ describe("Test deploying app", () => {
     })
 
     it("can modify app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-change-app-settings-no-redeploy-edited", "e2e-deploy-app-test")
+
         // An advanced test to verify user can modify app settings resulting in k8s redeployment (image)
         // still shows the correct app status.
         // Names of objects to create
@@ -723,7 +906,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -735,7 +918,7 @@ describe("Test deploying app", () => {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -772,11 +955,11 @@ describe("Test deploying app", () => {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
             // Verify that the app status now equals Running
-            verifyAppStatus(app_name, "Running", "public")
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "public")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name, "Running", "public")
+              verifyAppStatus(app_name, "Running", "Changing", "Running", "public")
             })
 
             // Delete the Dash app
@@ -786,12 +969,17 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -800,6 +988,11 @@ describe("Test deploying app", () => {
     })
 
     it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-change-app-settings-redeploy", "e2e-deploy-app-test")
+
         // A test to verify creating an app and changing the subdomain
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-subdomain-change"
@@ -816,7 +1009,7 @@ describe("Test deploying app", () => {
             cy.logf("Creating a dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -828,7 +1021,7 @@ describe("Test deploying app", () => {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -854,11 +1047,11 @@ describe("Test deploying app", () => {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
             // Verify that the app status now equals Running
-            verifyAppStatus(app_name, "Running", "public")
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "public")
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-                verifyAppStatus(app_name, "Running", "public")
+                verifyAppStatus(app_name, "Running", "Changing", "Running", "public")
               })
 
             // Delete the Dash app
@@ -868,12 +1061,17 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
             cy.get('button').contains('Delete').click()
-            verifyAppStatus(app_name, "Deleted", "")
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
 
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications and models')
+            cy.get('h3').should('contain', 'Public Applications & Models')
             cy.contains('h5.card-title', app_name).should('not.exist')
 
         } else {
@@ -883,6 +1081,11 @@ describe("Test deploying app", () => {
     })
 
     it("can set and change custom subdomain several times", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-subdomain-change", "e2e-deploy-app-test")
+
         // An advanced test to verify creating apps and changing subdomains. Steps taken:
         // 1. Create app e2e-subdomain-example, subdomain=subdomain-test
         // 2. Attempt create app e2e-second-subdomain-example, using subdomain=subdomain-test
@@ -907,7 +1110,7 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             // Create an app and set a custom subdomain for it
             cy.logf("Now creating an app with a custom subdomain", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             // fill out other fields
             cy.get('#id_name').clear().type(app_name)
             cy.get('#id_description').clear().type(app_description)
@@ -920,12 +1123,16 @@ describe("Test deploying app", () => {
 
             // create the app
             cy.get('#submit-id-submit').contains('Submit').click()
+
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "project")
+
             // check that the app was created with the correct subdomain
             cy.get('a').contains(app_name).should('have.attr', 'href').and('include', subdomain)
 
             // Try using the same subdomain the second time
             cy.logf("Now trying to create an app with an already taken subdomain", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            // cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
 
             cy.get('#id_name').clear().type(app_name_2)
             cy.get('#id_port').clear().type("8501")
@@ -934,7 +1141,8 @@ describe("Test deploying app", () => {
             // fill out subdomain field
             cy.get('#id_subdomain').clear().type(subdomain)
             cy.get('#id_subdomain').blur();
-            cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is not available');
+
+            cy.get('#div_id_subdomain', {timeout: longCmdTimeoutMs}).should('contain.text', 'The subdomain is not available');
 
             // instead use a new subdomain
             cy.get('#id_subdomain').clear().type(subdomain_2)
@@ -942,6 +1150,9 @@ describe("Test deploying app", () => {
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available');
             // create the app
             cy.get('#submit-id-submit').contains('Submit').click()
+
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "project")
+
             // check that the app was created with the correct subdomain
             cy.get('a').contains(app_name_2).should('have.attr', 'href').and('include', subdomain_2)
 
@@ -960,20 +1171,57 @@ describe("Test deploying app", () => {
             // Verify that the app status is not Deleted (Deleting and Created ok)
             cy.get('tr:contains("' + app_name + '")').find('span').should('not.contain', 'Deleted')
             // Finally verify status equals Running
-            verifyAppStatus(app_name, "Running", "") // TODO: Here. Fix this!
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "project") // TODO: Here. Fix this!
 
             // Wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name, "Running", "")
+              verifyAppStatus(app_name, "Running", "Changing", "Running", "project")
             })
+
+            // Delete the first app
+            cy.logf("Deleting the first app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
+            })
+
+            // Delete the second app
+            cy.logf("Deleting the second app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name_2 + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_2 + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name_2 + '")').should('not.exist')
+            })
+
+
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
     })
 
-    // this test is skipped now because app statuses do not work as expected in the CI; needs to be enabled when running against a running dev instance
-    it.skip("see correct statuses when deploying apps", {}, () => {
+    // this test is skipped now because app statuses do not work as expected in the CI;
+    // needs to be enabled when running against a running dev instance
+    it("see correct statuses when deploying apps", {}, () => {
+
+        //delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-subdomain-example", "e2e-deploy-app-test")
+        deleteAppIfExists("e2e-second-subdomain-example", "e2e-deploy-app-test")
+
         // These tests are to check that the event listener works as expected
 
         const createResources = Cypress.env('create_resources');
@@ -989,7 +1237,7 @@ describe("Test deploying app", () => {
 
             // Create an app with project permissions
             cy.logf("Now creating an app with a non-existent image reference - expecting Image Error", Cypress.currentTest)
-            cy.get('div.card-body:contains("' + app_type + '")').find('a:contains("Create")').click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_statuses)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
@@ -997,17 +1245,45 @@ describe("Test deploying app", () => {
             cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
             cy.get('#submit-id-submit').contains('Submit').click()
             // Check that the app was created. Using custom timeout of 5 secs
-            cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Image Error')
+            cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Error: ErrImagePull')
             cy.logf("Now updating the app to give a correct image reference - expecting Running", Cypress.currentTest)
             cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name)
             cy.get('#submit-id-submit').contains('Submit').click()
             // Using longer custom timeout for correct image to be set to Running
+            verifyAppStatus(app_name_statuses, "Running", "Changing", "Running", "project")
             cy.get('tr:contains("' + app_name_statuses + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
+
+            // Delete the app
+            cy.logf("Deleting the app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name_statuses + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_statuses + '")').find('a.confirm-delete').click()
+            cy.get('button').contains('Delete').click()
+            // Verify deletion
+            // Give the action some time after the click event
+            cy.wait(2000).then(() => {
+                // verify that the app is not visible in the project overview
+                 cy.get('tr:contains("' + app_name_statuses + '")').should('not.exist')
+            })
+
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
       }
+    })
+
+    after(() => {
+
+            if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
+
+                cy.log("Cleaning up test data via Django endpoint");
+                cy.cleanupTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
+                cy.cleanupTestUser(TEST_USER_DATA);
+            }
+
+            cy.logf("End after() hook", Cypress.currentTest)
     })
 
 })
