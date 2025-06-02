@@ -1344,6 +1344,21 @@ files = [
 Django = ">=3.2,<6.0"
 
 [[package]]
+name = "django-waffle"
+version = "4.2.0"
+description = "A feature flipper for Django."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "django_waffle-4.2.0-py3-none-any.whl", hash = "sha256:774f45b929627c9d303620c85419ce1da54066f2082d741af014f5bbd747e372"},
+    {file = "django_waffle-4.2.0.tar.gz", hash = "sha256:97709550f4e75ce2a20b13e29f39777e1439a968569f2ee89398ca368afd586c"},
+]
+
+[package.dependencies]
+django = ">=3.2"
+
+[[package]]
 name = "djangorestframework"
 version = "3.15.2"
 description = "Web APIs for Django, made easy."
@@ -4756,4 +4771,4 @@ tests = ["hypothesis", "moto", "pytest", "pytest-cov", "pytest-django", "pytest-
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10.0"
-content-hash = "f28d3dd792ad9c59e6ff8aebc8ebf64910c23099339aa9b18764a741af4339ba"
+content-hash = "6a13472c806832de2f1b296ee60ecec1c7772fbb259738bb0cf7f737b9c9204e"

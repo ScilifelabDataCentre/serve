@@ -29,6 +29,7 @@ django-guardian = "==2.4.0"
 djangorestframework = "== 3.15.2"
 django-crispy-forms = "==2.3"
 crispy-bootstrap5 = "==2024.2"
+django-waffle = "==4.2.0"
 
 # django-wiki
 wiki = "==0.11.2"
@@ -48,7 +49,7 @@ celery = "==5.3.4"
 uvicorn = "==0.20.0"
 flask-cors = "==4.0.0"
 Pillow = "10.2.0"
-schema = "^0.7.7"
+schema = "0.7.7"
 
 flatten-json = "==0.1.13"
 PyYAML = "==6.0.1"
