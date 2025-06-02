@@ -643,7 +643,7 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
         "name": "Application Deployment Metadata",
         "description": (
             "Structured metadata for applications, users, and projects deployed on "
-            "the SciLifeLab Serve platform (https://serve.scilifelab.se/).",
+            "the SciLifeLab Serve platform (https://serve.scilifelab.se/)."
         ),
         "dateCreated": timezone.now().isoformat(),
         "creator": {"@type": "Organization", "name": "SciLifeLab Data Centre", "url": "https://www.scilifelab.se/data"},
