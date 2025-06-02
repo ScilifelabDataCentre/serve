@@ -1,4 +1,6 @@
+import requests
 from django import template
+from django.conf import settings
 from django.db.models.functions import Length
 
 from studio.utils import get_logger
@@ -45,3 +47,9 @@ def count_str(value):
 @register.filter(name="subtract")
 def subtract(value, arg):
     return value - arg
+
+
+@register.filter(name="university_name")
+def university_name(value):
+    r = requests.get(settings.STUDIO_URL + "/openapi/v1/lookups/universities", params={"code": value})
+    return r.json().get("data").get("name")

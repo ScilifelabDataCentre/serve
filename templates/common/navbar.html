@@ -13,34 +13,36 @@
                 <ul class="nav text-center justify-content-center align-items-center" >
                     {% comment %} <li class="nav-item mx-1 display-about">
                         <a class="nav-link serve-main-nav {% if request.path == '/' %}active{% endif %}" href="{% url 'portal:home' %}" target="_self" title="Homepage">
+
                             <i class="size-16 align-middle" data-feather="home"></i>
 
                             <span style="vertical-align:middle;">Home</span>
+
                         </a>
                     </li> {% endcomment %}
                     <li class="nav-item mx-1">
                         <a class="nav-link serve-main-nav {% if request.path == '/apps/' %}active{% endif %}" href="{% url 'portal:apps' %}" target="_self" title="Apps & Models">
-                            <i class="align-middle" data-feather="codesandbox"></i>
+                            <i class="align-middle fas fa-cube"></i>
                             <span style="vertical-align:middle;">Apps & Models</span>
                         </a>
                     </li>
                     <li class="nav-item mx-1">
                         <a class="nav-link serve-main-nav {% if '/docs/' in request.path %}active{% endif %}" href="/docs/" target="_self" title="User Guide">
-                            <i class="align-middle" data-feather="file-text"></i>
+                            <i class="align-middle fas fa-file-lines" style="margin-bottom:1px;"></i>
                             <span style="vertical-align:middle;">User Guide</span>
                         </a>
                     </li>
                     {% if request.user.is_authenticated %}
                     <li class="nav-item mx-1">
                         <a class="nav-link serve-main-nav {% if '/projects/' in request.path %}active{% endif %}" href="{% url 'projects:index' %}" target="_self" title="My Projects">
-                            <i class="align-middle" data-feather="folder"></i>
+                            <i class="align-middle fa-solid fa-folder"></i>
                             <span style="vertical-align:middle;">My Projects</span>
                         </a>
                     </li>
                     <li class="nav-separator"></li>
                     <li class="btn-group mx-1">
                         <button type="button" class="btn btn-profile dropdown-toggle {% if request.path == '/edit-profile/' %}active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false" title="{{request.user.email}}">
-                            <i class="bi bi-person-circle"></i> Profile
+                            <i class="fa-solid fa-circle-user"></i> Profile
                         </button>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{% url 'user-profile' %}"><i class="bi bi-person me-1"></i>My profile</a></li>
@@ -61,18 +63,18 @@
                     </li> {% endcomment %}
                     <li class="nav-item mx-1 display-submit-app">
                         <a class="nav-link serve-main-nav badge rounded-pill text-bg-serve mx-3 {% if '/about/' in request.path %}active{% endif %}" target="_self" title="Submit App" type="button" data-bs-toggle="modal" data-bs-target="#SubmitAppModal">
-                            <i class="align-middle" data-feather="upload-cloud"></i>
+                            <i class="align-middle fa-solid fa-cloud-arrow-up"></i>
                             <span style="vertical-align:middle;">Submit an app</span>
                         </a>
                     </li>
                     <li class="nav-separator"></li>
                     <li class="nav-item flex-wrap mx-1">
                         <a class="btn btn-profile order-lg-2 order-1 mx-2 {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'common:signup' %}">
-                            <i class="align-middle" data-feather="user-plus"></i>
+                            <i class="align-middle fa-solid fa-user-plus"></i>
                             <span style="vertical-align:middle; font-size:0.9rem;">Register</span>
                         </a>
                         <a class="btn btn-profile order-lg-1 order-2 mx-2 {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'login' %}">
-                            <i class="align-middle" data-feather="log-in"></i>
+                            <i class="align-middle fas fa-arrow-right-to-bracket"></i>
                             <span style="vertical-align:middle;font-size:0.9rem;">Log in</span>
                         </a>
                     </li>
@@ -110,12 +112,12 @@
         <div class="modal-body">
           <p>You can create and submit an app to host on SciLifeLab Serve with the following steps:</p>
             <ul>
-                <li> <a class="serve-teal {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'common:signup' %}"><i class="mb-1 mx-1" data-feather="user-plus"></i>Register</a> or if you already have an account<a class="serve-teal {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'login' %}"><i class="mb-1 mx-1" data-feather="log-in"></i><span style="">Log in</span></a> on Serve </li>
-                <li>Once logged in, create a<a class="serve-teal {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'projects:project_templates' %}"><i class="mb-1 ms-1" data-feather="folder"></i> <span style="">Project</span></a> or open an existing<a class="serve-teal {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'projects:index' %}"><i class="mb-1 ms-1" data-feather="folder"></i> <span style="">Project</span></a></li>
+                <li> <a class="serve-teal {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'common:signup' %}"><i class="fa-solid fa-user-plus mb-1 mx-1"></i>Register</a> or if you already have an account<a class="serve-teal {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'login' %}"><i class="fas fa-arrow-right-to-bracket mb-1 mx-1"></i><span style="">Log in</span></a> on Serve </li>
+                <li>Once logged in, create a<a class="serve-teal {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'projects:project_templates' %}"><i class="fa-solid fa-folder mb-1 ms-1"></i> <span style="">Project</span></a> or open an existing<a class="serve-teal {% if maintenance_mode|is_login_signup_disabled %}disabled{% endif %}" href="{% url 'projects:index' %}"><i class="fa-solid fa-folder mb-1 ms-1"></i> <span style="">Project</span></a></li>
                 <li>Create an app.</li>
             </ul>
 
-                <p>To help you with the process, we have created a <a class="serve-teal" href="/docs/application-hosting/" target="_blank"><i class="mb-1" data-feather="file-text"></i>User Guide</a> that provides detailed instructions on how to create and submit an app.</p>
+                <p>To help you with the process, we have created a <a class="serve-teal" href="/docs/application-hosting/" target="_blank"><i class="fas fa-file-lines mb-1 me-1"></i>User Guide</a> that provides detailed instructions on how to create and submit an app.</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -124,6 +126,3 @@
     </div>
   </div>
 <!-- Modal -->
-<script>
-    feather.replace();
-</script>
