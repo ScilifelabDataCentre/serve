@@ -113,8 +113,8 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
                 dep = app.owner.userprofile.department.replace("Department of", "").replace("Division of ", "")
                 app.owner.userprofile.department = dep
                 departments.append(dep)
-        except Exception as e:
-            print("There is no Userprofile.")
+        except Exception:
+            logger.error("Error: There is no Userprofile", exc_info=True)
         tags.extend(app.tags.get_tag_list())
         if getattr(app, "k8s_values", False):
             app.image = app.k8s_values.get("appconfig", {}).get("image", "Not available")
