@@ -87,8 +87,8 @@ describe("Test collections functionality", () => {
 
         cy.logf("Can see the collection listed on the homepage", Cypress.currentTest)
         cy.visit('/home/')
-        cy.get('#collections').find('a').should('contain', collection_name)
-        cy.get('#collections').find('a').should('have.attr', 'href', "/collections/" + collection_slug)
+        cy.get('.collection-logo').should('contain', collection_name)
+        cy.get('.collection-logo').should('have.attr', 'href', "/collections/" + collection_slug)
 
         cy.logf("Can see the collection listed on the collections overview page", Cypress.currentTest)
         cy.visit('/collections')
