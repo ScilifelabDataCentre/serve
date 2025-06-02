@@ -7,8 +7,9 @@ describe("Tests of the public pages of the website", () => {
     })
 
     it("should open the home page on link click", () => {
-        cy.get("li.nav-item a").contains("Home").click()
-        cy.contains("SciLifeLab Serve").should("exist")
+        cy.get(".navbar-brand img").should('have.attr', 'title').should('include','SciLifeLab Serve (beta)')
+        cy.get(".navbar-brand").click()
+        cy.contains("SciLifeLab Serve (beta)").should("exist")
     })
 
     it("should open the Apps and models page on link click", () => {

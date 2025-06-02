@@ -15,6 +15,7 @@ from .models import (
     BaseAppInstance,
     CustomAppInstance,
     DashInstance,
+    DepictioInstance,
     FilemanagerInstance,
     GradioInstance,
     JupyterInstance,
@@ -299,6 +300,11 @@ class SubdomainAdmin(admin.ModelAdmin):
     )
     search_fields = ("subdomain", "project__name")
     list_filter = ("subdomain", "project")
+
+
+@admin.register(DepictioInstance)
+class DepictioInstanceAdmin(BaseAppAdmin):
+    list_display = BaseAppAdmin.list_display
 
 
 admin.site.register(Subdomain, SubdomainAdmin)
