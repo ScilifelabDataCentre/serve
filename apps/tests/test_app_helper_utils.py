@@ -1,14 +1,12 @@
 """This module is used to test the helper functions that are used by user app instance functionality."""
 
-import json
+
 from unittest.mock import ANY, patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from schema import And, Optional, Or, Regex, Schema, Use
 
-from common.tests.manage_test_data import TestDataManager
 from projects.models import Flavor, Project
 
 from ..app_registry import APP_REGISTRY
