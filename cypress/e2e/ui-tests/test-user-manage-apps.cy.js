@@ -404,7 +404,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('div#dockerInfoModal').should('be.visible')
             cy.get('code').first().should('contain', image_name)
             cy.get('code').first().should('contain', image_port)
-            cy.get('div.modal-footer').find('button').contains('Close').click()
+            cy.get('div.docker-info-modal-footer').find('button').contains('Close').click()
 
             cy.logf("Checking that source code URL is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
