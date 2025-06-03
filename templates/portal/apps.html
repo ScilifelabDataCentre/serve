@@ -17,11 +17,11 @@
                 <div class="search-container-filter me-3 w-50">
                   <input id="public-app-search" class="form-control search-input-filter search" placeholder="Search Apps..." {% if published_apps|length <= 0 %}disabled{% endif %}>
                 </div>
-                <button class="btn btn-outline-dark btn-xs" type="button" id="filterButton" data-bs-toggle="collapse" data-bs-target="#collapseExample2" aria-expanded="false" aria-controls="collapseExample2" {% if published_apps|length <= 0 %}disabled{% endif %}>
+                <button class="btn btn-outline-dark btn-xs" type="button" id="filterButton" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" {% if published_apps|length <= 0 %}disabled{% endif %}>
                     <i class="fa-solid fa-sliders fa-sm"></i> <span class="ms-1">Filters</span>
                 </button>
             </div>
-            <div class="collapse mb-2" id="collapseExample2">
+            <div class="collapse mb-2" id="collapseFilters">
               <div class="card">
                 <div class="card-header py-0">
                   <nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -86,6 +86,10 @@
                         <div class="tab-pane fade show active" id="pills-app-types" role="tabpanel" aria-labelledby="pills-app-types-tab">
                           <div id="filters-app-type" class="card-body">
                           <div class="list">
+                          <div style="display:none;">
+                              <!-- A template element is needed when list is empty, TODO: needs a better solution -->
+                              <span class="tag-name"></span>
+                          </div>
                           {% for app_category in serve_category_apps %}
                           <a class="tag tag-filter card-app-type me-3 mb-2" href="#" onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
                             <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
@@ -97,7 +101,7 @@
                           {% endfor %}
 
                           </div>
-                          <nav class="d-flex justify-content-end" aria-label="Page navigation example">
+                          <nav class="d-flex justify-content-end" aria-label="Category pagination">
                               <ul class="pagination pagination-sm serve-pagination serve-pagination-filter mb-0">
                               </ul>
                             </nav>
@@ -106,6 +110,10 @@
                         <div class="tab-pane fade" id="pills-organization" role="tabpanel" aria-labelledby="pills-organization-tab">
                           <div id="filters-organization" class="card-body">
                             <div class="list">
+                              <div style="display:none;">
+                                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
+                                <span class="tag-name"></span>
+                              </div>
                               {% for org in unique_organizations %}
                               <a class="tag tag-filter  card-institution me-3 mb-2" href="#" onclick="searchByTag('{{ org | university_name }}','card-institution',this)">
                                 <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
@@ -116,7 +124,7 @@
                               {% endfor %}
 
                             </div>
-                            <nav class="d-flex justify-content-end" aria-label="Page navigation example">
+                            <nav class="d-flex justify-content-end" aria-label="Organization pagination">
                                   <ul class="pagination pagination-sm serve-pagination serve-pagination-filter">
                                   </ul>
                                 </nav>
@@ -125,6 +133,10 @@
                         <div class="tab-pane fade" id="pills-department" role="tabpanel" aria-labelledby="pills-department-tab">
                           <div id="filters-department" class="card-body">
                             <div class="list">
+                              <div style="display:none;">
+                                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
+                                <span class="tag-name"></span>
+                              </div>
                               {% for dep in unique_departments %}
                               <a class="tag tag-filter card-department me-3 mb-2" href="#" onclick="searchByTag('{{ dep }}','card-department',this)">
                                 <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
@@ -135,7 +147,7 @@
                               {% endfor %}
 
                             </div>
-                            <nav class="d-flex justify-content-end" aria-label="Page navigation example">
+                            <nav class="d-flex justify-content-end" aria-label="Department pagination">
                                   <ul class="pagination pagination-sm serve-pagination serve-pagination-filter">
                                   </ul>
                                 </nav>
@@ -144,6 +156,10 @@
                         <div class="tab-pane fade" id="pills-keyword" role="tabpanel" aria-labelledby="pills-keyword-tab">
                           <div id="filters-keyword" class="card-body">
                             <div class="list">
+                              <div style="display:none;">
+                                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
+                                <span class="tag-name"></span>
+                              </div>
                               {% for tag in unique_tags %}
                               <a class="tag tag-filter card-keyword me-3 mb-2" href="#" onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
                                 <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
@@ -154,10 +170,10 @@
                               {% endfor %}
 
                           </div>
-                          <nav class="d-flex justify-content-end" aria-label="Page navigation example">
+                          <nav class="d-flex justify-content-end" aria-label="Keyword pagination">
                                 <ul class="pagination pagination-sm serve-pagination serve-pagination-filter">
                                 </ul>
-                              </nav>
+                          </nav>
                       </div>
                     </div>
                   </div>
@@ -185,17 +201,28 @@
       <div class="col-12 d-flex sidebar">
         <div id="app-cards" class="col-12">
           <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-3 g-4 list">
+              <div style="display:none;">
+                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
+                <span class="card-title"></span>
+                <span class="card-description"></span>
+                <span class="card-username"></span>
+                <span class="card-department"></span>
+                <span class="card-institution"></span>
+                <span class="card-app-type"></span>
+                <span class="card-keyword"></span>
+              </div>
               {% for app in published_apps %}
               <div class="col mb-4">
                   {% include 'common/app_card.html' %}
               </div>
               {% endfor %}
           </div>
-          <nav class="d-flex justify-content-center" aria-label="Page navigation example">
+          {% if published_apps|length > 0 %}
+          <nav class="d-flex justify-content-center" aria-label="Main pagination">
             <ul class="pagination pagination-sm serve-pagination pagination-nav">
             </ul>
           </nav>
-
+          {% endif %}
         </div>
       </div>
     </div>
@@ -231,7 +258,17 @@
     $('#public-app-search').on('keyup', function() {
       var searchString = $(this).val();
       var searchedList = publicAppList.search(searchString);
-      $("#public-apps-count").text(publicAppList.matchingItems.length);
+      if (searchString == "") {
+        if (searchTags.length == 0 && columnsToSearch.length == 0) {
+          $("#public-apps-count").text(publicAppList.matchingItems.length - 1);
+        } else {
+          $("#public-apps-count").text(publicAppList.matchingItems.length);
+        }
+
+      } else {
+        $("#public-apps-count").text(publicAppList.matchingItems.length);
+      }
+
 
     });
     var searchTags = [];
@@ -256,7 +293,6 @@
       } else if ($('#pills-keyword-tab').hasClass('active')) {
         var searchedList = filterKeywordsList.search(searchString);
       }
-      //$("#public-apps-count").text(searchedList.length);
 
     });
 
@@ -354,8 +390,11 @@
 
         if (searchTags.length == 0 && columnsToSearch.length == 0) {
           var searchedList = publicAppList.filter();
+          $("#public-apps-count").text(publicAppList.matchingItems.length - 1);
+        } else {
+          $("#public-apps-count").text(publicAppList.matchingItems.length);
         }
-        $("#public-apps-count").text(publicAppList.matchingItems.length);
+
     }
 
     function resetFilterList() {
@@ -397,7 +436,7 @@
         $(".card-department-count").addClass("visually-hidden");
         publicAppList.filter();
         var searchedList = publicAppList.search();
-        $("#public-apps-count").text(publicAppList.matchingItems.length);
+        $("#public-apps-count").text(publicAppList.matchingItems.length - 1);
         resetPageFilter();
         addFirstLastButtons();
     }
