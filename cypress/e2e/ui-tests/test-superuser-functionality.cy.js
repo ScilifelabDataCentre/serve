@@ -494,6 +494,7 @@ describe("Test superuser access", () => {
             cy.get("a").should('be.visible').contains('Create').first().click()
             cy.get('input[name=name]').type(project_name)
             cy.get("input[name=save]").should('be.visible').contains('Create project').click()
+            cy.wait(5000)
         });
         cy.wait(15000) // sometimes it takes a while to create a project but just waiting once at the end should be enough
 

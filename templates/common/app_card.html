@@ -62,10 +62,11 @@
                         </div>
                         <div class="clearfix"></div>
                     </div>
-
-                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between">
+                    <div class="col-12">
+                        <a id="app-metadata" target="_blank" title="App metadata and details" rel="Link to the metadata of the app" href="{% url 'apps:app-metadata' app.project.slug app.app.slug app.pk %}" class="btn btn-outline-serve-grape btn-sm w-100" style="border-radius:2px;"> <i class="bi bi-info-circle"></i> Details</a>
+                    </div>
+                    <div class="card-footer d-flex text-muted card-footer-text justify-content-between border-top-0">
                         <div>
-                            <a id="app-metadata" target="_blank" title="App metadata and details" rel="Link to the metadata of the app" href="{% url 'apps:app-metadata' app.project.slug app.app.slug app.pk %}" class="btn btn-outline-serve btn-sm"> <i class="bi bi-info-circle"></i> Details</a>
                         {% if app.app.slug in 'shinyapp,shinyproxyapp,dashapp,customapp,gradio,streamlit' %}
                             {% if app.pvc == None %}
                             <a title="Instructions for running the app locally" rel="Instructions for running the app locally" href="#" class="btn btn-outline-serve btn-sm" data-bs-toggle="modal" data-bs-target="#dockerInfoModal" data-app-name="{{ app.name }}" data-app-image="{{ app.image }}" data-app-port="{{ app.port }}"><i class="bi bi-download"></i> Run Locally</a>
