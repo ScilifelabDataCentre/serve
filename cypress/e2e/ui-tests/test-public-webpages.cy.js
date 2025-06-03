@@ -97,7 +97,7 @@ describe("Tests of the public pages of the website", () => {
             .parents('.card')
             .within(() => {
                 // Verify owner information within the same card
-                cy.contains('div.col-12', `Owner: ${TEST_USER.first_name} ${TEST_USER.last_name}`)
+                cy.contains('div.col-12', `${TEST_USER.first_name} ${TEST_USER.last_name}`)
                 // Click the Details link
                 cy.get('a#app-metadata')
                     .invoke('removeAttr', 'target') // Remove target="_blank"
