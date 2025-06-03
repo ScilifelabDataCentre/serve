@@ -201,6 +201,7 @@
       <div class="col-12 d-flex sidebar">
         <div id="app-cards" class="col-12">
           <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-3 g-4 list">
+              {% if published_apps|length <= 0 %}
               <div style="display:none;">
                 <!-- A template element is needed when list is empty, TODO: needs a better solution -->
                 <span class="card-title"></span>
@@ -211,6 +212,7 @@
                 <span class="card-app-type"></span>
                 <span class="card-keyword"></span>
               </div>
+              {% endif %}
               {% for app in published_apps %}
               <div class="col mb-4">
                   {% include 'common/app_card.html' %}
@@ -258,18 +260,8 @@
     $('#public-app-search').on('keyup', function() {
       var searchString = $(this).val();
       var searchedList = publicAppList.search(searchString);
-      if (searchString == "") {
-        if (searchTags.length == 0 && columnsToSearch.length == 0) {
-          $("#public-apps-count").text(publicAppList.matchingItems.length - 1);
-        } else {
-          $("#public-apps-count").text(publicAppList.matchingItems.length);
-        }
-
-      } else {
-        $("#public-apps-count").text(publicAppList.matchingItems.length);
-      }
-
-
+      $("#public-apps-count").text(publicAppList.matchingItems.length);
+      addFirstLastButtons();
     });
     var searchTags = [];
     var columnsToSearch = [];
@@ -313,6 +305,7 @@
         } else if (searchValues.includes("ShinyProxy App")) {
             searchValues = searchValues.filter(e => e !== "ShinyProxy App");
         }
+
         $(".badge-ico-text-filter").removeClass('badge-ico-text-filter-selected');
         $(".tag-filter."+tagType).addClass('inactive');
         countTagTypes = {};
@@ -390,11 +383,9 @@
 
         if (searchTags.length == 0 && columnsToSearch.length == 0) {
           var searchedList = publicAppList.filter();
-          $("#public-apps-count").text(publicAppList.matchingItems.length - 1);
-        } else {
-          $("#public-apps-count").text(publicAppList.matchingItems.length);
         }
-
+        $("#public-apps-count").text(publicAppList.matchingItems.length);
+        addFirstLastButtons();
     }
 
     function resetFilterList() {
@@ -436,22 +427,23 @@
         $(".card-department-count").addClass("visually-hidden");
         publicAppList.filter();
         var searchedList = publicAppList.search();
-        $("#public-apps-count").text(publicAppList.matchingItems.length - 1);
+        $("#public-apps-count").text(publicAppList.matchingItems.length);
         resetPageFilter();
         addFirstLastButtons();
     }
     addFirstLastButtons();
     function addFirstLastButtons() {
-        $(function() {
-          $('.pagination-nav').prepend('<li class="page-item btn-first"><a class="page-link" onclick="addFirstLastButtons()">First</a></li>');
-          $('.pagination-nav').append('<li class="page-item btn-last"><a class="page-link" onclick="addFirstLastButtons()">Last</a></li>');
-          $('.btn-first').on('click', function(){
-              publicAppList.show(1,12)
-          })
-          $('.btn-last').on('click', function(){
-              publicAppList.show(publicAppList.size(),12)
-          })
-        });
+        // TODO: Fix adding first and last buttons to pagination
+        //$(function() {
+        //  $('.pagination-nav').prepend('<li class="page-item btn-first"><a class="page-link" onclick="addFirstLastButtons()">First</a></li>');
+        //  $('.pagination-nav').append('<li class="page-item btn-last"><a class="page-link" onclick="addFirstLastButtons()">Last</a></li>');
+        //  $('.btn-first').on('click', function(){
+        //      publicAppList.show(1,12)
+        //  })
+        //  $('.btn-last').on('click', function(){
+        //      publicAppList.show(publicAppList.size()-1,12)
+        //  })
+        //});
     }
   </script>
   {% endif %}
