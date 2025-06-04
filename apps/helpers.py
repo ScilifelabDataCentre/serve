@@ -598,13 +598,13 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
 
     # Build software requirements as PropertyValue list
     additional_property = []
-    
+
     # some app types does not have app image
     try:
         app_image = app_instance.image
     except AttributeError:
         app_image = ""
-    
+
     app_values = {
         "appImage": app_image,
         "appCreated": app_instance.created_on.isoformat(),
