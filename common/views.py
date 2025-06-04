@@ -16,7 +16,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import CreateView, TemplateView
 
-from common.tests.manage_test_data import TestDataManager
+from common.management.manage_test_data import TestDataManager
 from studio.utils import get_logger
 
 from .forms import (

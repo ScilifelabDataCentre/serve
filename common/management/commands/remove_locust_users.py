@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
-from common.tests.manage_test_data import TestDataManager
+from common.management.manage_test_data import TestDataManager
 
 User = get_user_model()
 
