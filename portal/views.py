@@ -38,29 +38,6 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
 
     media_url = settings.MEDIA_URL  # noqa: F841 local var assigned but never used
 
-    # create session object to store info about app and their tag counts
-    if "app_tags" not in request.session:
-        request.session["app_tags"] = {}
-    # tag_count from the get request helps set num_tags
-    # which helps set the number of tags to show in the template
-    if "tag_count" in request.GET:
-        # add app id to app_tags object
-        if "app_id_add" in request.GET:
-            num_tags = int(request.GET["tag_count"])
-            app_id = int(request.GET["app_id_add"])
-            request.session["app_tags"][str(app_id)] = num_tags
-        # remove app id from app_tags object
-        if "app_id_remove" in request.GET:
-            num_tags = int(request.GET["tag_count"])
-            app_id = int(request.GET["app_id_remove"])
-            if str(app_id) in request.session["app_tags"]:
-                request.session["app_tags"].pop(str(app_id))
-
-    # reset app_tags if Apps Tab on Sidebar pressed
-    if app_id == 0:
-        if "tf_add" not in request.GET and "tf_remove" not in request.GET:
-            request.session["app_tags"] = {}
-
     # Select published apps
     published_apps = []
     # because shiny appears twice we have to ensure uniqueness
@@ -124,30 +101,6 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     unique_organizations = set(organizations)
     unique_departments = set(departments)
     unique_tags = set(tags)
-    # create session object to store ids for tag seacrh if it does not exist
-    if "app_tag_filters" not in request.session:
-        request.session["app_tag_filters"] = []
-    if "tf_add" in request.GET:
-        tag = request.GET["tf_add"]
-        if tag not in request.session["app_tag_filters"]:
-            request.session["app_tag_filters"].append(tag)
-    elif "tf_remove" in request.GET:
-        tag = request.GET["tf_remove"]
-        if tag in request.session["app_tag_filters"]:
-            request.session["app_tag_filters"].remove(tag)
-    elif "tag_count" not in request.GET:
-        tag = ""
-        request.session["app_tag_filters"] = []
-
-    # changed list of published model only if tag filters are present
-    if request.session["app_tag_filters"]:
-        tagged_published_apps = []
-        for app in published_apps:
-            for t in app.tags.all():
-                if t in request.session["app_tag_filters"]:
-                    tagged_published_apps.append(app)
-                    break
-        published_apps = tagged_published_apps
 
     request.session.modified = True
     return published_apps, request, unique_organizations, unique_departments, unique_tags

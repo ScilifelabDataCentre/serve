@@ -55,16 +55,16 @@
     --bs-btn-color: var(--serve-grape);
     --bs-btn-border-color: var(--serve-grape-025);
     --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--serve-grape);
-    --bs-btn-hover-border-color: var(--serve-grape);
+    --bs-btn-hover-bg: var(--serve-grape-075);
+    --bs-btn-hover-border-color: var(--serve-grape-075);
     --bs-btn-focus-shadow-rgb: 25,135,84;
     --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--serve-grape);
-    --bs-btn-active-border-color: var(--serve-grape);
+    --bs-btn-active-bg: var(--serve-grape-075);
+    --bs-btn-active-border-color: var(--serve-grape-075);
     --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
-    --bs-btn-disabled-color: var(--serve-grape);
+    --bs-btn-disabled-color: var(--serve-grape-075);
     --bs-btn-disabled-bg: transparent;
-    --bs-btn-disabled-border-color: var(--serve-grape);
+    --bs-btn-disabled-border-color: var(--serve-grape-075);
     --bs-gradient: none;
 }
 
