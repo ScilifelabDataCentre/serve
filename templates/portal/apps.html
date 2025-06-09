@@ -237,7 +237,7 @@
     page: 12,
     pagination: {
       listClass: 'pagination',
-      item: function(values) {return `<li class="page-item"><a class='page-link' onclick='addFirstLastButtons()'>${values.page}</a></li>`;},
+      item: function(values) {return `<li class="page-item"><a class='page-link' onclick='addFirstLastButtons()' href='#'>${values.page}</a></li>`;},
       innerWindow: 2,
       outerWindow: 2,
       left: 2,
@@ -256,6 +256,13 @@
     };
 
     var publicAppList = new List('app-cards', options);
+    publicAppList.on('updated', function() {
+      if (publicAppList.matchingItems.length <= publicAppList.page) {
+        $('.pagination-nav').css('display', 'none');
+      } else {
+        $('.pagination-nav').css('display', 'flex');
+      }
+    });
 
     $('#public-app-search').on('keyup', function() {
       var searchString = $(this).val();
