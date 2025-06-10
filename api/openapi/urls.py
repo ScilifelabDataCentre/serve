@@ -7,6 +7,7 @@ from .common_api import APIInfo, are_you_there, get_system_version
 from .content_stats_api import ContentStatsAPI
 from .lookups_api import DepartmentLookupAPI, UniversityLookupAPI
 from .public_apps_api import PublicAppsAPI
+from .monitoring import UniqueIngressIPCountAPI
 
 app_name = "openapi"
 
@@ -35,5 +36,11 @@ urlpatterns = [
         "lookups/departments",
         DepartmentLookupAPI.as_view({"get": "list"}),
         name="openapi-lookups-departments",
+    ),
+    # Unique IP count monitoring
+    path(
+        "monitoring/unique-ip-count/<str:app_subdomain>",
+        UniqueIngressIPCountAPI.as_view(),
+        name="openapi-monitoring-unique-ip-count",
     ),
 ]
