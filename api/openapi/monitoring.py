@@ -1,9 +1,11 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import ValidationError, PermissionDenied
-from apps.models import BaseAppInstance
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from api.services.loki import get_unique_ingress_ip_count
+from apps.models import BaseAppInstance
+
 
 class UniqueIngressIPCountAPI(APIView):
     permission_classes = [IsAuthenticated]

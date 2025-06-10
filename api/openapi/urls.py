@@ -6,8 +6,8 @@ from rest_framework_nested import routers
 from .common_api import APIInfo, are_you_there, get_system_version
 from .content_stats_api import ContentStatsAPI
 from .lookups_api import DepartmentLookupAPI, UniversityLookupAPI
-from .public_apps_api import PublicAppsAPI
 from .monitoring import UniqueIngressIPCountAPI
+from .public_apps_api import PublicAppsAPI
 
 app_name = "openapi"
 

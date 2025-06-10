@@ -1,5 +1,7 @@
-import requests
 import time
+
+import requests
+
 from .kubectl import get_loki_reader_pod
 
 
@@ -33,6 +35,6 @@ def get_unique_ingress_ip_count(namespace: str = "loki-stack", app_subdomain: st
     response = requests.get(endpoint, params=params)
     response.raise_for_status()
     data = response.json()
-    d = data['data']['result'][0]['values'] if data['data']['result'] else []
+    d = data["data"]["result"][0]["values"] if data["data"]["result"] else []
     unique_ips = set(item[1] for item in d)
     return len(unique_ips)
