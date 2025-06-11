@@ -1,9 +1,6 @@
 #!/bin/bash
 # Dependencies: 1. jq for JSON parsing, 2. curl for HTTP requests
 
-# TODO:
-# 6. commit, 7. push, 8. slack message, public confluence, notify all
-
 # Default configuration
 DEFAULT_BASE_URL="https://serve-dev.scilifelab.se"
 DEFAULT_USERS=1
