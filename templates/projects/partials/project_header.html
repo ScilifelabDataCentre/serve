@@ -1,7 +1,15 @@
 <div class="d-flex justify-content-between">
-    <h3>{{ project.name }}</h3>
+  <h3>{{ project.name }}</h3>
+  <div class="d-flex">
     <a href="{%  url 'projects:settings' project.slug %}" class="btn btn-primary ms-2" data-cy="settings">
-        <i class="bi bi-gear me-1"></i>
-        Settings
+      <i class="bi bi-gear me-1"></i>
+      Settings
     </a>
+    {% if user.is_authenticated and user.is_staff %}
+      <a href="{% url 'admin:projects_project_change' project.id %}" class="btn btn-primary ms-2"
+         data-cy="admin-project">
+        🐳 Admin view
+      </a>
+    {% endif %}
+  </div>
 </div>
