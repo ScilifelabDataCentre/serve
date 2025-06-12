@@ -12,6 +12,8 @@ from apps.app_registry import APP_REGISTRY
 from apps.models import Apps, BaseAppInstance, SocialMixin
 from studio.utils import get_logger
 
+import waffle
+
 from .models import EventsObject, NewsObject
 
 logger = get_logger(__name__)
@@ -111,6 +113,8 @@ def public_apps(request, app_id=0):
         request, app_id=app_id, order_by="updated_on", order_reverse=True
     )
     exclude_list = ["ShinyProxy App", "Tensorflow Serving", "PyTorch Serve", "Python Model Deployment"]
+    if not waffle.flag_is_active(request, 'enable_depictio'):
+        exclude_list.append("Depictio")
     serve_category_apps = Apps.objects.filter(Q(category__name="Serve")).exclude(name__in=exclude_list)
     # serve_category_apps.remove(["ShinyProxy App"])
     template = "portal/apps.html"
