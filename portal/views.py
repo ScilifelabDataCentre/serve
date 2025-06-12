@@ -1,15 +1,9 @@
-import inspect
-import time
-from datetime import datetime, timedelta
 
 import markdown
-
-# from silk.profiling.profiler import silk_profile
 import requests
 from django.apps import apps
 from django.conf import settings
-from django.core.cache import cache
-from django.db.models import Prefetch, Q
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.generic import View
@@ -33,13 +27,6 @@ Collection = apps.get_model(app_label="portal.Collection")
 
 
 def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", order_reverse=False):
-    # cache_key = f"public_apps_{collection or 'all'}_{order_by}_{order_reverse}"
-    # cached_result = cache.get(cache_key)
-
-    # if cached_result:
-    #     logger.info("Cache hit for public apps")
-    #     return cached_result
-
     published_apps = []
     seen_app_ids = set()
 
@@ -70,9 +57,7 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
         )
     else:
         logger.error("Error: Invalid order_by field", exc_info=True)
-
-    # cache.set(cache_key, result, timeout=600)
-
+        
     return published_apps
 
 
@@ -95,7 +80,7 @@ def public_apps(request, app_id=0):
                 organizations.add(affiliation)
                 department = app.owner.userprofile.department
                 if department not in [None, ""]:
-                    dep_cleaned = department.replace("Department of", "").replace("Division of ", "")
+                    dep_cleaned = department.replace("Department of", "").replace("Division of ", "").replace("Institute of", "").replace("Institute for ", "")
                     departments.add(dep_cleaned)
             except Exception:
                 logger.error("Error: There is no Userprofile", exc_info=True)
