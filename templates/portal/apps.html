@@ -73,7 +73,7 @@
                         </ul>
 
                         <div class="search-container-filter w-25 d-flex mb-1 show-filter-search">
-                              <input id="filter-search" type="search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search Tags...">
+                              <input id="filter-search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search Tags...">
                               <button class="btn btn-outline-dark btn-xs d-flex align-items-center" type="button" onclick="resetFilters()">
                                 <i class="fa-solid fa-rotate-left fa-sm"></i>
                                 <span class="ms-1">Reset</span>
@@ -247,7 +247,7 @@
   // Filter‐pane List.js
   const filterOptions = {
     valueNames: ['tag-name'], page:30,
-    pagination:{ listClass:'pagination', item:v=>`<li class="page-item"><a class="page-link">${v.page}</a></li>`, innerWindow:2, left:2, right:2 }
+    pagination:{ listClass:'pagination', item:v=>`<li class="page-item"><a class="page-link" onclick='resetPageFilter()'>${v.page}</a></li>`, innerWindow:2, left:2, right:2 }
   };
   const filterAppTypeList  = new List('filters-app-type', filterOptions);
   const filterOrgsList     = new List('filters-organization', filterOptions);
@@ -354,7 +354,15 @@
     [filterAppTypeList,filterOrgsList,filterDepList,filterKeywordsList]
       .forEach(fl=>{fl.search(''); fl.sort('tag-name',{order:'asc'});});
   }
+  function resetPageFilter() {
+        $(function() {
+          if (searchTags.length === 0) {
+            $(".badge-ico-text-filter").removeClass('badge-ico-text-filter-selected');
+            $(".tag-filter").removeClass('inactive');
+          }
+        });
 
+     }
   function resetFilters() {
     searchTags=[]; columnsToSearch.clear(); searchValues.clear();
     $('.badge-ico-text-filter').removeClass('badge-ico-text-filter-selected');
@@ -364,6 +372,7 @@
     publicAppList.filter(); publicAppList.search();
     $('#public-apps-count').text(publicAppList.matchingItems.length);
     resetFilterList();
+    resetPageFilter();
   }
 
   function addFirstLastButtons() {

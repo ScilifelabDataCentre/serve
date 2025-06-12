@@ -1,4 +1,3 @@
-
 import markdown
 import requests
 from django.apps import apps
@@ -57,7 +56,7 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
         )
     else:
         logger.error("Error: Invalid order_by field", exc_info=True)
-        
+
     return published_apps
 
 
@@ -80,7 +79,12 @@ def public_apps(request, app_id=0):
                 organizations.add(affiliation)
                 department = app.owner.userprofile.department
                 if department not in [None, ""]:
-                    dep_cleaned = department.replace("Department of", "").replace("Division of ", "").replace("Institute of", "").replace("Institute for ", "")
+                    dep_cleaned = (
+                        department.replace("Department of", "")
+                        .replace("Division of ", "")
+                        .replace("Institute of", "")
+                        .replace("Institute for ", "")
+                    )
                     departments.add(dep_cleaned)
             except Exception:
                 logger.error("Error: There is no Userprofile", exc_info=True)
