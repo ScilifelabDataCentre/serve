@@ -9,8 +9,8 @@ class DepictioAppManager(AppInstanceManager):
 
 class DepictioInstance(BaseAppInstance, SocialMixin):
     objects = DepictioAppManager()
-    ACCESS_TYPES = (("public", "Public"),)
-    access = models.CharField(max_length=20, default="public", choices=ACCESS_TYPES)
+    ACCESS_TYPES = (("public", "Public"), ("project", "Project"), ("link", "Link"), ("private", "Private"))
+    access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
