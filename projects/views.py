@@ -616,11 +616,7 @@ class DetailsView(View):
                 }
             )
 
-        context = {
-            "resources": resources,
-            "project": project,
-            "app_ids": app_ids,
-        }
+        context = {"resources": resources, "project": project, "app_ids": app_ids, "user": request.user}
 
         return render(
             request=request,
