@@ -24,7 +24,7 @@ from . import views
 
 urlpatterns = (
     [
-            path(settings.DJANGO_ADMIN_URL_PATH.rstrip("/") + "/", admin.site.urls, name="django-admin"),
+        path(settings.DJANGO_ADMIN_URL_PATH.rstrip("/") + "/", admin.site.urls, name="django-admin"),
         path("accounts/", include("django.contrib.auth.urls")),
         path("user/profile/", views.profile, name="user-profile"),
         path("user/delete-account/", views.delete_account, name="delete_account"),
