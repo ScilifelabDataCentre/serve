@@ -60,71 +60,78 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     return published_apps
 
 
+def add_additional_context_to_public_apps(published_apps):
+    serialized_apps = []
+    organizations, departments, tags = set(), set(), set()
+
+    universities_lookup = requests.get(settings.STUDIO_URL + "/openapi/v1/lookups/universities")
+    universities = universities_lookup.json().get("data")
+    universities_obj = {u["code"]: u["name"] for u in universities}
+
+    for app in published_apps:
+        try:
+            affiliation = universities_obj.get(app.owner.userprofile.affiliation, app.owner.userprofile.affiliation)
+            organizations.add(affiliation)
+            department = app.owner.userprofile.department
+            if department not in [None, ""]:
+                dep_cleaned = (
+                    department.replace("Department of", "")
+                    .replace("Division of ", "")
+                    .replace("Institute of", "")
+                    .replace("Institute for ", "")
+                )
+                departments.add(dep_cleaned)
+        except Exception as e:
+            logger.error("Error: " + e.__str__())
+
+        print(f"Processing app: {app.name} ({app.id})")
+        tag_list = app.tags.get_tag_list()
+        tags.update(tag_list)
+        k8s_values = getattr(app, "k8s_values", {})
+
+        try:
+            app.status_group = app.get_status_group()
+        except Exception:
+            app.latest_status = "unknown"
+            app.status_group = "unknown"
+        serialized_apps.append(
+            {
+                "id": app.id,
+                "name": app.name,
+                "description": app.description,
+                "owner": app.owner.first_name + " " + app.owner.last_name,
+                "affiliation": affiliation if "affiliation" in locals() else "",
+                "department": dep_cleaned if "dep_cleaned" in locals() else "",
+                "tag_list": tag_list,
+                "tag_string": ",".join(tag_list),
+                "image": k8s_values.get("appconfig", {}).get("image", "Not available"),
+                "port": k8s_values.get("appconfig", {}).get("port", "Not available"),
+                "userid": k8s_values.get("appconfig", {}).get("userid", "Not available"),
+                "pvc": k8s_values.get("apps", {}).get("volumeK8s") or None,
+                "logo": app.app.logo,
+                "slug": app.app.slug,
+                "app_type": "Shiny App" if app.app.name == "ShinyProxy App" else app.app.name,
+                "project_slug": app.project.slug,
+                "source_code_url": app.source_code_url,
+                "status_group": app.status_group,
+            }
+        )
+
+    unique_organizations = list(organizations)
+    unique_departments = list(departments)
+    unique_tags = list(tags)
+    return serialized_apps, unique_organizations, unique_departments, unique_tags
+
+
 # @silk_profile(name='Public apps')
 def public_apps(request, app_id=0):
     try:
         published_apps = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
         exclude_list = ["ShinyProxy App", "Tensorflow Serving", "PyTorch Serve", "Python Model Deployment"]
         serve_category_apps = Apps.objects.filter(Q(category__name="Serve")).exclude(name__in=exclude_list)
-        serialized_apps = []
-        organizations, departments, tags = set(), set(), set()
-
-        universities_lookup = requests.get(settings.STUDIO_URL + "/openapi/v1/lookups/universities")
-        universities = universities_lookup.json().get("data")
-        universities_obj = {u["code"]: u["name"] for u in universities}
-
-        for app in published_apps:
-            try:
-                affiliation = universities_obj.get(app.owner.userprofile.affiliation, app.owner.userprofile.affiliation)
-                organizations.add(affiliation)
-                department = app.owner.userprofile.department
-                if department not in [None, ""]:
-                    dep_cleaned = (
-                        department.replace("Department of", "")
-                        .replace("Division of ", "")
-                        .replace("Institute of", "")
-                        .replace("Institute for ", "")
-                    )
-                    departments.add(dep_cleaned)
-            except Exception as e:
-                logger.error("Error: " + e.__str__())
-
-            print(f"Processing app: {app.name} ({app.id})")
-            tag_list = app.tags.get_tag_list()
-            tags.update(tag_list)
-            k8s_values = getattr(app, "k8s_values", {})
-
-            try:
-                app.status_group = app.get_status_group()
-            except Exception:
-                app.latest_status = "unknown"
-                app.status_group = "unknown"
-            serialized_apps.append(
-                {
-                    "id": app.id,
-                    "name": app.name,
-                    "description": app.description,
-                    "owner": app.owner.first_name + " " + app.owner.last_name,
-                    "affiliation": affiliation if "affiliation" in locals() else "",
-                    "department": dep_cleaned if "dep_cleaned" in locals() else "",
-                    "tag_list": tag_list,
-                    "tag_string": ",".join(tag_list),
-                    "image": k8s_values.get("appconfig", {}).get("image", "Not available"),
-                    "port": k8s_values.get("appconfig", {}).get("port", "Not available"),
-                    "userid": k8s_values.get("appconfig", {}).get("userid", "Not available"),
-                    "pvc": k8s_values.get("apps", {}).get("volumeK8s") or None,
-                    "logo": app.app.logo,
-                    "slug": app.app.slug,
-                    "app_type": "Shiny App" if app.app.name == "ShinyProxy App" else app.app.name,
-                    "project_slug": app.project.slug,
-                    "source_code_url": app.source_code_url,
-                    "status_group": app.status_group,
-                }
-            )
-
-        unique_organizations = list(organizations)
-        unique_departments = list(departments)
-        unique_tags = list(tags)
+        serialized_apps, unique_organizations, unique_departments, unique_tags = add_additional_context_to_public_apps(
+            published_apps
+        )
 
     except Exception as e:
         print({"error": str(e)})
@@ -223,7 +230,13 @@ def get_collection(request, slug, app_id=0):
     template = "collections/collection.html"
 
     collection = get_object_or_404(Collection, slug=slug)
-    collection_published_apps = get_public_apps(request, app_id=app_id, collection=slug)
+    published_apps = get_public_apps(request, app_id=app_id, collection=slug)
+    (
+        collection_published_apps,
+        unique_organizations,
+        unique_departments,
+        unique_tags,
+    ) = add_additional_context_to_public_apps(published_apps)
     collection_published_models = PublishedModel.objects.all().filter(collections__slug=slug)
 
     context = {
