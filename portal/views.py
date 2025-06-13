@@ -223,9 +223,7 @@ def get_collection(request, slug, app_id=0):
     template = "collections/collection.html"
 
     collection = get_object_or_404(Collection, slug=slug)
-    collection_published_apps, unique_organizations, unique_departments, unique_tags = get_public_apps(
-        request, app_id=app_id, collection=slug
-    )
+    collection_published_apps = get_public_apps(request, app_id=app_id, collection=slug)
     collection_published_models = PublishedModel.objects.all().filter(collections__slug=slug)
 
     context = {
