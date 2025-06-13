@@ -62,9 +62,9 @@
                         </div>
                         <div class="clearfix"></div>
                     </div>
-                    {% comment %} <div class="col-12">
+                    <div class="col-12">
                         <a id="app-metadata" target="_blank" title="App metadata and details" rel="Link to the metadata of the app" href="{% url 'apps:app-metadata' app.project_slug app.slug app.id %}" class="btn btn-outline-serve-grape btn-sm w-100" style="border-radius:2px;"> <i class="bi bi-info-circle"></i> Details</a>
-                    </div> {% endcomment %}
+                    </div>
                     <div class="card-footer d-flex text-muted card-footer-text justify-content-between border-top-0">
                         <div>
                         {% if app.slug in 'shinyapp,shinyproxyapp,dashapp,customapp,gradio,streamlit' %}
