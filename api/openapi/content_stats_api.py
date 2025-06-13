@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from typing import Any
 
@@ -56,14 +56,17 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         # A dict of pre-defined app types in the system.
         # Undefined app types are dynamically added during processing.
         # APP_REGISTRY is not used because its terminology is sligtly different.
-        apps_by_type: dict[str, int] = {
-            "customapp": 0,
-            "dashapp": 0,
-            "gradio": 0,
-            "shinyapp": 0,
-            "streamlit": 0,
-            "tissuumaps": 0,
-        }
+        apps_by_type: dict[str, int] = defaultdict(int)
+        apps_by_type.update(
+            {
+                "customapp": 0,
+                "dashapp": 0,
+                "gradio": 0,
+                "shinyapp": 0,
+                "streamlit": 0,
+                "tissuumaps": 0,
+            }
+        )
 
         apps_by_image_registry: dict[str, int] = {
             "dockerhub": 0,
@@ -111,14 +114,6 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         # Apps
         # Since we loop over apps to retrieve image registry info,
         # we also collect all app attributes in the same way.
-        def append_app_type(app_type: str) -> None:
-            """Constructs and increments app type counts."""
-            if app_type in apps_by_type:
-                apps_by_type[app_type] += 1
-            else:
-                # Append the app type as a new key
-                apps_by_type[app_type] = 1
-
         try:
             apps = BaseAppInstance.objects.get_app_instances_not_deleted()
             n_apps = 0
@@ -147,9 +142,9 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
                     # Collect app type information
                     if "shiny" in app.app.slug:
                         # Combine all shiny types into one app type
-                        append_app_type("shinyapp")
+                        apps_by_type["shinyapp"] += 1
                     else:
-                        append_app_type(app.app.slug)
+                        apps_by_type[app.app.slug] += 1
 
         except Exception as e:
             success = False
