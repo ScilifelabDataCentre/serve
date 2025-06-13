@@ -86,9 +86,10 @@ def public_apps(request, app_id=0):
                         .replace("Institute for ", "")
                     )
                     departments.add(dep_cleaned)
-            except Exception:
-                logger.error("Error: There is no Userprofile", exc_info=True)
+            except Exception as e:
+                logger.error("Error: " + e.__str__())
 
+            print(f"Processing app: {app.name} ({app.id})")
             tag_list = app.tags.get_tag_list()
             tags.update(tag_list)
             k8s_values = getattr(app, "k8s_values", {})
@@ -98,15 +99,14 @@ def public_apps(request, app_id=0):
             except Exception:
                 app.latest_status = "unknown"
                 app.status_group = "unknown"
-
             serialized_apps.append(
                 {
                     "id": app.id,
                     "name": app.name,
                     "description": app.description,
                     "owner": app.owner.first_name + " " + app.owner.last_name,
-                    "affiliation": affiliation or "",
-                    "department": dep_cleaned or "",
+                    "affiliation": affiliation if "affiliation" in locals() else "",
+                    "department": dep_cleaned if "dep_cleaned" in locals() else "",
                     "tag_list": tag_list,
                     "tag_string": ",".join(tag_list),
                     "image": k8s_values.get("appconfig", {}).get("image", "Not available"),
