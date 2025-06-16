@@ -45,6 +45,7 @@ class ContentStatsApiTests(APITestCase):
             project=self.project,
             k8s_values={
                 "appconfig": {"port": 9999, "image": "ghcr.io/scilifelabdatacentre/test-shiny:3"},
+                "permission": "public",
             },
             subdomain=subdomain,
             k8s_user_app_status=k8s_user_app_status,
@@ -83,6 +84,7 @@ class ContentStatsApiTests(APITestCase):
             self.assertEqual(actual["n_projects"], 1)
             self.assertEqual(actual["n_users"], 1)
             self.assertEqual(actual["n_apps"], 1)
+            self.assertEqual(actual["n_apps_public"], 1)
 
             self.assertIsNotNone(actual["apps_by_type"])
             self.assertTrue(len(actual["apps_by_type"]) > 1)
@@ -97,9 +99,10 @@ class ContentStatsApiTests(APITestCase):
             self.assertEqual(actual["users_by_university"], {"slu": 1})
 
             self.assertIsNotNone(actual["apps_by_image_registry"])
-            self.assertEqual(len(actual["apps_by_image_registry"]), 2)
+            self.assertEqual(len(actual["apps_by_image_registry"]), 3)
             self.assertEqual(actual["apps_by_image_registry"]["dockerhub"], 0)
             self.assertEqual(actual["apps_by_image_registry"]["ghcr"], 1)
+            self.assertEqual(actual["apps_by_image_registry"]["noimage"], 0)
 
         # Verify the responses
         verify_response(actual)
@@ -129,6 +132,7 @@ class ContentStatsApiTests(APITestCase):
         self.assertEqual(actual["n_projects"], 0)
         self.assertEqual(actual["n_users"], 0)
         self.assertEqual(actual["n_apps"], 0)
+        self.assertEqual(actual["n_apps_public"], 0)
 
         self.assertIsNotNone(actual["apps_by_type"])
         self.assertTrue(len(actual["apps_by_type"]) > 1)
@@ -143,6 +147,7 @@ class ContentStatsApiTests(APITestCase):
         self.assertEqual(actual["users_by_university"], {})
 
         self.assertIsNotNone(actual["apps_by_image_registry"])
-        self.assertEqual(len(actual["apps_by_image_registry"]), 2)
+        self.assertEqual(len(actual["apps_by_image_registry"]), 3)
         self.assertEqual(actual["apps_by_image_registry"]["dockerhub"], 0)
         self.assertEqual(actual["apps_by_image_registry"]["ghcr"], 0)
+        self.assertEqual(actual["apps_by_image_registry"]["noimage"], 0)

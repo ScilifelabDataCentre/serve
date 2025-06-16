@@ -28,6 +28,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
     - n_projects
     - n_users
     - n_apps
+    - n_apps_public
     - apps_by_type
     - new_users_by_year
     - users_by_university
@@ -48,6 +49,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         n_projects = n_default
         n_users = n_default
         n_apps = n_default
+        n_apps_public = n_default
 
         new_users_by_year: dict[int, int] = {}
 
@@ -71,6 +73,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         apps_by_image_registry: dict[str, int] = {
             "dockerhub": 0,
             "ghcr": 0,
+            "noimage": 0,
         }
 
         # Projects
@@ -116,23 +119,26 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         # we also collect all app attributes in the same way.
         try:
             apps = BaseAppInstance.objects.get_app_instances_not_deleted()
-            n_apps = 0
+            n_apps = n_apps_public = 0
 
             for app in apps:
                 if app.app.category.slug == "serve":
                     n_apps += 1
 
-                    # Collect app image registry information
                     image = None
-                    if app.k8s_values is not None and "appconfig" in app.k8s_values:
-                        app_config = app.k8s_values["appconfig"]
-                        if "image" in app_config and app_config["image"] is not None:
-                            image = app_config["image"]
+
+                    if app.k8s_values is not None:
+                        if "permission" in app.k8s_values and app.k8s_values["permission"] == "public":
+                            n_apps_public += 1
+
+                        # Collect app image registry information
+                        if "appconfig" in app.k8s_values:
+                            app_config = app.k8s_values["appconfig"]
+                            if "image" in app_config and app_config["image"] is not None:
+                                image = app_config["image"]
 
                     if image is None:
-                        logger.info(
-                            "An app is missing image information so it was skipped from the image registry counts."
-                        )
+                        apps_by_image_registry["noimage"] += 1
                     else:
                         if "ghcr.io" in image:
                             apps_by_image_registry["ghcr"] += 1
@@ -148,7 +154,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
 
         except Exception as e:
             success = False
-            msg = f"Error setting apps information (n_apps or apps_by_image_registry). {e}"
+            msg = f"Error setting apps information (n_apps, n_apps_public or apps_by_image_registry). {e}"
             success_msg = _append_status_msg(success_msg, msg)
             logger.warning(f"Unable to get the number of user apps: {e}", exc_info=True)
 
@@ -164,6 +170,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         stats["n_projects"] = n_projects
         stats["n_users"] = n_users
         stats["n_apps"] = n_apps
+        stats["n_apps_public"] = n_apps_public
         stats["apps_by_type"] = apps_by_type
         stats["new_users_by_year"] = new_users_by_year
         stats["users_by_university"] = users_by_univ
