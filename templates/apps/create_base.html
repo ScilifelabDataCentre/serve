@@ -13,7 +13,14 @@
         <div class="card shadow border-1">
             <div class="card-body">
             {% if app_id %}
-                <h1 class="h3 mb-3 card-title">Edit {{ form.instance.name }}</h1>
+              <h1 class="h3 mb-3 card-title">Edit {{ form.instance.name }}
+                {% if user.is_authenticated and user.is_staff %}
+                  <a href="{% url 'admin:apps_'|add:model_name|add:'_change' app_id %}" class="btn btn-primary ms-2"
+                     data-cy="admin-app">
+                    🐳 Admin view
+                  </a>
+                {% endif %}
+              </h1>
             {% else %}
                 <h1 class="h3 mb-3 card-title">Create {{ form.model_name }}</h1>
             {% endif %}
