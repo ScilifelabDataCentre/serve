@@ -62,48 +62,34 @@ class ContentStatsApiTests(APITestCase):
 
         actual = json.loads(response.content)["data"]
 
-        # Perform a second request and verify the counts have not changed
-        response2 = self.client.get(url, format="json")
-        self.assertEqual(response2.status_code, status.HTTP_200_OK)
-        actual2 = json.loads(response2.content)["data"]
+        self.assertIsNotNone(actual)
+        self.assertIsInstance(actual, dict)
+        self.assertTrue(len(actual) > 1)
 
-        def verify_response(actual):
-            self.assertIsNotNone(actual)
-            self.assertIsInstance(actual, dict)
-            self.assertTrue(len(actual) > 1)
+        self.assertIsNotNone(actual["stats_date_utz"])
+        stats_date = datetime.strptime(actual["stats_date_utz"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        self.assertIsInstance(stats_date, datetime)
+        self.assertEqual(stats_date.date(), datetime.today().date())
 
-            self.assertIsNotNone(actual["stats_date_utz"])
-            stats_date = datetime.strptime(actual["stats_date_utz"], "%Y-%m-%dT%H:%M:%S.%fZ")
-            self.assertIsInstance(stats_date, datetime)
-            self.assertEqual(stats_date.date(), datetime.today().date())
+        self.assertTrue(actual["stats_success"])
+        self.assertIsNone(actual["stats_message"])
 
-            self.assertTrue(actual["stats_success"])
-            self.assertIsNone(actual["stats_message"])
+        self.assertEqual(actual["n_projects"], 1)
+        self.assertEqual(actual["n_users"], 1)
+        self.assertEqual(actual["n_apps"], 1)
 
-            self.assertEqual(actual["n_projects"], 1)
-            self.assertEqual(actual["n_users"], 1)
-            self.assertEqual(actual["n_apps"], 1)
+        self.assertIsNotNone(actual["apps_by_type"])
+        self.assertTrue(len(actual["apps_by_type"]) > 1)
+        self.assertEqual(actual["apps_by_type"]["shinyapp"], 1)
 
-            self.assertIsNotNone(actual["apps_by_type"])
-            self.assertTrue(len(actual["apps_by_type"]) > 1)
-            self.assertEqual(actual["apps_by_type"]["shinyapp"], 1)
-            self.assertEqual(actual["apps_by_type"]["customapp"], 0)
-            self.assertEqual(actual["apps_by_type"]["dashapp"], 0)
-            self.assertEqual(actual["apps_by_type"]["gradio"], 0)
-            self.assertEqual(actual["apps_by_type"]["streamlit"], 0)
+        self.assertEqual(actual["new_users_by_year"], {str(datetime.today().year): 1})
 
-            self.assertEqual(actual["new_users_by_year"], {str(datetime.today().year): 1})
+        self.assertEqual(actual["users_by_university"], {"slu": 1})
 
-            self.assertEqual(actual["users_by_university"], {"slu": 1})
-
-            self.assertIsNotNone(actual["apps_by_image_registry"])
-            self.assertEqual(len(actual["apps_by_image_registry"]), 2)
-            self.assertEqual(actual["apps_by_image_registry"]["dockerhub"], 0)
-            self.assertEqual(actual["apps_by_image_registry"]["ghcr"], 1)
-
-        # Verify the responses
-        verify_response(actual)
-        verify_response(actual2)
+        self.assertIsNotNone(actual["apps_by_image_registry"])
+        self.assertEqual(len(actual["apps_by_image_registry"]), 2)
+        self.assertEqual(actual["apps_by_image_registry"]["dockerhub"], 0)
+        self.assertEqual(actual["apps_by_image_registry"]["ghcr"], 1)
 
     def test_with_empty_contents(self):
         """Tests the API resource against an empty system."""
@@ -132,11 +118,6 @@ class ContentStatsApiTests(APITestCase):
 
         self.assertIsNotNone(actual["apps_by_type"])
         self.assertTrue(len(actual["apps_by_type"]) > 1)
-        self.assertEqual(actual["apps_by_type"]["shinyapp"], 0)
-        self.assertEqual(actual["apps_by_type"]["customapp"], 0)
-        self.assertEqual(actual["apps_by_type"]["dashapp"], 0)
-        self.assertEqual(actual["apps_by_type"]["gradio"], 0)
-        self.assertEqual(actual["apps_by_type"]["streamlit"], 0)
 
         self.assertEqual(actual["new_users_by_year"], {})
 

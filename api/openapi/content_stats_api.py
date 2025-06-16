@@ -1,4 +1,4 @@
-from collections import Counter, defaultdict
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Any
 
@@ -34,6 +34,18 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
     - apps_by_image_registry
     """
 
+    # A dict of pre-defined app types in the system.
+    # Undefined app types are dynamically added during processing.
+    # APP_REGISTRY is not used because its terminaology is sligtly different.
+    apps_by_type: dict[str, int] = {
+        "customapp": 0,
+        "dashapp": 0,
+        "gradioapp": 0,
+        "shinyapp": 0,
+        "streamlitapp": 0,
+        "tissuumapsapp": 0,
+    }
+
     def get_stats(self, request: Request) -> Any:
         logger.info("Open API resource content-stats called")
 
@@ -52,21 +64,6 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         new_users_by_year: dict[int, int] = {}
 
         users_by_univ: dict[str, int] = {}
-
-        # A dict of pre-defined app types in the system.
-        # Undefined app types are dynamically added during processing.
-        # APP_REGISTRY is not used because its terminology is sligtly different.
-        apps_by_type: dict[str, int] = defaultdict(int)
-        apps_by_type.update(
-            {
-                "customapp": 0,
-                "dashapp": 0,
-                "gradio": 0,
-                "shinyapp": 0,
-                "streamlit": 0,
-                "tissuumaps": 0,
-            }
-        )
 
         apps_by_image_registry: dict[str, int] = {
             "dockerhub": 0,
@@ -142,9 +139,9 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
                     # Collect app type information
                     if "shiny" in app.app.slug:
                         # Combine all shiny types into one app type
-                        apps_by_type["shinyapp"] += 1
+                        self._append_app_type("shinyapp")
                     else:
-                        apps_by_type[app.app.slug] += 1
+                        self._append_app_type(app.app.slug)
 
         except Exception as e:
             success = False
@@ -164,7 +161,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         stats["n_projects"] = n_projects
         stats["n_users"] = n_users
         stats["n_apps"] = n_apps
-        stats["apps_by_type"] = apps_by_type
+        stats["apps_by_type"] = ContentStatsAPI.apps_by_type
         stats["new_users_by_year"] = new_users_by_year
         stats["users_by_university"] = users_by_univ
         stats["apps_by_image_registry"] = apps_by_image_registry
@@ -172,6 +169,14 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         data = {"data": stats}
 
         return JsonResponse(data)
+
+    def _append_app_type(self, app_type: str) -> None:
+        """Constructs and increments app type counts."""
+        if app_type in ContentStatsAPI.apps_by_type:
+            ContentStatsAPI.apps_by_type[app_type] += 1
+        else:
+            # Append the app type as a new key
+            ContentStatsAPI.apps_by_type[app_type] = 1
 
 
 def _append_status_msg(status_msg: str | None, new_msg: str) -> str:
