@@ -115,6 +115,8 @@ def add_additional_context_to_public_apps(published_apps):
                 "project_slug": app.project.slug,
                 "source_code_url": app.source_code_url,
                 "status_group": app.status_group,
+                "updated_on": app.updated_on,
+                "url": app.url,
             }
         )
 
