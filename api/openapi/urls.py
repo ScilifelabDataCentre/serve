@@ -38,9 +38,5 @@ urlpatterns = [
         name="openapi-lookups-departments",
     ),
     # Unique IP count monitoring
-    path(
-        "monitoring/unique-ip-count/<str:app_subdomain>",
-        UniqueIngressIPCountAPI.as_view(),
-        name="openapi-monitoring-unique-ip-count",
-    ),
+    path("monitoring/unique-ip-count/<str:app_subdomain>", UniqueIngressIPCountAPI.as_view()),
 ]

@@ -11,7 +11,7 @@ def get_loki_reader_pod(namespace: str = "loki-stack") -> str | None:
     Returns the pod name as a string, or None if not found or error.
     """
     label_selector = "app.kubernetes.io/name=loki,app.kubernetes.io/component=read"
-    cmd = ["kubectl", "get", "pod", "-n", namespace, "-l", label_selector, "-o", "jsonpath={.items[0].metadata.name}"]
+    cmd = ["kubectl", "get", "pods", "-n", namespace, "-l", label_selector, "-o", "jsonpath={.items[0].metadata.name}"]
     try:
         result = subprocess.check_output(cmd, text=True)
         pod_name = result.strip()
