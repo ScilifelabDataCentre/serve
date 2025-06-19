@@ -31,6 +31,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from api.services.loki import query_unique_ip_count
 from apps.constants import HandleUpdateStatusResponseCode
 from apps.helpers import get_select_options, handle_update_status_request
 from apps.models import AppCategories, Apps, BaseAppInstance, Subdomain
@@ -1217,3 +1218,31 @@ def _append_status_msg(status_msg: str | None, new_msg: str) -> str:
         return new_msg
     else:
         return f"{status_msg} {new_msg}"
+
+
+@api_view(["GET"])
+@permission_classes((IsAuthenticated,))
+def get_unique_ingress_ip_count(request: HttpRequest, app_subdomain: str) -> HttpResponse:
+    """
+    Returns the count of unique IPs that accessed the app (by subdomain) in the last 29 days.
+    Only the app owner can access this endpoint.
+    """
+    if not app_subdomain:
+        return JsonResponse({"error": "Missing required parameter: app_subdomain"}, status=400)
+
+    # Check ownership
+    try:
+        app_instance = BaseAppInstance.objects.get(subdomain__subdomain=app_subdomain)
+    except Exception as e:
+        logger.error("Subdomain not found. %s", e)
+        return JsonResponse({"error": f"Subdomain not found. {e}"}, status=404)
+
+    if request.user.is_superuser or request.user == app_instance.owner:
+        try:
+            count = query_unique_ip_count(app_instance.namespace, app_subdomain)
+            return JsonResponse({"app_subdomain": app_subdomain, "unique_ip_count": count})
+        except Exception as e:
+            logger.error(f"Error retrieving unique IP count: {str(e)}")
+            return JsonResponse({"error": f"Error retrieving data: {str(e)}"}, status=500)
+    else:
+        return JsonResponse({"error": "You do not have permission to access this app's monitoring data."}, status=403)

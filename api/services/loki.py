@@ -9,7 +9,7 @@ from .kubectl import get_loki_reader_pod
 logger = get_logger(__name__)
 
 
-def get_unique_ingress_ip_count(namespace: str = "loki-stack", app_subdomain: str = "") -> int:
+def query_unique_ip_count(namespace: str = "loki-stack", app_subdomain: str = "") -> int:
     """
     Discover the Loki reader pod in the given namespace and query it for the count of unique ingress client IPs.
     The app_subdomain parameter is used to filter logs for the specific app.
