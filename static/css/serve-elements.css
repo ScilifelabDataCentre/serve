@@ -353,7 +353,3 @@ a.collection-logo:hover::after, a:focus::after, a.active::after {
 .text-bg-serve:hover {
     outline: var(--serve-teal) solid 1.5px;
 }
-
-.tag-filter {
-    cursor: pointer!important;
-}
