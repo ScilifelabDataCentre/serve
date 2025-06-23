@@ -1221,7 +1221,7 @@ def _append_status_msg(status_msg: str | None, new_msg: str) -> str:
 
 
 @api_view(["GET"])
-@permission_classes((IsAuthenticated,))
+@permission_classes(())
 def get_unique_ingress_ip_count(request: HttpRequest, app_subdomain: str) -> HttpResponse:
     """
     Returns the count of unique IPs that accessed the app (by subdomain) in the last 29 days.
