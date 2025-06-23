@@ -42,8 +42,7 @@ class MLFlowInstance(BaseAppInstance):
             "pdb": {"create": False},
             # This fixes this issue:
             # https://mlflow.org/docs/2.21.3/tracking/server#handling-timeout-when-uploadingdownloading-large-artifacts
-            # bug fix SS-1481, 'TypeError: Object of type set is not JSON serializable', changing set to list
-            "extraArgs": ['--gunicorn-opts="--timeout=360"'],
+            "extraArgs": {'--gunicorn-opts="--timeout=360"'},
         }
         k8s_values["run"] = {
             "resources": {

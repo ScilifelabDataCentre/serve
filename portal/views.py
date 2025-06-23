@@ -1,5 +1,6 @@
+from datetime import timedelta
+
 import markdown
-import requests
 from django.apps import apps
 from django.conf import settings
 from django.db.models import Q
@@ -23,33 +24,48 @@ Collection = apps.get_model(app_label="portal.Collection")
 
 # TODO minor refactor
 # 2. add type annotations
-
-
 def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", order_reverse=False):
+    try:
+        projects = Project.objects.filter(
+            Q(owner=request.user) | Q(authorized=request.user), status="active"
+        )  # noqa: F841 local var assigned but never used
+        logger.info(len(projects))
+    except Exception:
+        # logger.debug("User not logged in.")
+        pass
+    if "project" in request.session:
+        project_slug = request.session["project"]  # noqa: F841 local var assigned but never used
+
+    media_url = settings.MEDIA_URL  # noqa: F841 local var assigned but never used
+
+    # Select published apps
     published_apps = []
+    # because shiny appears twice we have to ensure uniqueness
     seen_app_ids = set()
 
-    def get_queryset_for_model(app_orm):
-        filters = ~Q(latest_user_action__in=["Deleting", "SystemDeleting"]) & Q(access="public")
-        if collection:
-            filters &= Q(collections__slug=collection)
-
-        queryset = (
-            app_orm.objects.filter(filters)
-            .select_related("owner__userprofile", "k8s_user_app_status", "project", "app")
-            .prefetch_related("tags")
-        )
-        return queryset
+    def get_unique_apps(queryset, app_ids_to_exclude):
+        """Get from queryset app orm models, that are not present in ``seen_app_ids``"""
+        unique_app_ids_ = set()
+        unique_apps_ = []
+        for app in queryset:
+            if app.id not in app_ids_to_exclude and app.id not in unique_app_ids_:
+                unique_app_ids_.add(app.id)
+                unique_apps_.append(app)
+        return unique_apps_, unique_app_ids_
 
     app_orms = (app_model for app_model in APP_REGISTRY.iter_orm_models() if issubclass(app_model, SocialMixin))
 
     for app_orm in app_orms:
-        queryset = get_queryset_for_model(app_orm)
-        for app in queryset:
-            if app.id not in seen_app_ids:
-                published_apps.append(app)
-                seen_app_ids.add(app.id)
+        filters = ~Q(latest_user_action__in=["Deleting", "SystemDeleting"]) & Q(access="public")
+        if collection:
+            filters &= Q(collections__slug=collection)
+        published_apps_qs = app_orm.objects.filter(filters)
 
+        unique_apps, unique_app_ids = get_unique_apps(published_apps_qs, seen_app_ids)
+        published_apps += unique_apps
+        seen_app_ids.update(unique_app_ids)
+
+    # Sort by the values specified in 'order_by' and 'reverse'
     if all(hasattr(app, order_by) for app in published_apps):
         published_apps.sort(
             key=lambda app: (getattr(app, order_by) is None, getattr(app, order_by, "")), reverse=order_reverse
@@ -57,85 +73,46 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
     else:
         logger.error("Error: Invalid order_by field", exc_info=True)
 
-    return published_apps
-
-
-def add_additional_context_to_public_apps(published_apps):
-    serialized_apps = []
-    organizations, departments, tags = set(), set(), set()
-
-    universities_lookup = requests.get(settings.STUDIO_URL + "/openapi/v1/lookups/universities")
-    universities = universities_lookup.json().get("data")
-    universities_obj = {u["code"]: u["name"] for u in universities}
-
     for app in published_apps:
         try:
-            affiliation = universities_obj.get(app.owner.userprofile.affiliation, app.owner.userprofile.affiliation)
-            organizations.add(affiliation)
-            department = app.owner.userprofile.department
-            if department not in [None, ""]:
-                dep_cleaned = (
-                    department.replace("Department of", "")
-                    .replace("Division of ", "")
-                    .replace("Institute of", "")
-                    .replace("Institute for ", "")
-                )
-                departments.add(dep_cleaned)
-        except Exception as e:
-            logger.error("Error: " + e.__str__())
-
-        print(f"Processing app: {app.name} ({app.id})")
-        tag_list = app.tags.get_tag_list()
-        tags.update(tag_list)
-        k8s_values = getattr(app, "k8s_values", {})
-
-        try:
             app.status_group = app.get_status_group()
-        except Exception:
+        except:  # noqa E722 TODO refactor: Add exception
             app.latest_status = "unknown"
             app.status_group = "unknown"
-        serialized_apps.append(
-            {
-                "id": app.id,
-                "name": app.name,
-                "description": app.description,
-                "owner": app.owner.first_name + " " + app.owner.last_name,
-                "affiliation": affiliation if "affiliation" in locals() else "",
-                "department": dep_cleaned if "dep_cleaned" in locals() else "",
-                "tag_list": tag_list,
-                "tag_string": ",".join(tag_list),
-                "image": k8s_values.get("appconfig", {}).get("image", "Not available"),
-                "port": k8s_values.get("appconfig", {}).get("port", "Not available"),
-                "userid": k8s_values.get("appconfig", {}).get("userid", "Not available"),
-                "pvc": k8s_values.get("apps", {}).get("volumeK8s") or None,
-                "logo": app.app.logo,
-                "slug": app.app.slug,
-                "app_type": "Shiny App" if app.app.name == "ShinyProxy App" else app.app.name,
-                "project_slug": app.project.slug,
-                "source_code_url": app.source_code_url,
-                "status_group": app.status_group,
-            }
-        )
+    organizations = []
+    departments = []
+    tags = []
+    # Extract app config for use in Django templates
+    for app in published_apps:
+        try:
+            organizations.append(app.owner.userprofile.affiliation)
+            if app.owner.userprofile.department not in [None, ""]:
+                dep = app.owner.userprofile.department.replace("Department of", "").replace("Division of ", "")
+                app.owner.userprofile.department = dep
+                departments.append(dep)
+        except Exception:
+            logger.error("Error: There is no Userprofile", exc_info=True)
+        tags.extend(app.tags.get_tag_list())
+        if getattr(app, "k8s_values", False):
+            app.image = app.k8s_values.get("appconfig", {}).get("image", "Not available")
+            app.port = app.k8s_values.get("appconfig", {}).get("port", "Not available")
+            app.userid = app.k8s_values.get("appconfig", {}).get("userid", "Not available")
+            app.pvc = app.k8s_values.get("apps", {}).get("volumeK8s") or None
+    unique_organizations = set(organizations)
+    unique_departments = set(departments)
+    unique_tags = set(tags)
 
-    unique_organizations = list(organizations)
-    unique_departments = list(departments)
-    unique_tags = list(tags)
-    return serialized_apps, unique_organizations, unique_departments, unique_tags
+    request.session.modified = True
+    return published_apps, request, unique_organizations, unique_departments, unique_tags
 
 
-# @silk_profile(name='Public apps')
 def public_apps(request, app_id=0):
-    try:
-        published_apps = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
-        exclude_list = ["ShinyProxy App", "Tensorflow Serving", "PyTorch Serve", "Python Model Deployment"]
-        serve_category_apps = Apps.objects.filter(Q(category__name="Serve")).exclude(name__in=exclude_list)
-        serialized_apps, unique_organizations, unique_departments, unique_tags = add_additional_context_to_public_apps(
-            published_apps
-        )
-
-    except Exception as e:
-        print({"error": str(e)})
-
+    published_apps, request, unique_organizations, unique_departments, unique_tags = get_public_apps(
+        request, app_id=app_id, order_by="updated_on", order_reverse=True
+    )
+    exclude_list = ["ShinyProxy App", "Tensorflow Serving", "PyTorch Serve", "Python Model Deployment"]
+    serve_category_apps = Apps.objects.filter(Q(category__name="Serve")).exclude(name__in=exclude_list)
+    # serve_category_apps.remove(["ShinyProxy App"])
     template = "portal/apps.html"
     return render(request, template, locals())
 
@@ -144,7 +121,9 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, app_id=0):
-        published_apps_updated_on = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
+        published_apps_updated_on, request, unique_organizations, unique_depatments, unique_tags = get_public_apps(
+            request, app_id=app_id, order_by="updated_on", order_reverse=True
+        )
         published_apps_updated_on = published_apps_updated_on[:6]  # we display only 6 apps
         # TODO: add selection of N apps into the function so that it is optimized in the future with more apps in the db
 
@@ -230,13 +209,9 @@ def get_collection(request, slug, app_id=0):
     template = "collections/collection.html"
 
     collection = get_object_or_404(Collection, slug=slug)
-    published_apps = get_public_apps(request, app_id=app_id, collection=slug)
-    (
-        collection_published_apps,
-        unique_organizations,
-        unique_departments,
-        unique_tags,
-    ) = add_additional_context_to_public_apps(published_apps)
+    collection_published_apps, request, unique_organizations, unique_departments, unique_tags = get_public_apps(
+        request, app_id=app_id, collection=slug
+    )
     collection_published_models = PublishedModel.objects.all().filter(collections__slug=slug)
 
     context = {
