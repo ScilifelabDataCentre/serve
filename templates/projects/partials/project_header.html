@@ -7,7 +7,7 @@
     </a>
     {% if user.is_authenticated and user.is_staff %}
       <a href="{% url 'admin:projects_project_change' project.id %}" class="btn btn-primary ms-2"
-         data-cy="admin-project">
+         data-cy="admin-project" target="_blank">
         🐳 Admin view
       </a>
     {% endif %}

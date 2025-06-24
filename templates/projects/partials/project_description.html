@@ -6,7 +6,7 @@
       <p>
         <b>Project owner:</b>
         {% if user.is_authenticated and user.is_staff %}
-          <a href={% url "admin:auth_user_change" project.owner.id %}>
+          <a target="_blank" href={% url "admin:auth_user_change" project.owner.id %}>
             {{ project.owner.email }}
           </a>
         {% else %}
