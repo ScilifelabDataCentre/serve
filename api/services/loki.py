@@ -1,4 +1,5 @@
 from typing import Any, Dict, Set
+
 import requests
 
 from studio.utils import get_logger
@@ -27,6 +28,7 @@ def process_loki_response(response_json: Dict[str, Any]) -> Set[str]:
                 unique_ips.add(ip_address)
     except Exception as e:
         logger.error(f"Error extracting IPs from Loki response: {e}")
+    logger.info(f"Unique IPs extracted: {unique_ips}")
     return unique_ips
 
 
