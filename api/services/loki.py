@@ -24,8 +24,10 @@ def process_loki_response(response_json: Dict[str, Any]) -> Set[str]:
         for result in results:
             values = result.get("values", [])
             for value in values:
-                ip_address = value[1].strip()
-                unique_ips.add(ip_address)
+                if len(value) > 1:
+                    ip_address = value[1].strip()
+                    if ip_address:
+                        unique_ips.add(ip_address)
     except Exception as e:
         logger.error(f"Error extracting IPs from Loki response: {e}")
     logger.info(f"Unique IPs extracted: {unique_ips}")
