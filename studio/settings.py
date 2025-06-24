@@ -150,6 +150,10 @@ TEMPLATES = [
         },
     },
 ]
+EMAIL_TEMPLATES = []
+for path in (Path(BASE_DIR, "templates", "admin", "email")).iterdir():
+    if path.is_file() and path.suffix in [".html", ".txt"]:
+        EMAIL_TEMPLATES.append(f"admin/email/{path.name}")
 
 TEMPLATE_LOADERS = (
     "django.template.loaders.filesystem.Loader",
@@ -429,6 +433,7 @@ PUBLICMODELOBJECT_MODEL = "portal.PublicModelObject"
 EMAIL_BACKEND = (
     "gmailapi_backend.service.GmailApiBackend" if not DEBUG else "django.core.mail.backends.console.EmailBackend"
 )
+DEFAULT_FROM_EMAIL = "serve@scilifelab.se"
 EMAIL_FROM = "noreply-serve@scilifelab.se"
 GMAIL_USER = "noreply-serve@scilifelab.se"
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
