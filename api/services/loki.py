@@ -1,5 +1,4 @@
 from typing import Any, Dict, Set
-
 import requests
 
 from studio.utils import get_logger
@@ -43,6 +42,7 @@ def query_unique_ip_count(app_subdomain: str = "") -> int:
         raise ValueError("app_subdomain must be provided")
 
     endpoint = f"{LOKI_READER_ENDPOINT}/loki/api/v1/query_range"
+
     query = (
         r'{container="rke2-ingress-nginx-controller"} |= "'
         + app_subdomain
@@ -54,6 +54,7 @@ def query_unique_ip_count(app_subdomain: str = "") -> int:
     params = {
         "query": query,
         "limit": "1000",  # Line number limit
+        "since": "30d",
     }
 
     response = requests.get(endpoint, params=params)
