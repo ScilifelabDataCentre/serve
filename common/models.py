@@ -76,7 +76,7 @@ class EmailSendingTable(models.Model):
         if self.template:
             # If a template is selected, render the message using the template
 
-            html_message = render_to_string(self.template, {"message": self.message})
+            html_message = render_to_string(self.template, {"message": self.message, "user": self.to_user})
             message = html_message  # Use the rendered HTML message as the plain text message
         else:
             if not message:
