@@ -20,7 +20,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.mixins import (
     CreateModelMixin,
     ListModelMixin,
@@ -28,6 +28,7 @@ from rest_framework.mixins import (
     UpdateModelMixin,
 )
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
@@ -1221,6 +1222,8 @@ def _append_status_msg(status_msg: str | None, new_msg: str) -> str:
 
 
 @api_view(["GET"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
 def get_unique_ingress_ip_count(request, app_subdomain: str) -> JsonResponse:
     """
     Returns the count of unique IPs that accessed the app (by subdomain) in the last 29 days.
