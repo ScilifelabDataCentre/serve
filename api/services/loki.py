@@ -1,4 +1,4 @@
-import time
+from typing import Any, Dict, Set
 
 import requests
 
@@ -11,22 +11,38 @@ logger = get_logger(__name__)
 LOKI_READER_ENDPOINT = "http://loki-read-headless.loki-stack.svc.cluster.local:3100"
 
 
+def process_loki_response(response_json: Dict[str, Any]) -> Set[str]:
+    """
+    Extract unique IP addresses from the Loki JSON response.
+
+    Args:
+        response_json (dict): The JSON response from a Loki query.
+    """
+    unique_ips = set()
+    try:
+        results = response_json.get("data", {}).get("result", [])
+        for result in results:
+            values = result.get("values", [])
+            for value in values:
+                ip_address = value[1].strip()
+                unique_ips.add(ip_address)
+    except Exception as e:
+        logger.error(f"Error extracting IPs from Loki response: {e}")
+    return unique_ips
+
+
 def query_unique_ip_count(app_subdomain: str = "") -> int:
     """
-    Discover the Loki reader pod in the given namespace and query it for the count of unique ingress client IPs.
-    The app_subdomain parameter is used to filter logs for the specific app.
-    Returns the count as an integer.
+    Query Loki for unique IP addresses accessing a specific app subdomain.
+
+    Args:
+        app_subdomain (str): The subdomain of the app to query for.
     """
     if not app_subdomain:
         logger.error("app_subdomain must be provided")
         raise ValueError("app_subdomain must be provided")
 
     endpoint = f"{LOKI_READER_ENDPOINT}/loki/api/v1/query_range"
-    # Calculate time in nanoseconds for the start of the window (29 days ago)
-    start_time = f"{int((time.time() - (29 * 24 * 60 * 60)) * 1_000_000_000)}"
-    # Calculate current time in nanoseconds for the end of the 29-day window (end_time)
-    end_time = f"{int(time.time() * 1_000_000_000)}"
-
     query = (
         r'{container="rke2-ingress-nginx-controller"} |= "'
         + app_subdomain
@@ -37,11 +53,11 @@ def query_unique_ip_count(app_subdomain: str = "") -> int:
 
     params = {
         "query": query,
+        "limit": "1000",  # Line number limit
     }
 
     response = requests.get(endpoint, params=params)
     response.raise_for_status()
     data = response.json()
-    result = data["data"]["result"][0]["values"] if data["data"]["result"] else []
-    unique_ips = set(item[1] for item in result)
+    unique_ips = process_loki_response(data)
     return len(unique_ips)
