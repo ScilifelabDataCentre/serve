@@ -151,7 +151,7 @@ TEMPLATES = [
     },
 ]
 EMAIL_TEMPLATES = []
-for path in (Path(BASE_DIR, "templates", "admin", "email")).iterdir():
+for path in sorted((Path(BASE_DIR, "templates", "admin", "email")).iterdir(), key=lambda p: p.name):
     if path.is_file() and path.suffix in [".html", ".txt"]:
         EMAIL_TEMPLATES.append(f"admin/email/{path.name}")
 
