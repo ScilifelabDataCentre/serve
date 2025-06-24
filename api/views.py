@@ -18,9 +18,14 @@ from django.template import loader
 from django.utils.safestring import mark_safe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
 from rest_framework.mixins import (
     CreateModelMixin,
     ListModelMixin,
@@ -28,7 +33,6 @@ from rest_framework.mixins import (
     UpdateModelMixin,
 )
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
@@ -1234,7 +1238,7 @@ def get_unique_ingress_ip_count(request, app_subdomain: str) -> JsonResponse:
 
     try:
         app_instance = BaseAppInstance.objects.get(subdomain__subdomain=app_subdomain)
-    except Exception as e:
+    except BaseAppInstance.DoesNotExist as e:
         logger.error("Subdomain not found. %s", e)
         return JsonResponse({"error": f"Subdomain not found. {e}"}, status=404)
 

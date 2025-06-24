@@ -22,8 +22,10 @@ def query_unique_ip_count(app_subdomain: str = "") -> int:
         raise ValueError("app_subdomain must be provided")
 
     endpoint = f"{LOKI_READER_ENDPOINT}/loki/api/v1/query_range"
-    end_time = f"{int(time.time() * 1_000_000_000)}"
+    # Calculate time in nanoseconds for the start of the window (29 days ago)
     start_time = f"{int((time.time() - (29 * 24 * 60 * 60)) * 1_000_000_000)}"
+    # Calculate current time in nanoseconds for the end of the 29-day window (end_time)
+    end_time = f"{int(time.time() * 1_000_000_000)}"
 
     query = (
         r'{container="rke2-ingress-nginx-controller"} |= "'
