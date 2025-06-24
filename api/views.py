@@ -1237,6 +1237,11 @@ def get_unique_ingress_ip_count(request: HttpRequest, app_subdomain: str) -> Htt
         logger.error("Subdomain not found. %s", e)
         return JsonResponse({"error": f"Subdomain not found. {e}"}, status=404)
 
+    count = query_unique_ip_count(app_instance.namespace, app_subdomain)
+    return JsonResponse({"app_subdomain": app_subdomain, "unique_ip_count": count})
+
+
+"""
     if request.user.is_superuser or request.user == app_instance.owner:
         try:
             count = query_unique_ip_count(app_instance.namespace, app_subdomain)
@@ -1246,3 +1251,4 @@ def get_unique_ingress_ip_count(request: HttpRequest, app_subdomain: str) -> Htt
             return JsonResponse({"error": f"Error retrieving data: {str(e)}"}, status=500)
     else:
         return JsonResponse({"error": "You do not have permission to access this app's monitoring data."}, status=403)
+"""
