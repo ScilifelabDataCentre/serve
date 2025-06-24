@@ -1221,7 +1221,7 @@ def _append_status_msg(status_msg: str | None, new_msg: str) -> str:
 
 
 @api_view(["GET"])
-def get_unique_ingress_ip_count(request: HttpRequest, app_subdomain: str) -> HttpResponse:
+def get_unique_ingress_ip_count(request, app_subdomain: str) -> JsonResponse:
     """
     Returns the count of unique IPs that accessed the app (by subdomain) in the last 29 days.
     Only the app owner can access this endpoint.
@@ -1229,7 +1229,6 @@ def get_unique_ingress_ip_count(request: HttpRequest, app_subdomain: str) -> Htt
     if not app_subdomain:
         return JsonResponse({"error": "Missing required parameter: app_subdomain"}, status=400)
 
-    # Check ownership
     try:
         app_instance = BaseAppInstance.objects.get(subdomain__subdomain=app_subdomain)
     except Exception as e:
@@ -1243,6 +1242,6 @@ def get_unique_ingress_ip_count(request: HttpRequest, app_subdomain: str) -> Htt
             return JsonResponse({"app_subdomain": app_subdomain, "unique_ip_count": count})
         except Exception as e:
             logger.error(f"Error retrieving unique IP count: {str(e)}")
-            return JsonResponse({"error": f"Error retrieving data: {str(e)}"}, status=500)
+            return JsonResponse({"error": f"Error retrieving data: {str(e)}"}, status=400)
     else:
         return JsonResponse({"error": "You do not have permission to access this app's monitoring data."}, status=403)
