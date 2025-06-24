@@ -1236,7 +1236,8 @@ def get_unique_ingress_ip_count(request: HttpRequest, app_subdomain: str) -> Htt
         logger.error("Subdomain not found. %s", e)
         return JsonResponse({"error": f"Subdomain not found. {e}"}, status=404)
 
-    if request.user.is_superuser or request.user == app_instance.owner:
+    logger.info(f"User {request.user}")
+    if (request.user == app_instance.owner) or request.user.is_superuser:
         try:
             count = query_unique_ip_count(app_subdomain=app_subdomain)
             return JsonResponse({"app_subdomain": app_subdomain, "unique_ip_count": count})
