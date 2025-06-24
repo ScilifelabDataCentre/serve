@@ -37,13 +37,11 @@ def query_unique_ip_count(app_subdomain: str = "") -> int:
 
     params = {
         "query": query,
-        "start": start_time,
-        "end": end_time,
     }
 
     response = requests.get(endpoint, params=params)
     response.raise_for_status()
     data = response.json()
-    d = data["data"]["result"][0]["values"] if data["data"]["result"] else []
-    unique_ips = set(item[1] for item in d)
+    result = data["data"]["result"][0]["values"] if data["data"]["result"] else []
+    unique_ips = set(item[1] for item in result)
     return len(unique_ips)
