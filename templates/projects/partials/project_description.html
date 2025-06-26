@@ -3,7 +3,16 @@
        {% if project.description %}
            <p class="card-text"><b>Description:</b> {{ project.description }}</p>
            {% endif %}
-           <p><b>Project owner:</b> {{ project.owner.email }}</p>
+      <p>
+        <b>Project owner:</b>
+        {% if user.is_authenticated and user.is_staff %}
+          <a target="_blank" href={% url "admin:auth_user_change" project.owner.id %}>
+            {{ project.owner.email }}
+          </a>
+        {% else %}
+          {{ project.owner.email }}
+        {% endif %}
+      </p>
            {% if project.authorized.all %}
            <p><b>Project members:</b> {{ project.authorized.all|join:"; " }}</p>
            {% endif %}
