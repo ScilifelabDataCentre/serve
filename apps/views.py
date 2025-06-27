@@ -247,7 +247,15 @@ class CreateApp(View):
         return render(
             request,
             self.template_name,
-            {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug, "form_header": form_header},
+            {
+                "form": form,
+                "project": project,
+                "app_id": app_id,
+                "app_slug": app_slug,
+                "form_header": form_header,
+                "user": request.user,
+                "model_name": str(APP_REGISTRY.get_orm_model(app_slug).__name__).lower(),
+            },
         )
 
     @transaction.atomic
