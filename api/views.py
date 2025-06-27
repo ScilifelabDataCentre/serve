@@ -1248,6 +1248,6 @@ def get_unique_ingress_ip_count(request, app_subdomain: str) -> JsonResponse:
             return JsonResponse({"app_subdomain": app_subdomain, "unique_ip_count": count})
         except Exception as e:
             logger.error(f"Error retrieving unique IP count: {str(e)}")
-            return JsonResponse({"error": f"Error retrieving data: {str(e)}"}, status=400)
+            return JsonResponse({"error": f"Error retrieving data: {str(e)}"}, status=500)
     else:
         return JsonResponse({"error": "You do not have permission to access this app's monitoring data."}, status=403)
