@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from common.models import EmailVerificationTable
+from common.models import EmailSendingTable, EmailVerificationTable
 
 
 @receiver(pre_save, sender=User)
@@ -33,3 +33,20 @@ def send_verification_email(sender, instance, created, **kwargs):
     """
     if created:
         instance.send_verification_email()
+
+
+@receiver(pre_save, sender=EmailSendingTable)
+def send_manual_email(sender, instance: EmailSendingTable, **kwargs):
+    """
+    This function is used to send manual email to the user.
+
+    It is registered by ``common.apps.CommonConfig.ready()``
+    """
+    instance.to_email = instance.to_user.email if instance.to_user else instance.to_email
+    try:
+        instance.send_email()
+        instance.status = "sent"
+    except Exception as e:
+        # Log the error or handle it as needed
+        print(f"Error sending email: {e}")
+        instance.status = "failed"
