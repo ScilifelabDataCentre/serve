@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, User
+from django.core.mail import send_mail
 from django.db import models
+from django.template.loader import render_to_string
 
 from studio.utils import get_logger
 
@@ -39,6 +41,54 @@ class EmailVerificationTable(models.Model):
         from .tasks import send_verification_email_task
 
         send_verification_email_task(self.user.email, self.token)
+
+
+class EmailSendingTable(models.Model):
+    EMAIL_TEMPLATES = {file_path: file_path for file_path in settings.EMAIL_TEMPLATES}
+    from_email = models.EmailField(
+        choices=[
+            (settings.DEFAULT_FROM_EMAIL, settings.DEFAULT_FROM_EMAIL),
+            (settings.EMAIL_FROM, settings.EMAIL_FROM),
+        ]
+    )
+    to_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    to_email = models.EmailField()
+    subject = models.CharField(
+        max_length=255,
+        help_text="Subject of the email."
+        "If there is already exists a ticket on Edge, you can use it's subject"
+        " to track email history through it.",
+    )
+    message = models.TextField(
+        help_text="Email message to be sent. If base template is selected, "
+        "this will be rendered using the template. You can use HTML tags here.",
+        blank=True,
+        null=True,
+        default="",
+    )
+    template = models.CharField(max_length=100, choices=EMAIL_TEMPLATES, null=True, blank=True)
+    status = models.CharField(choices=[("sent", "Sent"), ("failed", "Failed")], default="pending", max_length=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def send_email(self):
+        message = self.message
+        html_message = None
+        if self.template:
+            # If a template is selected, render the message using the template
+
+            html_message = render_to_string(self.template, {"message": self.message, "user": self.to_user})
+            message = html_message  # Use the rendered HTML message as the plain text message
+        else:
+            if not message:
+                raise ValueError("Message cannot be empty if no template is selected.")
+        send_mail(
+            subject=self.subject,
+            message=message,
+            from_email=self.from_email,
+            recipient_list=[self.to_email, settings.DEFAULT_FROM_EMAIL],
+            html_message=html_message,
+            fail_silently=False,
+        )
 
 
 class FixtureVersion(models.Model):
