@@ -18,9 +18,14 @@ from django.template import loader
 from django.utils.safestring import mark_safe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
 from rest_framework.mixins import (
     CreateModelMixin,
     ListModelMixin,
@@ -31,6 +36,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from api.services.loki import query_unique_ip_count
 from apps.constants import HandleUpdateStatusResponseCode
 from apps.helpers import get_select_options, handle_update_status_request
 from apps.models import AppCategories, Apps, BaseAppInstance, Subdomain
@@ -1217,3 +1223,31 @@ def _append_status_msg(status_msg: str | None, new_msg: str) -> str:
         return new_msg
     else:
         return f"{status_msg} {new_msg}"
+
+
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_unique_ingress_ip_count(request, app_subdomain: str) -> JsonResponse:
+    """
+    Returns the count of unique IPs that accessed the app (by subdomain) in the last 29 days.
+    Only the app owner can access this endpoint.
+    """
+    if not app_subdomain:
+        return JsonResponse({"error": "Missing required parameter: app_subdomain"}, status=400)
+
+    try:
+        app_instance = BaseAppInstance.objects.get(subdomain__subdomain=app_subdomain)
+    except BaseAppInstance.DoesNotExist as e:
+        logger.error("Subdomain not found. %s", e)
+        return JsonResponse({"error": f"Subdomain not found. {e}"}, status=404)
+
+    if (request.user == app_instance.owner) or request.user.is_superuser:
+        try:
+            count = query_unique_ip_count(app_subdomain=app_subdomain)
+            return JsonResponse({"app_subdomain": app_subdomain, "unique_ip_count": count})
+        except Exception as e:
+            logger.error(f"Error retrieving unique IP count: {str(e)}")
+            return JsonResponse({"error": f"Error retrieving data: {str(e)}"}, status=500)
+    else:
+        return JsonResponse({"error": "You do not have permission to access this app's monitoring data."}, status=403)

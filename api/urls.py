@@ -23,6 +23,7 @@ from .views import (
     get_subdomain_input_html,
     get_subdomain_is_available,
     get_subdomain_is_valid,
+    get_unique_ingress_ip_count,
     update_app_status,
     validate_password_request,
 )
@@ -64,4 +65,5 @@ urlpatterns = [
     path("validate_password/", validate_password_request, name="validate_password"),
     path("container_image_search/", container_image_search, name="container_image_search"),
     path("content-review/", get_content_review),
+    path("monitoring/unique-ip-count/<str:app_subdomain>", get_unique_ingress_ip_count),
 ]
