@@ -28,7 +28,7 @@ class EmailSendingTableAdmin(admin.ModelAdmin):
     list_display = ("from_email", "to_email", "to_user", "subject", "message", "template", "status", "created_at")
     search_fields = ("to_email", "subject")
     list_filter = ("status", "to_user")
-    readonly_fields = ("to_email",)
+    readonly_fields = ("to_email", "status")
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("to_user")
