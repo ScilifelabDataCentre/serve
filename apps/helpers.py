@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 import regex as re
 import requests
@@ -10,6 +10,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.forms.models import model_to_dict
 from django.utils import timezone
+from prometheus_client.parser import text_string_to_metric_families
 
 from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
@@ -756,3 +757,77 @@ def get_university_suffix_information(university_sufffix: str) -> str:
     }
 
     return UNIVERSITY_NAMES.get(university_sufffix, university_sufffix)
+
+
+def get_minio_usage_v2(minio_service_name):
+    logger.error(str(minio_service_name))
+    metrics_url = f"http://{minio_service_name}/minio/v2/metrics/cluster"
+    logger.error(str(metrics_url))
+
+    try:
+        # Fetch the minio metrics from the provided URL
+        raw = requests.get(metrics_url, timeout=5).text
+
+    except Exception as e:
+        logger.error(f"Failed to fetch metrics from {metrics_url}: {e}")
+        return None
+
+    try:
+        used_bytes = sum(
+            float(s.value)
+            for fam in text_string_to_metric_families(raw)
+            if fam.name == "minio_cluster_usage_total_bytes"
+            for s in fam.samples
+        )
+    except Exception as e:
+        logger.error(f"Failed to parse 'minio_cluster_usage_total_bytes' from metrics: {e}")
+        return None
+
+    try:
+        total_bytes = sum(
+            float(s.value)
+            for fam in text_string_to_metric_families(raw)
+            if fam.name == "minio_cluster_capacity_usable_total_bytes"
+            for s in fam.samples
+        )
+    except Exception as e:
+        logger.error(f"Failed to parse 'minio_cluster_capacity_usable_total_bytes' from metrics: {e}")
+        return None
+
+    # Convert bytes to GiB and round to 2 decimal places
+    used_gib = round(used_bytes / 1_073_741_824, 2)
+    total_gib = round(total_bytes / 1_073_741_824, 2)
+
+    return used_gib, total_gib
+
+
+def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
+    metrics_url = f"http://{minio_service_name}/minio/v2/metrics/cluster"
+
+    try:
+        response = requests.get(metrics_url, timeout=5)
+        response.raise_for_status()
+        raw_metrics = response.text
+    except Exception as e:
+        logger.error(f"MinIO metrics fetch failed for {metrics_url}: {e}")
+        return None
+
+    # Helper to extract metric values
+    def get_metric_value(metric_name: str) -> float:
+        total = 0.0
+        for family in text_string_to_metric_families(raw_metrics):
+            if family.name == metric_name:
+                total += sum(float(sample.value) for sample in family.samples)
+        return total
+
+    GIB_FACTOR = 1024**3  # 1 GiB in bytes
+
+    try:
+        used_bytes = get_metric_value("minio_cluster_usage_total_bytes")
+        total_bytes = get_metric_value("minio_cluster_capacity_usable_total_bytes")
+    except Exception as e:
+        logger.error(f"MinIO metrics parsing failed: {e}")
+        return None
+
+    # Convert to GiB and round
+    return (round(used_bytes / GIB_FACTOR, 2), round(total_bytes / GIB_FACTOR, 2))

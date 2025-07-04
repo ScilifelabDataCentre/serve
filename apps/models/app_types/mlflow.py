@@ -12,7 +12,7 @@ class MLFlowInstance(BaseAppInstance):
     objects = MlflowAppManager()
     ACCESS_TYPES = (("project", "Project"),)
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
-    upload_size = 1000  # MB
+    mlflow_upload_size = 1000  # MB
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -30,7 +30,7 @@ class MLFlowInstance(BaseAppInstance):
                 "enabled": True,
                 "ingressClassName": "nginx",
                 "hostname": self.url.split("://")[1] if self.url is not None else self.url,
-                "clientMaxBodySize": f"{self.upload_size}M",
+                "annotations": {"nginx.ingress.kubernetes.io/proxy-body-size": f"{self.mlflow_upload_size}M"},
             },
             "podLabels": {
                 "type": "app",
@@ -42,7 +42,7 @@ class MLFlowInstance(BaseAppInstance):
             "pdb": {"create": False},
             # This fixes this issue:
             # https://mlflow.org/docs/2.21.3/tracking/server#handling-timeout-when-uploadingdownloading-large-artifacts
-            "extraArgs": {'--gunicorn-opts="--timeout=360"'},
+            "extraArgs": ['--gunicorn-opts="--timeout=360"'],
         }
         k8s_values["run"] = {
             "resources": {
@@ -50,7 +50,7 @@ class MLFlowInstance(BaseAppInstance):
                 "limits": {"cpu": "8", "memory": "16Gi", "ephemeral-storage": "30Gi"},
             }
         }
-        k8s_values["minio"] = {"pdb": {"create": False}}
+        k8s_values["minio"] = {"pdb": {"create": False}, "metrics": {"enabled": True}}
         k8s_values["postgresql"] = {
             "primary": {
                 "pdb": {"create": False},
