@@ -39,7 +39,7 @@
   {
     "fields": {
       "category": "develop",
-      "chart": "oci://registry-1.docker.io/bitnamicharts/mlflow:2.5.2",
+      "chart": "oci://registry-1.docker.io/bitnamicharts/mlflow:5.0.4",
       "created_on": "2025-02-12T21:34:37.815Z",
       "description": "",
       "name": "MLFlow",
