@@ -12,10 +12,15 @@ class MLFlowInstance(BaseAppInstance):
     objects = MlflowAppManager()
     ACCESS_TYPES = (("project", "Project"),)
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
-    mlflow_upload_size = 1000  # MB
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        # Only for new instances
+        if not self.pk:
+            self.upload_size = 1000
+        super().save(*args, **kwargs)
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
@@ -30,7 +35,7 @@ class MLFlowInstance(BaseAppInstance):
                 "enabled": True,
                 "ingressClassName": "nginx",
                 "hostname": self.url.split("://")[1] if self.url is not None else self.url,
-                "annotations": {"nginx.ingress.kubernetes.io/proxy-body-size": f"{self.mlflow_upload_size}M"},
+                "annotations": {"nginx.ingress.kubernetes.io/proxy-body-size": f"{self.upload_size}M"},
             },
             "podLabels": {
                 "type": "app",
