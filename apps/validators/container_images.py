@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, NamedTuple
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -12,6 +12,11 @@ logger = get_logger(__name__)
 class BaseRegistryAuth(Protocol):
     def get_bearer_token(self, repo: str) -> str | None:
         ...
+
+
+class ImageArchitectureTuple(NamedTuple):
+    os: str
+    arch: str
 
 
 class DockerHubAuthenticator:
@@ -82,84 +87,87 @@ def get_manifest_list(*, registry_auth: BaseRegistryAuth, repository: str, refer
     return resp.json()
 
 
-# TODO: Finist porting
-
-
-def get_config_blob(registry, repo, digest, token=None, auth=None):
+def get_config_blob(*, auth: BaseRegistryAuth, repo: str, digest: str, registry: str = "registry-1.docker.io"):
     """
     Fetches the config blob to read architecture/os for single-platform images.
     """
     url = f"https://{registry}/v2/{repo}/blobs/{digest}"
     headers = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    token = auth.get_bearer_token(repo)
+    headers["Authorization"] = f"Bearer {token}"
 
-    print(f"[*] Fetching config blob: {url}")
-    resp = requests.get(url, headers=headers, auth=auth)
+    logger.info(f"Fetching config blob: {url}")
+    resp = requests.get(url, headers=headers)
     if resp.status_code != 200:
-        print(f"[!] Error fetching config blob: {resp.status_code} {resp.text}")
-        sys.exit(1)
+        logger.error(f"Error fetching config blob: {resp.status_code} {resp.text}")
 
     return resp.json()
 
 
-def print_architectures_from_manifest_list(manifest_list):
+def _get_architectures_from_manifest_list(manifest_list) -> list[ImageArchitectureTuple]:
     manifests = manifest_list.get('manifests', [])
     if not manifests:
-        print("\n[!] No platform manifests found in list!")
-        return
+        logger.info("No platform manifests found in list!")
+        return None
 
-    print("\n✅ Architectures in manifest list:")
+    logger.info("✅ Architectures in manifest list:")
+    architectures = []
     for m in manifests:
         platform = m.get('platform', {})
         arch = platform.get('architecture')
         os = platform.get('os')
-        variant = platform.get('variant')
-        line = f"- {arch} / {os}"
-        if variant:
-            line += f" / {variant}"
-        print(line)
+        architectures.append(ImageArchitectureTuple(os=os, arch=arch))
+    return architectures
 
-def print_architecture_from_config(config):
+def _get_architecture_from_config(config) -> list[ImageArchitectureTuple]:
     arch = config.get("architecture")
     os = config.get("os")
     if arch and os:
-        print("\n✅ Architecture for single-platform image:")
-        print(f"- {arch} / {os}")
+        logger.info("✅ Found architecture for single-platform image:")
+        return [ImageArchitectureTuple(os=os, arch=arch)]
     else:
-        print("\n[!] Could not determine architecture/OS from config!")
+        logger.warning("Could not determine architecture/OS from config!")
 
 
-manifest, token, auth = get_manifest_list(
-    registry=registry,
-    repo=repo,
-    reference=tag,
-    username=username,
-    password=password
-)
-
-media_type = manifest.get("mediaType")
-print(f"\n[*] Manifest mediaType: {media_type}")
-
-if manifest.get('manifests'):
-    # Multi-arch manifest list
-    print_architectures_from_manifest_list(manifest)
-
-elif manifest.get('config'):
-    # Single-platform manifest
-    config_digest = manifest['config']['digest']
-    print(f"\n[*] Single-platform image detected. Config digest: {config_digest}")
-
-    config = get_config_blob(
+def get_image_architecture(
+        *, 
+        auth: BaseRegistryAuth, 
+        repo: str, 
+        refence: str, 
+        registry: str = "registry-1.docker.io"
+        ) -> list[ImageArchitectureTuple]:
+    manifest = get_manifest_list(
         registry=registry,
         repo=repo,
-        digest=config_digest,
-        token=token,
-        auth=auth
+        reference=refence,
+        registry_auth=auth,
     )
-    print_architecture_from_config(config)
 
-else:
-    print("\n[!] Unknown or unsupported manifest format!")
+    media_type = manifest.get("mediaType")
+    logger.info(f"Manifest mediaType: {media_type}")
+    architectures = None
 
+    if manifest.get('manifests'):
+        # Multi-arch manifest list
+        architectures = _get_architectures_from_manifest_list(manifest)
+    elif manifest.get('config'):
+        # Single-platform manifest
+        config_digest = manifest['config']['digest']
+        logger.info(f"Single-platform image detected. Config digest: {config_digest}")
+
+        config = get_config_blob(
+            registry=registry,
+            repo=repo,
+            digest=config_digest,
+            auth=auth
+        )
+        architectures = _get_architecture_from_config(config)
+
+    else:
+        logger.error("Unknown or unsupported manifest format!")
+    
+    return architectures
+
+
+def validate_image_is_amd64(image: str, )
     

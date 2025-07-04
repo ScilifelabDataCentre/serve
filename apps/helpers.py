@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
+from apps.validators.container_images import get_image_architecture, GHCRAuthenticator, DockerHubAuthenticator
 from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
@@ -530,12 +531,29 @@ def validate_ghcr_image(image: str):
             container_metadata = version["metadata"]["container"]
             tags = container_metadata.get("tags", [])
             if tag in tags:
-                return image
-
-        raise ValidationError(f"Tag '{tag}' not found in GHCR image. Please try again.")
+                break
+        else:
+            raise ValidationError(f"Tag '{tag}' not found in GHCR image. Please try again.")
 
     except KeyError:
         raise ValidationError("Unable to find GHCR image tag. Please try again.")
+    
+    architectures = get_image_architecture(
+        auth=DockerHubAuthenticator(
+            username=settings.DOCKERHUB_USERNAME,
+            token=settings.DOCKERHUB_TOKEN
+        ),
+        repo=f"{owner}/{image_name}",
+        refence=tag,
+        registry="ghcr.io"
+    )
+    if any(arch.arch != "amd64" for arch in architectures):
+        raise ValidationError(
+            f"Docker image '{image}' is not buit for the right CPU architecture. "
+            "Please use docker build --platform linux/amd64 to build your image"
+        )
+    
+    return image
 
 
 def validate_docker_image(image: str):
@@ -561,6 +579,20 @@ def validate_docker_image(image: str):
         raise ValidationError(
             f"Docker image '{image}' is not publicly available on Docker Hub. "
             "The URL you have entered may be incorrect, or the image might be private."
+        )
+    
+    architectures = get_image_architecture(
+        auth=DockerHubAuthenticator(
+            username=settings.DOCKERHUB_USERNAME,
+            token=settings.DOCKERHUB_TOKEN
+        ),
+        repo=repository,
+        refence=tag,
+    )
+    if any(arch.arch != "amd64" for arch in architectures):
+        raise ValidationError(
+            f"Docker image '{image}' is not buit for the right CPU architecture. "
+            "Please use docker build --platform linux/amd64 to build your image"
         )
 
 
