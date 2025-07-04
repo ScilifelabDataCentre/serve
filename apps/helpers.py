@@ -766,6 +766,10 @@ def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
         response = requests.get(metrics_url, timeout=5)
         response.raise_for_status()
         raw_metrics = response.text
+
+    except requests.RequestException as e:
+        logger.error(f"MinIO metrics url get request failed for {metrics_url}: {e}")
+        return None
     except Exception as e:
         logger.error(f"MinIO metrics fetch failed for {metrics_url}: {e}")
         return None
@@ -783,6 +787,9 @@ def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
     try:
         used_bytes = get_metric_value("minio_cluster_usage_total_bytes")
         total_bytes = get_metric_value("minio_cluster_capacity_usable_total_bytes")
+    except ValueError as e:
+        logger.error(f"MinIO metrics value parsing failed: {e}")
+        return None
     except Exception as e:
         logger.error(f"MinIO metrics parsing failed: {e}")
         return None
