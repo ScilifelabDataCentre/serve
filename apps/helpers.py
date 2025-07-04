@@ -759,48 +759,6 @@ def get_university_suffix_information(university_sufffix: str) -> str:
     return UNIVERSITY_NAMES.get(university_sufffix, university_sufffix)
 
 
-def get_minio_usage_v2(minio_service_name):
-    logger.error(str(minio_service_name))
-    metrics_url = f"http://{minio_service_name}/minio/v2/metrics/cluster"
-    logger.error(str(metrics_url))
-
-    try:
-        # Fetch the minio metrics from the provided URL
-        raw = requests.get(metrics_url, timeout=5).text
-
-    except Exception as e:
-        logger.error(f"Failed to fetch metrics from {metrics_url}: {e}")
-        return None
-
-    try:
-        used_bytes = sum(
-            float(s.value)
-            for fam in text_string_to_metric_families(raw)
-            if fam.name == "minio_cluster_usage_total_bytes"
-            for s in fam.samples
-        )
-    except Exception as e:
-        logger.error(f"Failed to parse 'minio_cluster_usage_total_bytes' from metrics: {e}")
-        return None
-
-    try:
-        total_bytes = sum(
-            float(s.value)
-            for fam in text_string_to_metric_families(raw)
-            if fam.name == "minio_cluster_capacity_usable_total_bytes"
-            for s in fam.samples
-        )
-    except Exception as e:
-        logger.error(f"Failed to parse 'minio_cluster_capacity_usable_total_bytes' from metrics: {e}")
-        return None
-
-    # Convert bytes to GiB and round to 2 decimal places
-    used_gib = round(used_bytes / 1_073_741_824, 2)
-    total_gib = round(total_bytes / 1_073_741_824, 2)
-
-    return used_gib, total_gib
-
-
 def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
     metrics_url = f"http://{minio_service_name}/minio/v2/metrics/cluster"
 
