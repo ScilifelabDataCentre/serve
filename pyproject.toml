@@ -81,7 +81,7 @@ django-gmailapi-json-backend = "^1.10"
 [tool.poetry.group.security.dependencies]
 # Security overrides
 h11 = ">=0.16.0"
-protobuf = ">=6.31.1" 
+protobuf = ">=6.31.1"
 python-jose = ">=3.4.0"
 setuptools = ">=78.1.1"
 tornado = ">=6.5"
