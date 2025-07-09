@@ -4,6 +4,7 @@ from typing import Any, Optional
 
 import regex as re
 import requests
+import waffle
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -13,7 +14,11 @@ from django.utils import timezone
 
 from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
-from apps.validators.container_images import get_image_architecture, GHCRAuthenticator, DockerHubAuthenticator
+from apps.validators.container_images import (
+    DockerHubAuthenticator,
+    GHCRAuthenticator,
+    get_image_architecture,
+)
 from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
@@ -537,22 +542,23 @@ def validate_ghcr_image(image: str):
 
     except KeyError:
         raise ValidationError("Unable to find GHCR image tag. Please try again.")
-    
-    architectures = get_image_architecture(
-        auth=DockerHubAuthenticator(
-            username=settings.DOCKERHUB_USERNAME,
-            token=settings.DOCKERHUB_TOKEN
-        ),
-        repo=f"{owner}/{image_name}",
-        refence=tag,
-        registry="ghcr.io"
-    )
-    if any(arch.arch != "amd64" for arch in architectures):
-        raise ValidationError(
-            f"Docker image '{image}' is not buit for the right CPU architecture. "
-            "Please use docker build --platform linux/amd64 to build your image"
+
+    if waffle.switch_is_active("docker_image_architecture_validator"):
+        architectures = get_image_architecture(
+            auth=GHCRAuthenticator(
+                username=settings.GITHUB_API_USERNAME,
+                token=settings.GITHUB_API_TOKEN,
+            ),
+            repo=f"{owner}/{image_name}",
+            refence=tag,
+            registry="ghcr.io",
         )
-    
+        if any(arch.arch != "amd64" for arch in architectures):
+            raise ValidationError(
+                f"Docker image '{image}' is not built for the right CPU architecture. "
+                "Please use docker build --platform linux/amd64 to build your image"
+            )
+
     return image
 
 
@@ -580,20 +586,18 @@ def validate_docker_image(image: str):
             f"Docker image '{image}' is not publicly available on Docker Hub. "
             "The URL you have entered may be incorrect, or the image might be private."
         )
-    
-    architectures = get_image_architecture(
-        auth=DockerHubAuthenticator(
-            username=settings.DOCKERHUB_USERNAME,
-            token=settings.DOCKERHUB_TOKEN
-        ),
-        repo=repository,
-        refence=tag,
-    )
-    if any(arch.arch != "amd64" for arch in architectures):
-        raise ValidationError(
-            f"Docker image '{image}' is not buit for the right CPU architecture. "
-            "Please use docker build --platform linux/amd64 to build your image"
+
+    if waffle.switch_is_active("docker_image_architecture_validator"):
+        architectures = get_image_architecture(
+            auth=DockerHubAuthenticator(username=settings.DOCKER_HUB_USERNAME, token=settings.DOCKER_HUB_TOKEN),
+            repo=repository,
+            refence=tag,
         )
+        if any(arch.arch != "amd64" for arch in architectures):
+            raise ValidationError(
+                f"Docker image '{image}' is not built for the right CPU architecture. "
+                "Please use docker build --platform linux/amd64 to build your image"
+            )
 
 
 def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) -> str:

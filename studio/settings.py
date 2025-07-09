@@ -379,10 +379,12 @@ STORAGECLASS = "local-path"
 DOCKER_HUB_REPO_SEARCH = "https://hub.docker.com/v2/search/repositories"
 DOCKER_HUB_TAG_SEARCH = "https://hub.docker.com/v2/repositories"
 DOCKER_HUB_TOKEN = os.getenv("DOCKER_HUB_TOKEN")
+DOCKER_HUB_USERNAME = os.getenv("DOCKERHUB_USERNAME", "scilifelab-serve")
 
 # GHCR API
 GITHUB_API = "https://api.github.com"
 GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
+GITHUB_API_USERNAME = os.getenv("GITHUB_API_USERNAME")
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
