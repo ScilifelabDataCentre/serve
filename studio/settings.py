@@ -35,6 +35,7 @@ DJANGO_ADMIN_URL_PATH = os.environ.get("DJANGO_ADMIN_URL_PATH", "admin")
 # SECURITY WARNING: don't run with debug turned on in production!
 
 DEBUG = os.getenv("DEBUG", default="False").lower() in ("true", "1", "t")
+DEVELOP_LOGS_ENABLED = DEBUG
 
 
 # Since this file is only used for development, we can have this set to all hosts.
