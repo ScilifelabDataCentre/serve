@@ -35,6 +35,7 @@ DJANGO_ADMIN_URL_PATH = os.environ.get("DJANGO_ADMIN_URL_PATH", "admin")
 # SECURITY WARNING: don't run with debug turned on in production!
 
 DEBUG = os.getenv("DEBUG", default="False").lower() in ("true", "1", "t")
+DEVELOP_LOGS_ENABLED = DEBUG
 
 
 # Since this file is only used for development, we can have this set to all hosts.
@@ -150,6 +151,10 @@ TEMPLATES = [
         },
     },
 ]
+EMAIL_TEMPLATES = []
+for path in sorted((Path(BASE_DIR, "templates", "admin", "email")).iterdir(), key=lambda p: p.name):
+    if path.is_file() and path.suffix in [".html", ".txt"]:
+        EMAIL_TEMPLATES.append(f"admin/email/{path.name}")
 
 TEMPLATE_LOADERS = (
     "django.template.loaders.filesystem.Loader",
@@ -432,6 +437,7 @@ PUBLICMODELOBJECT_MODEL = "portal.PublicModelObject"
 EMAIL_BACKEND = (
     "gmailapi_backend.service.GmailApiBackend" if not DEBUG else "django.core.mail.backends.console.EmailBackend"
 )
+DEFAULT_FROM_EMAIL = "serve@scilifelab.se"
 EMAIL_FROM = "noreply-serve@scilifelab.se"
 GMAIL_USER = "noreply-serve@scilifelab.se"
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]

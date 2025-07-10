@@ -25,6 +25,7 @@ from .constants import AppActionOrigin
 from .helpers import (
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
+    get_minio_usage,
 )
 from .models import BaseAppInstance
 from .tasks import delete_resource
@@ -247,7 +248,15 @@ class CreateApp(View):
         return render(
             request,
             self.template_name,
-            {"form": form, "project": project, "app_id": app_id, "app_slug": app_slug, "form_header": form_header},
+            {
+                "form": form,
+                "project": project,
+                "app_id": app_id,
+                "app_slug": app_slug,
+                "form_header": form_header,
+                "user": request.user,
+                "model_name": str(APP_REGISTRY.get_orm_model(app_slug).__name__).lower(),
+            },
         )
 
     @transaction.atomic
@@ -354,7 +363,22 @@ class SecretsView(View):
             ).stdout
             password = base64.b64decode(password).decode()
 
-        context = {"mlflow_username": username, "mlflow_password": password, "mlflow_url": instance.url}
+        minio_used_gib = minio_total_gib = minio_remaining_gib = None
+        if instance.get_app_status() == "Running":
+            result = get_minio_usage(f"{subdomain.subdomain}-minio")
+            if result is not None:
+                minio_used_gib, minio_total_gib = result
+                minio_remaining_gib = minio_total_gib - minio_used_gib
+
+        context = {
+            "mlflow_username": username,
+            "mlflow_password": password,
+            "mlflow_url": instance.url,
+            "minio_used_gib": minio_used_gib,
+            "minio_total_gib": minio_total_gib,
+            "minio_remaining_gib": minio_remaining_gib,
+        }
+
         return render(request, self.template, context)
 
 

@@ -1,0 +1,20 @@
+{% extends 'admin/email/base.html' %}
+
+{% block email-title %}Account Not Approved Notification{% endblock %}
+
+{% block content %}
+<p>Dear {{ user.first_name }},</p>
+
+<p>
+ You have requested an account on our service SciLifeLab Serve (<a href="https://serve.scilifelab.se">https://serve.scilifelab.se</a>). Our service is only available to researchers affiliated with a Swedish university or their collaborators who need to work with them on the service. Your email is not related to a Swedish university, however.
+</p>
+
+<p>
+  Can you please let us know if you are currently collaborating with someone in Sweden?
+</p>
+
+<p>
+Kind regards,<br>
+SciLifeLab Serve team
+</p>
+{% endblock %}

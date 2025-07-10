@@ -2,7 +2,12 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
 from django.contrib.auth.models import User
 
-from .models import EmailVerificationTable, MaintenanceMode, UserProfile
+from .models import (
+    EmailSendingTable,
+    EmailVerificationTable,
+    MaintenanceMode,
+    UserProfile,
+)
 
 
 class UserProfileInline(admin.StackedInline):
@@ -19,6 +24,16 @@ class EmailVerificationTableInline(admin.StackedInline):
     fk_name = "user"
 
 
+class EmailSendingTableAdmin(admin.ModelAdmin):
+    list_display = ("from_email", "to_email", "to_user", "subject", "message", "template", "status", "created_at")
+    search_fields = ("to_email", "subject")
+    list_filter = ("status", "to_user")
+    readonly_fields = ("to_email", "status")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("to_user")
+
+
 class UserAdmin(DefaultUserAdmin):
     inlines = (UserProfileInline, EmailVerificationTableInline)
     list_display = ("email", "first_name", "last_name", "is_active", "is_staff", "get_affiliation", "date_joined")
@@ -33,5 +48,4 @@ class UserAdmin(DefaultUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 admin.site.register(MaintenanceMode)
-
-# Register your models here.
+admin.site.register(EmailSendingTable, EmailSendingTableAdmin)
