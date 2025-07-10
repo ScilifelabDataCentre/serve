@@ -12,12 +12,12 @@
         <div class="col">
             <div class="d-flex align-items-center mb-3 flex-wrap justify-content-center">
                 <h3 class="h3 me-2">Public Applications & Models</h3>
-                <span id="public-apps-count" class="ghost-number h3 me-3">{{ published_apps|length }}</span>
+                <span id="public-apps-count" class="ghost-number h3 me-3">{{ serialized_apps|length }}</span>
                 <div class="break"></div>
                 <div class="search-container-filter me-3 w-50">
-                  <input id="public-app-search" class="form-control search-input-filter search" placeholder="Search Apps..." {% if published_apps|length <= 0 %}disabled{% endif %}>
+                  <input id="public-app-search" class="form-control search-input-filter search" placeholder="Search Apps..." {% if serialized_apps|length <= 0 %}disabled{% endif %}>
                 </div>
-                <button class="btn btn-outline-dark btn-xs" type="button" id="filterButton" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" {% if published_apps|length <= 0 %}disabled{% endif %}>
+                <button class="btn btn-outline-dark btn-xs" type="button" id="filterButton" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" {% if serialized_apps|length <= 0 %}disabled{% endif %}>
                     <i class="fa-solid fa-sliders fa-sm"></i> <span class="ms-1">Filters</span>
                 </button>
             </div>
@@ -73,7 +73,7 @@
                         </ul>
 
                         <div class="search-container-filter w-25 d-flex mb-1 show-filter-search">
-                              <input id="filter-search" type="search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search Tags...">
+                              <input id="filter-search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search Tags...">
                               <button class="btn btn-outline-dark btn-xs d-flex align-items-center" type="button" onclick="resetFilters()">
                                 <i class="fa-solid fa-rotate-left fa-sm"></i>
                                 <span class="ms-1">Reset</span>
@@ -91,7 +91,7 @@
                               <span class="tag-name"></span>
                           </div>
                           {% for app_category in serve_category_apps %}
-                          <a class="tag tag-filter card-app-type me-3 mb-2" href="#" onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
+                          <a class="tag tag-filter card-app-type me-3 mb-2" onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
                             <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
                               <div class="fas fa-cube fa-sm me-1"></div>
                               <span class="tag-name">{{ app_category.name|title }}</span>
@@ -115,10 +115,10 @@
                                 <span class="tag-name"></span>
                               </div>
                               {% for org in unique_organizations %}
-                              <a class="tag tag-filter  card-institution me-3 mb-2" href="#" onclick="searchByTag('{{ org | university_name }}','card-institution',this)">
+                              <a class="tag tag-filter  card-institution me-3 mb-2" onclick="searchByTag('{{ org }}','card-institution',this)">
                                 <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
                                   <div class="fas fa-graduation-cap fa-sm me-1"></div>
-                                  <span class="tag-name">{{ org | university_name }}</span>
+                                  <span class="tag-name">{{ org }}</span>
                                 </span>
                               </a>
                               {% endfor %}
@@ -138,7 +138,7 @@
                                 <span class="tag-name"></span>
                               </div>
                               {% for dep in unique_departments %}
-                              <a class="tag tag-filter card-department me-3 mb-2" href="#" onclick="searchByTag('{{ dep }}','card-department',this)">
+                              <a class="tag tag-filter card-department me-3 mb-2" onclick="searchByTag('{{ dep }}','card-department',this)">
                                 <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
                                   <div class="fas fa-building-columns fa-sm me-1"></div>
                                   <span class="tag-name">{{ dep }}</span>
@@ -161,7 +161,7 @@
                                 <span class="tag-name"></span>
                               </div>
                               {% for tag in unique_tags %}
-                              <a class="tag tag-filter card-keyword me-3 mb-2" href="#" onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
+                              <a class="tag tag-filter card-keyword me-3 mb-2" onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
                                 <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
                                   <div class="fas fa-tag fa-sm me-1"></div>
                                   <span class="tag-name">{{ tag |title }}</span>
@@ -194,14 +194,14 @@
         </div>
     </div>
 
-    {% if not published_apps %}
+    {% if not serialized_apps %}
     <p id="public-apps-container">No public apps available.</p>
     {% endif %}
     <div id="public-apps-container" class="row g-4">
       <div class="col-12 d-flex sidebar">
         <div id="app-cards" class="col-12">
           <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-3 g-4 list">
-              {% if published_apps|length <= 0 %}
+              {% if serialized_apps|length <= 0 %}
               <div style="display:none;">
                 <!-- A template element is needed when list is empty, TODO: needs a better solution -->
                 <span class="card-title"></span>
@@ -213,13 +213,13 @@
                 <span class="card-keyword"></span>
               </div>
               {% endif %}
-              {% for app in published_apps %}
+              {% for app in serialized_apps %}
               <div class="col mb-4">
                   {% include 'common/app_card.html' %}
               </div>
               {% endfor %}
           </div>
-          {% if published_apps|length > 0 %}
+          {% if serialized_apps|length > 0 %}
           <nav class="d-flex justify-content-center" aria-label="Main pagination">
             <ul class="pagination pagination-sm serve-pagination pagination-nav">
             </ul>
@@ -230,179 +230,131 @@
     </div>
   </div>
 </div>
-{% if published_apps|length > 0 %}
+{% if serialized_apps|length > 0 %}
 <script>
-    var options = {
-    valueNames: [ 'card-title', 'card-description', 'card-username', 'card-department', 'card-institution', 'card-app-type','card-keyword'],
+  // Main List.js setup
+  const listOptions = {
+    valueNames: ['card-title','card-description','card-username','card-department','card-institution','card-app-type','card-keyword'],
     page: 12,
     pagination: {
       listClass: 'pagination',
-      item: function(values) {return `<li class="page-item"><a class='page-link' onclick='addFirstLastButtons()' href='#'>${values.page}</a></li>`;},
-      innerWindow: 2,
-      outerWindow: 2,
-      left: 2,
-      right: 2}
-    };
+      item: v => `<li class="page-item"><a class="page-link" onclick="addFirstLastButtons()" href="#">${v.page}</a></li>`,
+      innerWindow:2, outerWindow:2, left:2, right:2
+    }
+  };
+  const publicAppList = new List('app-cards', listOptions);
 
-    var filter_options = {
-    valueNames: [ 'tag-name' ],
-    page: 30,
-    pagination: {
-      listClass: 'pagination',
-      item: function(values) {return `<li class="page-item"><a class='page-link' onclick='resetPageFilter()'>${values.page}</a></li>`;},
-      innerWindow: 2,
-      left: 2,
-      right: 2}
-    };
+  // Filter‐pane List.js
+  const filterOptions = {
+    valueNames: ['tag-name'], page:30,
+    pagination:{ listClass:'pagination', item:v=>`<li class="page-item"><a class="page-link" onclick='resetPageFilter()'>${v.page}</a></li>`, innerWindow:2, left:2, right:2 }
+  };
+  const filterAppTypeList  = new List('filters-app-type', filterOptions);
+  const filterOrgsList     = new List('filters-organization', filterOptions);
+  const filterDepList      = new List('filters-department', filterOptions);
+  const filterKeywordsList = new List('filters-keyword', filterOptions);
 
-    var publicAppList = new List('app-cards', options);
-    publicAppList.on('updated', function() {
-      if (publicAppList.matchingItems.length <= publicAppList.page) {
-        $('.pagination-nav').css('display', 'none');
-      } else {
-        $('.pagination-nav').css('display', 'flex');
-      }
-    });
+  function sortAll() {
+    [filterAppTypeList,filterOrgsList,filterDepList,filterKeywordsList]
+      .forEach(fl=>fl.sort('tag-name',{order:'asc'}));
+  }
+  sortAll();
 
-    $('#public-app-search').on('keyup', function() {
-      var searchString = $(this).val();
-      var searchedList = publicAppList.search(searchString);
-      $("#public-apps-count").text(publicAppList.matchingItems.length);
-      addFirstLastButtons();
-    });
-    var searchTags = [];
-    var columnsToSearch = [];
-    var searchValues = [];
-    var filterAppTypeList = new List('filters-app-type', filter_options);
-    var filterOrgsList = new List('filters-organization', filter_options);
-    var filterDepList = new List('filters-department', filter_options);
-    var filterKeywordsList = new List('filters-keyword', filter_options);
-    filterAppTypeList.sort('tag-name', { order: "asc" });
-    filterOrgsList.sort('tag-name', { order: "asc" });
-    filterDepList.sort('tag-name', { order: "asc" });
-    filterKeywordsList.sort('tag-name', { order: "asc" });
-    $('#filter-search').on('keyup', function() {
-      var searchString = $(this).val();
-      if ($('#pills-app-types-tab').hasClass('active')) {
-        var searchedList = filterAppTypeList.search(searchString);
-      } else if ($('#pills-organization-tab').hasClass('active')) {
-        var searchedList = filterOrgsList.search(searchString);
-      } else if ($('#pills-department-tab').hasClass('active')) {
-        var searchedList = filterDepList.search(searchString);
-      } else if ($('#pills-keyword-tab').hasClass('active')) {
-        var searchedList = filterKeywordsList.search(searchString);
-      }
+  let searchTags = [];            // {element,tagType,value}
+  let columnsToSearch = new Set();
+  let searchValues    = new Set();
 
-    });
+  publicAppList.on('updated', ()=> {
+    $('.pagination-nav').toggle(publicAppList.matchingItems.length > publicAppList.page);
+  });
 
-    function searchByTag(value, tagType, element) {
-        if (searchValues.includes(value)) {
-          searchTags = searchTags.filter(e => e.value !== value);
-          searchValues = searchValues.filter(e => e !== value);
-          tagTypeExists = searchTags.some(tag => tag.tagType === tagType);
-          if (!tagTypeExists) {
-            columnsToSearch = columnsToSearch.filter(e => e !== tagType);
-          }
-        } else {
-          searchTags.push({"element": element, "tagType": tagType, "value": value});
-          searchValues.push(value);
-        }
-        if (searchValues.includes("Shiny App")) {
-            if (searchValues.indexOf("ShinyProxy App") === -1) searchValues.push("ShinyProxy App");
-        } else if (searchValues.includes("ShinyProxy App")) {
-            searchValues = searchValues.filter(e => e !== "ShinyProxy App");
-        }
+  $('#public-app-search').on('keyup', ()=>{
+    publicAppList.search($('#public-app-search').val());
+    $('#public-apps-count').text(publicAppList.matchingItems.length);
+    addFirstLastButtons();
+  });
 
-        $(".badge-ico-text-filter").removeClass('badge-ico-text-filter-selected');
-        $(".tag-filter."+tagType).addClass('inactive');
-        countTagTypes = {};
-        searchTags.forEach(function(tag) {
-            if (columnsToSearch.indexOf(tag.tagType) === -1) columnsToSearch.push(tag.tagType);
-            if (!searchValues.includes(tag.value)) searchValues.push(tag.value);
-            tag.element.classList.remove('inactive');
-            if (countTagTypes[tag.tagType]) {
-              countTagTypes[tag.tagType]++;
-            } else {
-              countTagTypes[tag.tagType] = 1;
-            }
-            var children = tag.element.children;
-            for (var i = 0; i < children.length; i++) {
-              if (children[i].classList.contains('badge-ico-text-filter')) {
-                children[i].classList.add('badge-ico-text-filter-selected');
-              }
-            }
-        });
-        let countTagTypesArr = Object.entries(countTagTypes);
-        for ([key, value] of countTagTypesArr){
-          var countElement = document.querySelector('.' + key + '-count');
-          if (countElement) {
-            countElement.textContent = value;
-            $('.' + key + '-count').removeClass("visually-hidden");
-          }
-        }
-        if (columnsToSearch.length == 0) {
-          $(".tag-filter").removeClass('inactive');
-          $(".card-app-type-count").text(0);
-          $(".card-institution-count").text(0);
-          $(".card-department-count").text(0);
-          $(".card-keyword-count").text(0);
-          $(".card-app-type-count").addClass("visually-hidden");
-          $(".card-institution-count").addClass("visually-hidden");
-          $(".card-department-count").addClass("visually-hidden");
-          $(".card-keyword-count").addClass("visually-hidden");
-        } else {
-          ["card-app-type","card-institution","card-department","card-keyword"].forEach(function(el) {
-            if (columnsToSearch.indexOf(el) === -1) {
-              $("."+el+ '-count').text(0);
-              $("."+el+ '-count').addClass("visually-hidden");
-            }
-          });
-        }
-        var searchedList = publicAppList.filter(function(item) {
-            var columnBools = [];
-            columnsToSearch.forEach(function(column) {
-              if (column === "card-keyword") {
-                var match = item.values()[column].split(',').map(function(tag) {
-                  return tag.trim();
-                });
-                if (item.values()[column] !== "" && checkSubset(match, searchValues)) {
-                  columnBools.push(true);
-                } else {
-                  columnBools.push(false);
-                }
+  $('#filter-search').on('keyup', ()=>{
+    const q = $('#filter-search').val();
+    if ($('#pills-app-types-tab').hasClass('active'))    filterAppTypeList.search(q);
+    else if ($('#pills-organization-tab').hasClass('active')) filterOrgsList.search(q);
+    else if ($('#pills-department-tab').hasClass('active'))   filterDepList.search(q);
+    else if ($('#pills-keyword-tab').hasClass('active'))      filterKeywordsList.search(q);
+  });
 
-              } else {
-                var match = item.values()[column];
-                if (match !== "" && searchValues.includes(match)) {
-                  columnBools.push(true);
-                } else {
-                  columnBools.push(false);
-                }
-              }
+  function searchByTag(value, tagType, element) {
+    const wasSelected = searchValues.has(value);
 
-           });
-           if (columnBools.length != 0 && columnBools.every(function(e) { return e==true; })) {
-                return true;
-              } else {
-                return false;
-              }
-        });
-
-        if (searchTags.length == 0 && columnsToSearch.length == 0) {
-          var searchedList = publicAppList.filter();
-        }
-        $("#public-apps-count").text(publicAppList.matchingItems.length);
-        addFirstLastButtons();
+    if (wasSelected) {
+      // deselect
+      searchTags = searchTags.filter(t=>t.value!==value);
+      searchValues.delete(value);
+      if (!searchTags.some(t=>t.tagType===tagType)) columnsToSearch.delete(tagType);
+    } else {
+      // select
+      searchTags.push({element,tagType,value});
+      searchValues.add(value);
+      columnsToSearch.add(tagType);
     }
 
-    function resetFilterList() {
-      filterAppTypeList.search();
-      filterOrgsList.search();
-      filterDepList.search();
-      filterKeywordsList.search();
-      $("#filter-search").val('');
+    // resort filters
+    sortAll();
+
+    // reset classes
+    $('.badge-ico-text-filter').removeClass('badge-ico-text-filter-selected');
+    $('.tag-filter').removeClass('inactive');
+
+    // update each tag element state
+    if (searchTags.length === 0) {
+      // no tags selected, reset everything
+      resetFilters();
+      return;
     }
-     function resetPageFilter() {
+    $(`.tag-filter.`+tagType).addClass('inactive');
+    const countMap = {};
+    searchTags.forEach(({element,tagType,value})=>{
+      // selected color
+      element.querySelector('.badge-ico-text-filter')
+             .classList.add('badge-ico-text-filter-selected');
+      // other tags of same type inactive
+      element.classList.remove('inactive');
+      //$(`.tag-filter.${tagType}`).not(element).removeClass('inactive');
+      countMap[tagType] = (countMap[tagType]||0) + 1;
+    });
+
+    // update badge counts & hide zeros
+    ['card-app-type','card-institution','card-department','card-keyword']
+      .forEach(type=>{
+        const b = $(`.${type}-count`);
+        if (countMap[type]) b.text(countMap[type]).removeClass('visually-hidden');
+        else b.text(0).addClass('visually-hidden');
+      });
+
+    applyTagFilters();
+  }
+
+  function applyTagFilters() {
+    publicAppList.filter(item=>{
+      return [...columnsToSearch].every(col=>{
+        const v = item.values()[col]||'';
+        if (col==='card-keyword') {
+          const arr=v.split(',').map(s=>s.trim());
+          return [...searchValues].some(sv=>arr.includes(sv));
+        }
+        return searchValues.has(v);
+      });
+    });
+    if (!searchTags.length) publicAppList.filter();
+    $('#public-apps-count').text(publicAppList.matchingItems.length);
+    addFirstLastButtons();
+  }
+
+  function resetFilterList() {
+    $('#filter-search').val('');
+    [filterAppTypeList,filterOrgsList,filterDepList,filterKeywordsList]
+      .forEach(fl=>{fl.search(''); fl.sort('tag-name',{order:'asc'});});
+  }
+  function resetPageFilter() {
         $(function() {
           if (searchTags.length === 0) {
             $(".badge-ico-text-filter").removeClass('badge-ico-text-filter-selected');
@@ -411,49 +363,23 @@
         });
 
      }
-      function checkSubset (match, searchValues) {
-        return searchValues.some((el) => {
-            return match.includes(el) || match.includes('"'+el+'"');
-        })
-      }
-     function resetFilters() {
+  function resetFilters() {
+    searchTags=[]; columnsToSearch.clear(); searchValues.clear();
+    $('.badge-ico-text-filter').removeClass('badge-ico-text-filter-selected');
+    $('.tag-filter').removeClass('inactive');
+    $('.card-app-type-count, .card-institution-count, .card-department-count, .card-keyword-count')
+      .text(0).addClass('visually-hidden');
+    publicAppList.filter(); publicAppList.search();
+    $('#public-apps-count').text(publicAppList.matchingItems.length);
+    resetFilterList();
+    resetPageFilter();
+  }
 
-        searchTags = [];
-        columnsToSearch = [];
-        searchValues = [];
-        $(".badge-ico-text-filter").removeClass('badge-ico-text-filter-selected');
-        $(".tag-filter").removeClass('inactive');
-        resetFilterList();
-        $(".card-app-type-count").text(0);
-        $(".card-institution-count").text(0);
-        $(".card-department-count").text(0);
-        $(".card-keyword-count").text(0);
-        $(".card-keyword-count").addClass("visually-hidden");
-        $(".card-app-type-count").addClass("visually-hidden");
-        $(".card-institution-count").addClass("visually-hidden");
-        $(".card-department-count").addClass("visually-hidden");
-        publicAppList.filter();
-        var searchedList = publicAppList.search();
-        $("#public-apps-count").text(publicAppList.matchingItems.length);
-        resetPageFilter();
-        addFirstLastButtons();
-    }
-    addFirstLastButtons();
-    function addFirstLastButtons() {
-        // TODO: Fix adding first and last buttons to pagination
-        //$(function() {
-        //  $('.pagination-nav').prepend('<li class="page-item btn-first"><a class="page-link" onclick="addFirstLastButtons()">First</a></li>');
-        //  $('.pagination-nav').append('<li class="page-item btn-last"><a class="page-link" onclick="addFirstLastButtons()">Last</a></li>');
-        //  $('.btn-first').on('click', function(){
-        //      publicAppList.show(1,12)
-        //  })
-        //  $('.btn-last').on('click', function(){
-        //      publicAppList.show(publicAppList.size()-1,12)
-        //  })
-        //});
-    }
-  </script>
-  {% endif %}
+  function addFirstLastButtons() {
+    // placeholder
+  }
+</script>
+{% endif %}
 {# Including code for modals displaying Docker info #}
 {% include 'common/app_card_docker_info.html' %}
 {# Including code hiding and showing longer app descriptions #}
