@@ -120,12 +120,13 @@ jobs:
           docker exec celery-worker helm version
 
 
-      - name: Cypress run e2e tests
-        uses: cypress-io/github-action@v6
-        with:
-          working-directory: ${{env.working-directory}}
-          config: pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }}
-          quiet: true
+      - name: Install Node.js dependencies
+        working-directory: ${{env.working-directory}}
+        run: npm install
+
+      - name: Cypress run e2e tests in parallel
+        working-directory: ${{env.working-directory}}
+        run: npm run cy:run:parallel -- -a "--config pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }} --quiet"
         env:
           ELECTRON_DISABLE_GPU: true
 
