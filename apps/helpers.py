@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 import regex as re
 import requests
@@ -10,6 +10,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.forms.models import model_to_dict
 from django.utils import timezone
+from prometheus_client.parser import text_string_to_metric_families
 
 from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
 from apps.types_.subdomain import SubdomainCandidateName
@@ -756,3 +757,42 @@ def get_university_suffix_information(university_sufffix: str) -> str:
     }
 
     return UNIVERSITY_NAMES.get(university_sufffix, university_sufffix)
+
+
+def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
+    metrics_url = f"http://{minio_service_name}/minio/v2/metrics/cluster"
+
+    try:
+        response = requests.get(metrics_url, timeout=5)
+        response.raise_for_status()
+        raw_metrics = response.text
+
+    except requests.RequestException as e:
+        logger.error(f"MinIO metrics url get request failed for {metrics_url}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"MinIO metrics fetch failed for {metrics_url}: {e}")
+        return None
+
+    # Helper to extract metric values
+    def get_metric_value(metric_name: str) -> float:
+        total = 0.0
+        for family in text_string_to_metric_families(raw_metrics):
+            if family.name == metric_name:
+                total += sum(float(sample.value) for sample in family.samples)
+        return total
+
+    GIB_FACTOR = 1024**3  # 1 GiB in bytes
+
+    try:
+        used_bytes = get_metric_value("minio_cluster_usage_total_bytes")
+        total_bytes = get_metric_value("minio_cluster_capacity_usable_total_bytes")
+    except ValueError as e:
+        logger.error(f"MinIO metrics value parsing failed: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"MinIO metrics parsing failed: {e}")
+        return None
+
+    # Convert to GiB and round
+    return (round(used_bytes / GIB_FACTOR, 2), round(total_bytes / GIB_FACTOR, 2))
