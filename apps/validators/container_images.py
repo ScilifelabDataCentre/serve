@@ -101,6 +101,7 @@ def get_config_blob(*, auth: BaseRegistryAuth, repo: str, digest: str, registry:
     resp = requests.get(url, headers=headers)
     if resp.status_code != 200:
         logger.error(f"Error fetching config blob: {resp.status_code} {resp.text}")
+        return None
 
     return resp.json()
 
