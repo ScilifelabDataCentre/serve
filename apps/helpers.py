@@ -18,7 +18,7 @@ from apps.types_.subdomain import SubdomainCandidateName
 from apps.validators.container_images import (
     DockerHubAuthenticator,
     GHCRAuthenticator,
-    get_image_architecture,
+    get_image_architectures,
 )
 from common.models import UserProfile
 from projects.models import Project
@@ -545,7 +545,7 @@ def validate_ghcr_image(image: str):
         raise ValidationError("Unable to find GHCR image tag. Please try again.")
 
     if waffle.switch_is_active("docker_image_architecture_validator"):
-        architectures = get_image_architecture(
+        architectures = get_image_architectures(
             auth=GHCRAuthenticator(
                 username=settings.GITHUB_API_USERNAME,
                 token=settings.GITHUB_API_TOKEN,
@@ -589,7 +589,7 @@ def validate_docker_image(image: str):
         )
 
     if waffle.switch_is_active("docker_image_architecture_validator"):
-        architectures = get_image_architecture(
+        architectures = get_image_architectures(
             auth=DockerHubAuthenticator(username=settings.DOCKER_HUB_USERNAME, token=settings.DOCKER_HUB_TOKEN),
             repo=repository,
             refence=tag,
