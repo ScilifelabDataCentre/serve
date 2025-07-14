@@ -58,19 +58,19 @@ jobs:
           sed -i 's/UID=1000/UID=1001/g' .env
           sed -i 's/GID=1000/GID=127/g' .env
 
-      - name: Install k3s and helm
-        run: |
-          # Create .kube directory
-          mkdir -p ~/.kube
-          # Install k3s
-          curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644 --disable=traefik  --bind-address=0.0.0.0
-          sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-          sudo chown $(id -u):$(id -g) ~/.kube/config
-          # Install helm
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          # Verify installation
-          kubectl get nodes
-          helm version
+      - name: Install k3d cluster
+        uses: AbsaOSS/k3d-action@v2
+        with:
+          cluster-name: "test-cluster"
+          args: >-
+            --agents 1
+            --no-lb
+            --k3s-arg "--disable=traefik@server:*"
+
+      - name: Install helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
 
       - name: Start serve
         working-directory: ${{env.working-directory}}
@@ -107,12 +107,10 @@ jobs:
 
       - name: Check if celery worker can access kubectl and helm
         run: |
-          cp ~/.kube/config /tmp/k3s-kubeconfig
-          sed -i 's/server: https:\/\/.*:6443/server: https:\/\/host.docker.internal:6443/g' /tmp/k3s-kubeconfig
-          docker cp /tmp/k3s-kubeconfig celery-worker:/tmp/k3s-kubeconfig
-          docker exec -e KUBECONFIG=/tmp/k3s-kubeconfig celery-worker kubectl version
-          docker exec -e KUBECONFIG=/tmp/k3s-kubeconfig celery-worker helm version
-
+          # Copy kubeconfig (should work automatically)
+          docker cp ~/.kube/config celery-worker:/app/cluster.conf
+          docker exec celery-worker kubectl version
+          docker exec celery-worker helm version
 
       - name: Install Node.js dependencies
         working-directory: ${{env.working-directory}}
