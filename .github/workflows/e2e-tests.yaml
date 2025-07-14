@@ -58,28 +58,17 @@ jobs:
           sed -i 's/UID=1000/UID=1001/g' .env
           sed -i 's/GID=1000/GID=127/g' .env
 
-      - name: A job to install MicroK8s
-        uses: balchua/microk8s-actions@v0.4.3
-        with:
-          channel: '1.31/stable'
-          addons: '["dns", "rbac", "hostpath-storage", "ingress", "helm"]'
-
-      - name: Test and config MicroK8s
+      - name: Install k3s and helm
         run: |
-          kubectl get no
-          kubectl get pods -A -o wide
-          echo "Running usermod to add ${USER} to microk8s group"
-          sudo usermod -a -G microk8s $USER
-          sudo chown -f -R $USER ~/.kube
-          sudo microk8s config >> ~/.kube/config
-          helm
-
-      - name: Dump config
-        working-directory: ${{env.working-directory}}
-        run: |
-          sudo microk8s config > cluster.conf
-          ls -la
-          cat cluster.conf
+          # Install k3s
+          curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644 --disable=traefik
+          sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+          sudo chown $(id -u):$(id -g) ~/.kube/config
+          # Install helm
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          # Verify installation
+          kubectl get nodes
+          helm version
 
       - name: Start serve
         working-directory: ${{env.working-directory}}
@@ -87,7 +76,7 @@ jobs:
         run: |
           set -ex
           echo "Deploying serve"
-          docker compose up -d --build
+          docker compose up -d
 
       - name: Set Serve URL
         working-directory: ${{env.working-directory}}
