@@ -107,6 +107,7 @@ jobs:
 
       - name: Check if celery worker can access kubectl and helm
         run: |
+          docker exec celery-worker rm -rf ./cluster.conf
           # Copy kubectl config into the container
           docker cp ~/.kube/config celery-worker:./cluster.conf
           docker exec celery-worker kubectl version
