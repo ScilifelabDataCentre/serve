@@ -60,6 +60,8 @@ jobs:
 
       - name: Install k3s and helm
         run: |
+          # Create .kube directory
+          mkdir -p ~/.kube
           # Install k3s
           curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644 --disable=traefik
           sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
