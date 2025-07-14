@@ -107,11 +107,10 @@ jobs:
 
       - name: Check if celery worker can access kubectl and helm
         run: |
-          docker exec celery-worker rm -rf ./cluster.conf
           # Copy kubectl config into the container
-          docker cp ~/.kube/config celery-worker:./cluster.conf
-          docker exec celery-worker kubectl version
-          docker exec celery-worker helm version
+          docker cp ~/.kube/config celery-worker:/tmp/k3s-kubeconfig
+          docker exec -e KUBECONFIG=/tmp/k3s-kubeconfig celery-worker kubectl version
+          docker exec -e KUBECONFIG=/tmp/k3s-kubeconfig celery-worker helm version
 
 
       - name: Install Node.js dependencies
