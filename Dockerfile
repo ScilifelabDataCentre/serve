@@ -5,8 +5,7 @@ WORKDIR /app
 
 ARG DISABLE_EXTRAS=false
 
-COPY pyproject.toml ./
-COPY poetry.lock ./
+COPY requirements.txt ./
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -28,15 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry, change configs and install packages.
-RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.0.0 python3 - \
-    && /root/.local/bin/poetry self add poetry-plugin-export \
-    && /root/.local/bin/poetry config virtualenvs.create false \
-    && /root/.local/bin/poetry config installer.max-workers 10 \
-    && if [ "$DISABLE_EXTRAS" = "true" ]; then \
-        /root/.local/bin/poetry install -n -q --no-cache --only main --no-dev --no-root; \
-        else /root/.local/bin/poetry install -n -q --no-cache --all-extras --no-root; \
-        fi
+# Install Python packages with pip
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 FROM bitnami/kubectl:1.31.4 AS kubectl
 FROM alpine/helm:3.14.0 AS helm
@@ -71,7 +64,7 @@ ARG USER=serve
 RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
         rm -rf */tests cypress */tests.py pytest.ini cypress.config.js conftest.py docs */.github; \
     fi \
-    && adduser -D $USER \
+    && useradd --create-home --shell /bin/bash $USER \
     && echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USER \
     && chmod 0440 /etc/sudoers.d/$USER \
     && if [ ! -d "/app/media" ]; then mkdir -p /app/media; fi \
