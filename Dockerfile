@@ -45,6 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg62-turbo \
     libopenjp2-7 \
     libpng16-16 \
+    wget \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /usr/local/lib/python3.12/site-packages/
 
