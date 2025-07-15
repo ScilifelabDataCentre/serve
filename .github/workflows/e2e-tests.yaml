@@ -58,13 +58,6 @@ jobs:
           sed -i 's/UID=1000/UID=1001/g' .env
           sed -i 's/GID=1000/GID=127/g' .env
 
-      - name: Get Docker bridge gateway IP
-        id: get-bridge-ip
-        run: |
-          BRIDGE_IP=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')
-          echo "bridge-ip=$BRIDGE_IP" >> $GITHUB_OUTPUT
-          echo "Docker bridge gateway IP: $BRIDGE_IP"
-
       - name: Install k3d cluster
         uses: AbsaOSS/k3d-action@v2
         with:
@@ -72,7 +65,6 @@ jobs:
           args: >-
             --agents 1
             --no-lb
-            --api-port ${{ steps.get-bridge-ip.outputs.bridge-ip }}:6443
             --k3s-arg "--disable=traefik@server:*"
 
       - name: Install helm
@@ -83,8 +75,11 @@ jobs:
       - name: Create kubeconfig file
         run: |
           k3d kubeconfig get test-cluster > ./cluster.conf
-          echo "Created cluster.conf file:"
-          ls -la ./cluster.conf
+          echo "Original cluster.conf:"
+          cat ./cluster.conf
+          # Replace 0.0.0.0 with Docker bridge gateway IP
+          sed -i 's/0.0.0.0/172.17.0.1/g' ./cluster.conf
+          echo "Modified cluster.conf:"
           cat ./cluster.conf
 
       - name: Start serve
