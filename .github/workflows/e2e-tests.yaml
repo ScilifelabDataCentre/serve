@@ -72,6 +72,12 @@ jobs:
         with:
           version: 'latest'
 
+      - name: Create kubeconfig file
+        run: |
+          k3d kubeconfig get test-cluster > ./cluster.conf
+          echo "Created cluster.conf file:"
+          ls -la ./cluster.conf
+
       - name: Start serve
         working-directory: ${{env.working-directory}}
         id: setup
