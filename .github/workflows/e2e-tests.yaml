@@ -78,24 +78,6 @@ jobs:
           ls -la
           cat cluster.conf
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-
-      - name: Pre-pull base images
-        run: |
-          docker pull postgres &
-          docker pull redis &
-          docker pull rabbitmq &
-          wait
-
       - name: Start serve
         working-directory: ${{env.working-directory}}
         id: setup
