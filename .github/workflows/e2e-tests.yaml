@@ -58,29 +58,25 @@ jobs:
           sed -i 's/UID=1000/UID=1001/g' .env
           sed -i 's/GID=1000/GID=127/g' .env
 
-      - name: Install k3d cluster
-        uses: AbsaOSS/k3d-action@v2
+      - name: A job to install MicroK8s
+        uses: balchua/microk8s-actions@v0.4.3
         with:
-          cluster-name: "test-cluster"
-          args: >-
-            --agents 1
-            --no-lb
-            --k3s-arg "--disable=traefik@server:*"
+          channel: '1.31/stable'
+          addons: '["dns", "rbac", "helm"]'
 
-      - name: Install helm
-        uses: azure/setup-helm@v4
-        with:
-          version: 'latest'
-
-      - name: Create kubeconfig file
+      - name: Test and config MicroK8s
         run: |
-          k3d kubeconfig get test-cluster > ./cluster.conf
-          echo "Original cluster.conf:"
-          cat ./cluster.conf
-          # Replace 0.0.0.0 with Docker bridge gateway IP
-          sed -i 's/0.0.0.0/172.17.0.1/g' ./cluster.conf
-          echo "Modified cluster.conf:"
-          cat ./cluster.conf
+          echo "Running usermod to add ${USER} to microk8s group"
+          sudo usermod -a -G microk8s $USER
+          sudo chown -f -R $USER ~/.kube
+          sudo microk8s config >> ~/.kube/config
+
+      - name: Dump config
+        working-directory: ${{env.working-directory}}
+        run: |
+          sudo microk8s config > cluster.conf
+          ls -la
+          cat cluster.conf
 
       - name: Start serve
         working-directory: ${{env.working-directory}}
