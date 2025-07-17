@@ -27,6 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+COPY pyproject.toml ./
+COPY poetry.lock ./
+
 # Install Poetry, change configs and install packages.
 RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.0.0 python3 - \
     && /root/.local/bin/poetry self add poetry-plugin-export \
