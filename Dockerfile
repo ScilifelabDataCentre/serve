@@ -27,9 +27,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python packages with pip
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+# Install Poetry, change configs and install packages.
+RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.0.0 python3 - \
+    && /root/.local/bin/poetry self add poetry-plugin-export \
+    && /root/.local/bin/poetry config virtualenvs.create false \
+    && /root/.local/bin/poetry config installer.max-workers 10
+RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
+        /root/.local/bin/poetry install -n --no-cache --only main --no-root; \
+        else /root/.local/bin/poetry install -n --no-cache --all-extras --no-root; \
+        fi
 
 FROM bitnami/kubectl:1.31.4 AS kubectl
 FROM alpine/helm:3.14.0 AS helm
