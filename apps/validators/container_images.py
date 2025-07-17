@@ -195,7 +195,7 @@ def get_image_architectures(
 
     media_type = manifest.get("mediaType")
     logger.info(f"Manifest mediaType: {media_type}")
-    architectures = None
+    architectures = []
 
     if manifest.get("manifests"):
         # Multi-arch manifest list
@@ -211,4 +211,4 @@ def get_image_architectures(
     else:
         logger.error("Unknown or unsupported manifest format!")
 
-    return architectures or []
+    return architectures
