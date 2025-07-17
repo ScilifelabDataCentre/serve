@@ -551,7 +551,7 @@ def validate_ghcr_image(image: str):
                 token=settings.GITHUB_API_TOKEN,
             ),
             repo=f"{owner}/{image_name}",
-            refence=tag,
+            reference=tag,
             registry="ghcr.io",
         )
         if any(arch.arch != "amd64" for arch in architectures):
@@ -592,7 +592,7 @@ def validate_docker_image(image: str):
         architectures = get_image_architectures(
             auth=DockerHubAuthenticator(username=settings.DOCKER_HUB_USERNAME, token=settings.DOCKER_HUB_TOKEN),
             repo=repository,
-            refence=tag,
+            reference=tag,
         )
         if any(arch.arch != "amd64" for arch in architectures):
             raise ValidationError(

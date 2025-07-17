@@ -85,7 +85,8 @@ class GHCRAuthenticator(DockerHubAuthenticator):
 
         :param username: Registry username. If None, anonymous access is used.
         :param token: Personal Access Token (PAT) for authentication.
-           See https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages#authenticating-to-github-packages
+           See https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages#
+           authenticating-to-github-packages
            for details on how to create a PAT.
         """
         super().__init__(username, token)
@@ -175,21 +176,21 @@ def _get_architecture_from_config(config) -> list[ImageArchitectureTuple] | None
 
 
 def get_image_architectures(
-    *, auth: BaseRegistryAuth, repo: str, refence: str, registry: str = "registry-1.docker.io"
+    *, auth: BaseRegistryAuth, repo: str, reference: str, registry: str = "registry-1.docker.io"
 ) -> list[ImageArchitectureTuple]:
     """
     Retrieves the architectures of a Docker image from its manifest.
     :param auth: BaseRegistryAuth: Authenticator for the registry.
         One of DockerHubAuthenticator or GHCRAuthenticator.
     :param repo: Repository name in the format 'namespace/repo'.
-    :param refence: Reference (tag or digest) of the image.
+    :param reference: Reference (tag or digest) of the image.
     :param registry: Registry URL, default is 'registry-1.docker.io'.
     :return: list[ImageArchitectureTuple]: List of architectures and OS for the image.
     """
     manifest = get_manifest_list(
         registry=registry,
         repository=repo,
-        reference=refence,
+        reference=reference,
         registry_auth=auth,
     )
 

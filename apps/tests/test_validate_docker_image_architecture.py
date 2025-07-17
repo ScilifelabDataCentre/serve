@@ -14,7 +14,7 @@ def test_ghcr_architecture_is_valid():
     architectures = get_image_architectures(
         auth=GHCRAuthenticator(),
         repo="scilifelabdatacentre/serve-jupyterlab",
-        refence="250204-1056",
+        reference="250204-1056",
         registry="ghcr.io",
     )
     assert len(architectures) > 0
@@ -40,7 +40,7 @@ def test_get_docker_hub_architecture_is_valid():
     architectures = get_image_architectures(
         auth=auth,
         repo="library/python",
-        refence="3.14-rc-slim-bullseye",
+        reference="3.14-rc-slim-bullseye",
     )
     assert len(architectures) > 0
     assert architectures == [
