@@ -11,7 +11,7 @@ def get_logger(name: str) -> Any:
     When DEBUG = True, then we return the standard logger,
     otherwise, the structlog.
     """
-    if settings.DEBUG:
+    if settings.DEVELOP_LOGS_ENABLED:
         return logging.getLogger(name)
     else:
         return structlog.getLogger(name)
