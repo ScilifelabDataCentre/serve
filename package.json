@@ -1,11 +1,11 @@
 {
-  "scripts": {
-    "cy:run": "cypress run",
-    "cy:run:parallel": "cypress-parallel -s cy:run -t 4 -d cypress/e2e/ui-tests"
-  },
   "devDependencies": {
     "cypress": "^13.13.3",
     "cypress-parallel": "^0.15.0",
     "cypress-terminal-report": "^6.1.2"
+  },
+  "scripts": {
+    "cy:run": "cypress run",
+    "cy:run:parallel": "cypress-parallel -s cy:run -t 4 -d cypress/e2e/ui-tests"
   }
 }
