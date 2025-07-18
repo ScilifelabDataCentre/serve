@@ -15,6 +15,7 @@ class DepictioForm(BaseForm):
         super()._setup_form_helper()
         body = Div(
             SRVCommonDivField("name", placeholder="Name your app"),
+            SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("access"),
             css_class="card-body",
         )
@@ -23,4 +24,4 @@ class DepictioForm(BaseForm):
 
     class Meta:
         model = DepictioInstance
-        fields = ["name", "access"]
+        fields = ["name", "description", "access"]
