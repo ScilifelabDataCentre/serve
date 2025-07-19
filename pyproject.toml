@@ -18,7 +18,7 @@ packages = []
 [tool.poetry.dependencies]
 python = "^3.10.0"
 
-django = "==5.1.1"
+django = "==5.1.4"
 django-celery-beat = "==2.7.0"
 django-compressor = "==4.5.1"
 django-cors-headers = "==4.4.0"
@@ -36,7 +36,7 @@ wiki = "==0.11.2"
 
 
 # Other Python and project-related libraries
-flower = "==2.0.1"
+flower = "^2.0.1"
 requests = "==2.31.0"
 amqp = "==5.1.1"
 psycopg = {extras = ["binary", "pool", "c"], version = "^3.2.1"}
@@ -46,9 +46,9 @@ drf-nested-routers = "==0.93.4"
 s3fs = "==2023.9.2"
 minio = "==7.1.17"
 celery = "==5.3.4"
-uvicorn = "==0.20.0"
-flask-cors = "==4.0.0"
-Pillow = "10.2.0"
+uvicorn = "^0.32.0"
+flask-cors = "==4.0.2"
+Pillow = "10.3.0"
 schema = "^0.7.7"
 
 flatten-json = "==0.1.13"
@@ -77,6 +77,14 @@ django-password-validators = "^1.7.3"
 django-htmx = "^1.18.0"
 regex = "^2024.11.6"
 django-gmailapi-json-backend = "^1.10"
+
+[tool.poetry.group.security.dependencies]
+# Security overrides
+h11 = ">=0.16.0"
+protobuf = ">=6.31.1"
+python-jose = ">=3.4.0"
+setuptools = ">=78.1.1"
+tornado = ">=6.5"
 
 [tool.poetry.extras]
 linters = ["black", "isort", "flake8", "mypy"]

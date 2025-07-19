@@ -1,61 +1,60 @@
-FROM python:3.12-slim AS builder
+FROM python:3.12.11-alpine3.22 AS builder
 
 LABEL maintainer="serve@scilifelab.se"
 WORKDIR /app
 
 ARG DISABLE_EXTRAS=false
 
-COPY requirements.txt ./
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    python3-dev \
-    libpq-dev \
-    libjpeg-dev \
-    libopenjp2-7-dev \
-    zlib1g-dev \
-    libfreetype6-dev \
-    liblcms2-dev \
-    libwebp-dev \
-    libtiff5-dev \
-    libharfbuzz-dev \
-    libfribidi-dev \
-    libxcb1-dev \
-    libpng-dev \
-    gcc \
-    libffi-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY pyproject.toml ./
 COPY poetry.lock ./
+
+RUN apk add --update --no-cache \
+    build-base \
+    python3-dev \
+    postgresql-dev \
+    libpq \
+    tiff-dev \
+    jpeg-dev \
+    openjpeg-dev \
+    zlib-dev \
+    freetype-dev \
+    lcms2-dev \
+    libwebp-dev \
+    tcl-dev \
+    tk-dev \
+    harfbuzz-dev \
+    fribidi-dev \
+    libimagequant-dev \
+    libxcb-dev libpng-dev \
+    gcc \
+    libffi-dev \
+    musl-dev \
+    curl
 
 # Install Poetry, change configs and install packages.
 RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.0.0 python3 - \
     && /root/.local/bin/poetry self add poetry-plugin-export \
     && /root/.local/bin/poetry config virtualenvs.create false \
-    && /root/.local/bin/poetry config installer.max-workers 10
-RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
-        /root/.local/bin/poetry install -n --no-cache --only main --no-root; \
-        else /root/.local/bin/poetry install -n --no-cache --all-extras --no-root; \
+    && /root/.local/bin/poetry config installer.max-workers 10 \
+    && if [ "$DISABLE_EXTRAS" = "true" ]; then \
+        /root/.local/bin/poetry install -n -q --no-cache --only main --no-root; \
+        else /root/.local/bin/poetry install -n -q --no-cache --all-extras --no-root; \
         fi
 
 FROM bitnami/kubectl:1.31.4 AS kubectl
-FROM alpine/helm:3.14.0 AS helm
-FROM python:3.12-slim AS runtime
+FROM alpine/helm:3.18.3 AS helm
+FROM python:3.12.11-alpine3.22 AS runtime
 
 ARG DISABLE_EXTRAS=false
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apk add --update --no-cache \
     sudo \
     bash \
     postgresql-client \
-    libpq5 \
-    libjpeg62-turbo \
-    libopenjp2-7 \
-    libpng16-16 \
-    wget \
-    && rm -rf /var/lib/apt/lists/* \
+    libpq \
+    jpeg-dev \
+    openjpeg-dev \
+    libpng-dev \
     && rm -rf /usr/local/lib/python3.12/site-packages/
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
@@ -74,7 +73,7 @@ ARG USER=serve
 RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
         rm -rf */tests cypress */tests.py pytest.ini cypress.config.js conftest.py docs */.github; \
     fi \
-    && useradd --create-home --shell /bin/bash $USER \
+    && adduser -D $USER \
     && echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USER \
     && chmod 0440 /etc/sudoers.d/$USER \
     && if [ ! -d "/app/media" ]; then mkdir -p /app/media; fi \
