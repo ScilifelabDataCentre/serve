@@ -64,6 +64,7 @@ COPY --from=helm /usr/bin/helm /usr/local/bin/
 
 # Set working directory
 WORKDIR /app
+COPY . /app/
 
 ARG USER=serve
 
@@ -82,3 +83,4 @@ RUN if [ "$DISABLE_EXTRAS" = "true" ]; then \
     && chgrp -R $USER /app/fixtures /app/media /app/charts /app/sent_emails /app/static
 
 USER $USER
+

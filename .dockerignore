@@ -2,6 +2,7 @@ media
 charts/values
 sent_emails
 venv
+.venv
 Dockerfile
 Dockerfile.cypress
 Dockerfile.nginx
