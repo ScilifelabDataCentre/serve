@@ -62,17 +62,14 @@ jobs:
         uses: balchua/microk8s-actions@v0.4.3
         with:
           channel: '1.31/stable'
-          addons: '["dns", "rbac", "hostpath-storage", "ingress", "helm"]'
+          addons: '["dns", "rbac", "helm"]'
 
       - name: Test and config MicroK8s
         run: |
-          kubectl get no
-          kubectl get pods -A -o wide
           echo "Running usermod to add ${USER} to microk8s group"
           sudo usermod -a -G microk8s $USER
           sudo chown -f -R $USER ~/.kube
           sudo microk8s config >> ~/.kube/config
-          helm
 
       - name: Dump config
         working-directory: ${{env.working-directory}}
@@ -87,7 +84,7 @@ jobs:
         run: |
           set -ex
           echo "Deploying serve"
-          docker compose up -d --build
+          docker compose up -d
 
       - name: Set Serve URL
         working-directory: ${{env.working-directory}}
@@ -119,13 +116,13 @@ jobs:
           docker exec celery-worker kubectl version
           docker exec celery-worker helm version
 
+      - name: Install Node.js dependencies
+        working-directory: ${{env.working-directory}}
+        run: npm ci
 
-      - name: Cypress run e2e tests
-        uses: cypress-io/github-action@v6
-        with:
-          working-directory: ${{env.working-directory}}
-          config: pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }}
-          quiet: true
+      - name: Cypress run e2e tests in parallel
+        working-directory: ${{env.working-directory}}
+        run: npm run cy:run:parallel -- -a "--config pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }} --quiet"
         env:
           ELECTRON_DISABLE_GPU: true
 
@@ -137,17 +134,17 @@ jobs:
           path: cypress/screenshots
       - name: Save cypress video artifacts on failure
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: cypress-videos
           path: cypress/videos
 
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        with:
-          ## If no one connects after 2 minutes, shut down server.
-          wait-timeout-minutes: 2
-          ## limits ssh access and adds the ssh public key for the user which triggered the workflow
-          limit-access-to-actor: true
-          ## limits ssh access and adds the ssh public keys of the listed GitHub users
-          limit-access-to-users: churnikov,hamzaimran08,alfredeen,akochari,anondo1969
+#      - name: Setup upterm session
+#        uses: lhotari/action-upterm@v1
+#        with:
+#          ## If no one connects after 2 minutes, shut down server.
+#          wait-timeout-minutes: 2
+#          ## limits ssh access and adds the ssh public key for the user which triggered the #workflow
+#          limit-access-to-actor: true
+#          ## limits ssh access and adds the ssh public keys of the listed GitHub users
+#          limit-access-to-users: churnikov,hamzaimran08,alfredeen,akochari,anondo1969
