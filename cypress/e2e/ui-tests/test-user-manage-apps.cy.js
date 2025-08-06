@@ -1058,6 +1058,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
 
             cy.get('#id_name').clear().type(app_name_2)
+            cy.get('#id_description').clear().type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
 
