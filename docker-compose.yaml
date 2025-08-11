@@ -83,8 +83,10 @@ services:
 
   celery-worker:
     user: "${UID}:${GID}"
-    build: .
     container_name: celery-worker
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: stackn:base
     env_file:
       - .env
@@ -109,8 +111,10 @@ services:
 
   celery-beat:
     user: "${UID}:${GID}"
-    build: .
     container_name: celery-beat
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: stackn:base
     env_file:
       - .env
@@ -156,6 +160,9 @@ services:
 
   unit-tests:
     user: "${UID}:${GID}"
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: stackn:base
     volumes:
     - .:/app:cached
