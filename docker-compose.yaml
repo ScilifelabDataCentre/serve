@@ -11,13 +11,25 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
 
+  stackn-base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: stackn:base
+
+  stackn-profiling:
+    build:
+      context: .
+      dockerfile: Dockerfile.profiling
+    image: stackn:profiling
+    depends_on:
+      - stackn-base
+
   studio:
     user: "${UID}:${GID}"
     container_name: studio
-    build:
-      context: .
-      target: runtime
-    image: stackn:develop
+    image: stackn:profiling
     env_file:
       - .env
     command: ["scripts/wait-for-it.sh", "db:5432", "--", sh, scripts/run_web.sh]
@@ -28,6 +40,9 @@ services:
      # - ${PWD}/cluster.conf:/app/cluster.conf
     depends_on:
       - db
+      - stackn-profiling
+    environment:
+      - PROFILING_ENABLED=true
     networks:
       internal_network:
         aliases:
@@ -70,7 +85,7 @@ services:
     user: "${UID}:${GID}"
     build: .
     container_name: celery-worker
-    image: stackn:develop
+    image: stackn:base
     env_file:
       - .env
     command: sh ./scripts/run_worker.sh
@@ -96,7 +111,7 @@ services:
     user: "${UID}:${GID}"
     build: .
     container_name: celery-beat
-    image: stackn:develop
+    image: stackn:base
     env_file:
       - .env
     command: sh ./scripts/run_beat.sh
@@ -141,7 +156,7 @@ services:
 
   unit-tests:
     user: "${UID}:${GID}"
-    image: stackn:develop
+    image: stackn:base
     volumes:
     - .:/app:cached
     command: ["pytest", "-n", "auto"]

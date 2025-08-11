@@ -19,6 +19,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
+import os
 
 from . import views
 
@@ -53,3 +54,9 @@ urlpatterns = (
     + staticfiles_urlpatterns()
     + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 )
+
+if os.getenv('PROFILING_ENABLED', 'false').lower() == 'true':
+    urlpatterns += [
+        path('silk/', include('silk.urls', namespace='silk')),
+        path('__debug__/', include('debug_toolbar.urls')),
+    ]

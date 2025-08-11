@@ -59,6 +59,7 @@ RUN apk add --update --no-cache \
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=builder /root/.local/ /root/.local/
 COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
 COPY --from=helm /usr/bin/helm /usr/local/bin/
 
