@@ -573,3 +573,17 @@ LOKI_SVC = None
 
 # k8s cluster version for validation of manifests
 CLUSTER_VERSION = "1.31"
+
+
+PROFILING_ENABLED = os.getenv("PROFILING_ENABLED", "false").lower() == "true"
+
+if PROFILING_ENABLED:
+    INSTALLED_APPS = INSTALLED_APPS + [
+        "silk",
+        "debug_toolbar",
+    ]
+
+    MIDDLEWARE = [
+        "silk.middleware.SilkyMiddleware",
+        "debug_toolbar.middleware.DebugToolbarMiddleware",
+    ] + MIDDLEWARE

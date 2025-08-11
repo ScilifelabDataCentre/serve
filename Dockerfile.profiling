@@ -1,0 +1,18 @@
+FROM stackn:base
+
+USER root
+
+# Those need to be installed
+RUN apk add --no-cache postgresql-dev gcc musl-dev
+
+# Install profiling packages using Poetry
+RUN /root/.local/bin/poetry config virtualenvs.create false
+RUN /root/.local/bin/poetry add django-silk==5.4.0 django-debug-toolbar==4.4.6
+
+# Clean up those dependencies to keep image size small
+RUN apk del postgresql-dev gcc musl-dev
+
+USER serve
+
+# Set environment variables for profiling
+ENV PROFILING_ENABLED=true
