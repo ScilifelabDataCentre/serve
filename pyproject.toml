@@ -54,7 +54,7 @@ schema = "^0.7.7"
 flatten-json = "==0.1.13"
 PyYAML = "==6.0.1"
 Markdown = ">=3.4,<3.6"
-kubernetes-validate = "==1.31.0"
+kubernetes-validate = "==1.32.0"
 
 # Logging
 django-structlog = "^7.1.0"
