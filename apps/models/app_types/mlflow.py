@@ -55,7 +55,12 @@ class MLFlowInstance(BaseAppInstance):
                 "limits": {"cpu": "8", "memory": "16Gi", "ephemeral-storage": "30Gi"},
             }
         }
-        k8s_values["minio"] = {"pdb": {"create": False}, "metrics": {"enabled": True}}
+        # https://github.com/bitnami/charts/tree/main/bitnami/minio#minio-parameters
+        k8s_values["minio"] = {
+            "pdb": {"create": False},
+            "metrics": {"enabled": True},
+            "image": {"repository": "bitnamilegacy/minio"},
+        }
         k8s_values["postgresql"] = {
             "primary": {
                 "pdb": {"create": False},
@@ -63,7 +68,31 @@ class MLFlowInstance(BaseAppInstance):
             "readReplicas": {
                 "pdb": {"create": False},
             },
+            # https://github.com/bitnami/charts/tree/main/bitnami/postgresql#postgresql-common-parameters
+            "image": {
+                "repository": "bitnamilegacy/postgresql",
+            },
         }
+        # 2025-08-15 We are forced to do this due to new bitnami policy
+        # https://github.com/bitnami/containers/issues/83267
+        k8s_values["image"] = {
+            "repository": "bitnamilegacy/mlflow",
+        }
+        k8s_values["gitImage"] = {
+            "repository": "bitnamilegacy/git",
+        }
+        k8s_values["volumePermissions"] = {
+            "image": {
+                "repository": "bitnamilegacy/os-shell",
+            }
+        }
+        k8s_values["waitContainer"] = {
+            "image": {
+                "repository": "bitnamilegacy/os-shell",
+            }
+        }
+        # This has to be done as we are overriding default images in the chart
+        k8s_values["global"]["security"] = {"allowInsecureImages": True}
         return k8s_values
 
     class Meta:
