@@ -122,7 +122,7 @@ services:
   event-listener:
     user: "${UID}:${GID}"
     container_name: event-listener
-    image: ghcr.io/scilifelabdatacentre/serve-event-listener/event-listener:v1.1.0
+    image: ghcr.io/scilifelabdatacentre/serve-event-listener/event-listener:v1.1.1
     env_file:
       - .env
     volumes:

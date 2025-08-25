@@ -42,8 +42,8 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.0.0 python3 -
         fi
 
 # See SS-1503 https://github.com/bitnami/containers/issues/83267
-FROM bitnamilegacy/kubectl:1.31.4 AS kubectl
-FROM alpine/helm:3.18.3 AS helm
+FROM bitnamilegacy/kubectl:1.32.4 AS kubectl
+FROM alpine/helm:3.18.4 AS helm
 FROM python:3.12.11-alpine3.22 AS runtime
 
 ARG DISABLE_EXTRAS=false

@@ -1155,11 +1155,11 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
                 # Non-running user apps
                 if app.atn_app_status != "Running":
                     n_apps_not_running += 1
-                    apps_not_running.append(app.name[:6])
+                    apps_not_running.append(app.name[:12])
 
                 if app.atn_app_status.startswith("Error"):
                     n_apps_status_error += 1
-                    apps_status_error.append(app.name[:6])
+                    apps_status_error.append(app.name[:12])
 
                 # Suspect user app status
                 # Defined by if latest user action is either Creating or Changing
@@ -1174,7 +1174,7 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
                     k8s_status = None if app.k8s_user_app_status is None else app.k8s_user_app_status.status
                     apps_suspect_status.append(
                         {
-                            "name": app.name[:6],
+                            "name": app.name[:12],
                             "action": app.latest_user_action,
                             "k8s_status": k8s_status,
                             "created": app.created_on,
