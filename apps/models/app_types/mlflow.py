@@ -74,7 +74,7 @@ class MLFlowInstance(BaseAppInstance):
             # https://github.com/bitnami/charts/tree/main/bitnami/postgresql#postgresql-common-parameters
             "image": {
                 "repository": "bitnamilegacy/postgresql",
-                "tag": "postgresql:17.5.0-debian-12-r12",
+                "tag": "17.5.0-debian-12-r12",
             },
         }
         # 2025-08-15 We are forced to do this due to new bitnami policy
