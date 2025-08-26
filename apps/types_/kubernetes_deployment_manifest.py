@@ -112,6 +112,8 @@ class KubernetesDeploymentManifest:
 
         # Now validate each manifest document
         for doc in documents:
+            if not doc:
+                continue
             try:
                 logger.debug(f"Validating document {doc['kind']}")
 
