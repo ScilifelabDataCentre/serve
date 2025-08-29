@@ -36,6 +36,7 @@ class UserProfile(models.Model):
 class EmailVerificationTable(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     token = models.CharField(max_length=100)
+    date_created = models.DateTimeField(auto_now_add=True)
 
     def send_verification_email(self):
         from .tasks import send_verification_email_task
