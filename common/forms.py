@@ -15,6 +15,7 @@ from django.contrib.auth.password_validation import (
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.db import transaction
+from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -348,8 +349,11 @@ class TokenVerificationForm(forms.Form):
 
     def clean_token(self):
         token = self.cleaned_data["token"]
-        if not EmailVerificationTable.objects.filter(token=token).exists():
+        db_token: EmailVerificationTable = EmailVerificationTable.objects.filter(token=token)
+        if not db_token.exists():
             raise ValidationError("Invalid token")
+        if timezone.now().day - db_token.date_created.day > 3:
+            raise ValidationError("Token has expired. Please request a new one.")
         return token
 
     class Meta:
@@ -357,6 +361,14 @@ class TokenVerificationForm(forms.Form):
         fields = [
             "token",
         ]
+
+
+class RequestNewVerificationForm(forms.Form):
+    email = forms.EmailField(
+        label="Email",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        help_text="Enter email you've used to sign up on Serve",
+    )
 
 
 # SS-643 We've created a new form because UserForm above
