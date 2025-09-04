@@ -349,11 +349,12 @@ class TokenVerificationForm(forms.Form):
 
     def clean_token(self):
         token = self.cleaned_data["token"]
-        db_token: EmailVerificationTable = EmailVerificationTable.objects.filter(token=token)
-        if not db_token.exists():
+        try:
+            db_token: EmailVerificationTable = EmailVerificationTable.objects.get(token=token)
+            if (timezone.now() - db_token.date_created).days > 3:
+                raise ValidationError("Token has expired. Please request a new one.")
+        except EmailVerificationTable.DoesNotExist:
             raise ValidationError("Invalid token")
-        if timezone.now().day - db_token.date_created.day > 3:
-            raise ValidationError("Token has expired. Please request a new one.")
         return token
 
     class Meta:

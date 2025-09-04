@@ -164,8 +164,8 @@ class VerificationTokenResetView(TemplateView):
         form = self.form_class()
         return render(request, self.template_name, {"form": form})
 
-    def post(self, request, *args, **kwargs):
-        email = request.POST.get("email")
+    @staticmethod
+    def reset_token(email: str):
         try:
             user: User = User.objects.get(email=email)
             token = str(uuid.uuid4())
@@ -176,6 +176,10 @@ class VerificationTokenResetView(TemplateView):
             send_verification_email_task(email, token)
         except User.DoesNotExist:
             pass
+
+    def post(self, request, *args, **kwargs):
+        email = request.POST.get("email")
+        self.reset_token(email)
         return render(request, "registration/verification_token_reset_done.html")
 
 
