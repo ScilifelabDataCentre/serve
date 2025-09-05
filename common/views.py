@@ -175,7 +175,7 @@ class VerificationTokenResetView(TemplateView):
             verify_table.save()
             send_verification_email_task(email, token)
         except User.DoesNotExist:
-            pass
+            logger.warning("Can not find user with email: %s", email)
 
     def post(self, request, *args, **kwargs):
         email = request.POST.get("email")
