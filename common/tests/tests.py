@@ -1,17 +1,17 @@
+import datetime
+import json
 import unicodedata
 from random import choice
 
 import pytest
-from django import forms
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.core import mail
-from django.core.exceptions import ValidationError
 from django.http import HttpRequest
-from django.test import override_settings
-from hypothesis import Verbosity, assume, given, settings
+from django.test import Client, override_settings
+from hypothesis import Verbosity, given, settings
 from hypothesis import strategies as st
-from hypothesis.extra.django import TransactionTestCase, from_field, from_form
+from hypothesis.extra.django import TestCase, TransactionTestCase
 
 from common.forms import (
     DEPARTMENTS,
@@ -20,10 +20,12 @@ from common.forms import (
     ProfileEditForm,
     ProfileForm,
     SignUpForm,
+    TokenVerificationForm,
     UserEditForm,
     UserForm,
 )
 from common.models import EmailVerificationTable, UserProfile
+from common.views import VerificationTokenResetView
 
 
 def get_affilitaion(email):
@@ -150,6 +152,47 @@ class TestEmailSending(TransactionTestCase):
 
         # Assert that the second email sent contains the specific activation message
         assert f"Please go to the admin page to activate account for {user.email}" in mail.outbox[1].body
+
+
+@override_settings(INACTIVE_USERS=True)
+class TestAccountVerification(TestCase):
+    # Use hypothesis for property-based testing
+    @given(form=input_form())
+    @settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)  # Set Hypothesis test settings
+    def test_send_email_after_token_expired(self, form):
+        # setup
+        # is_val call implicitly calls the form's clean methods, which populates the cleaned_data attribute
+        form.is_valid()
+
+        # Explicitly set form approval to False
+        # This is required, because emails that are being generated are from university,
+        # which sets the form to approved
+        form.is_approved = False
+        form.save()  # Save the form changes
+
+        # Retrieve the user object based on the email from the form's cleaned data
+        user = User.objects.get(email=form.user.cleaned_data["email"])
+        email_verification_table: EmailVerificationTable = EmailVerificationTable.objects.get(user=user.id)
+        # set date to initial commit to serve:)
+        very_old_date = datetime.datetime(2020, 4, 8, 21, 34)
+        old_token = email_verification_table.token
+        email_verification_table.date_created = very_old_date
+        email_verification_table.save()
+
+        # actual test case
+        verification_form = TokenVerificationForm({"token": email_verification_table.token})
+        assert not verification_form.is_valid()
+
+        errors = verification_form.errors
+
+        assert "Token has expired. Please request a new one." in errors["token"]
+
+        # Send email with a new token
+        VerificationTokenResetView.reset_token(user.email)
+        email_verification_table = EmailVerificationTable.objects.get(user=user.id)
+        assert email_verification_table.date_created != very_old_date
+        assert email_verification_table.token != old_token
+        assert email_verification_table.token in mail.outbox[1].body
 
 
 @pytest.mark.django_db
