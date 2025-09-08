@@ -123,9 +123,6 @@ class KubernetesDeploymentManifest:
                     logger.info("Validating the k8s manifest without a set k8s version.")
                     kubernetes_validate.validate(doc)
 
-            except TypeError:
-                raise ValueError(f"Manifest document is None {doc}")
-
             except kubernetes_validate.ValidationError as e:
                 invalid_docs.append(doc["kind"])
                 logger.warning(f"The kubernetes-validate tool found errors: {e}")
