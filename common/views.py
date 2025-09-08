@@ -1,8 +1,10 @@
 import json
+import uuid
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib.auth.views import PasswordChangeView
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
@@ -11,6 +13,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import HttpResponse, redirect, render
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_protect
@@ -23,13 +26,14 @@ from .forms import (
     ChangePasswordForm,
     ProfileEditForm,
     ProfileForm,
+    RequestNewVerificationForm,
     SignUpForm,
     TokenVerificationForm,
     UserEditForm,
     UserForm,
 )
 from .models import EmailVerificationTable, UserProfile
-from .tasks import send_email_task
+from .tasks import send_email_task, send_verification_email_task
 
 logger = get_logger(__name__)
 
@@ -150,6 +154,33 @@ class VerifyView(TemplateView):
                 messages.error(request, "Invalid token!")
                 return redirect("portal:home")
         return render(request, self.template_name, {"form": form})
+
+
+class VerificationTokenResetView(TemplateView):
+    template_name = "registration/verification_token_reset.html"
+    form_class = RequestNewVerificationForm
+
+    def get(self, request, *args, **kwargs):
+        form = self.form_class()
+        return render(request, self.template_name, {"form": form})
+
+    @staticmethod
+    def reset_token(email: str):
+        try:
+            user: User = User.objects.get(email=email)
+            token = str(uuid.uuid4())
+            verify_table = user.emailverificationtable
+            verify_table.token = token
+            verify_table.date_created = timezone.now()
+            verify_table.save()
+            send_verification_email_task(email, token)
+        except User.DoesNotExist:
+            logger.warning("Can not find user with email: %s", email)
+
+    def post(self, request, *args, **kwargs):
+        email = request.POST.get("email")
+        self.reset_token(email)
+        return render(request, "registration/verification_token_reset_done.html")
 
 
 @method_decorator(login_required, name="dispatch")
