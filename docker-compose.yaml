@@ -29,7 +29,7 @@ services:
   studio:
     user: "${UID}:${GID}"
     container_name: studio
-    image: stackn:profiling
+    image: ${PROFILING:-stackn:base}
     env_file:
       - .env
     command: ["scripts/wait-for-it.sh", "db:5432", "--", sh, scripts/run_web.sh]
@@ -40,9 +40,9 @@ services:
      # - ${PWD}/cluster.conf:/app/cluster.conf
     depends_on:
       - db
-      - stackn-profiling
+      - ${PROFILING_BUILD:-stackn-base}
     environment:
-      - PROFILING_ENABLED=true
+      - PROFILING_ENABLED=${PROFILING_ENABLED:-false}
     networks:
       internal_network:
         aliases:
