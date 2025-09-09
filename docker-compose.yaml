@@ -43,8 +43,6 @@ services:
     depends_on:
       - db
       - ${PROFILING_BUILD:-stackn-base}
-    environment:
-      - PROFILING_ENABLED=${PROFILING_ENABLED:-false}
     networks:
       internal_network:
         aliases:

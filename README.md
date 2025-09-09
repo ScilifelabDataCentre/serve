@@ -81,10 +81,12 @@ This assumes you have the correct ssh key in your ssh-agent. If you like to give
 $ docker compose up -d
 ```
 
-You can also spin up Serve locally in profiling mode using:
+You can also spin up Serve locally in profiling mode. You just need to set the following variables in your `.env` file:
 
 ```
-$ PROFILING=stackn:profiling PROFILING_BUILD=stackn-profiling PROFILING_ENABLED=true docker compose up -d --build
+PROFILING=stackn:profiling
+PROFILING_BUILD=stackn-profiling
+PROFILING_ENABLED=true
 ```
 
 ### Deploy Serve for local development with Rancher Desktop
