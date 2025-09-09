@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Account verification{% endblock %}
+{% block title %}Verification Token reset{% endblock %}
 
 {% load static %}
 
@@ -13,7 +13,7 @@
           <div class="card-body">
             <div class="col-lg-6 offset-lg-3">
               <div class="col text-center">
-                <h2 class="text-dark mb-4">Account verification</h2>
+                <h2 class="text-dark mb-4">Reset Verification Token</h2>
               </div>
 
               <div class="py-4 d-flex justify-content-center">
@@ -22,8 +22,7 @@
                     <form method="post">
                         {% csrf_token %}
                         {{ form.as_p }}
-                        <input type="submit" value="Verify Account" class="btn btn-primary" id="submit-id-verify">
-                        <a class="btn btn-primary" href="{% url 'common:verifyreset' %}" role="button">Request new token</a>
+                        <input type="submit" value="Reset" class="btn btn-primary" id="submit-id-verify">
                     </form>
                 </div>
 

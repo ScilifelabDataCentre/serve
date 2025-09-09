@@ -61,7 +61,7 @@ jobs:
       - name: A job to install MicroK8s
         uses: balchua/microk8s-actions@v0.4.3
         with:
-          channel: '1.31/stable'
+          channel: '1.32/stable'
           addons: '["dns", "rbac", "helm"]'
 
       - name: Test and config MicroK8s
