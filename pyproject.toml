@@ -86,6 +86,13 @@ python-jose = ">=3.4.0"
 setuptools = ">=78.1.1"
 tornado = ">=6.5"
 
+[tool.poetry.group.profiling]
+optional = true
+
+[tool.poetry.group.profiling.dependencies]
+django-silk = "^5.4.0"
+django-debug-toolbar = "^4.4.6"
+
 [tool.poetry.extras]
 linters = ["black", "isort", "flake8", "mypy"]
 tests = ["pytest-django", "pytest-cov", "pytest-xdist", "hypothesis", "pytest", "moto"]

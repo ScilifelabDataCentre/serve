@@ -21,7 +21,9 @@ services:
   stackn-profiling:
     build:
       context: .
-      dockerfile: Dockerfile.profiling
+      dockerfile: Dockerfile
+      args:
+        ENABLE_PROFILING: "true"
     image: stackn:profiling
     depends_on:
       - stackn-base

@@ -4,6 +4,7 @@ LABEL maintainer="serve@scilifelab.se"
 WORKDIR /app
 
 ARG DISABLE_EXTRAS=false
+ARG ENABLE_PROFILING=false
 
 COPY pyproject.toml ./
 COPY poetry.lock ./
@@ -37,8 +38,10 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.0.0 python3 -
     && /root/.local/bin/poetry config virtualenvs.create false \
     && /root/.local/bin/poetry config installer.max-workers 10 \
     && if [ "$DISABLE_EXTRAS" = "true" ]; then \
-        /root/.local/bin/poetry install -n -q --no-cache --only main --no-root; \
-        else /root/.local/bin/poetry install -n -q --no-cache --all-extras --no-root; \
+        /root/.local/bin/poetry install -n --no-cache --only main --no-root; \
+        elif [ "$ENABLE_PROFILING" = "true" ]; then \
+            /root/.local/bin/poetry install -n --no-cache --with profiling --no-root; \
+        else /root/.local/bin/poetry install -n --no-cache --all-extras --no-root; \
         fi
 
 FROM bitnami/kubectl:1.31.4 AS kubectl
@@ -59,7 +62,6 @@ RUN apk add --update --no-cache \
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
-COPY --from=builder /root/.local/ /root/.local/
 COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
 COPY --from=helm /usr/bin/helm /usr/local/bin/
 

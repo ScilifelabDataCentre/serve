@@ -84,9 +84,7 @@ $ docker compose up -d
 You can also spin up Serve locally in profiling mode using:
 
 ```
-$ docker compose build stackn-base
-$ docker compose build stackn-profiling
-$ PROFILING=stackn:profiling PROFILING_BUILD=stackn-profiling PROFILING_ENABLED=true docker compose up -d
+$ PROFILING=stackn:profiling PROFILING_BUILD=stackn-profiling PROFILING_ENABLED=true docker compose up -d --build
 ```
 
 ### Deploy Serve for local development with Rancher Desktop

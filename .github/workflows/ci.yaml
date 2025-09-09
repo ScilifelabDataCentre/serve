@@ -66,9 +66,7 @@ jobs:
         run: |
           set -ex
           echo "Deploying serve"
-          docker compose build stackn-base
-          docker compose build stackn-profiling
-          docker compose up -d
+          docker compose up -d --build
 
       - name: Set Serve URL
         working-directory: ${{env.working-directory}}
