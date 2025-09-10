@@ -81,6 +81,14 @@ This assumes you have the correct ssh key in your ssh-agent. If you like to give
 $ docker compose up -d
 ```
 
+You can also spin up Serve locally in profiling mode. You just need to set the following variables in your `.env` file:
+
+```
+PROFILING=stackn:profiling
+PROFILING_BUILD=stackn-profiling
+PROFILING_ENABLED=true
+```
+
 ### Deploy Serve for local development with Rancher Desktop
 
 Start with instructions in [Serve Charts > How to Deploy](https://github.com/ScilifelabDataCentre/serve-charts?tab=readme-ov-file#how-to-deploy) and come back here when you get to the point of building the studio image.
