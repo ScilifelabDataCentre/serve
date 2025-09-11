@@ -12,7 +12,7 @@ describe("Test deploying app", () => {
     // Instead use longer timeouts on specific commands where deemed necessary and valid
     const defaultCmdTimeoutMs = 10000
     // The longer timeout is often used when waiting for k8s operations to complete
-    const longCmdTimeoutMs = 240000
+    const longCmdTimeoutMs = 120000
 
     // Function to verify the displayed app status
     // Function to verify the displayed app permission level
@@ -406,7 +406,7 @@ describe("Test deploying app", () => {
     })
 
     // This test may only work against a Serve instance running on our cluster. as
-    // it takes a huge amount of time. It does not work on GitHub CI. So it's better
+    // it takes a long time. It does not work on GitHub CI. So it's better
     // to skip it now. As we have Django endpoints, so it can be locally tested directly
     // in the Serve-dev instance.
     // We need to add a test here for validating Site-dir option. See SS-1206 for details
@@ -914,9 +914,13 @@ describe("Test deploying app", () => {
       }
     })
 
-    // An advanced test to verify user can modify app settings resulting in k8s redeployment (image)
-    // still shows the correct app status.
-    it("can modify app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    // An advanced test to verify that a user can modify app settings of a Shiny app
+    // resulting in k8s redeployment (image) and that it still shows the correct app status.
+    // Changed this test to use Shiny rather than Dash because Shiny apps are more
+    // complex and need more test coverage.
+    // Moreover, testing the scenario that an invalid image input is caught by UI validation
+    // and stays on the settings page is already tested by UI e2e tests.
+    it("can modify Shiny app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
 
         // delete previous test apps in case the test failed
         cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
@@ -927,14 +931,15 @@ describe("Test deploying app", () => {
         const app_name = "e2e-change-app-settings-redeploy"
         const app_description = "e2e-change-app-settings-description"
         const source_code_url = "https://doi.org/example"
-        const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
-        const image_port = "8000"
+        const image_name_1 = "ghcr.io/alfredeen/hello-shiny:main-20241018-0849"
+        const image_name_2 = "ghcr.io/alfredeen/shiny-example:main-20250325-1424"
+        const image_port = "3838"
         const createResources = Cypress.env('create_resources')
-        const app_type = "Dash App"
+        const app_type = "Shiny App"
 
         if (createResources === true) {
-            // create a Dash app
-            cy.logf("Creating a dash app", Cypress.currentTest)
+            // create a Shiny app
+            cy.logf("Creating a shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
@@ -942,7 +947,7 @@ describe("Test deploying app", () => {
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(source_code_url)
-            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_image').clear().type(image_name_1)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
@@ -953,8 +958,8 @@ describe("Test deploying app", () => {
             // check that the app was created
             verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
 
-            // verify Dash app values
-            cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
+            // verify Shiny app values
+            cy.logf("Checking that all shiny app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -962,28 +967,16 @@ describe("Test deploying app", () => {
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
             cy.get('#id_access').find(':selected').should('contain', 'Public')
-            cy.get('#id_image').should('have.value', image_name)
+            cy.get('#id_image').should('have.value', image_name_1)
             cy.get('#id_port').should('have.value', image_port)
 
-            // edit Dash app: modify the app image to an invalid or empty image
-            cy.logf("Editing the dash app settings field Image to an invalid value", Cypress.currentTest)
+            // edit Shiny app: modify the app image
+            cy.logf("Editing the shiny app settings field Image to a new image", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('#id_image').clear()
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
-
-            // stay on the Settings page
-            cy.url().should("include", "/apps/settings")
-
-            // edit Dash app: modify the app image back to a valid image
-            cy.logf("Editing the dash app settings field Image to a valid value", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
-            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_image').clear().type(image_name_2)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // back on project page
@@ -993,13 +986,14 @@ describe("Test deploying app", () => {
             // verify that the app status now equals Running
             verifyAppStatus(app_name, "Running", "Changing", "Running", "public")
 
-            // wait for 5 seconds and check the app status again
-            cy.wait(5000).then(() => {
+            // wait for 30 seconds and check the app status again
+            // this long wait is needed to give the Shiny deployment time to switch out and delete the old pod
+            cy.wait(30000).then(() => {
               verifyAppStatus(app_name, "Running", "Changing", "Running", "public")
             })
 
-            // delete the Dash app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
+            // delete the Shiny app
+            cy.logf("Deleting the shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
@@ -1217,7 +1211,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('span').should('not.contain', 'Deleted')
 
             // finally verify status equals Running
-            verifyAppStatus(app_name, "Running", "Changing", "Running", "project") // TODO: Here. Fix this!
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "project")
 
             // wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
