@@ -104,7 +104,9 @@ class KubernetesDeploymentManifest:
 
         # Parse the yaml manifest into multiple documents
         try:
-            documents = list(yaml.safe_load_all(manifest_data))
+            raw_documents = list(yaml.safe_load_all(manifest_data))
+            # Remove empty documents containing comments only
+            documents = [doc for doc in raw_documents if doc is not None]
         except yaml.scanner.ScannerError as e:
             return K8SManifestValidationResult(False, f"Unable to parse manifest yaml. ScannerError. {e}")
         except Exception as e:
