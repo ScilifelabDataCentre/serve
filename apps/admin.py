@@ -4,6 +4,7 @@ from django.contrib import admin, messages
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
+from projects.models import PersistentVolumeMountPaths
 from studio.utils import get_logger
 
 from .constants import AppActionOrigin
@@ -215,8 +216,17 @@ class JupyterInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + ("access", "display_volumes")
 
 
+class VolumeMountPathsInline(admin.StackedInline):
+    model = PersistentVolumeMountPaths
+    extra = 0
+    show_change_link = True
+    can_delete = True
+    verbose_name = "Volume Mount Path"
+
+
 @admin.register(VolumeInstance)
 class VolumeInstanceAdmin(BaseAppAdmin):
+    inlines = (VolumeMountPathsInline,)
     list_display = BaseAppAdmin.list_display + ("display_size",)
 
     def display_size(self, obj):

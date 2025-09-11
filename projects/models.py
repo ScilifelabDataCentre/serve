@@ -7,8 +7,8 @@ from datetime import timedelta
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import models
-from django.db.models import Q
+from django.db import models, transaction
+from django.db.models import Q, UniqueConstraint
 from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -313,3 +313,40 @@ class ProjectLog(models.Model):
     headline = models.CharField(max_length=256)
     module = models.CharField(max_length=2, choices=MODULE_CHOICES, default="UN")
     project = models.ForeignKey(settings.PROJECTS_MODEL, on_delete=models.CASCADE)
+
+
+class PersistentVolumeMountPaths(models.Model):
+    volume = models.ForeignKey("apps.VolumeInstance", on_delete=models.CASCADE, related_name="mount_paths")
+    mount_path = models.CharField(max_length=512)
+    is_default = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=["volume", "mount_path"],
+                name="uniq_volume_mount_path",
+            ),
+            # Enforce at most one default per volume
+            UniqueConstraint(
+                fields=["volume"],
+                condition=Q(is_default=True),
+                name="uniq_default_mount_per_volume",
+            ),
+        ]
+
+
+@receiver(post_save, sender="apps.VolumeInstance")
+def create_default_mount_path(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    def _make_default():
+        if not instance.mount_paths.filter(is_default=True).exists():
+            PersistentVolumeMountPaths.objects.create(volume=instance, mount_path="/home/data", is_default=True)
+            PersistentVolumeMountPaths.objects.create(
+                volume=instance,
+                mount_path="/srv/shiny-server/data/",
+                is_default=False,
+            )
+
+    transaction.on_commit(_make_default)
