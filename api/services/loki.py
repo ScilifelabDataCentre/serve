@@ -1,9 +1,9 @@
 from typing import Any, Dict, Set
 
 import requests
+from django.conf import settings
 
 from studio.utils import get_logger
-from django.conf import settings
 
 logger = get_logger(__name__)
 

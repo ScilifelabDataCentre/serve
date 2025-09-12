@@ -7,6 +7,7 @@ import requests
 import waffle
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.forms.models import model_to_dict
@@ -23,7 +24,6 @@ from apps.validators.container_images import (
 from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
-from django.core.cache import cache
 
 from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
 

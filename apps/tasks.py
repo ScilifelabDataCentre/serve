@@ -5,10 +5,12 @@ import yaml
 from celery import shared_task
 from django.apps import apps
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
 
+from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
 from apps.constants import AppActionOrigin
 from studio.celery import app
@@ -16,8 +18,6 @@ from studio.utils import get_logger
 
 from .models import BaseAppInstance, FilemanagerInstance
 
-from django.core.cache import cache
-from api.services.loki import query_unique_ip_count
 logger = get_logger(__name__)
 
 CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
@@ -373,10 +373,10 @@ def deserialize(serialized_instance):
 @app.task
 def update_cached_app_ip_counts():
     """Update cached IP counts of every app subdomain."""
-    
+
     logger.info("Starting IP count update task")
 
-    apps = BaseAppInstance.objects.filter(subdomain__isnull=False).select_related('subdomain')
+    apps = BaseAppInstance.objects.filter(subdomain__isnull=False).select_related("subdomain")
 
     for app in apps:
         try:

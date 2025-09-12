@@ -21,8 +21,9 @@ from guardian.decorators import permission_required_or_403
 from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
-from common.tasks import send_email_task
 from apps.helpers import get_cached_ip_count
+from common.tasks import send_email_task
+
 from .exceptions import ProjectCreationException
 from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
 from .tasks import create_resources_from_template, delete_project
@@ -601,7 +602,7 @@ class DetailsView(View):
             # Add IP count to each instance
             for instance in instances_per_category_list:
                 instance.unique_ip_count = 0
-                if hasattr(instance, 'subdomain') and instance.subdomain:
+                if hasattr(instance, "subdomain") and instance.subdomain:
                     if (request.user == instance.owner) or request.user.is_superuser:
                         instance.ip_count = get_cached_ip_count(instance.subdomain.subdomain)
                 else:
