@@ -378,9 +378,9 @@ def update_cached_app_ip_counts():
 
     apps = BaseAppInstance.objects.filter(subdomain__isnull=False).select_related("subdomain")
 
-    for app in apps:
+    for serve_app in apps:
         try:
-            subdomain = app.subdomain.subdomain
+            subdomain = serve_app.subdomain.subdomain
             count = query_unique_ip_count(app_subdomain=subdomain)
             cache.set(f"ip_{subdomain}", count, None)  # Cache indefinitely
         except Exception as e:
