@@ -16,6 +16,8 @@ from studio.utils import get_logger
 
 from .models import BaseAppInstance, FilemanagerInstance
 
+from django.core.cache import cache
+from api.services.loki import query_unique_ip_count
 logger = get_logger(__name__)
 
 CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
@@ -366,3 +368,22 @@ def deserialize(serialized_instance):
         raise ValueError(f"Invalid serialized data format: {e}")
     except ObjectDoesNotExist:
         raise ValueError(f"No instance found for model {model} with pk {pk}")
+
+
+@app.task
+def update_cached_app_ip_counts():
+    """Update cached IP counts of every app subdomain."""
+    
+    logger.info("Starting IP count update task")
+
+    apps = BaseAppInstance.objects.filter(subdomain__isnull=False).select_related('subdomain')
+
+    for app in apps:
+        try:
+            subdomain = app.subdomain.subdomain
+            count = query_unique_ip_count(app_subdomain=subdomain)
+            cache.set(f"ip_{subdomain}", count, None)  # Cache indefinitely
+        except Exception as e:
+            logger.warning(f"Failed to update {subdomain}: {e}")
+
+    logger.info(f"Updated cached IP counts for {apps.count()} apps.")

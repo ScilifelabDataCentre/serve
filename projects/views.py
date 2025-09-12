@@ -22,7 +22,7 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from common.tasks import send_email_task
-
+from apps.helpers import get_cached_ip_count
 from .exceptions import ProjectCreationException
 from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
 from .tasks import create_resources_from_template, delete_project
@@ -597,6 +597,15 @@ class DetailsView(View):
                     instances_per_category_list.extend(
                         [instance for instance in queryset_per_category if instance not in instances_per_category_list]
                     )
+
+            # Add IP count to each instance
+            for instance in instances_per_category_list:
+                instance.unique_ip_count = 0
+                if hasattr(instance, 'subdomain') and instance.subdomain:
+                    if (request.user == instance.owner) or request.user.is_superuser:
+                        instance.ip_count = get_cached_ip_count(instance.subdomain.subdomain)
+                else:
+                    instance.ip_count = 0
 
             # Filter the available apps specified in the project template
             available_apps = [app.pk for app in project.project_template.available_apps.all()]

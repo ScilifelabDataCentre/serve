@@ -23,6 +23,7 @@ from apps.validators.container_images import (
 from common.models import UserProfile
 from projects.models import Project
 from studio.utils import get_logger
+from django.core.cache import cache
 
 from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
 
@@ -832,3 +833,8 @@ def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
 
     # Convert to GiB and round
     return (round(used_bytes / GIB_FACTOR, 2), round(total_bytes / GIB_FACTOR, 2))
+
+
+def get_cached_ip_count(subdomain):
+    """Get IP count from cache, return 0 if not found"""
+    return cache.get(f"ip_{subdomain}", 0)

@@ -571,6 +571,17 @@ if not DEBUG:
 
 LOKI_SVC = None
 
+LOKI_READER_ENDPOINT = "http://loki-read-headless.loki-stack.svc.cluster.local:3100"
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/1', # https://redis.io/docs/latest/commands/select/
+        'KEY_PREFIX': 'serve',
+        'TIMEOUT': 7200,  # 2 hours default but will be overriden
+    }
+}
+
 # k8s cluster version for validation of manifests
 CLUSTER_VERSION = "1.32"
 
