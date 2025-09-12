@@ -31,6 +31,10 @@
                     role="tab">
                     Access
                 </a>
+                <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#storage"
+                    role="tab">
+                    Storage
+                </a>
                 {% if enable_extra_settings or request.user.is_superuser %}
                 <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#flavors"
                     role="tab">
@@ -57,35 +61,13 @@
             {% include 'common/flash_messages.html' %}
 
             <div class="tab-pane fade show active" id="projdesc" role="tabpanel">
-                <div class="card shadow border-0">
-
-                    <div class="card-header bg-light py-3">
-                        <h5 class="card-title mb-0">Change project description</h5>
-                    </div>
-                    <form action="{% url 'projects:change_description' project.slug %}" method="post">
-                        {% csrf_token %}
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Name</label>
-                                <input type="text" class="form-control" id="name" name="name" contenteditable="true"
-                                    value="{{ project.name }}">
-                            </div>
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Description</label>
-                                <textarea class="form-control" rows="5" id="description" name="description"
-                                    contenteditable="true">{% if project.description %}{{ project.description }}{% endif %}</textarea>
-                            </div>
-                        </div>
-                        <div class="card-footer d-flex justify-content-end">
-                                <button type="submit" class="btn btn-square btn-primary">Save</button>
-                        </div>
-                    </form>
-                </div>
+                {% include 'projects/partials/settings/project_description.html' %}
             </div>
             <div class="tab-pane fade" id="access" role="tabpanel">
-
-                {% include './grant_revoke_access.html' %}
-
+                {% include 'projects/partials/settings/grant_revoke_access.html' %}
+            </div>
+            <div class="tab-pane fade" id="storage" role="tabpanel">
+              {% include 'projects/partials/settings/storage.html' %}
             </div>
 
             {% if enable_extra_settings or request.user.is_superuser %}
