@@ -601,12 +601,10 @@ class DetailsView(View):
 
             # Add IP count to each instance
             for instance in instances_per_category_list:
-                instance.unique_ip_count = 0
+                instance.unique_visitors_ip_count = 0
                 if hasattr(instance, "subdomain") and instance.subdomain:
                     if (request.user == instance.owner) or request.user.is_superuser:
-                        instance.ip_count = get_cached_ip_count(instance.subdomain.subdomain)
-                else:
-                    instance.ip_count = 0
+                        instance.unique_visitors_ip_count = get_cached_ip_count(instance.subdomain.subdomain)
 
             # Filter the available apps specified in the project template
             available_apps = [app.pk for app in project.project_template.available_apps.all()]

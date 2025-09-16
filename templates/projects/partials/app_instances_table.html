@@ -72,8 +72,8 @@
               {% endif %}
             </td>
             <td data-cy="hits-cell">
-            {% if instance.ip_count != 0 %}
-                {{ instance.ip_count }}
+            {% if instance.unique_visitors_ip_count != 0 %}
+                {{ instance.unique_visitors_ip_count }}
             {% endif %}
             </td>
             <td class="d-none d-xxl-table-cell" id="tags-{{ instance.pk }}">
