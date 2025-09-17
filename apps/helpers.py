@@ -7,6 +7,7 @@ import requests
 import waffle
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.forms.models import model_to_dict
@@ -832,3 +833,8 @@ def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
 
     # Convert to GiB and round
     return (round(used_bytes / GIB_FACTOR, 2), round(total_bytes / GIB_FACTOR, 2))
+
+
+def get_cached_ip_count(subdomain):
+    """Get IP count from cache, return 0 if not found"""
+    return cache.get(f"ip_{subdomain}", 0)

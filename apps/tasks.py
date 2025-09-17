@@ -5,10 +5,12 @@ import yaml
 from celery import shared_task
 from django.apps import apps
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
 
+from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
 from apps.constants import AppActionOrigin
 from studio.celery import app
@@ -366,3 +368,22 @@ def deserialize(serialized_instance):
         raise ValueError(f"Invalid serialized data format: {e}")
     except ObjectDoesNotExist:
         raise ValueError(f"No instance found for model {model} with pk {pk}")
+
+
+@app.task
+def update_cached_app_ip_counts():
+    """Update cached IP counts of every app subdomain."""
+
+    logger.info("Starting IP count update task")
+
+    apps = BaseAppInstance.objects.filter(subdomain__isnull=False).select_related("subdomain")
+
+    for serve_app in apps:
+        try:
+            subdomain = serve_app.subdomain.subdomain
+            count = query_unique_ip_count(app_subdomain=subdomain)
+            cache.set(f"ip_{subdomain}", count, None)  # Cache indefinitely
+        except Exception as e:
+            logger.warning(f"Failed to update {subdomain}: {e}")
+
+    logger.info(f"Updated cached IP counts for {apps.count()} apps.")

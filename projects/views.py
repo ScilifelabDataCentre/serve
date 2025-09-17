@@ -21,6 +21,7 @@ from guardian.decorators import permission_required_or_403
 from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
+from apps.helpers import get_cached_ip_count
 from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException
@@ -597,6 +598,13 @@ class DetailsView(View):
                     instances_per_category_list.extend(
                         [instance for instance in queryset_per_category if instance not in instances_per_category_list]
                     )
+
+            # Add IP count to each instance
+            for instance in instances_per_category_list:
+                instance.unique_visitors_ip_count = 0
+                if hasattr(instance, "subdomain") and instance.subdomain:
+                    if (request.user == instance.owner) or request.user.is_superuser:
+                        instance.unique_visitors_ip_count = get_cached_ip_count(instance.subdomain.subdomain)
 
             # Filter the available apps specified in the project template
             available_apps = [app.pk for app in project.project_template.available_apps.all()]
