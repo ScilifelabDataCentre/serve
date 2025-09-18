@@ -172,6 +172,52 @@ To check, go to  PyCharm | Settings | Languages & Frameworks | Django and check 
 
 Now that you are done, you can run Django server using PyCharm and access the studio at [http://studio.127.0.0.1.nip.io/](http://studio.127.0.0.1.nip.io/)
 
+## Testing
+
+The automated tests in this project consist of unit tests, end2end UI tests and integration tests.
+
+### Unit tests
+
+The unit tests are written in Python and located in several /tests/ directories under each applicable part of the codebase. The tests are automatically executed as part of git workflows. You may also run them manually in this manner using docker compose:
+
+```bash
+docker compose up -d --build
+docker compose run unit-tests
+```
+
+### End2End tests
+
+UI end2end tests and Integration tests use the [Cypress](https://www.cypress.io/) framework and are implemented in javascript. The UI end2end are automatically executed as part of git workflows. You may also run them manually in this manner after first installing Cypress on your machine:
+
+```bash
+# Run in a browser:
+npx cypress open
+
+# Or, run headlessly in the terminal:
+npx cypress run
+```
+
+The Integration tests however are not run in a git workflow as these tests require more resources and time to execute. You may run them against a development or staging server in this manner:
+
+First edit the cypress.config.js file to specify to run the integration tests:
+```bash
+# make sure this is set to true:
+manage_test_data_via_django_endpoint_views: true
+
+# change the baseUrl as necessary:
+baseUrl: '<URL of the dev or staging environment>',
+
+# comment out the excelude integration-tests pattern:
+    excludeSpecPattern: [
+      //  "cypress/e2e/integration-tests/*"
+    ],
+```
+
+Then to run the integration tests:
+```bash
+npx cypress open
+```
+
 ## Contact information
 
 To get in touch with the development team behind SciLifeLab Serve send us an email: serve@scilifelab.se.
