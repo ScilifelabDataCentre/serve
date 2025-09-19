@@ -1,0 +1,125 @@
+{% load humanize %}
+
+{% with tab_id="vol"|add:volume.id|stringformat:"s" list_id=tab_id|add:"Paths" %}
+<div class="tab-pane fade {% if active %}show active{% endif %}"
+     id="{{ tab_id }}" role="tabpanel" aria-labelledby="{{ tab_id }}-tab">
+
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <div>
+      <span class="fw-semibold me-1">Size:</span>
+      <span class="badge bg-secondary">
+        {% if volume.size %}{{ volume.size }}{% else %}—{% endif %} Gb
+      </span>
+    </div>
+
+      <div class="ms-auto d-flex gap-2">
+    <!-- Dummy button for auto-increase -->
+    <a class="btn btn-outline-primary btn-sm"
+       href="#"
+       onclick="alert('Will be added in further PRs'); return false;">
+       Increase to 5 GB
+    </a>
+
+    <a class="btn btn-outline-secondary btn-sm ms-auto" href="#"
+       onclick="alert('Will be added in further PRs'); return false;">
+       Request more
+    </a>
+    </div>
+  </div>
+
+  <label class="form-label">Mount paths</label>
+
+  <div id="{{ list_id }}" class="d-grid gap-2">
+    {% for mount_path in volume.mount_paths.all %}
+      <div class="input-group" data-default="{% if mount_path.is_default %}1{% else %}0{% endif %}">
+        <span class="input-group-text">/</span>
+        <input type="text"
+               class="form-control"
+               name="paths_{{ volume.id }}"
+               value="{{ mount_path.mount_path }}"
+               placeholder="path/inside/container"
+               {% if mount_path.is_default %}readonly{% endif %}>
+        {% if mount_path.is_default %}
+          <span class="input-group-text bg-light text-muted">default</span>
+        {% else %}
+          <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="input-group">
+        <span class="input-group-text">/</span>
+        <input type="text"
+               class="form-control"
+               name="paths_{{ volume.id }}"
+               placeholder="path/inside/container">
+        <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="d-grid mt-3">
+    <button type="button"
+            class="btn btn-outline-secondary addPathBtn"
+            data-target="{{ list_id }}"
+            data-name="paths_{{ volume.id }}">+
+    </button>
+  </div>
+</div>
+{% endwith %}
+
+<script>
+(function () {
+  if (window.__volPathsEnhanced) return;
+  window.__volPathsEnhanced = true;
+
+  document.addEventListener('click', function (e) {
+    const addBtn = e.target.closest('.addPathBtn');
+    const removeBtn = e.target.closest('.removePathBtn');
+
+    if (!addBtn && !removeBtn) return;
+
+    // Add new path row
+    if (addBtn) {
+      const targetId = addBtn.getAttribute('data-target');
+      const name = addBtn.getAttribute('data-name');
+      const list = document.getElementById(targetId);
+      if (!list) return;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'input-group';
+      wrapper.innerHTML = `
+        <span class="input-group-text">/</span>
+        <input type="text" class="form-control" name="${name}" placeholder="new/path">
+        <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
+      `;
+      list.appendChild(wrapper);
+      return;
+    }
+
+    // Remove path row (if not default)
+    if (removeBtn) {
+      const group = removeBtn.closest('.input-group');
+      if (group && group.dataset.default === "1") return; // protect default
+
+      const list = group && group.parentElement;
+      if (!group || !list) return;
+
+      group.remove();
+
+      // Ensure at least one empty row remains
+      if (list.querySelectorAll('.input-group').length === 0) {
+        const addBtnForList = document.querySelector(`.addPathBtn[data-target="${list.id}"]`);
+        const name = addBtnForList ? addBtnForList.getAttribute('data-name') : '';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'input-group';
+        wrapper.innerHTML = `
+          <span class="input-group-text">/</span>
+          <input type="text" class="form-control" name="${name}" placeholder="path/inside/container">
+          <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
+        `;
+        list.appendChild(wrapper);
+      }
+    }
+  }, { passive: true });
+})();
+</script>

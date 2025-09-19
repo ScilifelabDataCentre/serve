@@ -14,17 +14,17 @@ from django.http import (
     HttpResponseRedirect,
     JsonResponse,
 )
-from django.shortcuts import render, reverse
+from django.shortcuts import render, reverse, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
 from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
+from apps.models import VolumeInstance
 from common.tasks import send_email_task
-
 from .exceptions import ProjectCreationException
-from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
+from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate, PersistentVolumeMountPaths
 from .tasks import create_resources_from_template, delete_project
 
 logger = logging.getLogger(__name__)
@@ -106,6 +106,7 @@ def settings(request, project_slug):
     )
 
     flavors = Flavor.objects.filter(project=project)
+    volumes = VolumeInstance.objects.filter(project=project)
 
     return render(request, template, locals())
 
@@ -658,3 +659,49 @@ def delete(request, project_slug):
     delete_project.delay(project.pk)
 
     return HttpResponseRedirect(next_page, {"message": "Deleted project successfully."})
+
+
+@login_required
+@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
+def update_storage_settings(request, project_slug):
+    project = get_object_or_404(Project, slug=project_slug)
+
+    volumes = VolumeInstance.objects.filter(project=project).prefetch_related("mount_paths")
+
+    if request.method == "POST":
+        for vol in volumes:
+            # Each volume sends multiple inputs named paths_<volume.id>
+            raw_paths = request.POST.getlist(f"paths_{vol.id}")
+            # normalize: strip, drop empties, dedupe while preserving order
+            seen = set()
+            paths = []
+            for p in (rp.strip() for rp in raw_paths):
+                if p and p not in seen:
+                    seen.add(p)
+                    paths.append(p)
+
+            # compute current vs desired
+            existing = list(vol.mount_paths.values_list("mount_path", flat=True))
+            to_delete = set(existing) - set(paths)
+            to_create = [p for p in paths if p not in existing]
+
+            if to_delete:
+                PersistentVolumeMountPaths.objects.filter(
+                    volume=vol, mount_path__in=to_delete, is_default=False
+                ).delete()
+            if to_create:
+                PersistentVolumeMountPaths.objects.bulk_create(
+                    [PersistentVolumeMountPaths(volume=vol, mount_path=p) for p in to_create],
+                    ignore_conflicts=True,  # harmless if unique_together added later
+                )
+
+        messages.success(request, "Storage settings saved.")
+
+    # GET: render the form
+    context = {"project": project, "volumes": volumes}
+    return HttpResponseRedirect(
+        reverse(
+            "projects:settings",
+            kwargs={"project_slug": project.slug},
+        )
+    )
