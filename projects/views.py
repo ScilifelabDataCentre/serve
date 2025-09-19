@@ -14,7 +14,7 @@ from django.http import (
     HttpResponseRedirect,
     JsonResponse,
 )
-from django.shortcuts import render, reverse, get_object_or_404
+from django.shortcuts import get_object_or_404, render, reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
@@ -23,8 +23,16 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 from apps.app_registry import APP_REGISTRY
 from apps.models import VolumeInstance
 from common.tasks import send_email_task
+
 from .exceptions import ProjectCreationException
-from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate, PersistentVolumeMountPaths
+from .models import (
+    Environment,
+    Flavor,
+    PersistentVolumeMountPaths,
+    Project,
+    ProjectLog,
+    ProjectTemplate,
+)
 from .tasks import create_resources_from_template, delete_project
 
 logger = logging.getLogger(__name__)
@@ -698,7 +706,6 @@ def update_storage_settings(request, project_slug):
         messages.success(request, "Storage settings saved.")
 
     # GET: render the form
-    context = {"project": project, "volumes": volumes}
     return HttpResponseRedirect(
         reverse(
             "projects:settings",

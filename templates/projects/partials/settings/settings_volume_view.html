@@ -1,9 +1,11 @@
 {% load humanize %}
 
-{% with tab_id="vol"|add:volume.id|stringformat:"s" list_id=tab_id|add:"Paths" %}
-<div class="tab-pane fade {% if active %}show active{% endif %}"
-     id="{{ tab_id }}" role="tabpanel" aria-labelledby="{{ tab_id }}-tab">
-
+<div
+  class="tab-pane fade {% if active %}show active{% endif %}"
+  id="vol{{ volume.id|stringformat:'s' }}"
+  role="tabpanel"
+  aria-labelledby="vol{{ volume.id|stringformat:'s' }}-tab"
+>
   <div class="d-flex align-items-center gap-3 mb-3">
     <div>
       <span class="fw-semibold me-1">Size:</span>
@@ -12,26 +14,23 @@
       </span>
     </div>
 
-      <div class="ms-auto d-flex gap-2">
-    <!-- Dummy button for auto-increase -->
-    <a class="btn btn-outline-primary btn-sm"
-       href="#"
-       onclick="alert('Will be added in further PRs'); return false;">
-       Increase to 5 GB
-    </a>
+    <div class="ms-auto d-flex gap-2">
+      <!-- Dummy button for auto-increase -->
+      <a class="btn btn-outline-primary btn-sm" href="#" onclick="alert('Will be added in further PRs'); return false;">
+         Increase to 5 GB
+      </a>
 
-    <a class="btn btn-outline-secondary btn-sm ms-auto" href="#"
-       onclick="alert('Will be added in further PRs'); return false;">
-       Request more
-    </a>
+      <a class="btn btn-outline-secondary btn-sm ms-auto" href="#" onclick="alert('Will be added in further PRs'); return false;">
+         Request more
+      </a>
     </div>
   </div>
 
   <label class="form-label">Mount paths</label>
 
-  <div id="{{ list_id }}" class="d-grid gap-2">
+  <div id="vol{{ volume.id|stringformat:'s' }}Paths" class="d-grid gap-2">
     {% for mount_path in volume.mount_paths.all %}
-      <div class="input-group" data-default="{% if mount_path.is_default %}1{% else %}0{% endif %}">
+      <div class="input-group" data-default="{{ mount_path.is_default|yesno:'1,0' }}">
         <span class="input-group-text">/</span>
         <input type="text"
                class="form-control"
@@ -60,12 +59,11 @@
   <div class="d-grid mt-3">
     <button type="button"
             class="btn btn-outline-secondary addPathBtn"
-            data-target="{{ list_id }}"
+            data-target="vol{{ volume.id|stringformat:'s' }}Paths"
             data-name="paths_{{ volume.id }}">+
     </button>
   </div>
 </div>
-{% endwith %}
 
 <script>
 (function () {

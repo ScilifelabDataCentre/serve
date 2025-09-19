@@ -1,3 +1,4 @@
+{# projects/templates/projects/storage.html #}
 <div class="card shadow border-0">
   <div class="card-header bg-light py-3">
     <h5 class="card-title mb-0">Storage settings</h5>
@@ -6,20 +7,20 @@
   <div class="card-header px-3 pt-2">
     <ul class="nav nav-tabs card-header-tabs" id="volumeTabs" role="tablist">
       {% for volume in volumes %}
-        {% with tab_id="vol"|add:volume.id|stringformat:"s" %}
         <li class="nav-item" role="presentation">
-          <button class="nav-link {% if forloop.first %}active{% endif %}"
-                  id="{{ tab_id }}-tab"
-                  data-bs-toggle="tab"
-                  data-bs-target="#{{ tab_id }}"
-                  type="button"
-                  role="tab"
-                  aria-controls="{{ tab_id }}"
-                  aria-selected="{{ forloop.first|yesno:'true,false' }}">
+          <button
+            class="nav-link {% if forloop.first %}active{% endif %}"
+            id="vol{{ volume.id|stringformat:'s' }}-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#vol{{ volume.id|stringformat:'s' }}"
+            type="button"
+            role="tab"
+            aria-controls="vol{{ volume.id|stringformat:'s' }}"
+            aria-selected="{{ forloop.first|yesno:'true,false' }}"
+          >
             {{ volume.name }}
           </button>
         </li>
-        {% endwith %}
       {% endfor %}
     </ul>
   </div>
