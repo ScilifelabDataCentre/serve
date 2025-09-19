@@ -187,7 +187,9 @@ docker compose run unit-tests
 
 ### End2End tests
 
-UI end2end tests and Integration tests use the [Cypress](https://www.cypress.io/) framework and are implemented in javascript. The UI end2end are automatically executed as part of git workflows. You may also run them manually in this manner after first installing Cypress on your machine:
+UI end2end tests and Integration tests use the [Cypress](https://www.cypress.io/) framework and are implemented in javascript. Both require that the System Under Test (SUT), e.g. the Serve application, is running on the targeted machine as configured by the baseUrl setting. This means that if you want to run the tests locally you need to have Serve installed and running on your machine.
+
+The UI end2end are automatically executed as part of git workflows. You may also run them manually in this manner after first installing Cypress on your machine:
 
 ```bash
 # Run in a browser:
