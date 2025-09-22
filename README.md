@@ -220,6 +220,22 @@ Then to run the integration tests:
 npx cypress open
 ```
 
+In order to run unit tests that are marked as integration ones, ou need to change `unit-test` command in the `docker-compose` file. Change this:
+
+```yaml
+  unit-tests:
+    ...
+    command: ["pytest", "-n", "auto", "-m", "not integration"]
+```
+
+To this:
+
+```yaml
+  unit-tests:
+    ...
+    command: ["pytest", "-n", "auto"]
+```
+
 ## Contact information
 
 To get in touch with the development team behind SciLifeLab Serve send us an email: serve@scilifelab.se.
