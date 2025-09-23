@@ -683,7 +683,7 @@ def update_storage_settings(request, project_slug):
             # normalize: strip, drop empties, dedupe while preserving order
             seen = set()
             paths = []
-            for p in (rp.strip() for rp in raw_paths):
+            for p in (rp.strip().rstrip("/").lower().replace(" ", "") for rp in raw_paths):
                 if p and p not in seen:
                     seen.add(p)
                     paths.append(p)
@@ -692,6 +692,16 @@ def update_storage_settings(request, project_slug):
             existing = list(vol.mount_paths.values_list("mount_path", flat=True))
             to_delete = set(existing) - set(paths)
             to_create = [p for p in paths if p not in existing]
+
+            error = ""
+            for p in to_create:
+                if not p.startswith(("/home", "/srv")):
+                    error = f'Path {p} must start with "/home" or "/srv"'
+                    break
+
+            if error:
+                messages.error(request, error)
+                break
 
             if to_delete:
                 PersistentVolumeMountPaths.objects.filter(
@@ -702,8 +712,8 @@ def update_storage_settings(request, project_slug):
                     [PersistentVolumeMountPaths(volume=vol, mount_path=p) for p in to_create],
                     ignore_conflicts=True,  # harmless if unique_together added later
                 )
-
-        messages.success(request, "Storage settings saved.")
+        else:
+            messages.success(request, "Storage settings saved.")
 
     # GET: render the form
     return HttpResponseRedirect(
@@ -711,4 +721,5 @@ def update_storage_settings(request, project_slug):
             "projects:settings",
             kwargs={"project_slug": project.slug},
         )
+        + "?tab=storage",
     )

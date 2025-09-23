@@ -26,17 +26,24 @@
     </div>
   </div>
 
-  <label class="form-label">Mount paths</label>
+  <div>
+      <label class="form-label">Mount paths</label>
+      <span class="bi bi-question-circle text-muted"
+            data-bs-toggle="tooltip"
+            data-bs-placement="right"
+            data-bs-original-title="Define a set of paths that could be used to mount a storage volume to your container.">
+    </span>
+  </div>
 
   <div id="vol{{ volume.id|stringformat:'s' }}Paths" class="d-grid gap-2">
     {% for mount_path in volume.mount_paths.all %}
       <div class="input-group" data-default="{{ mount_path.is_default|yesno:'1,0' }}">
-        <span class="input-group-text">/</span>
+        <span class="input-group-text"></span>
         <input type="text"
                class="form-control"
                name="paths_{{ volume.id }}"
                value="{{ mount_path.mount_path }}"
-               placeholder="path/inside/container"
+               placeholder="/path/inside/container"
                {% if mount_path.is_default %}readonly{% endif %}>
         {% if mount_path.is_default %}
           <span class="input-group-text bg-light text-muted">default</span>
@@ -46,11 +53,11 @@
       </div>
     {% empty %}
       <div class="input-group">
-        <span class="input-group-text">/</span>
+        <span class="input-group-text"></span>
         <input type="text"
                class="form-control"
                name="paths_{{ volume.id }}"
-               placeholder="path/inside/container">
+               placeholder="/path/inside/container">
         <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
       </div>
     {% endfor %}
@@ -86,8 +93,8 @@
       const wrapper = document.createElement('div');
       wrapper.className = 'input-group';
       wrapper.innerHTML = `
-        <span class="input-group-text">/</span>
-        <input type="text" class="form-control" name="${name}" placeholder="new/path">
+        <span class="input-group-text"></span>
+        <input type="text" class="form-control" name="${name}" placeholder="/new/path">
         <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
       `;
       list.appendChild(wrapper);
@@ -111,8 +118,8 @@
         const wrapper = document.createElement('div');
         wrapper.className = 'input-group';
         wrapper.innerHTML = `
-          <span class="input-group-text">/</span>
-          <input type="text" class="form-control" name="${name}" placeholder="path/inside/container">
+          <span class="input-group-text"></span>
+          <input type="text" class="form-control" name="${name}" placeholder="/path/inside/container">
           <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
         `;
         list.appendChild(wrapper);

@@ -258,31 +258,43 @@
 </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Get tab from ?tag=... in URL
+    const params = new URLSearchParams(window.location.search);
+    const wanted = params.get('tab');
 
-    const queryString = window.location.search;
-    const urlParams = new URLSearchParams(queryString);
-    const template = urlParams.get("template")
+    if (wanted) {
+      const trigger = document.querySelector(`a[data-bs-toggle="list"][href="#${wanted}"]`);
+      const pane = document.getElementById(wanted);
 
-    if (!!template) {
+      if (trigger && pane) {
+        // Clear only the sidebar's active
+        const sidebar = trigger.closest('.list-group');
+        if (sidebar) {
+          sidebar.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
+        }
 
-        const element = document.getElementById(template)
-        element.classList.add("active")
-        element.classList.add("show")
+        // Clear only within the same tab-content as the pane we're about to show
+        const container = pane.closest('.tab-content');
+        if (container) {
+          container.querySelectorAll(':scope > .tab-pane.active, :scope > .tab-pane.show')
+            .forEach(el => el.classList.remove('active', 'show'));
+        }
 
-        const linkElement = document.querySelector(`[href="#${template}"]`)
-
-        linkElement.classList.add("active")
-
-        const defaultId = "projdesc"
-
-        const defaultElement = document.getElementById(defaultId)
-        defaultElement.classList.remove("active")
-        defaultElement.classList.remove("show")
-
-        const defaultLinkElement = document.querySelector(`[href="#${defaultId}"]`)
-
-        defaultLinkElement.classList.remove("active")
+        // Now show the requested top-level tab
+        new bootstrap.Tab(trigger).show();
+      }
     }
 
+    // Keep URL updated when switching tabs
+    document.querySelectorAll('a[data-bs-toggle="list"]').forEach(a => {
+      a.addEventListener('shown.bs.tab', (e) => {
+        const id = e.target.getAttribute('href').slice(1); // remove leading "#"
+        const url = new URL(window.location);
+        url.searchParams.set('tab', id);
+        history.replaceState(null, '', url);
+      });
+    });
+  });
 </script>
 {% endblock %}
