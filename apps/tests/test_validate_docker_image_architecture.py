@@ -10,6 +10,7 @@ from apps.validators.container_images import (
 )
 
 
+@pytest.mark.integration
 def test_ghcr_architecture_is_valid():
     architectures = get_image_architectures(
         auth=GHCRAuthenticator(),
@@ -21,6 +22,7 @@ def test_ghcr_architecture_is_valid():
     assert architectures == [ImageArchitectureTuple(os="linux", arch="amd64")]
 
 
+@pytest.mark.integration
 def test_get_anonymous_bearer_token():
     auth = GHCRAuthenticator()
     token = auth.get_token_service_url("scilifelabdatacentre/serve-jupyterlab")
@@ -29,6 +31,7 @@ def test_get_anonymous_bearer_token():
     assert "token" in resp.json(), "Token not found in response"
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(
     condition="settings.DOCKER_HUB_TOKEN is None",
 )
