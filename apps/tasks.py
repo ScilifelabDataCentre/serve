@@ -387,3 +387,32 @@ def update_cached_app_ip_counts():
             logger.warning(f"Failed to update {subdomain}: {e}")
 
     logger.info(f"Updated cached IP counts for {apps.count()} apps.")
+
+
+@app.task
+def update_monthly_app_ip_counts():
+    """Update monthly cached IP counts of every app subdomain."""
+
+    logger.info("Starting monthly IP count update task")
+
+    apps = BaseAppInstance.objects.filter(subdomain__isnull=False).select_related("subdomain")
+
+    # Get current year and month for the cache key
+    current_date = timezone.now()
+    year_month = current_date.strftime("%Y-%m")
+
+    for serve_app in apps:
+        try:
+            subdomain = serve_app.subdomain.subdomain
+            # Query IP count for the current month
+            count = query_unique_ip_count(app_subdomain=subdomain)
+
+            # Store monthly count with year-month in the key
+            cache_key = f"monthly_ip_{subdomain}_{year_month}"
+            cache.set(cache_key, count, None)  # Cache indefinitely
+
+            logger.debug(f"Updated monthly IP count for {subdomain}: {count}")
+        except Exception as e:
+            logger.warning(f"Failed to update monthly count for {subdomain}: {e}")
+
+    logger.info(f"Updated monthly cached IP counts for {apps.count()} apps for {year_month}.")

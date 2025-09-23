@@ -194,5 +194,33 @@
     },
     "model": "django_celery_beat.periodictask",
     "pk": 11
+  },
+  {
+    "fields": {
+      "args": "[]",
+      "clocked": null,
+      "crontab": 8,
+      "date_changed": "2025-01-01T00:00:00.000Z",
+      "description": "Updates monthly unique IP counts for app instances from Loki logs on the last day of each month",
+      "enabled": true,
+      "exchange": null,
+      "expire_seconds": null,
+      "expires": null,
+      "headers": "{}",
+      "interval": null,
+      "kwargs": "{}",
+      "last_run_at": null,
+      "name": "update_monthly_app_ip_counts",
+      "one_off": false,
+      "priority": null,
+      "queue": null,
+      "routing_key": null,
+      "solar": null,
+      "start_time": null,
+      "task": "apps.tasks.update_monthly_app_ip_counts",
+      "total_run_count": 0
+    },
+    "model": "django_celery_beat.periodictask",
+    "pk": 12
   }
 ]
