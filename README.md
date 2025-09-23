@@ -185,6 +185,27 @@ docker compose up -d --build
 docker compose run unit-tests
 ```
 
+#### Unit test relying on external resources (part of the integration testing suite)
+
+In order to run unit tests that are marked as integration ones, you need to change `unit-test` command in the `docker-compose` file. Change this:
+
+```yaml
+  unit-tests:
+    ...
+    command: ["pytest", "-n", "auto", "-m", "not integration"]
+```
+
+To this:
+
+```yaml
+  unit-tests:
+    ...
+    command: ["pytest", "-n", "auto"]
+```
+
+If you want to create a test that relies on some external resources like API, use `@pytest.mark.integration` pytest marker.
+
+
 ### End2End tests
 
 UI end2end tests and Integration tests use the [Cypress](https://www.cypress.io/) framework and are implemented in javascript. Both require that the System Under Test (SUT), e.g. the Serve application, is running on the targeted machine as configured by the baseUrl setting. This means that if you want to run the tests locally you need to have Serve installed and running on your machine.
@@ -220,21 +241,6 @@ Then to run the integration tests:
 npx cypress open
 ```
 
-In order to run unit tests that are marked as integration ones, ou need to change `unit-test` command in the `docker-compose` file. Change this:
-
-```yaml
-  unit-tests:
-    ...
-    command: ["pytest", "-n", "auto", "-m", "not integration"]
-```
-
-To this:
-
-```yaml
-  unit-tests:
-    ...
-    command: ["pytest", "-n", "auto"]
-```
 
 ## Contact information
 
