@@ -577,7 +577,7 @@ LOKI_READER_ENDPOINT = "http://loki-read-headless.loki-stack.svc.cluster.local:3
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",  # https://redis.io/docs/latest/commands/select/
+        "LOCATION": f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1",  # https://redis.io/docs/latest/commands/select/
         "KEY_PREFIX": "serve",
         "TIMEOUT": 7200,  # 2 hours default but will be overriden
     }
