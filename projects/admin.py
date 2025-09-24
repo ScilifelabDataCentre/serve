@@ -5,7 +5,7 @@ from .models import (
     BasicAuth,
     Environment,
     Flavor,
-    PersistentVolumeMountPaths,
+    PersistentVolumeMountPath,
     Project,
     ProjectLog,
     ProjectTemplate,
@@ -43,8 +43,8 @@ class EnvironmentAdmin(admin.ModelAdmin):
     list_filter = ["project"]
 
 
-@admin.register(PersistentVolumeMountPaths)
-class PVCMountPathsAdmin(admin.ModelAdmin):
+@admin.register(PersistentVolumeMountPath)
+class PVCMountPathAdmin(admin.ModelAdmin):
     search_fields = ("volume__name", "mount_path")
-    list_display = ("volume__project__name", "volume", "mount_path")
+    list_display = ("volume__project__name", "volume__subdomain", "volume", "mount_path", "volume__size")
     list_filter = ["volume__project__name"]

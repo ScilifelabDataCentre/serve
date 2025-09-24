@@ -4,7 +4,7 @@ from django.contrib import admin, messages
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
-from projects.models import PersistentVolumeMountPaths
+from projects.models import PersistentVolumeMountPath
 from studio.utils import get_logger
 
 from .constants import AppActionOrigin
@@ -217,7 +217,7 @@ class JupyterInstanceAdmin(BaseAppAdmin):
 
 
 class VolumeMountPathsInline(admin.StackedInline):
-    model = PersistentVolumeMountPaths
+    model = PersistentVolumeMountPath
     extra = 0
     show_change_link = True
     can_delete = True

@@ -6,7 +6,7 @@ from django.db import migrations, models, transaction
 
 
 def populate_mount_paths(apps, schema_editor):
-    PersistentVolumeMountPaths = apps.get_model("projects", "PersistentVolumeMountPaths")
+    PersistentVolumeMountPath = apps.get_model("projects", "PersistentVolumeMountPath")
     VolumeInstance = apps.get_model("apps", "VolumeInstance")
     CustomAppInstance = apps.get_model("apps", "CustomAppInstance")
     GradioInstance = apps.get_model("apps", "GradioInstance")
@@ -16,9 +16,9 @@ def populate_mount_paths(apps, schema_editor):
     with transaction.atomic():
         to_create = []
         for volume in VolumeInstance.objects.all():
-            to_create.append(PersistentVolumeMountPaths(volume=volume, mount_path="/home/data", is_default=True))
+            to_create.append(PersistentVolumeMountPath(volume=volume, mount_path="/home/data", is_default=True))
             to_create.append(
-                PersistentVolumeMountPaths(
+                PersistentVolumeMountPath(
                     volume=volume,
                     mount_path="/srv/shiny-server/data/",
                     is_default=False,
@@ -32,14 +32,14 @@ def populate_mount_paths(apps, schema_editor):
         ):
             if instance.volume:
                 to_create.append(
-                    PersistentVolumeMountPaths(
+                    PersistentVolumeMountPath(
                         volume=instance.volume,
                         mount_path=instance.path,
                         is_default=False,
                     )
                 )
         if to_create:
-            PersistentVolumeMountPaths.objects.bulk_create(to_create)
+            PersistentVolumeMountPath.objects.bulk_create(to_create)
 
 
 def noop_reverse(apps, schema_editor):
@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="PersistentVolumeMountPaths",
+            name="PersistentVolumeMountPath",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("mount_path", models.CharField(max_length=512)),
