@@ -316,7 +316,7 @@ class ProjectLog(models.Model):
     project = models.ForeignKey(settings.PROJECTS_MODEL, on_delete=models.CASCADE)
 
 
-class PersistentVolumeMountPaths(models.Model):
+class PersistentVolumeMountPath(models.Model):
     volume = models.ForeignKey("apps.VolumeInstance", on_delete=models.CASCADE, related_name="mount_paths")
     mount_path = models.CharField(max_length=512)
     is_default = models.BooleanField(default=False)
@@ -343,8 +343,8 @@ def create_default_mount_path(sender, instance, created, **kwargs):
 
     def _make_default():
         if not instance.mount_paths.filter(is_default=True).exists():
-            PersistentVolumeMountPaths.objects.create(volume=instance, mount_path="/home/data", is_default=True)
-            PersistentVolumeMountPaths.objects.create(
+            PersistentVolumeMountPath.objects.create(volume=instance, mount_path="/home/data", is_default=True)
+            PersistentVolumeMountPath.objects.create(
                 volume=instance,
                 mount_path="/srv/shiny-server/data/",
                 is_default=False,
@@ -353,7 +353,7 @@ def create_default_mount_path(sender, instance, created, **kwargs):
     transaction.on_commit(_make_default)
 
 
-@receiver(pre_delete, sender=PersistentVolumeMountPaths)
+@receiver(pre_delete, sender=PersistentVolumeMountPath)
 def on_mount_path_delete(sender, instance, **kwargs):
     if instance.is_default:
         raise ValidationError("Default mount path cannot be deleted")
