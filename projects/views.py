@@ -28,7 +28,7 @@ from .exceptions import ProjectCreationException
 from .models import (
     Environment,
     Flavor,
-    PersistentVolumeMountPaths,
+    PersistentVolumeMountPath,
     Project,
     ProjectLog,
     ProjectTemplate,
@@ -704,12 +704,12 @@ def update_storage_settings(request, project_slug):
                 break
 
             if to_delete:
-                PersistentVolumeMountPaths.objects.filter(
+                PersistentVolumeMountPath.objects.filter(
                     volume=vol, mount_path__in=to_delete, is_default=False
                 ).delete()
             if to_create:
-                PersistentVolumeMountPaths.objects.bulk_create(
-                    [PersistentVolumeMountPaths(volume=vol, mount_path=p) for p in to_create],
+                PersistentVolumeMountPath.objects.bulk_create(
+                    [PersistentVolumeMountPath(volume=vol, mount_path=p) for p in to_create],
                     ignore_conflicts=True,  # harmless if unique_together added later
                 )
         else:
