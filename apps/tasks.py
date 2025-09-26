@@ -399,7 +399,7 @@ def update_monthly_app_ip_counts():
 
     # Get current year and month for the cache key
     current_date = timezone.now()
-    year_month = current_date.strftime("%Y-%m")
+    year_month = current_date.strftime("%Y%m")
 
     for serve_app in apps:
         try:

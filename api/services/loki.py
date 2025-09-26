@@ -30,12 +30,13 @@ def process_loki_response(response_json: Dict[str, Any]) -> Set[str]:
     return unique_ips
 
 
-def query_unique_ip_count(app_subdomain: str = "") -> int:
+def query_unique_ip_count(app_subdomain: str = "", days: int = 30) -> int:
     """
     Query Loki for unique IP addresses accessing a specific app subdomain.
 
     Args:
         app_subdomain (str): The subdomain of the app to query for.
+        days (int): Number of days to look back for data (default: 30).
     """
     if not app_subdomain:
         logger.error("app_subdomain must be provided")
@@ -54,7 +55,7 @@ def query_unique_ip_count(app_subdomain: str = "") -> int:
     params = {
         "query": query,
         "limit": "1000",  # Line number limit
-        "since": "30d",
+        "since": f"{days}d",
     }
 
     response = requests.get(endpoint, params=params)
