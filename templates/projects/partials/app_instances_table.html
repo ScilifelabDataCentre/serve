@@ -9,6 +9,7 @@
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Created</th>
             <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
             <th class="" tabindex="0" rowspan="1" colspan="1">Permissions</th>
+            <th class="" tabindex="0" rowspan="1" colspan="1">Hits <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Unique IP visits during the last 30 days"></span></th>
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Tags</th>
             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
         </tr>
@@ -69,6 +70,11 @@
                     {% endif %}
                 {% endif %}
               {% endif %}
+            </td>
+            <td data-cy="hits-cell">
+            {% if instance.unique_visitors_ip_count != 0 %}
+                {{ instance.unique_visitors_ip_count }}
+            {% endif %}
             </td>
             <td class="d-none d-xxl-table-cell" id="tags-{{ instance.pk }}">
                 {% for tag in instance.tags.all %}
