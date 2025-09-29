@@ -361,9 +361,10 @@ SERIALIZATION_MODULES = {
 REDIS_PORT = 6379
 REDIS_DB = 0
 REDIS_HOST = os.environ.get("REDIS_PORT_6379_TCP_ADDR", "redis")
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
 # Celery settings
 CELERY_BROKER_URL = "amqp://admin:LJqEG9RE4FdZbVWoJzZIOQEI@rabbit:5672//"
-CELERY_RESULT_BACKEND = "redis://%s:%d/%d" % (REDIS_HOST, REDIS_PORT, REDIS_DB)
+CELERY_RESULT_BACKEND = f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -576,7 +577,7 @@ LOKI_READER_ENDPOINT = "http://loki-read-headless.loki-stack.svc.cluster.local:3
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/1",  # https://redis.io/docs/latest/commands/select/
+        "LOCATION": f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HOST}:{REDIS_PORT}/1",  # https://redis.io/docs/latest/commands/select/
         "KEY_PREFIX": "serve",
         "TIMEOUT": 7200,  # 2 hours default but will be overriden
     }

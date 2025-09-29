@@ -835,6 +835,26 @@ def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
     return (round(used_bytes / GIB_FACTOR, 2), round(total_bytes / GIB_FACTOR, 2))
 
 
-def get_cached_ip_count(subdomain):
-    """Get IP count from cache, return 0 if not found"""
-    return cache.get(f"ip_{subdomain}", 0)
+def get_cached_ip_count(subdomain: str) -> int:
+    """Get IP count from cache."""
+    try:
+        return cache.get(f"ip_{subdomain}", 0)
+    except Exception as e:
+        logger.warning(f"Failed to get cached IP count for {subdomain}: {e}")
+        return 0
+
+
+def get_cached_monthly_ip_count(subdomain: str, year_month: str) -> int:
+    """
+    Get monthly IP count from cache.
+
+    Args:
+        subdomain: The app subdomain
+        year_month: Year-month string in format 'YYYYMM'.
+    """
+    try:
+        cache_key = f"monthly_ip_{subdomain}_{year_month}"
+        return cache.get(cache_key, 0)
+    except Exception as e:
+        logger.error(f"Failed to get cached monthly IP count for {subdomain}: {e}")
+        return 0
