@@ -7,6 +7,7 @@ from datetime import timedelta
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q, UniqueConstraint
 from django.db.models.signals import post_save, pre_delete, pre_save
@@ -353,3 +354,9 @@ def create_default_mount_path(sender, instance, created, **kwargs):
             )
 
     transaction.on_commit(_make_default)
+
+
+@receiver(pre_delete, sender=PersistentVolumeMountPath)
+def on_mount_path_delete(sender, instance, **kwargs):
+    if instance.is_default:
+        raise ValidationError("Default mount path cannot be deleted")
