@@ -3,6 +3,7 @@ from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Field, Layout, MultiField
 from django import forms
 from django.conf import settings
+from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -22,7 +23,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
-    mount_path = forms.ModelChoiceField(
+    storage = forms.ModelChoiceField(
         queryset=PersistentVolumeMountPath.objects.none(), required=False, empty_label="None", label="Storage"
     )
 
@@ -45,19 +46,36 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
         self._setup_container_image_field()
 
         mount_paths_queryset = (
-            PersistentVolumeMountPath.objects.filter(
-                volume__project__pk=self.project.pk,
-            ).exclude(volume__latest_user_action__in=["Deleting", "SystemDeleting"])
+            PersistentVolumeMountPath.objects.filter(volume__project__pk=self.project.pk).exclude(
+                volume__latest_user_action__in=["Deleting", "SystemDeleting"]
+            )
             if self.project_pk
             else PersistentVolumeMountPath.objects.none()
         )
 
-        self.fields["mount_path"].queryset = mount_paths_queryset
         if self.instance and self.instance.pk:
-            self.fields["mount_path"].initial = self.instance.mount_path
+            if self.instance.volume and self.instance.path:
+                mount_path, created = PersistentVolumeMountPath.objects.get_or_create(
+                    volume=self.instance.volume,
+                    mount_path=self.instance.path,
+                )
+            else:
+                mount_path = None
+                created = False
+
+            self.fields["storage"].queryset = mount_paths_queryset
+
+            if created and not self.instance.mount_path_id:
+                self.instance.storage = mount_path
+
+            if not self.is_bound:
+                self.initial["storage"] = self.instance.mount_path_id or (mount_path.pk if mount_path else None)
         else:
-            self.fields["mount_path"].initial = None
-        self.fields["mount_path"].help_text = f"Mount storage to your {self.model_name}."
+            self.fields["storage"].queryset = mount_paths_queryset
+            self.initial["storage"] = None
+        self.fields["storage"].help_text = (
+            "Attach storage to your application. " "Specified path should exist in your docker container."
+        )
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -67,7 +85,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("description", rows=3, placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
             SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
-            Field("mount_path"),
+            SRVCommonDivField("storage", template="apps/storage_field.html", project_slug=self.project.slug),
             SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
@@ -95,10 +113,18 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
         self.helper.layout = Layout(body, self.footer)
 
     def clean(self):
-        mount_path_data: PersistentVolumeMountPath = self.cleaned_data.get("mount_path")
+        cleaned = super().clean()  # keep parent validations, if any
+        mount_path_data: PersistentVolumeMountPath = cleaned.get("storage")
+
         if mount_path_data is not None:
-            self.cleaned_data["volume"] = mount_path_data.volume
-            self.cleaned_data["path"] = mount_path_data.mount_path
+            cleaned["volume"] = mount_path_data.volume
+            cleaned["path"] = mount_path_data.mount_path
+        else:
+            # User selected "None": remove storage linkage
+            cleaned["storage"] = None
+            cleaned["volume"] = None
+            cleaned["path"] = ""  # or None, depending on your model
+        return cleaned
 
     class Meta:
         model = CustomAppInstance
@@ -115,7 +141,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
             "image",
             "tags",
             "default_url_subpath",
-            "mount_path",
+            "storage",
         ]
         labels = {
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
