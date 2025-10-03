@@ -6,12 +6,13 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from sympy.physics.units import volume
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
 from apps.forms.mixins import ContainerImageMixin
 from apps.models import CustomAppInstance, VolumeInstance
-from projects.models import Flavor
+from projects.models import Flavor, PersistentVolumeMountPath
 
 __all__ = ["CustomAppForm"]
 
@@ -21,6 +22,9 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
+    mount_path = forms.ModelChoiceField(
+        queryset=PersistentVolumeMountPath.objects.none(), required=False, empty_label="None", label="Storage"
+    )
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -40,6 +44,21 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
         # Setup container image field from mixin
         self._setup_container_image_field()
 
+        mount_paths_queryset = (
+            PersistentVolumeMountPath.objects.filter(
+                volume__project__pk=self.project.pk,
+            ).exclude(volume__latest_user_action__in=["Deleting", "SystemDeleting"])
+            if self.project_pk
+            else PersistentVolumeMountPath.objects.none()
+        )
+
+        self.fields["mount_path"].queryset = mount_paths_queryset
+        if self.instance and self.instance.pk:
+            self.fields["mount_path"].initial = self.instance.mount_path
+        else:
+            self.fields["mount_path"].initial = None
+        self.fields["mount_path"].help_text = f"Mount storage to your {self.model_name}."
+
     def _setup_form_helper(self):
         super()._setup_form_helper()
 
@@ -48,8 +67,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("description", rows=3, placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
             SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
-            Field("volume"),
-            SRVCommonDivField("path", placeholder="/home/..."),
+            Field("mount_path"),
             SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
@@ -76,28 +94,11 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
         )
         self.helper.layout = Layout(body, self.footer)
 
-    def clean_path(self):
-        cleaned_data = super().clean()
-
-        path = cleaned_data.get("path", None)
-        volume = cleaned_data.get("volume", None)
-
-        if volume and not path:
-            self.add_error("path", "Path is required when volume is selected.")
-
-        if path and not volume:
-            self.add_error("path", "Warning, you have provided a path, but not selected a volume.")
-
-        if path:
-            # If new path matches current path, it is valid.
-            if self.instance and getattr(self.instance, "path", None) == path:
-                return path
-            # Verify that path starts with "/home"
-            path = path.strip().rstrip("/").lower().replace(" ", "")
-            if not path.startswith("/home"):
-                self.add_error("path", 'Path must start with "/home"')
-
-        return path
+    def clean(self):
+        mount_path_data: PersistentVolumeMountPath = self.cleaned_data.get("mount_path")
+        if mount_path_data is not None:
+            self.cleaned_data["volume"] = mount_path_data.volume
+            self.cleaned_data["path"] = mount_path_data.mount_path
 
     class Meta:
         model = CustomAppInstance
@@ -114,6 +115,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
             "image",
             "tags",
             "default_url_subpath",
+            "mount_path",
         ]
         labels = {
             "note_on_linkonly_privacy": "Reason for choosing the link only option",

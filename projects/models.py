@@ -334,6 +334,9 @@ class PersistentVolumeMountPath(models.Model):
             ),
         ]
 
+    def __str__(self):
+        return f"{self.mount_path} ({self.volume})"
+
 
 @receiver(post_save, sender="apps.VolumeInstance")
 def create_default_mount_path(sender, instance, created, **kwargs):
