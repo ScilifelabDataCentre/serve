@@ -22,7 +22,7 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.helpers import get_cached_ip_count
-from apps.models import VolumeInstance
+from apps.models import VolumeInstance, BaseAppInstance
 from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException
@@ -116,6 +116,10 @@ def settings(request, project_slug):
 
     flavors = Flavor.objects.filter(project=project)
     volumes = VolumeInstance.objects.filter(project=project)
+    # I think the way is to iterate over orm models of applications
+    # and collect mappings from model path to app instances
+    for app_orm in APP_REGISTRY.iter_orm_models():
+    apps_with_volumes =
 
     return render(request, template, locals())
 
