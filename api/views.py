@@ -1141,14 +1141,17 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
         apps_suspect_status = []
 
         for app in apps:
+            app_access = None
+
             if app.app.category.slug == "serve":
-                # We are only interested in category Serve
+                # we are only interested in category Serve
                 if app.created_on > time_threshold:
                     n_recent_apps += 1
 
-                # User apps with link only access
                 if app.k8s_values is not None and "permission" in app.k8s_values:
-                    if app.k8s_values["permission"] == "link":
+                    # user apps with link-only access
+                    app_access = app.k8s_values["permission"]
+                    if app_access == "link":
                         n_apps_link += 1
                         apps_link.append(app.name[:6])
 
@@ -1170,13 +1173,21 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
                     and (app.k8s_user_app_status is None or app.k8s_user_app_status.status != "Running")
                     and app.created_on < datetime.now(timezone.utc) - timedelta(minutes=5)
                 ):
+                    # only include url if the app is public
+                    public_url = ""
+                    if app_access == "public":
+                        public_url = app.url
+
                     n_apps_suspect_status += 1
                     k8s_status = None if app.k8s_user_app_status is None else app.k8s_user_app_status.status
                     apps_suspect_status.append(
                         {
                             "name": app.name[:12],
+                            "app-type": app.app.name,
                             "action": app.latest_user_action,
                             "k8s_status": k8s_status,
+                            "access": app_access,
+                            "url": public_url,
                             "created": app.created_on,
                         }
                     )
@@ -1198,14 +1209,15 @@ def get_content_review(request: HttpRequest) -> HttpResponse:
     stats["n_recent_projects"] = n_recent_projects
 
     stats["n_recent_apps"] = n_recent_apps
-    stats["n_apps_link"] = n_apps_link
-    stats["apps_link"] = apps_link
     stats["n_apps_not_running"] = n_apps_not_running
     stats["apps_not_running"] = apps_not_running
     stats["n_apps_status_error"] = n_apps_status_error
     stats["apps_status_error"] = apps_status_error
     stats["n_apps_suspect_status"] = n_apps_suspect_status
     stats["apps_suspect_status"] = apps_suspect_status
+
+    stats["n_apps_link"] = n_apps_link
+    stats["apps_link"] = apps_link
 
     data = {"data": stats}
 
