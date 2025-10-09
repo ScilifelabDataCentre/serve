@@ -33,8 +33,8 @@
     {% csrf_token %}
     <div class="card-body">
       <div class="tab-content" id="volumeTabsContent">
-        {% for volume in volumes %}
-          {% include "projects/partials/settings/settings_volume_view.html" with volume=volume active=forloop.first %}
+        {% for volume, mount_path_to_app in volume__mountpath__to_app.items %}
+          {% include "projects/partials/settings/settings_volume_view.html" with project=project volume=volume mount_path_to_app=mount_path_to_app active=forloop.first %}
         {% endfor %}
       </div>
     </div>

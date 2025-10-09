@@ -1,4 +1,6 @@
 import logging
+from collections import defaultdict
+from itertools import chain
 
 from django.apps import apps
 from django.conf import settings as django_settings
@@ -22,7 +24,7 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.helpers import get_cached_ip_count
-from apps.models import VolumeInstance, BaseAppInstance
+from apps.models import BaseAppInstance, VolumeInstance
 from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException
@@ -118,8 +120,28 @@ def settings(request, project_slug):
     volumes = VolumeInstance.objects.filter(project=project)
     # I think the way is to iterate over orm models of applications
     # and collect mappings from model path to app instances
+    mount_paths_to_apps = defaultdict(list)
+    orms_with_mount_paths = []
     for app_orm in APP_REGISTRY.iter_orm_models():
-    apps_with_volumes =
+        if hasattr(app_orm, "mount_path"):
+            orms_with_mount_paths.append(app_orm)
+    apps_with_volumes = list(
+        chain.from_iterable(
+            orm.objects.get_app_instances_of_project(
+                project=project,
+                user=request.user,
+                filter_func=Q(
+                    volume__in=volumes,
+                ),
+            )
+            for orm in orms_with_mount_paths
+        )
+    )
+    volume__mountpath__to_app = {vol: defaultdict(list) for vol in volumes}
+    for app in apps_with_volumes:
+        volume__mountpath__to_app[app.volume][app.mount_path].append(app)
+    for dct in volume__mountpath__to_app.values():
+        dct.default_factory = None
 
     return render(request, template, locals())
 
