@@ -850,7 +850,7 @@ def get_cached_monthly_ip_count(subdomain: str, year_month: str) -> int:
 
     Args:
         subdomain: The app subdomain
-        year_month: Year-month string in format 'YYYY-MM'.
+        year_month: Year-month string in format 'YYYYMM'.
     """
     try:
         cache_key = f"monthly_ip_{subdomain}_{year_month}"

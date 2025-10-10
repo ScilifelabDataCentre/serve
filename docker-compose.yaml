@@ -141,11 +141,13 @@ services:
   event-listener:
     user: "${UID}:${GID}"
     container_name: event-listener
-    image: ghcr.io/scilifelabdatacentre/serve-event-listener/event-listener:v1.1.1
+    image: ghcr.io/scilifelabdatacentre/serve-event-listener/event-listener:v1.3.0
     env_file:
       - .env
     volumes:
-      - ${PWD}/cluster.conf:/home/serve/cluster.conf
+      - ${PWD}/cluster.conf:/app/cluster.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       internal_network:
         aliases:
@@ -166,7 +168,7 @@ services:
     image: stackn:base
     volumes:
     - .:/app:cached
-    command: ["pytest", "-n", "auto"]
+    command: ["pytest", "-n", "auto", "-m", "not integration"]
     profiles:
       - donotstart
     networks:
