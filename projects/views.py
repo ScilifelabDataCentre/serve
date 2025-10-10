@@ -117,7 +117,7 @@ def settings(request, project_slug):
     )
 
     flavors = Flavor.objects.filter(project=project)
-    volumes = VolumeInstance.objects.filter(project=project)
+    volumes = VolumeInstance.objects.filter(project=project).order_by("created_on")
     # I think the way is to iterate over orm models of applications
     # and collect mappings from model path to app instances
     mount_paths_to_apps = defaultdict(list)

@@ -23,7 +23,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
-    storage = forms.ModelChoiceField(
+    mount_path = forms.ModelChoiceField(
         queryset=PersistentVolumeMountPath.objects.none(), required=False, empty_label="None", label="Storage"
     )
 
@@ -63,17 +63,17 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
                 mount_path = None
                 created = False
 
-            self.fields["storage"].queryset = mount_paths_queryset
+            self.fields["mount_path"].queryset = mount_paths_queryset
 
             if created and not self.instance.mount_path_id:
-                self.instance.storage = mount_path
+                self.instance.mount_path = mount_path
 
             if not self.is_bound:
-                self.initial["storage"] = self.instance.mount_path_id or (mount_path.pk if mount_path else None)
+                self.initial["mount_path"] = self.instance.mount_path_id or (mount_path.pk if mount_path else None)
         else:
-            self.fields["storage"].queryset = mount_paths_queryset
-            self.initial["storage"] = None
-        self.fields["storage"].help_text = (
+            self.fields["mount_path"].queryset = mount_paths_queryset
+            self.initial["mount_path"] = None
+        self.fields["mount_path"].help_text = (
             "Attach storage to your application. " "Specified path should exist in your docker container."
         )
 
@@ -85,7 +85,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("description", rows=3, placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
             SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
-            SRVCommonDivField("storage", template="apps/storage_field.html", project_slug=self.project.slug),
+            SRVCommonDivField("mount_path", template="apps/storage_field.html", project_slug=self.project.slug),
             SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
@@ -114,14 +114,14 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
 
     def clean(self):
         cleaned = super().clean()  # keep parent validations, if any
-        mount_path_data: PersistentVolumeMountPath = cleaned.get("storage")
+        mount_path_data: PersistentVolumeMountPath = cleaned.get("mount_path")
 
         if mount_path_data is not None:
             cleaned["volume"] = mount_path_data.volume
             cleaned["path"] = mount_path_data.mount_path
         else:
             # User selected "None": remove storage linkage
-            cleaned["storage"] = None
+            cleaned["mount_path"] = None
             cleaned["volume"] = None
             cleaned["path"] = ""  # or None, depending on your model
         return cleaned
@@ -141,7 +141,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
             "image",
             "tags",
             "default_url_subpath",
-            "storage",
+            "mount_path",
         ]
         labels = {
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
