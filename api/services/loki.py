@@ -1,14 +1,11 @@
 from typing import Any, Dict, Set
 
 import requests
+from django.conf import settings
 
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
-
-# TODO unfortunately for now we have to hardcode the loki reader endpoint
-# This code is expected to be removed in the future as this is a temporary solution we have in place
-LOKI_READER_ENDPOINT = "http://loki-read-headless.loki-stack.svc.cluster.local:3100"
 
 
 def process_loki_response(response_json: Dict[str, Any]) -> Set[str]:
@@ -33,18 +30,19 @@ def process_loki_response(response_json: Dict[str, Any]) -> Set[str]:
     return unique_ips
 
 
-def query_unique_ip_count(app_subdomain: str = "") -> int:
+def query_unique_ip_count(app_subdomain: str = "", days: int = 30) -> int:
     """
     Query Loki for unique IP addresses accessing a specific app subdomain.
 
     Args:
         app_subdomain (str): The subdomain of the app to query for.
+        days (int): Number of days to look back for data (default: 30).
     """
     if not app_subdomain:
         logger.error("app_subdomain must be provided")
         raise ValueError("app_subdomain must be provided")
 
-    endpoint = f"{LOKI_READER_ENDPOINT}/loki/api/v1/query_range"
+    endpoint = f"{settings.LOKI_READER_ENDPOINT}/loki/api/v1/query_range"
 
     query = (
         r'{container="rke2-ingress-nginx-controller"} |= "'
@@ -57,7 +55,7 @@ def query_unique_ip_count(app_subdomain: str = "") -> int:
     params = {
         "query": query,
         "limit": "1000",  # Line number limit
-        "since": "30d",
+        "since": f"{days}d",
     }
 
     response = requests.get(endpoint, params=params)

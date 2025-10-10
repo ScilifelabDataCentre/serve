@@ -5,10 +5,12 @@ import yaml
 from celery import shared_task
 from django.apps import apps
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
 
+from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
 from apps.constants import AppActionOrigin
 from studio.celery import app
@@ -366,3 +368,51 @@ def deserialize(serialized_instance):
         raise ValueError(f"Invalid serialized data format: {e}")
     except ObjectDoesNotExist:
         raise ValueError(f"No instance found for model {model} with pk {pk}")
+
+
+@app.task
+def update_cached_app_ip_counts():
+    """Update cached IP counts of every app subdomain."""
+
+    logger.info("Starting IP count update task")
+
+    apps = BaseAppInstance.objects.filter(subdomain__isnull=False).select_related("subdomain")
+
+    for serve_app in apps:
+        try:
+            subdomain = serve_app.subdomain.subdomain
+            count = query_unique_ip_count(app_subdomain=subdomain)
+            cache.set(f"ip_{subdomain}", count, None)  # Cache indefinitely
+        except Exception as e:
+            logger.warning(f"Failed to update {subdomain}: {e}")
+
+    logger.info(f"Updated cached IP counts for {apps.count()} apps.")
+
+
+@app.task
+def update_monthly_app_ip_counts():
+    """Update monthly cached IP counts of every app subdomain."""
+
+    logger.info("Starting monthly IP count update task")
+
+    apps = BaseAppInstance.objects.filter(subdomain__isnull=False).select_related("subdomain")
+
+    # Get current year and month for the cache key
+    current_date = timezone.now()
+    year_month = current_date.strftime("%Y%m")
+
+    for serve_app in apps:
+        try:
+            subdomain = serve_app.subdomain.subdomain
+            # Query IP count for the current month
+            count = query_unique_ip_count(app_subdomain=subdomain)
+
+            # Store monthly count with year-month in the key
+            cache_key = f"monthly_ip_{subdomain}_{year_month}"
+            cache.set(cache_key, count, None)  # Cache indefinitely
+
+            logger.debug(f"Updated monthly IP count for {subdomain}: {count}")
+        except Exception as e:
+            logger.warning(f"Failed to update monthly count for {subdomain}: {e}")
+
+    logger.info(f"Updated monthly cached IP counts for {apps.count()} apps for {year_month}.")
