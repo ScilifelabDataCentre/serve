@@ -12,7 +12,10 @@ describe("Test deploying app", () => {
     // Instead use longer timeouts on specific commands where deemed necessary and valid
     const defaultCmdTimeoutMs = 10000
     // The longer timeout is often used when waiting for k8s operations to complete
-    const longCmdTimeoutMs = 120000
+    const longCmdTimeoutMs = 60000
+    // Shiny apps have a longer timeout because of special treatment,
+    // such as URL probing in the event-listener. Using timeout just over 3 minutes
+    const shinyAppCmdTimeoutMs = 183000
 
     // Function to verify the displayed app status
     // Function to verify the displayed app permission level
@@ -24,34 +27,37 @@ describe("Test deploying app", () => {
     expected_status,
     expected_latest_user_action,
     expected_data_k8s_app_status,
-    expected_permission
+    expected_permission,
+    timeout = longCmdTimeoutMs,  // the caller can override the default long timeout
 ) => {
     // find the application row with timeout
-    cy.contains('a', app_name, { timeout: longCmdTimeoutMs })
+    cy.contains('a', app_name, { timeout: defaultCmdTimeoutMs })
         .closest('tr')
         .within(() => {
 
             // verify application status with explicit timeout
             if (expected_status != "") {
-                cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+                cy.get('[data-cy="appstatus"]', { timeout: timeout })
                     .should('have.attr', 'title', expected_status)
             }
 
             // verify latest user action if specified with explicit timeout
+            // this action should be nearly immediate so here we use the shorter default timeout
             if (expected_latest_user_action != "") {
-                cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+                cy.get('[data-cy="appstatus"]', { timeout: defaultCmdTimeoutMs })
                     .should('have.attr', 'data-app-action', expected_latest_user_action)
             }
 
             // verify data-k8s-app-status if specified with explicit timeout
             if (expected_data_k8s_app_status != "") {
-                cy.get('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs })
+                cy.get('[data-cy="appstatus"]', { timeout: timeout })
                     .should('have.attr', 'data-k8s-app-status', expected_data_k8s_app_status)
             }
 
             // verify permission level if specified with explicit timeout
+            // this action should be nearly immediate so here we use the shorter default timeout
             if (expected_permission != "") {
-                cy.get('[data-cy="app-permission"]', { timeout: longCmdTimeoutMs })
+                cy.get('[data-cy="app-permission"]', { timeout: defaultCmdTimeoutMs })
                     .should('contain', expected_permission)
             }
         });
@@ -441,7 +447,7 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public", shinyAppCmdTimeoutMs)
 
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
@@ -956,7 +962,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "public", shinyAppCmdTimeoutMs)
 
             // verify Shiny app values
             cy.logf("Checking that all shiny app settings were saved", Cypress.currentTest)
@@ -984,12 +990,12 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // verify that the app status now equals Running
-            verifyAppStatus(app_name, "Running", "Changing", "Running", "public")
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "public", shinyAppCmdTimeoutMs)
 
             // wait for 30 seconds and check the app status again
             // this long wait is needed to give the Shiny deployment time to switch out and delete the old pod
             cy.wait(30000).then(() => {
-              verifyAppStatus(app_name, "Running", "Changing", "Running", "public")
+              verifyAppStatus(app_name, "Running", "Changing", "Running", "public", shinyAppCmdTimeoutMs)
             })
 
             // delete the Shiny app
