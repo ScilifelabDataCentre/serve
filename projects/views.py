@@ -137,9 +137,9 @@ def settings(request, project_slug):
             for orm in orms_with_mount_paths
         )
     )
-    volume__mountpath__to_app = {vol: defaultdict(list) for vol in volumes}
+    volume__mountpath__to_app = {vol: defaultdict(set) for vol in volumes}
     for app in apps_with_volumes:
-        volume__mountpath__to_app[app.volume][app.mount_path].append(app)
+        volume__mountpath__to_app[app.volume][app.mount_path].add(app)
     for dct in volume__mountpath__to_app.values():
         dct.default_factory = None
 
