@@ -3,12 +3,13 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.template import Context, Template
 from django.test import TestCase
+from sympy.physics.units import volume
 
 from apps.forms import CustomAppForm
 from apps.helpers import validate_path_k8s_label_compatible
 from apps.models import Apps, K8sUserAppStatus, Subdomain, VolumeInstance
 from apps.models.app_types.custom.custom import validate_default_url_subpath
-from projects.models import Flavor, Project
+from projects.models import Flavor, PersistentVolumeMountPath, Project
 
 User = get_user_model()
 
@@ -35,12 +36,16 @@ class BaseAppFormTest(TestCase):
 class CustomAppFormTest(BaseAppFormTest):
     def setUp(self):
         super().setUp()
+        self.mount_path = PersistentVolumeMountPath.objects.create(
+            volume=self.volume,
+            mount_path="/home/data",
+            is_default=True,
+        )
         self.valid_data = {
             "name": "Valid Name",
             "description": "A valid description",
             "subdomain": "valid-subdomain",
-            "volume": self.volume,
-            "path": "/home/user",
+            "mount_path": self.mount_path,
             "flavor": self.flavor,
             "access": "public",
             "source_code_url": "http://example.com",
@@ -67,59 +72,7 @@ class CustomAppFormTest(BaseAppFormTest):
         self.assertIn("port", form.errors)
         self.assertIn("image", form.errors)
 
-    def test_invalid_path(self):
-        invalid_data = self.valid_data.copy()
-        invalid_data["path"] = "/var"
-
-        form = CustomAppForm(invalid_data, project_pk=self.project.pk)
-        self.assertFalse(form.is_valid())
-        self.assertIn("Path must start with", str(form.errors))
-
-    def test_valid_path_if_set_in_admin_panel(self):
-        valid_data = self.valid_data.copy()
-        form = CustomAppForm(valid_data, project_pk=self.project.pk)
-        self.assertTrue(form.is_valid())
-
-        # Simulate a path set in the admin panel
-        instance = form.save(commit=False)
-        instance.project = self.project
-        instance.owner = self.user
-        instance.k8s_user_app_status = K8sUserAppStatus.objects.create()
-        # instance.app_status = AppStatus.objects.create(status="Created")
-        instance.app = self.app
-
-        # Fetch subdomain and set
-        subdomain_name, is_created_by_user = form.cleaned_data.get("subdomain")
-        subdomain, _ = Subdomain.objects.get_or_create(
-            subdomain=subdomain_name, project=self.project, is_created_by_user=is_created_by_user
-        )
-        instance.subdomain = subdomain
-
-        # Change the path to something that the form would not allow
-        instance.path = "/var"
-        instance.save()
-
-        # Open form in "edit mode" by sending instance as argument
-        form = CustomAppForm(valid_data, project_pk=self.project.pk, instance=instance)
-
-        # This should now work, since we set the path in the "admin panel"
-        self.assertTrue(form.is_valid())
-
-    def test_volume_no_path(self):
-        invalid_data = self.valid_data.copy()
-        invalid_data.pop("path")
-
-        form = CustomAppForm(invalid_data, project_pk=self.project.pk)
-        self.assertFalse(form.is_valid())
-        self.assertIn("Path is required when volume is selected.", str(form.errors))
-
-    def test_path_no_volume(self):
-        invalid_data = self.valid_data.copy()
-        invalid_data.pop("volume")
-
-        form = CustomAppForm(invalid_data, project_pk=self.project.pk)
-        self.assertFalse(form.is_valid())
-        self.assertIn("Warning, you have provided a path, but not selected a volume.", str(form.errors))
+    # Path validation tests have been moved to test_storage_settings.py
 
     def test_invalid_subdomain(self):
         invalid_data = self.valid_data.copy()
@@ -160,8 +113,7 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
             "name": "Valid Name",
             "description": "A valid description",
             "subdomain": "valid-subdomain",
-            "volume": self.volume,
-            "path": "/home/user",
+            "mount_path": "/home/user",  # Form uses mount_path instead of volume/path
             "flavor": self.flavor,
             "access": "public",
             "source_code_url": "http://example.com",
@@ -181,8 +133,8 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
         for key, value in valid_data.items():
             if key == "tags":
                 value = "".join(tag for tag in key)
-            if key == "volume":
-                value = self.volume.name
+            if key == "mount_path":  # Form uses mount_path instead of volume
+                value = self.valid_data.get("path")  # Mount path is same as path in the form
             if key == "flavor":
                 value = self.flavor.name
             if key == "port":

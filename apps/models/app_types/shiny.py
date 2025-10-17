@@ -45,6 +45,9 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     minimum_seats_available = models.IntegerField(default=1)
     seats_per_container = models.IntegerField(default=1)
     allow_container_reuse = models.BooleanField(default=False)
+    mount_path = models.ForeignKey(
+        "projects.PersistentVolumeMountPath", blank=True, null=True, on_delete=models.SET_NULL
+    )
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
