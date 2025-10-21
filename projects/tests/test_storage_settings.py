@@ -1,6 +1,8 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.models import Apps, VolumeInstance
@@ -230,3 +232,143 @@ class StorageSettingsTestCase(TestCase):
                     self.assertIn("Storage settings saved", str(messages[0]))
                 updated_paths = list(self.volume.mount_paths.values_list("mount_path", flat=True))
                 self.assertIn(test_path, updated_paths)
+
+
+class StorageRequestTestCase(TestCase):
+    """Test cases for storage request functionality"""
+
+    def setUp(self):
+        # Create regular user and superuser
+        self.user = User.objects.create_user(
+            TEST_USER["username"], TEST_USER["email"], TEST_USER["password"], first_name="Test", last_name="User"
+        )
+        self.project = Project.objects.create_project(name="test-storage", owner=self.user, description="")
+        self.app = Apps.objects.create(name="Test App", slug="test-app", description="Test app for storage")
+        self.volume = VolumeInstance.objects.create(name="test-volume", project=self.project, size=10, app=self.app)
+
+    def test_request_storage_get(self):
+        """Test GET request for storage request modal"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+        url = reverse(
+            "projects:request_storage", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
+        )
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "projects/partials/settings/storage_request_modal.html")
+        self.assertContains(response, "Request Additional Storage")
+        self.assertContains(response, str(self.volume.size))
+
+    def test_request_storage_post_valid(self):
+        """Test successful storage request submission"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+        url = reverse(
+            "projects:request_storage", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
+        )
+
+        with patch("projects.views.send_email_task.delay") as mock_email:
+            response = self.client.post(
+                url, {"requested_size": "20", "request_reason": "Need more storage for data analysis"}
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "success")
+            mock_email.assert_called_once()
+
+            # Verify email content
+            call_args = mock_email.call_args[1]
+            self.assertIn("Storage Increase Request", call_args["subject"])
+            self.assertIn("test-storage", call_args["subject"])
+            self.assertIn("20", call_args["message"])
+            self.assertIn("Need more storage for data analysis", call_args["message"])
+            self.assertIn("Test User", call_args["message"])  # Full name
+            self.assertIn(TEST_USER["email"], call_args["message"])
+
+    def test_request_storage_post_invalid_size(self):
+        """Test storage request with invalid size"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+        url = reverse(
+            "projects:request_storage", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
+        )
+
+        test_cases = [
+            ("0", "Requested size must be between 1 and 100 GB"),
+            ("101", "Requested size must be between 1 and 100 GB"),
+            ("abc", "Requested size must be between 1 and 100 GB"),
+            ("", "Please provide both the requested size and reason"),
+        ]
+
+        for size, expected_error in test_cases:
+            with patch("projects.views.send_email_task.delay") as mock_email:
+                response = self.client.post(url, {"requested_size": size, "request_reason": "Need more storage"})
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, expected_error)
+                mock_email.assert_not_called()
+
+    def test_request_storage_post_missing_reason(self):
+        """Test storage request with missing reason"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+        url = reverse(
+            "projects:request_storage", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
+        )
+
+        with patch("projects.views.send_email_task.delay") as mock_email:
+            response = self.client.post(url, {"requested_size": "20", "request_reason": ""})
+
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "Please provide both the requested size and reason")
+            mock_email.assert_not_called()
+
+    def test_request_storage_unauthorized(self):
+        """Test storage request from unauthorized user"""
+        url = reverse(
+            "projects:request_storage", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
+        )
+
+        # Test unauthenticated access
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)  # Redirects to login
+
+        response = self.client.post(url, {"requested_size": "20", "request_reason": "Need more storage"})
+        self.assertEqual(response.status_code, 302)  # Redirects to login
+
+        # Test with different user
+        other_user = User.objects.create_user("other", "other@test.com", "password")
+        self.client.login(username="other@test.com", password="password")
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)  # Forbidden
+
+        response = self.client.post(url, {"requested_size": "20", "request_reason": "Need more storage"})
+        self.assertEqual(response.status_code, 403)  # Forbidden
+
+    def test_request_storage_invalid_volume(self):
+        """Test storage request for non-existent volume"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+        url = reverse(
+            "projects:request_storage",
+            kwargs={"project_slug": self.project.slug, "volume_id": 99999},  # Non-existent volume
+        )
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.post(url, {"requested_size": "20", "request_reason": "Need more storage"})
+        self.assertEqual(response.status_code, 404)
+
+    @override_settings(DEFAULT_FROM_EMAIL="serve@test.com", EMAIL_FROM="noreply@test.com")
+    def test_request_storage_email_settings(self):
+        """Test that email is sent with correct settings"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+        url = reverse(
+            "projects:request_storage", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
+        )
+
+        with patch("projects.views.send_email_task.delay") as mock_email:
+            self.client.post(url, {"requested_size": "20", "request_reason": "Need more storage"})
+
+            mock_email.assert_called_once()
+            call_args = mock_email.call_args[1]
+            self.assertEqual(call_args["recipient_list"], ["serve@test.com"])
+            self.assertEqual(call_args["from_email"], "noreply@test.com")
