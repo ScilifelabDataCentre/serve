@@ -91,6 +91,11 @@ extrapatterns = [
         views.update_storage_settings,
         name="update_storage_settings",
     ),
+    path(
+        "<project_slug>/volume/<int:volume_id>/increase/",
+        views.increase_volume_size,
+        name="increase_volume_size",
+    ),
 ]
 
 if settings.ENABLE_PROJECT_EXTRA_SETTINGS or User.is_superuser:

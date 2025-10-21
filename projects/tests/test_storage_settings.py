@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.test import TestCase
@@ -186,6 +188,97 @@ class StorageSettingsTestCase(TestCase):
         self.assertEqual(len(updated_paths), 2)  # Still has original paths
         self.assertIn("/home/data", updated_paths)
         self.assertIn("/srv/shiny-server/data/", updated_paths)
+
+    @patch("apps.helpers.create_instance_from_form")
+    def test_increase_volume_size_success(self, mock_create_instance):
+        """Test successful volume size increase to 5GB"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+
+        # Create a volume with size less than 5GB
+        small_volume = VolumeInstance.objects.create(name="small-volume", project=self.project, size=2, app=self.app)
+
+        url = reverse(
+            "projects:increase_volume_size", kwargs={"project_slug": self.project.slug, "volume_id": small_volume.id}
+        )
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200, response.content)
+
+        # Verify response content
+        self.assertJSONEqual(
+            response.content.decode(), {"message": "Volume size increased to 5GB and redeployment initiated"}
+        )
+
+        # Verify volume size was updated
+        small_volume.refresh_from_db()
+        self.assertEqual(small_volume.size, 5)
+
+    def test_increase_volume_size_already_at_limit(self):
+        """Test volume size increase when already at or above 5GB"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+
+        # Create a volume with size already at 5GB
+        large_volume = VolumeInstance.objects.create(name="large-volume", project=self.project, size=5, app=self.app)
+
+        url = reverse(
+            "projects:increase_volume_size", kwargs={"project_slug": self.project.slug, "volume_id": large_volume.id}
+        )
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 400)
+
+        # Verify response content
+        self.assertJSONEqual(response.content.decode(), {"error": "Volume size is already 5GB or larger"})
+
+        # Verify volume size was not changed
+        large_volume.refresh_from_db()
+        self.assertEqual(large_volume.size, 5)
+
+    def test_increase_volume_size_unauthorized(self):
+        """Test volume size increase with unauthorized user"""
+        # Create another user and project
+        other_user = User.objects.create_user("other", "other@test.com", "password")
+        other_project = Project.objects.create_project(name="other-project", owner=other_user, description="")
+
+        # Create a volume in the other project
+        other_volume = VolumeInstance.objects.create(name="other-volume", project=other_project, size=2, app=self.app)
+
+        # Login as original user
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+
+        url = reverse(
+            "projects:increase_volume_size", kwargs={"project_slug": other_project.slug, "volume_id": other_volume.id}
+        )
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 403)  # Forbidden
+
+        # Verify volume size was not changed
+        other_volume.refresh_from_db()
+        self.assertEqual(other_volume.size, 2)
+
+    def test_increase_volume_size_nonexistent(self):
+        """Test volume size increase with non-existent volume"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+
+        url = reverse(
+            "projects:increase_volume_size",
+            kwargs={"project_slug": self.project.slug, "volume_id": 99999},  # Non-existent ID
+        )
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 404)  # Not Found
+
+    def test_increase_volume_size_get_method(self):
+        """Test volume size increase with GET method instead of POST"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+
+        url = reverse(
+            "projects:increase_volume_size", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
+        )
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)  # Bad Request
 
     def test_path_validation_rules(self):
         """Test various path validation rules"""
