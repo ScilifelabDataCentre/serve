@@ -1,0 +1,53 @@
+<!-- Storage Request Modal -->
+<div class="modal fade show" id="requestStorageModal" tabindex="-1" aria-labelledby="requestStorageModalLabel" style="display: block;" aria-modal="true" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="requestStorageModalLabel">Request Additional Storage</h5>
+        <button type="button" class="btn-close" onclick="closeStorageModal()"></button>
+      </div>
+      <div class="modal-body">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+          {{ error }}
+        </div>
+        {% endif %}
+        <div class="mb-3">
+          <label for="requestedSize" class="form-label">Additional Storage Needed (GB)</label>
+          <input type="number" class="form-control" id="requestedSize" name="requested_size" 
+                 min="1" max="100" required
+                 hx-include="closest div"
+                 hx-target="#storageRequestModalContainer">
+          <div class="form-text">Current size: {{ volume.size }} GB</div>
+        </div>
+        <div class="mb-3">
+          <label for="requestReason" class="form-label">Reason for Request</label>
+          <textarea class="form-control" id="requestReason" name="request_reason" 
+                   rows="3" required
+                   hx-include="closest div"
+                   hx-target="#storageRequestModalContainer"></textarea>
+          <div class="form-text">Please explain why you need additional storage</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeStorageModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" 
+                hx-post="{% url 'projects:request_storage' project.slug volume.id %}"
+                hx-include="closest .modal"
+                hx-target="#storageRequestModalContainer"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+          Submit Request
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop fade show"></div>
+
+<script>
+function closeStorageModal() {
+  const container = document.getElementById('storageRequestModalContainer');
+  container.innerHTML = '';
+}
+</script>

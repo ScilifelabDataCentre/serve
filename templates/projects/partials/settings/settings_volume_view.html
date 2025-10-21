@@ -20,9 +20,13 @@
          Increase to 5 GB
       </a>
 
-      <a class="btn btn-outline-secondary btn-sm ms-auto" href="#" onclick="alert('Will be added in further PRs'); return false;">
+      <button class="btn btn-outline-secondary btn-sm ms-auto"
+              hx-get="{% url 'projects:request_storage' project.slug volume.id %}"
+              hx-target="#storageRequestModalContainer"
+              hx-trigger="click"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
          Request more
-      </a>
+      </button>
     </div>
   </div>
 

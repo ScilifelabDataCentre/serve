@@ -1,0 +1,16 @@
+Storage Increase Request
+
+Project: {{ project.name }}
+Volume ID: {{ volume.id }}
+Current Size: {{ current_size }} GB
+Requested Additional Size: {{ requested_size }} GB
+
+User Information:
+Name: {{ user.get_full_name }}
+Username: {{ user.username }}
+Email: {{ user.email }}
+
+Reason for Request:
+{{ request_reason }}
+
+Project URL: {{ request.get_host }}/projects/{{ project.slug }}/settings?tab=storage

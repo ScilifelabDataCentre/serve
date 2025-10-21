@@ -17,6 +17,7 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import get_object_or_404, render, reverse
+from django.template.loader import render_to_string
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
@@ -701,6 +702,81 @@ def delete(request, project_slug):
     delete_project.delay(project.pk)
 
     return HttpResponseRedirect(next_page, {"message": "Deleted project successfully."})
+
+
+@login_required
+@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
+def request_storage(request, project_slug, volume_id):
+    """Handle storage increase requests for a volume."""
+    project = get_object_or_404(Project, slug=project_slug)
+    volume = get_object_or_404(VolumeInstance, id=volume_id, project=project)
+
+    if request.method == "GET":
+        # Return the modal form
+        return render(
+            request, "projects/partials/settings/storage_request_modal.html", {"project": project, "volume": volume}
+        )
+
+    elif request.method == "POST":
+        requested_size = request.POST.get("requested_size")
+        request_reason = request.POST.get("request_reason")
+
+        if not requested_size or not request_reason:
+            return render(
+                request,
+                "projects/partials/settings/storage_request_modal.html",
+                {"project": project, "volume": volume, "error": "Please provide both the requested size and reason."},
+            )
+
+        try:
+            requested_size = int(requested_size)
+            if requested_size < 1 or requested_size > 100:
+                raise ValueError()
+        except ValueError:
+            return render(
+                request,
+                "projects/partials/settings/storage_request_modal.html",
+                {"project": project, "volume": volume, "error": "Requested size must be between 1 and 100 GB."},
+            )
+
+        # Prepare email content
+        context = {
+            "user": request.user,
+            "project": project,
+            "volume": volume,
+            "requested_size": requested_size,
+            "request_reason": request_reason,
+            "current_size": volume.size,
+        }
+
+        email_subject = f"Storage Increase Request - Project: {project.name}"
+        email_body = render_to_string("projects/emails/storage_request_email.txt", context)
+
+        try:
+            send_email_task.delay(
+                subject=email_subject,
+                message=email_body,
+                recipient_list=[django_settings.DEFAULT_FROM_EMAIL],
+                from_email=django_settings.EMAIL_FROM,
+            )
+            return HttpResponse(
+                '<div class="alert alert-success" role="alert">'
+                "Your storage increase request has been submitted successfully."
+                "</div>"
+            )
+        except Exception as err:
+            logger.error(f"Failed to send storage request email: {str(err)}", exc_info=True)
+            return render(
+                request,
+                "projects/partials/settings/storage_request_modal.html",
+                {
+                    "project": project,
+                    "volume": volume,
+                    "error": "Failed to submit your request. Please try again later.",
+                },
+            )
+
+    return HttpResponseBadRequest()
 
 
 @login_required
