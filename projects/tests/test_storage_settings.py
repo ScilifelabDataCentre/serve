@@ -268,7 +268,11 @@ class StorageRequestTestCase(TestCase):
 
         with patch("projects.views.send_email_task.delay") as mock_email:
             response = self.client.post(
-                url, {"requested_size": "20", "request_reason": "Need more storage for data analysis"}
+                url,
+                {
+                    "requested_size": "20",
+                    "request_reason_type": "project_requirements",
+                },
             )
 
             self.assertEqual(response.status_code, 200)
@@ -306,19 +310,69 @@ class StorageRequestTestCase(TestCase):
                 self.assertContains(response, expected_error)
                 mock_email.assert_not_called()
 
-    def test_request_storage_post_missing_reason(self):
-        """Test storage request with missing reason"""
+    def test_request_storage_post_reason_types(self):
+        """Test storage request with different reason types"""
         self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
         url = reverse(
             "projects:request_storage", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
         )
 
-        with patch("projects.views.send_email_task.delay") as mock_email:
-            response = self.client.post(url, {"requested_size": "20", "request_reason": ""})
+        test_cases = [
+            # Valid predefined reasons (no custom reason needed)
+            {
+                "data": {"requested_size": "20", "request_reason_type": "project_requirements"},
+                "expected_success": True,
+                "expected_reason": "Project requirements increased",
+            },
+            {
+                "data": {"requested_size": "20", "request_reason_type": "tissuumaps"},
+                "expected_success": True,
+                "expected_reason": "I require more storage for TissUUmaps",
+            },
+            {
+                "data": {"requested_size": "20", "request_reason_type": "future_needs"},
+                "expected_success": True,
+                "expected_reason": "I will need more data in the future",
+            },
+            # Other with custom reason
+            {
+                "data": {
+                    "requested_size": "20",
+                    "request_reason_type": "other",
+                    "request_reason": "Custom reason here",
+                },
+                "expected_success": True,
+                "expected_reason": "Custom reason here",
+            },
+            # Invalid cases
+            {
+                "data": {"requested_size": "20", "request_reason_type": "other"},
+                "expected_success": False,
+                "expected_error": "Please provide a custom reason when selecting 'Other'",
+            },
+            {
+                "data": {"requested_size": "20"},
+                "expected_success": False,
+                "expected_error": "Please provide both the requested size and reason type",
+            },
+        ]
 
-            self.assertEqual(response.status_code, 200)
-            self.assertContains(response, "Please provide both the requested size and reason")
-            mock_email.assert_not_called()
+        for test_case in test_cases:
+            with patch("projects.views.send_email_task.delay") as mock_email:
+                response = self.client.post(url, test_case["data"])
+
+                if test_case["expected_success"]:
+                    self.assertEqual(response.status_code, 200)
+                    self.assertContains(response, "success")
+                    mock_email.assert_called_once()
+
+                    # Verify the correct reason is used in the email
+                    call_args = mock_email.call_args[1]
+                    self.assertIn(test_case["expected_reason"], call_args["message"])
+                else:
+                    self.assertEqual(response.status_code, 200)
+                    self.assertContains(response, test_case["expected_error"])
+                    mock_email.assert_not_called()
 
     def test_request_storage_unauthorized(self):
         """Test storage request from unauthorized user"""

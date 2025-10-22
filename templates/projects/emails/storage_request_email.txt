@@ -1,8 +1,6 @@
 Storage Increase Request
 
 Project: {{ project.name }}
-Volume ID: {{ volume.id }}
-Current Size: {{ current_size }} GB
 Requested Additional Size: {{ requested_size }} GB
 
 User Information:

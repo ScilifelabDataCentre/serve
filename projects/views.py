@@ -719,24 +719,51 @@ def request_storage(request, project_slug, volume_id):
 
     elif request.method == "POST":
         requested_size = request.POST.get("requested_size")
-        request_reason = request.POST.get("request_reason")
+        request_reason_type = request.POST.get("request_reason_type")
+        request_reason = request.POST.get("request_reason", "")
 
-        if not requested_size or not request_reason:
+        if not requested_size or not request_reason_type:
             return render(
                 request,
                 "projects/partials/settings/storage_request_modal.html",
-                {"project": project, "volume": volume, "error": "Please provide both the requested size and reason."},
+                {
+                    "project": project,
+                    "volume": volume,
+                    "error": "Please provide both the requested size and reason type.",
+                },
             )
+
+        # If reason type is 'other', custom reason is required
+        if request_reason_type == "other" and not request_reason:
+            return render(
+                request,
+                "projects/partials/settings/storage_request_modal.html",
+                {
+                    "project": project,
+                    "volume": volume,
+                    "error": "Please provide a custom reason when selecting 'Other'.",
+                },
+            )
+
+        # Map reason type to full text for predefined reasons
+        reason_mapping = {
+            "project_requirements": "Project requirements increased",
+            "tissuumaps": "I require more storage for TissUUmaps",
+            "future_needs": "I will need more data in the future",
+        }
+
+        # Use mapped reason or custom reason
+        final_reason = reason_mapping.get(request_reason_type, request_reason)
 
         try:
             requested_size = int(requested_size)
-            if requested_size < 1 or requested_size > 100:
+            if requested_size < 1:
                 raise ValueError()
         except ValueError:
             return render(
                 request,
                 "projects/partials/settings/storage_request_modal.html",
-                {"project": project, "volume": volume, "error": "Requested size must be between 1 and 100 GB."},
+                {"project": project, "volume": volume, "error": "Requested size must be no less than 1 GB."},
             )
 
         # Prepare email content
@@ -745,7 +772,7 @@ def request_storage(request, project_slug, volume_id):
             "project": project,
             "volume": volume,
             "requested_size": requested_size,
-            "request_reason": request_reason,
+            "request_reason": final_reason,
             "current_size": volume.size,
         }
 

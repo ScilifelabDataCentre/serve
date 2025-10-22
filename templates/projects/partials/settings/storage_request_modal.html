@@ -18,16 +18,41 @@
                  min="1" max="100" required
                  hx-include="closest div"
                  hx-target="#storageRequestModalContainer">
-          <div class="form-text">Current size: {{ volume.size }} GB</div>
+          <div class="form-text">How much storage would you like to request?</div>
         </div>
         <div class="mb-3">
-          <label for="requestReason" class="form-label">Reason for Request</label>
+          <label for="requestReasonType" class="form-label">Reason for Request</label>
+          <select class="form-select" id="requestReasonType" name="request_reason_type"
+                  onchange="toggleCustomReason(this.value)" required>
+            <option value="">Select a reason</option>
+            <option value="project_requirements">Project requirements increased</option>
+            <option value="tissuumaps">I require more storage for TissUUmaps</option>
+            <option value="future_needs">I will need more data in the future</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="mb-3" id="customReasonContainer" style="display: none;">
+          <label for="requestReason" class="form-label">Custom Reason</label>
           <textarea class="form-control" id="requestReason" name="request_reason"
-                   rows="3" required
+                   rows="3"
                    hx-include="closest div"
                    hx-target="#storageRequestModalContainer"></textarea>
           <div class="form-text">Please explain why you need additional storage</div>
         </div>
+
+        <script>
+        function toggleCustomReason(value) {
+          const container = document.getElementById('customReasonContainer');
+          const textarea = document.getElementById('requestReason');
+          if (value === 'other') {
+            container.style.display = 'block';
+            textarea.required = true;
+          } else {
+            container.style.display = 'none';
+            textarea.required = false;
+          }
+        }
+        </script>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeStorageModal()">Cancel</button>
@@ -50,4 +75,15 @@ function closeStorageModal() {
   const container = document.getElementById('storageRequestModalContainer');
   container.innerHTML = '';
 }
+
+// Add click handler to close modal when clicking outside
+document.addEventListener('click', function(event) {
+  const modal = document.getElementById('requestStorageModal');
+  const modalContent = modal.querySelector('.modal-content');
+
+  // If click is outside the modal content but inside the modal container
+  if (event.target === modal) {
+    closeStorageModal();
+  }
+});
 </script>
