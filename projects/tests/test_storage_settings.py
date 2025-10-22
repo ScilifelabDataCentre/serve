@@ -256,37 +256,74 @@ class StorageRequestTestCase(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "projects/partials/settings/storage_request_modal.html")
+
+        # Test modal content
         self.assertContains(response, "Request Additional Storage")
         self.assertContains(response, str(self.volume.size))
+        self.assertContains(response, 'min="1"')  # Only lower limit constraint
+        self.assertContains(response, 'type="number"')
+
+        # Test reason type options
+        self.assertContains(response, 'value="project_requirements">Project requirements increased</option>')
+        self.assertContains(response, 'value="tissuumaps">I require more storage for TissUUmaps</option>')
+        self.assertContains(response, 'value="future_needs">I will need more data in the future</option>')
+        self.assertContains(response, 'value="other">Other</option>')
 
     def test_request_storage_post_valid(self):
-        """Test successful storage request submission"""
+        """Test successful storage request submission with different reason types and sizes"""
         self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
         url = reverse(
             "projects:request_storage", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
         )
 
-        with patch("projects.views.send_email_task.delay") as mock_email:
-            response = self.client.post(
-                url,
-                {
-                    "requested_size": "20",
+        test_cases = [
+            {
+                "data": {
+                    "requested_size": "500",  # Test large storage request (no upper limit)
                     "request_reason_type": "project_requirements",
                 },
-            )
+                "expected_reason": "Project requirements increased",
+            },
+            {
+                "data": {
+                    "requested_size": "30",
+                    "request_reason_type": "tissuumaps",
+                },
+                "expected_reason": "I require more storage for TissUUmaps",
+            },
+            {
+                "data": {
+                    "requested_size": "40",
+                    "request_reason_type": "future_needs",
+                },
+                "expected_reason": "I will need more data in the future",
+            },
+            {
+                "data": {
+                    "requested_size": "50",
+                    "request_reason_type": "other",
+                    "request_reason": "Custom reason here",
+                },
+                "expected_reason": "Custom reason here",
+            },
+        ]
 
-            self.assertEqual(response.status_code, 200)
-            self.assertContains(response, "success")
-            mock_email.assert_called_once()
+        for test_case in test_cases:
+            with patch("projects.views.send_email_task.delay") as mock_email:
+                response = self.client.post(url, test_case["data"])
 
-            # Verify email content
-            call_args = mock_email.call_args[1]
-            self.assertIn("Storage Increase Request", call_args["subject"])
-            self.assertIn("test-storage", call_args["subject"])
-            self.assertIn("20", call_args["message"])
-            self.assertIn("Need more storage for data analysis", call_args["message"])
-            self.assertIn("Test User", call_args["message"])  # Full name
-            self.assertIn(TEST_USER["email"], call_args["message"])
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "success")
+                mock_email.assert_called_once()
+
+                # Verify email content
+                call_args = mock_email.call_args[1]
+                self.assertIn("Storage Increase Request", call_args["subject"])
+                self.assertIn("test-storage", call_args["subject"])
+                self.assertIn(test_case["data"]["requested_size"], call_args["message"])
+                self.assertIn(test_case["expected_reason"], call_args["message"])
+                self.assertIn("Test User", call_args["message"])  # Full name
+                self.assertIn(TEST_USER["email"], call_args["message"])
 
     def test_request_storage_post_invalid_size(self):
         """Test storage request with invalid size"""
@@ -296,18 +333,54 @@ class StorageRequestTestCase(TestCase):
         )
 
         test_cases = [
-            ("0", "Requested size must be between 1 and 100 GB"),
-            ("101", "Requested size must be between 1 and 100 GB"),
-            ("abc", "Requested size must be between 1 and 100 GB"),
-            ("", "Please provide both the requested size and reason"),
+            # Test size validation
+            {
+                "data": {"requested_size": "0", "request_reason_type": "project_requirements"},
+                "expected_error": "Requested size must be no less than 1 GB",
+            },
+            {
+                "data": {"requested_size": "-5", "request_reason_type": "project_requirements"},
+                "expected_error": "Requested size must be no less than 1 GB",
+            },
+            {
+                "data": {"requested_size": "abc", "request_reason_type": "project_requirements"},
+                "expected_error": "Requested size must be no less than 1 GB",
+            },
+            {
+                "data": {"requested_size": "1.5", "request_reason_type": "project_requirements"},
+                "expected_error": "Requested size must be no less than 1 GB",
+            },
+            # Test missing fields
+            {
+                "data": {"request_reason_type": "project_requirements"},
+                "expected_error": "Please provide both the requested size and reason type",
+            },
+            {
+                "data": {"requested_size": "20"},
+                "expected_error": "Please provide both the requested size and reason type",
+            },
+            # Test other reason type without custom reason
+            {
+                "data": {"requested_size": "20", "request_reason_type": "other"},
+                "expected_error": "Please provide a custom reason when selecting &#x27;Other&#x27;.",
+            },
+            # Test empty strings
+            {
+                "data": {"requested_size": "", "request_reason_type": "project_requirements"},
+                "expected_error": "Please provide both the requested size and reason type",
+            },
+            {
+                "data": {"requested_size": "20", "request_reason_type": ""},
+                "expected_error": "Please provide both the requested size and reason type",
+            },
         ]
 
-        for size, expected_error in test_cases:
+        for test_case in test_cases:
             with patch("projects.views.send_email_task.delay") as mock_email:
-                response = self.client.post(url, {"requested_size": size, "request_reason": "Need more storage"})
+                response = self.client.post(url, test_case["data"])
 
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(response, expected_error)
+                self.assertContains(response, test_case["expected_error"])
                 mock_email.assert_not_called()
 
     def test_request_storage_post_reason_types(self):
@@ -348,7 +421,7 @@ class StorageRequestTestCase(TestCase):
             {
                 "data": {"requested_size": "20", "request_reason_type": "other"},
                 "expected_success": False,
-                "expected_error": "Please provide a custom reason when selecting 'Other'",
+                "expected_error": "Please provide a custom reason when selecting &#x27;Other&#x27;.",
             },
             {
                 "data": {"requested_size": "20"},
@@ -412,17 +485,36 @@ class StorageRequestTestCase(TestCase):
         self.assertEqual(response.status_code, 404)
 
     @override_settings(DEFAULT_FROM_EMAIL="serve@test.com", EMAIL_FROM="noreply@test.com")
-    def test_request_storage_email_settings(self):
-        """Test that email is sent with correct settings"""
+    def test_request_storage_email_settings_and_errors(self):
+        """Test email settings and error handling"""
         self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
         url = reverse(
             "projects:request_storage", kwargs={"project_slug": self.project.slug, "volume_id": self.volume.id}
         )
 
+        # Test successful email with correct settings
         with patch("projects.views.send_email_task.delay") as mock_email:
-            self.client.post(url, {"requested_size": "20", "request_reason": "Need more storage"})
+            response = self.client.post(url, {"requested_size": "20", "request_reason_type": "project_requirements"})
 
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "success")
             mock_email.assert_called_once()
             call_args = mock_email.call_args[1]
             self.assertEqual(call_args["recipient_list"], ["serve@test.com"])
             self.assertEqual(call_args["from_email"], "noreply@test.com")
+
+            # Verify email template content
+            self.assertIn(f"Project: {self.project.name}", call_args["subject"])
+            self.assertIn("Requested Additional Size: 20 GB", call_args["message"])
+            self.assertIn("Project requirements increased", call_args["message"])
+            self.assertIn(f"Name: {self.user.get_full_name()}", call_args["message"])
+            self.assertIn(f"Username: {self.user.username}", call_args["message"])
+            self.assertIn(f"Email: {self.user.email}", call_args["message"])
+
+        # Test email sending failure
+        with patch("projects.views.send_email_task.delay", side_effect=Exception("Email error")):
+            response = self.client.post(url, {"requested_size": "20", "request_reason_type": "project_requirements"})
+
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "Failed to submit your request")
+            self.assertContains(response, "Please try again later")
