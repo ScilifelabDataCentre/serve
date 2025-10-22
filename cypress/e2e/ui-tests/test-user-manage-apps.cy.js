@@ -138,10 +138,16 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
-            cy.get('#id_volume').select(volume_display_text)
+            // Verify storage management link
+            cy.get('a[href*="settings?tab=storage"]')
+                .should('contain', 'Manage storage')
+                .should('be.visible');
+
+            // Set mount path (replaces old volume and path fields)
+            cy.get('#id_mount_path').type('/home/app/data')
+            
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_path').clear().type(app_path)
             cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
