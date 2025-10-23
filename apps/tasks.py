@@ -103,7 +103,11 @@ def helm_install(release_name, chart, namespace="default", values_file=None, ver
     tuple: Output message and any errors from the Helm command.
     """
     # Base command
-    command = f"helm upgrade --force --install {release_name} {chart} --namespace {namespace}"
+    if "volumek8s" in chart:
+        # Force reinstall doesn't work with volumek8s chart
+        command = f"helm upgrade --install {release_name} {chart} --namespace {namespace}"
+    else:
+        command = f"helm upgrade --force --install {release_name} {chart} --namespace {namespace}"
 
     if values_file:
         command += f" -f {values_file}"

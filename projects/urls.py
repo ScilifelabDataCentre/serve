@@ -92,6 +92,11 @@ extrapatterns = [
         name="update_storage_settings",
     ),
     path(
+        "<project_slug>/volume/<int:volume_id>/increase/",
+        views.increase_volume_size,
+        name="increase_volume_size",
+    ),
+    path(
         "<project_slug>/request_storage/<int:volume_id>/",
         views.request_storage,
         name="request_storage",
