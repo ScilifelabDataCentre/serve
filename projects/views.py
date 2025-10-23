@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Model, Q
 from django.http import (
+    HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
     HttpResponseForbidden,
@@ -701,6 +702,53 @@ def delete(request, project_slug):
     delete_project.delay(project.pk)
 
     return HttpResponseRedirect(next_page, {"message": "Deleted project successfully."})
+
+
+@login_required
+@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
+def increase_volume_size(request: HttpRequest, project_slug: str, volume_id: int) -> HttpResponse:
+    """Increase volume size to 5GB."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Only POST method is allowed")
+
+    project = get_object_or_404(Project, slug=project_slug)
+    volume = get_object_or_404(VolumeInstance, id=volume_id, project=project)
+
+    if volume.size >= 5:
+        return JsonResponse({"error": "Volume size is already 5GB or larger"}, status=400)
+
+    # Update volume size
+    original_size = volume.size
+    volume.size = 5
+    volume.save()
+
+    # Create form data for redeployment
+    from apps.forms.volumes import VolumeForm
+    from apps.helpers import create_instance_from_form
+
+    # Create form instance with volume data
+    form_data = {
+        "name": volume.name,
+        "size": volume.size,
+    }
+    form = VolumeForm(data=form_data, instance=volume)
+
+    if form.is_valid():
+        try:
+            # Redeploy with updated size
+            create_instance_from_form(form=form, project=project, app_slug="volumeK8s", app_id=volume.id)
+            return JsonResponse({"message": "Volume size increased to 5GB and redeployment initiated"})
+        except Exception as e:
+            volume.size = original_size
+            volume.save()
+            logger.error(f"Failed to redeploy volume after size increase: {str(e)}")
+            return JsonResponse(
+                {"error": "Failed to increase volume size. Please try again or contact support."},
+                status=500,
+            )
+    else:
+        logger.error(f"Invalid form data for volume redeployment: {form.errors}")
+        return JsonResponse({"error": "Failed to increase volume size due to invalid data"}, status=500)
 
 
 @login_required

@@ -15,10 +15,16 @@
     </div>
 
     <div class="ms-auto d-flex gap-2">
-      <!-- Dummy button for auto-increase -->
-      <a class="btn btn-outline-primary btn-sm" href="#" onclick="alert('Will be added in further PRs'); return false;">
-         Increase to 5 GB
-      </a>
+      {% if volume.size < 5 %}
+        <!-- Auto-increase button -->
+        <button type="button"
+                class="btn btn-outline-primary btn-sm increase-volume-btn"
+                data-project-slug="{{ project.slug }}"
+                data-volume-id="{{ volume.id }}"
+                data-csrf-token="{{ csrf_token }}">
+          Increase to 5 GB
+        </button>
+      {% endif %}
 
       <a class="btn btn-outline-secondary btn-sm ms-auto" href="#" onclick="alert('Will be added in further PRs'); return false;">
          Request more
@@ -151,6 +157,40 @@
         list.appendChild(wrapper);
       }
     }
+  }, { passive: true });
+
+  // Handle volume increase button clicks
+  document.addEventListener('click', function(e) {
+    const increaseBtn = e.target.closest('.increase-volume-btn');
+    if (!increaseBtn) return;
+
+    const projectSlug = increaseBtn.dataset.projectSlug;
+    const volumeId = increaseBtn.dataset.volumeId;
+    const csrfToken = increaseBtn.dataset.csrfToken;
+
+    // Disable button while processing
+    increaseBtn.disabled = true;
+
+    fetch(`/projects/${projectSlug}/volume/${volumeId}/increase/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'Content-Type': 'application/json'
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // Reload the page to show updated volume size and any messages
+      window.location.reload();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Failed to increase volume size. Please try again.');
+      increaseBtn.disabled = false;
+    });
   }, { passive: true });
 })();
 </script>
