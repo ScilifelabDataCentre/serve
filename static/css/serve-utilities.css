@@ -114,8 +114,9 @@ label.required::before {
     font-size: 1rem!important;
 }
 
-.nav-link.serve-main-nav.active {
+.serve-main-nav.active {
     color: #045c64!important;
+    font-weight: 600!important;
     font-size: 1rem!important;
 }
 
