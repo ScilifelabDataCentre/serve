@@ -348,7 +348,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('#id_name').type(private_app_name)
         cy.get('#id_access').select('Private')
         cy.get('#submit-id-submit').contains('Submit').click() // create app
-        cy.get('tr:contains("' + private_app_name + '")').find('span').should('contain', 'private') // check that the app got greated
+        cy.get('tr:contains("' + private_app_name + '")').find('span').should('contain', 'Private') // check that the app got greated
 
         // Create project app
         cy.logf("Now creating a project app", Cypress.currentTest)
@@ -356,7 +356,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('#id_name').type(project_app_name)
         cy.get('#id_access').select('Project')
         cy.get('#submit-id-submit').contains('Submit').click() // create app
-        cy.get('tr:contains("' + project_app_name + '")').find('span').should('contain', 'project') // check that the app got greated
+        cy.get('tr:contains("' + project_app_name + '")').find('span').should('contain', 'Project') // check that the app got greated
 
         // Give access to this project to a collaborator user
         cy.logf("Now giving access to another user", Cypress.currentTest)
