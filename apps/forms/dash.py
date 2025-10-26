@@ -1,3 +1,4 @@
+from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Field, Layout
 from django import forms
@@ -38,10 +39,17 @@ class DashForm(ContainerImageMixin, AppBaseForm):
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
-        body = Div(
+        # Define AccordionGroups
+        general = AccordionGroup(
+            mark_safe("<h4>App Metadata</h4>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
+            active=True,
+        )
+
+        deployment = AccordionGroup(
+            mark_safe("<h4>Deployment Settings</h4>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
@@ -55,20 +63,30 @@ class DashForm(ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("port", placeholder="8000"),
             # Container image field
             self._setup_container_image_helper(),
-            Accordion(
-                AccordionGroup(
-                    "Advanced settings",
-                    PrependedText(
-                        "default_url_subpath",
-                        mark_safe("<span id='id_custom_default_url_prepend'>Subdomain/</span>"),
-                        template="apps/partials/srv_prepend_append_input_group.html",
-                    ),
-                    active=False,
-                ),
-            ),
-            css_class="card-body",
+            active=True,
         )
 
+        advanced = AccordionGroup(
+            mark_safe("<h4>Advanced Settings</h4>"),
+            PrependedText(
+                "default_url_subpath",
+                mark_safe("<span id='id_custom_default_url_prepend'>Subdomain/</span>"),
+                template="apps/partials/srv_prepend_append_input_group.html",
+            ),
+            active=True,
+        )
+
+        accordion = BS5Accordion(
+            general,
+            deployment,
+            advanced,
+            always_open=True,
+            css_class="form-accordion",
+        )
+        accordion.always_open = True  # Force property for Bootstrap 5.3+
+
+        body = Div(accordion, css_class="card-body")
+        body.always_open = True
         self.helper.layout = Layout(body, self.footer)
 
     @property

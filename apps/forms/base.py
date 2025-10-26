@@ -44,7 +44,6 @@ class BaseForm(forms.ModelForm):
 
         # Handle name
         self.fields["name"].initial = ""
-
         # Initialize the tags field to existing tags or empty list
         if self.instance and self.instance.pk and hasattr(self.instance, "tags"):
             self.instance.refresh_from_db()
@@ -65,6 +64,12 @@ class BaseForm(forms.ModelForm):
             css_class="card-footer d-flex justify-content-end",
         )
         self.helper = FormHelper(self)
+        self.helper.attrs = {
+            "class": "needs-validation",
+            "novalidate": "novalidate",
+        }
+        # Ensure HTML5 `required` attributes are rendered
+        self.helper.use_required_attribute = True
         self.helper.form_method = "post"
 
     def clean_subdomain(self):
