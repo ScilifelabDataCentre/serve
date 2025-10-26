@@ -216,7 +216,7 @@ describe("Test superuser access", () => {
         cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
 
         // Check that the app is visible and verify the app status
-        verifyAppStatus(private_app_name_2, "", "private", "Changing")
+        verifyAppStatus(private_app_name_2, "", "Private", "Changing")
 
         // Delete the app
         cy.logf("Deleting a regular user's private app", Cypress.currentTest)
@@ -342,7 +342,7 @@ describe("Test superuser access", () => {
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app is visible and verify the app status
-            verifyAppStatus(app_name_flavor, "Creating", "project", "Creating")
+            verifyAppStatus(app_name_flavor, "Creating", "Project", "Creating")
 
             // cy.get('tr:contains("' + app_name_flavor + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
@@ -356,7 +356,7 @@ describe("Test superuser access", () => {
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app is visible and verify the app status
-            verifyAppStatus(app_name_flavor, "", "project", "Changing")
+            verifyAppStatus(app_name_flavor, "", "Project", "Changing")
 
             // cy.get('tr:contains("' + app_name_flavor + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
