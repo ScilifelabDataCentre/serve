@@ -21,19 +21,19 @@ class VSCodeForm(AppBaseForm):
         general = AccordionGroup(
             mark_safe("<h4>App Metadata</h4>"),
             SRVCommonDivField("name", placeholder="Name your app"),
+            SRVCommonDivField("access"),
             active=True,
         )
 
-        deployment = AccordionGroup(
-            mark_safe("<h4>Deployment Settings</h4>"),
+        configuration = AccordionGroup(
+            mark_safe("<h4>Configuration Settings</h4>"),
             Field("volume"),
-            SRVCommonDivField("access"),
             SRVCommonDivField("flavor"),
             active=True,
         )
         accordion = BS5Accordion(
             general,
-            deployment,
+            configuration,
             always_open=True,
             css_class="form-accordion",
         )

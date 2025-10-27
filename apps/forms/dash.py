@@ -45,21 +45,21 @@ class DashForm(ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
-            active=True,
-        )
-
-        deployment = AccordionGroup(
-            mark_safe("<h4>Deployment Settings</h4>"),
-            SRVCommonDivField(
-                "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
-            ),
-            SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+            active=True,
+        )
+
+        configuration = AccordionGroup(
+            mark_safe("<h4>Configuration Settings</h4>"),
+            SRVCommonDivField(
+                "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
+            ),
+            SRVCommonDivField("flavor"),
             SRVCommonDivField("port", placeholder="8000"),
             # Container image field
             self._setup_container_image_helper(),
@@ -78,7 +78,7 @@ class DashForm(ContainerImageMixin, AppBaseForm):
 
         accordion = BS5Accordion(
             general,
-            deployment,
+            configuration,
             advanced,
             always_open=True,
             css_class="form-accordion",

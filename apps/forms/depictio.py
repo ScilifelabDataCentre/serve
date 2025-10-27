@@ -21,17 +21,12 @@ class DepictioForm(BaseForm):
             mark_safe("<h4>App Metadata</h4>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
-            active=True,
-        )
-
-        deployment = AccordionGroup(
-            mark_safe("<h4>Deployment Settings</h4>"),
             SRVCommonDivField("access"),
             active=True,
         )
+
         accordion = BS5Accordion(
             general,
-            deployment,
             always_open=True,
             css_class="form-accordion",
         )

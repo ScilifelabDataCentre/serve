@@ -35,15 +35,6 @@ class StreamlitForm(ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("name", placeholder="Name your app", required=True),
             SRVCommonDivField("description", rows=3, placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
-            active=True,
-        )
-
-        deployment = AccordionGroup(
-            mark_safe("<h4>Deployment Settings</h4>"),
-            SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
-            Field("volume"),
-            SRVCommonDivField("path", placeholder="/home/..."),
-            SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
             SRVCommonDivField(
@@ -51,6 +42,15 @@ class StreamlitForm(ContainerImageMixin, AppBaseForm):
                 rows=1,
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
+            active=True,
+        )
+
+        configuration = AccordionGroup(
+            mark_safe("<h4>Configuration Settings</h4>"),
+            SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
+            Field("volume"),
+            SRVCommonDivField("path", placeholder="/home/..."),
+            SRVCommonDivField("flavor"),
             SRVCommonDivField("port", placeholder="8000"),
             self._setup_container_image_helper(),
             active=True,
@@ -58,7 +58,7 @@ class StreamlitForm(ContainerImageMixin, AppBaseForm):
 
         accordion = BS5Accordion(
             general,
-            deployment,
+            configuration,
             always_open=True,
             css_class="form-accordion",
         )

@@ -27,17 +27,17 @@ class TissuumapsForm(AppBaseForm):
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
+            SRVCommonDivField("access"),
             active=True,
         )
 
-        deployment = AccordionGroup(
-            mark_safe("<h4>Deployment Settings</h4>"),
+        configuration = AccordionGroup(
+            mark_safe("<h4>Configuration Settings</h4>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
             Field("volume"),
             SRVCommonDivField("flavor"),
-            SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 placeholder="Describe why you want to make the app accessible only via a link",
@@ -47,7 +47,7 @@ class TissuumapsForm(AppBaseForm):
 
         accordion = BS5Accordion(
             general,
-            deployment,
+            configuration,
             always_open=True,
             css_class="form-accordion",
         )
