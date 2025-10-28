@@ -21,8 +21,15 @@
                         <div id="app-{{ app.id }}" class="card-text description-app">
                             <p class="card-description fw-normal">
                                 {% if app.description|length > 349 %}
-                                    <span class="description-short card-description">{{ app.description|slice:':349'}}<span class="description-dots">...</span><span class="description-more " style="display:none;">{{ app.description|slice:'349:' }}</span>
-                                    <button onclick="toggleDescription('app-{{ app.id }}')">[see more]</button>
+                                    <span class="description-short card-description">{{ app.description|slice:':349'}}
+                                    <span class="description-dots">...</span>
+                                    <span class="description-more " style="display:none;">{{ app.description|slice:'349:' }}</span>
+                                    {% comment %} <div class=""> {% endcomment %}
+                                    <span class="ui tiny left pointing label pointer" onclick="toggleDescription('app-{{ app.id }}')">
+                                        See more
+                                    </span>
+                                    {% comment %} </div> {% endcomment %}
+
                                 {% else %}
                                     {{ app.description|default_if_none:""}}
                                 {% endif %}

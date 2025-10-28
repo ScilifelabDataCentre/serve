@@ -209,18 +209,18 @@ describe("Test superuser access", () => {
         cy.get('tr:contains("' + private_app_name + '")').should('exist') // regular user's private app visible
 
         cy.logf("Verifying that can edit the private app of a regular user", Cypress.currentTest)
-        cy.get('tr:contains("' + private_app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+        cy.get('tr:contains("' + private_app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
         cy.get('tr:contains("' + private_app_name + '")').should('be.visible').find('a').contains('Settings').click()
         cy.get('#id_name').clear().type(private_app_name_2) // change name
         cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
 
         // Check that the app is visible and verify the app status
-        verifyAppStatus(private_app_name_2, "", "private", "Changing")
+        verifyAppStatus(private_app_name_2, "", "Private", "Changing")
 
         // Delete the app
         cy.logf("Deleting a regular user's private app", Cypress.currentTest)
-        cy.get('tr:contains("' + private_app_name_2 + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+        cy.get('tr:contains("' + private_app_name_2 + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
         cy.get('tr:contains("' + private_app_name_2 + '")').should('be.visible').find('a.confirm-delete').click()
         cy.get('#modalConfirmDelete')
             .should('be.visible')
@@ -342,28 +342,28 @@ describe("Test superuser access", () => {
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app is visible and verify the app status
-            verifyAppStatus(app_name_flavor, "Creating", "project", "Creating")
+            verifyAppStatus(app_name_flavor, "Creating", "Project", "Creating")
 
             // cy.get('tr:contains("' + app_name_flavor + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
             cy.logf("Changing the flavor setting", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_flavor + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_flavor + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_flavor + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_flavor').find(':selected').should('contain', '2 vCPU, 4 GB RAM')
             cy.get('#id_flavor').select(new_flavor_name)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app is visible and verify the app status
-            verifyAppStatus(app_name_flavor, "", "project", "Changing")
+            verifyAppStatus(app_name_flavor, "", "Project", "Changing")
 
             // cy.get('tr:contains("' + app_name_flavor + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
             cy.logf("Checking that the new flavor setting was saved in the database", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_flavor + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_flavor + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_flavor + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_flavor').find(':selected').should('contain', new_flavor_name)
 
@@ -398,7 +398,7 @@ describe("Test superuser access", () => {
             cy.logf("Changing the environment setting", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_env + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_env + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_env + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_environment').find(':selected').should('contain', 'Jupyter Lab Minimal (Default)')
             cy.get('#id_environment').select(new_environment_name)
@@ -412,7 +412,7 @@ describe("Test superuser access", () => {
             cy.logf("Checking that the new environment setting was saved in the database", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_env + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_env + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_env + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_environment').find(':selected').should('contain', new_environment_name)
 

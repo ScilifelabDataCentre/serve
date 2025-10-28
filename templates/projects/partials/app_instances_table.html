@@ -1,9 +1,8 @@
 {% load static %}
 <table id=""
-    class="table table-hover my-0 no-footer table-bordered" role="grid">
-    <thead>
-        <tr>
-            <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1"></th>
+    class="ui table table-responsive" role="grid">
+    <thead style="background-color: #6c757d14;">
+        <tr class="text-center">
             <th tabindex="0" rowspan="1" colspan="1">Type</th>
             <th tabindex="0" rowspan="1" colspan="1">Name</th>
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Created</th>
@@ -14,14 +13,14 @@
             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody class="table-group-divider">
         {% for instance in objs.instances %}
         <tr class="odd" id="app-{{ instance.pk }}" data-cy="approw">
 
             {% static 'images/logos/apps/' as static_url %}
-            <td style="text-align: center;"><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
-                    alt="App Logo" style="max-width:25px;min-width:20px;"></td>
-            <td class="d-none d-xxl-table-cell ">{{ instance.app.name }}</td>
+
+            <td class="d-none d-xxl-table-cell "><span class="me-2" style="text-align: center;"><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
+                    alt="App Logo" style="max-width:25px;min-width:20px;"></span>{{ instance.app.name }}</td>
             {% if instance.url %}
             <td class="sorting_1">
               {# 2025-02-20 I believe this fist if statement could be removed #}
@@ -46,26 +45,26 @@
             {% else %}
             <td class="sorting_1">{{ instance.name }}</td>
             {% endif %}
-            <td class="d-none d-xxl-table-cell">{{ instance.created_on | date:"d/n/y H:i" }}
+            <td class="d-none d-xxl-table-cell text-center">{{ instance.created_on | date:"d/n/y H:i" }}
                 <span
                 class="bi bi-clock" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ objs.timezone }}">
                 </span>
             </td>
-            <td data-cy="appstatus-cell">
-                <span class="badge bg-secondary" id="status-{{ instance.app.slug }}-{{ instance.pk }}" title="" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
+            <td class="text-center" data-cy="appstatus-cell ">
+                <span class="alert bg-secondary alert-app-table" id="status-{{ instance.app.slug }}-{{ instance.pk }}" title="" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
                     Refreshing...
                 </span>
             </td>
-            <td>
+            <td class="text-center">
               {% if instance.app.name != "MLFlow" %}
                 {% if instance.access %}
                     {% if instance.access == 'public' %}
-                    <span class="badge bg-success" id="permission-{{ instance.pk }}" data-cy="app-permission">
-                        {{ instance.access }}
+                    <span class="alert bg-success alert-app-table" id="permission-{{ instance.pk }}" data-cy="app-permission">
+                        {{ instance.access|title }}
                     </span>
                     {% else %}
-                    <span class="badge bg-secondary" id="permission-{{ instance.pk }}" data-cy="app-permission">
-                        {{ instance.access }}
+                    <span class="alert bg-secondary alert-app-table" id="permission-{{ instance.pk }}" data-cy="app-permission">
+                        {{ instance.access|title }}
                     </span>
                     {% endif %}
                 {% endif %}
@@ -77,15 +76,24 @@
             {% endif %}
             </td>
             <td class="d-none d-xxl-table-cell" id="tags-{{ instance.pk }}">
-                {% for tag in instance.tags.all %}
-                <span class="badge bg-primary">{{ tag.name }}</span>
-                {% endfor %}
-            </td>
+    {% for tag in instance.tags.all %}
+        <span class="badge text-bg-primary badge-grape badge-ico me-1 tag-item {% if forloop.counter > 3 %}d-none extra-tag{% endif %}" style="margin-right: -0.2rem;">
+            <div class="fas fa-tag fa-sm me-1"></div>
+            <span class="tag-name">{{ tag.name }}</span>
+        </span>
+    {% endfor %}
+
+    {% if instance.tags.count > 3 %}
+        <a href="javascript:void(0);" class="badge badge-grape badge-ico toggle-tags">
+            See more
+        </a>
+    {% endif %}
+</td>
 
             <td class="table-action text-center">
                 <div class="dropdown show">
                     <a href="#" class="default" data-bs-toggle="dropdown" data-display="static">
-                        <i class="bi bi-three-dots-vertical"></i>
+                        <i class="ellipsis vertical icon"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
                         {% if objs.title == "Serve" %}
@@ -137,3 +145,22 @@
         {% endfor %}
     </tbody>
 </table>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toggle-tags').forEach(function(toggle) {
+        toggle.addEventListener('click', function() {
+            const td = this.closest('td');
+            const hiddenTags = td.querySelectorAll('.extra-tag');
+            hiddenTags.forEach(tag => tag.classList.toggle('d-none'));
+
+            // Toggle text between ... and See Less (optional)
+            if (this.textContent.trim() === 'See more') {
+                this.textContent = 'See less';
+            } else {
+                this.textContent = 'See more';
+            }
+        });
+    });
+});
+</script>

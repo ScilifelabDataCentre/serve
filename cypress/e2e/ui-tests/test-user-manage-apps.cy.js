@@ -142,13 +142,13 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_path').clear().type(app_path)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name_project, "Creating", "project", "Creating")
+            verifyAppStatus(app_name_project, "Creating", "Project", "Creating")
 
             // check that the default URL subpath was created
             cy.contains('a', app_name_project)
@@ -163,7 +163,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Now making the project app public", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_project + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_project + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
@@ -171,19 +171,19 @@ if (Cypress.env('create_resources') === true) {
 
             // We now verify the correct permission level and user action
             // but not the app status because it is dependent on k8s
-            verifyAppStatus(app_name_project, "", "public", "Changing")
+            verifyAppStatus(app_name_project, "", "Public", "Changing")
 
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name_project, "Running", "public", "Changing")
+                    verifyAppStatus(app_name_project, "Running", "Public", "Changing")
                 })
             }
 
             // Delete the project level app
             cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
-            cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -207,19 +207,19 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_path').clear().type(app_path)
             cy.get('#id_volume').select(volume_display_text)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name_public, "Creating", "public", "Creating")
+            verifyAppStatus(app_name_public, "Creating", "Public", "Creating")
 
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 // Wait for 5 seconds and check the app status again
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name_public, "Running", "public", "Creating")
+                    verifyAppStatus(app_name_public, "Running", "Public", "Creating")
                 })
             }
 
@@ -255,7 +255,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Now checking that the logs page for the app opens", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('a').contains('Logs').click()
             cy.get('h3').should('contain', "Logs")
 
@@ -263,7 +263,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Now changing the name and description of the public app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_public + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name_public) // name should be same as before
             cy.get('#id_name').clear().type(app_name_public_2) // now change name
@@ -281,22 +281,22 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').clear().type(image_name_2)
             cy.get('#id_path').should('have.value', app_path)
             cy.get('#id_path').clear().type(app_path_2)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
             cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // We do not verify the app status because it depends on k8s
-            verifyAppStatus(app_name_public_2, "", "link", "Changing")
+            verifyAppStatus(app_name_public_2, "", "Link", "Changing")
 
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 // NB: it will get status "Running" but it won't work because the new port is incorrect
-                verifyAppStatus(app_name_public_2, "Running", "link", "Changing")
+                verifyAppStatus(app_name_public_2, "Running", "Link", "Changing")
 
                 // Wait for 5 seconds and check the app status again
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name_public_2, "Running", "link", "Changing")
+                    verifyAppStatus(app_name_public_2, "Running", "Link", "Changing")
                 })
             }
 
@@ -308,7 +308,7 @@ if (Cypress.env('create_resources') === true) {
             // Check that the changes were saved
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_public_2 + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name_public_2)
             cy.get('#id_description').should('have.value', app_description_2)
@@ -317,7 +317,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_path').should('have.value', app_path_2)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
+            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
 
             // Make sure that giving invalid input in default_url_subpath field results in an error
@@ -333,7 +333,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Now deleting the public app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -381,12 +381,12 @@ if (Cypress.env('create_resources') === true) {
             // this is OK here because we only verify that it was created
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name, "Creating", "public", "Creating")
+            verifyAppStatus(app_name, "Creating", "Public", "Creating")
 
             cy.logf("Checking that all shiny app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
@@ -413,7 +413,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Deleting the shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -459,7 +459,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click() // Go to Advanced settings
+            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click() // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
 
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
@@ -469,14 +469,14 @@ if (Cypress.env('create_resources') === true) {
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name, "Creating", "public", "Creating")
+            verifyAppStatus(app_name, "Creating", "Public", "Creating")
 
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name, "Running", "public", "Creating")
+                    verifyAppStatus(app_name, "Running", "Public", "Creating")
                 })
             }
 
@@ -484,21 +484,21 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
             cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click() // Go to Advanced settings
+            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click() // Go to Advanced settings
             cy.get('#id_default_url_subpath').should('have.value', default_url_subpath)
 
             // Delete the Dash app
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -540,20 +540,20 @@ if (Cypress.env('create_resources') === true) {
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name, "Creating", "public", "Creating")
+            verifyAppStatus(app_name, "Creating", "Public", "Creating")
 
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name, "Running", "public")
+                    verifyAppStatus(app_name, "Running", "Public")
                 })
             }
 
             cy.logf("Checking that all tissuumaps app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
@@ -563,7 +563,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Deleting the tissuumaps app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -612,13 +612,13 @@ if (Cypress.env('create_resources') === true) {
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name, "Creating", "public", "Creating")
+            verifyAppStatus(app_name, "Creating", "Public", "Creating")
 
             // Verify Gradio app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
@@ -630,7 +630,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Deleting the gradio app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -679,13 +679,13 @@ if (Cypress.env('create_resources') === true) {
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name, "Creating", "public", "Creating")
+            verifyAppStatus(app_name, "Creating", "Public", "Creating")
 
             // Verify Streamlit app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
@@ -697,7 +697,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -747,13 +747,13 @@ if (Cypress.env('create_resources') === true) {
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name, "Creating", "public", "Creating")
+            verifyAppStatus(app_name, "Creating", "Public", "Creating")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
@@ -765,7 +765,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Editing the dash app settings (non redeployment fields)", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a').contains('Settings').click()
             // Here we change the app name from app_name to app_name_edited
             cy.get('#id_name').type("-edited")
@@ -776,14 +776,14 @@ if (Cypress.env('create_resources') === true) {
             cy.get('h3').should('have.text', project_name);
 
             // Verify that the app status by checking latest user action:
-            verifyAppStatus(app_name_edited, "", "public", "Changing")
+            verifyAppStatus(app_name_edited, "", "Public", "Changing")
 
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name_edited, "Running", "public", "Creating")
+                    verifyAppStatus(app_name_edited, "Running", "Public", "Creating")
                 })
             }
 
@@ -791,7 +791,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -841,13 +841,13 @@ if (Cypress.env('create_resources') === true) {
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name, "Creating", "public", "Creating")
+            verifyAppStatus(app_name, "Creating", "Public", "Creating")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
@@ -859,7 +859,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Editing the dash app settings field Image to an invalid value", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear()
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
@@ -870,7 +870,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Editing the dash app settings field Image to a valid value", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
@@ -878,7 +878,7 @@ if (Cypress.env('create_resources') === true) {
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
 
-            verifyAppStatus(app_name, "", "public", "Changing")
+            verifyAppStatus(app_name, "", "Public", "Changing")
 
             // The final app status and latest user action:
             // Wait for 5 seconds and check the app status again
@@ -886,12 +886,12 @@ if (Cypress.env('create_resources') === true) {
             // Verify that the app status now equals Running
             if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name, "Running", "public", "Changing")
+                    verifyAppStatus(app_name, "Running", "Public", "Changing")
                 })
 
                 // Wait for 5 seconds and check the app status again
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name, "Running", "public", "Changing")
+                    verifyAppStatus(app_name, "Running", "Public", "Changing")
                 })
             }
 
@@ -899,7 +899,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -948,13 +948,13 @@ if (Cypress.env('create_resources') === true) {
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
-            verifyAppStatus(app_name, "Creating", "public", "Creating")
+            verifyAppStatus(app_name, "Creating", "Public", "Creating")
 
             // Verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
@@ -966,7 +966,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Editing the dash app settings field subdomain", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_subdomain').clear().type(subdomain_change)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
@@ -975,13 +975,13 @@ if (Cypress.env('create_resources') === true) {
             cy.get('h3').should('have.text', project_name);
 
             // Verify that the app latest user action
-            verifyAppStatus(app_name, "", "public", "Changing")
+            verifyAppStatus(app_name, "", "Public", "Changing")
 
             // Wait for 5 seconds and check the app status again
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name, "Running", "public", "Changing")
+                    verifyAppStatus(app_name, "Running", "Public", "Changing")
                 })
             }
 
@@ -989,7 +989,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Deleting the dash app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
             cy.get('#modalConfirmDelete')
                 .should('be.visible')
@@ -1085,7 +1085,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Now changing subdomain of an already created app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('#id_subdomain').clear().type(subdomain_3)
 

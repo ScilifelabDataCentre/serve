@@ -1,3 +1,5 @@
+from crispy_bootstrap5.bootstrap5 import BS5Accordion
+from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Field, Layout
 from django import forms
 from django.utils.safestring import mark_safe
@@ -25,15 +27,32 @@ class RStudioForm(AppBaseForm):
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
-        body = Div(
+
+        # Define AccordionGroups
+        general = AccordionGroup(
+            mark_safe("<h4>App Metadata</h4>"),
             SRVCommonDivField("name", placeholder="Name your app"),
-            Field("volume"),
-            SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
-            SRVCommonDivField("environment"),
-            css_class="card-body",
+            active=True,
         )
 
+        configuration = AccordionGroup(
+            mark_safe("<h4>Configuration Settings</h4>"),
+            Field("volume"),
+            SRVCommonDivField("flavor"),
+            SRVCommonDivField("environment"),
+            active=True,
+        )
+        accordion = BS5Accordion(
+            general,
+            configuration,
+            always_open=True,
+            css_class="form-accordion",
+        )
+        accordion.always_open = True  # Force property for Bootstrap 5.3+
+
+        body = Div(accordion, css_class="card-body")
+        body.always_open = True
         self.helper.layout = Layout(body, self.footer)
 
     class Meta:

@@ -54,7 +54,7 @@
 
                         // Update both the status, the class style, and data attributes
                         elements.forEach(element => {
-                            const className = `badge bg-${statusGroup}`;
+                            const className = `alert bg-${statusGroup} alert-app-table`;
                             element.className = className;
                             element.innerText = statusTxt;
                             element.dataset.appAction = latestUserAction;
