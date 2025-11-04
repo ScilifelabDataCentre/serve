@@ -1,7 +1,7 @@
 services:
   db:
     container_name: db
-    image: postgres
+    image: postgres:17.6
     env_file:
       - .env
     networks:
