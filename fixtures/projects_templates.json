@@ -55,9 +55,6 @@
         "volumes": {
           "project-vol": {
             "size": "1"
-          },
-          "project-vol-2gb": {
-            "size": "2"
           }
         },
         "flavors": {

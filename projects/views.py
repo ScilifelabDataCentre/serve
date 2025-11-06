@@ -877,6 +877,7 @@ def update_storage_settings(request, project_slug):
             existing = list(vol.mount_paths.values_list("mount_path", flat=True))
             to_delete = set(existing) - set(paths)
             to_create = [p for p in paths if p not in existing]
+            logger.info(f"Going to create mount paths: {to_create}, delete: {to_delete} for volume {vol.name}")
 
             error = ""
             for p in to_create:
