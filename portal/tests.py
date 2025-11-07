@@ -2,8 +2,10 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.messages import get_messages
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.db import SessionStore
 from django.core import mail
+from django.template.response import TemplateResponse
 from django.test import Client, RequestFactory, override_settings
 from django.urls import reverse
 
@@ -63,14 +65,9 @@ def test_about_view():
 @pytest.mark.django_db
 def test_teaching_view_get():
     """Test that GET request to teaching view shows the form."""
-    # Get correct request
-    request = RequestFactory().get(reverse("portal:teaching"))
-
-    # Create session for messages framework
-    s = SessionStore()
-    request.session = s
-
-    response = views.teaching(request)
+    # Use Client for proper context access
+    client = Client()
+    response = client.get(reverse("portal:teaching"))
 
     # Check status code
     assert response.status_code == 200
@@ -114,7 +111,9 @@ def test_teaching_view_post_valid(mock_altcha_clean):
     # Create session for messages framework
     s = SessionStore()
     request.session = s
-    request._messages = get_messages(request)
+    # Set up messages storage
+    messages = FallbackStorage(request)
+    request._messages = messages
 
     response = views.teaching(request)
 
@@ -124,7 +123,7 @@ def test_teaching_view_post_valid(mock_altcha_clean):
     # Check email content
     email = mail.outbox[0]
     assert email.subject == "New Teaching Request - SciLifeLab Serve"
-    assert "serve@scilifelab.se" in email.recipients
+    assert "serve@scilifelab.se" in email.to
     assert "John Doe" in email.body
     assert "john.doe@example.com" in email.body
     assert "Introduction to Python" in email.body
@@ -161,7 +160,9 @@ def test_teaching_view_post_valid_minimal(mock_altcha_clean):
     # Create session for messages framework
     s = SessionStore()
     request.session = s
-    request._messages = get_messages(request)
+    # Set up messages storage
+    messages = FallbackStorage(request)
+    request._messages = messages
 
     views.teaching(request)
 
@@ -186,14 +187,9 @@ def test_teaching_view_post_invalid():
         "course_description": "",  # Missing required field
     }
 
-    # Create POST request
-    request = RequestFactory().post(reverse("portal:teaching"), data=form_data)
-
-    # Create session for messages framework
-    s = SessionStore()
-    request.session = s
-
-    response = views.teaching(request)
+    # Use Client for proper context access
+    client = Client()
+    response = client.post(reverse("portal:teaching"), data=form_data)
 
     # Check that form is returned with errors (status 200, not redirect)
     assert response.status_code == 200
@@ -235,7 +231,9 @@ def test_teaching_view_email_content_format(mock_altcha_clean):
     request = RequestFactory().post(reverse("portal:teaching"), data=form_data)
     s = SessionStore()
     request.session = s
-    request._messages = get_messages(request)
+    # Set up messages storage
+    messages = FallbackStorage(request)
+    request._messages = messages
 
     views.teaching(request)
 
@@ -279,14 +277,16 @@ def test_teaching_view_email_recipient(mock_altcha_clean):
     request = RequestFactory().post(reverse("portal:teaching"), data=form_data)
     s = SessionStore()
     request.session = s
-    request._messages = get_messages(request)
+    # Set up messages storage
+    messages = FallbackStorage(request)
+    request._messages = messages
 
     views.teaching(request)
 
     # Check email recipient
     assert len(mail.outbox) == 1
     email = mail.outbox[0]
-    assert "serve@scilifelab.se" in email.recipients
+    assert "serve@scilifelab.se" in email.to
     assert email.from_email == "noreply-serve@scilifelab.se"
 
 
@@ -382,7 +382,9 @@ def test_teaching_view_email_sending_error(mock_altcha_clean):
         request = RequestFactory().post(reverse("portal:teaching"), data=form_data)
         s = SessionStore()
         request.session = s
-        request._messages = get_messages(request)
+        # Set up messages storage
+        messages = FallbackStorage(request)
+        request._messages = messages
 
         response = views.teaching(request)
 
