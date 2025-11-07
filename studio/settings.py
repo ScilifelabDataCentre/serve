@@ -105,6 +105,7 @@ INSTALLED_APPS = [
     "django_password_validators",  # django-password-validators for password validation
     "django_htmx",
     "gmailapi_backend",
+    "django_altcha",
 ] + DJANGO_WIKI_APPS
 
 MIDDLEWARE = (
@@ -456,6 +457,12 @@ GOOGLE_SERVICE_ACCOUNT = json.dumps(
         "client_x509_cert_url": os.getenv("GOOGLE_SERVICE_ACCOUNT_CLIENT_X509_CERT_URL"),
         "universe_domain": os.getenv("GOOGLE_SERVICE_ACCOUNT_UNIVERSE_DOMAIN"),
     }
+)
+
+# Altcha configuration
+ALTCHA_HMAC_KEY = os.getenv(
+    "ALTCHA_HMAC_KEY",
+    "eead811cbbbc5a8e4e9ac81657b398b42211910eca497628372ac9281f9620a74036b965056286754e33187678e52f55d010fbabf6ed9f001885b15bf728f05f",
 )
 
 
