@@ -182,8 +182,8 @@ describe("Test deploying app", () => {
         const image_name_2 = "ghcr.io/scilifelabdatacentre/example-streamlit:230921-1443"
         const image_port = "8501"
         const image_port_2 = "8502"
-        const app_path = "/home/username"
-        const app_path_2 = "/home/username/app"
+        const mount_path = "/home/data"
+        const mount_path_2 = "/srv/shiny-server/data/"
         const link_privacy_type_note = "some-text-on-link-only-app"
         const createResources = Cypress.env('create_resources')
         const app_type = "Custom App"
@@ -191,8 +191,6 @@ describe("Test deploying app", () => {
         const default_url_subpath = "default/url/subpath/"
         const changed_default_url_subpath = "changed/subpath/"
         const invalid_default_url_subpath = "€% / ()"
-
-        let volume_display_text = "project-vol (" + project_name + ")"
 
         if (createResources === true) {
             cy.visit("/projects/")
@@ -204,10 +202,17 @@ describe("Test deploying app", () => {
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
-            cy.get('#id_volume').select(volume_display_text)
+            // Verify storage management link
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
+
+
+            // Set mount path (replaces old volume and path fields) - it's a select dropdown
+            cy.get('#id_mount_path').select('/home/data (project-vol (e2e-deploy-app-test))')
+
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_path').clear().type(app_path)
             cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').should('be.visible').click() // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
@@ -269,8 +274,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_path').clear().type(app_path)
-            cy.get('#id_volume').select(volume_display_text)
+            cy.get('#id_mount_path').select(mount_path)
             cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').should('be.visible').click() // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
@@ -335,13 +339,13 @@ describe("Test deploying app", () => {
             cy.get('#id_access').select('Link')
             cy.get('#id_note_on_linkonly_privacy').should('be.visible')
             cy.get('#id_note_on_linkonly_privacy').clear().type(link_privacy_type_note)
-            cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
+            cy.get('#id_mount_path').should('have.value', mount_path)
             cy.get('#id_port').should('have.value', image_port)
             cy.get('#id_port').clear().type(image_port_2)
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_image').clear().type(image_name_2)
-            cy.get('#id_path').should('have.value', app_path)
-            cy.get('#id_path').clear().type(app_path_2)
+            cy.get('#id_mount_path').should('have.value', mount_path)
+            cy.get('#id_mount_path').select(mount_path_2)
             cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').should('be.visible').click() // Go to Advanced settings
             cy.get('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
             cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
@@ -371,7 +375,7 @@ describe("Test deploying app", () => {
             cy.get('#id_note_on_linkonly_privacy').should('have.value', link_privacy_type_note)
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
-            cy.get('#id_path').should('have.value', app_path_2)
+            cy.get('#id_mount_path').should('have.value', mount_path_2)
             cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').should('be.visible').click() // Go to Advanced settings
             cy.get('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
 
@@ -1145,8 +1149,6 @@ describe("Test deploying app", () => {
         const subdomain_2 = "subdomain-test2"
         const subdomain_3 = "subdomain-test3"
 
-        let volume_display_text = "project-vol (" + project_name + ")"
-
         if (createResources === true) {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -1159,8 +1161,7 @@ describe("Test deploying app", () => {
             cy.get('#id_description').clear().type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_volume').select(volume_display_text)
-            cy.get('#id_path').clear().type("/home")
+            cy.get('#id_mount_path').select("/home/data (project-vol (e2e-deploy-app-test))")
             // fill out subdomain field
             cy.get('#id_subdomain').clear().type(subdomain)
 

@@ -354,9 +354,3 @@ def create_default_mount_path(sender, instance, created, **kwargs):
             )
 
     transaction.on_commit(_make_default)
-
-
-@receiver(pre_delete, sender=PersistentVolumeMountPath)
-def on_mount_path_delete(sender, instance, **kwargs):
-    if instance.is_default:
-        raise ValidationError("Default mount path cannot be deleted")
