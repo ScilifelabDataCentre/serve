@@ -14,7 +14,7 @@ class VolumeInstanceManager(AppInstanceManager):
 class VolumeInstance(BaseAppInstance):
     objects = VolumeInstanceManager()
     size = models.IntegerField(
-        default=1, help_text="Size in GB", validators=[MinValueValidator(1), MaxValueValidator(100)]
+        default=1, help_text="Size in GB", validators=[MinValueValidator(1), MaxValueValidator(100000)]
     )
 
     def __str__(self):
