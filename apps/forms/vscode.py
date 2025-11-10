@@ -19,14 +19,14 @@ class VSCodeForm(AppBaseForm):
 
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h4>App Metadata</h4>"),
+            mark_safe("<h3>App Metadata</h3>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("access"),
             active=True,
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h4>Configuration Settings</h4>"),
+            mark_safe("<h3>Configuration Settings</h3>"),
             Field("volume"),
             SRVCommonDivField("flavor"),
             active=True,

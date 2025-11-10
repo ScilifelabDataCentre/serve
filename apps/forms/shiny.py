@@ -38,7 +38,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
             "Provide a path to the Shiny app inside your " "Docker image if it is different from /srv/shiny-server/"
         )
         self.fields["shiny_site_dir"].bottom_help_text = mark_safe(
-            "Use this field to specify subfolder if you did not place your app directly in <i>/srv/shiny-server/</i>. "
+            "<span class='fw-bold' id='id_shiny_site_dir_helptext'>Note:</span>Use this field to specify subfolder if you did not place your app directly in <i>/srv/shiny-server/</i>. "
             'You can find more about it <a href="/docs/application-hosting/shiny/#wiki-toc-advanced-settings">'
             "in our documentation</a>."
         )
@@ -48,7 +48,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
 
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h4>App Metadata</h4>"),
+            mark_safe("<h3>App Metadata</h3>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
@@ -62,7 +62,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h4>Configuration Settings</h4>"),
+            mark_safe("<h3>Configuration Settings</h3>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
@@ -76,7 +76,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
         )
 
         advanced = AccordionGroup(
-            mark_safe("<h4>Advanced Settings</h4>"),
+            mark_safe("<h3>Advanced Settings</h3>"),
             PrependedText(
                 "shiny_site_dir",
                 "/srv/shiny-server/",

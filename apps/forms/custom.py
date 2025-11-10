@@ -33,7 +33,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
         apps_url = reverse("portal:apps")
         self.fields["default_url_subpath"].bottom_help_text = mark_safe(
             (
-                f"<span class='fw-bold'>Note:</span> This changes the URL connected to the Open button for an app"
+                f"<span class='fw-bold' id='id_default_url_subpath_helptext'>Note:</span> This changes the URL connected to the Open button for an app"
                 f" on the Serve <a href='{apps_url}'>Apps & Models</a> page."
             )
         )
@@ -46,7 +46,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
 
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h4>App Metadata</h4>"),
+            mark_safe("<h3>App Metadata</h3>"),
             SRVCommonDivField("name", placeholder="Name your app", required=True),
             SRVCommonDivField("description", rows=3, placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
@@ -61,7 +61,7 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h4>Configuration Settings</h4>"),
+            mark_safe("<h3>Configuration Settings</h3>"),
             SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
             Field("volume"),
             SRVCommonDivField("path", placeholder="/home/..."),
@@ -72,11 +72,12 @@ class CustomAppForm(ContainerImageMixin, AppBaseForm):
         )
 
         advanced = AccordionGroup(
-            mark_safe("<h4>Advanced Settings</h4>"),
+            mark_safe("<h3>Advanced Settings</h3>"),
             PrependedText(
                 "default_url_subpath",
                 mark_safe("<span id='id_custom_default_url_prepend'>Subdomain/</span>"),
                 template="apps/partials/srv_prepend_append_input_group.html",
+                attrs={'aria-label': 'Custom URL subpath' },
             ),
             active=True,
         )

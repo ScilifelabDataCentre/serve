@@ -45,16 +45,16 @@
                 <div class="row">
                     <div class="col d-flex justify-content-end">
 
-                        {% include './pattern_selector.html' with project=project %}
+                        {% comment %} {% include './pattern_selector.html' with project=project %} {% endcomment %}
                     </div>
                 </div>
 
             </div>
 
             <div class="card-body">
-                <h5 class="card-title">
+                <h4 class="card-title">
                     {{project.name}}
-                </h5>
+                </h4>
                 <p><b>Project owner:</b> {{ project.owner.email }}</p>
             </div>
 

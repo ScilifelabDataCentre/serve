@@ -20,7 +20,7 @@
             {% static 'images/logos/apps/' as static_url %}
 
             <td class="d-none d-xxl-table-cell "><span class="me-2" style="text-align: center;"><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
-                    alt="App Logo" style="max-width:25px;min-width:20px;"></span>{{ instance.app.name }}</td>
+                    alt="{{ instance.app.name }} Logo" style="max-width:25px;min-width:20px;"></span>{{ instance.app.name }}</td>
             {% if instance.url %}
             <td class="sorting_1">
               {# 2025-02-20 I believe this fist if statement could be removed #}
@@ -51,7 +51,7 @@
                 </span>
             </td>
             <td class="text-center" data-cy="appstatus-cell ">
-                <span class="alert bg-secondary alert-app-table" id="status-{{ instance.app.slug }}-{{ instance.pk }}" title="" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
+                <span class="alert bg-secondary alert-app-table" id="status-{{ instance.app.slug }}-{{ instance.pk }}" title="Status for app" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
                     Refreshing...
                 </span>
             </td>
@@ -92,7 +92,7 @@
 
             <td class="table-action text-center">
                 <div class="dropdown show">
-                    <a href="#" class="default" data-bs-toggle="dropdown" data-display="static">
+                    <a href="#" class="default" data-bs-toggle="dropdown" data-display="static" aria-label="Options">
                         <i class="ellipsis vertical icon"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">

@@ -22,7 +22,7 @@
 
                                 {% static 'images/logos/apps/' as static_url %}
                             <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-50"
-                                alt="App Logo">
+                                alt="{{ app.name }} App Logo">
                             </div>
 
                         </div>
@@ -64,7 +64,7 @@
 
                                 {% static 'images/logos/apps/' as static_url %}
                             <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-50"
-                                alt="App Logo">
+                                alt="{{ app.name }} App Logo">
                             </div>
 
                         </div>

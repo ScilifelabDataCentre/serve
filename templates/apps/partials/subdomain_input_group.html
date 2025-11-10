@@ -1,6 +1,6 @@
 {% load get_setting %}
 <div class="input-group">
-    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="subdomain_options">Options</button>
+    <button class="btn btn-outline-secondary dropdown-toggle text-black" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="subdomain_options">Options</button>
     <ul class="dropdown-menu">
         <li>
             <a class="dropdown-item" href="#" hx-get="/api/htmx/subdomain-input/?type=newinput&project_id={{ project_pk }}" hx-target="#id_subdomain" hx-swap="outerHTML" onclick="clearSubdomainValidation()" id="new_subdomain">New</a>
