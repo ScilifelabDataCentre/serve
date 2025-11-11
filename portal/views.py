@@ -3,6 +3,8 @@ import requests
 import waffle  # type: ignore
 from django.apps import apps
 from django.conf import settings
+from django.contrib import messages
+from django.core.mail import send_mail
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -12,6 +14,7 @@ from apps.app_registry import APP_REGISTRY
 from apps.models import Apps, BaseAppInstance, SocialMixin
 from studio.utils import get_logger
 
+from .forms import TeachingRequestForm
 from .models import EventsObject, NewsObject
 
 logger = get_logger(__name__)
@@ -207,7 +210,58 @@ def roadmap(request):
 
 def teaching(request):
     template = "portal/teaching.html"
-    return render(request, template, locals())
+
+    if request.method == "POST":
+        form = TeachingRequestForm(request.POST)
+        if form.is_valid():
+            # Get form data
+            name = form.cleaned_data["name"]
+            email = form.cleaned_data["email"]
+            course_title = form.cleaned_data.get("course_title", "")
+            course_dates = form.cleaned_data.get("course_dates", "")
+            course_description = form.cleaned_data["course_description"]
+
+            # Prepare email content
+            subject = "New Teaching Request - SciLifeLab Serve"
+            message = f"""A new teaching request has been submitted:
+
+Name: {name}
+Email: {email}
+Course/Workshop/Webinar Title: {course_title or 'Not provided'}
+Date(s) and Time(s): {course_dates or 'Not provided'}
+
+Description:
+{course_description}
+
+---
+This email was sent from the SciLifeLab Serve teaching request form.
+"""
+
+            # Send email to DEFAULT_FROM_EMAIL
+            try:
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.EMAIL_FROM,
+                    recipient_list=[settings.DEFAULT_FROM_EMAIL],
+                    fail_silently=False,
+                )
+                # Show success message
+                messages.success(
+                    request,
+                    "Thank you! Your teaching request has been submitted successfully. We will get back to you soon.",
+                )
+                return redirect("portal:teaching")
+            except Exception as e:
+                logger.error(f"Error sending teaching request email: {e}", exc_info=True)
+                messages.error(
+                    request,
+                    "There was an error submitting your request. Please try again later or contact us directly.",
+                )
+    else:
+        form = TeachingRequestForm()
+
+    return render(request, template, {"form": form})
 
 
 def privacy(request):

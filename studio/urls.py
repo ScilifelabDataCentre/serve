@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
+from django_altcha import AltchaChallengeView
 
 from . import views
 
@@ -51,6 +52,7 @@ urlpatterns = (
         path("", include("models.urls", namespace="models")),
         path("", include("portal.urls", namespace="portal")),
         path("projects/<project>/apps/", include("apps.urls", namespace="apps")),
+        path("altcha/challenge/", AltchaChallengeView.as_view(), name="altcha_challenge"),
     ]
     + staticfiles_urlpatterns()
     + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
