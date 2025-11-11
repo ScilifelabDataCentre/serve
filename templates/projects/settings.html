@@ -113,19 +113,17 @@
                         </form>
                         <div class="mt-2">
                             or create new flavor:
-                            <form action="{% url 'projects:create_flavor' project.slug %}" method="post"
-                                class="mt-2">
+                            <form action="{% url 'projects:create_flavor' project.slug %}" method="post" class="mt-2">
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="flavor_name">Name</label>
-                                    <input type="text" name="flavor_name" id="flavor_name" value="" placeholder="N vCPU, N GB RAM"
-                                        class="form-control" />
+                                    <input type="text" name="flavor_name" id="flavor_name" class="form-control" value="" placeholder="N vCPU, N GB RAM"/>
                                 </div>
                                 <div class="mb-3">
                                     <label for="cpu_req">CPU request</label>
                                     <input type="text" name="cpu_req" id="cpu_req" value="200m" class="form-control" />
                                 </div>
-                                <div class="mb-3"></div>
+                                <div class="mb-3">
                                     <label for="cpu_lim">CPU limit</label>
                                     <input type="text" name="cpu_lim" id="cpu_lim" value="2000m" class="form-control" />
                                 </div>

@@ -323,7 +323,7 @@
 
             {% for news in news_objects %}
             <div class="col-md-12">
-                <div class="card border bg-white my-4 rounded" data-aos="slide-up"  style="min-height: 9rem;">              
+                <div class="card border bg-white my-4 rounded" data-aos="slide-up"  style="min-height: 9rem;">
                     <div class="card-body text-start py-2">
                         <a href="{% url 'portal:news' %}#{{ news.title|slugify }}" class="stretched-link w-100">
                         <div class="card-title d-flex justify-content-between align-items-center">
