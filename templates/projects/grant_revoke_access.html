@@ -80,9 +80,9 @@
 
             const url = "{% url 'projects:revoke_access' project.slug %}"
             const csrftoken = getCookie('csrftoken');
-            const elements = document.querySelectorAll(".confirm-revoke-access")
+            const revoke_elements = document.querySelectorAll(".confirm-revoke-access")
 
-            elements.forEach(element => {
+            revoke_elements.forEach(element => {
 
                 element.addEventListener("click", async evt => {
 
