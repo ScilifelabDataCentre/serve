@@ -150,6 +150,86 @@ describe("Tests of the public pages of the website", () => {
         }
     })
 
+    it("should open the Teaching page on footer link click", () => {
+        // Scroll to footer to make the link visible
+        cy.scrollTo('bottom')
+
+        // Click the Teaching link in the footer
+        cy.get('.footer a').contains('Teaching').click()
+
+        // Verify navigation to teaching page
+        cy.url().should("include", "/teaching")
+        cy.get("title").should("have.text", "Teaching | SciLifeLab Serve (beta)")
+
+        // Verify page content
+        cy.get('h3').should('contain', 'Using SciLifeLab Serve in teaching')
+        cy.get('h4').should('contain', 'Application form')
+
+        // Verify form fields are present
+        cy.get('input[name="name"]').should('exist')
+        cy.get('input[name="email"]').should('exist')
+        cy.get('input[name="course_title"]').should('exist')
+        cy.get('input[name="course_dates"]').should('exist')
+        cy.get('textarea[name="course_description"]').should('exist')
+        cy.get('input[name="captcha"]').should('exist')
+
+        // Verify form labels
+        cy.contains('label', 'Your name').should('exist')
+        cy.contains('label', 'Your email address').should('exist')
+        cy.contains('label', 'Description of course/workshop/webinar').should('exist')
+
+        // Verify submit button
+        cy.get('button[type="submit"]').should('contain', 'Submit application')
+    })
+
+    it("should validate the teaching form with invalid input", () => {
+        cy.visit("/teaching")
+        cy.get("title").should("have.text", "Teaching | SciLifeLab Serve (beta)")
+
+        // Try to submit empty form
+        cy.get('button[type="submit"]').click()
+
+        // Form should show validation errors (HTML5 validation)
+        cy.get('input[name="name"]').should('have.attr', 'required')
+        cy.get('input[name="email"]').should('have.attr', 'required')
+        cy.get('textarea[name="course_description"]').should('have.attr', 'required')
+
+        // Fill in invalid email
+        cy.get('input[name="name"]').type('Test User')
+        cy.get('input[name="email"]').type('invalid-email')
+        cy.get('textarea[name="course_description"]').type('Test description')
+
+        // Try to submit - browser validation should prevent submission
+        cy.get('button[type="submit"]').click()
+
+        // Email field should have validation error
+        cy.get('input[name="email"]').then(($input) => {
+            expect($input[0].validity.valid).to.be.false
+        })
+    })
+
+    it("should fill the teaching form with valid input", () => {
+        cy.visit("/teaching")
+        cy.get("title").should("have.text", "Teaching | SciLifeLab Serve (beta)")
+
+        // Fill in all form fields
+        cy.get('input[name="name"]').type('John Doe')
+        cy.get('input[name="email"]').type('john.doe@example.com')
+        cy.get('input[name="course_title"]').type('Introduction to Python')
+        cy.get('input[name="course_dates"]').type('2024-01-15 to 2024-01-17')
+        cy.get('textarea[name="course_description"]').type('A comprehensive course on Python programming for beginners.')
+
+        // Verify form fields have correct values
+        cy.get('input[name="name"]').should('have.value', 'John Doe')
+        cy.get('input[name="email"]').should('have.value', 'john.doe@example.com')
+        cy.get('input[name="course_title"]').should('have.value', 'Introduction to Python')
+        cy.get('input[name="course_dates"]').should('have.value', '2024-01-15 to 2024-01-17')
+        cy.get('textarea[name="course_description"]').should('have.value', 'A comprehensive course on Python programming for beginners.')
+
+        // Note: We don't submit the form here because Altcha captcha requires client-side solving
+        // which may take time. The form validation and field filling is tested above.
+    })
+
     after(() => {
         if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
             cy.log("Cleaning up test data via Django endpoint");

@@ -77,6 +77,7 @@ django-password-validators = "^1.7.3"
 django-htmx = "^1.18.0"
 regex = "^2024.11.6"
 django-gmailapi-json-backend = "^1.10"
+django-altcha = "^0.4.0"
 
 [tool.poetry.group.security.dependencies]
 # Security overrides
@@ -233,6 +234,7 @@ module = [
 	"setuptools.*",
 	"structlog.*",
 	"yaml.*",
+    "django_altcha.*",
 	]
 ignore_missing_imports = true
 
