@@ -38,7 +38,8 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
             "Provide a path to the Shiny app inside your " "Docker image if it is different from /srv/shiny-server/"
         )
         self.fields["shiny_site_dir"].bottom_help_text = mark_safe(
-            "<span class='fw-bold' id='id_shiny_site_dir_helptext'>Note:</span>Use this field to specify subfolder if you did not place your app directly in <i>/srv/shiny-server/</i>. "
+            "<span class='fw-bold' id='id_shiny_site_dir_helptext'>Note:</span> Use this field to specify"
+            " subfolder if you did not place your app directly in <i>/srv/shiny-server/</i>."
             'You can find more about it <a href="/docs/application-hosting/shiny/#wiki-toc-advanced-settings">'
             "in our documentation</a>."
         )

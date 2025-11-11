@@ -29,7 +29,8 @@ class DashForm(ContainerImageMixin, AppBaseForm):
         apps_url = reverse("portal:apps")
         self.fields["default_url_subpath"].bottom_help_text = mark_safe(
             (
-                f"<span class='fw-bold' id='id_default_url_subpath_helptext'>Note:</span> This changes the URL connected to the Open button for an app"
+                f"<span class='fw-bold' id='id_default_url_subpath_helptext'>Note:</span> "
+                f"This changes the URL connected to the Open button for an app"
                 f" on the Serve <a href='{apps_url}'>Apps & Models</a> page."
             )
         )
