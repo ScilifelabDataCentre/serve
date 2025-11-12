@@ -940,6 +940,7 @@ describe("Test deploying app", () => {
         const image_name_1 = "ghcr.io/alfredeen/hello-shiny:main-20241018-0849"
         const image_name_2 = "ghcr.io/alfredeen/shiny-example:main-20250325-1424"
         const image_port = "3838"
+        const subdomain_change = "shiny-app-new-subdomain"
         const createResources = Cypress.env('create_resources')
         const app_type = "Shiny App"
 
@@ -993,9 +994,48 @@ describe("Test deploying app", () => {
             verifyAppStatus(app_name, "Running", "Changing", "Running", "public", shinyAppCmdTimeoutMs)
 
             // wait for 30 seconds and check the app status again
-            // this long wait is needed to give the Shiny deployment time to switch out and delete the old pod
+            // we want to wait this long to ensure that the status is still correct after the Shiny deployment
+            // has rotated the pods
             cy.wait(30000).then(() => {
               verifyAppStatus(app_name, "Running", "Changing", "Running", "public", shinyAppCmdTimeoutMs)
+            })
+
+            // edit Shiny app: change the subdomain
+            cy.logf("Editing the shiny app settings field Subdomain", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('#id_subdomain').clear().type(subdomain_change)
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+
+            // verify that the app status now equals Running
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "public", shinyAppCmdTimeoutMs)
+
+            // wait for 30 seconds and check the app status again
+            // we want to wait this long to ensure that the status is still correct after the Shiny deployment
+            // has rotated the pods
+            cy.wait(30000).then(() => {
+              verifyAppStatus(app_name, "Running", "Changing", "Running", "public", shinyAppCmdTimeoutMs)
+            })
+
+            // edit Shiny app: change the access (permission) level
+            cy.logf("Editing the shiny app settings field Access", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('tr:contains("' + app_name + '")').find('i.bi-three-dots-vertical').click()
+            cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
+            cy.get('#id_access').select('Project')
+            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+
+            // verify that the app status now equals Running
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "project", shinyAppCmdTimeoutMs)
+
+            // wait for 30 seconds and check the app status again
+            // we want to wait this long to ensure that the status is still correct after the Shiny deployment
+            // has rotated the pods
+            cy.wait(30000).then(() => {
+              verifyAppStatus(app_name, "Running", "Changing", "Running", "project", shinyAppCmdTimeoutMs)
             })
 
             // delete the Shiny app
