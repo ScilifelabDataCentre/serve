@@ -157,7 +157,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name_project).should('not.exist')
+            cy.contains('h4.card-title', app_name_project).should('not.exist')
 
             // make this app public as an update and check that it works
             cy.logf("Now making the project app public", Cypress.currentTest)
@@ -229,13 +229,13 @@ if (Cypress.env('create_resources') === true) {
                 .and('include', default_url_subpath);
 
             cy.visit("/apps")
-            cy.get('h5.card-title').should('contain', app_name_public)
+            cy.get('h4.card-title').should('contain', app_name_public)
             cy.get('.card-text').find('p').should('contain', app_description)
 
             // Check that the public app is displayed on the homepage
             cy.logf("Now checking if the public app is displayed when not logged in.", Cypress.currentTest)
             cy.visit("/home/")
-            cy.get('h5').should('contain', app_name_public)
+            cy.get('h4').should('contain', app_name_public)
 
             // Log out and check that the public app is still displayed on the homepage
             cy.clearCookies();
@@ -244,7 +244,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/projects/')
             cy.get('h3').should('contain', 'Login required') // check that logout worked
             cy.visit("/")
-            cy.get('h5').should('contain', app_name_public)
+            cy.get('h4').should('contain', app_name_public)
             // Log back in
             cy.fixture('users.json').then(function (data) {
                 users = data
@@ -350,7 +350,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name_public_2).should('not.exist')
+            cy.contains('h4.card-title', app_name_public_2).should('not.exist')
         })
 
         it("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -396,7 +396,7 @@ if (Cypress.env('create_resources') === true) {
 
             cy.logf("Checking that the shiny app is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
-            cy.get('h5.card-title').should('contain', app_name)
+            cy.get('h4.card-title').should('contain', app_name)
             cy.get('.card-text').find('p').should('contain', app_description)
 
             cy.logf("Checking that instructions for running the app locally are displayed on public apps page", Cypress.currentTest)
@@ -408,8 +408,13 @@ if (Cypress.env('create_resources') === true) {
 
             cy.logf("Checking that source code URL is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
-            cy.get('a#source-code-url').should('have.attr', 'href', source_code_url)
-
+            // Find the card with specific app name and owner
+            cy.contains('h4.card-title', app_name)
+                .parents('.card')
+                    .within(() => {
+                        // Click the Details link
+                        cy.get('a[id^="source-code-url"]').should('have.attr', 'href', source_code_url)
+                    })
             cy.logf("Deleting the shiny app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -430,7 +435,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
         it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -515,7 +520,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
         it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -580,7 +585,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
         it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -647,7 +652,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
         it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -714,7 +719,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
         it("can modify app settings resulting in NO k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -808,7 +813,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name_edited).should('not.exist')
+            cy.contains('h4.card-title', app_name_edited).should('not.exist')
         })
 
         it("can modify app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -916,7 +921,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
         it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -1006,7 +1011,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('h3').should('contain', 'Public Applications & Models')
-            cy.contains('h5.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
         it("can set and change custom subdomain several times", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {

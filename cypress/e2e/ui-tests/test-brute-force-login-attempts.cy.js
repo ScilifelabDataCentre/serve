@@ -78,7 +78,7 @@ describe("Test brute force login attempts are blocked", () => {
         cy.loginViaUINoValidation(users.brute_force_login_user.email, "BAD-PASSWORD")
         // The user view should stay on login page
         cy.url().should("include", "accounts/login/")
-        cy.get('h1').should("have.text", "Your account has been locked")
+        cy.get('#locked-out-heading').should("have.text", "Your account has been locked")
 
     })
 

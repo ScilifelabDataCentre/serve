@@ -80,7 +80,7 @@
                             {% endif %}
                             {% endif %}
                             {% if app.source_code_url %}
-                            <a id="source-code-url-{{ app.source_code_url }}" target="_blank" title="Source code of the app" rel="Link to the source code of the app" href="{{ app.source_code_url }}" class="btn btn-outline-serve btn-sm"> <i class="bi bi-code-slash"></i> Source Code</a>
+                            <a id="source-code-url-{{ app.id }}" target="_blank" title="Source code of the app" rel="Link to the source code of the app" href="{{ app.source_code_url }}" class="btn btn-outline-serve btn-sm"> <i class="bi bi-code-slash"></i> Source Code</a>
                             {% endif %}
                             </div>
                             {% if "Serve" in app.name or app.name == "Python Model Deployment" %}

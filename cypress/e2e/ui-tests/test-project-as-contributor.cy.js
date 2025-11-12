@@ -106,10 +106,10 @@ describe("Test project contributor user functionality", () => {
         cy.get('.card-text').should('contain', project_description)
 
         cy.logf("Check that the correct deployment options are available", Cypress.currentTest)
-        cy.get('.card-header').find('h5').should('contain', 'Develop')
-        cy.get('.card-header').find('h5').should('contain', 'Serve')
-        cy.get('.card-header').find('h5').should('not.contain', 'Models')
-        cy.get('.card-header').find('h5').should('not.contain', 'Additional options [admins only]')
+        cy.get('.card-header').find('h4').should('contain', 'Develop')
+        cy.get('.card-header').find('h4').should('contain', 'Serve')
+        cy.get('.card-header').find('h4').should('not.contain', 'Models')
+        cy.get('.card-header').find('h4').should('not.contain', 'Additional options [admins only]')
 
         cy.logf("Check that project settings are available", Cypress.currentTest)
         cy.get('[data-cy="settings"]').click()
@@ -178,7 +178,7 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
 
         // Verify that the test project has been created
-        cy.get('h5.card-title').should('contain', project_name)
+        cy.get('h4.card-title').should('contain', project_name)
 
         cy.get('div#modalConfirmDelete').should('have.css', 'display', 'none')
 
@@ -289,7 +289,7 @@ describe("Test project contributor user functionality", () => {
         // get the second user's project's URL
         cy.logf("Checking the second user's project URL", Cypress.currentTest)
         cy.visit('/projects/')
-        cy.get('h5.card-title').should('contain', project_name) // check access to project
+        cy.get('h4.card-title').should('contain', project_name) // check access to project
         cy.get('a.btn').contains('Open').click()
         .then((href) => {
             cy.logf(href, Cypress.currentTest)
@@ -384,7 +384,7 @@ describe("Test project contributor user functionality", () => {
         // Check that the contributor's collaborator user has correct access
         cy.logf("Now checking access to project and apps", Cypress.currentTest)
         cy.visit('/projects/')
-        cy.get('h5.card-title').should('contain', project_name_access) // check access to project
+        cy.get('h4.card-title').should('contain', project_name_access) // check access to project
         cy.contains('.card-title', project_name_access).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('tr:contains("' + private_app_name + '")').should('not.exist') // private app not visible
         // to be added: go to URL and check that it does not open

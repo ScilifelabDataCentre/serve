@@ -191,7 +191,7 @@ describe("Test superuser access", () => {
 
         cy.logf("Verifying that a project of a regular user is visible", Cypress.currentTest)
         cy.visit("/projects/")
-        cy.get('h5.card-title').should('contain', project_name)
+        cy.get('h4.card-title').should('contain', project_name)
 
         cy.logf("Verifying that can edit the description of a project of a regular user", Cypress.currentTest)
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
@@ -505,7 +505,7 @@ describe("Test superuser access", () => {
         cy.logf("Create one more project to check it is possible to bypass the limit", Cypress.currentTest)
         cy.createBlankProject(project_name)
         cy.visit("/projects/")
-        cy.get('h5:contains("' + project_name + '")').its('length').should('eq', 11) // check that the superuser now bypassed the limit for regular users
+        cy.get('h4:contains("' + project_name + '")').its('length').should('eq', 11) // check that the superuser now bypassed the limit for regular users
 
         cy.logf("Now delete all created projects", Cypress.currentTest)
         Cypress._.times(11, () => {
