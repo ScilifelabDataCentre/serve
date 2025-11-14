@@ -21,20 +21,20 @@
                         </a>
                     </li> {% endcomment %}
                     <li class="nav-item mx-1">
-                        <a class="nav-link serve-main-nav {% if request.path == '/apps/' %}active{% endif %}" href="{% url 'portal:apps' %}" target="_self" title="Apps & Models">
+                        <a class="nav-link serve-main-nav transition-all duration-300 {% if request.path == '/apps/' %}active{% endif %}" href="{% url 'portal:apps' %}" target="_self" title="Apps & Models">
                             <i class="align-middle fas fa-cube"></i>
                             <span style="vertical-align:middle;">Apps & Models</span>
                         </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link serve-main-nav {% if '/docs/' in request.path %}active{% endif %}" href="/docs/" target="_self" title="User Guide">
+                        <a class="nav-link serve-main-nav transition-all duration-300 {% if '/docs/' in request.path %}active{% endif %}" href="/docs/" target="_self" title="User Guide">
                             <i class="align-middle fas fa-file-lines" style="margin-bottom:1px;"></i>
                             <span style="vertical-align:middle;">User Guide</span>
                         </a>
                     </li>
                     {% if request.user.is_authenticated %}
                     <li class="nav-item mx-1">
-                        <a class="nav-link serve-main-nav {% if '/projects/' in request.path %}active{% endif %}" href="{% url 'projects:index' %}" target="_self" title="My Projects">
+                        <a class="nav-link serve-main-nav transition-all duration-300  {% if '/projects/' in request.path %}active{% endif %}" href="{% url 'projects:index' %}" target="_self" title="My Projects">
                             <i class="align-middle fa-solid fa-folder"></i>
                             <span style="vertical-align:middle;">My Projects</span>
                         </a>

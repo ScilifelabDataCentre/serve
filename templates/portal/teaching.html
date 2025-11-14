@@ -3,9 +3,6 @@
 {% load static %}
 
 {% block title %}Teaching{% endblock %}
-{% block extra_head %}
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
-{% endblock %}
 
 {% block content %}
 
@@ -26,37 +23,79 @@
           before submitting the form below.</p>
         <h4 id="application">Application form</h4>
 
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
         <div class="container">
-            <form class="needs-validation" action="https://forms.dc.scilifelab.se/api/v1/form/lBN7bZBOomI5XwG6/incoming" method="POST" accept-charset="utf-8">
-            <input type='hidden' name='csrfmiddlewaretoken' value='{{ csrf_token }}' />
+            <form class="needs-validation" method="POST" action="{% url 'portal:teaching' %}">
+            {% csrf_token %}
             <div class="row justify-content-center">
               <div class="col-6 border rounded p-4">
                 <div class="mb-3">
-                  <label for="name" class="form-label">Your name*:</label>
-                  <input type="text" class="form-control" name="name" id="name" required>
+                  <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}{% if form.name.field.required %}*{% endif %}:</label>
+                  {{ form.name }}
+                  {% if form.name.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.name.errors }}
+                    </div>
+                  {% endif %}
                 </div>
                 <div class="mb-3">
-                  <label for="email" class="form-label">Your email address*:</label>
-                  <input type="email" class="form-control" name="email" id="email" required>
+                  <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}{% if form.email.field.required %}*{% endif %}:</label>
+                  {{ form.email }}
+                  {% if form.email.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.email.errors }}
+                    </div>
+                  {% endif %}
                 </div>
                 <div class="mb-3">
-                  <label for="course_title" class="form-label">Title of course/workshop/webinar:</label>
-                  <input type="text" class="form-control" name="course_title" id="course_title">
+                  <label for="{{ form.course_title.id_for_label }}" class="form-label">{{ form.course_title.label }}{% if form.course_title.field.required %}*{% endif %}:</label>
+                  {{ form.course_title }}
+                  {% if form.course_title.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.course_title.errors }}
+                    </div>
+                  {% endif %}
                 </div>
                 <div class="mb-3">
-                  <label for="course_dates" class="form-label">Date(s) and time(s) of couse/workshop/webinar:</label>
-                  <input type="text" class="form-control" name="course_dates" id="course_dates">
+                  <label for="{{ form.course_dates.id_for_label }}" class="form-label">{{ form.course_dates.label }}{% if form.course_dates.field.required %}*{% endif %}:</label>
+                  {{ form.course_dates }}
+                  {% if form.course_dates.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.course_dates.errors }}
+                    </div>
+                  {% endif %}
                 </div>
                 <div class="mb-3">
-                  <label for="course_description" class="form-label">Description of couse/workshop/webinar*:</label>
-                  <textarea class="form-control" name="course_description" id="course_description" rows="4" required></textarea>
-                  <div id="course_description_help" class="form-text">Please provide information about what computational tools you will need for your training event, what hardware requirements you have, how many participants you expect, for how long the computational tools will need to stay available.</div>
+                  <label for="{{ form.course_description.id_for_label }}" class="form-label">{{ form.course_description.label }}{% if form.course_description.field.required %}*{% endif %}:</label>
+                  {{ form.course_description }}
+                  {% if form.course_description.help_text %}
+                    <div id="course_description_help" class="form-text">{{ form.course_description.help_text }}</div>
+                  {% endif %}
+                  {% if form.course_description.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.course_description.errors }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="mb-3">
+                  <label for="{{ form.captcha.id_for_label }}" class="form-label">{{ form.captcha.label }}{% if form.captcha.field.required %}*{% endif %}:</label>
+                  {{ form.captcha }}
+                  {% if form.captcha.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.captcha.errors }}
+                    </div>
+                  {% endif %}
                 </div>
                 <div class="mb-3">
                   <button class="btn btn-primary" type="submit">Submit application</button>
-                </div>
-                <div class="mb-3">
-                  <div class="g-recaptcha" data-sitekey="6LcIedwrAAAAAEmBKHZSK6BiWEGi302M2ux4EKI0"></div>
                 </div>
               </div>
             </div>
@@ -73,14 +112,9 @@
   form.addEventListener('submit', function (event) {
     if (form.checkValidity() === false) {
       event.preventDefault();
-      alert("Please fill out all required fields.");
       event.stopPropagation();
-      form.classList.add('was-validated')
-    }
-    var recaptcha = $("#g-recaptcha-response").val();
-    if (recaptcha === "") {
-      event.preventDefault();
-      alert("Please tick 'I'm not a robot' above the 'Submit application' button.");
+      form.classList.add('was-validated');
+      return false;
     }
   });
 </script>

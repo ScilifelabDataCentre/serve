@@ -1,3 +1,4 @@
+from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, Field, PrependedText
 from crispy_forms.layout import Div, Layout
 from django import forms
@@ -45,38 +46,56 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
-        body = Div(
+
+        # Define AccordionGroups
+        general = AccordionGroup(
+            mark_safe("<h4>App Metadata</h4>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
-            SRVCommonDivField(
-                "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
-            ),
-            self._set_up_mount_path_helper(),
-            SRVCommonDivField("flavor"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+            active=True,
+        )
+
+        configuration = AccordionGroup(
+            mark_safe("<h4>Configuration Settings</h4>"),
+            SRVCommonDivField(
+                "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
+            ),
+            self._set_up_mount_path_helper(),
+            SRVCommonDivField("flavor"),
             SRVCommonDivField("port", placeholder="3838"),
             # Container image field
             self._setup_container_image_helper(),
-            Accordion(
-                AccordionGroup(
-                    "Advanced settings",
-                    PrependedText(
-                        "shiny_site_dir",
-                        "/srv/shiny-server/",
-                        template="apps/partials/srv_prepend_append_input_group.html",
-                    ),
-                    active=False,
-                ),
-            ),
-            css_class="card-body",
+            active=True,
         )
 
+        advanced = AccordionGroup(
+            mark_safe("<h4>Advanced Settings</h4>"),
+            PrependedText(
+                "shiny_site_dir",
+                "/srv/shiny-server/",
+                template="apps/partials/srv_prepend_append_input_group.html",
+            ),
+            active=True,
+        )
+
+        accordion = BS5Accordion(
+            general,
+            configuration,
+            advanced,
+            always_open=True,
+            css_class="form-accordion",
+        )
+        accordion.always_open = True  # Force property for Bootstrap 5.3+
+
+        body = Div(accordion, css_class="card-body")
+        body.always_open = True
         self.helper.layout = Layout(body, self.footer)
 
     def clean_shiny_site_dir(self):

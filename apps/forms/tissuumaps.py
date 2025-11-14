@@ -1,4 +1,7 @@
+from crispy_bootstrap5.bootstrap5 import BS5Accordion
+from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import Div, Field, Layout
+from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
@@ -17,23 +20,41 @@ class TissuumapsForm(AppBaseForm):
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
-        body = Div(
+
+        # Define AccordionGroups
+        general = AccordionGroup(
+            mark_safe("<h4>App Metadata</h4>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
+            SRVCommonDivField("access"),
+            active=True,
+        )
+
+        configuration = AccordionGroup(
+            mark_safe("<h4>Configuration Settings</h4>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
             Field("volume"),
             SRVCommonDivField("flavor"),
-            SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
-            css_class="card-body",
+            active=True,
         )
 
+        accordion = BS5Accordion(
+            general,
+            configuration,
+            always_open=True,
+            css_class="form-accordion",
+        )
+        accordion.always_open = True  # Force property for Bootstrap 5.3+
+
+        body = Div(accordion, css_class="card-body")
+        body.always_open = True
         self.helper.layout = Layout(body, self.footer)
 
     class Meta:

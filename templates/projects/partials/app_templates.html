@@ -13,24 +13,21 @@
             <div class="card h-100" data-cy="create-app-card">
                 <div class="card-body">
                     <div class="row g-0 w-100 h-100">
-                        <div class="col-8 d-flex align-items-bottom flex-column">
-                            <div class="pt-2">
+                        <div class="col-12 d-flex flex-row align-items-center">
+                            <div class="col-8 d-flex align-items-center">
                                 <h5>{{ app.name }}</h5>
+                                <i data-bs-toggle="tooltip" data-bs-placement="top" data-bs-delay="{&quot;show&quot;:&quot;500&quot;, &quot;hide&quot;:&quot;0&quot;}" style="color:orange;display: none;" class="bi bi-circle-fill align-items-center mt-1" aria-label="Waiting" data-bs-original-title="Waiting"></i>
                             </div>
-                            <div class="align-items-end d-flex h-100">
-                                <div>
-                                    <div class="row">
-                                        <div class="col small">
-                                            <p>{{ app.description }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            {% static 'images/logos/apps/' as static_url %}
-                            <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-75"
+                            <div class="col-4 d-flex justify-content-end">
+
+                                {% static 'images/logos/apps/' as static_url %}
+                            <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-50"
                                 alt="App Logo">
+                            </div>
+
+                        </div>
+                        <div class="col-12 d-flex justify-content-end flex-column">
+                           <p class="small">{{ app.description }}</p>
                         </div>
                     </div>
                 </div>
@@ -58,24 +55,21 @@
             <div class="card h-100" data-cy="create-app-card">
                 <div class="card-body">
                     <div class="row g-0 w-100 h-100">
-                        <div class="col-8 d-flex align-items-bottom flex-column">
-                            <div class="pt-2">
+                        <div class="col-12 d-flex flex-row align-items-center">
+                            <div class="col-8 d-flex align-items-center">
                                 <h5>{{ app.name }}</h5>
+                                <i data-bs-toggle="tooltip" data-bs-placement="top" data-bs-delay="{&quot;show&quot;:&quot;500&quot;, &quot;hide&quot;:&quot;0&quot;}" style="color:orange;display: none;" class="bi bi-circle-fill align-items-center mt-1" aria-label="Waiting" data-bs-original-title="Waiting"></i>
                             </div>
-                            <div class="align-items-end d-flex h-100">
-                                <div>
-                                    <div class="row">
-                                        <div class="col small">
-                                            <p>{{ app.description }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            {% static 'images/logos/apps/' as static_url %}
-                            <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-75"
+                            <div class="col-4 d-flex justify-content-end">
+
+                                {% static 'images/logos/apps/' as static_url %}
+                            <img src="{{static_url}}{{app.logo|default:'default-logo.svg'}}" class="img-fluid float-end w-50"
                                 alt="App Logo">
+                            </div>
+
+                        </div>
+                        <div class="col-12 d-flex justify-content-end flex-column">
+                           <p class="small">{{ app.description }}</p>
                         </div>
                     </div>
                 </div>

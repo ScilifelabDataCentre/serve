@@ -148,57 +148,65 @@
 /* links */
 
 a {
-    text-decoration: none;
-    display: inline-block;
+    text-decoration: none!important;
+    display: inline-block!important;
+    color: var(--bs-link-color);
+}
+
+a:hover {
+    color: var(--bs-link-color);
 }
 
 a.serve-teal {
-    color: var(--serve-teal);
+    color: var(--serve-teal)!important;
+    color: var(--bs-link-color);
 }
 
 a::after {
-    content: '';
-    display: block;
-    width: 0;
-    height: 1px;
-    background: #000;
-    transition: width .4s;
+    content: ''!important;
+    display: block!important;
+    width: 0!important;
+    height: 1px!important;
+    background: #000!important;
+    transition: width .4s!important;
 }
 
 a:hover::after, a:focus::after, a.active::after {
-    width: 100%;
+    width: 100%!important;
+    color: var(--bs-link-color)!important;
 }
 
 a.default::after{
-    content:none;
+    content:none!important;
 }
 
 a.default:hover::after, a.default:focus::after, a.default.active::after {
-    width: 100%;
+    width: 100%!important;
+    color: var(--bs-link-color);
 }
 
 a.btn::after{
-    content:none;
+    content:none!important;
 }
 
 a.btn:hover::after, a.btn:focus::after, a.btn.active::after {
-    width: 100%;
+    width: 100%!important;
 }
 
 .navbar-nav {
-    --bs-nav-link-color: var(--serve-dark-grey)
+    --bs-nav-link-color: var(--serve-dark-grey)!important;
 }
 
 /* text */
 
 p a {
-    color: var(--serve-teal);
+    color: var(--serve-teal)!important;
 }
 
 p a:hover,
 p a:focus,
 p a:active {
-    color: var(--serve-teal);
+    color: var(--serve-teal)!important;
 }
 
 
@@ -225,12 +233,12 @@ h6 {
 
 a.navbar-brand::after,
 a.tag::after {
-    display:none;
+    display:none!important;
 }
 
 .nav .nav-item .nav-link {
     color: var(--serve-teal);
-    font-weight: 500;
+    /* font-weight: 500!important; */
     font-size: 1.05rem;
 }
 
@@ -243,11 +251,11 @@ a.tag::after {
 /* app cards styling */
 
 .icon-external {
-    padding-left: 0.5rem;
+    padding-left: 0.5rem!important;
 }
 
 a.icon-external:hover::after, a:focus::after, a.active::after {
-    width: 0;
+    width: 0!important;
 }
 
 .description-more {
@@ -255,12 +263,22 @@ a.icon-external:hover::after, a:focus::after, a.active::after {
 }
 
 .description-app button {
-    display: inline;
-    background-color: transparent;
-    border: 0;
-    padding:0;
-    font-family: inherit;
-    color: var(--serve-teal);
+    display: inline!important;
+    background-color: transparent!important;
+    border: 0!important;
+    padding:0!important;
+    font-family: inherit!important;
+    color: var(--serve-teal)!important;
+}
+
+.description-toggle {
+    background-color: #c5ddde !important;
+    cursor: pointer!important;
+    vertical-align: text-bottom;
+    color: #2b2a2a !important;
+}
+.description-toggle:hover {
+    color: #2b2a2a !important
 }
 
 /* collections */
@@ -356,4 +374,73 @@ a.collection-logo:hover::after, a:focus::after, a.active::after {
 
 .tag-filter {
     cursor: pointer!important;
+}
+.ui.table {
+  width: 100%;
+  background: #fff;
+  margin: 1em 0;
+  border: 1px solid rgba(34, 36, 38, 0.15);
+  border-right-width: 1px!important;
+  box-shadow: none;
+  border-radius: 0.28571429rem;
+  text-align: left;
+  vertical-align: middle;
+  color: rgba(0, 0, 0, 0.87);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.ui.table>:not(caption)>*>* {
+    padding: .5rem .5rem;
+    background-color: var(--bs-table-bg);
+    border-bottom-width: 1px;
+    border-right-width: 1px;
+    box-shadow: inset 0 0 0 9999px var(--bs-table-accent-bg);
+    font-size: 0.9rem;
+}
+
+
+.alert-app-table {
+    padding: 0.2rem 0.4rem;
+    color: white;
+    font-size: 0.8rem;
+}
+
+.breadcrumb-divider-serve {
+   --bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='%236c757d'/%3E%3C/svg%3E&#34;)!important;
+}
+.ui.table > tbody > tr:nth-child(even) {
+  background-color: rgba(244, 244, 245, 0.709);
+}
+
+.toggle-tags {
+    color: #fff !important;
+    background-color: rgb(119 87 126) !important;
+    font-size: 0.6rem !important;
+}
+
+.accordion {
+	--bs-accordion-btn-color: #515050;;
+	--bs-accordion-btn-bg: #eeeeee;
+	--bs-accordion-active-color: black;
+	--bs-accordion-active-bg: #eeeeee;
+}
+
+.accordion-button:not(.collapsed)::after,
+.accordion-button::after {
+  background-image: unset !important;
+}
+
+.duration-300 {
+    transition-duration: .3s;
+}
+.transition-all {
+    transition-duration: .15s;
+    transition-property: all;
+    transition-timing-function:
+cubic-bezier(.4, 0, .2, 1);
+}
+
+.pointer {
+    cursor: pointer;
 }
