@@ -9,10 +9,26 @@
 name: Pa11y Accessibility Check
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - develop   # runs on merge to develop
+
+  # Adds ability to run this workflow manually
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+      tags:
+        description: 'Manual run'
+        required: false
+        type: boolean
 
 jobs:
   pa11y:
