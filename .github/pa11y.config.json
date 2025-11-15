@@ -1,13 +1,16 @@
 {
   "defaults": {
+    "chromeLaunchConfig": {
+      "args": [
+        "--no-sandbox",
+        "--disable-setuid-sandbox"
+      ],
+      "ignoreHTTPSErrors": true
+    },
     "hideElements": "div.g-recaptcha, div.plot_wrapper, iframe[style*='display: none']",
     "standard": "WCAG2AA",
-    "wait": 1500,
     "timeout": 120000,
-    "chromeLaunchConfig": {
-      "args": ["--no-sandbox", "--disable-setuid-sandbox"],
-      "ignoreHTTPSErrors": true
-    }
+    "wait": 1500
   },
   "urls": [
     "https://serve-dev.scilifelab.se/",
