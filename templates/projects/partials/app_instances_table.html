@@ -70,7 +70,7 @@
                 {% endif %}
               {% endif %}
             </td>
-            <td data-cy="hits-cell">
+            <td class="text-center" data-cy="hits-cell">
             {% if instance.unique_visitors_ip_count != 0 %}
                 {{ instance.unique_visitors_ip_count }}
             {% endif %}
@@ -84,7 +84,7 @@
     {% endfor %}
 
     {% if instance.tags.count > 3 %}
-        <a href="javascript:void(0);" class="badge badge-grape badge-ico toggle-tags">
+        <a href="javascript:void(0);" class="ui tiny label pointer toggle-tags">
             See more
         </a>
     {% endif %}

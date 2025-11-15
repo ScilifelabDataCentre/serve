@@ -17,21 +17,21 @@
                 <div class="search-container-filter me-3 w-50">
                   <input id="public-app-search" class="form-control search-input-filter search" placeholder="Search Apps..." {% if serialized_apps|length <= 0 %}disabled{% endif %} title="Search Apps" aria-label="Search Apps" >
                 </div>
-                <button class="btn btn-outline-dark btn-xs" type="button" id="filterButton" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" {% if serialized_apps|length <= 0 %}disabled{% endif %}>
+                <button class="btn btn-outline-dark btn-xs" tabindex="-1" type="button" id="filterButton" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" {% if serialized_apps|length <= 0 %}disabled{% endif %}>
                     <i class="fa-solid fa-sliders fa-sm"></i> <span class="ms-1">Filters</span>
                 </button>
             </div>
-            <div class="collapse mb-2" id="collapseFilters">
+            <div class="collapse mb-2" id="collapseFilters" aria-hidden="true" tabindex="-1">
               <div class="card">
-                <div class="card-header py-0">
-                  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="card-header py-1">
+                  <div class="navbar navbar-expand-lg navbar-light bg-light">
                     <div class="container-fluid d-flex flex-wrap">
                       <ul class="nav nav-pills serve-filter-nav justify-content-center">
                           <li class="nav-item me-2 mb-1">
                             <button class="nav-link btn rounded-pill position-relative active"  id="pills-app-types-tab" data-bs-toggle="pill" data-bs-target="#pills-app-types" type="button" role="tab" aria-controls="pills-app-types" aria-selected="true" onclick="resetFilterList()">
                               <div class="fas fa-cube fa-sm me-1"></div>
                               App Type
-                            <span class="card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
+                            <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
                               0
                             </span>
                           </button>
@@ -41,7 +41,7 @@
                             <button class="nav-link btn rounded-pill position-relative"  id="pills-organization-tab" data-bs-toggle="pill" data-bs-target="#pills-organization" type="button" role="tab" aria-controls="pills-organization" aria-selected="true" onclick="resetFilterList()">
                               <div class="fas fa-graduation-cap fa-sm me-1"></div>
                               Organizations
-                              <span class="card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
+                              <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
                                 0
                               </span>
                             </button>
@@ -50,7 +50,7 @@
                             <button class="nav-link btn rounded-pill position-relative" id="pills-department-tab" data-bs-toggle="pill" data-bs-target="#pills-department" type="button" role="tab" aria-controls="pills-department" aria-selected="true" onclick="resetFilterList()">
                               <div class="fas fa-building-columns fa-sm me-1"></div>
                               Departments
-                              <span class="card-department-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
+                              <span class="card-count-tag card-department-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
                                 0
                               </span>
                             </button>
@@ -59,7 +59,7 @@
                             <button class="nav-link btn rounded-pill position-relative" id="pills-keyword-tab" data-bs-toggle="pill" data-bs-target="#pills-keyword" type="button" role="tab" aria-controls="pills-keyword" aria-selected="true" onclick="resetFilterList()">
                               <div class="fas fa-tag fa-sm me-1"></div>
                               Keywords
-                              <span class="card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
+                              <span class="card-count-tag card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
                               0
                             </span>
                             </button>
@@ -70,17 +70,16 @@
                                 <span class="ms-1">Reset</span>
                               </button>
                           </li>
-                        </ul>
-
-                        <div class="search-container-filter w-25 d-flex mb-1 show-filter-search">
-                              <input id="filter-search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search Tags..." title="Search Tags" aria-label="Search Tags" >
-                              <button class="btn btn-outline-dark btn-xs d-flex align-items-center" type="button" onclick="resetFilters()">
-                                <i class="fa-solid fa-rotate-left fa-sm"></i>
-                                <span class="ms-1">Reset</span>
-                              </button>
-                          </div>
+                      </ul>
+                      <div class="search-container-filter w-25 d-flex mb-1 show-filter-search">
+                          <input id="filter-search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search Tags..." title="Search Tags" aria-label="Search Tags" >
+                          <button class="btn btn-outline-dark btn-xs d-flex align-items-center" type="button" onclick="resetFilters()">
+                            <i class="fa-solid fa-rotate-left fa-sm"></i>
+                            <span class="ms-1">Reset</span>
+                          </button>
+                      </div>
                     </div>
-                  </nav>
+                  </div>
                   </div>
                     <div class="tab-content" id="pills-tabContent">
                         <div class="tab-pane fade show active" id="pills-app-types" role="tabpanel" aria-labelledby="pills-app-types-tab">

@@ -11,15 +11,6 @@
         {% if not minimum %}
             <div class="col-12 col-lg-9 d-flex justify-content-lg-end justify-content-center py-2 zero-padding">
                 <ul class="nav text-center justify-content-center align-items-center" >
-                    {% comment %} <li class="nav-item mx-1 display-about">
-                        <a class="nav-link serve-main-nav {% if request.path == '/' %}active{% endif %}" href="{% url 'portal:home' %}" target="_self" title="Homepage">
-
-                            <i class="size-16 align-middle" data-feather="home"></i>
-
-                            <span style="vertical-align:middle;">Home</span>
-
-                        </a>
-                    </li> {% endcomment %}
                     <li class="nav-item mx-1">
                         <a class="nav-link serve-main-nav transition-all duration-300 {% if request.path == '/apps/' %}active{% endif %}" href="{% url 'portal:apps' %}" target="_self">
                             <i class="align-middle fas fa-cube"></i>
