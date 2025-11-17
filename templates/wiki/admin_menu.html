@@ -5,10 +5,10 @@
 <div class="row justify-content-center gy-2 mt-0 mb-2">
     <div class="col col-md-auto">
         <div class="btn-group" role="group">
-            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="{% trans "Sub-articles for" %} {{ article.current_revision.title }}">
+            <button class="btn btn-secondary dropdown-toggle" id="dropdownSubArticlesButton" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="{% trans "Sub-articles for" %} {{ article.current_revision.title }}">
                 <i class="bi bi-diagram-3-fill"></i> Sub-articles
             </button>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <div class="dropdown-menu" aria-labelledby="dropdownSubArticlesButton">
                 {% for child in children_slice %}
                     <a class="dropdown-item" href="{% url 'wiki:get' path=child.path %}">
                       {{ child.article.current_revision.title }}
@@ -26,10 +26,10 @@
     </div>
     <div class="col-md-auto">
         <div class="btn-group" role="group">
-            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="{% trans "Sub-articles for" %} {{ article.current_revision.title }}">
+            <button class="btn btn-secondary dropdown-toggle" id="dropdownNewArticleButton" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="{% trans "Sub-articles for" %} {{ article.current_revision.title }}">
                 <i class="bi bi-file-earmark-fill"></i> Add a new article
             </button>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <div class="dropdown-menu" aria-labelledby="dropdownNewArticleButton">
                 {% if urlpath.parent %}
                 <a class="dropdown-item" href="{% url 'wiki:create' path=urlpath.parent.path %}" style="padding: 7px;">
                   <i class="bi bi-arrow-right-short"></i>

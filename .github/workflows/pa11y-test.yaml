@@ -1,0 +1,67 @@
+# Pa11y: A tool to check accessibility issues on a webpage
+# Config file used by this workflow is in the ".github" directory
+#
+# This workflow:
+#  - runs on pushes to the "develop" branch
+#  - can also be run manually
+# -------------------------------------------------------------
+
+name: Pa11y Accessibility Check
+
+on:
+  push:
+    branches:
+      - develop   # runs on merge to develop
+
+  # Adds ability to run this workflow manually
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+      tags:
+        description: 'Manual run'
+        required: false
+        type: boolean
+
+jobs:
+  pa11y:
+    name: Pa11y Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delay execution by 10 minutes (only for develop)
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          echo "Merge into develop detected. Waiting 10 minutes before running Pa11y..."
+          sleep 600
+
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install Pa11y CI
+        run: npm install -g pa11y-ci
+
+      - name: Run Pa11y CI on configured public pages
+        run: |
+          pa11y-ci \
+            --config "${GITHUB_WORKSPACE}/.github/pa11y.config.json"
+
+      - name: Upload Pa11y reports (if generated)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa11y-ci-reports
+          path: pa11y-ci-report
+          if-no-files-found: ignore

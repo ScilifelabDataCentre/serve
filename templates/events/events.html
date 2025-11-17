@@ -18,7 +18,7 @@
 
     <div class="row text-center mt-3">
         <div class="col-12 text-center">
-            <h4>Upcoming events<h4>
+            <h4>Upcoming events</h4>
             <hr class="m-0 bg-teal border-0" style="height: 2px;">
         </div>
     </div>
@@ -28,7 +28,7 @@
     <div class="card mt-3 {% if forloop.counter|divisibleby:2 %}bg-grey-2{% endif %}" id="{{ event.title|slugify}}">
         <div class="row">
             <div class="d-sm-none d-md-block col-md-2">
-                    <div class="px-2 pb-1 mx-2 mx-lg-4 mx-xl-5 mt-3 d-flex flex-column rounded bg-teal">
+                    <div class="px-2 py-3 pb-1 mx-2 mx-lg-4 mx-xl-5 mt-3 d-flex flex-column rounded bg-teal">
                     <div class="px-2 fs-3 mx-auto text-light">{{ event.start_time|date:"j" }}</div>
                     <div class="pb-1 px-2 mx-auto text-light">{{ event.start_time|date:"M" }}</div>
                     </div>
@@ -63,7 +63,7 @@
 
     <div class="row text-center mt-5">
         <div class="col-12 text-center">
-            <h4>Past events<h4>
+            <h4>Past events</h4>
             <hr class="m-0 bg-teal border-0" style="height: 2px;">
         </div>
     </div>
@@ -73,9 +73,9 @@
     <div class="card mt-3 {% if forloop.counter|divisibleby:2 %}bg-grey-2{% endif %}" id="{{ event.title|slugify}}">
         <div class="row">
             <div class="d-sm-none d-md-block col-sm-2">
-                    <div class="px-2 pb-1 mx-2 mx-lg-4 mx-xl-5 mt-3 d-flex flex-column rounded bg-teal-075">
-                    <div class="px-2 fs-3 mx-auto text-light">{{ event.start_time|date:"j" }}</div>
-                    <div class="pb-1 px-2 mx-auto text-light">{{ event.start_time|date:"M" }}</div>
+                    <div class="px-2 py-3 pb-1 mx-2 mx-lg-4 mx-xl-5 mt-3 d-flex flex-column rounded bg-teal-075">
+                    <div class="px-2 fs-3 mx-auto text-dark">{{ event.start_time|date:"j" }}</div>
+                    <div class="pb-1 px-2 mx-auto text-dark">{{ event.start_time|date:"M" }}</div>
                     </div>
             </div>
             <div class="col-sm-12 col-md-10">

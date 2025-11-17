@@ -97,9 +97,7 @@
     bottom: 20px;
     right: 20px;
     display: none;
-    padding: 0px;
-    width: 3rem;
-    height: 3rem;
+    font-size: medium;
     opacity: 0.5;
 }
 
@@ -402,8 +400,12 @@ a.collection-logo:hover::after, a:focus::after, a.active::after {
 
 .alert-app-table {
     padding: 0.2rem 0.4rem;
-    color: white;
+    color: rgb(255, 255, 255);
     font-size: 0.8rem;
+}
+
+.alert.bg-warning.alert-app-table {
+    color: #000000!important;
 }
 
 .breadcrumb-divider-serve {
@@ -443,4 +445,36 @@ cubic-bezier(.4, 0, .2, 1);
 
 .pointer {
     cursor: pointer;
+}
+
+.link {
+    text-decoration: none!important;
+    display: inline-block!important;
+    color: var(--bs-link-color);
+}
+
+.link:hover {
+    color: var(--bs-link-color);
+}
+.link::after {
+    content: ''!important;
+    display: block!important;
+    width: 0!important;
+    height: 1px!important;
+    background: #000!important;
+    transition: width .4s!important;
+}
+
+.link:hover::after, .link:focus::after, .link.active::after {
+    width: 100%!important;
+    color: var(--bs-link-color)!important;
+}
+
+.link.default::after{
+    content:none!important;
+}
+
+.link.default:hover::after, .link.default:focus::after, .link.default.active::after {
+    width: 100%!important;
+    color: var(--bs-link-color);
 }

@@ -102,13 +102,13 @@ describe("Tests of the public pages of the website", () => {
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
 
             // Find the card with specific app name and owner
-            cy.contains('h5.card-title', TEST_APP_DATA.name)
+            cy.contains('h4.card-title', TEST_APP_DATA.name)
                 .parents('.card')
                     .within(() => {
                         // Verify owner information within the same card
                         cy.contains('div.col-12', `${TEST_USER_DATA.first_name} ${TEST_USER_DATA.last_name}`)
                         // Click the Details link
-                        cy.get('a#app-metadata')
+                        cy.get('a[id^="app-metadata"]')
                             .invoke('removeAttr', 'target') // Remove target="_blank"
                                 .click()
                     })
@@ -126,7 +126,7 @@ describe("Tests of the public pages of the website", () => {
             cy.get('#owner_aff').should('contain', 'Uppsala universitet (Uppsala University)')
 
             // Verify download link exists and has correct href
-            cy.contains('a.btn-lg', 'Download All Metadata (JSON)')
+            cy.contains('a.btn.btn-primary', 'Download All Metadata (JSON)')
                 .should('have.attr', 'href')
                     .and('include', '/apps/metadata/')
                         .and('include', '?format=json')
@@ -135,7 +135,7 @@ describe("Tests of the public pages of the website", () => {
             cy.intercept('GET', '**/metadata/**/*?format=json').as('metadataDownload')
 
             // Click the download link (opens in same tab)
-            cy.contains('a.btn-lg', 'Download All Metadata (JSON)')
+            cy.contains('a.btn.btn-primary', 'Download All Metadata (JSON)')
                 .invoke('removeAttr', 'target') // Remove target="_blank"
                     .click()
 

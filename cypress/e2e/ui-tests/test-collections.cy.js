@@ -102,7 +102,7 @@ describe("Test collections functionality", () => {
 
         // check that the app that was added to the collection is displayed
         cy.get('h4#apps').should("exist")
-        cy.get('h5.card-title').contains(collection_app_name).should('exist')
+        cy.get('h4.card-title').contains(collection_app_name).should('exist')
 
         // check that datasets entry fetching worked
         cy.get('h4#datasets').should("exist")

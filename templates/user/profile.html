@@ -17,20 +17,20 @@
         <div class="card-body">
             <div class="row">
                 <div class="col">
-                    <form>
+                    <div>
                         <div class="row pt-4">
-                            <h6 class="fw-bold">Account</h6>
+                            <h4 class="fw-bold">Account</h4>
                         </div>
 
                         <div class="row pt-1">
                             <div class="col-4"><label for="id_email">Email address:</label></div>
-                            <div class="col-8 fw-bold"><input type="text" name="email" value="{{user.email}}" class="form-control" maxlength="254" disabled aria-describedby="id_email_helptext" id="id_email"></div>
+                            <div class="col-8 fw-bold"><input type="text" name="email" value="{{user.email}}" class="form-control" maxlength="254" disabled id="id_email"></div>
                             <div class="col-4"></div>
 
                         </div>
 
                         <div class="row pt-4">
-                            <h6 class="fw-bold">Contact</h6>
+                            <h4 class="fw-bold">Contact</h4>
                         </div>
 
                         <div class="row">
@@ -48,21 +48,21 @@
                         </div>
 
                         <div class="row pt-1">
-                            <div class="col-4"><label for="id_affiliation">University:</label></div>
+                            <div class="col-4"><label for="userAffiliation">University:</label></div>
                             <div class="col-8 fw-bold"><input type="text" name="affiliation" disabled value="{{user_profile.affiliation}}" class="form-control" id="userAffiliation"></div>
                             <div class="col-4"></div>
                         </div>
 
                         <div class="row pt-1">
                             <div class="col-4"><label for="id_department">Department:</label></div>
-                            <div class="col-8 fw-bold"><input type="text" name="department" disabled value="{{user_profile.department}}" class="form-control" list="list__department-list" aria-describedby="id_department_helptext" id="id_department"></div>
+                            <div class="col-8 fw-bold"><input type="text" name="department" disabled value="{{user_profile.department}}" class="form-control" list="list__department-list" id="id_department"></div>
                             <div class="col-4"></div>
 
 
                         </div>
-                    </form>
+                    </div>
                     <div class="row pt-5">
-                        <h5>Delete Account</h5>
+                        <h4 class="fw-bold">Delete Account</h4>
                         <p>
                             To delete your account, <a href="{% url 'delete_account' %}">visit this page</a>.
                         </p>
