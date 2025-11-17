@@ -5,7 +5,13 @@
         <div class="row">
             <div class="col-12 col-lg-3 d-flex align-items-center justify-content-lg-start justify-content-center py-2">
                 <a href="/" class="navbar-brand w-100">
-                    <img src="{% static 'images/scilifelab_serve_logo.svg' %}" title="SciLifeLab Serve (beta)" alt="SciLifeLab Serve Logo" style="width:100%; max-height:2.2rem">
+                    <img id="navbar-logo"
+                         src="{% static 'images/scilifelab_serve_logo.svg' %}"
+                         data-normal-logo="{% static 'images/scilifelab_serve_logo.svg' %}"
+                         data-christmas-logo="{% static 'images/christmas/scilifelab_serve_logo_christmas.svg' %}"
+                         title="SciLifeLab Serve (beta)"
+                         alt="SciLifeLab Serve Logo"
+                         style="width:100%; max-height:2.2rem">
                 </a>
             </div>
         {% if not minimum %}
@@ -71,6 +77,12 @@
                     </li>
 
                     {% endif %}
+                    <li class="nav-separator"></li>
+                    <li class="nav-item mx-1 d-flex align-items-center">
+                        <button type="button" class="christmas-toggle" id="christmas-toggle" title="Toggle Christmas Theme" aria-label="Toggle Christmas Theme">
+                            <i class="fa-solid fa-snowflake"></i>
+                        </button>
+                    </li>
                 </ul>
             </div>
         {% endif %}
