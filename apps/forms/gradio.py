@@ -6,14 +6,14 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import ContainerImageMixin
+from apps.forms.mixins import ContainerImageMixin, StorageMixin
 from apps.models import GradioInstance
 from projects.models import Flavor
 
 __all__ = ["GradioForm"]
 
 
-class GradioForm(ContainerImageMixin, AppBaseForm):
+class GradioForm(StorageMixin, ContainerImageMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
@@ -25,6 +25,7 @@ class GradioForm(ContainerImageMixin, AppBaseForm):
 
         # Setup container image field from mixin
         self._setup_container_image_field()
+        self._set_up_mount_path_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -48,8 +49,7 @@ class GradioForm(ContainerImageMixin, AppBaseForm):
         configuration = AccordionGroup(
             mark_safe("<h3>Configuration Settings</h3>"),
             SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
-            Field("volume"),
-            SRVCommonDivField("path", placeholder="/home/..."),
+            self._set_up_mount_path_helper(),
             SRVCommonDivField("flavor"),
             SRVCommonDivField("port", placeholder="8000"),
             self._setup_container_image_helper(),
@@ -68,28 +68,8 @@ class GradioForm(ContainerImageMixin, AppBaseForm):
         body.always_open = True
         self.helper.layout = Layout(body, self.footer)
 
-    def clean_path(self):
-        cleaned_data = super().clean()
-
-        path = cleaned_data.get("path", None)
-        volume = cleaned_data.get("volume", None)
-
-        if volume and not path:
-            self.add_error("path", "Path is required when volume is selected.")
-
-        if path and not volume:
-            self.add_error("path", "Warning, you have provided a path, but not selected a volume.")
-
-        if path:
-            # If new path matches current path, it is valid.
-            if self.instance and getattr(self.instance, "path", None) == path:
-                return path
-            # Verify that path starts with "/home"
-            path = path.strip().rstrip("/").lower().replace(" ", "")
-            if not path.startswith("/home"):
-                self.add_error("path", 'Path must start with "/home"')
-
-        return path
+    def clean(self):
+        return self._clean()
 
     class Meta:
         model = GradioInstance
@@ -105,6 +85,7 @@ class GradioForm(ContainerImageMixin, AppBaseForm):
             "port",
             "image",
             "tags",
+            "mount_path",
         ]
         labels = {
             "note_on_linkonly_privacy": "Reason for choosing the link only option",

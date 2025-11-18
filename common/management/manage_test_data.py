@@ -3,7 +3,13 @@ from django.contrib.auth.models import User
 from apps.app_registry import APP_REGISTRY
 from apps.helpers import create_instance_from_form
 from common.models import UserProfile
-from projects.models import Environment, Flavor, Project, ProjectTemplate
+from projects.models import (
+    Environment,
+    Flavor,
+    PersistentVolumeMountPath,
+    Project,
+    ProjectTemplate,
+)
 from projects.tasks import create_resources_from_template
 
 
@@ -123,6 +129,15 @@ class TestDataManager:
 
         self.app_data["flavor"] = str(flavor.pk)
         self.app_data["environment"] = str(environment.pk)
+
+        # Handle mount_path: if not specified or set to "default", use the default mount path for the project
+        if "mount_path" not in self.app_data or self.app_data.get("mount_path") == "default":
+            default_mount_path = PersistentVolumeMountPath.objects.filter(
+                volume__project=project, is_default=True
+            ).first()
+            if default_mount_path:
+                self.app_data["mount_path"] = str(default_mount_path.pk)
+            # If no default mount path exists, leave it unset (None/no storage)
 
         # Check if the model form tuple exists
         if app_slug not in APP_REGISTRY:

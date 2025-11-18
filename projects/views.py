@@ -1,4 +1,6 @@
 import logging
+from collections import defaultdict
+from itertools import chain
 
 from django.apps import apps
 from django.conf import settings as django_settings
@@ -8,13 +10,15 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Model, Q
 from django.http import (
+    HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
     HttpResponseForbidden,
     HttpResponseRedirect,
     JsonResponse,
 )
-from django.shortcuts import render, reverse
+from django.shortcuts import get_object_or_404, render, reverse
+from django.template.loader import render_to_string
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
@@ -22,10 +26,18 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.helpers import get_cached_ip_count
+from apps.models import BaseAppInstance, VolumeInstance
 from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException
-from .models import Environment, Flavor, Project, ProjectLog, ProjectTemplate
+from .models import (
+    Environment,
+    Flavor,
+    PersistentVolumeMountPath,
+    Project,
+    ProjectLog,
+    ProjectTemplate,
+)
 from .tasks import create_resources_from_template, delete_project
 
 logger = logging.getLogger(__name__)
@@ -107,6 +119,31 @@ def settings(request, project_slug):
     )
 
     flavors = Flavor.objects.filter(project=project)
+    volumes = VolumeInstance.objects.filter(project=project).order_by("created_on")
+    # I think the way is to iterate over orm models of applications
+    # and collect mappings from model path to app instances
+    mount_paths_to_apps = defaultdict(list)
+    orms_with_mount_paths = []
+    for app_orm in APP_REGISTRY.iter_orm_models():
+        if hasattr(app_orm, "mount_path"):
+            orms_with_mount_paths.append(app_orm)
+    apps_with_volumes = list(
+        chain.from_iterable(
+            orm.objects.get_app_instances_of_project(
+                project=project,
+                user=request.user,
+                filter_func=Q(
+                    volume__in=volumes,
+                ),
+            )
+            for orm in orms_with_mount_paths
+        )
+    )
+    volume__mountpath__to_app = {vol: defaultdict(set) for vol in volumes}
+    for app in apps_with_volumes:
+        volume__mountpath__to_app[app.volume][app.mount_path].add(app)
+    for dct in volume__mountpath__to_app.values():
+        dct.default_factory = None
 
     return render(request, template, locals())
 
@@ -666,3 +703,209 @@ def delete(request, project_slug):
     delete_project.delay(project.pk)
 
     return HttpResponseRedirect(next_page, {"message": "Deleted project successfully."})
+
+
+@login_required
+@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
+def request_storage(request, project_slug, volume_id):
+    """Handle storage increase requests for a volume."""
+    project = get_object_or_404(Project, slug=project_slug)
+    volume = get_object_or_404(VolumeInstance, id=volume_id, project=project)
+
+    if request.method == "GET":
+        # Return the modal form
+        return render(
+            request, "projects/partials/settings/storage_request_modal.html", {"project": project, "volume": volume}
+        )
+
+    elif request.method == "POST":
+        requested_size = request.POST.get("requested_size")
+        request_reason_type = request.POST.get("request_reason_type")
+        request_reason = request.POST.get("request_reason", "")
+
+        if not requested_size or not request_reason_type:
+            return render(
+                request,
+                "projects/partials/settings/storage_request_modal.html",
+                {
+                    "project": project,
+                    "volume": volume,
+                    "error": "Please provide both the requested size and reason type.",
+                },
+            )
+
+        # If reason type is 'other', custom reason is required
+        if request_reason_type == "other" and not request_reason:
+            return render(
+                request,
+                "projects/partials/settings/storage_request_modal.html",
+                {
+                    "project": project,
+                    "volume": volume,
+                    "error": "Please provide a custom reason when selecting 'Other'.",
+                },
+            )
+
+        # Map reason type to full text for predefined reasons
+        reason_mapping = {
+            "project_requirements": "Project requirements increased",
+            "tissuumaps": "I require more storage for TissUUmaps",
+            "future_needs": "I will need more data in the future",
+        }
+
+        # Use mapped reason or custom reason
+        final_reason = reason_mapping.get(request_reason_type, request_reason)
+
+        try:
+            requested_size = int(requested_size)
+            if requested_size < 1:
+                raise ValueError()
+        except ValueError:
+            return render(
+                request,
+                "projects/partials/settings/storage_request_modal.html",
+                {"project": project, "volume": volume, "error": "Requested size must be no less than 1 GB."},
+            )
+
+        # Prepare email content
+        context = {
+            "user": request.user,
+            "project": project,
+            "volume": volume,
+            "requested_size": requested_size,
+            "request_reason": final_reason,
+            "current_size": volume.size,
+        }
+
+        email_subject = f"Storage Increase Request - Project: {project.name}"
+        email_body = render_to_string("projects/emails/storage_request_email.txt", context)
+
+        try:
+            send_email_task.delay(
+                subject=email_subject,
+                message=email_body,
+                recipient_list=[django_settings.DEFAULT_FROM_EMAIL],
+                from_email=django_settings.EMAIL_FROM,
+            )
+            return HttpResponse(
+                '<div class="alert alert-success" role="alert">'
+                "Your storage increase request has been submitted successfully."
+                "</div>"
+            )
+        except Exception as err:
+            logger.error(f"Failed to send storage request email: {str(err)}", exc_info=True)
+            return render(
+                request,
+                "projects/partials/settings/storage_request_modal.html",
+                {
+                    "project": project,
+                    "volume": volume,
+                    "error": "Failed to submit your request. Please try again later.",
+                },
+            )
+
+    return HttpResponseBadRequest()
+
+
+@login_required
+@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
+def increase_volume_size(request: HttpRequest, project_slug: str, volume_id: int) -> HttpResponse:
+    """Increase volume size to 5GB."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Only POST method is allowed")
+
+    project = get_object_or_404(Project, slug=project_slug)
+    volume = get_object_or_404(VolumeInstance, id=volume_id, project=project)
+
+    if volume.size >= 5:
+        return JsonResponse({"error": "Volume size is already 5GB or larger"}, status=400)
+
+    # Update volume size
+    original_size = volume.size
+    volume.size = 5
+    volume.save()
+
+    # Create form data for redeployment
+    from apps.forms.volumes import VolumeForm
+    from apps.helpers import create_instance_from_form
+
+    # Create form instance with volume data
+    form_data = {
+        "name": volume.name,
+        "size": volume.size,
+    }
+    form = VolumeForm(data=form_data, instance=volume)
+
+    if form.is_valid():
+        try:
+            # Redeploy with updated size
+            create_instance_from_form(form=form, project=project, app_slug="volumeK8s", app_id=volume.id)
+            return JsonResponse({"message": "Volume size increased to 5GB and redeployment initiated"})
+        except Exception as e:
+            volume.size = original_size
+            volume.save()
+            logger.error(f"Failed to redeploy volume after size increase: {str(e)}")
+            return JsonResponse(
+                {"error": "Failed to increase volume size. Please try again or contact support."},
+                status=500,
+            )
+    else:
+        logger.error(f"Invalid form data for volume redeployment: {form.errors}")
+        return JsonResponse({"error": "Failed to increase volume size due to invalid data"}, status=500)
+
+
+@login_required
+@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
+def update_storage_settings(request, project_slug):
+    project = get_object_or_404(Project, slug=project_slug)
+
+    volumes = VolumeInstance.objects.filter(project=project).prefetch_related("mount_paths")
+
+    if request.method == "POST":
+        for vol in volumes:
+            # Each volume sends multiple inputs named paths_<volume.id>
+            raw_paths = request.POST.getlist(f"paths_{vol.id}")
+            # normalize: strip, drop empties, dedupe while preserving order
+            seen = set()
+            paths = []
+            for p in (rp.strip().rstrip("/").lower().replace(" ", "") for rp in raw_paths):
+                if p and p not in seen:
+                    seen.add(p)
+                    paths.append(p)
+
+            # compute current vs desired
+            existing = list(vol.mount_paths.values_list("mount_path", flat=True))
+            to_delete = set(existing) - set(paths)
+            to_create = [p for p in paths if p not in existing]
+            logger.info(f"Going to create mount paths: {to_create}, delete: {to_delete} for volume {vol.name}")
+
+            error = ""
+            for p in to_create:
+                if not p.startswith(("/home", "/srv")):
+                    error = f'Path {p} must start with "/home" or "/srv"'
+                    break
+
+            if error:
+                messages.error(request, error)
+                break
+
+            if to_delete:
+                PersistentVolumeMountPath.objects.filter(
+                    volume=vol, mount_path__in=to_delete, is_default=False
+                ).delete()
+            if to_create:
+                PersistentVolumeMountPath.objects.bulk_create(
+                    [PersistentVolumeMountPath(volume=vol, mount_path=p) for p in to_create],
+                    ignore_conflicts=True,  # harmless if unique_together added later
+                )
+        else:
+            messages.success(request, "Storage settings saved.")
+
+    # GET: render the form
+    return HttpResponseRedirect(
+        reverse(
+            "projects:settings",
+            kwargs={"project_slug": project.slug},
+        )
+        + "?tab=storage",
+    )

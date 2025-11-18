@@ -1,5 +1,14 @@
 <div id="div_{{ field.id_for_label }}" class="{% if wrapper_class %}{{ wrapper_class }}{% endif %}">
-    {% include "apps/partials/div_label_with_help_toggle.html" %}
+    <div>
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ help_message }}">
+        </span>
+        <a class="btn btn-light btn-sm" href="{% url 'projects:settings' project_slug %}?tab=storage" role="button">
+          <span class="bi bi-hdd-rack-fill text-muted">
+            Manage storage
+          </span>
+        </a>
+    </div>
 
     <div style="display: block; clear:both;">
         {% if spinner %}
@@ -12,7 +21,7 @@
         {{ field }}
         <div class="client-validation-feedback" style="display:none;"></div>
         {% if field.help_text %}
-            <small id="{{ field.id_for_label }}_helptext" class="form-text text-muted d-block">{{ field.help_text }}</small>
+            <small id="id_mount_path_helptext" class="form-text text-muted">{{ field.help_text }}</small>
         {% endif %}
         {% for error in field.errors %}
             <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>

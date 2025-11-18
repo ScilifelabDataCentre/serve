@@ -1,0 +1,49 @@
+{# projects/templates/projects/storage.html #}
+<!-- Modal container for storage requests -->
+<div id="storageRequestModalContainer"></div>
+
+<div class="card shadow border-0">
+  <div class="card-header bg-light py-3">
+    <h4 class="card-title mb-0">Storage settings</h4>
+    <p class="mb-0">
+      Configure and manage the storage volumes associated with this project. Use the tabs below to navigate between different volumes and adjust their settings as needed.
+      {{ errors }}
+    </p>
+  </div>
+
+  <div class="card-header px-3 pt-2">
+    <ul class="nav nav-tabs card-header-tabs" id="volumeTabs" role="tablist">
+      {% for volume in volumes %}
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link {% if forloop.first %}active{% endif %}"
+            id="vol{{ volume.id|stringformat:'s' }}-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#vol{{ volume.id|stringformat:'s' }}"
+            type="button"
+            role="tab"
+            aria-controls="vol{{ volume.id|stringformat:'s' }}"
+            aria-selected="{{ forloop.first|yesno:'true,false' }}"
+          >
+            {{ volume.name }}
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <form action="{% url 'projects:update_storage_settings' project.slug %}" method="post">
+    {% csrf_token %}
+    <div class="card-body">
+      <div class="tab-content" id="volumeTabsContent">
+        {% for volume, mount_path_to_app in volume__mountpath__to_app.items %}
+          {% include "projects/partials/settings/settings_volume_view.html" with project=project volume=volume mount_path_to_app=mount_path_to_app active=forloop.first %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card-footer d-flex justify-content-end">
+      <button type="submit" class="btn btn-square btn-primary">Save</button>
+    </div>
+  </form>
+</div>

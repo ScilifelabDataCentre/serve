@@ -31,6 +31,10 @@
                     role="tab">
                     Access
                 </a>
+                <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#storage"
+                    role="tab">
+                    Storage
+                </a>
                 {% if enable_extra_settings or request.user.is_superuser %}
                 <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#flavors"
                     role="tab">
@@ -57,35 +61,13 @@
             {% include 'common/flash_messages.html' %}
 
             <div class="tab-pane fade show active" id="projdesc" role="tabpanel">
-                <div class="card shadow border-0">
-
-                    <div class="card-header bg-light py-3">
-                        <h4 class="card-title mb-0">Change project description</h4>
-                    </div>
-                    <form action="{% url 'projects:change_description' project.slug %}" method="post">
-                        {% csrf_token %}
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Name</label>
-                                <input type="text" class="form-control" id="name" name="name" contenteditable="true"
-                                    value="{{ project.name }}">
-                            </div>
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Description</label>
-                                <textarea class="form-control" rows="5" id="description" name="description"
-                                    contenteditable="true">{% if project.description %}{{ project.description }}{% endif %}</textarea>
-                            </div>
-                        </div>
-                        <div class="card-footer d-flex justify-content-end">
-                                <button type="submit" class="btn btn-square btn-primary">Save</button>
-                        </div>
-                    </form>
-                </div>
+                {% include 'projects/partials/settings/project_description.html' %}
             </div>
             <div class="tab-pane fade" id="access" role="tabpanel">
-
-                {% include './grant_revoke_access.html' %}
-
+                {% include 'projects/partials/settings/grant_revoke_access.html' %}
+            </div>
+            <div class="tab-pane fade" id="storage" role="tabpanel">
+              {% include 'projects/partials/settings/storage.html' %}
             </div>
 
             {% if enable_extra_settings or request.user.is_superuser %}
@@ -276,31 +258,43 @@
 </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Get tab from ?tag=... in URL
+    const params = new URLSearchParams(window.location.search);
+    const wanted = params.get('tab');
 
-    const queryString = window.location.search;
-    const urlParams = new URLSearchParams(queryString);
-    const template = urlParams.get("template")
+    if (wanted) {
+      const trigger = document.querySelector(`a[data-bs-toggle="list"][href="#${wanted}"]`);
+      const pane = document.getElementById(wanted);
 
-    if (!!template) {
+      if (trigger && pane) {
+        // Clear only the sidebar's active
+        const sidebar = trigger.closest('.list-group');
+        if (sidebar) {
+          sidebar.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
+        }
 
-        const element = document.getElementById(template)
-        element.classList.add("active")
-        element.classList.add("show")
+        // Clear only within the same tab-content as the pane we're about to show
+        const container = pane.closest('.tab-content');
+        if (container) {
+          container.querySelectorAll(':scope > .tab-pane.active, :scope > .tab-pane.show')
+            .forEach(el => el.classList.remove('active', 'show'));
+        }
 
-        const linkElement = document.querySelector(`[href="#${template}"]`)
-
-        linkElement.classList.add("active")
-
-        const defaultId = "projdesc"
-
-        const defaultElement = document.getElementById(defaultId)
-        defaultElement.classList.remove("active")
-        defaultElement.classList.remove("show")
-
-        const defaultLinkElement = document.querySelector(`[href="#${defaultId}"]`)
-
-        defaultLinkElement.classList.remove("active")
+        // Now show the requested top-level tab
+        new bootstrap.Tab(trigger).show();
+      }
     }
 
+    // Keep URL updated when switching tabs
+    document.querySelectorAll('a[data-bs-toggle="list"]').forEach(a => {
+      a.addEventListener('shown.bs.tab', (e) => {
+        const id = e.target.getAttribute('href').slice(1); // remove leading "#"
+        const url = new URL(window.location);
+        url.searchParams.set('tab', id);
+        history.replaceState(null, '', url);
+      });
+    });
+  });
 </script>
 {% endblock %}

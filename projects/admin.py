@@ -1,7 +1,15 @@
 from django.conf import settings
 from django.contrib import admin
 
-from .models import BasicAuth, Environment, Flavor, Project, ProjectLog, ProjectTemplate
+from .models import (
+    BasicAuth,
+    Environment,
+    Flavor,
+    PersistentVolumeMountPath,
+    Project,
+    ProjectLog,
+    ProjectTemplate,
+)
 
 admin.site.register(ProjectTemplate)
 admin.site.register(ProjectLog)
@@ -33,3 +41,10 @@ class EnvironmentAdmin(admin.ModelAdmin):
     search_fields = ("name", "project__name")
     list_display = ("name", "project", "updated_at")
     list_filter = ["project"]
+
+
+@admin.register(PersistentVolumeMountPath)
+class PVCMountPathAdmin(admin.ModelAdmin):
+    search_fields = ("volume__name", "mount_path")
+    list_display = ("volume__project__name", "volume__subdomain", "volume", "mount_path", "volume__size")
+    list_filter = ["volume__project__name"]

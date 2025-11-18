@@ -7,14 +7,14 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import ContainerImageMixin
+from apps.forms.mixins import ContainerImageMixin, StorageMixin
 from apps.models import ShinyInstance
 from projects.models import Flavor
 
 __all__ = ["ShinyForm"]
 
 
-class ShinyForm(ContainerImageMixin, AppBaseForm):
+class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     shiny_site_dir = forms.CharField(max_length=255, required=False, label="Path to site_dir")
@@ -27,6 +27,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
 
         # Setup container image field from mixin
         self._setup_container_image_field()
+        self._set_up_mount_path_field()
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -67,8 +68,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
-            Field("volume"),
-            SRVCommonDivField("path", placeholder="/srv/shiny-server/..."),
+            self._set_up_mount_path_helper(),
             SRVCommonDivField("flavor"),
             SRVCommonDivField("port", placeholder="3838"),
             # Container image field
@@ -110,28 +110,8 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
 
         return shiny_site_dir
 
-    def clean_path(self):
-        cleaned_data = super().clean()
-
-        path = cleaned_data.get("path", None)
-        volume = cleaned_data.get("volume", None)
-
-        if volume and not path:
-            self.add_error("path", "Path is required when volume is selected.")
-
-        if path and not volume:
-            self.add_error("path", "Warning, you have provided a mount path, but not selected a volume.")
-
-        if path:
-            # If new path matches current path, it is valid.
-            if self.instance and getattr(self.instance, "path", None) == path:
-                return path
-            # Verify that path starts with "/home" or "/srv"
-            path = path.strip().rstrip("/").lower().replace(" ", "")
-            if not path.startswith(("/home", "/srv")):
-                self.add_error("path", 'Path must start with "/home" or "/srv"')
-
-        return path
+    def clean(self):
+        return self._clean()
 
     class Meta:
         model = ShinyInstance
@@ -148,6 +128,7 @@ class ShinyForm(ContainerImageMixin, AppBaseForm):
             "image",
             "tags",
             "shiny_site_dir",
+            "mount_path",
         ]
         labels = {
             "tags": "Keywords",

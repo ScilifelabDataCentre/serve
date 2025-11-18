@@ -6,7 +6,9 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
+from apps.forms.field.common import SRVCommonDivField
 from apps.helpers import validate_docker_image, validate_ghcr_image
+from projects.models import PersistentVolumeMountPath
 
 
 class ContainerImageMixin:
@@ -68,3 +70,59 @@ class ContainerImageMixin:
                 return image
 
         return image
+
+
+class StorageMixin:
+    mount_path = forms.ModelChoiceField(
+        queryset=PersistentVolumeMountPath.objects.none(), required=False, empty_label="None", label="Storage"
+    )
+
+    def _set_up_mount_path_field(self):
+        mount_paths_queryset = (
+            PersistentVolumeMountPath.objects.filter(volume__project__pk=self.project.pk).exclude(
+                volume__latest_user_action__in=["Deleting", "SystemDeleting"]
+            )
+            if self.project_pk
+            else PersistentVolumeMountPath.objects.none()
+        )
+
+        if self.instance and self.instance.pk:
+            if self.instance.volume and self.instance.path:
+                mount_path, created = PersistentVolumeMountPath.objects.get_or_create(
+                    volume=self.instance.volume,
+                    mount_path=self.instance.path,
+                )
+            else:
+                mount_path = None
+                created = False
+
+            self.fields["mount_path"].queryset = mount_paths_queryset
+
+            if created and not self.instance.mount_path_id:
+                self.instance.mount_path = mount_path
+
+            if not self.is_bound:
+                self.initial["mount_path"] = self.instance.mount_path_id or (mount_path.pk if mount_path else None)
+        else:
+            self.fields["mount_path"].queryset = mount_paths_queryset
+            self.initial["mount_path"] = None
+        self.fields["mount_path"].help_text = (
+            "Attach storage to your application. " "Specified path should exist in your docker container."
+        )
+
+    def _set_up_mount_path_helper(self):
+        return SRVCommonDivField("mount_path", template="apps/storage_field.html", project_slug=self.project.slug)
+
+    def _clean(self):
+        cleaned = super().clean()  # keep parent validations, if any
+        mount_path_data: PersistentVolumeMountPath = cleaned.get("mount_path")
+
+        if mount_path_data is not None:
+            cleaned["volume"] = mount_path_data.volume
+            cleaned["path"] = mount_path_data.mount_path
+        else:
+            # User selected "None": remove storage linkage
+            cleaned["mount_path"] = None
+            cleaned["volume"] = None
+            cleaned["path"] = ""  # or None, depending on your model
+        return cleaned

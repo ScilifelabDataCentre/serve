@@ -86,6 +86,21 @@ extrapatterns = [
         views.delete_environment,
         name="delete_environment",
     ),
+    path(
+        "<project_slug>/update_storage_settings/",
+        views.update_storage_settings,
+        name="update_storage_settings",
+    ),
+    path(
+        "<project_slug>/volume/<int:volume_id>/increase/",
+        views.increase_volume_size,
+        name="increase_volume_size",
+    ),
+    path(
+        "<project_slug>/request_storage/<int:volume_id>/",
+        views.request_storage,
+        name="request_storage",
+    ),
 ]
 
 if settings.ENABLE_PROJECT_EXTRA_SETTINGS or User.is_superuser:

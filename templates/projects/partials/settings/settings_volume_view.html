@@ -1,0 +1,205 @@
+{% load humanize dict_extras %}
+
+<div
+  class="tab-pane fade {% if active %}show active{% endif %}"
+  id="vol{{ volume.id|stringformat:'s' }}"
+  role="tabpanel"
+  aria-labelledby="vol{{ volume.id|stringformat:'s' }}-tab"
+>
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <div>
+      <span class="fw-semibold me-1">Size:</span>
+      <span class="badge bg-secondary">
+        {% if volume.size %}{{ volume.size }}{% else %}—{% endif %} Gb
+      </span>
+    </div>
+
+    <div class="ms-auto d-flex gap-2">
+      {% if volume.size < 5 %}
+        <!-- Auto-increase button -->
+        <button type="button"
+                class="btn btn-outline-primary btn-sm increase-volume-btn"
+                data-project-slug="{{ project.slug }}"
+                data-volume-id="{{ volume.id }}"
+                data-csrf-token="{{ csrf_token }}">
+          Increase to 5 GB
+        </button>
+      {% endif %}
+
+      <button class="btn btn-outline-secondary btn-sm text-dark ms-auto"
+              hx-get="{% url 'projects:request_storage' project.slug volume.id %}"
+              hx-target="#storageRequestModalContainer"
+              hx-trigger="click"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+         Request more
+      </button>
+    </div>
+  </div>
+
+  <div>
+      <label for="default_mount_path" class="form-label">Mount paths</label>
+      <span class="bi bi-question-circle text-muted"
+            data-bs-toggle="tooltip"
+            data-bs-placement="right"
+            data-bs-original-title="Define a set of paths that could be used to mount a storage volume to your container.">
+    </span>
+  </div>
+
+  <div id="vol{{ volume.id|stringformat:'s' }}Paths" class="d-grid gap-2">
+    {% for mount_path in volume.mount_paths.all %}
+      <div class="input-group" data-default="{{ mount_path.is_default|yesno:'1,0' }}">
+        <span class="input-group-text"></span>
+        <input type="text"
+               class="form-control"
+               aria-label="Mount path"
+               name="paths_{{ volume.id }}"
+               value="{{ mount_path.mount_path }}"
+               placeholder="/path/inside/container"
+               {% if mount_path.is_default %}
+               readonly
+               id="default_mount_path"
+               {% endif %}>
+        {% if mount_path.is_default %}
+          <span class="input-group-text bg-light text-muted">default</span>
+        {% else %}
+          {# NEW: if path is used by any apps, do NOT show remove #}
+          {% with apps=mount_path_to_app|get_item:mount_path %}
+            {% if apps %}
+              <span class="input-group-text bg-light text-muted" title="Path is used by {{ apps|length }} app{{ apps|length|pluralize }}">in use</span>
+            {% else %}
+              <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
+            {% endif %}
+          {% endwith %}
+          {# /NEW #}
+        {% endif %}
+      </div>
+
+      <div class="form-text ms-1">
+        {% for path, apps in mount_path_to_app.items %}
+          {% if path == mount_path %}
+            {% if apps %}
+              Used by:
+              {% for app in apps %}
+                <a href="{{ app.url }}">{{ app.name }}</a>
+                <a href="{% url 'apps:appsettings' project.slug app.app.slug app.id %}">
+                  (Settings)
+                </a>{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            {% else %}
+              <span class="text-muted">Used by: —</span>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% empty %}
+      <div class="input-group">
+        <span class="input-group-text"></span>
+        <input type="text"
+               class="form-control"
+               aria-label="Mount path"
+               name="paths_{{ volume.id }}"
+               placeholder="/path/inside/container">
+        <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="d-grid mt-3">
+    <button type="button"
+            class="btn btn-outline-secondary text-dark addPathBtn"
+            data-target="vol{{ volume.id|stringformat:'s' }}Paths"
+            data-name="paths_{{ volume.id }}">+
+    </button>
+  </div>
+</div>
+
+<script>
+(function () {
+  if (window.__volPathsEnhanced) return;
+  window.__volPathsEnhanced = true;
+
+  document.addEventListener('click', function (e) {
+    const addBtn = e.target.closest('.addPathBtn');
+    const removeBtn = e.target.closest('.removePathBtn');
+
+    if (!addBtn && !removeBtn) return;
+
+    // Add new path row
+    if (addBtn) {
+      const targetId = addBtn.getAttribute('data-target');
+      const name = addBtn.getAttribute('data-name');
+      const list = document.getElementById(targetId);
+      if (!list) return;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'input-group';
+      wrapper.innerHTML = `
+        <span class="input-group-text"></span>
+        <input type="text" aria-label="Mount path" class="form-control" name="${name}" placeholder="/new/path">
+        <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
+      `;
+      list.appendChild(wrapper);
+      return;
+    }
+
+    // Remove path row (if not default)
+    if (removeBtn) {
+      const group = removeBtn.closest('.input-group');
+      if (group && group.dataset.default === "1") return; // protect default
+
+      const list = group && group.parentElement;
+      if (!group || !list) return;
+
+      group.remove();
+
+      // Ensure at least one empty row remains
+      if (list.querySelectorAll('.input-group').length === 0) {
+        const addBtnForList = document.querySelector(`.addPathBtn[data-target="${list.id}"]`);
+        const name = addBtnForList ? addBtnForList.getAttribute('data-name') : '';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'input-group';
+        wrapper.innerHTML = `
+          <span class="input-group-text"></span>
+          <input type="text" aria-label="Mount path" class="form-control" name="${name}" placeholder="/path/inside/container">
+          <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
+        `;
+        list.appendChild(wrapper);
+      }
+    }
+  }, { passive: true });
+
+  // Handle volume increase button clicks
+  document.addEventListener('click', function(e) {
+    const increaseBtn = e.target.closest('.increase-volume-btn');
+    if (!increaseBtn) return;
+
+    const projectSlug = increaseBtn.dataset.projectSlug;
+    const volumeId = increaseBtn.dataset.volumeId;
+    const csrfToken = increaseBtn.dataset.csrfToken;
+
+    // Disable button while processing
+    increaseBtn.disabled = true;
+
+    fetch(`/projects/${projectSlug}/volume/${volumeId}/increase/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'Content-Type': 'application/json'
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // Reload the page to show updated volume size and any messages
+      window.location.reload();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Failed to increase volume size. Please try again.');
+      increaseBtn.disabled = false;
+    });
+  }, { passive: true });
+})();
+</script>

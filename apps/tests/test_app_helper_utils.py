@@ -442,6 +442,49 @@ def test_schema_org_compliant_app_metadata_validation():
     schema_dict = json.loads(schema_description)
     schema_dict["hasPart"][0]["url"] = "https://someurlthatdoesnotexist.com"
 
+    # Add required fields for about section
+    schema_dict["about"]["additionalProperty"] = [
+        {"@type": "PropertyValue", "name": "dateCreated", "value": schema_dict["dateCreated"]},
+        *[
+            {"@type": "PropertyValue", "name": name, "value": "0"}
+            for name in [
+                "minio",
+                "mlflow",
+                "vscode",
+                "dashapp",
+                "mongodb",
+                "reducer",
+                "rstudio",
+                "combiner",
+                "shinyapp",
+                "customapp",
+                "netpolicy",
+                "volumeK8s",
+                "tissuumaps",
+                "filemanager",
+                "jupyter-lab",
+                "mlflow-serve",
+                "mongo-express",
+                "pytorch-serve",
+                "shinyproxyapp",
+                "tensorflow-serve",
+                "depictio",
+            ]
+        ],
+    ]
+
+    # Add required fields for funder and parentOrganization
+    schema_dict["about"]["funder"] = {
+        "@type": "Person",
+        "name": user_data["first_name"] + " " + user_data["last_name"],
+        "email": user_data["email"],
+    }
+    schema_dict["about"]["parentOrganization"] = {
+        "@type": "Organization",
+        "name": user_data["affiliation"],
+        "additionalProperty": {"@type": "PropertyValue", "name": "department", "value": user_data["department"]},
+    }
+
     # now testing three cases
 
     # 1. should be valid
