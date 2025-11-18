@@ -16,14 +16,14 @@ def populate_mount_paths(apps, schema_editor):
     with transaction.atomic():
         to_create = []
         for volume in VolumeInstance.objects.all():
-            to_create.append(PersistentVolumeMountPath(volume=volume, mount_path="/home/data", is_default=True))
-            to_create.append(
-                PersistentVolumeMountPath(
-                    volume=volume,
-                    mount_path="/srv/shiny-server/data",
-                    is_default=False,
-                )
-            )
+            default_mount_paths = {
+                "/home/data": PersistentVolumeMountPath(volume=volume, mount_path="/home/data", is_default=True),
+                "/srv/shiny-server/data": PersistentVolumeMountPath(
+                    volume=volume, mount_path="/srv/shiny-server/data", is_default=False
+                ),
+            }
+            to_create.append(default_mount_paths["/home/data"])
+            to_create.append(default_mount_paths["/srv/shiny-server/data"])
         for instance in chain(
             CustomAppInstance.objects.all(),
             GradioInstance.objects.all(),
@@ -32,14 +32,16 @@ def populate_mount_paths(apps, schema_editor):
         ):
             if instance.volume:
                 path_to_create = instance.path.strip().rstrip("/").lower().replace(" ", "")
-                if path_to_create not in ("/home/data", "/srv/shiny-server/data"):
-                    to_create.append(
-                        PersistentVolumeMountPath(
-                            volume=instance.volume,
-                            mount_path=instance.path,
-                            is_default=False,
-                        )
-                    )
+                mount_path = default_mount_paths.get(
+                    path_to_create,
+                    PersistentVolumeMountPath(
+                        volume=instance.volume,
+                        mount_path=instance.path,
+                        is_default=False,
+                    ),
+                )
+                instance.mount_path = mount_path
+                to_create.append(mount_path)
         if to_create:
             PersistentVolumeMountPath.objects.bulk_create(to_create)
 
