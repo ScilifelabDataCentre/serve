@@ -20,7 +20,7 @@ def populate_mount_paths(apps, schema_editor):
             to_create.append(
                 PersistentVolumeMountPath(
                     volume=volume,
-                    mount_path="/srv/shiny-server/data/",
+                    mount_path="/srv/shiny-server/data",
                     is_default=False,
                 )
             )
@@ -31,13 +31,15 @@ def populate_mount_paths(apps, schema_editor):
             ShinyInstance.objects.all(),
         ):
             if instance.volume:
-                to_create.append(
-                    PersistentVolumeMountPath(
-                        volume=instance.volume,
-                        mount_path=instance.path,
-                        is_default=False,
+                path_to_create = instance.path.strip().rstrip("/").lower().replace(" ", "")
+                if path_to_create not in ("/home/data", "/srv/shiny-server/data"):
+                    to_create.append(
+                        PersistentVolumeMountPath(
+                            volume=instance.volume,
+                            mount_path=instance.path,
+                            is_default=False,
+                        )
                     )
-                )
         if to_create:
             PersistentVolumeMountPath.objects.bulk_create(to_create)
 

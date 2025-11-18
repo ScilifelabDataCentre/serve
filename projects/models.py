@@ -349,7 +349,7 @@ def create_default_mount_path(sender, instance, created, **kwargs):
             PersistentVolumeMountPath.objects.create(volume=instance, mount_path="/home/data", is_default=True)
             PersistentVolumeMountPath.objects.create(
                 volume=instance,
-                mount_path="/srv/shiny-server/data/",
+                mount_path="/srv/shiny-server/data",
                 is_default=False,
             )
 
