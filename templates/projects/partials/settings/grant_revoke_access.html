@@ -1,7 +1,7 @@
 <div class="card shadow border-0">
 
     <div class="card-header bg-light py-3">
-        <h5 class="card-title mb-0">Grant or revoke access</h5>
+        <h4 class="card-title mb-0">Grant or revoke access</h4>
     </div>
     <form autocomplete="off" action="{% url 'projects:grant_access' project.slug %}" method="post">
         {% csrf_token %}

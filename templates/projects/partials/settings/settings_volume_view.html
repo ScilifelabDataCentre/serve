@@ -26,7 +26,7 @@
         </button>
       {% endif %}
 
-      <button class="btn btn-outline-secondary btn-sm ms-auto"
+      <button class="btn btn-outline-secondary btn-sm text-dark ms-auto"
               hx-get="{% url 'projects:request_storage' project.slug volume.id %}"
               hx-target="#storageRequestModalContainer"
               hx-trigger="click"
@@ -37,7 +37,7 @@
   </div>
 
   <div>
-      <label class="form-label">Mount paths</label>
+      <label for="default_mount_path" class="form-label">Mount paths</label>
       <span class="bi bi-question-circle text-muted"
             data-bs-toggle="tooltip"
             data-bs-placement="right"
@@ -51,10 +51,14 @@
         <span class="input-group-text"></span>
         <input type="text"
                class="form-control"
+               aria-label="Mount path"
                name="paths_{{ volume.id }}"
                value="{{ mount_path.mount_path }}"
                placeholder="/path/inside/container"
-               {% if mount_path.is_default %}readonly{% endif %}>
+               {% if mount_path.is_default %}
+               readonly
+               id="default_mount_path"
+               {% endif %}>
         {% if mount_path.is_default %}
           <span class="input-group-text bg-light text-muted">default</span>
         {% else %}
@@ -92,6 +96,7 @@
         <span class="input-group-text"></span>
         <input type="text"
                class="form-control"
+               aria-label="Mount path"
                name="paths_{{ volume.id }}"
                placeholder="/path/inside/container">
         <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
@@ -101,7 +106,7 @@
 
   <div class="d-grid mt-3">
     <button type="button"
-            class="btn btn-outline-secondary addPathBtn"
+            class="btn btn-outline-secondary text-dark addPathBtn"
             data-target="vol{{ volume.id|stringformat:'s' }}Paths"
             data-name="paths_{{ volume.id }}">+
     </button>
@@ -130,7 +135,7 @@
       wrapper.className = 'input-group';
       wrapper.innerHTML = `
         <span class="input-group-text"></span>
-        <input type="text" class="form-control" name="${name}" placeholder="/new/path">
+        <input type="text" aria-label="Mount path" class="form-control" name="${name}" placeholder="/new/path">
         <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
       `;
       list.appendChild(wrapper);
@@ -155,7 +160,7 @@
         wrapper.className = 'input-group';
         wrapper.innerHTML = `
           <span class="input-group-text"></span>
-          <input type="text" class="form-control" name="${name}" placeholder="/path/inside/container">
+          <input type="text" aria-label="Mount path" class="form-control" name="${name}" placeholder="/path/inside/container">
           <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
         `;
         list.appendChild(wrapper);
