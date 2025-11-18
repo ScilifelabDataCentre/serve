@@ -1,4 +1,6 @@
 {% load static %}
+{% load get_version %}
+{% get_version_text as version_text %}
 
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -28,8 +30,8 @@
 <link rel="stylesheet" href="{% static 'css/semantic.min.css' %}">
 <script src="{% static 'js/semantic.min.js' %}"></script>
 
-<link rel="stylesheet" href="{% static 'css/serve-colors.css' %}?v3.5.0">
-<link rel="stylesheet" href="{% static 'css/serve-text.css' %}?v3.5.0">
-<link rel="stylesheet" href="{% static 'css/serve-utilities.css' %}?v3.5.0">
-<link rel="stylesheet" href="{% static 'css/serve-elements.css' %}?v3.5.0">
+<link rel="stylesheet" href="{% static 'css/serve-colors.css' %}?{{version_text|slugify}}">
+<link rel="stylesheet" href="{% static 'css/serve-text.css' %}?{{version_text|slugify}}">
+<link rel="stylesheet" href="{% static 'css/serve-utilities.css' %}?{{version_text|slugify}}">
+<link rel="stylesheet" href="{% static 'css/serve-elements.css' %}?{{version_text|slugify}}">
 <link rel="stylesheet" href="{% static 'css/patterns.css' %}">
