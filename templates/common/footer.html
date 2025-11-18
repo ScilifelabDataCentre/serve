@@ -5,7 +5,7 @@
 {% get_image_tag as imagetag_text %}
 {% get_setting "DEBUG" as debug_mode %}
 
-<div class="footer border-top bg-light text-muted small mt-auto">
+<div class="footer border-top bg-light text-dark small mt-auto">
     {# In case we want to display a maintenance message or similar#}
     {% for obj in maintenance_mode %}
     {% if obj.message_in_footer %}

@@ -1,0 +1,29 @@
+{
+  "defaults": {
+    "chromeLaunchConfig": {
+      "args": [
+        "--no-sandbox",
+        "--disable-setuid-sandbox"
+      ],
+      "ignoreHTTPSErrors": true
+    },
+    "hideElements": "div.g-recaptcha, div.plot_wrapper, iframe[style*='display: none']",
+    "standard": "WCAG2AA",
+    "timeout": 120000,
+    "wait": 1500
+  },
+  "urls": [
+    "https://serve-dev.scilifelab.se/",
+    "https://serve-dev.scilifelab.se/apps/",
+    "https://serve-dev.scilifelab.se/signup/",
+    "https://serve-dev.scilifelab.se/about/",
+    "https://serve-dev.scilifelab.se/privacy/",
+    "https://serve-dev.scilifelab.se/collections/",
+    "https://serve-dev.scilifelab.se/teaching/",
+    "https://serve-dev.scilifelab.se/news/",
+    "https://serve-dev.scilifelab.se/events/",
+    "https://serve-dev.scilifelab.se/about/roadmap/",
+    "https://serve-dev.scilifelab.se/accounts/login/",
+    "https://serve-dev.scilifelab.se/accounts/password_reset/"
+  ]
+}

@@ -29,8 +29,8 @@
                     </div>
 
                     <div class="row pb-3">
-                        <div class="col-12">
-                            <input type="text" class="form-control" placeholder="Name" id="name" name="name" maxlength="200" required>
+                        <div class="col-12 py-2">
+                            <input type="text" class="form-control" placeholder="Name" id="name" name="name" aria-label="Project Name" maxlength="200" required>
                         </div>
                         {% if form.name.errors %}
                         <div class="pt-1">
@@ -46,7 +46,7 @@
                     <div class="row pb-3">
                         <div class="col-12">
                             <textarea type="text" class="form-control" placeholder="Description" id="description"
-                                name="description"></textarea>
+                                name="description" aria-label="Project Description"></textarea>
                         </div>
                         {% if form.description.errors %}
                         <div class="pt-1">

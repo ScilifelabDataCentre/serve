@@ -30,7 +30,7 @@
                     <thead>
                         <tr>
                             <th scope="col">User</th>
-                            <th scope="col"></th>
+                            <th scope="col" class="text-center">Revoke access</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -38,7 +38,6 @@
                         {% for user in project.authorized.all %}
                         <tr class="user-with-access" id="revokeAccessRow-{{user.pk}}">
                             <td scope="row">{{ user.username }}</td>
-
                             {% if project.owner.id == request.user.id or request.user.is_superuser %}
                                 <td class="d-flex justify-content-center">
                                     <button type="button" class="btn-close" aria-label="Close" data-bs-toggle="modal"
@@ -55,8 +54,8 @@
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h1 class="modal-title fs-5" id="revokeAccessModal-{{user.pk}}-Label">Revoke
-                                            access for user with email {{user.username}}</h1>
+                                        <h3 class="modal-title fs-5" id="revokeAccessModal-{{user.pk}}-Label">Revoke
+                                            access for user with email {{user.username}}</h3>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"
                                             aria-label="Close"></button>
                                     </div>
@@ -81,9 +80,9 @@
 
             const url = "{% url 'projects:revoke_access' project.slug %}"
             const csrftoken = getCookie('csrftoken');
-            const elements = document.querySelectorAll(".confirm-revoke-access")
+            const revoke_elements = document.querySelectorAll(".confirm-revoke-access")
 
-            elements.forEach(element => {
+            revoke_elements.forEach(element => {
 
                 element.addEventListener("click", async evt => {
 

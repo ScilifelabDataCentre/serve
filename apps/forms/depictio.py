@@ -18,7 +18,7 @@ class DepictioForm(BaseForm):
         super()._setup_form_helper()
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h4>App Metadata</h4>"),
+            mark_safe("<h3>App Metadata</h3>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("access"),

@@ -4,6 +4,7 @@
 
 body {
   font-family: "Lato", Times, Arial;
+  font-size: 1rem;
 }
 
 :root{
@@ -28,7 +29,7 @@ body {
 }
 
 .card-footer-text {
-    font-size: 8pt;
+    font-size: 9pt;
 }
 
 .text-teal {

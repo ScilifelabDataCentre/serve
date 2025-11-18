@@ -23,7 +23,7 @@ class TissuumapsForm(AppBaseForm):
 
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h4>App Metadata</h4>"),
+            mark_safe("<h3>App Metadata</h3>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
@@ -32,7 +32,7 @@ class TissuumapsForm(AppBaseForm):
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h4>Configuration Settings</h4>"),
+            mark_safe("<h3>Configuration Settings</h3>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),

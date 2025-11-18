@@ -47,7 +47,7 @@
                 {% endif %}
 
                 {% if request.user.pk == project.owner.pk or request.user.is_superuser %}
-                <a class="default list-group-item list-group-item-action p-3 text-red" data-bs-toggle="list"
+                <a class="default list-group-item bg-danger list-group-item-action p-3 text-white" style="--bs-bg-opacity: .9;" data-bs-toggle="list"
                     href="#delete" role="tab">
                     Delete
                 </a>
@@ -75,7 +75,7 @@
                 <div class="card shadow border-0">
 
                     <div class="card-header bg-light py-3">
-                        <h5 class="card-title mb-0">Flavors</h5>
+                        <h4 class="card-title mb-0">Flavors</h4>
                     </div>
 
                     <div class="card-body">
@@ -83,6 +83,7 @@
                             {% csrf_token %}
 
                             <div class="mb-3">
+                                <label for="flavor_pk">Flavors</label>
                                 <select type="text" class="form-control" id="flavor_pk" name="flavor_pk" maxlength="256"
                                     required>
                                     {% for flavor in flavors %}
@@ -94,19 +95,17 @@
                         </form>
                         <div class="mt-2">
                             or create new flavor:
-                            <form action="{% url 'projects:create_flavor' project.slug %}" method="post"
-                                class="mt-2">
+                            <form action="{% url 'projects:create_flavor' project.slug %}" method="post" class="mt-2">
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="flavor_name">Name</label>
-                                    <input type="text" name="flavor_name" id="flavor_name" value="" placeholder="N vCPU, N GB RAM"
-                                        class="form-control" />
+                                    <input type="text" name="flavor_name" id="flavor_name" class="form-control" value="" placeholder="N vCPU, N GB RAM"/>
                                 </div>
                                 <div class="mb-3">
                                     <label for="cpu_req">CPU request</label>
                                     <input type="text" name="cpu_req" id="cpu_req" value="200m" class="form-control" />
                                 </div>
-                                <div class="mb-3"></div>
+                                <div class="mb-3">
                                     <label for="cpu_lim">CPU limit</label>
                                     <input type="text" name="cpu_lim" id="cpu_lim" value="2000m" class="form-control" />
                                 </div>
@@ -119,11 +118,11 @@
                                     <input type="text" name="mem_lim" id="mem_lim" value="4Gi" class="form-control" />
                                 </div>
                                 <div class="mb-3">
-                                    <label for="mem_req">Ephemeral storage request</label>
+                                    <label for="ephmem_req">Ephemeral storage request</label>
                                     <input type="text" name="ephmem_req" id="ephmem_req" value="200Mi" class="form-control" />
                                 </div>
                                 <div class="mb-3">
-                                    <label for="mem_lim">Ephemeral storage limit</label>
+                                    <label for="ephmem_lim">Ephemeral storage limit</label>
                                     <input type="text" name="ephmem_lim" id="ephmem_lim" value="5000Mi" class="form-control" />
                                 </div>
                                 <button type="submit" class="btn btn-square btn-primary">Create flavor</button>
@@ -131,12 +130,12 @@
                         </div>
                     </div>
                 </div>
-
+            </div>
             <div class="tab-pane fade" id="environments" role="tabpanel">
                 <div class="card shadow border-0">
 
                     <div class="card-header bg-light py-3">
-                        <h5 class="card-title mb-0">Environments</h5>
+                        <h4 class="card-title mb-0">Environments</h4>
                     </div>
 
 {#                    Warn that this is a legacy way of environments management #}
@@ -153,6 +152,7 @@
                             {% csrf_token %}
 
                             <div class="mb-3">
+                                <label for="environment_pk">Environments</label>
                                 <select type="text" class="form-control" id="environment_pk" name="environment_pk"
                                     maxlength="256" required>
                                     {% for environment in environments %}
@@ -173,7 +173,7 @@
                                         placeholder="Lab X" class="form-control" />
                                 </div>
                                 <div class="mb-3">
-                                    <label for="environment_name">Repository</label>
+                                    <label for="environment_repository">Repository</label>
                                     <input type="text" name="environment_repository" id="environment_repository"
                                         placeholder="docker.io" value="" class="form-control" />
                                 </div>
@@ -204,7 +204,7 @@
                 <div class="card shadow border-0">
 
                     <div class="card-header bg-white py-3">
-                        <h5 class="card-title mb-0">Delete project</h5>
+                        <h4 class="card-title mb-0">Delete project</h4>
                     </div>
 
                     <div class="card-body">
