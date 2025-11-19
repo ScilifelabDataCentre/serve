@@ -213,7 +213,9 @@ describe("Test deploying app", () => {
 
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').should('be.visible').click() // Go to Advanced settings
+            // Advanced settings section is always open, so we can directly access the field
+            // Scroll to the field to ensure it's in view
+            cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
@@ -275,7 +277,9 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_mount_path').select(mount_path)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').should('be.visible').click() // Go to Advanced settings
+            // Advanced settings section is always open, so we can directly access the field
+            // Scroll to the field to ensure it's in view
+            cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
@@ -346,7 +350,9 @@ describe("Test deploying app", () => {
             cy.get('#id_image').clear().type(image_name_2)
             cy.get('#id_mount_path').should('have.value', mount_path)
             cy.get('#id_mount_path').select(mount_path_2)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').should('be.visible').click() // Go to Advanced settings
+            // Advanced settings section is always open, so we can directly access the field
+            // Scroll to the field to ensure it's in view
+            cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.get('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
             cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
@@ -376,7 +382,9 @@ describe("Test deploying app", () => {
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_mount_path').should('have.value', mount_path_2)
-            cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').should('be.visible').click() // Go to Advanced settings
+            // Advanced settings section is always open, so we can directly access the field
+            // Scroll to the field to ensure it's in view
+            cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.get('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
 
             // make sure that giving invalid input in default_url_subpath field results in an error
