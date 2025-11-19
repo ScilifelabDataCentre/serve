@@ -33,10 +33,21 @@ body.christmas-mode::after {
 
 /* Ensure content is above background */
 body.christmas-mode main,
-body.christmas-mode nav,
 body.christmas-mode footer {
     position: relative;
     z-index: 1;
+}
+
+/* Navbar needs higher z-index to stay on top of all content */
+body.christmas-mode nav {
+    position: relative;
+    z-index: 1000;
+}
+
+/* Ensure dropdown menus appear above Christmas decorations */
+body.christmas-mode .dropdown-menu {
+    position: absolute;
+    z-index: 1050 !important;
 }
 
 /* Christmas toggle button styling */
