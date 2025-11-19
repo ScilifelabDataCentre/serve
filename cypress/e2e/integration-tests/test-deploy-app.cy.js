@@ -461,7 +461,7 @@ describe("Test deploying app", () => {
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Public", shinyAppCmdTimeoutMs)
 
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'public')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Public')
 
             cy.logf("Checking that all shiny app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
@@ -499,9 +499,12 @@ describe("Test deploying app", () => {
 
             cy.logf("Checking that source code URL is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
-            cy.contains('.card', app_name).within(() => {
-                cy.get('a#source-code-url').should('have.attr', 'href', source_code_url)
-            })
+            cy.contains('h4.card-title', app_name)
+                .parents('.card')
+                    .within(() => {
+                        // Click the Details link
+                        cy.get('a[id^="source-code-url"]').should('have.attr', 'href', source_code_url)
+                    })
             cy.visit("/projects/")
             cy.logf("Deleting the shiny app", Cypress.currentTest)
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
