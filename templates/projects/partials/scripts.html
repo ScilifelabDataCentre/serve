@@ -47,9 +47,13 @@
                         const elements = document.querySelectorAll(querySelector);
 
                         let statusTxt = status;
+                        let titleTxt = status;
 
                         if (status != "Running" && k8sStatus != null && k8sStatus != "") {
                             statusTxt = status + ": " + k8sStatus;
+                            titleTxt = status + ": " + k8sStatus;
+                        } else if (k8sStatus != null && k8sStatus != "") {
+                            titleTxt = status + " (" + k8sStatus + ")";
                         }
 
                         // Update both the status, the class style, and data attributes
@@ -59,7 +63,7 @@
                             element.innerText = statusTxt;
                             element.dataset.appAction = latestUserAction;
                             element.dataset.k8sAppStatus = k8sStatus;
-                            element.title = "Status for app";
+                            element.title = titleTxt;
                         });
                     }
                 }
