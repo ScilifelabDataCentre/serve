@@ -118,7 +118,7 @@ if (Cypress.env('create_resources') === true) {
             const image_name_2 = "ghcr.io/scilifelabdatacentre/example-streamlit:230921-1443"
             const image_port = "8501"
             const image_port_2 = "8502"
-            const mount_path_2 = "/srv/shiny-server/data/"
+            const mount_path_2 = "/srv/shiny-server/data"
             const link_privacy_type_note = "some-text-on-link-only-app"
             const app_type = "Custom App"
             const app_source_code_public = "https://doi.org/example"
