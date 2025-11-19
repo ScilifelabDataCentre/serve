@@ -436,3 +436,9 @@ label.required::before {
 .card-count-tag {
     font-size: 0.7rem;
 }
+
+@media (max-width:768px) {
+    .text-center-small-screen {
+        text-align: center!important;
+    }
+}

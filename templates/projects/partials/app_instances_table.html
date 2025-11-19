@@ -8,7 +8,7 @@
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Created</th>
             <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
             <th class="" tabindex="0" rowspan="1" colspan="1">Permissions</th>
-            <th class="" tabindex="0" rowspan="1" colspan="1">Hits <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Unique IP visits during the last 30 days"></span></th>
+            <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Hits <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Unique IP visits during the last 30 days"></span></th>
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Tags</th>
             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
         </tr>
@@ -19,10 +19,11 @@
 
             {% static 'images/logos/apps/' as static_url %}
 
-            <td class="d-none d-xxl-table-cell "><span class="me-2" style="text-align: center;"><img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid "
-                    alt="{{ instance.app.name }} Logo" style="max-width:25px;min-width:20px;"></span>{{ instance.app.name }}</td>
+            <td class="text-center-small-screen"><span class="me-2" style="text-align: center;">
+                <img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid " alt="{{ instance.app.name }} Logo" style="max-width:25px;min-width:20px;"></span>{{ instance.app.name }}
+            </td>
             {% if instance.url %}
-            <td class="sorting_1">
+            <td class="sorting_1 text-center-small-screen">
               {# 2025-02-20 I believe this fist if statement could be removed #}
                 {% if "Serv" in instance.app.name or instance.app.name == "Python Model Deployment" %}
                     <a onclick="copyClip('{{instance.table_field.url}}')">
@@ -43,7 +44,7 @@
                 {% endif %}
             </td>
             {% else %}
-            <td class="sorting_1">{{ instance.name }}</td>
+            <td class="sorting_1 text-center-small-screen">{{ instance.name }}</td>
             {% endif %}
             <td class="d-none d-xxl-table-cell text-center">{{ instance.created_on | date:"d/n/y H:i" }}
                 <span
@@ -70,7 +71,7 @@
                 {% endif %}
               {% endif %}
             </td>
-            <td class="text-center" data-cy="hits-cell">
+            <td class="d-none d-xxl-table-cell text-center" data-cy="hits-cell">
             {% if instance.unique_visitors_ip_count != 0 %}
                 {{ instance.unique_visitors_ip_count }}
             {% endif %}
