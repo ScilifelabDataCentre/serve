@@ -36,7 +36,7 @@ class StorageSettingsTestCase(TestCase):
             volume=self.volume, mount_path="/home/data", is_default=True
         )
         self.shiny_mount_path = PersistentVolumeMountPath.objects.create(
-            volume=self.volume, mount_path="/srv/shiny-server/data/", is_default=False
+            volume=self.volume, mount_path="/srv/shiny-server/data", is_default=False
         )
 
     def test_storage_settings_access(self):
@@ -101,7 +101,7 @@ class StorageSettingsTestCase(TestCase):
         updated_paths = list(self.volume.mount_paths.values_list("mount_path", flat=True))
         self.assertEqual(len(updated_paths), 2)  # Still has original paths
         self.assertIn("/home/data", updated_paths)
-        self.assertIn("/srv/shiny-server/data/", updated_paths)
+        self.assertIn("/srv/shiny-server/data", updated_paths)
 
     def test_update_storage_settings_empty_paths(self):
         """Test updating storage settings with empty paths"""
@@ -187,7 +187,7 @@ class StorageSettingsTestCase(TestCase):
         updated_paths = list(self.volume.mount_paths.values_list("mount_path", flat=True))
         self.assertEqual(len(updated_paths), 2)  # Still has original paths
         self.assertIn("/home/data", updated_paths)
-        self.assertIn("/srv/shiny-server/data/", updated_paths)
+        self.assertIn("/srv/shiny-server/data", updated_paths)
 
     @patch("apps.helpers.create_instance_from_form")
     def test_increase_volume_size_success(self, mock_create_instance):
@@ -316,7 +316,7 @@ class StorageSettingsTestCase(TestCase):
                 updated_paths = list(self.volume.mount_paths.values_list("mount_path", flat=True))
                 self.assertEqual(len(updated_paths), 2)  # Still has original paths
                 self.assertIn("/home/data", updated_paths)
-                self.assertIn("/srv/shiny-server/data/", updated_paths)
+                self.assertIn("/srv/shiny-server/data", updated_paths)
             else:
                 # For valid paths, verify they were added
                 if len(messages) > 0:
