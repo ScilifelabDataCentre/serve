@@ -47,7 +47,7 @@
                         const elements = document.querySelectorAll(querySelector);
 
                         let statusTxt = status;
-                        
+
                         if (status != "Running" && k8sStatus != null && k8sStatus != "") {
                             statusTxt = status + ": " + k8sStatus;
                         }
