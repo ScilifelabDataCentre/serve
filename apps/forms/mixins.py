@@ -108,7 +108,7 @@ class StorageMixin:
             self.fields["mount_path"].queryset = mount_paths_queryset
             self.initial["mount_path"] = None
         self.fields["mount_path"].help_text = mark_safe(
-            "Attach storage to your application. Specified path should exist in your docker container.<br>"
+            "Attach storage to your application. Specified path should already exist in your docker container.<br>"
             "Click on 'Manage Storage' to request more storage and create new mount paths."
         )
 
