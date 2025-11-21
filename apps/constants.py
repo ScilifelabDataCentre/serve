@@ -41,6 +41,7 @@ HELP_MESSAGE_MAP = {
     "development or during peer review.",
     "environment": "Select the environment that you want to use for your app. The environment is a Docker image that "
     "contains the software and dependencies needed to run your app.",
-    "storage": "Specify the path inside the container that you want to be persistent (path to database or similar). If "
-    "you follow our guide to build the container, then please include the username in the path as well.",
+    "mount_path": "Specify the path inside your Docker container that you want to persist; for example, the directory "
+    "where you plan to store or load data. If you followed our guide to build the Docker container, "
+    "please include the username you specified in the Dockerfile as part of the path.",
 }

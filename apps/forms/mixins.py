@@ -5,6 +5,7 @@ from crispy_forms.layout import HTML, Div, Field, MultiField
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.utils.safestring import mark_safe
 
 from apps.forms.field.common import SRVCommonDivField
 from apps.helpers import validate_docker_image, validate_ghcr_image
@@ -106,8 +107,9 @@ class StorageMixin:
         else:
             self.fields["mount_path"].queryset = mount_paths_queryset
             self.initial["mount_path"] = None
-        self.fields["mount_path"].help_text = (
-            "Attach storage to your application. " "Specified path should exist in your docker container."
+        self.fields["mount_path"].help_text = mark_safe(
+            "Attach storage to your application. Specified path should already exist in your docker container.<br>"
+            "Click on 'Manage Storage' to request more storage and create new mount paths."
         )
 
     def _set_up_mount_path_helper(self):
