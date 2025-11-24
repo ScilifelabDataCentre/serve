@@ -286,7 +286,7 @@ def deploy_resource(serialized_instance):
         # output, error = get_manifest_yaml(release)
         pass
 
-    if valid_deployment:
+    if not settings.DEBUG and valid_deployment:
         # If valid, then delete both the values and deployment files (if exists)
         subprocess.run(["rm", "-f", values_file])
         if deployment_file:
