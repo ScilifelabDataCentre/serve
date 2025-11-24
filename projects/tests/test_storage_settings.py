@@ -5,7 +5,7 @@ from django.contrib.messages import get_messages
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from apps.models import Apps, VolumeInstance
+from apps.models import Apps, Subdomain, VolumeInstance
 from projects.models import PersistentVolumeMountPath, Project
 
 User = get_user_model()
@@ -212,6 +212,40 @@ class StorageSettingsTestCase(TestCase):
         # Verify volume size was updated
         small_volume.refresh_from_db()
         self.assertEqual(small_volume.size, 5)
+
+        mock_create_instance.assert_called_once()
+        _, kwargs = mock_create_instance.call_args
+        self.assertTrue(kwargs.get("force_redeploy"))
+
+    @patch("apps.forms.volumes.VolumeForm")
+    @patch("apps.helpers.create_instance_from_form")
+    def test_increase_volume_size_preserves_subdomain_and_redeploys(self, mock_create_instance, mock_volume_form):
+        """Ensure volume expansion keeps release name and forces redeploy"""
+        self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
+
+        subdomain = Subdomain.objects.create(subdomain="rvol1234", project=self.project, is_created_by_user=True)
+        volume = VolumeInstance.objects.create(
+            name="vol-with-subdomain", project=self.project, size=2, app=self.app, subdomain=subdomain
+        )
+
+        mock_form = mock_volume_form.return_value
+        mock_form.is_valid.return_value = True
+
+        url = reverse(
+            "projects:increase_volume_size", kwargs={"project_slug": self.project.slug, "volume_id": volume.id}
+        )
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200, response.content)
+
+        _, form_kwargs = mock_volume_form.call_args
+        self.assertEqual(form_kwargs["project_pk"], self.project.pk)
+        self.assertEqual(form_kwargs["instance"], volume)
+        self.assertEqual(form_kwargs["data"]["subdomain"], subdomain.subdomain)
+
+        _, create_kwargs = mock_create_instance.call_args
+        self.assertTrue(create_kwargs.get("force_redeploy"))
+        self.assertIs(create_kwargs.get("form"), mock_form)
 
     def test_increase_volume_size_already_at_limit(self):
         """Test volume size increase when already at or above 5GB"""

@@ -833,13 +833,16 @@ def increase_volume_size(request: HttpRequest, project_slug: str, volume_id: int
     form_data = {
         "name": volume.name,
         "size": volume.size,
+        "subdomain": volume.subdomain.subdomain if volume.subdomain else "",
     }
-    form = VolumeForm(data=form_data, instance=volume)
+    form = VolumeForm(data=form_data, instance=volume, project_pk=project.pk)
 
     if form.is_valid():
         try:
             # Redeploy with updated size
-            create_instance_from_form(form=form, project=project, app_slug="volumeK8s", app_id=volume.id)
+            create_instance_from_form(
+                form=form, project=project, app_slug="volumeK8s", app_id=volume.id, force_redeploy=True
+            )
             return JsonResponse({"message": "Volume size increased to 5GB and redeployment initiated"})
         except Exception as e:
             volume.size = original_size
