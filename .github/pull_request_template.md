@@ -24,6 +24,7 @@ This is simply a reminder of what we are going to look for before merging your c
 - [ ] I have added a reviewer for this pull request
 - [ ] I have added myself as an author for this pull request
 - [ ] In the case I have modified settings.py, then I have also updated the studio-settings-configmap.yaml file in serve-charts
+- [ ] In case your changes are large enough, did you deploy your changes to develop instance?
 
 ## Further comments
 
