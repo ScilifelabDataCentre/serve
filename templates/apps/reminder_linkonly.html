@@ -25,7 +25,7 @@
         <h1>Permission level for your app</h1>
         <p>Dear {{ app_owner_firstname }},</p>
         <p>Your app <i>{{ app_name }}</i> (<a target="_blank" href="{{ app_url }}">{{ app_url }}</a>) is published on SciLifeLab Serve with access only to those with whom you share the URL of the app (permission level <i>Link</i>).</p>
-        <p>We would like to remind you that we only allow to use the <i>Link</i> permission level temporarily and in certain cases, such as when your app is under development or your related journal article is under peer review. Is this still the case?</p>
+        <p>This is a reminder that we only allow to use the <i>Link</i> permission level temporarily and in certain cases, such as when your app is under development or your related journal article is under peer review. Is this still the case?</p>
         <p>Please consider <a target="_blank" href="https://{% get_setting 'DOMAIN' %}/projects/{{ project_url_slug }}">changing the permission level</a> for this app to either <i>Public</i> (information about the app will become publicly findable) or <i>Project</i> (only members of your project on SciLifeLab Serve will be able to access the app).</p>
         <p>If you have any questions, feel free to get in touch with us - <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a>.</p>
         <p>Kind regards,</p>
