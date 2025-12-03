@@ -442,6 +442,7 @@ def remind_about_link_only_apps():
                 "app_owner_firstname": app.owner.first_name,
                 "app_name": app.name,
                 "app_url": app.url,
+                "project_url_slug": app.project.slug,
             },
         )
         logger.info("Sending reminder email %s", app.owner.email)
