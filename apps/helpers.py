@@ -364,6 +364,13 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
 
     app = get_app(app_slug)
 
+    # set the reminder date if this is a link-only app
+    if instance.access == "link":
+        if instance.reminder_date_linkonly_privacy is None:
+            set_linkonly_reminder_date(instance)
+    else:
+        instance.reminder_date_linkonly_privacy = None
+
     setup_instance(instance, subdomain, app, project, user_action)
     instance_id = save_instance_and_related_data(instance, form)
 
@@ -859,3 +866,13 @@ def get_cached_monthly_ip_count(subdomain: str, year_month: str) -> int:
     except Exception as e:
         logger.error(f"Failed to get cached monthly IP count for {subdomain}: {e}")
         return 0
+
+
+def set_linkonly_reminder_date(instance) -> None:
+    """
+    If the app is saved with Link permission level, set the reminder email date.
+    This date will then be used by the periodic task remind_about_link_only_apps
+    """
+    today = timezone.localdate()
+    days_to_the_reminder = 180
+    instance.reminder_date_linkonly_privacy = today + timezone.timedelta(days=days_to_the_reminder)
