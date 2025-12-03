@@ -18,7 +18,7 @@ from common.tasks import send_email_task
 from studio.celery import app
 from studio.utils import get_logger
 
-from .models import BaseAppInstance, DashInstance, FilemanagerInstance
+from .models import BaseAppInstance, FilemanagerInstance
 
 logger = get_logger(__name__)
 
@@ -48,7 +48,6 @@ def delete_old_objects():
             .exclude(latest_user_action="SystemDeleting")
             .exclude(app__slug="mlflow")
         )
-        # old: .exclude(app_status__status="Deleted")
 
         for app_ in old_develop_apps:
             delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
@@ -57,7 +56,6 @@ def delete_old_objects():
     old_file_managers = FilemanagerInstance.objects.filter(
         created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False
     ).exclude(latest_user_action="SystemDeleting")
-    # old: .exclude(app_status__status="Deleted")
 
     for app_ in old_file_managers:
         delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
@@ -452,7 +450,7 @@ def remind_about_link_only_apps():
                 f"Dear {app.owner.first_name},\n\n"
                 f"Your app {app.name} ({app.url}) is published on SciLifeLab Serve with access only to "
                 "those with whom you share the URL of the app (permission level Link).\n\n"
-                "We would like to remind you that we only allow using the Link permission level "
+                "This is a reminder that we only allow using the Link permission level "
                 "temporarily and in certain cases, such as when your app is under development or your "
                 "related journal article is under peer review. Is this still the case?\n\n"
                 "Please consider changing the permission level for this app to either Public "
@@ -474,10 +472,23 @@ def remind_about_link_only_apps():
         app.save(update_fields=["reminder_date_linkonly_privacy"])
 
     # Select the apps for which to send a reminder
-    send_reminder_apps = DashInstance.objects.filter(
-        access="link", reminder_date_linkonly_privacy__lte=timezone.now()
-    ).exclude(latest_user_action__in=["SystemDeleting", "Deleting"])
-    # !!! Remember to add other types of Serve apps!!!
+    send_reminder_apps = []
+    seen_ids: set[int] = set()
+    for orm_model in APP_REGISTRY.iter_orm_models():
+        # only keep models that have the field reminder_date_linkonly_privacy,
+        # this field is added only in the model of the app types for which this is relevant
+        field_names = {f.name for f in orm_model._meta.get_fields()}
+        if "reminder_date_linkonly_privacy" not in field_names:
+            continue
+        selected = orm_model.objects.filter(
+            access="link",
+            reminder_date_linkonly_privacy__lte=timezone.now(),
+        ).exclude(latest_user_action__in=["SystemDeleting", "Deleting"])
+        for obj in selected:
+            if obj.pk in seen_ids:  # need to do this because Shiny apps appear twice
+                continue
+            seen_ids.add(obj.pk)
+            send_reminder_apps.append(obj)
 
     # Send the reminders, set the next reminder date
     days_to_next_reminder = 90
