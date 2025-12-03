@@ -222,5 +222,33 @@
     },
     "model": "django_celery_beat.periodictask",
     "pk": 12
+  },
+  {
+    "fields": {
+      "args": "[]",
+      "clocked": null,
+      "crontab": 9,
+      "date_changed": "2026-01-01T00:00:00.000Z",
+      "description": "Send a reminder to the owners of apps with link-only permission level",
+      "enabled": true,
+      "exchange": null,
+      "expire_seconds": null,
+      "expires": null,
+      "headers": "{}",
+      "interval": null,
+      "kwargs": "{}",
+      "last_run_at": null,
+      "name": "remind_about_link_only_apps",
+      "one_off": false,
+      "priority": null,
+      "queue": null,
+      "routing_key": null,
+      "solar": null,
+      "start_time": null,
+      "task": "apps.tasks.remind_about_link_only_apps",
+      "total_run_count": 0
+    },
+    "model": "django_celery_beat.periodictask",
+    "pk": 13
   }
 ]
