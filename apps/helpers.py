@@ -870,7 +870,7 @@ def get_cached_monthly_ip_count(subdomain: str, year_month: str) -> int:
 
 def set_linkonly_reminder_date(instance) -> None:
     """
-    If the app is saved with Link permission level, set the reminder email date.
+    Set the link permission level reminder email date.
     This date will then be used by the periodic task remind_about_link_only_apps
     """
     today = timezone.localdate()
