@@ -1,6 +1,7 @@
 """This module is used to test the helper functions that are used by user app instance functionality."""
 
 import json
+from datetime import date
 from unittest.mock import ANY, patch
 
 import pytest
@@ -79,6 +80,7 @@ class CreateAppInstanceTestCase(TestCase):
             self.assertEqual(app_instance.port, data.get("port"))
             self.assertEqual(app_instance.image, data.get("image"))
             self.assertEqual(app_instance.source_code_url, data.get("source_code_url"))
+            self.assertIsNone(app_instance.reminder_date_linkonly_privacy)
 
             self.assertIsNotNone(app_instance.subdomain)
             subdomain_name = app_instance.subdomain.subdomain
@@ -90,6 +92,22 @@ class CreateAppInstanceTestCase(TestCase):
             self.assertFalse(app_instance.subdomain.is_created_by_user)
 
             mock_task.assert_called_once()
+
+        # check that the date for reminder is set when choosing the Link permission
+        data = {**data, "access": "link", "note_on_linkonly_privacy": "testing"}
+
+        form = form_class(data, project_pk=self.project.pk)
+
+        self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
+
+        with patch("apps.tasks.deploy_resource.delay") as mock_task:
+            id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
+
+            # Get app instance and verify the reminder date is present
+            app_instance = DashInstance.objects.get(pk=id)
+
+            self.assertIsNotNone(app_instance.reminder_date_linkonly_privacy)
+            self.assertIsInstance(app_instance.reminder_date_linkonly_privacy, date)
 
 
 # Mock the tasks that manipulate k8s resources.
@@ -332,6 +350,46 @@ class UpdateExistingAppInstanceTestCase(TestCase):
 
         self.assertEqual(app_instance.subdomain.subdomain, expected_subdomain_name)
         self.assertTrue(app_instance.subdomain.is_created_by_user)
+
+    def test_update_permission_linkonly_reminder(self, mock_delete, mock_deploy):
+        """
+        Test that changing the permission level to Link results in setting a reminder date, then
+        changing it back to Public removes the reminder date.
+        """
+
+        # check that first the reminder date field is not set
+        model_class, form_class = APP_REGISTRY.get(self.app_slug)
+        app_instance = model_class.objects.get(pk=self.app_instance.id)
+        self.assertIsInstance(app_instance, DashInstance)
+        self.assertIsNone(app_instance.reminder_date_linkonly_privacy)
+
+        # update the permission to Link
+        data = {
+            "name": self.name,
+            "description": self.description,
+            "access": "link",
+            "note_on_linkonly_privacy": "testing",
+            "port": self.port,
+            "image": self.image,
+            "source_code_url": self.source_code_url,
+            "subdomain": self.subdomain_name,
+        }
+        form = form_class(data, project_pk=self.project.pk, instance=app_instance)
+        self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
+        id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id)
+        # get the updated app instance and verify reminder date field is set
+        app_instance = DashInstance.objects.get(pk=id)
+        self.assertIsNotNone(app_instance.reminder_date_linkonly_privacy)
+        self.assertIsInstance(app_instance.reminder_date_linkonly_privacy, date)
+
+        # update the permission back to Public
+        data = {**data, "access": "public"}
+        form = form_class(data, project_pk=self.project.pk, instance=app_instance)
+        self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
+        id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id)
+        # get updated app instance and verify reminder date field is not set
+        app_instance = DashInstance.objects.get(pk=id)
+        self.assertIsNone(app_instance.reminder_date_linkonly_privacy)
 
 
 @pytest.mark.django_db
