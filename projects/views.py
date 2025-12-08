@@ -784,7 +784,7 @@ def request_storage(request, project_slug, volume_id):
             send_email_task.delay(
                 subject=email_subject,
                 message=email_body,
-                recipient_list=[django_settings.DEFAULT_FROM_EMAIL],
+                recipient_list=[django_settings.ADMIN_EMAIL],
                 from_email=django_settings.EMAIL_FROM,
             )
             return HttpResponse(

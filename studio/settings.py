@@ -439,6 +439,7 @@ PUBLICMODELOBJECT_MODEL = "portal.PublicModelObject"
 EMAIL_BACKEND = (
     "gmailapi_backend.service.GmailApiBackend" if not DEBUG else "django.core.mail.backends.console.EmailBackend"
 )
+ADMIN_EMAIL = "serve@scilifelab.se"
 DEFAULT_FROM_EMAIL = "serve@scilifelab.se"
 EMAIL_FROM = "noreply-serve@scilifelab.se"
 GMAIL_USER = "noreply-serve@scilifelab.se"

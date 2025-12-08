@@ -13,8 +13,6 @@ from .models import EmailVerificationTable
 
 logger = get_logger(__name__)
 
-ADMIN_EMAIL = "serve@scilifelab.se"
-
 
 @app.task
 def handle_deleted_users() -> None:
@@ -52,7 +50,7 @@ def handle_deleted_users() -> None:
                 "Remove deleted user from SciLifeLab Serve",
                 f"The user with id {user.id} deleted their account over {threshold_days} days ago. "
                 "Please permanently remove the user from SciLifeLab Serve according to the routines.",
-                [ADMIN_EMAIL],
+                [settings.ADMIN_EMAIL],
             )
 
         else:
