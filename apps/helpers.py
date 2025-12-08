@@ -365,7 +365,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     app = get_app(app_slug)
 
     # set the reminder date if this is a link-only app
-    if instance.access == "link":
+    if hasattr(instance, "access") and instance.access == "link":
         if instance.reminder_date_linkonly_privacy is None:
             set_linkonly_reminder_date(instance)
     else:
