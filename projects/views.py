@@ -391,22 +391,34 @@ class GrantAccessToProjectView(View):
 
             project_uri = f"{request.get_host()}/projects/{project.slug}"
             # The backslash below is used to ignore a newline
-            email_body = f"""\
-Hi {selected_username},
+            email_body_plain = f"""\
+                Dear {selected_user.first_name},
 
-{request.user.username} added you to the project {project.name} on SciLifeLab Serve (https://serve.scilifelab.se).
-You can now view the project here: {project_uri}.
-If you have any questions get in touch with us at serve@scilifelab.se
+                {request.user.username} added you to the project {project.name} on SciLifeLab Serve
+                (https://{django_settings.DOMAIN}).
+                You can now view the project here: https://{project_uri}.
+                If you have any questions get in touch with us at serve@scilifelab.se
 
-Best regards,
-The SciLifeLab Serve team
-"""
+                Kind regards,
+                The SciLifeLab Serve team
+                """
+
+            email_body_html = render_to_string(
+                "projects/emails/added_to_project.html",
+                {
+                    "added_username": selected_user.first_name,
+                    "owner_username": request.user.username,
+                    "project_name": project.name,
+                    "project_uri": project_uri,
+                },
+            )
 
             try:
                 # Notify user via email
                 send_email_task(
-                    subject="You've been added to a project on SciLifeLab Serve",
-                    message=email_body,
+                    subject="You have been added to a project on SciLifeLab Serve",
+                    message=email_body_plain,
+                    html_message=email_body_html,
                     recipient_list=[selected_username],
                 )
 

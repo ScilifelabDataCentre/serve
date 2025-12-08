@@ -188,6 +188,7 @@ def send_verification_email_task(email: str, token: str) -> None:
     send_email_task(
         subject="Verify your email address on SciLifeLab Serve",
         message=(
+            "Dear user,"
             f"You registered an account on SciLifeLab Serve ({DOMAIN}).\n"
             "Please click this link to verify your email address:"
             f" https://{DOMAIN}/verify/?token={token}"
