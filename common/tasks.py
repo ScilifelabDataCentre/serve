@@ -129,13 +129,26 @@ def alert_pause_dormant_users() -> None:
                     ({threshold_alert}). Sending a warning email."
             )
 
+            html_message = render_to_string(
+                "registration/warning_pausing_account.html",
+                {
+                    "user_firstname": user.first_name,
+                },
+            )
             send_email_task(
-                "Please sign in to SciLifeLab Serve to keep your account active",
-                "Your user account at SciLifeLab Serve (https://serve.scilifelab.se) has not been signed into for "
-                "a long time. Please sign in to SciLifeLab Serve to keep your user account active. Otherwise your "
-                "account will be paused after 2 weeks. If you want to access it again, you will need to get in touch "
-                "with our support team to reactivate it.",
-                [user.email],
+                subject="Sign in to SciLifeLab Serve to keep your account active",
+                message=(
+                    f"Dear {user.first_name},\n\n"
+                    "Your user account at SciLifeLab Serve (https://serve.scilifelab.se) has not been signed into for "
+                    "a long time. Please sign in to keep your user account on SciLifeLab Serve active. Otherwise your "
+                    "account will be paused after 2 weeks. If you would like to access it again after that, you will "
+                    "need to get in touch with our support team to reactivate it."
+                    "\n\n"
+                    "Kind regards,\n"
+                    "SciLifeLab Serve team"
+                ),
+                html_message=html_message,
+                recipient_list=[user.email],
                 fail_silently=False,
             )
 
@@ -179,6 +192,7 @@ def send_verification_email_task(email: str, token: str) -> None:
             "Please click this link to verify your email address:"
             f" https://{DOMAIN}/verify/?token={token}"
             "\n\n"
+            "Kind regards,\n"
             "SciLifeLab Serve team"
         ),
         html_message=html_message,
