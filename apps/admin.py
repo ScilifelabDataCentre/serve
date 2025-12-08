@@ -272,6 +272,9 @@ class NetpolicyInstanceAdmin(BaseAppAdmin):
 @admin.register(DashInstance)
 class DashInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + ("image",)
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(MLFlowInstance)
@@ -288,6 +291,9 @@ class CustomAppInstanceAdmin(BaseAppAdmin):
         "port",
         "user_id",
     )
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(ShinyInstance)
@@ -297,11 +303,17 @@ class ShinyInstanceAdmin(BaseAppAdmin):
         "image",
         "port",
     )
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(TissuumapsInstance)
 class TissuumapsInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + ("display_volumes",)
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(FilemanagerInstance)
@@ -320,6 +332,9 @@ class GradioInstanceAdmin(BaseAppAdmin):
         "port",
         "user_id",
     )
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(StreamlitInstance)
@@ -330,6 +345,9 @@ class StreamlitInstanceAdmin(BaseAppAdmin):
         "port",
         "user_id",
     )
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 class SubdomainAdmin(admin.ModelAdmin):
