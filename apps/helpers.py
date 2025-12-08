@@ -1,6 +1,7 @@
 import json
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import regex as re
 import requests
@@ -11,6 +12,7 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
+from django.db.models.query import QuerySet
 from django.forms.models import model_to_dict
 from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
@@ -113,7 +115,7 @@ def handle_permissions(parameters, project):
 
 
 def handle_update_status_request(
-    release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
+    release: str, new_status: str, event_ts: datetime, event_msg: str | None = None
 ) -> HandleUpdateStatusResponseCode:
     """
     Helper function to handle update k8s user app status requests by determining if the request should be performed or
@@ -798,7 +800,7 @@ def get_university_suffix_information(university_sufffix: str) -> str:
     return UNIVERSITY_NAMES.get(university_sufffix, university_sufffix)
 
 
-def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
+def get_minio_usage(minio_service_name: str) -> None | tuple[float, float]:
     metrics_url = f"http://{minio_service_name}/minio/v2/metrics/cluster"
 
     try:
@@ -862,7 +864,7 @@ def get_cached_monthly_ip_count(subdomain: str, year_month: str) -> int:
         return 0
 
 
-def deep_merge_dict(base: dict, override: dict) -> dict:
+def deep_merge_dict(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     """
     Deep merge two dictionaries, with override taking precedence.
 
@@ -882,7 +884,7 @@ def deep_merge_dict(base: dict, override: dict) -> dict:
     return result
 
 
-def get_merged_k8s_values(instance: BaseAppInstance, ensure_up_to_date: bool = True) -> dict:
+def get_merged_k8s_values(instance: BaseAppInstance, ensure_up_to_date: bool = True) -> dict[str, Any]:
     """
     Get k8s_values for an app instance, merged with k8s_values_override if present.
 
@@ -907,12 +909,12 @@ def get_merged_k8s_values(instance: BaseAppInstance, ensure_up_to_date: bool = T
 
 
 def generate_helm_install_command(
-    instance: BaseAppInstance = None,
-    release_name: str = None,
-    chart: str = None,
-    namespace: str = None,
-    values_file: str = None,
-    version: str = None,
+    instance: BaseAppInstance | None = None,
+    release_name: str | None = None,
+    chart: str | None = None,
+    namespace: str | None = None,
+    values_file: str | None = None,
+    version: str | None = None,
 ) -> str:
     """
     Generate the helm install command for an app instance or from direct parameters.
@@ -982,7 +984,7 @@ def generate_helm_install_command(
     return command
 
 
-def export_k8s_values_to_yaml(instances) -> str:
+def export_k8s_values_to_yaml(instances: QuerySet[BaseAppInstance] | Iterable[BaseAppInstance]) -> str:
     """
     Export k8s_values for app instances as YAML string with helm install command comments.
 
