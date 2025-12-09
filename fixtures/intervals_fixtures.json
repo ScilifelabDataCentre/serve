@@ -107,5 +107,16 @@
     },
     "model": "django_celery_beat.crontabschedule",
     "pk": 8
+  },
+  {
+    "fields": {
+      "day_of_month": "*",
+      "day_of_week": "2",
+      "hour": "7",
+      "minute": "00",
+      "month_of_year": "*"
+    },
+    "model": "django_celery_beat.crontabschedule",
+    "pk": 9
   }
 ]
