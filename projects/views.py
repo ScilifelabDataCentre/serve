@@ -420,6 +420,7 @@ class GrantAccessToProjectView(View):
                     message=email_body_plain,
                     html_message=email_body_html,
                     recipient_list=[selected_username],
+                    reply_to=[django_settings.REPLY_TO_EMAIL],
                 )
 
             except Exception as err:

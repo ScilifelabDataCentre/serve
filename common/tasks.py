@@ -150,6 +150,7 @@ def alert_pause_dormant_users() -> None:
                 html_message=html_message,
                 recipient_list=[user.email],
                 fail_silently=False,
+                reply_to=[settings.REPLY_TO_EMAIL],
             )
 
             # Add the user to the group
@@ -165,6 +166,7 @@ def send_email_task(
     html_message: str | None = None,
     fail_silently: bool = False,
     from_email: str = settings.EMAIL_FROM,
+    reply_to: list[str] | None = None,
 ) -> None:
     """
     Send message content if html_message is None, otherwise send html_message.
@@ -172,7 +174,7 @@ def send_email_task(
     logger.info("Sending email to %s", recipient_list)
     mail_subject = subject
     mail_message = message if html_message is None else html_message
-    email = EmailMessage(mail_subject, mail_message, from_email, to=recipient_list)
+    email = EmailMessage(mail_subject, mail_message, from_email, to=recipient_list, reply_to=reply_to)
     email.content_subtype = "html" if html_message else "plain"
     email.send(fail_silently=fail_silently)
 
