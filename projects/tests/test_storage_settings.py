@@ -609,7 +609,7 @@ class StorageRequestTestCase(TestCase):
         response = self.client.post(url, {"requested_size": "20", "request_reason": "Need more storage"})
         self.assertEqual(response.status_code, 404)
 
-    @override_settings(DEFAULT_FROM_EMAIL="serve@test.com", EMAIL_FROM="noreply@test.com")
+    @override_settings(ADMIN_EMAIL="serve@test.com", EMAIL_FROM="noreply@test.com")
     def test_request_storage_email_settings_and_errors(self):
         """Test email settings and error handling"""
         self.client.login(username=TEST_USER["email"], password=TEST_USER["password"])
