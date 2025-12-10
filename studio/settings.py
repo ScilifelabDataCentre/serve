@@ -439,9 +439,13 @@ PUBLICMODELOBJECT_MODEL = "portal.PublicModelObject"
 EMAIL_BACKEND = (
     "gmailapi_backend.service.GmailApiBackend" if not DEBUG else "django.core.mail.backends.console.EmailBackend"
 )
-DEFAULT_FROM_EMAIL = "serve@scilifelab.se"
-EMAIL_FROM = "noreply-serve@scilifelab.se"
-GMAIL_USER = "noreply-serve@scilifelab.se"
+ADMIN_EMAIL = "serve@scilifelab.se"  # for internal (admin/moderator) email notifications
+DEFAULT_FROM_EMAIL = (
+    "noreply-serve@scilifelab.se"  # default Django variable, used when there is no from email specified
+)
+EMAIL_FROM = "noreply-serve@scilifelab.se"  # what we use as from email
+REPLY_TO_EMAIL = "serve@scilifelab.se"  # we use this when we want to give users a chance to reply directly
+GMAIL_USER = "noreply-serve@scilifelab.se"  # used as email sending backend credentials
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 GOOGLE_SERVICE_ACCOUNT = json.dumps(
     {

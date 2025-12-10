@@ -1,0 +1,32 @@
+{% load get_setting %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign in to SciLifeLab Serve to keep your account active</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            padding: 20px;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <h1>Sign in to SciLifeLab Serve to keep your account active</h1>
+        <p>Dear {{ user_firstname }},</p>
+        <p>Your user account at SciLifeLab Serve (<a href="https://{% get_setting 'DOMAIN' %}">https://{% get_setting 'DOMAIN' %}</a>) has not been signed into for a long time. Please sign in to keep your user account on SciLifeLab Serve active. Otherwise your account will be paused after 2 weeks. If you would like to access it again after that, you will need to get in touch with our support team to reactivate it.</p>
+        <p>Kind regards,</p>
+        <p>SciLifeLab Serve team</p>
+    </div>
+</body>
+</html>

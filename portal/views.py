@@ -237,13 +237,13 @@ Description:
 This email was sent from the SciLifeLab Serve teaching request form.
 """
 
-            # Send email to DEFAULT_FROM_EMAIL
+            # Send email to ADMIN_EMAIL
             try:
                 send_mail(
                     subject=subject,
                     message=message,
                     from_email=settings.EMAIL_FROM,
-                    recipient_list=[settings.DEFAULT_FROM_EMAIL],
+                    recipient_list=[settings.ADMIN_EMAIL],
                     fail_silently=False,
                 )
                 # Show success message

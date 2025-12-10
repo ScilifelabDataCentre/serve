@@ -1,0 +1,34 @@
+{% load get_setting %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>You have been added to a project on SciLifeLab Serve</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            padding: 20px;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <h1>You have been added to a project on SciLifeLab Serve</h1>
+        <p>Dear {{ added_username }},</p>
+        <p>{{ owner_username }} added you to the project <i>{{ project_name }}</i> on SciLifeLab Serve (<a href="https://{% get_setting 'DOMAIN' %}">https://{% get_setting 'DOMAIN' %}</a>).
+        <p>You can now view the project here: <a href="https://{{ project_uri }}">https://{{ project_uri }}</a></p>
+        <p>If you have any questions get in touch with us at <a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a>.</p>
+        <p>Kind regards,</p>
+        <p>SciLifeLab Serve team</p>
+    </div>
+</body>
+</html>
