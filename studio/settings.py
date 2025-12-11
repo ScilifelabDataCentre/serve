@@ -183,9 +183,10 @@ if TESTING:
             "ENGINE": "django.db.backends.postgresql",
             "OPTIONS": {
                 "pool": {
-                    "min_size": 2,
-                    "max_size": 4,
-                    "timeout": 10,
+                    "min_size": 4,
+                    "max_size": 10,
+                    "timeout": 30,
+                    "max_idle": 300,
                 }
             },
             "NAME": "postgres",
