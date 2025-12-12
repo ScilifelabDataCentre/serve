@@ -459,6 +459,7 @@ def remind_about_link_only_apps():
             ),
             html_message=html_message,
             recipient_list=[app.owner.email],
+            reply_to=[settings.REPLY_TO_EMAIL],
         )
 
     # Define how to set the next reminder day

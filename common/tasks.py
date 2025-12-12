@@ -13,8 +13,6 @@ from .models import EmailVerificationTable
 
 logger = get_logger(__name__)
 
-ADMIN_EMAIL = "serve@scilifelab.se"
-
 
 @app.task
 def handle_deleted_users() -> None:
@@ -52,7 +50,7 @@ def handle_deleted_users() -> None:
                 "Remove deleted user from SciLifeLab Serve",
                 f"The user with id {user.id} deleted their account over {threshold_days} days ago. "
                 "Please permanently remove the user from SciLifeLab Serve according to the routines.",
-                [ADMIN_EMAIL],
+                [settings.ADMIN_EMAIL],
             )
 
         else:
@@ -131,14 +129,28 @@ def alert_pause_dormant_users() -> None:
                     ({threshold_alert}). Sending a warning email."
             )
 
+            html_message = render_to_string(
+                "registration/warning_pausing_account.html",
+                {
+                    "user_firstname": user.first_name,
+                },
+            )
             send_email_task(
-                "Please sign in to SciLifeLab Serve to keep your account active",
-                "Your user account at SciLifeLab Serve (https://serve.scilifelab.se) has not been signed into for "
-                "a long time. Please sign in to SciLifeLab Serve to keep your user account active. Otherwise your "
-                "account will be paused after 2 weeks. If you want to access it again, you will need to get in touch "
-                "with our support team to reactivate it.",
-                [user.email],
+                subject="Sign in to SciLifeLab Serve to keep your account active",
+                message=(
+                    f"Dear {user.first_name},\n\n"
+                    "Your user account at SciLifeLab Serve (https://serve.scilifelab.se) has not been signed into for "
+                    "a long time. Please sign in to keep your user account on SciLifeLab Serve active. Otherwise your "
+                    "account will be paused after 2 weeks. If you would like to access it again after that, you will "
+                    "need to get in touch with our support team to reactivate it."
+                    "\n\n"
+                    "Kind regards,\n"
+                    "SciLifeLab Serve team"
+                ),
+                html_message=html_message,
+                recipient_list=[user.email],
                 fail_silently=False,
+                reply_to=[settings.REPLY_TO_EMAIL],
             )
 
             # Add the user to the group
@@ -154,6 +166,7 @@ def send_email_task(
     html_message: str | None = None,
     fail_silently: bool = False,
     from_email: str = settings.EMAIL_FROM,
+    reply_to: list[str] | None = None,
 ) -> None:
     """
     Send message content if html_message is None, otherwise send html_message.
@@ -161,7 +174,7 @@ def send_email_task(
     logger.info("Sending email to %s", recipient_list)
     mail_subject = subject
     mail_message = message if html_message is None else html_message
-    email = EmailMessage(mail_subject, mail_message, from_email, to=recipient_list)
+    email = EmailMessage(mail_subject, mail_message, from_email, to=recipient_list, reply_to=reply_to)
     email.content_subtype = "html" if html_message else "plain"
     email.send(fail_silently=fail_silently)
 
@@ -177,10 +190,12 @@ def send_verification_email_task(email: str, token: str) -> None:
     send_email_task(
         subject="Verify your email address on SciLifeLab Serve",
         message=(
+            "Dear user,"
             f"You registered an account on SciLifeLab Serve ({DOMAIN}).\n"
             "Please click this link to verify your email address:"
             f" https://{DOMAIN}/verify/?token={token}"
             "\n\n"
+            "Kind regards,\n"
             "SciLifeLab Serve team"
         ),
         html_message=html_message,
