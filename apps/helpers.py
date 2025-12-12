@@ -1,15 +1,18 @@
 import json
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import regex as re
 import requests
 import waffle
+import yaml
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
+from django.db.models.query import QuerySet
 from django.forms.models import model_to_dict
 from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
@@ -112,7 +115,7 @@ def handle_permissions(parameters, project):
 
 
 def handle_update_status_request(
-    release: str, new_status: str, event_ts: datetime, event_msg: Optional[str] = None
+    release: str, new_status: str, event_ts: datetime, event_msg: str | None = None
 ) -> HandleUpdateStatusResponseCode:
     """
     Helper function to handle update k8s user app status requests by determining if the request should be performed or
@@ -804,7 +807,7 @@ def get_university_suffix_information(university_sufffix: str) -> str:
     return UNIVERSITY_NAMES.get(university_sufffix, university_sufffix)
 
 
-def get_minio_usage(minio_service_name: str) -> Optional[Tuple[float, float]]:
+def get_minio_usage(minio_service_name: str) -> None | tuple[float, float]:
     metrics_url = f"http://{minio_service_name}/minio/v2/metrics/cluster"
 
     try:
@@ -876,3 +879,176 @@ def set_linkonly_reminder_date(instance) -> None:
     today = timezone.localdate()
     days_to_the_reminder = 180
     instance.reminder_date_linkonly_privacy = today + timezone.timedelta(days=days_to_the_reminder)
+
+
+def deep_merge_dict(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """
+    Deep merge two dictionaries, with override taking precedence.
+
+    Args:
+        base: Base dictionary
+        override: Override dictionary that takes precedence
+
+    Returns:
+        Merged dictionary
+    """
+    result = base.copy()
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = deep_merge_dict(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def get_merged_k8s_values(instance: BaseAppInstance, ensure_up_to_date: bool = True) -> dict[str, Any]:
+    """
+    Get k8s_values for an app instance, merged with k8s_values_override if present.
+
+    Args:
+        instance: The app instance
+        ensure_up_to_date: If True, calls set_k8s_values() to ensure values are current
+
+    Returns:
+        Dictionary containing merged k8s_values
+    """
+    if ensure_up_to_date:
+        instance.set_k8s_values()
+
+    # Get base k8s_values
+    values = instance.k8s_values or {}
+
+    # Merge with override values if present
+    if instance.k8s_values_override:
+        values = deep_merge_dict(values, instance.k8s_values_override)
+
+    return values
+
+
+def generate_helm_install_command(
+    instance: BaseAppInstance | None = None,
+    release_name: str | None = None,
+    chart: str | None = None,
+    namespace: str | None = None,
+    values_file: str | None = None,
+    version: str | None = None,
+) -> str:
+    """
+    Generate the helm install command for an app instance or from direct parameters.
+    This matches the logic used in tasks.py deploy_resource and helm_install functions.
+
+    Args:
+        instance: The app instance (if provided, other parameters override instance values)
+        release_name: Release name (overrides instance subdomain if provided)
+        chart: Chart name/URL (overrides instance.chart if provided)
+        namespace: Namespace (overrides instance namespace if provided)
+        values_file: Optional path to values file (if None, will use -f <values-file> placeholder)
+        version: Chart version (overrides parsed version if provided)
+
+    Returns:
+        Helm install command string
+    """
+    # If instance is provided, get values from it
+    if instance:
+        values = get_merged_k8s_values(instance, ensure_up_to_date=False)
+        if release_name is None:
+            release_name = values.get("subdomain", instance.name)
+        if namespace is None:
+            namespace = values.get("namespace", "default")
+        if chart is None:
+            chart = instance.chart
+
+    # Ensure required parameters are set
+    if release_name is None:
+        raise ValueError("release_name must be provided either via instance or directly")
+    if chart is None:
+        raise ValueError("chart must be provided either via instance or directly")
+    if namespace is None:
+        namespace = "default"
+
+    # Determine version and chart format (same logic as deploy_resource in tasks.py)
+    # Only parse if version is not already provided (chart may already be parsed)
+    parsed_version = version
+    if version is None:
+        if "ghcr" in chart:
+            parsed_version = chart.split(":")[-1]
+            chart = "oci://" + chart.split(":")[0]
+        elif chart.startswith("oci://"):
+            # Use regex module (imported as re) to match tasks.py pattern
+            CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
+            match = CHART_REGEX.match(chart)
+            if match:
+                chart = match.group("chart")
+                parsed_version = match.group("version")
+
+    # Base command (same logic as helm_install in tasks.py)
+    if "volumek8s" in chart:
+        # Force reinstall doesn't work with volumek8s chart
+        command = f"helm upgrade --install {release_name} {chart} --namespace {namespace}"
+    else:
+        command = f"helm upgrade --force --install {release_name} {chart} --namespace {namespace}"
+
+    if values_file:
+        command += f" -f {values_file}"
+    else:
+        # Use placeholder if no file specified
+        command += " -f <values-file>"
+
+    # Append version if deploying via ghcr
+    if parsed_version:
+        command += f" --version {parsed_version} --repository-cache /app/charts/.cache/helm/repository"
+
+    return command
+
+
+def export_k8s_values_to_yaml(instances: QuerySet[BaseAppInstance] | Iterable[BaseAppInstance]) -> str:
+    """
+    Export k8s_values for app instances as YAML string with helm install command comments.
+
+    Args:
+        instances: Queryset or list of BaseAppInstance objects
+
+    Returns:
+        YAML string representation of the values with helm install commands as comments
+
+    Raises:
+        ValueError: If instances is empty or YAML conversion fails
+    """
+    if not instances:
+        raise ValueError("No app instances provided")
+
+    # Collect values and helm commands from all instances
+    exported_values = {}
+    helm_commands = {}
+
+    for instance in instances:
+        # Get merged values
+        values = get_merged_k8s_values(instance, ensure_up_to_date=True)
+
+        # Generate helm install command
+        helm_command = generate_helm_install_command(instance)
+
+        # Use a unique key for each instance (name + id to ensure uniqueness)
+        instance_key = f"{instance.name}_{instance.id}"
+        exported_values[instance_key] = values
+        helm_commands[instance_key] = helm_command
+
+    # Convert to YAML
+    try:
+        yaml_content = yaml.dump(exported_values, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+        # Prepend helm install commands as comments
+        comments = []
+        comments.append("# Helm install commands for the exported app instances:")
+        comments.append("#")
+
+        for instance_key, helm_cmd in helm_commands.items():
+            comments.append(f"# {instance_key}:")
+            comments.append(f"#   {helm_cmd}")
+            comments.append("#")
+
+        # Combine comments and YAML content
+        return "\n".join(comments) + "\n" + yaml_content
+    except Exception as e:
+        logger.error(f"Error converting values to YAML: {e}")
+        raise ValueError(f"Error exporting values to YAML: {e}") from e

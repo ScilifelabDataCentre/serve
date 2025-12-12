@@ -1,14 +1,16 @@
 import time
+from datetime import datetime
 
 from django.contrib import admin, messages
 from django.db.models.query import QuerySet
+from django.http import HttpResponse
 from django.utils import timezone
 
 from projects.models import PersistentVolumeMountPath
 from studio.utils import get_logger
 
 from .constants import AppActionOrigin
-from .helpers import get_URI, set_linkonly_reminder_date
+from .helpers import export_k8s_values_to_yaml, get_URI, set_linkonly_reminder_date
 from .models import (
     AppCategories,
     Apps,
@@ -87,7 +89,13 @@ class BaseAppAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("id", "created_on")
     list_filter = ["owner", "project", "k8s_user_app_status__status", "chart"]
-    actions = ["redeploy_apps", "deploy_resources", "delete_resources", "set_linkonly_reminder_dates"]
+    actions = [
+        "redeploy_apps",
+        "deploy_resources",
+        "delete_resources",
+        "export_values_yaml",
+        "set_linkonly_reminder_dates",
+    ]
 
     def display_status(self, obj):
         try:
@@ -214,6 +222,41 @@ class BaseAppAdmin(admin.ModelAdmin):
             self.message_user(
                 request, "There was not a single app with Link permission among the selected apps.", messages.ERROR
             )
+
+    @admin.action(description="Export values as YAML")
+    def export_values_yaml(self, request, queryset):
+        """
+        Export k8s_values for selected app instances as YAML files.
+        For multiple instances, creates a single YAML file with all values.
+        """
+        if not queryset.exists():
+            self.message_user(request, "No app instances selected.", messages.WARNING)
+            return
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        try:
+            yaml_content = export_k8s_values_to_yaml(queryset)
+        except ValueError as e:
+            logger.error(f"Error exporting values to YAML: {e}")
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        # Create HTTP response with YAML content
+        response = HttpResponse(yaml_content, content_type="application/x-yaml")
+
+        # Set filename based on number of instances
+        if queryset.count() == 1:
+            instance = queryset.first()
+            filename = f"{instance.name}_{instance.id}_values_{timestamp}.yaml"
+        else:
+            filename = f"app_instances_values_{timestamp}.yaml"
+
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        self.message_user(request, f"Exported {queryset.count()} app instance(s) values as YAML.", messages.SUCCESS)
+
+        return response
 
 
 @admin.register(BaseAppInstance)
