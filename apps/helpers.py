@@ -30,8 +30,6 @@ from studio.utils import get_logger
 
 from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
 
-from invenio_client.invenio_client import transform_to_invenio_metadata, create_and_publish_record_on_invenio
-
 logger = get_logger(__name__)
 
 
@@ -766,12 +764,6 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
 
     logger.info(f"Generated schema.org description of app '{app_data.get('name')}' as follows:\n{schema_json}")
     
-   
-    
-    invenio_metadata = transform_to_invenio_metadata(clean_nulls(schema))
-    
-    create_and_publish_record_on_invenio(invenio_metadata)
-
     return schema_json
 
 
