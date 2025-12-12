@@ -14,6 +14,7 @@ from django.utils import timezone
 from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
 from apps.constants import AppActionOrigin
+from apps.helpers import generate_helm_install_command, get_merged_k8s_values
 from common.tasks import send_email_task
 from studio.celery import app
 from studio.utils import get_logger
@@ -97,24 +98,20 @@ def helm_install(release_name, chart, namespace="default", values_file=None, ver
     release_name (str): Name of the Helm release.
     chart (str): Helm chart to install.
     namespace (str): Kubernetes namespace to deploy to.
-    options (list, optional): Additional options for Helm command in list format.
+    values_file (str, optional): Path to values file.
+    version (str, optional): Chart version.
 
     Returns:
     tuple: Output message and any errors from the Helm command.
     """
-    # Base command
-    if "volumek8s" in chart:
-        # Force reinstall doesn't work with volumek8s chart
-        command = f"helm upgrade --install {release_name} {chart} --namespace {namespace}"
-    else:
-        command = f"helm upgrade --force --install {release_name} {chart} --namespace {namespace}"
-
-    if values_file:
-        command += f" -f {values_file}"
-
-    # Append version if deploying via ghcr
-    if version:
-        command += f" --version {version} --repository-cache /app/charts/.cache/helm/repository"
+    # Generate command using shared helper function
+    command = generate_helm_install_command(
+        release_name=release_name,
+        chart=chart,
+        namespace=namespace,
+        values_file=values_file,
+        version=version,
+    )
 
     logger.debug(f"Running Helm command: {command}")
     # Execute the command
@@ -206,9 +203,7 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
 def deploy_resource(serialized_instance):
     instance: BaseAppInstance = deserialize(serialized_instance)
     logger.info("Deploying resource for instance %s", instance)
-    values = instance.k8s_values
-    if instance.k8s_values_override:
-        values.update(instance.k8s_values_override)
+    values = get_merged_k8s_values(instance, ensure_up_to_date=True)
     release = values["subdomain"]
     chart: str = instance.chart
     if "ghcr" in instance.chart:
@@ -315,7 +310,8 @@ def delete_resource(serialized_instance, initiated_by_str: str):
 
     instance = deserialize(serialized_instance)
 
-    values = instance.k8s_values
+    # Use merged values for consistency, but don't update since we're deleting
+    values = get_merged_k8s_values(instance, ensure_up_to_date=False)
 
     success = False
     if values.get("subdomain") is not None:
