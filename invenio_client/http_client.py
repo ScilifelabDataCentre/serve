@@ -113,9 +113,7 @@ def get(session: requests.Session, url: str, **kwargs) -> Optional[requests.Resp
     return _request(session, "GET", url, **kwargs)
 
 
-def post(
-    session: requests.Session, url: str, *, data=None, **kwargs
-) -> Optional[requests.Response]:
+def post(session: requests.Session, url: str, *, data=None, **kwargs) -> Optional[requests.Response]:
     """
     Send a POST request using the provided requests.Session.
 
@@ -139,9 +137,7 @@ def post(
     return _request(session, "POST", url, json=(data or {}), **kwargs)
 
 
-def put(
-    session: requests.Session, url: str, *, data=None, **kwargs
-) -> Optional[requests.Response]:
+def put(session: requests.Session, url: str, *, data=None, **kwargs) -> Optional[requests.Response]:
     """
     Send a PUT request using the provided requests.Session.
 
@@ -165,9 +161,7 @@ def put(
     return _request(session, "PUT", url, json=(data or {}), **kwargs)
 
 
-def delete(
-    session: requests.Session, url: str, **kwargs
-) -> Optional[requests.Response]:
+def delete(session: requests.Session, url: str, **kwargs) -> Optional[requests.Response]:
     """
     Send a DELETE request using the provided requests.Session.
 

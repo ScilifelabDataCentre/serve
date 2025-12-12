@@ -763,7 +763,7 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
     schema_json = json.dumps(clean_nulls(schema), indent=2)
 
     logger.info(f"Generated schema.org description of app '{app_data.get('name')}' as follows:\n{schema_json}")
-    
+
     return schema_json
 
 

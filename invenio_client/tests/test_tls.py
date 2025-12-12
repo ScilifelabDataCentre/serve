@@ -1,9 +1,11 @@
 """
 Tests for tls.py module.
 """
-import pytest
 import os
 from unittest.mock import patch
+
+import pytest
+
 from invenio_client.tls import parse_tls_verify, tls_verify_from_env
 
 
@@ -12,26 +14,32 @@ def test_parse_tls_verify_default():
     assert parse_tls_verify(None) is True
 
 
-@pytest.mark.parametrize("value,expected", [
-    ("", True),
-    ("1", True),
-    ("true", True),
-    ("TRUE", True),
-    ("yes", True),
-    ("on", True),
-])
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("", True),
+        ("1", True),
+        ("true", True),
+        ("TRUE", True),
+        ("yes", True),
+        ("on", True),
+    ],
+)
 def test_parse_tls_verify_true_values(value, expected):
     """Test parsing TLS verify with truthy values."""
     assert parse_tls_verify(value) is True
 
 
-@pytest.mark.parametrize("value,expected", [
-    ("0", False),
-    ("false", False),
-    ("FALSE", False),
-    ("no", False),
-    ("off", False),
-])
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("0", False),
+        ("false", False),
+        ("FALSE", False),
+        ("no", False),
+        ("off", False),
+    ],
+)
 def test_parse_tls_verify_false_values(value, expected):
     """Test parsing TLS verify with falsy values."""
     assert parse_tls_verify(value) is False
@@ -44,7 +52,7 @@ def test_parse_tls_verify_path():
     # The actual expanded path depends on the user's home directory
     assert isinstance(result, str)
     assert "cert.pem" in result
-    
+
     # Test with absolute path
     result = parse_tls_verify("/path/to/cert.pem")
     assert result == "/path/to/cert.pem"

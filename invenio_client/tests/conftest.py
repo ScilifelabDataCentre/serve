@@ -1,10 +1,12 @@
 """
 Pytest configuration and fixtures for Invenio client tests.
 """
+import json
+from unittest.mock import Mock, patch
+
 import pytest
 import responses
-from unittest.mock import Mock, patch
-import json
+
 from invenio_client import InvenioClient, transform_to_invenio_metadata
 
 
@@ -22,10 +24,7 @@ def token():
 def invenio_client(base_url, token):
     """Create an InvenioClient instance for testing."""
     return InvenioClient(
-        base_url=base_url,
-        token=token,
-        auth_scheme="Bearer",
-        verify=False  # Disable SSL verification for tests
+        base_url=base_url, token=token, auth_scheme="Bearer", verify=False  # Disable SSL verification for tests
     )
 
 
@@ -38,10 +37,7 @@ def sample_schema_org_data():
         "name": "Test Dataset",
         "description": "Test description",
         "dateCreated": "2025-12-11T10:53:26.264196+00:00",
-        "creator": {
-            "@type": "Organization",
-            "name": "Test Org"
-        },
+        "creator": {"@type": "Organization", "name": "Test Org"},
         "hasPart": [
             {
                 "@type": "SoftwareApplication",
@@ -53,23 +49,17 @@ def sample_schema_org_data():
                 "operatingSystem": "Kubernetes",
                 "additionalProperty": [
                     {"name": "cpuRequest", "value": "100m"},
-                    {"name": "memoryRequest", "value": "1Gi"}
+                    {"name": "memoryRequest", "value": "1Gi"},
                 ],
-                "hasPart": {
-                    "@type": "SoftwareSourceCode",
-                    "codeRepository": "https://github.com/test"
-                }
+                "hasPart": {"@type": "SoftwareSourceCode", "codeRepository": "https://github.com/test"},
             }
         ],
         "about": {
             "@type": "Project",
             "name": "Test Project",
             "description": "Project description",
-            "additionalProperty": [
-                {"name": "service1", "value": "2"},
-                {"name": "service2", "value": "3"}
-            ]
-        }
+            "additionalProperty": [{"name": "service1", "value": "2"}, {"name": "service2", "value": "3"}],
+        },
     }
 
 
@@ -82,19 +72,11 @@ def sample_record_data():
             "title": "Test Record",
             "description": "Test description",
             "publication_date": "2025-12-11",
-            "resource_type": {"id": "dataset"}
+            "resource_type": {"id": "dataset"},
         },
-        "access": {
-            "record": "public",
-            "files": "public"
-        },
-        "files": {
-            "enabled": False
-        },
-        "versions": {
-            "index": 1,
-            "is_latest": True
-        }
+        "access": {"record": "public", "files": "public"},
+        "files": {"enabled": False},
+        "versions": {"index": 1, "is_latest": True},
     }
 
 
@@ -103,14 +85,8 @@ def sample_draft_data():
     """Sample draft record data."""
     return {
         "id": "draft-123",
-        "metadata": {
-            "title": "Draft Record",
-            "description": "Draft description"
-        },
-        "links": {
-            "self": "/api/records/draft-123/draft",
-            "publish": "/api/records/draft-123/draft/actions/publish"
-        }
+        "metadata": {"title": "Draft Record", "description": "Draft description"},
+        "links": {"self": "/api/records/draft-123/draft", "publish": "/api/records/draft-123/draft/actions/publish"},
     }
 
 
@@ -121,19 +97,11 @@ def sample_search_results():
         "hits": {
             "total": 2,
             "hits": [
-                {
-                    "id": "record-1",
-                    "metadata": {"title": "Record 1"}
-                },
-                {
-                    "id": "record-2",
-                    "metadata": {"title": "Record 2"}
-                }
-            ]
+                {"id": "record-1", "metadata": {"title": "Record 1"}},
+                {"id": "record-2", "metadata": {"title": "Record 2"}},
+            ],
         },
-        "links": {
-            "self": "/api/records?page=1"
-        }
+        "links": {"self": "/api/records?page=1"},
     }
 
 

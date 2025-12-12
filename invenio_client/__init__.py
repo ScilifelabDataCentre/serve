@@ -1,4 +1,4 @@
-from .http_client import _request, get, post, put, delete
+from .http_client import _request, delete, get, post, put
 from .invenio_client import *
 from .session import make_session
 from .tls import tls_verify_from_env
