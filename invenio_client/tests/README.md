@@ -23,7 +23,7 @@ pip install pytest pytest-mock responses pytest-cov
 ### Using pytest directly:
 ```bash
 # Run all tests
-python -m pytest itests/ -v
+python -m pytest tests/ -v
 
 # Run with coverage report
 python -m pytest tests/ --cov=invenio_client --cov-report=term-missing
