@@ -137,13 +137,9 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Project')
-            // Verify storage management link
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-
-            // Set mount path (replaces old volume and path fields) - it's a select dropdown
-            // /home/data (project-vol (e2e-deploy-app-test))
             cy.get('#id_mount_path').select(mount_path+ " (project-vol (" + project_name + "))")
 
             cy.get('#id_port').clear().type(image_port)
@@ -381,6 +377,10 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_mount_path').should('exist')
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Though Shiny Proxy apps can take a long time to start
@@ -547,6 +547,9 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
             cy.get('#id_volume').select(volume_display_text)
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // Check that the app was created and verify the app status
@@ -616,6 +619,10 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_mount_path').should('exist')
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -683,6 +690,10 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_mount_path').should('exist')
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
