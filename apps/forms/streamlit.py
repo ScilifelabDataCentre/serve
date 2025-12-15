@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
 from apps.forms.mixins import ContainerImageMixin, StorageMixin
-from apps.models import GradioInstance, StreamlitInstance
+from apps.models import StreamlitInstance
 from projects.models import Flavor
 
 __all__ = ["StreamlitForm"]

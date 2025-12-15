@@ -6,13 +6,18 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.mixins import VolumeMixin
 from apps.models import VolumeInstance, VSCodeInstance
 
 __all__ = ["VSCodeForm"]
 
 
-class VSCodeForm(AppBaseForm):
+class VSCodeForm(VolumeMixin, AppBaseForm):
     volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
+
+    def _setup_form_fields(self):
+        super()._setup_form_fields()
+        self._set_up_volume_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -27,7 +32,7 @@ class VSCodeForm(AppBaseForm):
 
         configuration = AccordionGroup(
             mark_safe("<h3>Configuration Settings</h3>"),
-            Field("volume"),
+            self._set_up_volume_helper(),
             SRVCommonDivField("flavor"),
             active=True,
         )
