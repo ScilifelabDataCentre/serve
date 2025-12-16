@@ -44,4 +44,5 @@ HELP_MESSAGE_MAP = {
     "mount_path": "Specify the path inside your Docker container that you want to persist; for example, the directory "
     "where you plan to store or load data. If you followed our guide to build the Docker container, "
     "please include the username you specified in the Dockerfile as part of the path.",
+    "volume": "This is where this application will be able to read, edit, and save files.",
 }

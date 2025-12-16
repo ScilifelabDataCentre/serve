@@ -5,18 +5,20 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.mixins import VolumeMixin
 from apps.models import TissuumapsInstance
 
 __all__ = ["TissuumapsForm"]
 
 
-class TissuumapsForm(AppBaseForm):
+class TissuumapsForm(VolumeMixin, AppBaseForm):
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
         volume_form_field = self.fields["volume"]
         volume_form_field.required = True
         volume_form_field.empty_label = None
+        self._set_up_volume_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -36,7 +38,7 @@ class TissuumapsForm(AppBaseForm):
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
-            Field("volume"),
+            self._set_up_volume_helper(),
             SRVCommonDivField("flavor"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
