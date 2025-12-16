@@ -54,22 +54,35 @@ class EmailSendingTable(models.Model):
         default=settings.ADMIN_EMAIL,
     )
     to_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    to_email = models.EmailField()
+    to_email = models.EmailField(
+        help_text="This field will indicate the email to which " "the email was sent after you hit 'Save'."
+    )
     subject = models.CharField(
         max_length=255,
-        help_text="Subject of the email."
-        "If there is already exists a ticket on Edge, you can use it's subject"
+        help_text="Subject of the email. "
+        "If there already exists a ticket on Edge, you can use its subject"
         " to track email history through it.",
     )
     message = models.TextField(
-        help_text="Email message to be sent. If base template is selected, "
-        "this will be rendered using the template. You can use HTML tags here.",
+        help_text="Email message to be sent. If you use an HTML template below " "you can use HTML tags here.",
         blank=True,
         null=True,
         default="",
     )
-    template = models.CharField(max_length=100, choices=EMAIL_TEMPLATES, null=True, blank=True)
-    status = models.CharField(choices=[("sent", "Sent"), ("failed", "Failed")], default="pending", max_length=10)
+    template = models.CharField(
+        max_length=100,
+        choices=EMAIL_TEMPLATES,
+        help_text="Select a template if you want your message to be "
+        "formatted with html in Serve style. Otherwise it will be plain text",
+        null=True,
+        blank=True,
+    )
+    status = models.CharField(
+        choices=[("sent", "Sent"), ("failed", "Failed")],
+        help_text="This field will indicate whether the email was successfully " "sent after you hit 'Save'.",
+        default="pending",
+        max_length=10,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def send_email(self):
