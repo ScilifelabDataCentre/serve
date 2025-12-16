@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, User
-from django.core.mail import send_mail
 from django.db import models
 from django.template.loader import render_to_string
 
@@ -62,12 +61,14 @@ class EmailSendingTable(models.Model):
         help_text="Subject of the email. "
         "If there already exists a ticket on Edge, you can use its subject"
         " to track email history through it.",
+        blank=False,
+        null=False,
     )
     message = models.TextField(
-        help_text="Email message to be sent. If you use an HTML template below " "you can use HTML tags here.",
-        blank=True,
-        null=True,
-        default="",
+        help_text="Email message to be sent.",
+        blank=False,
+        null=False,
+        default="Dear X,\n\nKind regards, \nSciLifeLab Serve team",
     )
     template = models.CharField(
         max_length=100,
@@ -86,23 +87,27 @@ class EmailSendingTable(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def send_email(self):
-        message = self.message
+        from common.tasks import send_email_task
+
+        logger.info(f"Sending an email to {self.to_email} fron the admin panel email sending form.")
+
         html_message = None
         if self.template:
-            # If a template is selected, render the message using the template
+            html_message = render_to_string(
+                self.template,
+                {
+                    "message": self.message,
+                    "title": self.subject,
+                },
+            )
 
-            html_message = render_to_string(self.template, {"message": self.message, "user": self.to_user})
-            message = html_message  # Use the rendered HTML message as the plain text message
-        else:
-            if not message:
-                raise ValueError("Message cannot be empty if no template is selected.")
-        send_mail(
+        send_email_task(
             subject=self.subject,
-            message=message,
-            from_email=self.from_email,
-            recipient_list=[self.to_email, settings.DEFAULT_FROM_EMAIL],
+            message=self.message,
             html_message=html_message,
+            recipient_list=[self.to_email, settings.ADMIN_EMAIL],
             fail_silently=False,
+            from_email=self.from_email,
         )
 
 

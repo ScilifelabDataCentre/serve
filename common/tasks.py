@@ -165,7 +165,7 @@ def send_email_task(
     recipient_list: list[str],
     html_message: str | None = None,
     fail_silently: bool = False,
-    from_email: str = settings.EMAIL_FROM,
+    from_email: str | None = None,
     reply_to: list[str] | None = None,
 ) -> None:
     """
@@ -173,6 +173,8 @@ def send_email_task(
     """
     logger.info("Sending email to %s", recipient_list)
     mail_subject = subject
+    if from_email is None:
+        from_email = settings.EMAIL_FROM
     mail_message = message if html_message is None else html_message
     email = EmailMessage(mail_subject, mail_message, from_email, to=recipient_list, reply_to=reply_to)
     email.content_subtype = "html" if html_message else "plain"
