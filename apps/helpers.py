@@ -1,7 +1,7 @@
 import json
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any
+from typing import Dict, Any, Optional
 
 import regex as re
 import requests
@@ -382,7 +382,10 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         deploy_resource.delay(instance.serialize())
     else:
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
-
+    
+    # this can create quite a delay. need to find another suitbale place perhaps...
+    save_invenio_metadata(app_slug, instance_id)
+    
     return instance_id
 
 
@@ -763,6 +766,8 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
     schema_json = json.dumps(clean_nulls(schema), indent=2)
 
     logger.info(f"Generated schema.org description of app '{app_data.get('name')}' as follows:\n{schema_json}")
+    
+    
 
     return schema_json
 
@@ -1052,3 +1057,301 @@ def export_k8s_values_to_yaml(instances: QuerySet[BaseAppInstance] | Iterable[Ba
     except Exception as e:
         logger.error(f"Error converting values to YAML: {e}")
         raise ValueError(f"Error exporting values to YAML: {e}") from e
+
+def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
+    """
+    Generate direct InvenioRDM metadata structure.
+    
+    Args:
+        app_instance: Application instance object
+        
+    Returns:
+        Dictionary with InvenioRDM metadata structure
+    """
+    # Get basic app data
+    app_data: Dict[str, Any] = model_to_dict(app_instance, exclude=["_state"])
+    
+    # Get user and project data
+    try:
+        user_instance: User = User.objects.get(id=app_instance.owner_id)
+    except User.DoesNotExist as error:
+        raise ValueError(f"User with id {app_instance.owner_id} does not exist") from error
+    
+    try:
+        project_instance: Project = Project.objects.get(id=app_instance.project_id)
+    except Project.DoesNotExist as error:
+        raise ValueError(f"Project with id {app_instance.project_id} does not exist") from error
+    
+    # Convert models to dictionaries
+    user_data: Dict[str, Any] = model_to_dict(user_instance, exclude=["_state", "password"])
+    project_data: Dict[str, Any] = model_to_dict(project_instance, exclude=["_state"])
+    
+    # Add user profile info if available
+    user_affiliation: str = "Unknown"
+    user_department: str = ""
+    user_profile: Optional[UserProfile] = UserProfile.objects.filter(user=user_instance).first()
+    if user_profile:
+        user_affiliation = get_university_suffix_information(user_profile.affiliation)
+        user_department = user_profile.department or ""
+    
+    # Get user full name
+    user_full_name: str = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip()
+    user_first_name: str = user_data.get('first_name', '')
+    user_family_name: str = user_data.get('last_name', '')
+    user_email: str = user_data.get('email', '')
+    
+    if not user_full_name:
+        user_full_name = user_email.split('@')[0] if user_email else 'Unknown'
+        user_first_name = 'No First Name Given'
+        user_family_name = 'No Family Name Given'
+    
+    # Build direct Invenio metadata structure
+    invenio_metadata: Dict[str, Any] = {
+        "access": {
+            "record": "public",
+            "files": "public"
+        },
+        "files": {
+            "enabled": False
+        },
+        "metadata": {
+            # Title
+            "title": f"Application: {app_data.get('name', 'Unknown')}",
+            
+            # 1Description
+            "description": app_data.get("description", "Application deployment on SciLifeLab Serve platform."),
+            
+            # Publication Year (as publication_date)
+            "publication_date": app_instance.created_on.strftime("%Y-%m-%d") if hasattr(app_instance, 'created_on') else timezone.now().strftime("%Y-%m-%d"),
+            
+            # Publisher
+            "publisher": "SciLifeLab Data Centre",
+            
+            # Resource Type
+            "resource_type": {
+                "id": "software",
+                "title": {
+                    "en": "Software"
+                }
+            },
+            
+            # Creator (SciLifeLab Data Centre as organizational creator)
+            "creators": [{
+                "person_or_org": {
+                    "name": "SciLifeLab Data Centre",
+                    "type": "organizational"
+                }
+            }],
+            
+            # Contributor (User as personal contributor)
+            "contributors": [{
+                "person_or_org": {
+                    "name": user_full_name,
+                    "type": "personal",
+                    "given_name": user_first_name,
+                    "family_name": user_family_name
+                },
+                "role": {
+                    "id": "other",
+                    "title": {
+                        "en": "Application Owner"
+                    }
+                },
+                "affiliations": [{
+                    "name": user_affiliation
+                }] if user_affiliation and user_affiliation != "Unknown" else []
+            }],
+            
+            # License (constant value)
+            "rights": [{
+                "id": "cc-by-4.0",
+                "title": {
+                    "en": "Creative Commons Attribution 4.0 International"
+                },
+                "description": {
+                    "en": "The Creative Commons Attribution license allows re-distribution and re-use of a licensed work on the condition that the creator is appropriately credited."
+                },
+                "link": "https://creativecommons.org/licenses/by/4.0/"
+            }],
+            
+            # Additional description (constant value)
+            "additional_descriptions": [{
+                "description": "Application deployment metadata for SciLifeLab Serve platform.",
+                "type": {
+                    "id": "technical-info",
+                    "title": {
+                        "en": "Technical Information"
+                    }
+                }
+            }],
+            
+            # Subjects (constant values)
+            "subjects": [
+                {"subject": "Scientific Computing"},
+                {"subject": "Cloud Deployment"},
+                {"subject": "Kubernetes"}
+            ],
+            
+            # Custom fields for app-specific information
+            "custom_fields": {
+                "kcr:application_deployment": {
+                    # Since app ID is an internal identifier, it should be stored in custom_fields rather than in the standard AlternateIdentifier field
+                    "app_id": str(app_instance.id),
+                    "app_name": app_data.get('name', 'Unknown'),
+                    "project_id": str(app_instance.project_id),
+                    "project_name": project_data.get('name', 'Unknown'),
+                    "user_email": user_email,
+                    "created_date": app_instance.created_on.isoformat() if hasattr(app_instance, 'created_on') else timezone.now().isoformat()
+                }
+            }
+        }
+    }
+    
+    # TO DO, Add DOI field in the next task
+    
+    # Add version information
+    invenio_metadata["metadata"]["version"] = "1.0.0"
+    
+    # Log the generated metadata
+    logger.info(f"Generated Invenio metadata for app '{app_data.get('name')}':")
+    logger.info(json.dumps(invenio_metadata, indent=2))
+    
+    return invenio_metadata
+
+def save_invenio_metadata(app_slug: str, app_id: int) -> None:
+    """
+    Save or update application metadata in InvenioRDM.
+    
+    Args:
+        app_slug: Application slug for registry lookup
+        app_id: Application ID to fetch from database
+    """
+    from .app_registry import APP_REGISTRY
+    from django.core.exceptions import PermissionDenied
+    from invenio_client.invenio_client import InvenioClient
+    import time
+    
+    # Get the ORM model class
+    model_class: Optional[Type] = APP_REGISTRY.get_orm_model(app_slug)
+    if not model_class:
+        logger.error(f"Missing model for slug: {app_slug}")
+        raise PermissionDenied("Application model not found")
+
+    # Get the application instance
+    app = model_class.objects.get(pk=app_id)
+    
+    # Log current state
+    logger.info("Before Updating to Invenio")
+    logger.info(f"invenio_record_id: {app.invenio_record_id}")
+    logger.info(f"app_doi: {app.app_doi}")
+    
+    # Initialize Invenio client, later from env
+    client = InvenioClient(
+        base_url="https://invenio-dev.serve-dev.scilifelab.se",
+        token="G07mW5y9ZvTcCu3Yq8XRLqckxUZpsKGeNFB07Bz1LSaqc1ZekRF3aO8eR5T6",
+        auth_scheme="Bearer",
+        verify=True,
+    )
+
+    try:
+        # Transform to Invenio format
+        invenio_data: Dict[str, Any] = generate_invenio_metadata(app)
+        
+        # Extract components
+        metadata: Dict[str, Any] = invenio_data["metadata"]
+        access: Dict[str, Any] = invenio_data.get("access", {})
+        #files: Dict[str, Any] = invenio_data.get("files", {"enabled": False})
+        custom_fields: Optional[Dict[str, Any]] = metadata.pop("custom_fields", None)
+        
+        # Also check for empty string as falsy value
+        if app.invenio_record_id is None or app.invenio_record_id == "":
+            logger.info(f"Creating new Invenio record for app: {app_slug} with ID: {app_id} and name {schema_dict["hasPart"][0]["name"]}")
+            
+            # Create and publish new record
+            draft = client.create_draft(
+                metadata=metadata,
+                access=access,
+                custom_fields=custom_fields,
+                files={"enabled": False},  # Explicitly set for metadata-only
+            )
+            
+            logger.info(f"Created Invenio draft with ID: {draft['id']}")
+            
+            published_record = client.publish_draft(draft["id"])
+            logger.info(f"Successfully published Invenio record with ID: {published_record['id']}")
+            logger.info(f"Title: {published_record['metadata']['title']}")
+            
+            # Update application with record ID
+            app.invenio_record_id = published_record['id']
+            app.app_doi = "PLACEHOLDER DOI, WILL BE ADDED LATER"
+            app.save()
+            
+        else:
+            logger.info(f"Updating existing Invenio record: {app.invenio_record_id}")
+            
+            new_version = client.create_new_version(app.invenio_record_id)
+            logger.info(f"Created new version with ID: {new_version['id']}")
+            
+            # Get the current new version draft
+            current_new_version_draft = client.get_draft(new_version['id'])
+            
+            # Update the new version draft - need to add publication_date
+            logger.info("Updating the new version draft...")
+            
+            updated_new_version = client.update_draft(
+                record_id=current_new_version_draft['id'],
+                metadata={
+                    **metadata,
+                    #"title": f"{current_new_version_draft['metadata']['title']} - Version 2",
+                    #when a new version is created, it has the publication_date and version removed 
+                    #(as those are typically replaced in a new version)
+                    "publication_date": datetime.now().strftime("%Y-%m-%d")
+                },
+                access=current_new_version_draft.get('access'),
+                files={"enabled": False},  # Explicitly set for metadata-only
+                custom_fields=current_new_version_draft.get('custom_fields'),
+                pids=current_new_version_draft.get('pids', {})
+            )
+            logger.info(f"Updated new version draft ID: {updated_new_version['id']}")
+            logger.info(f"Updated new version draft title: {updated_new_version['metadata']['title']}")
+            
+            # Publish the new version
+            logger.info("Publishing the new version...")
+            published_new_version = client.publish_draft(updated_new_version['id'])
+            logger.info(f"Published new version: {published_new_version['id']}")
+            
+            app.invenio_record_id=published_new_version['id']
+            app.app_doi = "PLACEHOLDER VERSION DOI, WILL BE ADDED LATER"
+            app.save()
+            
+            
+        logger.info(f"allow some time after saving...")
+        time.sleep(3)
+            
+        # Log final state
+        logger.info("=== FINAL INVENIO RECORD STATUS ===")
+        logger.info(f"invenio_record_id: {app.invenio_record_id}")
+        logger.info(f"app_doi: {app.app_doi}")
+        
+        # Get and print latest version information
+        logger.info("=== INVENIO RECORD VERSION INFORMATION ===")
+            
+        # Get all versions to see the full history
+        logger.info(f"Waiting 3 seconds for Invenio to process...")
+        time.sleep(3)
+        all_versions = client.get_all_versions(app.invenio_record_id)
+        versions_total = all_versions.get('hits', {}).get('total', 0)
+        logger.info(f"Total versions: {versions_total}")
+            
+        # Print details of each version
+        if 'hits' in all_versions and 'hits' in all_versions['hits']:
+            logger.info("Version history:")
+            for i, hit in enumerate(all_versions['hits']['hits']):
+                logger.info(f"  Version {i+1}: ID={hit.get('id')}, Title={hit.get('metadata', {}).get('title')}, "
+                    f"Index={hit.get('versions', {}).get('index')}")
+            
+    except Exception as e:
+        logger.error(f"Error in save_invenio_metadata: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise
