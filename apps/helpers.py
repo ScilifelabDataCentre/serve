@@ -1209,8 +1209,6 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
     
     # TO DO, Add DOI field in the next task
     
-    # Add version information
-    invenio_metadata["metadata"]["version"] = "1.0.0"
     
     # Log the generated metadata
     logger.info(f"Generated Invenio metadata for app '{app_data.get('name')}':")
