@@ -3,7 +3,7 @@
         <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
         <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ help_message }}">
         </span>
-        <a class="btn btn-light btn-sm" href="{% url 'projects:settings' project_slug %}?tab=storage" role="button">
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'projects:settings' project_slug %}?tab=storage" role="button">
           <span class="bi bi-hdd-rack-fill text-muted">
             Manage storage
           </span>

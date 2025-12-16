@@ -2,13 +2,18 @@ from crispy_forms.layout import HTML, Button, Div, Field, Layout, Submit
 from django import forms
 
 from apps.forms.base import AppBaseForm
+from apps.forms.mixins import VolumeMixin
 from apps.models import FilemanagerInstance, VolumeInstance
 
 __all__ = ["FilemanagerForm"]
 
 
-class FilemanagerForm(AppBaseForm):
+class FilemanagerForm(VolumeMixin, AppBaseForm):
     volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
+
+    def _setup_form_fields(self):
+        super()._setup_form_fields()
+        self._set_up_volume_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -38,7 +43,7 @@ class FilemanagerForm(AppBaseForm):
             Field("name", type="hidden"),
             Field("access", type="hidden"),
             Field("flavor", type="hidden"),
-            Field("volume"),
+            self._set_up_volume_helper(),
             css_class="card-body",
         )
 
