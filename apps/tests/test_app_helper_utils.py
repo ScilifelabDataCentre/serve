@@ -767,7 +767,7 @@ def test_generate_invenio_metadata_validation():
                             "en": "Application Owner"
                         }
                     },
-                    "affiliations": list
+                    "affiliations": list  # Can be empty list
                 }],
                 "rights": [{
                     "id": "cc-by-4.0",
@@ -793,16 +793,10 @@ def test_generate_invenio_metadata_validation():
                     {"subject": "Cloud Deployment"},
                     {"subject": "Kubernetes"}
                 ],
-                "custom_fields": {
-                    "kcr:application_deployment": {
-                        "app_id": str,
-                        "app_name": str,
-                        "project_id": str,
-                        "project_name": str,
-                        "user_email": And(str, Regex(r".+@.+")),
-                        "created_date": And(str, Regex(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{2}:\d{2}$"))
-                    }
-                }
+                "identifiers": [{
+                    "identifier": str,
+                    "scheme": "other"
+                }]
             }
         },
         ignore_extra_keys=False
@@ -817,15 +811,22 @@ def test_generate_invenio_metadata_validation():
     # Check specific values match the test data
     assert invenio_metadata["metadata"]["title"] == f"Application: {app_instance.name}"
     assert invenio_metadata["metadata"]["description"] == app_instance.description
-    assert invenio_metadata["metadata"]["custom_fields"]["kcr:application_deployment"]["app_id"] == str(app_instance.id)
-    assert invenio_metadata["metadata"]["custom_fields"]["kcr:application_deployment"]["app_name"] == app_instance.name
-    assert invenio_metadata["metadata"]["custom_fields"]["kcr:application_deployment"]["project_name"] == project.name
-    assert invenio_metadata["metadata"]["custom_fields"]["kcr:application_deployment"]["user_email"] == user.email
+    assert invenio_metadata["metadata"]["identifiers"][0]["identifier"] == str(app_instance.id)
+    assert invenio_metadata["metadata"]["publisher"] == "SciLifeLab Data Centre"
     
     # Check contributor information
     contributor = invenio_metadata["metadata"]["contributors"][0]
     assert contributor["person_or_org"]["given_name"] == user.first_name
     assert contributor["person_or_org"]["family_name"] == user.last_name
+    
+    # Check creator is SciLifeLab Data Centre
+    creator = invenio_metadata["metadata"]["creators"][0]
+    assert creator["person_or_org"]["name"] == "SciLifeLab Data Centre"
+    assert creator["person_or_org"]["type"] == "organizational"
+    
+    # Check publication date format
+    import re
+    assert re.match(r"^\d{4}-\d{2}-\d{2}$", invenio_metadata["metadata"]["publication_date"])
     
     # 2. Test with user without first/last name (should use email as fallback)
     user_no_name = User.objects.create_user(
@@ -836,7 +837,7 @@ def test_generate_invenio_metadata_validation():
         last_name=""
     )
     
-    # Create a separate app instance for this user with new subdomain and k8s status
+    # Create a separate app instance for this user with NEW subdomain and k8s status
     subdomain2 = Subdomain.objects.create(subdomain="unit_test_invenio_metadata_subdomain2")
     k8s_user_app_status2 = K8sUserAppStatus.objects.create()
     
@@ -858,6 +859,7 @@ def test_generate_invenio_metadata_validation():
     
     # Should have generated a name from email or used default
     assert contributor_no_name["person_or_org"]["name"] != ""
+    assert contributor_no_name["person_or_org"]["name"] != "SciLifeLab Data Centre"  # Should be user name
     assert "No First Name Given" in contributor_no_name["person_or_org"]["given_name"]
     assert "No Family Name Given" in contributor_no_name["person_or_org"]["family_name"]
     

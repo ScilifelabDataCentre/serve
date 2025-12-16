@@ -1105,7 +1105,7 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
         user_first_name = 'No First Name Given'
         user_family_name = 'No Family Name Given'
     
-    # Build direct Invenio metadata structure
+    # Build Invenio metadata structure
     invenio_metadata: Dict[str, Any] = {
         "access": {
             "record": "public",
@@ -1118,7 +1118,7 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
             # Title
             "title": f"Application: {app_data.get('name', 'Unknown')}",
             
-            # 1Description
+            # Description
             "description": app_data.get("description", "Application deployment on SciLifeLab Serve platform."),
             
             # Publication Year (as publication_date)
@@ -1162,6 +1162,12 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
                 }] if user_affiliation and user_affiliation != "Unknown" else []
             }],
             
+            # AlternateIdentifier - APP ID
+            "identifiers": [{
+                "identifier": str(app_instance.id),
+                "scheme": "other"
+            }],
+            
             # License (constant value)
             "rights": [{
                 "id": "cc-by-4.0",
@@ -1191,19 +1197,6 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
                 {"subject": "Cloud Deployment"},
                 {"subject": "Kubernetes"}
             ],
-            
-            # Custom fields for app-specific information
-            "custom_fields": {
-                "kcr:application_deployment": {
-                    # Since app ID is an internal identifier, it should be stored in custom_fields rather than in the standard AlternateIdentifier field
-                    "app_id": str(app_instance.id),
-                    "app_name": app_data.get('name', 'Unknown'),
-                    "project_id": str(app_instance.project_id),
-                    "project_name": project_data.get('name', 'Unknown'),
-                    "user_email": user_email,
-                    "created_date": app_instance.created_on.isoformat() if hasattr(app_instance, 'created_on') else timezone.now().isoformat()
-                }
-            }
         }
     }
     
