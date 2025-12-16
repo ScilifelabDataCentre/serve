@@ -48,9 +48,10 @@ class EmailSendingTable(models.Model):
     EMAIL_TEMPLATES = {file_path: file_path for file_path in settings.EMAIL_TEMPLATES}
     from_email = models.EmailField(
         choices=[
-            (settings.DEFAULT_FROM_EMAIL, settings.DEFAULT_FROM_EMAIL),
             (settings.EMAIL_FROM, settings.EMAIL_FROM),
-        ]
+            (settings.ADMIN_EMAIL, settings.ADMIN_EMAIL),
+        ],
+        default=settings.ADMIN_EMAIL,
     )
     to_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     to_email = models.EmailField()
