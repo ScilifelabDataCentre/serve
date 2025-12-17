@@ -44,7 +44,10 @@ class EmailVerificationTable(models.Model):
 
 
 class EmailSendingTable(models.Model):
-    EMAIL_TEMPLATES = {file_path: file_path for file_path in settings.EMAIL_TEMPLATES}
+    class EmailTemplate(models.TextChoices):
+        account_enabled = "admin/email/account-enabled-email.html", "Account approved/enabled"
+        user_not_swedish_uni = "admin/email/user-not-from-a-swedish-uni.html", "User not from a Swedish uni"
+
     from_email = models.EmailField(
         choices=[
             (settings.EMAIL_FROM, settings.EMAIL_FROM),
@@ -65,16 +68,16 @@ class EmailSendingTable(models.Model):
         null=False,
     )
     message = models.TextField(
-        help_text="Email message to be sent.",
-        blank=False,
-        null=False,
+        help_text="Type your message here if you want to write it manually. Alternatively, "
+        "choose one of the templates.",
+        blank=True,
         default="Dear X,\n\nKind regards, \nSciLifeLab Serve team",
     )
     template = models.CharField(
         max_length=100,
-        choices=EMAIL_TEMPLATES,
-        help_text="Select a template if you want your message to be "
-        "formatted with html in Serve style. Otherwise it will be plain text.",
+        choices=EmailTemplate.choices,
+        help_text="Select a template if you do not want to type a message "
+        "manually. If selected, anything in the Message field will be ignored.",
         null=True,
         blank=True,
     )
@@ -96,8 +99,7 @@ class EmailSendingTable(models.Model):
             html_message = render_to_string(
                 self.template,
                 {
-                    "message": self.message,
-                    "title": self.subject,
+                    "user_firstname": self.to_user.first_name,
                 },
             )
 

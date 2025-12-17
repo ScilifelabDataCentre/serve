@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% block email-title %}{{ title }}{% endblock %}</title>
+    <title>{% block email-title %}{% endblock %}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,7 +22,7 @@
 </head>
 <body>
     <div class="email-container">
-        {% block content %}{{ message }}{% endblock %}
+        {% block content %}{% endblock %}
     </div>
 </body>
 </html>
