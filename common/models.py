@@ -54,7 +54,7 @@ class EmailSendingTable(models.Model):
     )
     to_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     to_email = models.EmailField(
-        help_text="This field will indicate the email to which " "the email was sent after you hit 'Save'."
+        help_text="This field will indicate the email to which the email was sent after you hit 'Save'."
     )
     subject = models.CharField(
         max_length=255,
@@ -74,13 +74,13 @@ class EmailSendingTable(models.Model):
         max_length=100,
         choices=EMAIL_TEMPLATES,
         help_text="Select a template if you want your message to be "
-        "formatted with html in Serve style. Otherwise it will be plain text",
+        "formatted with html in Serve style. Otherwise it will be plain text.",
         null=True,
         blank=True,
     )
     status = models.CharField(
         choices=[("sent", "Sent"), ("failed", "Failed")],
-        help_text="This field will indicate whether the email was successfully " "sent after you hit 'Save'.",
+        help_text="This field will indicate whether the email was successfully sent after you hit 'Save'.",
         default="pending",
         max_length=10,
     )
