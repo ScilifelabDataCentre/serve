@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, User
 from django.db import models
 from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django_prose_editor.fields import ProseEditorField
 
 from studio.utils import get_logger
 
@@ -67,11 +69,23 @@ class EmailSendingTable(models.Model):
         blank=False,
         null=False,
     )
-    message = models.TextField(
+    message = ProseEditorField(
         help_text="Type your message here if you want to write it manually. Alternatively, "
-        "choose one of the templates.",
+        "choose one of the templates. Supports rich text formatting.",
+        # Provide an explicit extensions config so django-prose-editor runs in "normal mode".
+        # This is required when sanitize=True; otherwise it falls back to legacy mode where
+        # sanitization expects a config and crashes.
+        extensions={
+            "Bold": True,
+            "Italic": True,
+            "BulletList": True,
+            "ListItem": True,
+            "OrderedList": True,
+            "Link": True,
+        },
         blank=True,
-        default="Dear X,\n\nKind regards, \nSciLifeLab Serve team",
+        default="<p>Dear X,</p><p>Kind regards,<br>SciLifeLab Serve team</p>",
+        sanitize=True,
     )
     template = models.CharField(
         max_length=100,
@@ -89,23 +103,34 @@ class EmailSendingTable(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def render_email_bodies(self) -> tuple[str, str | None]:
+        """
+        Returns (plain_text, html) for the email that would be sent.
+        """
+        html_message: str | None = None
+        plain_message: str
+
+        if self.template:
+            user_firstname = self.to_user.first_name if self.to_user else ""
+            html_message = render_to_string(self.template, {"user_firstname": user_firstname})
+            plain_message = strip_tags(html_message)
+        else:
+            # When edited with django-prose-editor, `message` will usually be HTML.
+            html_message = self.message
+            plain_message = strip_tags(self.message)
+
+        return plain_message, html_message
+
     def send_email(self):
         from common.tasks import send_email_task
 
-        logger.info(f"Sending an email to {self.to_email} fron the admin panel email sending form.")
+        logger.info(f"Sending an email to {self.to_email} from the admin panel email sending form.")
 
-        html_message = None
-        if self.template:
-            html_message = render_to_string(
-                self.template,
-                {
-                    "user_firstname": self.to_user.first_name,
-                },
-            )
+        plain_message, html_message = self.render_email_bodies()
 
         send_email_task(
             subject=self.subject,
-            message=self.message,
+            message=plain_message,
             html_message=html_message,
             recipient_list=[self.to_email, settings.ADMIN_EMAIL],
             fail_silently=False,
