@@ -1058,7 +1058,7 @@ def export_k8s_values_to_yaml(instances: QuerySet[BaseAppInstance] | Iterable[Ba
         logger.error(f"Error converting values to YAML: {e}")
         raise ValueError(f"Error exporting values to YAML: {e}") from e
 
-def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
+def generate_invenio_metadata(app_instance: Any, app_slug: str) -> Dict[str, Any]:
     """
     Generate direct InvenioRDM metadata structure.
     
@@ -1070,6 +1070,8 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
     """
     # Get basic app data
     app_data: Dict[str, Any] = model_to_dict(app_instance, exclude=["_state"])
+    
+    
     
     # Get user and project data
     try:
@@ -1107,13 +1109,16 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
     
     # Build Invenio metadata structure
     invenio_metadata: Dict[str, Any] = {
+        
         "access": {
             "record": "public",
             "files": "public"
         },
+        
         "files": {
             "enabled": False
         },
+        
         "metadata": {
             # Title
             "title": f"Application: {app_data.get('name', 'Unknown')}",
@@ -1135,75 +1140,72 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
                 }
             },
             
-            # Creator (SciLifeLab Data Centre as organizational creator)
+            # Creator (User as personal contributor)
             "creators": [{
-                "person_or_org": {
-                    "name": "SciLifeLab Data Centre",
-                    "type": "organizational"
-                }
-            }],
-            
-            # Contributor (User as personal contributor)
-            "contributors": [{
                 "person_or_org": {
                     "name": user_full_name,
                     "type": "personal",
                     "given_name": user_first_name,
                     "family_name": user_family_name
                 },
-                "role": {
-                    "id": "other",
-                    "title": {
-                        "en": "Application Owner"
-                    }
+                 "role": {
+                    "id": "relatedperson",
                 },
-                "affiliations": [{
-                    "name": user_affiliation
-                }] if user_affiliation and user_affiliation != "Unknown" else []
+            }],
+            
+            # Contributor (SciLifeLab Data Centre as organizational creator)
+            "contributors": [{
+                "person_or_org": {
+                    "name": "SciLifeLab Data Centre",
+                    "type": "organizational"
+                },
+                "role": {
+                    "id": "hostinginstitution",
+                },
             }],
             
             # AlternateIdentifier - APP ID
             "identifiers": [{
-                "identifier": str(app_instance.id),
+                "identifier": f"SERVE:{app_slug}.{app_data.get('id', 'Unknown')}",
                 "scheme": "other"
-            }],
+            }
+            ],
             
-            # License (constant value)
-            "rights": [{
-                "id": "cc-by-4.0",
-                "title": {
-                    "en": "Creative Commons Attribution 4.0 International"
-                },
-                "description": {
-                    "en": "The Creative Commons Attribution license allows re-distribution and re-use of a licensed work on the condition that the creator is appropriately credited."
-                },
-                "link": "https://creativecommons.org/licenses/by/4.0/"
-            }],
-            
-            # Additional description (constant value)
-            "additional_descriptions": [{
-                "description": "Application deployment metadata for SciLifeLab Serve platform.",
-                "type": {
-                    "id": "technical-info",
-                    "title": {
-                        "en": "Technical Information"
+            "related_identifiers":[
+                {
+                    # 1. Application link (running application)
+                    "identifier": app_data.get('url'),
+                    "scheme": "url",
+                    "relation_type": {
+                        "id": "issourceof"
+                    },
+                    "resource_type": {
+                        "id": "software"
                     }
                 }
-            }],
-            
-            # Subjects (constant values)
-            "subjects": [
-                {"subject": "Scientific Computing"},
-                {"subject": "Cloud Deployment"},
-                {"subject": "Kubernetes"}
-            ],
+            ]
         }
     }
     
-    # TO DO, Add DOI field in the next task
+    access = app_data.get('access')
     
-    
+    if access == 'public':
+        domain = app_data.get('k8s_values', {}).get('global', {}).get('domain')
+        project_slug = app_data.get('k8s_values', {}).get('project', {}).get('slug')
+        
+        invenio_metadata["metadata"]["related_identifiers"].append({
+            # Landing page (documentation, about page)
+            "identifier": f"https://{domain}/projects/{project_slug}/apps/metadata/{app_slug}/{str(app_data.get('id'))}",
+                "relation_type": {
+                    "id": "isdocumentedby"
+                },
+                "resource_type": {
+                    "id": "publication-softwaredocumentation"
+                }
+        })
+            
     # Log the generated metadata
+    #logger.info(app_data)
     logger.info(f"Generated Invenio metadata for app '{app_data.get('name')}':")
     logger.info(json.dumps(invenio_metadata, indent=2))
     
@@ -1230,119 +1232,149 @@ def save_invenio_metadata(app_slug: str, app_id: int) -> None:
 
     # Get the application instance
     app = model_class.objects.get(pk=app_id)
+    app_data: Dict[str, Any] = model_to_dict(app, exclude=["_state"])
     
-    # Log current state
-    logger.info("Before Updating to Invenio")
-    logger.info(f"invenio_record_id: {app.invenio_record_id}")
-    logger.info(f"app_doi: {app.app_doi}")
+    if app_data.get('access')=="public":
     
-    # Initialize Invenio client, later from env
-    client = InvenioClient(
-        base_url="https://invenio-dev.serve-dev.scilifelab.se",
-        token="G07mW5y9ZvTcCu3Yq8XRLqckxUZpsKGeNFB07Bz1LSaqc1ZekRF3aO8eR5T6",
-        auth_scheme="Bearer",
-        verify=True,
-    )
-
-    try:
-        # Transform to Invenio format
-        invenio_data: Dict[str, Any] = generate_invenio_metadata(app)
-        
-        # Extract components
-        metadata: Dict[str, Any] = invenio_data["metadata"]
-        access: Dict[str, Any] = invenio_data.get("access", {})
-        #files: Dict[str, Any] = invenio_data.get("files", {"enabled": False})
-        custom_fields: Optional[Dict[str, Any]] = metadata.pop("custom_fields", None)
-        
-        # Also check for empty string as falsy value
-        if app.invenio_record_id is None or app.invenio_record_id == "":
-            logger.info(f"Creating new Invenio record for app: {app_slug} with ID: {app_id} and name {schema_dict["hasPart"][0]["name"]}")
-            
-            # Create and publish new record
-            draft = client.create_draft(
-                metadata=metadata,
-                access=access,
-                custom_fields=custom_fields,
-                files={"enabled": False},  # Explicitly set for metadata-only
-            )
-            
-            logger.info(f"Created Invenio draft with ID: {draft['id']}")
-            
-            published_record = client.publish_draft(draft["id"])
-            logger.info(f"Successfully published Invenio record with ID: {published_record['id']}")
-            logger.info(f"Title: {published_record['metadata']['title']}")
-            
-            # Update application with record ID
-            app.invenio_record_id = published_record['id']
-            app.app_doi = "PLACEHOLDER DOI, WILL BE ADDED LATER"
-            app.save()
-            
-        else:
-            logger.info(f"Updating existing Invenio record: {app.invenio_record_id}")
-            
-            new_version = client.create_new_version(app.invenio_record_id)
-            logger.info(f"Created new version with ID: {new_version['id']}")
-            
-            # Get the current new version draft
-            current_new_version_draft = client.get_draft(new_version['id'])
-            
-            # Update the new version draft - need to add publication_date
-            logger.info("Updating the new version draft...")
-            
-            updated_new_version = client.update_draft(
-                record_id=current_new_version_draft['id'],
-                metadata={
-                    **metadata,
-                    #"title": f"{current_new_version_draft['metadata']['title']} - Version 2",
-                    #when a new version is created, it has the publication_date and version removed 
-                    #(as those are typically replaced in a new version)
-                    "publication_date": datetime.now().strftime("%Y-%m-%d")
-                },
-                access=current_new_version_draft.get('access'),
-                files={"enabled": False},  # Explicitly set for metadata-only
-                custom_fields=current_new_version_draft.get('custom_fields'),
-                pids=current_new_version_draft.get('pids', {})
-            )
-            logger.info(f"Updated new version draft ID: {updated_new_version['id']}")
-            logger.info(f"Updated new version draft title: {updated_new_version['metadata']['title']}")
-            
-            # Publish the new version
-            logger.info("Publishing the new version...")
-            published_new_version = client.publish_draft(updated_new_version['id'])
-            logger.info(f"Published new version: {published_new_version['id']}")
-            
-            app.invenio_record_id=published_new_version['id']
-            app.app_doi = "PLACEHOLDER VERSION DOI, WILL BE ADDED LATER"
-            app.save()
-            
-            
-        logger.info(f"allow some time after saving...")
-        time.sleep(3)
-            
-        # Log final state
-        logger.info("=== FINAL INVENIO RECORD STATUS ===")
+        # Log current state
+        logger.info("Before Updating to Invenio")
         logger.info(f"invenio_record_id: {app.invenio_record_id}")
         logger.info(f"app_doi: {app.app_doi}")
+    
+        # Initialize Invenio client, later from env
+        invenio_client = InvenioClient(
+            base_url="https://invenio-test.serve-dev.scilifelab.se",  # Base URL without /api
+            token="dcFfVwYvMMIIwkrEYuVEIs6ca748u4iD58PvnsynlJpeK91IKc0St2h8JuEO",
+            auth_scheme="Bearer",
+            verify=True,
+        )
+
+        try:
+            # Transform to Invenio format
+            invenio_data: Dict[str, Any] = generate_invenio_metadata(app, app_slug)
         
-        # Get and print latest version information
-        logger.info("=== INVENIO RECORD VERSION INFORMATION ===")
+            # Extract components
+            metadata: Dict[str, Any] = invenio_data["metadata"]
+            access: Dict[str, Any] = invenio_data.get("access", {})
+            #files: Dict[str, Any] = invenio_data.get("files", {"enabled": False})
+            custom_fields: Optional[Dict[str, Any]] = metadata.pop("custom_fields", None)
+        
+            # Also check for empty string as falsy value
+            if app.invenio_record_id is None or app.invenio_record_id == "":
+                logger.info(f"Creating new Invenio record for app: {app_slug} with ID: {app_id} and name {invenio_data["metadata"]["title"]}")
             
-        # Get all versions to see the full history
-        logger.info(f"Waiting 3 seconds for Invenio to process...")
-        time.sleep(3)
-        all_versions = client.get_all_versions(app.invenio_record_id)
-        versions_total = all_versions.get('hits', {}).get('total', 0)
-        logger.info(f"Total versions: {versions_total}")
+                # Create and publish new record
+                draft = invenio_client.create_draft(
+                    metadata=metadata,
+                    access=access,
+                    custom_fields=custom_fields,
+                    files={"enabled": False},  # Explicitly set for metadata-only
+                )
             
-        # Print details of each version
-        if 'hits' in all_versions and 'hits' in all_versions['hits']:
-            logger.info("Version history:")
-            for i, hit in enumerate(all_versions['hits']['hits']):
-                logger.info(f"  Version {i+1}: ID={hit.get('id')}, Title={hit.get('metadata', {}).get('title')}, "
-                    f"Index={hit.get('versions', {}).get('index')}")
+                logger.info(f"Created Invenio draft with ID: {draft['id']}")
             
-    except Exception as e:
-        logger.error(f"Error in save_invenio_metadata: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        raise
+                # RESERVE INTERNAL DOI FOR THIS VERSION
+                try:
+                    logger.info(f"Reserving internal DOI for draft: {draft['id']}")
+                    draft_with_doi = invenio_client.reserve_doi(draft["id"])
+                    logger.info(f"DOI reserved: {draft_with_doi.get('pids', {}).get('doi', {}).get('identifier', 'Unknown')}")
+                except Exception as doi_error:
+                    logger.warning(f"Could not reserve DOI: {doi_error}")
+                    # Continue without DOI
+            
+            
+                published_record = invenio_client.publish_draft(draft["id"])
+                logger.info(f"Successfully published Invenio record with ID: {published_record['id']}")
+                logger.info(f"Title: {published_record['metadata']['title']}")
+            
+                # Get the actual DOI from published record
+                published_doi = published_record.get('pids', {}).get('doi', {}).get('identifier', '')
+                #logger.info(f"Successfully registered DOI: {published_doi}")
+            
+                # Update application with record ID
+                app.invenio_record_id = published_record['id']
+                app.app_doi = published_doi
+                app.save()
+            
+            else:
+                logger.info(f"Updating existing Invenio record: {app.invenio_record_id}")
+            
+                new_version = invenio_client.create_new_version(app.invenio_record_id)
+                logger.info(f"Created new version with ID: {new_version['id']}")
+            
+                # Get the current new version draft
+                current_new_version_draft = invenio_client.get_draft(new_version['id'])
+            
+                # Update the new version draft - need to add publication_date
+                logger.info("Updating the new version draft...")
+            
+                updated_new_version = invenio_client.update_draft(
+                    record_id=current_new_version_draft['id'],
+                    metadata={
+                        **metadata,
+                        #when a new version is created, it has the publication_date and version removed 
+                        #(as those are typically replaced in a new version)
+                        "publication_date": datetime.now().strftime("%Y-%m-%d")
+                    },
+                    access=current_new_version_draft.get('access'),
+                    files={"enabled": False},  # Explicitly set for metadata-only
+                    custom_fields=current_new_version_draft.get('custom_fields'),
+                    pids=current_new_version_draft.get('pids', {})
+                )
+                logger.info(f"Updated new version draft ID: {updated_new_version['id']}")
+                logger.info(f"Updated new version draft title: {updated_new_version['metadata']['title']}")
+            
+                # RESERVE INTERNAL DOI FOR THIS VERSION
+                try:
+                    logger.info(f"Reserving internal DOI for draft: {updated_new_version['id']}")
+                    updated_new_version_with_doi = invenio_client.reserve_doi(updated_new_version["id"])
+                    logger.info(f"DOI reserved: {updated_new_version_with_doi.get('pids', {}).get('doi', {}).get('identifier', 'Unknown')}")
+                except Exception as doi_error:
+                    logger.warning(f"Could not reserve DOI: {doi_error}")
+                    # Continue without DOI
+            
+                # Publish the new version
+                logger.info("Publishing the new version...")
+                published_new_version = invenio_client.publish_draft(updated_new_version['id'])
+                logger.info(f"Published new version: {published_new_version['id']}")
+            
+                # Get the actual DOI from published record
+                published_doi = published_new_version.get('pids', {}).get('doi', {}).get('identifier', '')
+                #logger.info(f"Successfully registered DOI: {published_doi}")
+            
+                app.invenio_record_id=published_new_version['id']
+                app.app_doi = published_doi
+                app.save()
+            
+            logger.info(f"allow some time after saving...")
+            time.sleep(3)
+            
+            # Log final state
+            logger.info("=== FINAL INVENIO RECORD STATUS ===")
+            logger.info(f"invenio_record_id: {app.invenio_record_id}")
+            logger.info(f"app_doi: {app.app_doi}")
+        
+            # Get and print latest version information
+            logger.info("=== INVENIO RECORD VERSION INFORMATION ===")
+            
+            # Get all versions to see the full history
+            logger.info(f"Waiting 3 seconds for Invenio to process...")
+            time.sleep(3)
+            all_versions = invenio_client.get_all_versions(app.invenio_record_id)
+            versions_total = all_versions.get('hits', {}).get('total', 0)
+            logger.info(f"Total versions: {versions_total}")
+            
+            # Print details of each version
+            if 'hits' in all_versions and 'hits' in all_versions['hits']:
+                logger.info("Version history:")
+                for i, hit in enumerate(all_versions['hits']['hits']):
+                    logger.info(f"  Version {i+1}: ID={hit.get('id')}, Title={hit.get('metadata', {}).get('title')}, "
+                        f"Index={hit.get('versions', {}).get('index')}")
+            
+        except Exception as e:
+            logger.error(f"Error in save_invenio_metadata: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
+    else:
+        logger.info(f"App: {app_slug} with ID: {app_id} is not 'Public', skipping saving metadata to invenio")
