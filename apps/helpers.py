@@ -379,7 +379,13 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
 
     if do_deploy:
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
-        deploy_resource.delay(instance.serialize())
+
+        # Import background task orchestrator
+        from .tasks import run_background_tasks
+
+        # Run background tasks before deployment
+        # The orchestrator will handle deployment if tasks succeed
+        run_background_tasks.delay(instance.serialize(), app_slug)
     else:
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
 

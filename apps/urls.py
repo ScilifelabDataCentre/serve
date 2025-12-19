@@ -13,4 +13,14 @@ urlpatterns = [
     path("delete/<app_slug>/<app_id>", views.delete, name="delete"),
     path("secrets/<app_slug>/<app_id>", views.SecretsView.as_view(), name="secrets"),
     path("metadata/<app_slug>/<app_id>", views.app_metadata, name="app-metadata"),
+    # Background task URLs
+    path("tasks/<app_slug>/<app_id>", views.BackgroundTasksView.as_view(), name="background_tasks"),
+    path("tasks/<app_slug>/<app_id>/status", views.BackgroundTaskStatusAPI.as_view(), name="background_tasks_status"),
+    path(
+        "tasks/<app_slug>/<app_id>/<int:task_id>/retry",
+        views.RetryBackgroundTaskView.as_view(),
+        name="retry_background_task",
+    ),
+    # Admin background tasks view
+    path("admin/background-tasks", views.AdminBackgroundTasksView.as_view(), name="admin_background_tasks"),
 ]

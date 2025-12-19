@@ -415,3 +415,201 @@ def app_metadata(request, project, app_slug, app_id):
         return response
 
     return render(request, "common/app_metadata.html", {"app": app, "schema_dict": schema_dict})
+
+
+# Background Task Views
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class BackgroundTasksView(View):
+    """View to display background tasks for a specific app instance."""
+
+    template = "apps/background_tasks.html"
+
+    def get(self, request, project, app_slug, app_id):
+        from apps.models import BackgroundTask
+
+        # Get app instance
+        model_class = APP_REGISTRY.get_orm_model(app_slug)
+        if not model_class:
+            raise PermissionDenied("Application model not found")
+
+        instance = model_class.objects.get(pk=app_id)
+        project_obj = Project.objects.get(slug=project)
+
+        # Get all background tasks for this instance
+        tasks = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
+
+        context = {
+            "instance": instance,
+            "project": project_obj,
+            "tasks": tasks,
+            "app_slug": app_slug,
+        }
+
+        return render(request, self.template, context)
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class BackgroundTaskStatusAPI(View):
+    """API endpoint to get task status for an app instance."""
+
+    def get(self, request, project, app_slug, app_id):
+        from apps.models import BackgroundTask
+
+        # Get app instance
+        model_class = APP_REGISTRY.get_orm_model(app_slug)
+        if not model_class:
+            return JsonResponse({"error": "Application model not found"}, status=404)
+
+        try:
+            instance = model_class.objects.get(pk=app_id)
+        except model_class.DoesNotExist:
+            return JsonResponse({"error": "App instance not found"}, status=404)
+
+        # Get all background tasks for this instance
+        tasks = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
+
+        tasks_data = []
+        for task in tasks:
+            duration = task.get_duration()
+            tasks_data.append(
+                {
+                    "id": task.id,
+                    "task_name": task.task_name,
+                    "task_type": task.task_type,
+                    "status": task.status,
+                    "is_critical": task.is_critical,
+                    "execution_order": task.execution_order,
+                    "error_message": task.error_message,
+                    "retry_count": task.retry_count,
+                    "max_retries": task.max_retries,
+                    "created_at": task.created_at.isoformat() if task.created_at else None,
+                    "started_at": task.started_at.isoformat() if task.started_at else None,
+                    "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+                    "duration_seconds": duration,
+                    "can_retry": task.status in ["failed", "retrying"],
+                }
+            )
+
+        # Calculate summary statistics
+        total = len(tasks_data)
+        pending = sum(1 for t in tasks_data if t["status"] == "pending")
+        running = sum(1 for t in tasks_data if t["status"] == "running")
+        success = sum(1 for t in tasks_data if t["status"] == "success")
+        failed = sum(1 for t in tasks_data if t["status"] == "failed")
+        retrying = sum(1 for t in tasks_data if t["status"] == "retrying")
+
+        return JsonResponse(
+            {
+                "tasks": tasks_data,
+                "summary": {
+                    "total": total,
+                    "pending": pending,
+                    "running": running,
+                    "success": success,
+                    "failed": failed,
+                    "retrying": retrying,
+                },
+            }
+        )
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class RetryBackgroundTaskView(View):
+    """View to manually retry a failed background task."""
+
+    def post(self, request, project, app_slug, app_id, task_id):
+        from apps.models import BackgroundTask
+        from apps.tasks import retry_background_task
+
+        # Get app instance to verify permissions
+        model_class = APP_REGISTRY.get_orm_model(app_slug)
+        if not model_class:
+            return JsonResponse({"error": "Application model not found"}, status=404)
+
+        try:
+            instance = model_class.objects.get(pk=app_id)
+        except model_class.DoesNotExist:
+            return JsonResponse({"error": "App instance not found"}, status=404)
+
+        # Get the task
+        try:
+            task = BackgroundTask.objects.get(id=task_id, app_instance=instance)
+        except BackgroundTask.DoesNotExist:
+            return JsonResponse({"error": "Task not found"}, status=404)
+
+        if task.status not in ["failed", "retrying"]:
+            return JsonResponse({"error": f"Cannot retry task with status '{task.status}'"}, status=400)
+
+        # Trigger retry
+        retry_background_task.delay(task_id)
+
+        logger.info(f"User {request.user.username} initiated retry for task {task_id} " f"on app {app_id}")
+
+        return JsonResponse({"success": True, "message": "Task retry initiated"})
+
+
+class AdminBackgroundTasksView(View):
+    """Admin view to see all background tasks across all apps."""
+
+    template = "apps/admin_background_tasks.html"
+
+    def get(self, request):
+        from apps.models import BackgroundTask
+
+        # Only allow superusers
+        if not request.user.is_superuser:
+            raise PermissionDenied("Only administrators can access this page")
+
+        # Get filter parameters
+        status_filter = request.GET.get("status")
+        app_type_filter = request.GET.get("app_type")
+        is_critical_filter = request.GET.get("is_critical")
+
+        # Start with all tasks
+        tasks = BackgroundTask.objects.select_related(
+            "app_instance", "app_instance__app", "app_instance__project"
+        ).order_by("-created_at")
+
+        # Apply filters
+        if status_filter:
+            tasks = tasks.filter(status=status_filter)
+
+        if app_type_filter:
+            tasks = tasks.filter(app_instance__app__slug=app_type_filter)
+
+        if is_critical_filter:
+            is_critical_bool = is_critical_filter.lower() == "true"
+            tasks = tasks.filter(is_critical=is_critical_bool)
+
+        # Pagination
+        from django.core.paginator import Paginator
+
+        paginator = Paginator(tasks, 50)  # Show 50 tasks per page
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        # Get unique app types for filter dropdown
+        from apps.models import Apps
+
+        app_types = Apps.objects.all().order_by("name")
+
+        context = {
+            "page_obj": page_obj,
+            "app_types": app_types,
+            "status_filter": status_filter,
+            "app_type_filter": app_type_filter,
+            "is_critical_filter": is_critical_filter,
+        }
+
+        return render(request, self.template, context)

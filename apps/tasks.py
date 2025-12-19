@@ -492,3 +492,292 @@ def remind_about_link_only_apps():
     for app_ in send_reminder_apps:
         send_linkonly_reminder_email(app_)
         set_next_linkonly_reminder_date(app_, days_to_next_reminder)
+
+
+# Background Task Orchestration
+
+
+@shared_task(bind=True)
+def execute_single_background_task(self, task_db_id: int):
+    """
+    Execute a single background task.
+
+    Args:
+        task_db_id: ID of the BackgroundTask model instance
+    """
+    from apps.background_tasks.registry import TASK_REGISTRY
+    from apps.models import BackgroundTask
+
+    try:
+        task_record = BackgroundTask.objects.get(id=task_db_id)
+    except BackgroundTask.DoesNotExist:
+        logger.error(f"BackgroundTask {task_db_id} not found")
+        return {"success": False, "error": "Task record not found"}
+
+    # Mark as running
+    task_record.mark_as_running(celery_task_id=self.request.id)
+
+    # Get the task class
+    task_info = TASK_REGISTRY.get_task_info(task_record.task_name)
+    if not task_info:
+        error_msg = f"Task '{task_record.task_name}' not found in registry"
+        logger.error(error_msg)
+        task_record.mark_as_failed(error_msg)
+        return {"success": False, "error": error_msg}
+
+    task_class = task_info["class"]
+    task_instance = task_class()
+
+    # Validate inputs
+    try:
+        task_instance.validate_inputs(task_record.app_instance)
+    except Exception as e:
+        error_msg = f"Input validation failed: {str(e)}"
+        logger.error(error_msg)
+        task_record.mark_as_failed(error_msg)
+        return {"success": False, "error": error_msg}
+
+    # Execute the task
+    try:
+        result = task_instance.execute(task_record.app_instance)
+        task_record.mark_as_success(result_data=result)
+        task_instance.on_success(task_record.app_instance, result)
+
+        logger.info(
+            f"Background task {task_record.task_name} completed successfully for app {task_record.app_instance_id}"
+        )
+        return {"success": True, "result": result}
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Background task {task_record.task_name} failed: {error_msg}", exc_info=True)
+
+        # Check if should retry
+        should_retry = task_instance.should_retry(e, task_record.retry_count)
+
+        if should_retry and task_record.can_retry():
+            task_record.mark_as_retrying()
+            task_instance.on_failure(task_record.app_instance, e)
+
+            # Schedule retry with exponential backoff
+            retry_delay = task_instance.get_retry_delay(task_record.retry_count)
+            logger.info(f"Retrying task {task_record.task_name} in {retry_delay} seconds")
+
+            raise self.retry(exc=e, countdown=retry_delay, max_retries=task_record.max_retries)
+        else:
+            task_record.mark_as_failed(error_msg)
+            task_instance.on_failure(task_record.app_instance, e)
+
+            return {"success": False, "error": error_msg, "is_critical": task_record.is_critical}
+
+
+@shared_task
+@transaction.atomic
+def run_background_tasks(serialized_instance, app_slug):
+    """
+    Orchestrates background tasks before deployment.
+
+    Creates BackgroundTask records and executes them in order.
+    Tasks with same execution_order run in parallel using Celery groups.
+
+    Args:
+        serialized_instance: Serialized app instance
+        app_slug: App type slug
+
+    Returns:
+        Dict with success status and task results
+    """
+    from celery import chain, group
+
+    from apps.background_tasks.registry import TASK_REGISTRY
+    from apps.models import BackgroundTask
+
+    instance = deserialize(serialized_instance)
+    logger.info(f"Running background tasks for app {instance.id} ({app_slug})")
+
+    # Get tasks grouped by execution order
+    tasks_by_order = TASK_REGISTRY.get_tasks_by_order(app_slug)
+
+    if not tasks_by_order:
+        logger.info(f"No background tasks registered for app type {app_slug}")
+        # Proceed directly to deployment
+        deploy_resource.delay(serialized_instance)
+        return {"success": True, "message": "No tasks to run, proceeding to deployment"}
+
+    # Create BackgroundTask records for all tasks
+    task_records = []
+    for order, tasks in sorted(tasks_by_order.items()):
+        for task_info in tasks:
+            task_record = BackgroundTask.objects.create(
+                app_instance=instance,
+                task_name=task_info["name"],
+                task_type=task_info["class"].task_type,
+                is_critical=task_info["is_critical"],
+                execution_order=order,
+                max_retries=task_info["class"].max_retries,
+                status="pending",
+            )
+            task_records.append(task_record)
+            logger.debug(f"Created task record {task_record.id} for {task_info['name']}")
+
+    # Execute tasks in order
+    # Build a chain of groups for sequential execution of parallel tasks
+    task_chain = []
+
+    for order in sorted(tasks_by_order.keys()):
+        # Get all task records for this order
+        order_task_records = [tr for tr in task_records if tr.execution_order == order]
+
+        if len(order_task_records) == 1:
+            # Single task - add to chain directly
+            task_chain.append(execute_single_background_task.s(order_task_records[0].id))
+        else:
+            # Multiple tasks - run in parallel using group
+            parallel_tasks = group([execute_single_background_task.s(tr.id) for tr in order_task_records])
+            task_chain.append(parallel_tasks)
+
+    # Add deployment as the final step in the chain
+    task_chain.append(check_tasks_and_deploy.s(instance.id, serialized_instance))
+
+    # Execute the chain
+    workflow = chain(*task_chain)
+    workflow.apply_async()
+
+    logger.info(f"Started background task workflow for app {instance.id}")
+    return {"success": True, "message": f"Started {len(task_records)} background tasks"}
+
+
+@shared_task
+@transaction.atomic
+def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instance):
+    """
+    Check if all critical tasks succeeded, then deploy if appropriate.
+
+    This is called as the final step in the background task chain.
+
+    Args:
+        previous_results: Results from previous tasks in chain
+        app_instance_id: App instance ID
+        serialized_instance: Serialized app instance for deployment
+    """
+    from apps.models import BackgroundTask
+
+    logger.info(f"Checking background tasks before deployment for app {app_instance_id}")
+
+    # Get all tasks for this app instance
+    tasks = BackgroundTask.objects.filter(app_instance_id=app_instance_id).order_by("execution_order")
+
+    # Check if any critical tasks failed
+    failed_critical_tasks = tasks.filter(is_critical=True, status="failed")
+
+    if failed_critical_tasks.exists():
+        failed_names = [t.task_name for t in failed_critical_tasks]
+        error_msg = f"Critical background tasks failed: {', '.join(failed_names)}. Deployment blocked."
+        logger.error(error_msg)
+
+        # Update app instance status
+        instance = deserialize(serialized_instance)
+        instance.latest_user_action = "Failed"
+        instance.save(update_fields=["latest_user_action"])
+
+        # Send notification
+        send_task_failure_notification.delay(app_instance_id, failed_names)
+
+        return {
+            "success": False,
+            "deployed": False,
+            "error": error_msg,
+            "failed_tasks": failed_names,
+        }
+
+    # All critical tasks passed - proceed with deployment
+    logger.info(f"All critical tasks passed for app {app_instance_id}. Proceeding with deployment.")
+    deploy_resource.delay(serialized_instance)
+
+    return {
+        "success": True,
+        "deployed": True,
+        "message": "All tasks completed, deployment started",
+    }
+
+
+@shared_task
+def retry_background_task(task_id: int):
+    """
+    Manually retry a failed background task.
+
+    Args:
+        task_id: BackgroundTask ID
+
+    Returns:
+        Dict with success status
+    """
+    from apps.models import BackgroundTask
+
+    try:
+        task_record = BackgroundTask.objects.get(id=task_id)
+    except BackgroundTask.DoesNotExist:
+        logger.error(f"BackgroundTask {task_id} not found")
+        return {"success": False, "error": "Task not found"}
+
+    if task_record.status not in ["failed", "retrying"]:
+        return {
+            "success": False,
+            "error": f"Task status is '{task_record.status}', can only retry failed tasks",
+        }
+
+    # Reset task state
+    task_record.status = "pending"
+    task_record.error_message = ""
+    task_record.retry_count = 0
+    task_record.started_at = None
+    task_record.completed_at = None
+    task_record.save()
+
+    # Execute the task
+    execute_single_background_task.delay(task_id)
+
+    logger.info(f"Manually retrying background task {task_id}")
+    return {"success": True, "message": "Task retry initiated"}
+
+
+@shared_task
+def send_task_failure_notification(app_instance_id: int, failed_task_names: list):
+    """
+    Send email notification when critical tasks fail.
+
+    Args:
+        app_instance_id: App instance ID
+        failed_task_names: List of failed task names
+    """
+    from apps.models import BaseAppInstance
+
+    try:
+        instance = BaseAppInstance.objects.get(id=app_instance_id)
+    except BaseAppInstance.DoesNotExist:
+        logger.error(f"App instance {app_instance_id} not found")
+        return
+
+    owner_email = instance.owner.email if hasattr(instance, "owner") else None
+
+    if owner_email:
+        subject = f"App deployment blocked: {instance.name}"
+        message = (
+            f"Dear {instance.owner.first_name},\n\n"
+            f"The deployment of your app '{instance.name}' has been blocked because "
+            f"one or more critical validation tasks failed:\n\n"
+            f"{', '.join(failed_task_names)}\n\n"
+            f"Please review the task details and fix any issues before retrying.\n\n"
+            f"If you need assistance, please contact us at serve@scilifelab.se.\n\n"
+            f"Kind regards,\n"
+            f"SciLifeLab Serve team"
+        )
+
+        send_email_task(
+            subject=subject,
+            message=message,
+            recipient_list=[owner_email],
+            reply_to=[settings.REPLY_TO_EMAIL],
+        )
+
+        logger.info(f"Sent task failure notification to {owner_email} for app {app_instance_id}")
