@@ -384,7 +384,29 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
     
     # this can create quite a delay. need to find another suitbale place perhaps...
-    save_invenio_metadata(app_slug, instance_id)
+    image_value_changed = False
+    app_contains_image = False
+    for field in form.cleaned_data:
+        if field.lower() == 'image':
+            app_contains_image = True
+            break
+    for field in form.changed_data:
+        if field.lower() == 'image':
+            image_value_changed = True
+            break
+    
+    if image_value_changed:
+        #logger.info(f"App '{app_slug}' with app id '{app_id}', Image value changed as '{form.changed_data.get('image')}' in form, checking to minting DOI..")
+        logger.info(f"App '{app_slug}' with app id '{app_id}', Image value changed in form, checking to minting DOI..")
+        save_metadata_to_invenio_then_mint_doi(app_slug, instance_id)
+    
+    elif app_contains_image:
+        #logger.info(f"App '{app_slug}' with app id '{app_id}', Image value '{form.cleaned_data.get('image')}' did not change no need to mint DOI...")
+        logger.info(f"App '{app_slug}' with app id '{app_id}', Image value did not change no need to mint DOI...")
+    else:
+        logger.info(f"App '{app_slug}' with app id '{app_id}' does not have image, no need to mint DOI...")
+            
+        
     
     return instance_id
 
@@ -1182,8 +1204,24 @@ def generate_invenio_metadata(app_instance: Any, app_slug: str) -> Dict[str, Any
                     "resource_type": {
                         "id": "software"
                     }
-                }
-            ]
+                },
+                
+                {
+                    # 2. App Image, need for versioning
+                    "identifier": app_data.get('image'),
+                    "scheme": "other",
+                    "relation_type": {
+                        "id": "hasversion",
+                        "title": {
+                            "en": "Has image version"
+                        },
+                    },
+                    "resource_type": {
+                        "id": "software"
+                    }
+                },
+            ],
+            
         }
     }
     
@@ -1211,7 +1249,7 @@ def generate_invenio_metadata(app_instance: Any, app_slug: str) -> Dict[str, Any
     
     return invenio_metadata
 
-def save_invenio_metadata(app_slug: str, app_id: int) -> None:
+def save_metadata_to_invenio_then_mint_doi(app_slug: str, app_id: int) -> None:
     """
     Save or update application metadata in InvenioRDM.
     
@@ -1224,6 +1262,11 @@ def save_invenio_metadata(app_slug: str, app_id: int) -> None:
     from invenio_client.invenio_client import InvenioClient
     import time
     
+    app_is_public = False
+    new_image_version=False
+    mint_doi = False
+    
+    
     # Get the ORM model class
     model_class: Optional[Type] = APP_REGISTRY.get_orm_model(app_slug)
     if not model_class:
@@ -1234,21 +1277,64 @@ def save_invenio_metadata(app_slug: str, app_id: int) -> None:
     app = model_class.objects.get(pk=app_id)
     app_data: Dict[str, Any] = model_to_dict(app, exclude=["_state"])
     
+    logger.info(f"Starting task to create Invenio record and then minting DOI for the '{app_slug}' app '{app_data.get('name')}' having app_id '{app_id}'...")
+    
+    
+    image_value = app_data['image']
+    logger.info(f"Checking if image '{image_value}' is a new app or a new version from the already existing images in previous versions...")
+    
+    invenio_record_id = app.invenio_record_id
+    
+    # Initialize Invenio client, later from env
+    invenio_client = InvenioClient(
+        base_url="https://invenio-test.serve-dev.scilifelab.se",  # Base URL without /api
+        token="dcFfVwYvMMIIwkrEYuVEIs6ca748u4iD58PvnsynlJpeK91IKc0St2h8JuEO",
+        auth_scheme="Bearer",
+        verify=True,
+    )
+    
+    # We are creating a new app
+    if invenio_record_id is None:
+        new_image_version=True
+        logger.info(f"'{image_value}' is new and this is the first version.")
+        
+    # another app image version for the app is there now, checking if it is new   
+    else:
+        all_previous_image_version_names = []
+        
+        all_invenio_record_versions = invenio_client.get_all_versions(app.invenio_record_id)
+        
+        if 'hits' in all_invenio_record_versions and 'hits' in all_invenio_record_versions['hits']:
+            for i, hit in enumerate(all_invenio_record_versions['hits']['hits']):
+                all_previous_image_version_names.append(hit["metadata"]["related_identifiers"][1]["identifier"])
+
+        logger.info(f"All previous image versions used: {all_previous_image_version_names}")
+        
+        if image_value in all_previous_image_version_names:
+            logger.info(f"'{image_value}' is already used in one of the prveious version(s), meaning DOI already exists. Skipping minting DOI...")
+        else:
+            new_image_version=True
+            logger.info(f"'{image_value}' is new in this version")
+    
+    logger.info(f"Checking if app access level is okay..")
     if app_data.get('access')=="public":
+        app_is_public = True
+        logger.info(f"App access is 'public'.")
+    else:
+        logger.info(f"App access is '{app_data.get('access')}', which is not 'public'. Skipping minting DOI...")
+    
+    
+    if new_image_version and app_is_public:
+        mint_doi = True
+        logger.info(f"All checkpoints passed. Now minting DOI...")
+    
+    if mint_doi:
     
         # Log current state
         logger.info("Before Updating to Invenio")
         logger.info(f"invenio_record_id: {app.invenio_record_id}")
         logger.info(f"app_doi: {app.app_doi}")
     
-        # Initialize Invenio client, later from env
-        invenio_client = InvenioClient(
-            base_url="https://invenio-test.serve-dev.scilifelab.se",  # Base URL without /api
-            token="dcFfVwYvMMIIwkrEYuVEIs6ca748u4iD58PvnsynlJpeK91IKc0St2h8JuEO",
-            auth_scheme="Bearer",
-            verify=True,
-        )
-
         try:
             # Transform to Invenio format
             invenio_data: Dict[str, Any] = generate_invenio_metadata(app, app_slug)
@@ -1259,8 +1345,8 @@ def save_invenio_metadata(app_slug: str, app_id: int) -> None:
             #files: Dict[str, Any] = invenio_data.get("files", {"enabled": False})
             custom_fields: Optional[Dict[str, Any]] = metadata.pop("custom_fields", None)
         
-            # Also check for empty string as falsy value
-            if app.invenio_record_id is None or app.invenio_record_id == "":
+            # This means this is the first time creating the app
+            if app.invenio_record_id is None or app.invenio_record_id == "": # Also check for empty string as falsy value
                 logger.info(f"Creating new Invenio record for app: {app_slug} with ID: {app_id} and name {invenio_data["metadata"]["title"]}")
             
                 # Create and publish new record
@@ -1272,6 +1358,10 @@ def save_invenio_metadata(app_slug: str, app_id: int) -> None:
                 )
             
                 logger.info(f"Created Invenio draft with ID: {draft['id']}")
+                
+                #logger.error(draft["metadata"]["related_identifiers"][1]["identifier"])
+                
+                #"""
             
                 # RESERVE INTERNAL DOI FOR THIS VERSION
                 try:
@@ -1295,7 +1385,9 @@ def save_invenio_metadata(app_slug: str, app_id: int) -> None:
                 app.invenio_record_id = published_record['id']
                 app.app_doi = published_doi
                 app.save()
+                #"""
             
+            # This means we are changing the version of the existing app
             else:
                 logger.info(f"Updating existing Invenio record: {app.invenio_record_id}")
             
@@ -1304,7 +1396,10 @@ def save_invenio_metadata(app_slug: str, app_id: int) -> None:
             
                 # Get the current new version draft
                 current_new_version_draft = invenio_client.get_draft(new_version['id'])
-            
+                
+                #logger.error(current_new_version_draft)
+
+                #"""
                 # Update the new version draft - need to add publication_date
                 logger.info("Updating the new version draft...")
             
@@ -1345,7 +1440,8 @@ def save_invenio_metadata(app_slug: str, app_id: int) -> None:
                 app.invenio_record_id=published_new_version['id']
                 app.app_doi = published_doi
                 app.save()
-            
+                #"""
+            #"""
             logger.info(f"allow some time after saving...")
             time.sleep(3)
             
@@ -1368,13 +1464,20 @@ def save_invenio_metadata(app_slug: str, app_id: int) -> None:
             if 'hits' in all_versions and 'hits' in all_versions['hits']:
                 logger.info("Version history:")
                 for i, hit in enumerate(all_versions['hits']['hits']):
-                    logger.info(f"  Version {i+1}: ID={hit.get('id')}, Title={hit.get('metadata', {}).get('title')}, "
-                        f"Index={hit.get('versions', {}).get('index')}")
+                    logger.info(f"  Version {i+1}: ID={hit.get('id')}, "
+                                f"App-Image={hit["metadata"]["related_identifiers"][1]["identifier"]}, "
+                                f"Title='{hit.get('metadata', {}).get('title')}', "
+                                f"Index={hit.get('versions', {}).get('index')},"
+                    )
+                    
+                    
+            #"""
             
         except Exception as e:
             logger.error(f"Error in save_invenio_metadata: {e}")
             import traceback
             logger.error(traceback.format_exc())
             raise
-    else:
-        logger.info(f"App: {app_slug} with ID: {app_id} is not 'Public', skipping saving metadata to invenio")
+    
+    logger.info(f"Invenio record and then minting DOI for the '{app_slug}' app '{app_data.get('name')}' having app_id '{app_id}' creation task is completed.")
+    
