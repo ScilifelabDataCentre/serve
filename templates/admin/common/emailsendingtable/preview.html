@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+
+  {% if form_errors %}
+    <div class="messagelist">
+      <div class="error">
+        <p><strong>Form is invalid — cannot generate preview.</strong></p>
+        <pre style="white-space: pre-wrap;">{{ form_errors }}</pre>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if headers %}
+    <h2>Headers</h2>
+    <ul>
+      <li><strong>From:</strong> {{ headers.from_email }}</li>
+      <li><strong>To (user):</strong> {{ headers.to_user }}</li>
+      <li><strong>To (email):</strong> {{ headers.to_email }}</li>
+      <li><strong>Subject:</strong> {{ headers.subject }}</li>
+      <li><strong>Template:</strong> {{ headers.template|default:"(manual message)" }}</li>
+    </ul>
+
+    <h2>HTML preview</h2>
+    <div style="border: 1px solid var(--hairline-color, #ddd); padding: 16px; background: #fff;">
+      {{ html_message|safe }}
+    </div>
+
+    <h2>Plaintext preview</h2>
+    <pre style="white-space: pre-wrap; border: 1px solid var(--hairline-color, #ddd); padding: 16px; background: #fff;">{{ plain_message }}</pre>
+  {% endif %}
+{% endblock %}
