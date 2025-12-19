@@ -17,14 +17,30 @@ def test_render_email_bodies_manual_message_strips_plaintext():
         to_user=user,
         to_email=user.email,
         subject="Hello",
-        message="<p>Hello <strong>world</strong></p>",
+        message="<p>Hello <strong>world</strong></p><p>Next line</p>",
         template=None,
     )
 
     plain, html = instance.render_email_bodies()
     assert html is not None
     assert "<strong>world</strong>" in html
-    assert "Hello world" in plain
+    assert "Hello world\n\nNext line" == plain
+
+
+@pytest.mark.django_db
+def test_render_email_bodies_plaintext_does_not_concatenate_paragraphs():
+    user = User.objects.create_user(username="u1b", email="u1b@example.com", password="pw", first_name="Alice")
+
+    instance = EmailSendingTable(
+        to_user=user,
+        to_email=user.email,
+        subject="Hello",
+        message="<p>Dear X,</p><p>Here is some test email.</p><p>Kind regards,</p>",
+        template=None,
+    )
+
+    plain, _html = instance.render_email_bodies()
+    assert "Dear X,\n\nHere is some test email.\n\nKind regards," == plain
 
 
 @pytest.mark.django_db

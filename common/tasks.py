@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.mail import EmailMessage, EmailMultiAlternatives
@@ -175,6 +177,15 @@ def send_email_task(
     - text/plain: `message`
     - text/html: `html_message`
     """
+    # Plaintext normalization:
+    # - Keep paragraph breaks/newlines (for readability in text/plain)
+    # - Normalize whitespace within each line
+    # - Collapse 3+ newlines into a single blank line
+    _many_newlines_re = re.compile(r"\n{3,}")
+    message = (message or "").replace("\xa0", " ").replace("\r\n", "\n").replace("\r", "\n")
+    message = "\n".join(" ".join(line.split()) for line in message.split("\n"))
+    message = _many_newlines_re.sub("\n\n", message).strip()
+
     logger.info("Sending email to %s", recipient_list)
     mail_subject = subject
     if from_email is None:

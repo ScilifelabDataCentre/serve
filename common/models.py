@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, User
 from django.db import models
@@ -8,6 +10,35 @@ from django_prose_editor.fields import ProseEditorField
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
+
+_BLOCK_BREAKS_RE = re.compile(r"</(p|div|li|tr|h[1-6]|blockquote)\s*>", re.IGNORECASE)
+_BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+_TD_TH_CLOSE_RE = re.compile(r"</(td|th)\s*>", re.IGNORECASE)
+_MANY_NEWLINES_RE = re.compile(r"\n{3,}")
+
+
+def _html_to_plaintext(value: str) -> str:
+    """
+    Convert HTML-ish content to plaintext.
+
+    Important: `strip_tags()` alone can concatenate paragraphs without spaces (e.g. "X,Here"),
+    so we first translate common block/line-break tags into newlines, then strip tags,
+    normalize whitespace, and preserve paragraph breaks as blank lines (\\n\\n).
+    """
+    if not value:
+        return ""
+
+    s = _BR_RE.sub("\n", value)
+    s = _TD_TH_CLOSE_RE.sub(" ", s)
+    # Treat end-of-block elements as paragraph breaks.
+    s = _BLOCK_BREAKS_RE.sub("\n\n", s)
+    s = strip_tags(s).replace("\xa0", " ")
+
+    # Normalize newlines and collapse repeated spaces within each line.
+    s = s.replace("\r\n", "\n").replace("\r", "\n")
+    s = "\n".join(" ".join(line.split()) for line in s.split("\n"))
+    s = _MANY_NEWLINES_RE.sub("\n\n", s)
+    return s.strip()
 
 
 class UserProfileManager(models.Manager):
@@ -103,21 +134,20 @@ class EmailSendingTable(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def render_email_bodies(self) -> tuple[str, str | None]:
+    def render_email_bodies(self) -> tuple[str, str]:
         """
         Returns (plain_text, html) for the email that would be sent.
         """
-        html_message: str | None = None
         plain_message: str
 
         if self.template:
             user_firstname = self.to_user.first_name if self.to_user else ""
             html_message = render_to_string(self.template, {"user_firstname": user_firstname})
-            plain_message = strip_tags(html_message)
+            plain_message = _html_to_plaintext(html_message)
         else:
             # When edited with django-prose-editor, `message` will usually be HTML.
             html_message = self.message
-            plain_message = strip_tags(self.message)
+            plain_message = _html_to_plaintext(self.message)
 
         return plain_message, html_message
 
