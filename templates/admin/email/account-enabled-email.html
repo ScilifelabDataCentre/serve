@@ -1,8 +1,8 @@
 {% extends 'admin/email/base.html' %}
-{% block email-title %}Account Enabled Notification{% endblock %}
+{% block email-title %}Account on SciLifeLab Serve approved{% endblock %}
 
 {% block content %}
-<p>Dear {{ user.first_name }},</p>
+<p>Dear {{ user_firstname }},</p>
 
 <p>
 We have approved your account on <a href="https://serve.scilifelab.se/">SciLifeLab Serve</a>. This means that you can now log in and use it.
