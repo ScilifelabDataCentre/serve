@@ -8,11 +8,14 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
 from apps.constants import AppActionOrigin
+from apps.helpers import generate_helm_install_command, get_merged_k8s_values
+from common.tasks import send_email_task
 from studio.celery import app
 from studio.utils import get_logger
 
@@ -46,7 +49,6 @@ def delete_old_objects():
             .exclude(latest_user_action="SystemDeleting")
             .exclude(app__slug="mlflow")
         )
-        # old: .exclude(app_status__status="Deleted")
 
         for app_ in old_develop_apps:
             delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
@@ -55,7 +57,6 @@ def delete_old_objects():
     old_file_managers = FilemanagerInstance.objects.filter(
         created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False
     ).exclude(latest_user_action="SystemDeleting")
-    # old: .exclude(app_status__status="Deleted")
 
     for app_ in old_file_managers:
         delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
@@ -97,24 +98,20 @@ def helm_install(release_name, chart, namespace="default", values_file=None, ver
     release_name (str): Name of the Helm release.
     chart (str): Helm chart to install.
     namespace (str): Kubernetes namespace to deploy to.
-    options (list, optional): Additional options for Helm command in list format.
+    values_file (str, optional): Path to values file.
+    version (str, optional): Chart version.
 
     Returns:
     tuple: Output message and any errors from the Helm command.
     """
-    # Base command
-    if "volumek8s" in chart:
-        # Force reinstall doesn't work with volumek8s chart
-        command = f"helm upgrade --install {release_name} {chart} --namespace {namespace}"
-    else:
-        command = f"helm upgrade --force --install {release_name} {chart} --namespace {namespace}"
-
-    if values_file:
-        command += f" -f {values_file}"
-
-    # Append version if deploying via ghcr
-    if version:
-        command += f" --version {version} --repository-cache /app/charts/.cache/helm/repository"
+    # Generate command using shared helper function
+    command = generate_helm_install_command(
+        release_name=release_name,
+        chart=chart,
+        namespace=namespace,
+        values_file=values_file,
+        version=version,
+    )
 
     logger.debug(f"Running Helm command: {command}")
     # Execute the command
@@ -206,9 +203,7 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
 def deploy_resource(serialized_instance):
     instance: BaseAppInstance = deserialize(serialized_instance)
     logger.info("Deploying resource for instance %s", instance)
-    values = instance.k8s_values
-    if instance.k8s_values_override:
-        values.update(instance.k8s_values_override)
+    values = get_merged_k8s_values(instance, ensure_up_to_date=True)
     release = values["subdomain"]
     chart: str = instance.chart
     if "ghcr" in instance.chart:
@@ -315,7 +310,8 @@ def delete_resource(serialized_instance, initiated_by_str: str):
 
     instance = deserialize(serialized_instance)
 
-    values = instance.k8s_values
+    # Use merged values for consistency, but don't update since we're deleting
+    values = get_merged_k8s_values(instance, ensure_up_to_date=False)
 
     success = False
     if values.get("subdomain") is not None:
@@ -420,3 +416,79 @@ def update_monthly_app_ip_counts():
             logger.warning(f"Failed to update monthly count for {subdomain}: {e}")
 
     logger.info(f"Updated monthly cached IP counts for {apps.count()} apps for {year_month}.")
+
+
+@app.task
+def remind_about_link_only_apps():
+    """
+    This task goes through the link-only apps (those for which Permission level is set to Link)
+    and sends email reminders to their owners when it's time to do that. The day when a reminder needs to be sent
+    is set in a database variable associated with this app - first set when the app is first saved
+    as a link-only app, then the next date is set by this task at the end.
+    TODO: Make the time period until the next reminder a variable in settings.py.
+    """
+
+    # Define how to send a reminder
+    def send_linkonly_reminder_email(app) -> None:
+        html_message = render_to_string(
+            "apps/reminder_linkonly.html",
+            {
+                "app_owner_firstname": app.owner.first_name,
+                "app_name": app.name,
+                "app_url": app.url,
+                "project_url_slug": app.project.slug,
+            },
+        )
+        logger.info("Sending reminder email %s", app.owner.email)
+        send_email_task(
+            subject="Permission level for your app on SciLifeLab Serve",
+            message=(
+                f"Dear {app.owner.first_name},\n\n"
+                f"Your app {app.name} ({app.url}) is published on SciLifeLab Serve with access only to "
+                "those with whom you share the URL of the app (permission level Link).\n\n"
+                "This is a reminder that we only allow using the Link permission level "
+                "temporarily and in certain cases, such as when your app is under development or your "
+                "related journal article is under peer review. Is this still the case?\n\n"
+                "Please consider changing the permission level for this app to either Public "
+                "(information about the app will become publicly findable) or Project "
+                "(only members of your project on SciLifeLab Serve will be able to access the app).\n\n"
+                "If you have any questions, feel free to get in touch with us - serve@scilifelab.se."
+                "\n\n"
+                "Kind regards,\n"
+                "SciLifeLab Serve team"
+            ),
+            html_message=html_message,
+            recipient_list=[app.owner.email],
+            reply_to=[settings.REPLY_TO_EMAIL],
+        )
+
+    # Define how to set the next reminder day
+    def set_next_linkonly_reminder_date(app, days_to_next_reminder: int) -> None:
+        today = timezone.localdate()
+        app.reminder_date_linkonly_privacy = today + timezone.timedelta(days=days_to_next_reminder)
+        app.save(update_fields=["reminder_date_linkonly_privacy"])
+
+    # Select the apps for which to send a reminder
+    send_reminder_apps = []
+    seen_ids: set[int] = set()
+    for orm_model in APP_REGISTRY.iter_orm_models():
+        # only keep models that have the field reminder_date_linkonly_privacy,
+        # this field is added only in the model of the app types for which this is relevant
+        field_names = {f.name for f in orm_model._meta.get_fields()}
+        if "reminder_date_linkonly_privacy" not in field_names:
+            continue
+        selected = orm_model.objects.filter(
+            access="link",
+            reminder_date_linkonly_privacy__lte=timezone.now(),
+        ).exclude(latest_user_action__in=["SystemDeleting", "Deleting"])
+        for obj in selected:
+            if obj.pk in seen_ids:  # need to do this because Shiny apps appear twice
+                continue
+            seen_ids.add(obj.pk)
+            send_reminder_apps.append(obj)
+
+    # Send the reminders, set the next reminder date
+    days_to_next_reminder = 90
+    for app_ in send_reminder_apps:
+        send_linkonly_reminder_email(app_)
+        set_next_linkonly_reminder_date(app_, days_to_next_reminder)

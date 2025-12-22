@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     "django_extensions",  # for executing runscript among others
     "django_filters",
     "django_structlog",
+    "django_prose_editor",
     "tagulous",
     "guardian",
     "crispy_forms",
@@ -144,6 +145,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "common.context_processors.maintenance_mode",
+                "js_asset.context_processors.importmap",
             ]
             + DJANGO_WIKI_CONTEXT_PROCESSOR,
             "libraries": {
@@ -183,9 +185,10 @@ if TESTING:
             "ENGINE": "django.db.backends.postgresql",
             "OPTIONS": {
                 "pool": {
-                    "min_size": 2,
-                    "max_size": 4,
-                    "timeout": 10,
+                    "min_size": 4,
+                    "max_size": 10,
+                    "timeout": 30,
+                    "max_idle": 300,
                 }
             },
             "NAME": "postgres",
@@ -439,9 +442,13 @@ PUBLICMODELOBJECT_MODEL = "portal.PublicModelObject"
 EMAIL_BACKEND = (
     "gmailapi_backend.service.GmailApiBackend" if not DEBUG else "django.core.mail.backends.console.EmailBackend"
 )
-DEFAULT_FROM_EMAIL = "serve@scilifelab.se"
-EMAIL_FROM = "noreply-serve@scilifelab.se"
-GMAIL_USER = "noreply-serve@scilifelab.se"
+ADMIN_EMAIL = "serve@scilifelab.se"  # for internal (admin/moderator) email notifications
+DEFAULT_FROM_EMAIL = (
+    "noreply-serve@scilifelab.se"  # default Django variable, used when there is no from email specified
+)
+EMAIL_FROM = "noreply-serve@scilifelab.se"  # what we use as from email
+REPLY_TO_EMAIL = "serve@scilifelab.se"  # we use this when we want to give users a chance to reply directly
+GMAIL_USER = "noreply-serve@scilifelab.se"  # used as email sending backend credentials
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 GOOGLE_SERVICE_ACCOUNT = json.dumps(
     {

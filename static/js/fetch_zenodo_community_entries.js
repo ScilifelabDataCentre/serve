@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const communityId = document.getElementById('zenodo-entries').getAttribute('data-community-id');
-    const apiUrl = `https://zenodo.org/api/records?communities=${communityId}&sort=mostrecent&size=30`;
+    const apiUrl = `https://zenodo.org/api/records?communities=${communityId}&sort=mostrecent`;
     const entriesLoading = document.getElementById('zenodo-entries-loading');
 
     fetch(apiUrl)

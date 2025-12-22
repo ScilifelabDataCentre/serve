@@ -9,6 +9,7 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.field.common import SRVCommonDivField
 from apps.helpers import validate_docker_image, validate_ghcr_image
+from apps.models import VolumeInstance
 from projects.models import PersistentVolumeMountPath
 
 
@@ -128,3 +129,28 @@ class StorageMixin:
             cleaned["volume"] = None
             cleaned["path"] = ""  # or None, depending on your model
         return cleaned
+
+
+class VolumeMixin:
+    volume = forms.ModelChoiceField(
+        queryset=VolumeInstance.objects.none(), required=False, empty_label="None", label="Volume"
+    )
+
+    def _set_up_volume_field(self):
+        volume_queryset = (
+            VolumeInstance.objects.filter(project__pk=self.project_pk).exclude(
+                latest_user_action__in=["Deleting", "SystemDeleting"]
+            )
+            if self.project_pk
+            else VolumeInstance.objects.none()
+        )
+
+        self.fields["volume"].queryset = volume_queryset
+        self.fields["volume"].initial = volume_queryset
+        self.fields["volume"].help_text = (
+            f"Select a storage volume to attach to your {self.model_name}. "
+            f"You can increase your default storage allocation by clicking on 'Manage storage'."
+        )
+
+    def _set_up_volume_helper(self):
+        return SRVCommonDivField("volume", template="apps/storage_field.html", project_slug=self.project.slug)

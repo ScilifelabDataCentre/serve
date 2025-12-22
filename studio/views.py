@@ -11,6 +11,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, reverse
+from django.template.loader import render_to_string
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
@@ -180,10 +181,25 @@ def delete_account_post_handler(request: Response, user_id: int) -> Response:
                 email = request.user.email
                 logger.debug(f"User account was deleted (set to inactive). Now sending email to user email {email}")
 
+                html_message = render_to_string(
+                    "registration/account_deleted.html",
+                    {
+                        "user_firstname": request.user.first_name,
+                        "user_username": request.user.username,
+                    },
+                )
+
                 send_email_task(
-                    "User account deleted from SciLifeLab Serve",
-                    f"The user account {request.user.username} was deleted from SciLifeLab Serve as requested.",
-                    [email],
+                    subject="User account deleted from SciLifeLab Serve",
+                    message=(
+                        f"Dear {request.user.first_name},\n"
+                        f"The user account {request.user.username} was deleted from SciLifeLab Serve as requested.\n"
+                        "\n\n"
+                        "Kind regards,\n"
+                        "SciLifeLab Serve team"
+                    ),
+                    html_message=html_message,
+                    recipient_list=[email],
                     fail_silently=False,
                 )
 

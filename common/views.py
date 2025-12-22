@@ -142,7 +142,7 @@ class VerifyView(TemplateView):
                     send_email_task(
                         "User has verified their email address",
                         f"Please go to the admin page to activate account for {user.email}",
-                        ["serve@scilifelab.se"],
+                        [settings.ADMIN_EMAIL],
                     )
                     messages.success(
                         request, "Your email address has been verified. Please wait for admin to approve your account."

@@ -1,14 +1,16 @@
 import time
+from datetime import datetime
 
 from django.contrib import admin, messages
 from django.db.models.query import QuerySet
+from django.http import HttpResponse
 from django.utils import timezone
 
 from projects.models import PersistentVolumeMountPath
 from studio.utils import get_logger
 
 from .constants import AppActionOrigin
-from .helpers import get_URI
+from .helpers import export_k8s_values_to_yaml, get_URI, set_linkonly_reminder_date
 from .models import (
     AppCategories,
     Apps,
@@ -87,7 +89,13 @@ class BaseAppAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("id", "created_on")
     list_filter = ["owner", "project", "k8s_user_app_status__status", "chart"]
-    actions = ["redeploy_apps", "deploy_resources", "delete_resources"]
+    actions = [
+        "redeploy_apps",
+        "deploy_resources",
+        "delete_resources",
+        "export_values_yaml",
+        "set_linkonly_reminder_dates",
+    ]
 
     def display_status(self, obj):
         try:
@@ -186,6 +194,70 @@ class BaseAppAdmin(admin.ModelAdmin):
                 request, f"Failed to delete {failure_count} apps. Check logs for details.", messages.ERROR
             )
 
+    @admin.action(description="Set new dates for reminders of Link permission apps")
+    def set_linkonly_reminder_dates(self, request, queryset):
+        """
+        Sets the reminder date for the selected apps with Link permission (access) to some time in the
+        future as defined in set_linkonly_reminder_date()
+        """
+        linkonly_changed_count = 0
+
+        for instance in queryset:
+            if (
+                instance.latest_user_action not in ["Deleting", "SystemDeleting"]
+                and hasattr(instance, "access")
+                and instance.access == "link"
+            ):
+                set_linkonly_reminder_date(instance)
+                linkonly_changed_count += 1
+                instance.save(update_fields=["reminder_date_linkonly_privacy"])
+
+        if linkonly_changed_count:
+            self.message_user(
+                request,
+                f"Successfully set new reminder dates for {linkonly_changed_count} apps with Link permission.",
+                messages.SUCCESS,
+            )
+        else:
+            self.message_user(
+                request, "There was not a single app with Link permission among the selected apps.", messages.ERROR
+            )
+
+    @admin.action(description="Export values as YAML")
+    def export_values_yaml(self, request, queryset):
+        """
+        Export k8s_values for selected app instances as YAML files.
+        For multiple instances, creates a single YAML file with all values.
+        """
+        if not queryset.exists():
+            self.message_user(request, "No app instances selected.", messages.WARNING)
+            return
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        try:
+            yaml_content = export_k8s_values_to_yaml(queryset)
+        except ValueError as e:
+            logger.error(f"Error exporting values to YAML: {e}")
+            self.message_user(request, str(e), messages.ERROR)
+            return
+
+        # Create HTTP response with YAML content
+        response = HttpResponse(yaml_content, content_type="application/x-yaml")
+
+        # Set filename based on number of instances
+        if queryset.count() == 1:
+            instance = queryset.first()
+            filename = f"{instance.name}_{instance.id}_values_{timestamp}.yaml"
+        else:
+            filename = f"app_instances_values_{timestamp}.yaml"
+
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        self.message_user(request, f"Exported {queryset.count()} app instance(s) values as YAML.", messages.SUCCESS)
+
+        return response
+
 
 @admin.register(BaseAppInstance)
 class BaseAppInstanceAdmin(BaseAppAdmin):
@@ -243,6 +315,9 @@ class NetpolicyInstanceAdmin(BaseAppAdmin):
 @admin.register(DashInstance)
 class DashInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + ("image",)
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(MLFlowInstance)
@@ -259,6 +334,9 @@ class CustomAppInstanceAdmin(BaseAppAdmin):
         "port",
         "user_id",
     )
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(ShinyInstance)
@@ -268,11 +346,17 @@ class ShinyInstanceAdmin(BaseAppAdmin):
         "image",
         "port",
     )
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(TissuumapsInstance)
 class TissuumapsInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + ("display_volumes",)
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(FilemanagerInstance)
@@ -291,6 +375,9 @@ class GradioInstanceAdmin(BaseAppAdmin):
         "port",
         "user_id",
     )
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 @admin.register(StreamlitInstance)
@@ -301,6 +388,9 @@ class StreamlitInstanceAdmin(BaseAppAdmin):
         "port",
         "user_id",
     )
+    list_filter = BaseAppAdmin.list_filter + [
+        "access",
+    ]
 
 
 class SubdomainAdmin(admin.ModelAdmin):

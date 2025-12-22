@@ -6,12 +6,13 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.mixins import VolumeMixin
 from apps.models import RStudioInstance, VolumeInstance
 
 __all__ = ["RStudioForm"]
 
 
-class RStudioForm(AppBaseForm):
+class RStudioForm(VolumeMixin, AppBaseForm):
     volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
     environment = forms.ModelChoiceField(queryset=None, required=True, empty_label=None)
 
@@ -24,6 +25,7 @@ class RStudioForm(AppBaseForm):
             "Read more about environments in the "
             '<a href="https://serve.scilifelab.se/docs/notebooks/">documentation</a>.'
         )
+        self._set_up_volume_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -38,7 +40,7 @@ class RStudioForm(AppBaseForm):
 
         configuration = AccordionGroup(
             mark_safe("<h3>Configuration Settings</h3>"),
-            Field("volume"),
+            self._set_up_volume_helper(),
             SRVCommonDivField("flavor"),
             SRVCommonDivField("environment"),
             active=True,

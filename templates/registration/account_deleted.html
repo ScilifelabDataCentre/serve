@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% block email-title %}{% endblock %}</title>
+    <title>User account deleted from SciLifeLab Serve</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,7 +22,11 @@
 </head>
 <body>
     <div class="email-container">
-        {% block content %}{% endblock %}
+        <h1>User account deleted from SciLifeLab Serve</h1>
+        <p>Dear {{ user_firstname }},</p>
+        <p>Your user account {{ user_username }} was deleted from SciLifeLab Serve (<a href="https://{% get_setting 'DOMAIN' %}">https://{% get_setting 'DOMAIN' %}</a>) as requested.</p>
+        <p>Kind regards,</p>
+        <p>SciLifeLab Serve team</p>
     </div>
 </body>
 </html>

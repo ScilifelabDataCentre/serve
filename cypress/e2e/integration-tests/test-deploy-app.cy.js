@@ -633,6 +633,9 @@ describe("Test deploying app", () => {
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
             cy.get('#id_volume').select(volume_display_text)
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
@@ -706,6 +709,11 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_mount_path').should('exist')
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
+
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // back on project page
@@ -782,6 +790,10 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_mount_path').should('exist')
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // back on project page
