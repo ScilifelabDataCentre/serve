@@ -4,7 +4,7 @@ from typing import Mapping, Optional, Tuple, Union
 
 import requests
 from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+from urllib3.util.retry import Retry  # type: ignore
 
 Timeout = Tuple[float, float]
 VerifyType = Union[bool, str]

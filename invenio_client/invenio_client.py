@@ -1,20 +1,19 @@
-import requests
-
-"""
-InvenioRDM Client Module
+"""InvenioRDM Client Module
 Provides a comprehensive client for interacting with InvenioRDM API
 """
 
 import json
-from typing import Any, Dict, List, Optional, Union
+import logging
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urljoin
+
+import requests
 
 from .http_client import delete, get, post, put
 from .session import make_session
 from .tls import tls_verify_from_env
 
-from studio.utils import get_logger
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class InvenioClientError(Exception):
@@ -45,7 +44,7 @@ class InvenioClient:
         token: str,
         auth_scheme: str = "Bearer",
         verify: Optional[Union[bool, str]] = None,
-        timeout: tuple = (3.05, 20.0),
+        timeout: Tuple[float, float] = (3.05, 20.0),
     ):
         """
         Initialize the InvenioRDM client
@@ -85,7 +84,9 @@ class InvenioClient:
         """Build full URL from endpoint path"""
         return urljoin(self.base_url + "/", endpoint.lstrip("/"))
 
-    def _handle_response(self, response, success_codes: List[int] = None) -> Dict[str, Any]:
+    def _handle_response(
+        self, response: Optional[requests.Response], success_codes: Optional[List[int]] = None
+    ) -> Dict[str, Any]:
         """
         Handle API response, raising exceptions for errors
 
@@ -113,7 +114,7 @@ class InvenioClient:
                     error_msg = f"{error_msg}: {error_data['message']}"
                 if "errors" in error_data:
                     error_msg = f"{error_msg}\nErrors: {json.dumps(error_data['errors'], indent=2)}"
-            except:
+            except (json.JSONDecodeError, ValueError):
                 error_msg = f"{error_msg}: {response.text}"
 
             raise InvenioClientError(error_msg)
@@ -124,7 +125,7 @@ class InvenioClient:
 
         # Try to parse JSON response
         try:
-            return response.json()
+            return cast(Dict[str, Any], response.json())
         except json.JSONDecodeError:
             raise InvenioClientError(f"Failed to parse JSON response: {response.text}")
 
@@ -293,7 +294,7 @@ class InvenioClient:
         size: int = 10,
         page: int = 1,
         allversions: bool = False,
-        **additional_params,
+        **additional_params: Any,
     ) -> Dict[str, Any]:
         """
         Search published records
@@ -347,7 +348,7 @@ class InvenioClient:
         size: int = 10,
         page: int = 1,
         allversions: bool = False,
-        **additional_params,
+        **additional_params: Any,
     ) -> Dict[str, Any]:
         """
         List user's draft and published records
@@ -398,8 +399,10 @@ class InvenioClient:
         Get all versions of a record
 
         Invenio uses Elasticsearch.
-        There is a common issue with Elasticsearch, called 'eventual consistency.'
-        Read more: https://medium.com/@zvardhan26/the-sneaky-elasticsearch-surprise-that-broke-my-workflows-and-how-i-fixed-it-a704486b482e
+        There is a common issue with Elasticsearch,
+        called 'eventual consistency.'
+        Read more: https://medium.com/@zvardhan26/the-sneaky-elasticsearch-surprise-that-broke-my-work
+        flows-and-how-i-fixed-it-a704486b482e
 
         Because of this 'eventual consistency', there might be a delay in indexing this new version.
         This means, this method can provide incorrect answer if we try

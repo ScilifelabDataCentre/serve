@@ -5,9 +5,9 @@ import json
 from unittest.mock import Mock, patch
 
 import pytest
-import responses
+import responses  # type: ignore
 
-from invenio_client import InvenioClient, transform_to_invenio_metadata
+from invenio_client import InvenioClient
 
 
 @pytest.fixture

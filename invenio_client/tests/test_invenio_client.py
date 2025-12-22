@@ -5,13 +5,9 @@ import json
 from unittest.mock import Mock, call, patch
 
 import pytest
-import responses
+import responses  # type: ignore
 
-from invenio_client import (
-    InvenioClient,
-    InvenioClientError,
-    transform_to_invenio_metadata,
-)
+from invenio_client import InvenioClient, InvenioClientError
 
 
 class TestInvenioClientInitialization:
@@ -377,99 +373,6 @@ class TestDOIManagement:
 
         result = invenio_client.delete_doi(record_id)
         assert result is True
-
-
-'''
-class TestMetadataTransformation:
-    """Test metadata transformation functions."""
-
-    def test_transform_to_invenio_metadata_basic(self, sample_schema_org_data):
-        """Test basic metadata transformation."""
-        result = transform_to_invenio_metadata(sample_schema_org_data)
-
-        # Check basic structure
-        assert "access" in result
-        assert "files" in result
-        assert "metadata" in result
-
-        # Check metadata fields
-        metadata = result["metadata"]
-        assert metadata["title"] == "Serve Test Dataset of the App: 'Test App'"
-        assert metadata["description"] == "Test description"
-        assert metadata["publication_date"] == "2025-12-11"  # Only date part
-        assert metadata["publisher"] == "Test Org"
-        assert metadata["resource_type"]["id"] == "dataset"
-
-        # Check creators
-        assert len(metadata["creators"]) == 1
-        assert metadata["creators"][0]["person_or_org"]["name"] == "Test Org"
-        assert metadata["creators"][0]["person_or_org"]["type"] == "organizational"
-
-        # Check license
-        assert len(metadata["rights"]) == 1
-        assert metadata["rights"][0]["id"] == "cc-by-4.0"
-
-    def test_transform_to_invenio_metadata_custom_fields(self, sample_schema_org_data):
-        """Test that custom fields are properly included."""
-        result = transform_to_invenio_metadata(sample_schema_org_data)
-        metadata = result["metadata"]
-
-        # Check custom fields exist
-        assert "custom_fields" in metadata
-        custom_fields = metadata["custom_fields"]
-
-        # Check application deployment structure
-        assert "kcr:application_deployment" in custom_fields
-        deployment = custom_fields["kcr:application_deployment"]
-
-        # Check software application data
-        assert "software_application" in deployment
-        app = deployment["software_application"]
-        assert app["name"] == "Test App"
-        assert app["description"] == "App description"
-        assert app["version"] == "1.0.0"
-        assert app["url"] == "https://example.com"
-        assert app["application_category"] == "Cloud Application"
-        assert app["operating_system"] == "Kubernetes"
-        assert app["code_repository"] == "https://github.com/test"
-
-        # Check resource requirements
-        assert "resource_requirements" in deployment
-        resources = deployment["resource_requirements"]
-        assert resources["cpuRequest"] == "100m"
-        assert resources["memoryRequest"] == "1Gi"
-
-        # Check project metadata
-        assert "project_metadata" in deployment
-        project = deployment["project_metadata"]
-        assert project["project_name"] == "Test Project"
-        assert project["project_description"] == "Project description"
-        assert project["services"]["service1"] == "2"
-        assert project["services"]["service2"] == "3"
-
-    def test_transform_to_invenio_metadata_missing_fields(self):
-        """Test transformation with minimal data."""
-        minimal_data = {
-            "@context": "https://schema.org",
-            "@type": "Dataset",
-            "name": "Minimal Dataset",
-            "description": "Minimal description",
-            "dateCreated": "2025-01-01T00:00:00Z",
-            "creator": {"@type": "Organization", "name": "Test Org"}
-        }
-
-        result = transform_to_invenio_metadata(minimal_data)
-        metadata = result["metadata"]
-
-        # Should still have all required fields
-        assert metadata["title"] == "Serve Minimal Dataset of the App: ''"
-        assert metadata["description"] == "Minimal description"
-        assert metadata["publication_date"] == "2025-01-01"
-        assert metadata["publisher"] == "Test Org"
-
-        # Custom fields should not exist without hasPart
-        assert "custom_fields" not in metadata
-'''
 
 
 def test_invenio_client_error():

@@ -9,7 +9,7 @@ import pytest
 if __name__ == "__main__":
     # Run tests with coverage if available
     try:
-        import coverage
+        import coverage  # type: ignore
 
         cov = coverage.Coverage()
         cov.start()
