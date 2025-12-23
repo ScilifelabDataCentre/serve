@@ -2,6 +2,14 @@
 
 A comprehensive framework for running validation and external API tasks before app deployment.
 
+## Disclaimer
+
+This is an initial ai generated draft of the feature based on user stories for the feature. I think that it generally
+looks good, but we need to review and debug it, because from API design standpoint it looks good, but not all
+things work right now.
+
+Background tasks are actually triggered on deployment. But not all views work.
+
 ## Overview
 
 The background task framework provides:
