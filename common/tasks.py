@@ -1,6 +1,8 @@
+import re
+
 from django.conf import settings
 from django.contrib.auth.models import Group, User
-from django.core.mail import EmailMessage, send_mail
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -165,17 +167,37 @@ def send_email_task(
     recipient_list: list[str],
     html_message: str | None = None,
     fail_silently: bool = False,
-    from_email: str = settings.EMAIL_FROM,
+    from_email: str | None = None,
     reply_to: list[str] | None = None,
 ) -> None:
     """
-    Send message content if html_message is None, otherwise send html_message.
+    Send an email with a plaintext body and optional HTML alternative.
+
+    If `html_message` is provided, we send a multipart/alternative email with:
+    - text/plain: `message`
+    - text/html: `html_message`
     """
+    # Plaintext normalization:
+    # - Keep paragraph breaks/newlines (for readability in text/plain)
+    # - Normalize whitespace within each line
+    # - Collapse 3+ newlines into a single blank line
+    _many_newlines_re = re.compile(r"\n{3,}")
+    message = (message or "").replace("\xa0", " ").replace("\r\n", "\n").replace("\r", "\n")
+    message = "\n".join(" ".join(line.split()) for line in message.split("\n"))
+    message = _many_newlines_re.sub("\n\n", message).strip()
+
     logger.info("Sending email to %s", recipient_list)
     mail_subject = subject
-    mail_message = message if html_message is None else html_message
-    email = EmailMessage(mail_subject, mail_message, from_email, to=recipient_list, reply_to=reply_to)
-    email.content_subtype = "html" if html_message else "plain"
+    if from_email is None:
+        from_email = settings.EMAIL_FROM
+
+    if html_message is None:
+        email = EmailMessage(mail_subject, message, from_email, to=recipient_list, reply_to=reply_to)
+        email.content_subtype = "plain"
+    else:
+        email = EmailMultiAlternatives(mail_subject, message, from_email, to=recipient_list, reply_to=reply_to)
+        email.attach_alternative(html_message, "text/html")
+
     email.send(fail_silently=fail_silently)
 
 

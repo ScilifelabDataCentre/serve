@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     "django_extensions",  # for executing runscript among others
     "django_filters",
     "django_structlog",
+    "django_prose_editor",
     "tagulous",
     "guardian",
     "crispy_forms",
@@ -144,6 +145,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "common.context_processors.maintenance_mode",
+                "js_asset.context_processors.importmap",
             ]
             + DJANGO_WIKI_CONTEXT_PROCESSOR,
             "libraries": {
@@ -474,6 +476,8 @@ ALTCHA_HMAC_KEY = os.getenv(
     "ALTCHA_HMAC_KEY",
     "eead811cbbbc5a8e4e9ac81657b398b42211910eca497628372ac9281f9620a74036b965056286754e33187678e52f55d010fbabf6ed9f001885b15bf728f05f",
 )
+# Point to local static file instead of CDN
+ALTCHA_JS_URL = f"{STATIC_URL}altcha/altcha.min.js"
 
 
 MIGRATION_MODULES = {

@@ -1,12 +1,44 @@
+import re
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, User
-from django.core.mail import send_mail
 from django.db import models
 from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django_prose_editor.fields import ProseEditorField
 
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
+
+_BLOCK_BREAKS_RE = re.compile(r"</(p|div|li|tr|h[1-6]|blockquote)\s*>", re.IGNORECASE)
+_BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+_TD_TH_CLOSE_RE = re.compile(r"</(td|th)\s*>", re.IGNORECASE)
+_MANY_NEWLINES_RE = re.compile(r"\n{3,}")
+
+
+def _html_to_plaintext(value: str) -> str:
+    """
+    Convert HTML-ish content to plaintext.
+
+    Important: `strip_tags()` alone can concatenate paragraphs without spaces (e.g. "X,Here"),
+    so we first translate common block/line-break tags into newlines, then strip tags,
+    normalize whitespace, and preserve paragraph breaks as blank lines (\\n\\n).
+    """
+    if not value:
+        return ""
+
+    s = _BR_RE.sub("\n", value)
+    s = _TD_TH_CLOSE_RE.sub(" ", s)
+    # Treat end-of-block elements as paragraph breaks.
+    s = _BLOCK_BREAKS_RE.sub("\n\n", s)
+    s = strip_tags(s).replace("\xa0", " ")
+
+    # Normalize newlines and collapse repeated spaces within each line.
+    s = s.replace("\r\n", "\n").replace("\r", "\n")
+    s = "\n".join(" ".join(line.split()) for line in s.split("\n"))
+    s = _MANY_NEWLINES_RE.sub("\n\n", s)
+    return s.strip()
 
 
 class UserProfileManager(models.Manager):
@@ -45,50 +77,94 @@ class EmailVerificationTable(models.Model):
 
 
 class EmailSendingTable(models.Model):
-    EMAIL_TEMPLATES = {file_path: file_path for file_path in settings.EMAIL_TEMPLATES}
+    class EmailTemplate(models.TextChoices):
+        account_enabled = "admin/email/account-enabled-email.html", "Account approved/enabled"
+        user_not_swedish_uni = "admin/email/user-not-from-a-swedish-uni.html", "User not from a Swedish uni"
+
     from_email = models.EmailField(
         choices=[
-            (settings.DEFAULT_FROM_EMAIL, settings.DEFAULT_FROM_EMAIL),
             (settings.EMAIL_FROM, settings.EMAIL_FROM),
-        ]
+            (settings.ADMIN_EMAIL, settings.ADMIN_EMAIL),
+        ],
+        default=settings.ADMIN_EMAIL,
     )
     to_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    to_email = models.EmailField()
+    to_email = models.EmailField(
+        help_text="This field will indicate the email to which the email was sent after you hit 'Save'."
+    )
     subject = models.CharField(
         max_length=255,
-        help_text="Subject of the email."
-        "If there is already exists a ticket on Edge, you can use it's subject"
+        help_text="Subject of the email. "
+        "If there already exists a ticket on Edge, you can use its subject"
         " to track email history through it.",
+        blank=False,
+        null=False,
     )
-    message = models.TextField(
-        help_text="Email message to be sent. If base template is selected, "
-        "this will be rendered using the template. You can use HTML tags here.",
+    message = ProseEditorField(
+        help_text="Type your message here if you want to write it manually. Alternatively, "
+        "choose one of the templates. Supports rich text formatting.",
+        # Provide an explicit extensions config so django-prose-editor runs in "normal mode".
+        # This is required when sanitize=True; otherwise it falls back to legacy mode where
+        # sanitization expects a config and crashes.
+        extensions={
+            "Bold": True,
+            "Italic": True,
+            "BulletList": True,
+            "ListItem": True,
+            "OrderedList": True,
+            "Link": True,
+        },
         blank=True,
-        null=True,
-        default="",
+        default="<p>Dear X,</p><p>Kind regards,<br>SciLifeLab Serve team</p>",
+        sanitize=True,
     )
-    template = models.CharField(max_length=100, choices=EMAIL_TEMPLATES, null=True, blank=True)
-    status = models.CharField(choices=[("sent", "Sent"), ("failed", "Failed")], default="pending", max_length=10)
+    template = models.CharField(
+        max_length=100,
+        choices=EmailTemplate.choices,
+        help_text="Select a template if you do not want to type a message "
+        "manually. If selected, anything in the Message field will be ignored.",
+        null=True,
+        blank=True,
+    )
+    status = models.CharField(
+        choices=[("sent", "Sent"), ("failed", "Failed")],
+        help_text="This field will indicate whether the email was successfully sent after you hit 'Save'.",
+        default="pending",
+        max_length=10,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def send_email(self):
-        message = self.message
-        html_message = None
-        if self.template:
-            # If a template is selected, render the message using the template
+    def render_email_bodies(self) -> tuple[str, str]:
+        """
+        Returns (plain_text, html) for the email that would be sent.
+        """
+        plain_message: str
 
-            html_message = render_to_string(self.template, {"message": self.message, "user": self.to_user})
-            message = html_message  # Use the rendered HTML message as the plain text message
+        if self.template:
+            user_firstname = self.to_user.first_name if self.to_user else ""
+            html_message = render_to_string(self.template, {"user_firstname": user_firstname})
+            plain_message = _html_to_plaintext(html_message)
         else:
-            if not message:
-                raise ValueError("Message cannot be empty if no template is selected.")
-        send_mail(
+            # When edited with django-prose-editor, `message` will usually be HTML.
+            html_message = self.message
+            plain_message = _html_to_plaintext(self.message)
+
+        return plain_message, html_message
+
+    def send_email(self):
+        from common.tasks import send_email_task
+
+        logger.info(f"Sending an email to {self.to_email} from the admin panel email sending form.")
+
+        plain_message, html_message = self.render_email_bodies()
+
+        send_email_task(
             subject=self.subject,
-            message=message,
-            from_email=self.from_email,
-            recipient_list=[self.to_email, settings.DEFAULT_FROM_EMAIL],
+            message=plain_message,
             html_message=html_message,
+            recipient_list=[self.to_email, settings.ADMIN_EMAIL],
             fail_silently=False,
+            from_email=self.from_email,
         )
 
 
