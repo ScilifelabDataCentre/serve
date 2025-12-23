@@ -471,6 +471,8 @@ ALTCHA_HMAC_KEY = os.getenv(
     "ALTCHA_HMAC_KEY",
     "eead811cbbbc5a8e4e9ac81657b398b42211910eca497628372ac9281f9620a74036b965056286754e33187678e52f55d010fbabf6ed9f001885b15bf728f05f",
 )
+# Point to local static file instead of CDN
+ALTCHA_JS_URL = f"{STATIC_URL}altcha/altcha.min.js"
 
 
 MIGRATION_MODULES = {
