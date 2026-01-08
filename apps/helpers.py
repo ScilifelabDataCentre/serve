@@ -1493,5 +1493,5 @@ def save_metadata_to_invenio_then_mint_doi(app_slug: str, app_id: int) -> None:
 
     logger.info(
         "Invenio record and then minting DOI for "
-        f"the '{app_slug}' app '{app_data.get('name')}' having app_id '{app_id}' creation task is completed."
+        f"the '{app_slug}' app '{app_data.get('name')}' with app_id '{app_id}' creation task is completed."
     )
