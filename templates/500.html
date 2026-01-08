@@ -28,6 +28,19 @@
             width: 200px;
             margin: 20px 0;
         }
+        .btn {
+            background: #a7c947;
+            padding: 14px 28px;
+            color: black;
+            text-decoration: none;
+            border-radius: 6px;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background: #95b03a;
+        }
 
         @media (max-width: 768px) {
             body {
@@ -38,7 +51,7 @@
                 margin: 10px;
             }
             .logo {
-                width: 120px;
+                width: 150px;
             }
             h1 {
                 font-size: 1.3em;
@@ -47,24 +60,9 @@
                 width: 100px;
                 margin: 20px 0;
             }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 20px 10px;
-            }
-            .logo {
-                width: 100px;
-            }
-            #tv-img {
-                width: 100px;
-                margin: 20px 0;
-            }
-            h1 {
-                font-size: 1.2em;
-            }
-            p {
-                font-size: 0.9em;
+            .btn {
+                padding: 12px 16px;
+                font-size: 14px;
             }
         }
     </style>
@@ -207,6 +205,10 @@
             <text x="100" y="80" text-anchor="middle" fill="white" font-size="12">!</text>
             <rect x="85" y="130" width="30" height="10" fill="#666"/>
         </svg>
+
+        <div>
+            <a href="https://serve.scilifelab.se/" class="btn">Home</a>
+        </div>
 
     </div>
 </body>
