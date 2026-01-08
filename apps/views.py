@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from guardian.decorators import permission_required_or_403
+from rest_framework.exceptions import NotFound
 
 from apps.types_.subdomain import SubdomainCandidateName
 from projects.models import Project
@@ -390,7 +391,13 @@ class SecretsView(View):
         return render(request, self.template, context)
 
 
-def app_metadata(request, app_slug, app_id):
+def app_metadata(request, app_id):
+    # First retrieve the app slug by id
+    app = BaseAppInstance.objects.filter(pk=app_id).first()
+    if app is None:
+        raise NotFound("An app with this id does not exist.")
+    app_slug = app.app.slug
+
     # Get app model instance
     model_class = APP_REGISTRY.get_orm_model(app_slug)
     if not model_class:
@@ -400,7 +407,7 @@ def app_metadata(request, app_slug, app_id):
     app = model_class.objects.get(pk=app_id)
 
     if app.access != "public":
-        logger.error(f"App '{app_slug}' with app id '{app_id}' is not 'Public', raising PermissionDenied error")
+        logger.error(f"App with app id '{app_id}' is not 'Public', raising PermissionDenied error")
         raise PermissionDenied("You don't have permission to view this app's metadata")
 
     # Generate and parse schema
