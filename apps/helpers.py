@@ -1128,7 +1128,7 @@ def export_k8s_values_to_yaml(instances: QuerySet[BaseAppInstance] | Iterable[Ba
         raise ValueError(f"Error exporting values to YAML: {e}") from e
 
 
-def generate_invenio_metadata(app_instance: Any, app_slug: str) -> Dict[str, Any]:
+def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
     """
     Generate direct InvenioRDM metadata structure.
 
@@ -1206,7 +1206,7 @@ def generate_invenio_metadata(app_instance: Any, app_slug: str) -> Dict[str, Any
                 }
             ],
             # AlternateIdentifier - APP ID
-            "identifiers": [{"identifier": f"SERVE:{app_slug}.{app_data.get('id', 'Unknown')}", "scheme": "other"}],
+            "identifiers": [{"identifier": f"SERVE:{app_data.get('id', 'Unknown')}", "scheme": "other"}],
             "related_identifiers": [
                 {
                     # 1. Application link (running application)
@@ -1238,18 +1238,14 @@ def generate_invenio_metadata(app_instance: Any, app_slug: str) -> Dict[str, Any
             k8s_values = {}
 
         global_config = k8s_values.get("global", {})
-        project_config = k8s_values.get("project", {})
 
         domain = global_config.get("domain")
-        project_slug = project_config.get("slug")
 
-        # Only add landing page identifier if we have both domain and project_slug
-        if domain and project_slug:
+        if domain:
             invenio_metadata["metadata"]["related_identifiers"].append(
                 {
                     # Landing page (documentation, about page)
-                    "identifier": f"https://{domain}/projects/{project_slug}/apps/metadata/"
-                    f"{app_slug}/{str(app_data.get('id'))}",
+                    "identifier": f"https://{domain}/apps/{str(app_data.get('id'))}",
                     "relation_type": {"id": "isdocumentedby"},
                     "resource_type": {"id": "publication-softwaredocumentation"},
                 }
@@ -1356,7 +1352,7 @@ def save_metadata_to_invenio_then_mint_doi(app_slug: str, app_id: int) -> None:
 
         try:
             # Transform to Invenio format
-            invenio_data: Dict[str, Any] = generate_invenio_metadata(app, app_slug)
+            invenio_data: Dict[str, Any] = generate_invenio_metadata(app)
 
             # Extract components
             metadata: Dict[str, Any] = invenio_data["metadata"]
