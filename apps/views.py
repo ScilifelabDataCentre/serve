@@ -390,7 +390,7 @@ class SecretsView(View):
         return render(request, self.template, context)
 
 
-def app_metadata(request, project, app_slug, app_id):
+def app_metadata(request, app_slug, app_id):
     # Get app model instance
     model_class = APP_REGISTRY.get_orm_model(app_slug)
     if not model_class:
@@ -398,6 +398,10 @@ def app_metadata(request, project, app_slug, app_id):
         raise PermissionDenied("Application model not found")
 
     app = model_class.objects.get(pk=app_id)
+
+    if app.access != "public":
+        logger.error(f"App '{app_slug}' with app id '{app_id}' is not 'Public', raising PermissionDenied error")
+        raise PermissionDenied("You don't have permission to view this app's metadata")
 
     # Generate and parse schema
     schema_dict = json.loads(generate_schema_org_compliant_app_metadata(app))
