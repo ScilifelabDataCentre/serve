@@ -350,6 +350,9 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSION": "v1",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_PARSER_CLASSES": ("rest_framework.parsers.JSONParser",),
+    "DEFAULT_THROTTLE_RATES": {
+        "user": "5/minute",
+    },
 }
 
 # Tagulous serialization settings

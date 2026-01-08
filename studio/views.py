@@ -15,6 +15,7 @@ from django.template.loader import render_to_string
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.app_registry import APP_REGISTRY
@@ -112,6 +113,7 @@ class AuthView(APIView):
     authentication_classes = [ModifiedSessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated, AccessPermission]
     content_negotiation_class = IgnoreClientContentNegotiation
+    throttle_classes = [UserRateThrottle]
 
     def get(self, request: Response, format: str | None = None) -> Response:
         content = {
