@@ -55,7 +55,7 @@ urlpatterns = (
         path("", include("portal.urls", namespace="portal")),
         path("projects/<project>/apps/", include("apps.urls", namespace="apps")),
         path("altcha/challenge/", AltchaChallengeView.as_view(), name="altcha_challenge"),
-        path("apps/<app_id>", app_metadata, name="app-metadata"),
+        path("records/<app_id>", app_metadata, name="app-metadata"),
     ]
     + staticfiles_urlpatterns()
     + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

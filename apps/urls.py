@@ -16,7 +16,7 @@ urlpatterns = [
     # Redirect old format to new format
     path(
         "metadata/<app_slug>/<app_id>",
-        RedirectView.as_view(url="/apps/%(app_id)s", permanent=True),
+        RedirectView.as_view(url="/records/%(app_id)s", permanent=True),
         name="redirect-old-app-metadata-url",
     ),
 ]
