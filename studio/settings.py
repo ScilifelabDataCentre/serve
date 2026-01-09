@@ -400,6 +400,11 @@ GITHUB_API = "https://api.github.com"
 GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
 GITHUB_API_USERNAME = os.getenv("GITHUB_API_USERNAME")
 
+# Invenio API
+
+INVENIO_URL = os.getenv("INVENIO_URL")
+INVENIO_API_TOKEN = os.getenv("INVENIO_API_TOKEN")
+
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
 IP = os.environ.get("IP", "127.0.0.1")
