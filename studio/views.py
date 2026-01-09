@@ -15,7 +15,6 @@ from django.template.loader import render_to_string
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.app_registry import APP_REGISTRY
@@ -24,7 +23,7 @@ from common.models import UserProfile
 from common.tasks import send_email_task
 from models.models import Model
 from projects.models import Project
-from studio.utils import get_logger
+from studio.utils import WhitelistThrottleFilter, get_logger
 
 from .helpers import do_delete_account
 from .negotiation import IgnoreClientContentNegotiation
@@ -113,7 +112,7 @@ class AuthView(APIView):
     authentication_classes = [ModifiedSessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated, AccessPermission]
     content_negotiation_class = IgnoreClientContentNegotiation
-    throttle_classes = [UserRateThrottle]
+    throttle_classes = [WhitelistThrottleFilter]
 
     def get(self, request: Response, format: str | None = None) -> Response:
         content = {

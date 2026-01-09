@@ -350,10 +350,11 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSION": "v1",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_PARSER_CLASSES": ("rest_framework.parsers.JSONParser",),
-    "DEFAULT_THROTTLE_RATES": {
-        "user": "5/minute",
-    },
 }
+
+# Rate limit whitelist for certain IP ranges
+RATE_LIMIT_WHITELIST = os.environ.get("RATE_LIMIT_WHITELIST", "130.238.0.0/16").split(",")
+RATE_LIMIT_WHITELIST = [ip.strip() for ip in RATE_LIMIT_WHITELIST]
 
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {
