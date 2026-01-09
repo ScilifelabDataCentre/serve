@@ -722,13 +722,12 @@ def test_generate_invenio_metadata_validation():
         subdomain=subdomain,
         k8s_user_app_status=k8s_user_app_status,
         created_on=test_created_date,
-        k8s_values=k8s_values,  # Add this line
-        url="https://unit_test_invenio_metadata_subdomain.test.serve.scilifelab.se",  # Add this line
+        k8s_values=k8s_values,
+        url="https://unit_test_invenio_metadata_subdomain.test.serve.scilifelab.se",
     )
 
     # Generate the invenio metadata
-    # Note: generate_invenio_metadata now takes an additional parameter - app_slug
-    invenio_metadata = generate_invenio_metadata(app_instance, "dashapp")
+    invenio_metadata = generate_invenio_metadata(app_instance)
 
     # Define validation schema for invenio metadata (updated to match new structure)
     invenio_schema = Schema(
@@ -758,7 +757,7 @@ def test_generate_invenio_metadata_validation():
                         "role": {"id": "hostinginstitution"},
                     }
                 ],
-                "identifiers": [{"identifier": And(str, Regex(r"^SERVE:[a-zA-Z0-9_-]+\.[0-9]+$")), "scheme": "other"}],
+                "identifiers": [{"identifier": And(str, Regex(r"^SERVE:[0-9]+$")), "scheme": "other"}],
                 "related_identifiers": [
                     {
                         "identifier": And(str, Regex(r"^https?://")),
@@ -793,7 +792,7 @@ def test_generate_invenio_metadata_validation():
     assert invenio_metadata["metadata"]["title"] == f"Application: {app_instance.name}"
     assert invenio_metadata["metadata"]["description"] == app_instance.description
     assert invenio_metadata["metadata"]["publisher"] == "SciLifeLab Data Centre"
-    assert invenio_metadata["metadata"]["identifiers"][0]["identifier"].startswith("SERVE:dashapp.")
+    assert invenio_metadata["metadata"]["identifiers"][0]["identifier"].startswith("SERVE:")
 
     # Check creator information
     creator = invenio_metadata["metadata"]["creators"][0]
@@ -844,11 +843,11 @@ def test_generate_invenio_metadata_validation():
         project=project,
         subdomain=subdomain2,  # Use new subdomain
         k8s_user_app_status=k8s_user_app_status2,  # Use new k8s status
-        k8s_values=k8s_values,  # Add this line
-        url="https://unit_test_invenio_metadata_subdomain2.test.serve.scilifelab.se",  # Add this line
+        k8s_values=k8s_values,
+        url="https://unit_test_invenio_metadata_subdomain2.test.serve.scilifelab.se",
     )
 
-    invenio_metadata_no_name = generate_invenio_metadata(app_instance_no_name, "dashapp")
+    invenio_metadata_no_name = generate_invenio_metadata(app_instance_no_name)
     creator_no_name = invenio_metadata_no_name["metadata"]["creators"][0]
 
     # Should have generated a name from email or used default
@@ -880,11 +879,11 @@ def test_generate_invenio_metadata_validation():
         project=project,
         subdomain=Subdomain.objects.create(subdomain="private-subdomain"),
         k8s_user_app_status=K8sUserAppStatus.objects.create(),
-        k8s_values=k8s_values,  # Add this line
-        url="https://private-subdomain.test.serve.scilifelab.se",  # Add this line
+        k8s_values=k8s_values,
+        url="https://private-subdomain.test.serve.scilifelab.se",
     )
 
-    invenio_metadata_private = generate_invenio_metadata(app_instance_private, "dashapp")
+    invenio_metadata_private = generate_invenio_metadata(app_instance_private)
     # Should have exactly 2 related identifiers for private app
     assert len(invenio_metadata_private["metadata"]["related_identifiers"]) == 2
 
@@ -900,11 +899,11 @@ def test_generate_invenio_metadata_validation():
         project=project,
         subdomain=Subdomain.objects.create(subdomain="no-k8s-subdomain"),
         k8s_user_app_status=K8sUserAppStatus.objects.create(),
-        url="https://no-k8s-subdomain.test.serve.scilifelab.se",  # Add this line
+        url="https://no-k8s-subdomain.test.serve.scilifelab.se",
         # Don't set k8s_values
     )
 
-    invenio_metadata_no_k8s = generate_invenio_metadata(app_instance_no_k8s, "dashapp")
+    invenio_metadata_no_k8s = generate_invenio_metadata(app_instance_no_k8s)
     # Should have 2 related identifiers (no landing page because k8s_values is None)
     assert len(invenio_metadata_no_k8s["metadata"]["related_identifiers"]) == 2
 
