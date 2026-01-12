@@ -100,6 +100,13 @@
                                         </div>
                                       {% endif %}
 									</div>
+
+
+                                    
+
+
+
+
 										<div class="col-12 col-md-6 pb-3 pb-md-0">
                                         <label class="form-label">{{profile_form.department.label_tag}}</label>
 										{{ profile_form.department | safe }}
@@ -113,6 +120,25 @@
                                       {% endif %}
 																		</div>
 																</div>
+
+
+<!-- Oranization Block: -->
+                                <div class="row pb-3">
+    <div class="col-12 col-md-6 pb-3 pb-md-0">
+        <label class="form-label">{{profile_form.organization.label_tag}}</label>
+        {{ profile_form.organization }}
+        <input type="hidden" id="organization-data" name="organization_data">
+        <div id="organization-suggestions" class="list-group position-absolute" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+        <div class="form-text">{{profile_form.organization.help_text}}</div>
+        {% if profile_form.organization.errors %}
+        <div id="validation_organization" class="pt-1 invalid-feedback">
+            {% for error in profile_form.organization.errors %}
+            <p class="m-0">{{error|escape}}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    </div>
 
 
 
@@ -199,5 +225,115 @@
     const data = {password: password.value, email: "{{ user.email }}", first_name: "{{ user.first_name }}", last_name: "{{ user.last_name}}"};
     PasswordEvents(password_element_name, password2_element_name, data, url);
   });
+
+
+
+// Organization auto-complete
+document.addEventListener('DOMContentLoaded', function() {
+    const orgInput = document.getElementById('organization-autocomplete');
+    const orgDataInput = document.getElementById('organization-data');
+    const suggestionsDiv = document.getElementById('organization-suggestions');
+    let selectedOrgData = null;
+    let debounceTimer;
+
+    orgInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    suggestionsDiv.innerHTML = '';
+                    
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach(org => {
+                            const item = document.createElement('a');
+                            item.href = '#';
+                            item.className = 'list-group-item list-group-item-action';
+                            item.textContent = org.title;
+                            item.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                orgInput.value = org.title;
+                                selectedOrgData = {
+                                    title: org.title,
+                                    ror_id: org.ror_id
+                                };
+                                orgDataInput.value = JSON.stringify(selectedOrgData);
+                                suggestionsDiv.style.display = 'none';
+                            });
+                            suggestionsDiv.appendChild(item);
+                        });
+                        suggestionsDiv.style.display = 'block';
+                    } else {
+                        suggestionsDiv.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('ROR autocomplete error:', error);
+                    suggestionsDiv.style.display = 'none';
+                });
+        }, 300);
+    });
+
+    // Handle manual entry (no ROR match)
+    orgInput.addEventListener('blur', function() {
+        setTimeout(() => {
+            if (!selectedOrgData && orgInput.value.trim()) {
+                selectedOrgData = {
+                    title: orgInput.value.trim(),
+                    ror_id: "no ror"
+                };
+                orgDataInput.value = JSON.stringify(selectedOrgData);
+            }
+            suggestionsDiv.style.display = 'none';
+        }, 200);
+    });
+
+    // Clear selection when user starts typing again
+    orgInput.addEventListener('focus', function() {
+        selectedOrgData = null;
+    });
+
+    // Handle keyboard navigation
+    orgInput.addEventListener('keydown', function(e) {
+        const items = suggestionsDiv.querySelectorAll('.list-group-item');
+        if (items.length === 0) return;
+
+        const activeItem = suggestionsDiv.querySelector('.active');
+        let index = Array.from(items).indexOf(activeItem);
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (activeItem) activeItem.classList.remove('active');
+            index = (index + 1) % items.length;
+            items[index].classList.add('active');
+            items[index].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (activeItem) activeItem.classList.remove('active');
+            index = index <= 0 ? items.length - 1 : index - 1;
+            items[index].classList.add('active');
+            items[index].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter' && activeItem) {
+            e.preventDefault();
+            activeItem.click();
+        } else if (e.key === 'Escape') {
+            suggestionsDiv.style.display = 'none';
+        }
+    });
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!orgInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            suggestionsDiv.style.display = 'none';
+        }
+    });
+});
 </script>
 {% endblock %}

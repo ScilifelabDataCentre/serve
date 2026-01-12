@@ -53,6 +53,21 @@
                             <div class="col-4"></div>
                         </div>
 
+                        <!-- organization row: -->
+<div class="row pt-1">
+    <div class="col-4"><label for="userOrganization">Organization:</label></div>
+    <div class="col-8 fw-bold">
+        <input type="text" name="organization" disabled value="{{user_profile.organization.title}}" class="form-control" id="userOrganization">
+    </div>
+    <div class="col-4"></div>
+    {% if user_profile.organization.ror_id != "no ror" %}
+    <div class="col-4"></div>
+    <div class="col-8 form-text">
+        <small>ROR ID: <a href="{{user_profile.organization.ror_id}}" target="_blank">{{user_profile.organization.ror_id}}</a></small>
+    </div>
+    {% endif %}
+</div>
+
                         <div class="row pt-1">
                             <div class="col-4"><label for="id_department">Department:</label></div>
                             <div class="col-8 fw-bold"><input type="text" name="department" disabled value="{{user_profile.department}}" class="form-control" list="list__department-list" id="id_department"></div>

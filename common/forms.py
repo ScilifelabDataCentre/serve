@@ -214,6 +214,16 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
 
 
 class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
+    organization = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'id': 'organization-autocomplete',
+            'placeholder': 'Start typing organization name...',
+            'autocomplete': 'off'
+        }),
+        label="Organization",
+        help_text="Start typing to search for your organization via ROR (Research Organization Registry).",
+    )
     affiliation = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
         label="University",
@@ -248,6 +258,7 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
         model = UserProfile
         fields = [
             "affiliation",
+            "organization",
             "department",
             "note",
             "why_account_needed",
@@ -273,17 +284,25 @@ class SignUpForm:
 
         email = user_data.get("email", "")
         affiliation = profile_data.get("affiliation")
+        organization_str = profile_data.get("organization", "")
         why_account_needed = profile_data.get("why_account_needed")
         user_data["email"] = email.lower()
         affiliation_from_email = email.split("@")[1].split(".")[-2].lower()
 
         is_university_email = EMAIL_ALLOW_REGEX.match(email.split("@")[1]) is not None
         is_affiliated = affiliation is not None and affiliation != "other"
+        # Check if organization field contains valid data
+        is_organization_empty = not bool(organization_str)
         is_request_account_empty = not bool(why_account_needed)
         is_department_empty = not bool(profile_data.get("department"))
 
         self.is_approved = is_university_email
 
+        if is_organization_empty:
+            self.profile.add_error(
+                "organization", ValidationError("You are required to provide your organization")
+            )
+            
         if is_university_email:
             # Check that selected affiliation is equal to affiliation from email
             if is_affiliated and affiliation != affiliation_from_email:
@@ -334,6 +353,19 @@ class SignUpForm:
         profile = self.profile.save(commit=False)
         profile.user = user
         profile.is_approved = self.is_approved
+        # Parse organization JSON string from hidden field
+        organization_str = self.profile.cleaned_data.get("organization", "")
+        try:
+            organization_data = json.loads(organization_str) if organization_str.startswith('{') else {
+                "title": organization_str,
+                "ror_id": "no ror"
+            }
+        except json.JSONDecodeError:
+            organization_data = {
+                "title": organization_str,
+                "ror_id": "no ror"
+            }
+        profile.organization = organization_data
         profile.save()
         email_verification.save()
         return profile
@@ -465,6 +497,16 @@ class ProfileEditForm(ProfileForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Pre-populate organization field with title from JSON
+        if self.instance and self.instance.organization:
+            org_data = self.instance.organization
+            if isinstance(org_data, dict):
+                self.initial['organization'] = org_data.get('title', '')
+        
+        self.fields["organization"].disabled = True
+        self.fields[
+            "organization"
+        ].help_text = "Organization can not be changed. Please email serve@scilifelab.se with any questions."
         self.fields["affiliation"].disabled = True
         self.fields[
             "affiliation"

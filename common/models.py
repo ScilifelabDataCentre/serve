@@ -50,6 +50,8 @@ class UserProfileManager(models.Manager):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     affiliation = models.CharField(max_length=100, blank=True)
+    organization = models.JSONField(default=dict, blank=True)  # Changed from affiliation CharField
+    """Stores organization as {"title": "Organization Name", "ror_id": "https://ror.org/xxxxx" or "no ror"}"""
     department = models.CharField(max_length=100, blank=True)
     deleted_on = models.DateTimeField(null=True, blank=True)
     why_account_needed = models.TextField(max_length=1000, blank=True)
