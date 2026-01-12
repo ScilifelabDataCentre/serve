@@ -240,6 +240,13 @@ class BaseAppInstance(models.Model):
     updated_on = models.DateTimeField(auto_now=True)
     upload_size = models.PositiveIntegerField(default=100, help_text="Max upload size in MB")
 
+    invenio_record_id = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Invenio record identifier for published apps"
+    )
+    app_doi = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Digital Object Identifier for the published app"
+    )
+
     class Meta:
         permissions = [("can_access_app", "Can access app service")]
         verbose_name = "# BASE APP INSTANCE"
