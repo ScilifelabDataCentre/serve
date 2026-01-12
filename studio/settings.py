@@ -353,7 +353,7 @@ REST_FRAMEWORK = {
 }
 
 # Rate limit whitelist for certain IP ranges
-RATE_LIMIT_WHITELIST = os.environ.get("RATE_LIMIT_WHITELIST", "130.238.0.0/16").split(",")
+RATE_LIMIT_WHITELIST = os.environ.get("RATE_LIMIT_WHITELIST", "10.42.0.0/16").split(",")
 RATE_LIMIT_WHITELIST = [ip.strip() for ip in RATE_LIMIT_WHITELIST]
 
 # Tagulous serialization settings

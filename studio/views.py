@@ -23,7 +23,8 @@ from common.models import UserProfile
 from common.tasks import send_email_task
 from models.models import Model
 from projects.models import Project
-from studio.utils import WhitelistThrottleFilter, get_logger
+from studio.throttle import WhitelistThrottleFilter
+from studio.utils import get_logger
 
 from .helpers import do_delete_account
 from .negotiation import IgnoreClientContentNegotiation
