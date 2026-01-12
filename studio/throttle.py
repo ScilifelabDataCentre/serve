@@ -12,7 +12,7 @@ class WhitelistThrottleFilter(UserRateThrottle):
     Custom throttle filter that whitelists certain IP ranges
     """
 
-    rate = "10/minute"
+    rate = getattr(settings, "AUTH_RATE_LIMIT_VALUE", "10/minute")
 
     def allow_request(self, request: HttpRequest, view: APIView) -> Any:
         incomming_ip = self.get_ident(request)

@@ -352,9 +352,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ("rest_framework.parsers.JSONParser",),
 }
 
-# Rate limit whitelist for certain IP ranges
-RATE_LIMIT_WHITELIST = os.environ.get("RATE_LIMIT_WHITELIST", "10.42.0.0/16").split(",")
-RATE_LIMIT_WHITELIST = [ip.strip() for ip in RATE_LIMIT_WHITELIST]
+# Rate limit whitelist for certain IP ranges on the auth endpoint
+AUTH_RATE_LIMIT_VALUE = os.environ.get("AUTH_RATE_LIMIT_VALUE", "10/minute")
+AUTH_RATE_LIMIT_WHITELIST = os.environ.get("AUTH_RATE_LIMIT_WHITELIST", "10.42.0.0/16").split(",")
+AUTH_RATE_LIMIT_WHITELIST = [ip.strip() for ip in AUTH_RATE_LIMIT_WHITELIST]
 
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {
