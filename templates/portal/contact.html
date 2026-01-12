@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block title %}Contact us{% endblock %}
+
+{% block content %}
+
+{% include "breadcrumbs/bc_about_pages.html" with breadcrumb_currentpage_title="Contact us" %}
+
+  <div class="row">
+
+    {% include "portal/sidebar_about_pages.html" %}
+
+    <div class="col-lg-10">
+
+      <h2>Contact us</h2>
+      <hr class="bg-teal border-0 mb-3" style="height: 2px;">
+
+      <p>SciLifeLab Serve is developed and maintained by <a href="https://scilifelab.se/">SciLifeLab</a>, specifically the <a href="https://scilifelab.se/data">SciLifeLab Data Centre</a>.
+        SciLifeLab Data Centre staff members are distributed across all SciLifelab sites: Solna, Uppsala, Gothenburg, Lund, Umeå, Linköping. Below you can find a list of team members that are currently contributing to the SciLifeLab Serve platform.</p>
+
+      <p>You are welcome to approach us with questions on how to use our platform and requests for help if you get stuck following our user guide. We are also happy to give advice about
+        your particular use case — for example, if you would like to share a machine learning model or a data science application and do not know where to begin, or if you are unsure
+        whether SciLifeLab Serve meets your needs. We are always happy to hear suggestions on how we can improve our platform. All life science researchers affiliated with a Swedish research institute are welcome to approach us.</p>
+
+      <p>The best way to get in touch with us is to send an email to <b><a href="mailto:serve@scilifelab.se">serve@scilifelab.se</a></b>. We try to respond to emails fairly fast but keep in mind that we only work regular work days and hours.</p>
+
+      <h3>Platform team</h3>
+            <div class="container mb-3 small">
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6">
+          <div class="col pt-2">
+            <div class="img-crop"><img src="https://www.scilifelab.se/wp-content/uploads/2021/02/hamza.jpg" alt="Picture of Hamza Imra Saeed" width="90"></div>
+            <div><b>Hamza Imran Saeed</b></div>
+            <div><span class="text-muted">Data Engineer (AI)</span></div>
+          </div>
+          <div class="col pt-2">
+            <div class="img-crop"><img src="https://www.scilifelab.se/wp-content/uploads/2020/11/ak-1998x2048.jpg" alt="Picture of Arnold Kochari" width="90"></div>
+            <div><b>Arnold Kochari</b></div>
+            <div><span class="text-muted">Project lead</span></div>
+          </div>
+          <div class="col pt-2">
+            <div class="img-crop"><img src="https://www.scilifelab.se/wp-content/uploads/2023/01/Johan-Alfredeen-AI-Data-engineer.jpeg" alt="Picture of Johan Alfredéen" width="90"></div>
+            <div><b>Johan Alfredéen</b></div>
+            <div><span class="text-muted">Data Engineer (AI)</span></div>
+          </div>
+          <div class="col pt-2">
+            <div class="img-crop"><img src="https://www.scilifelab.se/wp-content/uploads/2022/09/Nikita-Churikov.jpg" alt="Picture of Nikita Churikov" width="90"></div>
+            <div><b>Nikita Churikov</b></div>
+            <div><span class="text-muted">Data Engineer (AI)</span></div>
+          </div>
+          <div class="col pt-2">
+            <div class="img-crop"><img src="https://www.scilifelab.se/wp-content/uploads/2024/10/Mahbub_Ul_Alam-2048x1971.jpg" alt="Picture of Mahbub Ul Alam" width="90"></div>
+            <div><b>Mahbub Ul Alam</b></div>
+            <div><span class="text-muted">Data Engineer (AI)</span></div>
+          </div>
+          <div class="col pt-2">
+            <div class="img-crop"><img src="https://www.scilifelab.se/wp-content/uploads/2025/02/Jana-Awada.jpg" alt="Picture of Jana Awada" width="90"></div>
+            <div><b>Jana Awada</b></div>
+            <div><span class="text-muted">Systems developer</span></div>
+          </div>
+          <div class="col pt-2">
+            <div class="img-crop"><img src="https://www.scilifelab.se/wp-content/uploads/2018/04/OlaSpjuth.png" alt="Picture of Ola Spjuth" width="90"></div>
+            <div><b>Ola Spjuth</b></div>
+            <div><span class="text-muted">AI lead at SciLifeLab; Professor at Uppsala University</span></div>
+          </div>
+          <div class="col pt-2">
+            <div class="img-crop"><img src="https://www.scilifelab.se/wp-content/uploads/2020/05/Hanna-Kultima_NY-2048x2046.jpg" alt="Picture of Hanna Kultima" width="90"></div>
+            <div><b>Hanna Kultima</b></div>
+            <div><span class="text-muted">Vice head of SciLifeLab Data Centre</span></div>
+          </div>
+          <div class="col pt-2">
+            <div class="img-crop"><img src="https://www.scilifelab.se/wp-content/uploads/2020/05/Johan-Rung_NY-2048x2043.jpg" alt="Picture of Johan Rung" width="90"></div>
+            <div><b>Johan Rung</b></div>
+            <div><span class="text-muted">Head of SciLifeLab Data Centre</span></div>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+{% endblock %}

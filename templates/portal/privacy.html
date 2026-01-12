@@ -6,9 +6,15 @@
 
 {% block content %}
 
+{% include "breadcrumbs/bc_about_pages.html" with breadcrumb_currentpage_title="Privacy policy" %}
+
 <div class="row">
-    <div class="col-sm-12 col-md-9">
+
+{% include "portal/sidebar_about_pages.html" %}
+
+    <div class="col-lg-10">
         <h2>Privacy policy</h2>
+        <hr class="bg-teal border-0 mb-3" style="height: 2px;">
         <h3>Personal Data Protection in the SciLifeLab Serve web portal and its services</h3>
         <p>In compliance with the Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data and on the free movement of such data, and repealing Directive 95/46/EC (General Data Protection Regulation, further in this text referred to as ‘GDPR’), SciLifeLab Data Centre at Uppsala University informs the entities on terms and conditions under which personal data in providing SciLifeLab Serve services are processed. Data subjects are natural persons using the SciLifeLab Serve services.&nbsp;</p>
         <p>

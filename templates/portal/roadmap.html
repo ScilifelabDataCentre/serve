@@ -5,8 +5,16 @@
 
 {% block content %}
 
+{% include "breadcrumbs/bc_about_pages.html" with breadcrumb_currentpage_title="Roadmap" %}
+
   <div class="row">
-    <div class="col">
+
+    {% include "portal/sidebar_about_pages.html" %}
+
+    <div class="col-lg-10">
+
+      <h2>Roadmap</h2>
+      <hr class="bg-teal border-0 mb-3" style="height: 2px;">
 
       <h3>Current work</h3>
       <p>

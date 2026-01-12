@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block title %}Citing us{% endblock %}
+
+{% block content %}
+
+{% include "breadcrumbs/bc_about_pages.html" with breadcrumb_currentpage_title="Citing us" %}
+
+  <div class="row">
+
+    {% include "portal/sidebar_about_pages.html" %}
+
+    <div class="col-lg-10">
+
+      <h2>Citing us</h2>
+      <hr class="bg-teal border-0 mb-3" style="height: 2px;">
+
+      <p>If you use SciLifeLab Serve for sharing apps and models that accompany your publications, presentations, etc., you can add the following acknowledgement text:
+        <br><br>
+        <i>Technical infrastructure for hosting the [app ‘xxx’/model ‘xxx’] was provided by SciLifeLab Serve (<a href="https://serve.scilifelab.se">https://serve.scilifelab.se</a>; RRID:SCR_027820), a platform developed and supported by SciLifeLab Data Centre.</i>
+
+      </p>
+
+    </div>
+  </div>
+
+{% endblock %}
