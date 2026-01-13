@@ -110,6 +110,41 @@ class UserProfile(models.Model):
             not self.organization or 
             self.organization.get('ror_id') == 'migrated_from_legacy'
         )
+        
+    def migrate_to_organization(self):
+        """
+        Migrate legacy affiliation data to the new organization field.
+        Returns True if migration was successful, False if skipped.
+        """
+        # Skip if already migrated or no legacy data
+        if not self.is_legacy_affiliation():
+            return False
+    
+        # Load universities mapping
+        try:
+            with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
+                universities = json.load(f).get("universities", {})
+        except (FileNotFoundError, json.JSONDecodeError, IndexError) as e:
+            logger.error(f"Failed to load universities.json: {e}")
+            return False
+    
+        # Get university name from affiliation code
+        university_name = universities.get(self.affiliation, self.affiliation)
+    
+        # Create organization data from affiliation
+        self.organization = {
+            "title": university_name,
+            "ror_id": "migrated_from_legacy",  # Flag for legacy data
+            "legacy_affiliation": self.affiliation  # Keep original for reference
+        }
+    
+        try:
+            self.save()
+            logger.info(f"Migrated {self.user.email}: {self.affiliation} -> {university_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save migration for {self.user.email}: {e}")
+            return False
 
 
 class EmailVerificationTable(models.Model):
