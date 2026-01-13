@@ -191,7 +191,7 @@ class UserAdmin(DefaultUserAdmin):
         if migrated > 0:
             messages.append(f'{migrated} profile(s) migrated successfully')
         if skipped > 0:
-            messages.append(f'{skipped} already migrated or no legacy data')
+            messages.append(f'{skipped} no legacy data')
         if errors > 0:
             messages.append(f'{errors} error(s) occurred')
         
