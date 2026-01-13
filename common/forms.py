@@ -193,6 +193,7 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
         # See SS-920 to understand why we are doing this
         if not self.is_unique_email():
             logger.error("Attempting to create an account with email %s that is already in use", email)
+            
         return email
 
     def add_error_classes(self) -> None:
@@ -222,13 +223,7 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
             'autocomplete': 'off'
         }),
         label="Organization",
-        help_text="Start typing to search for your organization via ROR (Research Organization Registry).",
-    )
-    affiliation = forms.ChoiceField(
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label="University",
-        choices=UNIVERSITIES,
-        help_text="Your university affiliation, must match the email address.",
+        help_text="Start typing to select your organization via ROR (Research Organization Registry).",
     )
     department = forms.CharField(
         widget=ListTextWidget(data_list=DEPARTMENTS, name="department-list", attrs={"class": "form-control"}),
@@ -257,7 +252,6 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
     class Meta:
         model = UserProfile
         fields = [
-            "affiliation",
             "organization",
             "department",
             "note",
@@ -277,57 +271,64 @@ class SignUpForm:
     user: UserForm
     profile: ProfileForm
     is_approved: bool = False
+    organization_data={}
 
     def clean(self) -> None:
         user_data = self.user.cleaned_data
         profile_data = self.profile.cleaned_data
 
         email = user_data.get("email", "")
-        affiliation = profile_data.get("affiliation")
-        organization_str = profile_data.get("organization", "")
         why_account_needed = profile_data.get("why_account_needed")
-        user_data["email"] = email.lower()
-        affiliation_from_email = email.split("@")[1].split(".")[-2].lower()
-
+        
         is_university_email = EMAIL_ALLOW_REGEX.match(email.split("@")[1]) is not None
-        is_affiliated = affiliation is not None and affiliation != "other"
-        # Check if organization field contains valid data
-        is_organization_empty = not bool(organization_str)
+        
+        logger.error("email: "+str(email))
+        logger.error(is_university_email)
+        
         is_request_account_empty = not bool(why_account_needed)
         is_department_empty = not bool(profile_data.get("department"))
 
         self.is_approved = is_university_email
-
+        
+        organization_post_data = self.profile.data.get("organization-data", "")
+        logger.error(f"Raw organization data from form: {organization_post_data}")
+    
+        organization_data = {}
+        if organization_post_data:
+            try:
+                organization_data = json.loads(organization_post_data)
+                logger.error(f"Parsed organization data: {organization_data}")
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse organization JSON: {e}")
+                organization_data = {
+                    "title": "organization_text_placeholder",
+                    "ror_id": "no ror"
+                }
+        else:
+            # No JSON data, create from text field
+            organization_data = {
+                "title": "organization_text_placeholder",
+                "ror_id": "no ror"
+            }
+    
+        # Check if organization is valid
+        is_organization_empty = False
+        if not organization_data.get("ror_id") or organization_data.get("ror_id") == "no ror":
+            is_organization_empty = True
+    
         if is_organization_empty:
             self.profile.add_error(
-                "organization", ValidationError("You are required to provide your organization")
+                "organization", 
+                ValidationError("Please select a valid organization from the ROR list. Your organization must be registered in the Research Organization Registry.")
             )
-            
-        if is_university_email:
-            # Check that selected affiliation is equal to affiliation from email
-            if is_affiliated and affiliation != affiliation_from_email:
-                self.profile.add_error(
-                    "affiliation", ValidationError("Email affiliation is different from selected university")
-                )
-            if not is_affiliated:
-                self.profile.add_error(
-                    "affiliation", ValidationError("You are required to select a university affiliation")
-                )
-            if is_department_empty:
-                self.profile.add_error("department", ValidationError("You are required to select your department"))
         else:
-            if is_affiliated:
-                self.user.add_error(
-                    "email",
-                    ValidationError(
-                        "Email was not recognized as a researcher email from a Swedish university. \n"
-                        "Please select 'Other' in affiliation or use your Swedish university researcher email."
-                    ),
-                )
-                self.profile.add_error("affiliation", ValidationError(""))
-
-            if is_request_account_empty:
-                self.profile.add_error("why_account_needed", ValidationError("Please describe why you need an account"))
+            self.organization_data = organization_data
+            
+        if is_university_email and is_department_empty:
+                self.profile.add_error("department", ValidationError("You are required to select your university department"))
+        
+        if is_request_account_empty:
+            self.profile.add_error("why_account_needed", ValidationError("Please describe why you need an account"))
 
     def _is_valid(self) -> bool:
         # these two calls are done that way, so that we can get errors for both forms and display them together
@@ -352,21 +353,17 @@ class SignUpForm:
         email_verification = EmailVerificationTable(user=user, token=uuid.uuid4())
         profile = self.profile.save(commit=False)
         profile.user = user
+        logger.error("inside form, checking profile is approved")
+        logger.error(self.is_approved)
         profile.is_approved = self.is_approved
-        # Parse organization JSON string from hidden field
-        organization_str = self.profile.cleaned_data.get("organization", "")
-        try:
-            organization_data = json.loads(organization_str) if organization_str.startswith('{') else {
-                "title": organization_str,
-                "ror_id": "no ror"
-            }
-        except json.JSONDecodeError:
-            organization_data = {
-                "title": organization_str,
-                "ror_id": "no ror"
-            }
-        profile.organization = organization_data
+        logger.error(profile.is_approved)
+        profile.organization = self.organization_data
         profile.save()
+        # IMPORTANT: Set user to inactive based on approval status
+        # Non-university emails should be inactive
+        #if not self.is_approved:
+        #    user.is_active = False
+        #    user.save()
         email_verification.save()
         return profile
 
@@ -507,7 +504,3 @@ class ProfileEditForm(ProfileForm):
         self.fields[
             "organization"
         ].help_text = "Organization can not be changed. Please email serve@scilifelab.se with any questions."
-        self.fields["affiliation"].disabled = True
-        self.fields[
-            "affiliation"
-        ].help_text = "Affiliation can not be changed. Please email serve@scilifelab.se with any questions."

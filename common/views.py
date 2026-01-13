@@ -223,7 +223,7 @@ class EditProfileView(TemplateView):
 
             profile_edit_form = self.profile_edit_form_class(
                 initial={
-                    "affiliation": user_profile_data.affiliation,
+
                     "organization": org_title,
                     "department": user_profile_data.department,
                 }
@@ -254,7 +254,7 @@ class EditProfileView(TemplateView):
             request.POST,
             instance=user_profile_data,
             initial={
-                "affiliation": user_profile_data.affiliation,
+                "affiliation": user_profile_data.get_organization_name()
             },
         )
 

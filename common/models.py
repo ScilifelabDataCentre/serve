@@ -6,6 +6,7 @@ from django.db import models
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django_prose_editor.fields import ProseEditorField
+import json
 
 from studio.utils import get_logger
 
@@ -49,9 +50,9 @@ class UserProfileManager(models.Manager):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    affiliation = models.CharField(max_length=100, blank=True)
-    organization = models.JSONField(default=dict, blank=True)  # Changed from affiliation CharField
-    """Stores organization as {"title": "Organization Name", "ror_id": "https://ror.org/xxxxx" or "no ror"}"""
+    affiliation = models.CharField(max_length=100, blank=True) # Keep for now
+    organization = models.JSONField(default=dict, blank=True)
+    """Stores organization as {"title": "Organization Name", "ror_id": "https://ror.org/xxxxx" or "migrated_from_legacy"}"""
     department = models.CharField(max_length=100, blank=True)
     deleted_on = models.DateTimeField(null=True, blank=True)
     why_account_needed = models.TextField(max_length=1000, blank=True)
@@ -65,6 +66,50 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.email}"
+    
+    def get_organization_name(self):
+        """
+        Get organization name, handling both new and legacy data
+        """
+        if self.organization and self.organization.get('title'):
+            return self.organization['title']
+        elif self.affiliation:
+            # Fallback to legacy affiliation
+            return self.get_affiliation_display_name()
+        return "Unknown"
+    
+    def get_affiliation_display_name(self):
+        """
+        Convert affiliation code to display name
+        Handles legacy data
+        """
+        if not self.affiliation:
+            return "Unknown"
+        
+        # Load universities mapping
+        with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
+            universities = json.load(f).get("universities", {})
+        
+        return universities.get(self.affiliation, self.affiliation)
+    
+    def get_ror_id(self):
+        """
+        Get ROR ID if available
+        """
+        if self.organization and self.organization.get('ror_id'):
+            ror = self.organization['ror_id']
+            if ror not in ['no ror', 'migrated_from_legacy']:
+                return ror
+        return None
+    
+    def is_legacy_affiliation(self):
+        """
+        Check if this profile uses legacy affiliation data
+        """
+        return bool(self.affiliation) and (
+            not self.organization or 
+            self.organization.get('ror_id') == 'migrated_from_legacy'
+        )
 
 
 class EmailVerificationTable(models.Model):
