@@ -19,10 +19,19 @@
       <p>If you use SciLifeLab Serve for sharing apps and models that accompany your publications, presentations, etc., you can add the following acknowledgement text:
         <br><br>
         <i>Technical infrastructure for hosting the [app ‘xxx’/model ‘xxx’] was provided by SciLifeLab Serve (<a href="https://serve.scilifelab.se">https://serve.scilifelab.se</a>; RRID:SCR_027820), a platform developed and supported by SciLifeLab Data Centre.</i>
+      </p>
 
+      <p class="text-muted fst-italic" data-gh-updated hidden>
+        Page last updated:
+        <span data-gh-path="templates/portal/cite.html"></span>
       </p>
 
     </div>
   </div>
 
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/gh_last_updated_date.js' %}"></script>
 {% endblock %}

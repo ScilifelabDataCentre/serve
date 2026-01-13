@@ -132,7 +132,16 @@
       </ul>
       </p>
 
+      <p class="text-muted fst-italic" data-gh-updated hidden>
+        Page last updated:
+        <span data-gh-path="templates/portal/roadmap.html"></span>
+      </p>
+
     </div>
   </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/gh_last_updated_date.js' %}"></script>
 {% endblock %}
