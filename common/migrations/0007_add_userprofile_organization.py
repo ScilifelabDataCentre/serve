@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("common", "0008_merge_20260108_1042"),
+        ("common", "0006_alter_emailsendingtable_message"),
     ]
 
     operations = [
