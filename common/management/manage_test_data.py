@@ -11,9 +11,6 @@ from projects.models import (
     ProjectTemplate,
 )
 from projects.tasks import create_resources_from_template
-from studio.utils import get_logger
-
-logger = get_logger(__name__)
 
 
 class TestDataManager:

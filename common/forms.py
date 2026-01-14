@@ -2,7 +2,7 @@ import json
 import re
 import uuid
 from dataclasses import dataclass
-from typing import Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from django import forms
 from django.conf import settings
@@ -273,7 +273,7 @@ class SignUpForm:
     user: UserForm
     profile: ProfileForm
     is_approved: bool = False
-    organization_data = {}
+    organization_data: Optional[Dict[str, Any]] = None
 
     def clean(self) -> None:
         user_data = self.user.cleaned_data
@@ -296,6 +296,7 @@ class SignUpForm:
             try:
                 organization_data = json.loads(organization_post_data)
             except json.JSONDecodeError as e:
+                logger.debug(f"Using fallback title, JSONDecodeError - {str(e)}")
                 organization_data = {"title": "organization_text_placeholder", "ror_id": "no ror"}
         else:
             # No JSON data, create from text field
@@ -310,7 +311,8 @@ class SignUpForm:
             self.profile.add_error(
                 "organization",
                 ValidationError(
-                    "Please select a valid organization from the ROR list. Your organization must be registered in the Research Organization Registry."
+                    "Please select a valid organization from the ROR list. Your organization must be registered"
+                    " in the Research Organization Registry."
                 ),
             )
         else:
@@ -348,7 +350,7 @@ class SignUpForm:
         profile = self.profile.save(commit=False)
         profile.user = user
         profile.is_approved = self.is_approved
-        profile.organization = self.organization_data
+        profile.organization = self.organization_data if self.organization_data is not None else {}
         profile.save()
         # IMPORTANT: Set user to inactive based on approval status
         # Non-university emails should be inactive

@@ -121,6 +121,7 @@ class UserAdmin(DefaultUserAdmin):
     search_fields = ("email", "first_name", "last_name", "userprofile__organization__title", "userprofile__affiliation")
     actions = ["migrate_legacy_profiles"]
 
+    @admin.display(description="Organization", ordering="userprofile__organization")
     def get_organization(self, instance):
         """Display organization name (works for both new and legacy data)"""
         try:
@@ -128,9 +129,7 @@ class UserAdmin(DefaultUserAdmin):
         except UserProfile.DoesNotExist:
             return "N/A"
 
-    get_organization.short_description = "Organization"
-    get_organization.admin_order_field = "userprofile__organization"
-
+    @admin.display(description="ROR ID")
     def get_ror_status(self, instance):
         """Show ROR ID with colored indicator"""
         try:
@@ -144,8 +143,7 @@ class UserAdmin(DefaultUserAdmin):
         except UserProfile.DoesNotExist:
             return "N/A"
 
-    get_ror_status.short_description = "ROR ID"
-
+    @admin.display(description="Legacy Data", boolean=True)
     def is_legacy_data(self, instance):
         """Indicate if profile uses legacy affiliation data"""
         try:
@@ -153,9 +151,7 @@ class UserAdmin(DefaultUserAdmin):
         except UserProfile.DoesNotExist:
             return False
 
-    is_legacy_data.boolean = True
-    is_legacy_data.short_description = "Legacy Data"
-
+    @admin.action(description="Migrate selected users to new organization format")
     def migrate_legacy_profiles(self, request, queryset):
         """Admin action to migrate selected users' profiles to new organization format"""
         migrated = 0
@@ -188,8 +184,6 @@ class UserAdmin(DefaultUserAdmin):
             messages.append(f"{errors} error(s) occurred")
 
         self.message_user(request, ". ".join(messages) + ".", level="SUCCESS" if errors == 0 else "WARNING")
-
-    migrate_legacy_profiles.short_description = "Migrate selected users to new organization format"
 
 
 admin.site.unregister(User)

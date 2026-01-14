@@ -87,45 +87,37 @@
                                     </div>
                                 </div>
 
-                                <!-- Oranization Block: -->
                                 <div class="row pb-3">
-    <div class="col-12 col-md-6 pb-3 pb-md-0">
-        <label class="form-label">{{profile_form.organization.label_tag}}</label>
-        {{ profile_form.organization }}
-        <input type="hidden" id="organization-data" name="organization-data"
-               value="{% if organization_data %}{{ organization_data }}{% endif %}">
-        <div id="organization-suggestions" class="list-group position-absolute" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
-        <div class="form-text">{{profile_form.organization.help_text}}</div>
-        {% if profile_form.organization.errors %}
-        <div id="validation_organization" class="pt-1 invalid-feedback">
-            {% for error in profile_form.organization.errors %}
-            <p class="m-0">{{error|escape}}</p>
-            {% endfor %}
-        </div>
-        {% endif %}
-    </div>
-    </div>
-
-
-
-
-
-
-
-
-										<div class="col-12 col-md-6 pb-3 pb-md-0">
-                                        <label class="form-label">{{profile_form.department.label_tag}}</label>
-										{{ profile_form.department | safe }}
-                                        <div class="form-text">{{profile_form.department.help_text}}</div>
-                                      {% if profile_form.department.errors %}
-                                        <div id="validation_department" class="pt-1 invalid-feedback">
-                                            {% for error in profile_form.department.errors %}
+                                    <!-- Oranization Block: -->
+                                    <div class="col-12 col-md-6 pb-3 pb-md-0">
+                                        <label class="form-label">{{profile_form.organization.label_tag}}</label>
+                                        {{ profile_form.organization }}
+                                        <input type="hidden" id="organization-data" name="organization-data"
+                                        value="{% if organization_data %}{{ organization_data }}{% endif %}">
+                                            <div id="organization-suggestions" class="list-group position-absolute" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+                                            <div class="form-text">{{profile_form.organization.help_text}}</div>
+                                            {% if profile_form.organization.errors %}
+                                            <div id="validation_organization" class="pt-1 invalid-feedback">
+                                            {% for error in profile_form.organization.errors %}
                                             <p class="m-0">{{error|escape}}</p>
                                             {% endfor %}
-                                        </div>
-                                      {% endif %}
-																		</div>
-																</div>
+                                            </div>
+                                            {% endif %}
+                                    </div>
+
+									<div class="col-12 col-md-6 pb-3 pb-md-0">
+                                            <label class="form-label">{{profile_form.department.label_tag}}</label>
+										    {{ profile_form.department | safe }}
+                                            <div class="form-text">{{profile_form.department.help_text}}</div>
+                                                {% if profile_form.department.errors %}
+                                                <div id="validation_department" class="pt-1 invalid-feedback">
+                                                    {% for error in profile_form.department.errors %}
+                                                    <p class="m-0">{{error|escape}}</p>
+                                                    {% endfor %}
+                                                </div>
+                                                {% endif %}
+									</div>
+								</div>
 
                                 <div class="row pb-3">
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
