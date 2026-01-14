@@ -160,7 +160,7 @@ def reverse_migration(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("common", "0009_add_userprofile_organization"),
+        ("common", "0007_add_userprofile_organization"),
     ]
 
     operations = [
