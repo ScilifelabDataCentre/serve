@@ -10,6 +10,7 @@ from django.test import TestCase
 from schema import And, Regex, Schema
 
 from common.management.manage_test_data import TestDataManager
+from common.models import UserProfile
 from projects.models import Flavor, Project
 
 from ..app_registry import APP_REGISTRY
@@ -17,6 +18,7 @@ from ..constants import AppActionOrigin
 from ..forms import DashForm
 from ..helpers import (
     create_instance_from_form,
+    generate_invenio_metadata,
     generate_schema_org_compliant_app_metadata,
     get_subdomain_name,
 )
@@ -660,6 +662,256 @@ def validate_schema(schema_dict: dict):
 
     try:
         schema_validator.validate(schema_dict)
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+
+@pytest.mark.django_db
+def test_generate_invenio_metadata_validation():
+    """Test function generate_invenio_metadata validation."""
+    # creating the test data
+    user_data = {
+        "affiliation": "uu",
+        "department": "unit_test_invenio_metadata_user_department_name",
+        "email": "unit_test_invenio_metadata_user_email@scilifelab.uu.se",
+        "first_name": "unit_test_invenio_metadata_user_first_name",
+        "last_name": "unit_test_invenio_metadata_user_last_name",
+        "username": "unit_test_invenio_metadata_user_name",
+        "password": "tesT12345@",
+    }
+
+    project_data = {
+        "project_name": "unit_test_invenio_metadata_project_name",
+        "project_description": "unit_test_invenio_metadata_project_description",
+    }
+
+    # Create test data using TestDataManager or direct object creation
+    from common.management.manage_test_data import TestDataManager
+
+    manager = TestDataManager(user_data=user_data)
+    user = manager.create_user()
+
+    project = Project.objects.create_project(
+        name=project_data["project_name"], owner=user, description=project_data["project_description"]
+    )
+
+    app = Apps.objects.create(name="Unit test invenio metadata app type", slug="unit_test_invenio_metadata_slug")
+
+    subdomain = Subdomain.objects.create(subdomain="unit_test_invenio_metadata_subdomain")
+    k8s_user_app_status = K8sUserAppStatus.objects.create()
+
+    # Create timestamp for consistent testing
+    from django.utils import timezone
+
+    test_created_date = timezone.now()
+
+    # Create k8s_values for the app instance
+    k8s_values = {"global": {"domain": "test.serve.scilifelab.se"}, "project": {"slug": project.slug}}
+
+    app_instance = DashInstance.objects.create(
+        access="public",
+        owner=user,
+        name="unit_test_invenio_metadata_app_name",
+        description="unit_test_invenio_metadata_app_description",
+        port=8000,
+        image="ghcr.io/scilifelabdatacentre/example-dash:latest",
+        source_code_url="https://someurlthatdoesnotexist.com",
+        app=app,
+        project=project,
+        subdomain=subdomain,
+        k8s_user_app_status=k8s_user_app_status,
+        created_on=test_created_date,
+        k8s_values=k8s_values,
+        url="https://unit_test_invenio_metadata_subdomain.test.serve.scilifelab.se",
+    )
+
+    # Generate the invenio metadata
+    invenio_metadata = generate_invenio_metadata(app_instance)
+
+    # Define validation schema for invenio metadata (updated to match new structure)
+    invenio_schema = Schema(
+        {
+            "access": {"record": "public", "files": "public"},
+            "files": {"enabled": bool},
+            "metadata": {
+                "title": And(str, Regex(r"^Application: .+")),
+                "description": str,
+                "publication_date": And(str, Regex(r"^\d{4}-\d{2}-\d{2}$")),
+                "publisher": "SciLifeLab Data Centre",
+                "resource_type": {"id": "software", "title": {"en": "Software"}},
+                "creators": [
+                    {
+                        "person_or_org": {
+                            "name": And(str, Regex(r".+")),  # Non-empty string
+                            "type": "personal",
+                            "given_name": str,
+                            "family_name": str,
+                        },
+                        "role": {"id": "relatedperson"},
+                    }
+                ],
+                "contributors": [
+                    {
+                        "person_or_org": {"name": "SciLifeLab Data Centre", "type": "organizational"},
+                        "role": {"id": "hostinginstitution"},
+                    }
+                ],
+                "identifiers": [{"identifier": And(str, Regex(r"^SERVE:[0-9]+$")), "scheme": "other"}],
+                "related_identifiers": [
+                    {
+                        "identifier": And(str, Regex(r"^https?://")),
+                        "scheme": "url",
+                        "relation_type": {"id": "issourceof"},
+                        "resource_type": {"id": "software"},
+                    },
+                    {
+                        "identifier": str,
+                        "scheme": "other",
+                        "relation_type": {"id": "hasversion", "title": {"en": "Has image version"}},
+                        "resource_type": {"id": "software"},
+                    },
+                    {
+                        "identifier": And(str, Regex(r"^https?://")),
+                        "relation_type": {"id": "isdocumentedby"},
+                        "resource_type": {"id": "publication-softwaredocumentation"},
+                    },
+                ],
+            },
+        },
+        ignore_extra_keys=False,
+    )
+
+    # Test cases
+
+    # 1. Should be valid
+    is_valid, error = validate_invenio_metadata_structure(invenio_metadata, invenio_schema)
+    assert is_valid, f"Invenio metadata validation failed: {error}"
+
+    # Check specific values match the test data
+    assert invenio_metadata["metadata"]["title"] == f"Application: {app_instance.name}"
+    assert invenio_metadata["metadata"]["description"] == app_instance.description
+    assert invenio_metadata["metadata"]["publisher"] == "SciLifeLab Data Centre"
+    assert invenio_metadata["metadata"]["identifiers"][0]["identifier"].startswith("SERVE:")
+
+    # Check creator information
+    creator = invenio_metadata["metadata"]["creators"][0]
+    assert creator["person_or_org"]["given_name"] == user.first_name
+    assert creator["person_or_org"]["family_name"] == user.last_name
+    assert creator["role"]["id"] == "relatedperson"
+
+    # Check contributor is SciLifeLab Data Centre
+    contributor = invenio_metadata["metadata"]["contributors"][0]
+    assert contributor["person_or_org"]["name"] == "SciLifeLab Data Centre"
+    assert contributor["person_or_org"]["type"] == "organizational"
+    assert contributor["role"]["id"] == "hostinginstitution"
+
+    # Check publication date format
+    import re
+
+    assert re.match(r"^\d{4}-\d{2}-\d{2}$", invenio_metadata["metadata"]["publication_date"])
+
+    # Check related identifiers - should have 3 for public access
+    assert len(invenio_metadata["metadata"]["related_identifiers"]) == 3
+    assert invenio_metadata["metadata"]["related_identifiers"][0]["scheme"] == "url"
+    assert invenio_metadata["metadata"]["related_identifiers"][0]["relation_type"]["id"] == "issourceof"
+    assert invenio_metadata["metadata"]["related_identifiers"][1]["scheme"] == "other"
+    assert invenio_metadata["metadata"]["related_identifiers"][1]["relation_type"]["id"] == "hasversion"
+    assert invenio_metadata["metadata"]["related_identifiers"][2]["relation_type"]["id"] == "isdocumentedby"
+    assert (
+        invenio_metadata["metadata"]["related_identifiers"][2]["resource_type"]["id"]
+        == "publication-softwaredocumentation"
+    )
+
+    # 2. Test with user without first/last name (should use email as fallback)
+    user_no_name = User.objects.create_user(
+        username="no_name_user", email="no_name@test.com", password="testpass123", first_name="", last_name=""
+    )
+
+    # Create a separate app instance for this user with NEW subdomain and k8s status
+    subdomain2 = Subdomain.objects.create(subdomain="unit_test_invenio_metadata_subdomain2")
+    k8s_user_app_status2 = K8sUserAppStatus.objects.create()
+
+    app_instance_no_name = DashInstance.objects.create(
+        access="public",
+        owner=user_no_name,
+        name="app_no_name_user",
+        description="Test app for user without name",
+        port=8000,
+        image="ghcr.io/test/image:latest",
+        app=app,
+        project=project,
+        subdomain=subdomain2,  # Use new subdomain
+        k8s_user_app_status=k8s_user_app_status2,  # Use new k8s status
+        k8s_values=k8s_values,
+        url="https://unit_test_invenio_metadata_subdomain2.test.serve.scilifelab.se",
+    )
+
+    invenio_metadata_no_name = generate_invenio_metadata(app_instance_no_name)
+    creator_no_name = invenio_metadata_no_name["metadata"]["creators"][0]
+
+    # Should have generated a name from email or used default
+    assert creator_no_name["person_or_org"]["name"] != ""
+    assert creator_no_name["person_or_org"]["given_name"] == "No First Name Given"
+    assert creator_no_name["person_or_org"]["family_name"] == "No Family Name Given"
+
+    # 3. Test invalid structure - changing a required field type
+    invalid_metadata = invenio_metadata.copy()
+    invalid_metadata["metadata"]["title"] = 12345  # Should be string, not number
+    is_valid, error = validate_invenio_metadata_structure(invalid_metadata, invenio_schema)
+    assert is_valid is False, "Schema validation should fail because title is not a string"
+
+    # 4. Test adding extra field is not permitted (strict validation)
+    invalid_metadata2 = invenio_metadata.copy()
+    invalid_metadata2["metadata"]["extra_field"] = "should not be here"
+    is_valid, error = validate_invenio_metadata_structure(invalid_metadata2, invenio_schema)
+    assert is_valid is False, "Schema validation should fail because extra field added"
+
+    # 5. Test with private access app (should not have third related identifier for landing page)
+    app_instance_private = DashInstance.objects.create(
+        access="private",
+        owner=user,
+        name="private_app",
+        description="Test private app",
+        port=8000,
+        image="ghcr.io/test/image:latest",
+        app=app,
+        project=project,
+        subdomain=Subdomain.objects.create(subdomain="private-subdomain"),
+        k8s_user_app_status=K8sUserAppStatus.objects.create(),
+        k8s_values=k8s_values,
+        url="https://private-subdomain.test.serve.scilifelab.se",
+    )
+
+    invenio_metadata_private = generate_invenio_metadata(app_instance_private)
+    # Should have exactly 2 related identifiers for private app
+    assert len(invenio_metadata_private["metadata"]["related_identifiers"]) == 2
+
+    # 6. Test with app that has no k8s_values
+    app_instance_no_k8s = DashInstance.objects.create(
+        access="public",
+        owner=user,
+        name="app_no_k8s",
+        description="Test app without k8s_values",
+        port=8000,
+        image="ghcr.io/test/image:latest",
+        app=app,
+        project=project,
+        subdomain=Subdomain.objects.create(subdomain="no-k8s-subdomain"),
+        k8s_user_app_status=K8sUserAppStatus.objects.create(),
+        url="https://no-k8s-subdomain.test.serve.scilifelab.se",
+        # Don't set k8s_values
+    )
+
+    invenio_metadata_no_k8s = generate_invenio_metadata(app_instance_no_k8s)
+    # Should have 2 related identifiers (no landing page because k8s_values is None)
+    assert len(invenio_metadata_no_k8s["metadata"]["related_identifiers"]) == 2
+
+
+def validate_invenio_metadata_structure(metadata: dict, schema_validator: Schema):
+    """Validate InvenioRDM metadata structure using local schema definition"""
+    try:
+        schema_validator.validate(metadata)
         return True, None
     except Exception as e:
         return False, str(e)
