@@ -92,7 +92,7 @@
     <div class="col-12 col-md-6 pb-3 pb-md-0">
         <label class="form-label">{{profile_form.organization.label_tag}}</label>
         {{ profile_form.organization }}
-        <input type="hidden" id="organization-data" name="organization-data" 
+        <input type="hidden" id="organization-data" name="organization-data"
                value="{% if organization_data %}{{ organization_data }}{% endif %}">
         <div id="organization-suggestions" class="list-group position-absolute" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
         <div class="form-text">{{profile_form.organization.help_text}}</div>
@@ -105,10 +105,10 @@
         {% endif %}
     </div>
     </div>
-   
 
 
-                                    
+
+
 
 
 
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = orgInput.closest('form');
     let selectedOrgData = null;
     let debounceTimer;
-    
+
     // On page load: if there's organization data from server, parse it
     if (orgDataInput.value) {
         try {
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Failed to parse organization data:', e);
         }
     }
-    
+
     let isValidSelection = !!selectedOrgData;
 
     // Create error message element
@@ -264,10 +264,10 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.results && data.results.length > 0) {
                     // Check for exact match
-                    const exactMatch = data.results.find(org => 
+                    const exactMatch = data.results.find(org =>
                         org.title.toLowerCase() === orgName.toLowerCase()
                     );
-                    
+
                     if (exactMatch) {
                         // Auto-select exact match
                         selectedOrgData = {
@@ -314,13 +314,13 @@ document.addEventListener('DOMContentLoaded', function() {
     orgInput.addEventListener('input', function() {
         clearTimeout(debounceTimer);
         const query = this.value.trim();
-        
+
         if (!selectedOrgData || query !== selectedOrgData.title) {
             isValidSelection = false;
             selectedOrgData = null;
             orgDataInput.value = '';
         }
-        
+
         if (query.length < 2) {
             suggestionsDiv.style.display = 'none';
             return;
@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json())
                 .then(data => {
                     suggestionsDiv.innerHTML = '';
-                    
+
                     if (data.results && data.results.length > 0) {
                         data.results.forEach(org => {
                             const item = document.createElement('a');
@@ -368,11 +368,11 @@ document.addEventListener('DOMContentLoaded', function() {
     orgInput.addEventListener('blur', function() {
         setTimeout(() => {
             const inputValue = orgInput.value.trim();
-            
+
             if (inputValue && !isValidSelection) {
                 verifyOrganization(inputValue);
             }
-            
+
             suggestionsDiv.style.display = 'none';
         }, 200);
     });
@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Prevent form submission if organization is invalid
     form.addEventListener('submit', function(e) {
         const inputValue = orgInput.value.trim();
-        
+
         if (inputValue && !isValidSelection) {
             e.preventDefault();
             showError(

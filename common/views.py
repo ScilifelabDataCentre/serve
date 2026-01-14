@@ -1,6 +1,7 @@
 import json
 import uuid
 
+import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -21,7 +22,6 @@ from django.views.generic import CreateView, TemplateView
 
 from common.management.manage_test_data import TestDataManager
 from studio.utils import get_logger
-import requests
 
 from .forms import (
     ChangePasswordForm,
@@ -107,11 +107,11 @@ class SignUpView(CreateView):
         context = self.get_context_data()
         context["form"] = user_form  # The user form with its current state and errors.
         context["profile_form"] = profile_form  # The profile form with its current state and errors.
-        
+
         # CRITICAL: Preserve organization-data from POST request
-        if self.request.method == 'POST' and 'organization-data' in self.request.POST:
-            context['organization_data'] = self.request.POST.get('organization-data')
-        
+        if self.request.method == "POST" and "organization-data" in self.request.POST:
+            context["organization_data"] = self.request.POST.get("organization-data")
+
         return self.render_to_response(context)
 
     def form_invalid(self, form):
@@ -219,14 +219,12 @@ class EditProfileView(TemplateView):
         # common user with or without Staff/Superuser status
         else:
             user_profile_data = self.get_user_profile_info(request)
-            
+
             # Extract organization title from JSON field
             org_title = user_profile_data.get_organization_name()
 
-
             profile_edit_form = self.profile_edit_form_class(
                 initial={
-
                     "organization": org_title,
                     "department": user_profile_data.department,
                 }
@@ -256,9 +254,7 @@ class EditProfileView(TemplateView):
         profile_form_details = self.profile_edit_form_class(
             request.POST,
             instance=user_profile_data,
-            initial={
-                "affiliation": user_profile_data.get_organization_name()
-            },
+            initial={"affiliation": user_profile_data.get_organization_name()},
         )
 
         if user_form_details.is_valid() and profile_form_details.is_valid():
@@ -525,49 +521,43 @@ class PopulateTestAppView(View):
             logger.error(f"Test app creation failed: {e}")
             return JsonResponse({"error": str(e)}, status=500)
 
+
 class RORAutocompleteView(View):
     """API endpoint to search ROR for organizations"""
-    
+
     def get(self, request):
-        query = request.GET.get('query', '').strip()
-        
+        query = request.GET.get("query", "").strip()
+
         if len(query) < 2:
-            return JsonResponse({'results': []})
-        
+            return JsonResponse({"results": []})
+
         try:
             # Call ROR API
-            response = requests.get(
-                'https://api.ror.org/organizations',
-                params={'query': query},
-                timeout=5
-            )
+            response = requests.get("https://api.ror.org/organizations", params={"query": query}, timeout=5)
             response.raise_for_status()
             data = response.json()
-            
+
             # Format results
             results = []
-            for item in data.get('items', [])[:10]:  # Limit to 10 results
-                ror_id = item.get('id', '')
-                
+            for item in data.get("items", [])[:10]:  # Limit to 10 results
+                ror_id = item.get("id", "")
+
                 # Extract the organization title from names array
-                title = ''
-                for name in item.get('names', []):
-                    if 'ror_display' in name.get('types', []):
-                        title = name.get('value', '')
+                title = ""
+                for name in item.get("names", []):
+                    if "ror_display" in name.get("types", []):
+                        title = name.get("value", "")
                         break
-                
+
                 # If no ror_display found, use the first name
-                if not title and item.get('names'):
-                    title = item['names'][0].get('value', '')
-                
+                if not title and item.get("names"):
+                    title = item["names"][0].get("value", "")
+
                 if ror_id and title:
-                    results.append({
-                        'title': title,
-                        'ror_id': ror_id
-                    })
-            
-            return JsonResponse({'results': results})
-            
+                    results.append({"title": title, "ror_id": ror_id})
+
+            return JsonResponse({"results": results})
+
         except Exception as e:
             logger.error(f"ROR API error: {e}")
-            return JsonResponse({'results': [], 'error': str(e)}, status=500)
+            return JsonResponse({"results": [], "error": str(e)}, status=500)

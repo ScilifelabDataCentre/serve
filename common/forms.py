@@ -193,7 +193,7 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
         # See SS-920 to understand why we are doing this
         if not self.is_unique_email():
             logger.error("Attempting to create an account with email %s that is already in use", email)
-            
+
         return email
 
     def add_error_classes(self) -> None:
@@ -216,12 +216,14 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
 
 class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
     organization = forms.CharField(
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'id': 'organization-autocomplete',
-            'placeholder': 'Start typing organization name...',
-            'autocomplete': 'off'
-        }),
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "id": "organization-autocomplete",
+                "placeholder": "Start typing organization name...",
+                "autocomplete": "off",
+            }
+        ),
         label="Organization",
         help_text="Start typing to select your organization via ROR (Research Organization Registry).",
     )
@@ -271,7 +273,7 @@ class SignUpForm:
     user: UserForm
     profile: ProfileForm
     is_approved: bool = False
-    organization_data={}
+    organization_data = {}
 
     def clean(self) -> None:
         user_data = self.user.cleaned_data
@@ -279,48 +281,46 @@ class SignUpForm:
 
         email = user_data.get("email", "")
         why_account_needed = profile_data.get("why_account_needed")
-        
+
         is_university_email = EMAIL_ALLOW_REGEX.match(email.split("@")[1]) is not None
-        
+
         is_request_account_empty = not bool(why_account_needed)
         is_department_empty = not bool(profile_data.get("department"))
 
         self.is_approved = is_university_email
-        
+
         organization_post_data = self.profile.data.get("organization-data", "")
-    
+
         organization_data = {}
         if organization_post_data:
             try:
                 organization_data = json.loads(organization_post_data)
             except json.JSONDecodeError as e:
-                organization_data = {
-                    "title": "organization_text_placeholder",
-                    "ror_id": "no ror"
-                }
+                organization_data = {"title": "organization_text_placeholder", "ror_id": "no ror"}
         else:
             # No JSON data, create from text field
-            organization_data = {
-                "title": "organization_text_placeholder",
-                "ror_id": "no ror"
-            }
-    
+            organization_data = {"title": "organization_text_placeholder", "ror_id": "no ror"}
+
         # Check if organization is valid
         is_organization_empty = False
         if not organization_data.get("ror_id") or organization_data.get("ror_id") == "no ror":
             is_organization_empty = True
-    
+
         if is_organization_empty:
             self.profile.add_error(
-                "organization", 
-                ValidationError("Please select a valid organization from the ROR list. Your organization must be registered in the Research Organization Registry.")
+                "organization",
+                ValidationError(
+                    "Please select a valid organization from the ROR list. Your organization must be registered in the Research Organization Registry."
+                ),
             )
         else:
             self.organization_data = organization_data
-            
+
         if is_university_email and is_department_empty:
-                self.profile.add_error("department", ValidationError("You are required to select your university department"))
-        
+            self.profile.add_error(
+                "department", ValidationError("You are required to select your university department")
+            )
+
         if is_request_account_empty:
             self.profile.add_error("why_account_needed", ValidationError("Please describe why you need an account"))
 
@@ -352,7 +352,7 @@ class SignUpForm:
         profile.save()
         # IMPORTANT: Set user to inactive based on approval status
         # Non-university emails should be inactive
-        #if not self.is_approved:
+        # if not self.is_approved:
         #    user.is_active = False
         #    user.save()
         email_verification.save()
@@ -489,8 +489,8 @@ class ProfileEditForm(ProfileForm):
         if self.instance and self.instance.organization:
             org_data = self.instance.organization
             if isinstance(org_data, dict):
-                self.initial['organization'] = org_data.get('title', '')
-        
+                self.initial["organization"] = org_data.get("title", "")
+
         self.fields["organization"].disabled = True
         self.fields[
             "organization"

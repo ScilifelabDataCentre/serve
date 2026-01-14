@@ -18,17 +18,13 @@ class UserProfileInline(admin.StackedInline):
     can_delete = False
     verbose_name_plural = "Profile"
     fk_name = "user"
-    
+
     # Show both fields but make affiliation readonly to indicate it's legacy
-    readonly_fields = ('affiliation',)
-    
+    readonly_fields = ("affiliation",)
+
     fieldsets = (
-        ('Organization Information', {
-            'fields': ('organization', 'affiliation', 'department')
-        }),
-        ('Account Information', {
-            'fields': ('is_approved', 'why_account_needed', 'note', 'deleted_on')
-        }),
+        ("Organization Information", {"fields": ("organization", "affiliation", "department")}),
+        ("Account Information", {"fields": ("is_approved", "why_account_needed", "note", "deleted_on")}),
     )
 
 
@@ -110,15 +106,15 @@ class EmailSendingTableAdmin(admin.ModelAdmin):
 class UserAdmin(DefaultUserAdmin):
     inlines = (UserProfileInline, EmailVerificationTableInline)
     list_display = (
-        "email", 
-        "first_name", 
-        "last_name", 
-        "is_active", 
-        "is_staff", 
-        "get_organization", 
+        "email",
+        "first_name",
+        "last_name",
+        "is_active",
+        "is_staff",
+        "get_organization",
         "get_ror_status",
         "is_legacy_data",
-        "date_joined"
+        "date_joined",
     )
     list_select_related = ("userprofile",)
     list_filter = ("is_active", "is_staff", "userprofile__is_approved")
@@ -131,6 +127,7 @@ class UserAdmin(DefaultUserAdmin):
             return instance.userprofile.get_organization_name()
         except UserProfile.DoesNotExist:
             return "N/A"
+
     get_organization.short_description = "Organization"
     get_organization.admin_order_field = "userprofile__organization"
 
@@ -140,15 +137,13 @@ class UserAdmin(DefaultUserAdmin):
             ror_id = instance.userprofile.get_ror_id()
             if ror_id:
                 # Extract just the ID from the URL
-                ror_display = ror_id.split('/')[-1] if '/' in ror_id else ror_id
-                return format_html(
-                    '<span style="color: green;">✓ {}</span>', 
-                    ror_display
-                )
+                ror_display = ror_id.split("/")[-1] if "/" in ror_id else ror_id
+                return format_html('<span style="color: green;">✓ {}</span>', ror_display)
             else:
                 return format_html('<span style="color: orange;">No ROR</span>')
         except UserProfile.DoesNotExist:
             return "N/A"
+
     get_ror_status.short_description = "ROR ID"
 
     def is_legacy_data(self, instance):
@@ -157,6 +152,7 @@ class UserAdmin(DefaultUserAdmin):
             return instance.userprofile.is_legacy_affiliation()
         except UserProfile.DoesNotExist:
             return False
+
     is_legacy_data.boolean = True
     is_legacy_data.short_description = "Legacy Data"
 
@@ -165,7 +161,7 @@ class UserAdmin(DefaultUserAdmin):
         migrated = 0
         skipped = 0
         errors = 0
-        
+
         for user in queryset:
             try:
                 profile = user.userprofile
@@ -180,115 +176,96 @@ class UserAdmin(DefaultUserAdmin):
                 errors += 1
             except Exception as e:
                 errors += 1
-                self.message_user(
-                    request,
-                    f'Error migrating {user.email}: {str(e)}',
-                    level='ERROR'
-                )
-        
+                self.message_user(request, f"Error migrating {user.email}: {str(e)}", level="ERROR")
+
         # Build success message
         messages = []
         if migrated > 0:
-            messages.append(f'{migrated} profile(s) migrated successfully')
+            messages.append(f"{migrated} profile(s) migrated successfully")
         if skipped > 0:
-            messages.append(f'{skipped} no legacy data')
+            messages.append(f"{skipped} no legacy data")
         if errors > 0:
-            messages.append(f'{errors} error(s) occurred')
-        
-        self.message_user(
-            request,
-            '. '.join(messages) + '.',
-            level='SUCCESS' if errors == 0 else 'WARNING'
-        )
-    
+            messages.append(f"{errors} error(s) occurred")
+
+        self.message_user(request, ". ".join(messages) + ".", level="SUCCESS" if errors == 0 else "WARNING")
+
     migrate_legacy_profiles.short_description = "Migrate selected users to new organization format"
 
 
 # Standalone UserProfile admin for direct management
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = [
-        'user_email',
-        'get_org_display', 
-        'department',
-        'get_ror_display',
-        'is_legacy_data',
-        'is_approved'
-    ]
-    list_filter = ['is_approved']
-    search_fields = ['user__email', 'organization__title', 'affiliation', 'department']
-    readonly_fields = ['affiliation', 'get_legacy_info', 'deleted_on']
-    actions = ['migrate_selected_profiles']
-    
+    list_display = ["user_email", "get_org_display", "department", "get_ror_display", "is_legacy_data", "is_approved"]
+    list_filter = ["is_approved"]
+    search_fields = ["user__email", "organization__title", "affiliation", "department"]
+    readonly_fields = ["affiliation", "get_legacy_info", "deleted_on"]
+    actions = ["migrate_selected_profiles"]
+
     fieldsets = (
-        ('User', {
-            'fields': ('user',)
-        }),
-        ('Organization Information', {
-            'fields': ('organization', 'department')
-        }),
-        ('Legacy Data (Read Only)', {
-            'fields': ('affiliation', 'get_legacy_info'),
-            'classes': ('collapse',),
-            'description': 'Legacy affiliation data - kept for backward compatibility'
-        }),
-        ('Account Status', {
-            'fields': ('is_approved', 'deleted_on')
-        }),
-        ('Additional Info', {
-            'fields': ('why_account_needed', 'note'),
-            'classes': ('collapse',)
-        }),
+        ("User", {"fields": ("user",)}),
+        ("Organization Information", {"fields": ("organization", "department")}),
+        (
+            "Legacy Data (Read Only)",
+            {
+                "fields": ("affiliation", "get_legacy_info"),
+                "classes": ("collapse",),
+                "description": "Legacy affiliation data - kept for backward compatibility",
+            },
+        ),
+        ("Account Status", {"fields": ("is_approved", "deleted_on")}),
+        ("Additional Info", {"fields": ("why_account_needed", "note"), "classes": ("collapse",)}),
     )
-    
+
     def user_email(self, obj):
         """Display user email"""
         return obj.user.email
-    user_email.short_description = 'Email'
-    user_email.admin_order_field = 'user__email'
-    
+
+    user_email.short_description = "Email"
+    user_email.admin_order_field = "user__email"
+
     def get_org_display(self, obj):
         """Display organization name"""
         return obj.get_organization_name()
-    get_org_display.short_description = 'Organization'
-    
+
+    get_org_display.short_description = "Organization"
+
     def get_ror_display(self, obj):
         """Display ROR ID with link"""
         ror_id = obj.get_ror_id()
         if ror_id:
-            return format_html(
-                '<a href="{}" target="_blank" style="color: green;">✓ View ROR</a>', 
-                ror_id
-            )
+            return format_html('<a href="{}" target="_blank" style="color: green;">✓ View ROR</a>', ror_id)
         else:
             return format_html('<span style="color: orange;">No ROR ID</span>')
-    get_ror_display.short_description = 'ROR'
-    
+
+    get_ror_display.short_description = "ROR"
+
     def is_legacy_data(self, obj):
         """Show if profile uses legacy data"""
         return obj.is_legacy_affiliation()
+
     is_legacy_data.boolean = True
-    is_legacy_data.short_description = 'Legacy'
-    
+    is_legacy_data.short_description = "Legacy"
+
     def get_legacy_info(self, obj):
         """Display legacy affiliation information"""
         if obj.affiliation:
             return format_html(
-                '<strong>Legacy Affiliation Code:</strong> {}<br>'
-                '<strong>Display Name:</strong> {}<br>'
-                '<strong>Status:</strong> {}',
+                "<strong>Legacy Affiliation Code:</strong> {}<br>"
+                "<strong>Display Name:</strong> {}<br>"
+                "<strong>Status:</strong> {}",
                 obj.affiliation,
                 obj._get_affiliation_display_name(),
-                'Needs Migration' if obj.is_legacy_affiliation() else 'Migrated'
+                "Needs Migration" if obj.is_legacy_affiliation() else "Migrated",
             )
         return "No legacy data"
-    get_legacy_info.short_description = 'Legacy Information'
-    
+
+    get_legacy_info.short_description = "Legacy Information"
+
     def migrate_selected_profiles(self, request, queryset):
         """Admin action to migrate selected profiles"""
         migrated = 0
         skipped = 0
-        
+
         for profile in queryset:
             if profile.is_legacy_affiliation():
                 if profile.migrate_to_organization():
@@ -297,19 +274,16 @@ class UserProfileAdmin(admin.ModelAdmin):
                     skipped += 1
             else:
                 skipped += 1
-        
+
         message_parts = []
         if migrated > 0:
-            message_parts.append(f'Successfully migrated {migrated} profile(s)')
+            message_parts.append(f"Successfully migrated {migrated} profile(s)")
         if skipped > 0:
-            message_parts.append(f'{skipped} profile(s) skipped (already migrated or no legacy data)')
-        
-        self.message_user(
-            request,
-            '. '.join(message_parts) + '.'
-        )
-    migrate_selected_profiles.short_description = "Migrate selected profiles to new format"
+            message_parts.append(f"{skipped} profile(s) skipped (already migrated or no legacy data)")
 
+        self.message_user(request, ". ".join(message_parts) + ".")
+
+    migrate_selected_profiles.short_description = "Migrate selected profiles to new format"
 
 
 admin.site.unregister(User)

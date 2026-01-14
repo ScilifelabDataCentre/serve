@@ -11,7 +11,6 @@ from projects.models import (
     ProjectTemplate,
 )
 from projects.tasks import create_resources_from_template
-
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
@@ -43,16 +42,16 @@ class TestDataManager:
         # Profile creation, # TODO fix e2e tests accordingly, all will break otherwise
         if any(field in self.user_data for field in ("affiliation", "organization")):
             user_profile = UserProfile.objects.create_user_profile(user)
-        
+
         if "department" in self.user_data:
             user_profile.department = self.user_data["department"]
-            
+
         if "organization" in self.user_data:
             user_profile.organization = self.user_data["organization"]
-        
+
         if "affiliation" in self.user_data:
             user_profile.affiliation = self.user_data["affiliation"]
-            
+
         user_profile.save()
 
         return user
