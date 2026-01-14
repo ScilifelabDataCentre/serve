@@ -22,7 +22,7 @@ class ContainerImageMixin:
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "e.g. docker.io/username/image-name:image-tag",
+                "placeholder": "docker.io/username/image-name:image-tag",
                 "list": "docker-image-list",
             }
         ),
@@ -42,7 +42,7 @@ class ContainerImageMixin:
             Field(
                 "image",
                 css_class="form-control",
-                placeholder="e.g. docker.io/username/image-name:image-tag",
+                placeholder="docker.io/username/image-name:image-tag",
                 list="docker-image-list",
             ),
             HTML('<datalist id="docker-image-list"></datalist>'),

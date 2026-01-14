@@ -33,8 +33,14 @@ class DashInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
         choices=ACCESS_TYPES,
         help_text="The chosen Permission level determines who can access the application.",
     )
-    port = models.IntegerField(default=8000)
-    image = models.CharField(max_length=255)
+    port = models.IntegerField(
+        default=8000,
+        help_text="Port that the Docker container exposes and the application runs on. This should be an integer between 3000-9999.",
+    )
+    image = models.CharField(
+        max_length=255,
+        help_text="Docker image with your application. For example, ghcr.io/username/image-name:image-tag or docker.io/username/image-name:image-tag.",
+    )
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
