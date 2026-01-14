@@ -52,7 +52,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         general = AccordionGroup(
             mark_safe("<h3>Description</h3>"),
             SRVCommonDivField("name", required=True),
-            SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
+            SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("tags"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
