@@ -50,7 +50,7 @@ class DashForm(ContainerImageMixin, AppBaseForm):
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
             ),
-            SRVCommonDivField("source_code_url"),
+            SRVCommonDivField("source_code_url", placeholder="https://..."),
             active=True,
         )
 

@@ -37,7 +37,7 @@ class GradioForm(StorageMixin, ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("tags"),
             SRVCommonDivField("access"),
-            SRVCommonDivField("source_code_url"),
+            SRVCommonDivField("source_code_url", placeholder="https://..."),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
