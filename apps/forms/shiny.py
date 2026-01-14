@@ -57,6 +57,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
+                rows=1,
             ),
             SRVCommonDivField("source_code_url", placeholder="https://..."),
             active=True,
