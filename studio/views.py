@@ -23,6 +23,7 @@ from common.models import UserProfile
 from common.tasks import send_email_task
 from models.models import Model
 from projects.models import Project
+from studio.throttle import WhitelistThrottleFilter
 from studio.utils import get_logger
 
 from .helpers import do_delete_account
@@ -112,6 +113,7 @@ class AuthView(APIView):
     authentication_classes = [ModifiedSessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated, AccessPermission]
     content_negotiation_class = IgnoreClientContentNegotiation
+    throttle_classes = [WhitelistThrottleFilter]
 
     def get(self, request: Response, format: str | None = None) -> Response:
         content = {
