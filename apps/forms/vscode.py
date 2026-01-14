@@ -25,7 +25,7 @@ class VSCodeForm(VolumeMixin, AppBaseForm):
         # Define AccordionGroups
         general = AccordionGroup(
             mark_safe("<h3>Description</h3>"),
-            SRVCommonDivField("name", placeholder="Name your app"),
+            SRVCommonDivField("name", required=True),
             SRVCommonDivField("access"),
             active=True,
         )
