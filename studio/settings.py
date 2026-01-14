@@ -352,6 +352,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ("rest_framework.parsers.JSONParser",),
 }
 
+# Rate limit whitelist for certain IP ranges on the auth endpoint
+AUTH_RATE_LIMIT_VALUE = os.environ.get("AUTH_RATE_LIMIT_VALUE", None)
+AUTH_RATE_LIMIT_WHITELIST_RAW = os.environ.get("AUTH_RATE_LIMIT_WHITELIST", "")
+AUTH_RATE_LIMIT_WHITELIST = [ip.strip() for ip in AUTH_RATE_LIMIT_WHITELIST_RAW.split(",")]
+
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {
     "xml": "tagulous.serializers.xml_serializer",
