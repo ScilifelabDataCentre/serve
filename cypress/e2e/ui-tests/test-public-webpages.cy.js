@@ -114,7 +114,7 @@ describe("Tests of the public pages of the website", () => {
                     })
 
             // Verify navigation to details page
-            cy.url().should('include', '/metadata/dashapp/')
+            cy.url().should('include', '/records/')
 
             // Verify app name in header
             cy.get('h2.mb-0').should('contain', TEST_APP_DATA.name)
@@ -128,12 +128,11 @@ describe("Tests of the public pages of the website", () => {
             // Verify download link exists and has correct href
             cy.contains('a.btn.btn-primary', 'Download All Metadata (JSON)')
                 .should('have.attr', 'href')
-                    .and('include', '/apps/metadata/')
+                    .and('include', '/records/')
                         .and('include', '?format=json')
 
             // Verify the download request completes successfully
-            cy.intercept('GET', '**/metadata/**/*?format=json').as('metadataDownload')
-
+            cy.intercept('GET', '**/records/**/*?format=json').as('metadataDownload')
             // Click the download link (opens in same tab)
             cy.contains('a.btn.btn-primary', 'Download All Metadata (JSON)')
                 .invoke('removeAttr', 'target') // Remove target="_blank"
