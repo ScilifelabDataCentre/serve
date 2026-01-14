@@ -42,7 +42,6 @@ class TissuumapsForm(VolumeMixin, AppBaseForm):
             SRVCommonDivField("flavor"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
-                placeholder="Describe why you want to make the app accessible only via a link",
             ),
             active=True,
         )

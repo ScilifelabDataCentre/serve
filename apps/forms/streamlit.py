@@ -41,7 +41,6 @@ class StreamlitForm(StorageMixin, ContainerImageMixin, AppBaseForm):
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
-                placeholder="Describe why you want to make the app accessible only via a link",
             ),
             active=True,
         )
