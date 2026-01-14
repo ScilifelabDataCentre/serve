@@ -92,7 +92,8 @@
     <div class="col-12 col-md-6 pb-3 pb-md-0">
         <label class="form-label">{{profile_form.organization.label_tag}}</label>
         {{ profile_form.organization }}
-        <input type="hidden" id="organization-data" name="organization-data">
+        <input type="hidden" id="organization-data" name="organization-data" 
+               value="{% if organization_data %}{{ organization_data }}{% endif %}">
         <div id="organization-suggestions" class="list-group position-absolute" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
         <div class="form-text">{{profile_form.organization.help_text}}</div>
         {% if profile_form.organization.errors %}
@@ -102,6 +103,7 @@
             {% endfor %}
         </div>
         {% endif %}
+    </div>
     </div>
    
 
@@ -218,7 +220,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = orgInput.closest('form');
     let selectedOrgData = null;
     let debounceTimer;
-    let isValidSelection = false;
+    
+    // On page load: if there's organization data from server, parse it
+    if (orgDataInput.value) {
+        try {
+            selectedOrgData = JSON.parse(orgDataInput.value);
+            console.log('Loaded organization data:', selectedOrgData);
+        } catch (e) {
+            console.error('Failed to parse organization data:', e);
+        }
+    }
+    
+    let isValidSelection = !!selectedOrgData;
 
     // Create error message element
     const errorDiv = document.createElement('div');
@@ -237,6 +250,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function clearError() {
         errorDiv.style.display = 'none';
         orgInput.classList.remove('is-invalid');
+        isValidSelection = true;
     }
 
     function verifyOrganization(orgName) {
@@ -261,7 +275,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             ror_id: exactMatch.ror_id
                         };
                         orgDataInput.value = JSON.stringify(selectedOrgData);
-                        console.error('ROR data:', orgDataInput);
                         orgInput.value = exactMatch.title;
                         isValidSelection = true;
                         clearError();
@@ -290,12 +303,23 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    // CRITICAL: On page load, validate any existing organization value
+    setTimeout(() => {
+        if (orgInput.value.trim() && !isValidSelection) {
+            console.log('Validating organization on page load:', orgInput.value);
+            verifyOrganization(orgInput.value.trim());
+        }
+    }, 100);
+
     orgInput.addEventListener('input', function() {
         clearTimeout(debounceTimer);
         const query = this.value.trim();
-        isValidSelection = false;
-        selectedOrgData = null;
-        clearError();
+        
+        if (!selectedOrgData || query !== selectedOrgData.title) {
+            isValidSelection = false;
+            selectedOrgData = null;
+            orgDataInput.value = '';
+        }
         
         if (query.length < 2) {
             suggestionsDiv.style.display = 'none';
@@ -357,41 +381,6 @@ document.addEventListener('DOMContentLoaded', function() {
     orgInput.addEventListener('focus', function() {
         if (!isValidSelection) {
             selectedOrgData = null;
-        }
-    });
-
-    // Handle keyboard navigation
-    orgInput.addEventListener('keydown', function(e) {
-        const items = suggestionsDiv.querySelectorAll('.list-group-item');
-        if (items.length === 0) return;
-
-        const activeItem = suggestionsDiv.querySelector('.active');
-        let index = Array.from(items).indexOf(activeItem);
-
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            if (activeItem) activeItem.classList.remove('active');
-            index = (index + 1) % items.length;
-            items[index].classList.add('active');
-            items[index].scrollIntoView({ block: 'nearest' });
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            if (activeItem) activeItem.classList.remove('active');
-            index = index <= 0 ? items.length - 1 : index - 1;
-            items[index].classList.add('active');
-            items[index].scrollIntoView({ block: 'nearest' });
-        } else if (e.key === 'Enter' && activeItem) {
-            e.preventDefault();
-            activeItem.click();
-        } else if (e.key === 'Escape') {
-            suggestionsDiv.style.display = 'none';
-        }
-    });
-
-    // Hide suggestions when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!orgInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
-            suggestionsDiv.style.display = 'none';
         }
     });
 

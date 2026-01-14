@@ -53,15 +53,8 @@
 <div class="row pt-1">
     <div class="col-4"><label for="userOrganization">Organization:</label></div>
     <div class="col-8 fw-bold">
-        <input type="text" name="organization" disabled value="{{user_profile.organization.title}}" class="form-control" id="userOrganization">
+        <input type="text" name="organization" disabled value="{{user_profile.get_organization_name}}" class="form-control" id="userOrganization">
     </div>
-    <div class="col-4"></div>
-    {% if user_profile.organization.ror_id != "no ror" %}
-    <div class="col-4"></div>
-    <div class="col-8 form-text">
-        <small>ROR ID: <a href="{{user_profile.organization.ror_id}}" target="_blank">{{user_profile.organization.ror_id}}</a></small>
-    </div>
-    {% endif %}
 </div>
 
                         <div class="row pt-1">

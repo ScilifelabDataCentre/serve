@@ -107,6 +107,11 @@ class SignUpView(CreateView):
         context = self.get_context_data()
         context["form"] = user_form  # The user form with its current state and errors.
         context["profile_form"] = profile_form  # The profile form with its current state and errors.
+        
+        # CRITICAL: Preserve organization-data from POST request
+        if self.request.method == 'POST' and 'organization-data' in self.request.POST:
+            context['organization_data'] = self.request.POST.get('organization-data')
+        
         return self.render_to_response(context)
 
     def form_invalid(self, form):
@@ -216,9 +221,7 @@ class EditProfileView(TemplateView):
             user_profile_data = self.get_user_profile_info(request)
             
             # Extract organization title from JSON field
-            org_title = ""
-            if user_profile_data.organization and isinstance(user_profile_data.organization, dict):
-                org_title = user_profile_data.organization.get("title", "")
+            org_title = user_profile_data.get_organization_name()
 
 
             profile_edit_form = self.profile_edit_form_class(

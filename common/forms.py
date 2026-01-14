@@ -282,24 +282,18 @@ class SignUpForm:
         
         is_university_email = EMAIL_ALLOW_REGEX.match(email.split("@")[1]) is not None
         
-        logger.error("email: "+str(email))
-        logger.error(is_university_email)
-        
         is_request_account_empty = not bool(why_account_needed)
         is_department_empty = not bool(profile_data.get("department"))
 
         self.is_approved = is_university_email
         
         organization_post_data = self.profile.data.get("organization-data", "")
-        logger.error(f"Raw organization data from form: {organization_post_data}")
     
         organization_data = {}
         if organization_post_data:
             try:
                 organization_data = json.loads(organization_post_data)
-                logger.error(f"Parsed organization data: {organization_data}")
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse organization JSON: {e}")
                 organization_data = {
                     "title": "organization_text_placeholder",
                     "ror_id": "no ror"
@@ -353,10 +347,7 @@ class SignUpForm:
         email_verification = EmailVerificationTable(user=user, token=uuid.uuid4())
         profile = self.profile.save(commit=False)
         profile.user = user
-        logger.error("inside form, checking profile is approved")
-        logger.error(self.is_approved)
         profile.is_approved = self.is_approved
-        logger.error(profile.is_approved)
         profile.organization = self.organization_data
         profile.save()
         # IMPORTANT: Set user to inactive based on approval status
