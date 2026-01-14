@@ -50,7 +50,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
 
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h3>App Metadata</h3>"),
+            mark_safe("<h3>App metadata</h3>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
@@ -64,7 +64,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h3>Configuration Settings</h3>"),
+            mark_safe("<h3>Configuration settings</h3>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
@@ -77,7 +77,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         )
 
         advanced = AccordionGroup(
-            mark_safe("<h3>Advanced Settings</h3>"),
+            mark_safe("<h3>Advanced settings</h3>"),
             PrependedText(
                 "shiny_site_dir",
                 "/srv/shiny-server/",

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}News{% endblock %}
+{% block title %}Platform news{% endblock %}
 {% load static %}
 {% load custom_tags %}
 
@@ -14,7 +14,7 @@
     {% include "portal/sidebar_about_pages.html" %}
 
     <div class="col-lg-10">
-    <h2>Service news</h2>
+    <h2>Platform news</h2>
     <hr class="bg-teal border-0 mb-3" style="height: 2px;">
     <div class="row text-center">
             {% for news in news_objects %}

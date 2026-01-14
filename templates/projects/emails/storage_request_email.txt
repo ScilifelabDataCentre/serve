@@ -1,14 +1,14 @@
-Storage Increase Request
+Storage increase request
 
 Project: {{ project.name }}
-Requested Additional Size: {{ requested_size }} GB
+Requested additional size: {{ requested_size }} GB
 
-User Information:
+User information:
 Name: {{ user.get_full_name }}
 Username: {{ user.username }}
 Email: {{ user.email }}
 
-Reason for Request:
+Reason for request:
 {{ request_reason }}
 
 Project URL: {{ request.get_host }}/projects/{{ project.slug }}/settings?tab=storage

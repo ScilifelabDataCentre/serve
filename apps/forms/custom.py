@@ -46,7 +46,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
 
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h3>App Metadata</h3>"),
+            mark_safe("<h3>App metadata</h3>"),
             SRVCommonDivField("name", placeholder="Name your app", required=True),
             SRVCommonDivField("description", rows=3, placeholder="Provide a detailed description of your app"),
             SRVCommonDivField("tags"),
@@ -61,7 +61,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h3>Configuration Settings</h3>"),
+            mark_safe("<h3>Configuration settings</h3>"),
             SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
             self._set_up_mount_path_helper(),
             SRVCommonDivField("flavor"),
@@ -71,7 +71,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         )
 
         advanced = AccordionGroup(
-            mark_safe("<h3>Advanced Settings</h3>"),
+            mark_safe("<h3>Advanced settings</h3>"),
             PrependedText(
                 "default_url_subpath",
                 mark_safe("<span id='id_custom_default_url_prepend'>Subdomain/</span>"),
