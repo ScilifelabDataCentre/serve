@@ -59,7 +59,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
                 "note_on_linkonly_privacy",
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
-            SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+            SRVCommonDivField("source_code_url"),
             active=True,
         )
 

@@ -51,7 +51,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("tags"),
             SRVCommonDivField("access"),
-            SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+            SRVCommonDivField("source_code_url"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,

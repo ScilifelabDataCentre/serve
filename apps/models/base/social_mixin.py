@@ -7,7 +7,12 @@ class SocialMixin(models.Model):
     note_on_linkonly_privacy = models.TextField(blank=True, null=True, default="")
     reminder_date_linkonly_privacy = models.DateField(null=True, blank=True)
     collections = models.ManyToManyField("portal.Collection", blank=True, related_name="%(class)s")
-    source_code_url = models.URLField(blank=True, null=True)
+    source_code_url = models.URLField(
+        "Source code URL",
+        blank=True,
+        null=True,
+        help_text="Provide a link to the public source code of the application. For example, https://github.com/ScilifelabDataCentre/streamlit-image-to-smiles.",
+    )
     description = models.TextField(
         default="",
         help_text="Provide a detailed description of your app. Think of it as the abstract of a research article.",
