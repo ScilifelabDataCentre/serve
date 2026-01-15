@@ -36,20 +36,20 @@ class TestDataManager:
         user.is_active = True
         user.save()
 
-        # Profile creation, # TODO fix e2e tests accordingly, all will break otherwise
+        # Profile creation
         if any(field in self.user_data for field in ("affiliation", "organization")):
             user_profile = UserProfile.objects.create_user_profile(user)
 
-        if "department" in self.user_data:
-            user_profile.department = self.user_data["department"]
+            if "department" in self.user_data:
+                user_profile.department = self.user_data["department"]
 
-        if "organization" in self.user_data:
-            user_profile.organization = self.user_data["organization"]
+            if "organization" in self.user_data:
+                user_profile.organization = self.user_data["organization"]
 
-        if "affiliation" in self.user_data:
-            user_profile.affiliation = self.user_data["affiliation"]
+            if "affiliation" in self.user_data:
+                user_profile.affiliation = self.user_data["affiliation"]
 
-        user_profile.save()
+            user_profile.save()
 
         return user
 
