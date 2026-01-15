@@ -101,7 +101,7 @@ class UserProfile(models.Model):
         """
         if self.organization and self.organization.get("ror_id"):
             ror = self.organization["ror_id"]
-            if ror not in ["no ror", "migrated_from_legacy"]:
+            if ror != "no ror":
                 return ror
         return None
 
@@ -135,7 +135,7 @@ class UserProfile(models.Model):
 
         # Get university name from affiliation code
         # If affiliation code is not in the mapping, use default fallback
-        if self.affiliation not in universities:
+        if self.affiliation == "other":
             logger.warning(
                 f"Affiliation code '{self.affiliation}' not found in universities mapping for {self.user.email}"
             )
@@ -193,7 +193,7 @@ class UserProfile(models.Model):
 
         try:
             self.save()
-            logger.info(f"Migrated {self.user.email}: {self.affiliation} -> {university_name} (ROR: {ror_id})")
+            logger.info(f"Migrated {self.user.email}: {self.affiliation} -> {title} (ROR: {ror_id})")
             return True
         except Exception as e:
             logger.error(f"Failed to save migration for {self.user.email}: {e}")

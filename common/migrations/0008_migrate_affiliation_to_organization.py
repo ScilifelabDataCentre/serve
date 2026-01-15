@@ -104,9 +104,9 @@ def migrate_affiliation_to_organization(apps, schema_editor):
     affiliation_code_not_found_count = 0
 
     for profile in UserProfile.objects.all():
-        if profile.affiliation and not profile.organization:
+        if profile.affiliation == "other":
             # Check if affiliation code exists in mapping
-            if profile.affiliation not in universities:
+            if profile.affiliation == 'other':
                 logger.warning(
                     f"Affiliation code '{profile.affiliation}' not found in universities mapping for {profile.user.email}"
                 )
@@ -131,7 +131,7 @@ def migrate_affiliation_to_organization(apps, schema_editor):
             try:
                 profile.save()
                 migrated_count += 1
-                print(f"Migrated {profile.user.email}: {profile.affiliation} -> {university_name} (ROR: {ror_id})")
+                print(f"Migrated {profile.user.email}: {profile.affiliation} -> {title} (ROR: {ror_id})")
             except Exception as e:
                 failed_count += 1
                 logger.error(f"Failed to migrate {profile.user.email}: {e}")
