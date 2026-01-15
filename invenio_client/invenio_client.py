@@ -478,8 +478,20 @@ class InvenioClient:
         Extract the first language id from an Invenio record/draft.
         Expected shape: metadata.languages = [{"id": "eng"}]
         """
-        md = record.get("metadata") or {}
-        langs = md.get("languages") or []
-        if not langs:
+        metadata = record.get("metadata")
+        if not isinstance(metadata, dict):
             return None
-        return langs[0].get("id")
+
+        languages = metadata.get("languages")
+        if not isinstance(languages, list) or not languages:
+            return None
+
+        language_entry = languages[0]
+        if not isinstance(language_entry, dict):
+            return None
+
+        language_id = language_entry.get("id")
+        if not isinstance(language_id, str):
+            return None
+
+        return language_id

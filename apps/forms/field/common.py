@@ -14,7 +14,9 @@ class SRVCommonDivField(Div):
     using this class.
     """
 
-    def __init__(self, field_name: str, spinner=False, tooltip=True, css_class=None, template="apps/custom_field.html", **kwargs):
+    def __init__(
+        self, field_name: str, spinner=False, tooltip=True, css_class=None, template="apps/custom_field.html", **kwargs
+    ):
         if css_class is None and spinner:
             css_class = "form-input-with-spinner"
         base_args = dict(

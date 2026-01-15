@@ -1,19 +1,19 @@
+import logging
 import uuid
 
+import waffle
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Submit
 from django import forms
+from django.conf import settings
+from django.forms import Select, SelectMultiple
 from django.shortcuts import get_object_or_404
 
 from apps.forms.field.widget import SubdomainInputGroup
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
-from projects.models import Flavor, Project
-from django.forms import Select, SelectMultiple
-import logging
-import waffle
-from django.conf import settings
 from invenio_client import InvenioClient  # adjust import path
+from projects.models import Flavor, Project
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +118,7 @@ class BaseForm(forms.ModelForm):
 
         except Exception:
             logger.exception("Failed to fetch language from Invenio; leaving default initial.")
+
     def clean_subdomain(self):
         cleaned_data = super().clean()
         subdomain_input = cleaned_data.get("subdomain")

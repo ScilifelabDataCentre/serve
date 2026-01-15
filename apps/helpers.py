@@ -409,7 +409,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             continuation_message = "Continuing with app deployment despite DOI minting failure"
             try:
                 # Wrap the DOI minting call in try-except to handle potential failures
-                save_metadata_to_invenio_then_mint_doi(app_slug, instance_id,additional_metadata=additional_metadata)
+                save_metadata_to_invenio_then_mint_doi(app_slug, instance_id, additional_metadata=additional_metadata)
 
             except ValueError as e:
                 logger.error(
@@ -1132,6 +1132,7 @@ def export_k8s_values_to_yaml(instances: QuerySet[BaseAppInstance] | Iterable[Ba
         logger.error(f"Error converting values to YAML: {e}")
         raise ValueError(f"Error exporting values to YAML: {e}") from e
 
+
 def _apply_additional_invenio_metadata(target_metadata: dict[str, Any], extra: dict[str, Any]) -> None:
     """
     Apply additional form-only metadata into Invenio metadata.
@@ -1153,7 +1154,6 @@ def _apply_additional_invenio_metadata(target_metadata: dict[str, Any], extra: d
                 target_metadata["languages"] = [{"id": value}]
             elif isinstance(value, list):
                 target_metadata["languages"] = value
-
 
 
 def generate_invenio_metadata(app_instance: Any, additional_metadata: dict[str, Any] | None = None) -> Dict[str, Any]:
@@ -1287,7 +1287,9 @@ def generate_invenio_metadata(app_instance: Any, additional_metadata: dict[str, 
     return invenio_metadata
 
 
-def save_metadata_to_invenio_then_mint_doi(app_slug: str, app_id: int, additional_metadata: dict[str, Any] | None = None) -> None:
+def save_metadata_to_invenio_then_mint_doi(
+    app_slug: str, app_id: int, additional_metadata: dict[str, Any] | None = None
+) -> None:
     """
     Save or update application metadata in InvenioRDM.
 
@@ -1381,8 +1383,7 @@ def save_metadata_to_invenio_then_mint_doi(app_slug: str, app_id: int, additiona
 
         try:
             # Transform to Invenio format
-            invenio_data: Dict[str, Any] = generate_invenio_metadata(app,additional_metadata=additional_metadata)
-
+            invenio_data: Dict[str, Any] = generate_invenio_metadata(app, additional_metadata=additional_metadata)
 
             # Extract components
             metadata: Dict[str, Any] = invenio_data["metadata"]
