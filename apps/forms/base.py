@@ -44,6 +44,11 @@ class BaseForm(forms.ModelForm):
 
         self._setup_form_fields()
         self._setup_form_helper()
+        for field in self.fields.values():
+            if isinstance(field.widget, (Select, SelectMultiple)):
+                field.widget.attrs["class"] = "form-select"
+            else:
+                field.widget.attrs["class"] = "form-control"
 
     def _setup_form_fields(self):
         # Populate subdomain field with instance subdomain if it exists
