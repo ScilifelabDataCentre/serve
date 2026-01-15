@@ -37,6 +37,7 @@ class DashForm(ContainerImageMixin, AppBaseForm):
 
         # Setup container image field from mixin
         self._setup_container_image_field()
+        super()._restore_model_help_text()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()

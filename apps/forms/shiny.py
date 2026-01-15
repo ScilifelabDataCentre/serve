@@ -28,6 +28,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         # Setup container image field from mixin
         self._setup_container_image_field()
         self._set_up_mount_path_field()
+        super()._restore_model_help_text()
 
     def _setup_form_fields(self):
         # Handle Volume field
