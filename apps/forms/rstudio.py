@@ -32,7 +32,7 @@ class RStudioForm(VolumeMixin, AppBaseForm):
 
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h3>App Metadata</h3>"),
+            mark_safe("<h3>Description</h3>"),
             SRVCommonDivField("name", placeholder="Name your app"),
             SRVCommonDivField("access"),
             active=True,
@@ -46,8 +46,8 @@ class RStudioForm(VolumeMixin, AppBaseForm):
             active=True,
         )
         accordion = BS5Accordion(
-            general,
             configuration,
+            general,
             always_open=True,
             css_class="form-accordion",
         )

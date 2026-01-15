@@ -20,6 +20,16 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
+    language = forms.ChoiceField(
+        choices=AppBaseForm.LANGUAGE_CHOICES,
+        required=False,
+        initial="eng",
+        label="Language of the application interface",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        super().add_metadata()
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -43,25 +53,34 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
-
         # Define AccordionGroups
-        general = AccordionGroup(
-            mark_safe("<h3>App Metadata</h3>"),
-            SRVCommonDivField("name", placeholder="Name your app", required=True),
-            SRVCommonDivField("description", rows=3, placeholder="Provide a detailed description of your app"),
+        general_fields = [
+            SRVCommonDivField("name", required=True),
+            SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("tags"),
             SRVCommonDivField("access"),
+        ]
+
+        if "language" in self.fields:
+            general_fields.append(SRVCommonDivField("language", tooltip=False))
+
+        general_fields += [
             SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
                 placeholder="Describe why you want to make the app accessible only via a link",
             ),
+        ]
+
+        general = AccordionGroup(
+            mark_safe("<h3>Description</h3>"),
+            *general_fields,
             active=True,
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h3>Configuration Settings</h3>"),
+            mark_safe("<h3>Configuration</h3>"),
             SRVCommonDivField("subdomain", placeholder="Enter a subdomain or leave blank for a random one."),
             self._set_up_mount_path_helper(),
             SRVCommonDivField("flavor"),
@@ -71,7 +90,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         )
 
         advanced = AccordionGroup(
-            mark_safe("<h3>Advanced Settings</h3>"),
+            mark_safe("<h3>Advanced settings</h3>"),
             PrependedText(
                 "default_url_subpath",
                 mark_safe("<span id='id_custom_default_url_prepend'>Subdomain/</span>"),
@@ -82,8 +101,8 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         )
 
         accordion = BS5Accordion(
-            general,
             configuration,
+            general,
             advanced,
             always_open=True,
             css_class="form-accordion",
@@ -116,5 +135,5 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         ]
         labels = {
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
-            "tags": "Keywords",
+            "tags": "Subjects and Keywords",
         }
