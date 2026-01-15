@@ -126,7 +126,7 @@ describe("Tests of the public pages of the website", () => {
             cy.get('#owner_aff').should('contain', 'Uppsala universitet (Uppsala University)')
 
             // Verify download link exists and has correct href
-            cy.contains('a.btn.btn-primary', 'Download All Metadata (JSON)')
+            cy.contains('a.btn.btn-primary', 'Download all metadata (JSON)')
                 .should('have.attr', 'href')
                     .and('include', '/records/')
                         .and('include', '?format=json')
@@ -134,7 +134,7 @@ describe("Tests of the public pages of the website", () => {
             // Verify the download request completes successfully
             cy.intercept('GET', '**/records/**/*?format=json').as('metadataDownload')
             // Click the download link (opens in same tab)
-            cy.contains('a.btn.btn-primary', 'Download All Metadata (JSON)')
+            cy.contains('a.btn.btn-primary', 'Download all metadata (JSON)')
                 .invoke('removeAttr', 'target') // Remove target="_blank"
                     .click()
 
