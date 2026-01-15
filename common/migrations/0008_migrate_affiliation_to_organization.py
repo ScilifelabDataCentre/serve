@@ -104,37 +104,36 @@ def migrate_affiliation_to_organization(apps, schema_editor):
     affiliation_code_not_found_count = 0
 
     for profile in UserProfile.objects.all():
+        # Check if affiliation code exists in mapping
         if profile.affiliation == "other":
-            # Check if affiliation code exists in mapping
-            if profile.affiliation == 'other':
-                logger.warning(
-                    f"Affiliation code '{profile.affiliation}' not found in universities mapping for {profile.user.email}"
-                )
-                title = "Other"
-                ror_id = "migrated_from_legacy"
-                affiliation_code_not_found_count += 1
-            else:
-                # Get university name from affiliation code
-                university_name = universities[profile.affiliation]
-                title = university_name
+            logger.warning(
+                f"Affiliation code '{profile.affiliation}' not found in universities mapping for {profile.user.email}"
+            )
+            title = "Other"
+            ror_id = "migrated_from_legacy"
+            affiliation_code_not_found_count += 1
+        else:
+            # Get university name from affiliation code
+            university_name = universities[profile.affiliation]
+            title = university_name
 
-                # Fetch ROR ID from API
-                ror_id = fetch_ror_id(university_name)
+            # Fetch ROR ID from API
+            ror_id = fetch_ror_id(university_name)
 
-            # Create organization data from affiliation
-            profile.organization = {
-                "title": title,
-                "ror_id": ror_id,
-                "legacy_affiliation": profile.affiliation,  # Keep original for reference
-            }
+        # Create organization data from affiliation
+        profile.organization = {
+            "title": title,
+            "ror_id": ror_id,
+            "legacy_affiliation": profile.affiliation,  # Keep original for reference
+        }
 
-            try:
-                profile.save()
-                migrated_count += 1
-                print(f"Migrated {profile.user.email}: {profile.affiliation} -> {title} (ROR: {ror_id})")
-            except Exception as e:
-                failed_count += 1
-                logger.error(f"Failed to migrate {profile.user.email}: {e}")
+        try:
+            profile.save()
+            migrated_count += 1
+            print(f"Migrated {profile.user.email}: {profile.affiliation} -> {title} (ROR: {ror_id})")
+        except Exception as e:
+            failed_count += 1
+            logger.error(f"Failed to migrate {profile.user.email}: {e}")
 
     print(
         f"\nMigration complete: {migrated_count} profiles migrated, {failed_count} failed, {affiliation_code_not_found_count} affiliation code not found"
