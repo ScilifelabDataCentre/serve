@@ -102,6 +102,7 @@ def migrate_affiliation_to_organization(apps, schema_editor):
     migrated_count = 0
     failed_count = 0
     affiliation_code_not_found_count = 0
+    non_legacy_profile_count = 0
 
     for profile in UserProfile.objects.all():
         # Check if affiliation code exists in mapping
@@ -112,7 +113,8 @@ def migrate_affiliation_to_organization(apps, schema_editor):
             title = "Other"
             ror_id = "migrated_from_legacy"
             affiliation_code_not_found_count += 1
-        else:
+        # Make sure it is legacy profile
+        elif profile.affiliation != "":
             # Get university name from affiliation code
             university_name = universities[profile.affiliation]
             title = university_name
@@ -120,23 +122,27 @@ def migrate_affiliation_to_organization(apps, schema_editor):
             # Fetch ROR ID from API
             ror_id = fetch_ror_id(university_name)
 
-        # Create organization data from affiliation
-        profile.organization = {
-            "title": title,
-            "ror_id": ror_id,
-            "legacy_affiliation": profile.affiliation,  # Keep original for reference
-        }
+        if profile.affiliation != "":
+            # Create organization data from affiliation
+            profile.organization = {
+                "title": title,
+                "ror_id": ror_id,
+                "legacy_affiliation": profile.affiliation,  # Keep original for reference
+            }
 
-        try:
-            profile.save()
-            migrated_count += 1
-            print(f"Migrated {profile.user.email}: {profile.affiliation} -> {title} (ROR: {ror_id})")
-        except Exception as e:
-            failed_count += 1
-            logger.error(f"Failed to migrate {profile.user.email}: {e}")
+            try:
+                profile.save()
+                migrated_count += 1
+                print(f"Migrated {profile.user.email}: {profile.affiliation} -> {title} (ROR: {ror_id})")
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"Failed to migrate {profile.user.email}: {e}")
+        else:
+            non_legacy_profile_count += 1
 
     print(
-        f"\nMigration complete: {migrated_count} profiles migrated, {failed_count} failed, {affiliation_code_not_found_count} affiliation code not found"
+        f"\nMigration complete: {migrated_count} profiles migrated, {affiliation_code_not_found_count} has affiliation code 'other',"
+        f" {failed_count} failed,  {non_legacy_profile_count} are non-legacy profile"
     )
 
 
