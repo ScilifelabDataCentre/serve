@@ -246,6 +246,26 @@ a.tag::after {
     color: var(--serve-teal);
 }
 
+/* about pages */
+
+a.nav-link.serve-teal {
+    color: var(--serve-teal)!important;
+    color: var(--bs-link-color);
+}
+
+a.nav-link.serve-teal.active {
+    font-weight: bold;
+}
+
+.img-crop {
+  height: 100px;
+  overflow: hidden;
+}
+
+.img-crop img {
+  display: block;
+}
+
 /* app cards styling */
 
 .icon-external {

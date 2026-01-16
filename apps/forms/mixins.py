@@ -22,7 +22,7 @@ class ContainerImageMixin:
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "e.g. docker.io/username/image-name:image-tag",
+                "placeholder": "docker.io/username/image-name:image-tag",
                 "list": "docker-image-list",
             }
         ),
@@ -39,10 +39,9 @@ class ContainerImageMixin:
     def _setup_container_image_helper(self):
         """Returns the crispy layout for the container image field."""
         return Div(
-            Field(
+            SRVCommonDivField(
                 "image",
-                css_class="form-control",
-                placeholder="e.g. docker.io/username/image-name:image-tag",
+                placeholder="docker.io/username/image-name:image-tag",
                 list="docker-image-list",
             ),
             HTML('<datalist id="docker-image-list"></datalist>'),

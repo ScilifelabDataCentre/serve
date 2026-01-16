@@ -158,7 +158,7 @@ if (Cypress.env('create_resources') === true) {
                 .and('include', default_url_subpath)
             // check that the app is not visible under public apps
             cy.visit('/apps/')
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name_project).should('not.exist')
 
             // make this app public as an update and check that it works
@@ -351,7 +351,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name_public_2).should('not.exist')
         })
 
@@ -440,7 +440,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
@@ -525,7 +525,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
@@ -593,7 +593,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
@@ -664,7 +664,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
@@ -735,7 +735,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
@@ -829,7 +829,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name_edited).should('not.exist')
         })
 
@@ -937,7 +937,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
         })
 
@@ -1027,7 +1027,7 @@ if (Cypress.env('create_resources') === true) {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
         })
 

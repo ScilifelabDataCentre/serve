@@ -1,20 +1,22 @@
 {% extends 'base.html' %}
 
-{% block title %}News{% endblock %}
+{% block title %}Platform news{% endblock %}
 {% load static %}
 {% load custom_tags %}
 
 {% block content %}
 
 
-<div class="container">
-    <div class="row text-center mt-5">
-        <div class="col-12 text-center">
-            <h3>News
-            </h3>
-            <hr class="m-0 bg-grape border-0" style="height: 2px;">
-        </div>
+{% include "breadcrumbs/bc_about_pages.html" with breadcrumb_currentpage_title="Service news" %}
 
+  <div class="row">
+
+    {% include "portal/sidebar_about_pages.html" %}
+
+    <div class="col-lg-10">
+    <h2>Platform news</h2>
+    <hr class="bg-teal border-0 mb-3" style="height: 2px;">
+    <div class="row text-center">
             {% for news in news_objects %}
             <div class="col-12">
                 <div class="card border bg-white my-2" id="{{ news.title|slugify}}">
@@ -22,14 +24,18 @@
 
                     <div class="card-body text-start pt-0">
                         <div class="card-title d-flex justify-content-between align-items-center">
-                                <h4 class="text-grape">{{ news.title }}</h4>
+                                <h3 class="text-grape">{{ news.title }}</h3>
                         </div>
                             <div class="card-text">{{ news.body_html|safe }}</div>
                     </div>
                 </div>
             </div>
             {% endfor %}
-    </div>
 
 </div>
+
+    </div>
+
+  </div>
+
 {% endblock %}
