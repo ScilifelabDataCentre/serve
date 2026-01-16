@@ -9,7 +9,7 @@ __all__ = ["NetpolicyForm"]
 class NetpolicyForm(BaseForm):
     def _setup_form_helper(self):
         super()._setup_form_helper()
-        body = Div(Field("name", placeholder="Name your app"), css_class="card-body")
+        body = Div(Field("name"), css_class="card-body")
 
         self.helper.layout = Layout(body, self.footer)
 

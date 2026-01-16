@@ -10,7 +10,10 @@ class GradioAppInstanceManager(AppInstanceManager):
 
 class GradioInstance(AbstractCustomAppInstance, BaseAppInstance):
     objects = GradioAppInstanceManager()
-    port = models.IntegerField(default=7860)
+    port = models.IntegerField(
+        default=7860,
+        help_text="Port that the Docker container exposes and the application runs on. This should be an integer between 3000-9999.",
+    )
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()

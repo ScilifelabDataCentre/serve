@@ -29,8 +29,15 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
         "VolumeInstance", blank=True, null=True, related_name="%(class)s", on_delete=models.SET_NULL
     )
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
-    port = models.IntegerField(default=3838)
-    image = models.CharField(max_length=255)
+    port = models.IntegerField(
+        default=3838,
+        help_text="Port that the Docker container exposes and the application runs on. This should be an integer between 3000-9999.",
+    )
+    image = models.CharField(
+        "Docker image",
+        max_length=255,
+        help_text="Docker image with your application. For example, ghcr.io/username/image-name:image-tag or docker.io/username/image-name:image-tag.",
+    )
     path = models.CharField(max_length=255, default="/", blank=True)
     proxy = models.BooleanField(default=True)
     container_waittime = models.IntegerField(default=20000)
