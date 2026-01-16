@@ -1,4 +1,4 @@
-# Future migration: common/migrations/XXXX_migrate_affiliation_to_organization.py
+# TO DO (Next release): Future migration: common/migrations/XXXX_remove_affiliation_field.py
 
 from django.db import migrations
 import json
