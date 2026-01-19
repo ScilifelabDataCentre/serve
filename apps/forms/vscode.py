@@ -24,14 +24,14 @@ class VSCodeForm(VolumeMixin, AppBaseForm):
 
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h3>App Metadata</h3>"),
-            SRVCommonDivField("name", placeholder="Name your app"),
+            mark_safe("<h3>Description</h3>"),
+            SRVCommonDivField("name", required=True),
             SRVCommonDivField("access"),
             active=True,
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h3>Configuration Settings</h3>"),
+            mark_safe("<h3>Configuration</h3>"),
             self._set_up_volume_helper(),
             SRVCommonDivField("flavor"),
             active=True,

@@ -26,7 +26,7 @@ class MLFlowAppForm(BaseForm):
                 <a href="https://mlflow.org/docs/latest/index.html">MLFlow Documentation</a>.</p>
                 """
             ),
-            Field("name", placeholder="Name your app"),
+            Field("name", required=True),
             css_class="card-body",
         )
 
