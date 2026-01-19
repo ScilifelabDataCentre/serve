@@ -35,8 +35,14 @@ class AbstractCustomAppInstance(SocialMixin, LogsEnabledMixin):
         "projects.PersistentVolumeMountPath", blank=True, null=True, on_delete=models.SET_NULL
     )
     access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
-    port = models.IntegerField(default=8000)
-    image = models.CharField(max_length=255)
+    port = models.IntegerField(
+        default=8000,
+        help_text="Port that the Docker container exposes and the application runs on. This should be an integer between 3000-9999.",
+    )
+    image = models.CharField(
+        max_length=255,
+        help_text="Docker image with your application. For example, ghcr.io/username/image-name:image-tag or docker.io/username/image-name:image-tag.",
+    )
     path = models.CharField(max_length=255, default="/", blank=True)
     user_id = models.IntegerField(default=1000)
 

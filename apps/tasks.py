@@ -34,7 +34,7 @@ def delete_old_objects():
 
     This function retrieves the old apps based on the given threshold, category, and model class.
     It then iterates through the subclasses of BaseAppInstance and deletes the old apps
-    for both the "Develop" and "Manage Files" categories.
+    for both the "Develop" and "Manage files" categories.
     It skips app instances with action set to SystemDeleting.
     TODO: Make app categories and their corresponding thresholds variables in settings.py.
     """

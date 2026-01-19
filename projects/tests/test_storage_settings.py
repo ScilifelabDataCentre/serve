@@ -630,7 +630,7 @@ class StorageRequestTestCase(TestCase):
 
             # Verify email template content
             self.assertIn(f"Project: {self.project.name}", call_args["subject"])
-            self.assertIn("Requested Additional Size: 20 GB", call_args["message"])
+            self.assertIn("Requested additional size: 20 GB", call_args["message"])
             self.assertIn("Project requirements increased", call_args["message"])
             self.assertIn(f"Name: {self.user.get_full_name()}", call_args["message"])
             self.assertIn(f"Username: {self.user.username}", call_args["message"])

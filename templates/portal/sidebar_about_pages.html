@@ -1,0 +1,16 @@
+  <div class="col-lg-2">
+
+  <aside class="sticky-lg-top py-2">
+      <h3 class="mb-2">About</h3>
+      <nav class="nav flex-column">
+          <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'portal:about' %}">About the platform</a>
+            <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'news' %}active{% endif %}" href="{% url 'portal:news' %}">Platform news</a>
+            <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'roadmap' %}active{% endif %}" href="{% url 'portal:roadmap' %}">Roadmap</a>
+          <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'cite' %}active{% endif %}" href="{% url 'portal:cite' %}">Citing us</a>
+        <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'privacy' %}active{% endif %}" href="{% url 'portal:privacy' %}">Privacy policy</a>
+          <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'contact' %}active{% endif %}" href="{% url 'portal:contact' %}">Contact</a>
+
+      </nav>
+  </aside>
+
+  </div>

@@ -170,7 +170,7 @@ class BaseAppInstance(models.Model):
     deleted_on = models.DateTimeField(null=True, blank=True)
     info = models.JSONField(blank=True, null=True)
     # model_dependencies = models.ManyToManyField("models.Model", blank=True)
-    name = models.CharField(max_length=512, default="app_name")
+    name = models.CharField("Title", max_length=512, default="app_name")
     owner = models.ForeignKey(
         get_user_model(),
         on_delete=models.CASCADE,
