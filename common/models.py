@@ -74,9 +74,19 @@ class UserProfile(models.Model):
         """
         Get organization name, handling both new and legacy data
         """
-        if self.organization and self.organization.get("title"):
-            return self.organization["title"]
-        elif self.affiliation:
+        if self.organization:
+            # Handle case where organization might be a string (JSON) instead of dict
+            org_data = self.organization
+            if isinstance(org_data, str):
+                try:
+                    org_data = json.loads(org_data)
+                except (json.JSONDecodeError, TypeError):
+                    return org_data  # Return string as-is if not valid JSON
+
+            if isinstance(org_data, dict) and org_data.get("title"):
+                return org_data["title"]
+
+        if self.affiliation:
             # Fallback to legacy affiliation
             return self.get_affiliation_display_name()
         return "Unknown"

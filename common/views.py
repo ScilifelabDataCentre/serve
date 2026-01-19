@@ -257,15 +257,46 @@ class EditProfileView(TemplateView):
             initial={"affiliation": user_profile_data.get_organization_name()},
         )
 
-        if user_form_details.is_valid() and profile_form_details.is_valid():
+        # Handle organization data from hidden field (same logic as SignUpForm.clean())
+        organization_data_str = request.POST.get("organization-data", "")
+        organization_data = {}
+
+        if organization_data_str:
+            try:
+                organization_data = json.loads(organization_data_str)
+            except json.JSONDecodeError as e:
+                logger.debug(f"Using fallback title, JSONDecodeError - {str(e)}")
+                organization_text = request.POST.get("organization", "")
+                organization_data = {"title": organization_text or "", "ror_id": "no ror"}
+        else:
+            # No JSON data, create from text field
+            organization_text = request.POST.get("organization", "")
+            if organization_text:
+                organization_data = {"title": organization_text, "ror_id": "no ror"}
+
+        # Validate organization has valid ROR ID
+        is_organization_valid = True
+        if not organization_data.get("ror_id") or organization_data.get("ror_id") == "no ror":
+            is_organization_valid = False
+            profile_form_details.add_error(
+                "organization",
+                "Please select a valid organization from the ROR list. Your organization must be registered"
+                " in the Research Organization Registry.",
+            )
+
+        if user_form_details.is_valid() and profile_form_details.is_valid() and is_organization_valid:
             try:
                 with transaction.atomic():
                     user_form_details.save()
+
+                    # Save organization data to profile
+                    user_profile_data.organization = organization_data
                     profile_form_details.save()
 
                     logger.info("Updated First Name: " + str(self.get_user_profile_info(request).user.first_name))
                     logger.info("Updated Last Name: " + str(self.get_user_profile_info(request).user.last_name))
                     logger.info("Updated Department: " + str(self.get_user_profile_info(request).department))
+                    logger.info("Updated Organization: " + str(self.get_user_profile_info(request).organization))
 
             except Exception as e:
                 return HttpResponse("Error updating records: " + str(e))
@@ -279,9 +310,15 @@ class EditProfileView(TemplateView):
             if not profile_form_details.is_valid():
                 logger.error("Edit profile error: " + str(profile_form_details.errors))
 
-            return render(
-                request, self.template_name, {"form": user_form_details, "profile_form": profile_form_details}
-            )
+            # Preserve organization-data for re-rendering
+            context = {
+                "form": user_form_details,
+                "profile_form": profile_form_details,
+            }
+            if organization_data_str:
+                context["organization_data"] = organization_data_str
+
+            return render(request, self.template_name, context)
 
 
 @method_decorator(login_required, name="dispatch")

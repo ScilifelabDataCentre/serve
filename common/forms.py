@@ -503,8 +503,3 @@ class ProfileEditForm(ProfileForm):
             org_data = self.instance.organization
             if isinstance(org_data, dict):
                 self.initial["organization"] = org_data.get("title", "")
-
-        self.fields["organization"].disabled = True
-        self.fields[
-            "organization"
-        ].help_text = "Organization can not be changed. Please email serve@scilifelab.se with any questions."

@@ -71,12 +71,26 @@
                             <h6 class="fw-bold">Affiliation</h6>
                         </div>
 
-                        <!-- New organization row: -->
                         <div class="row pt-1">
                             <div class="col-4">{{profile_form.organization.label_tag}}</div>
-                            <div class="col-8 fw-bold">{{ profile_form.organization }}</div>
+                            <div class="col-8 fw-bold position-relative">
+                                {{ profile_form.organization }}
+                                <input type="hidden" id="organization-data" name="organization-data"
+                                    value="{{ organization_data|default:'' }}">
+                                <div id="organization-suggestions" class="list-group position-absolute" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+                            </div>
                             <div class="col-4"></div>
                             <div class="col-8 form-text">{{profile_form.organization.help_text}}</div>
+                            {% if profile_form.organization.errors %}
+                                <div class="col-4"></div>
+                                <div class="col-8">
+                                    <div id="validation_organization" class="pt-1 invalid-feedback" style="display: block;">
+                                        {% for error in profile_form.organization.errors %}
+                                        <p class="m-0">{{error|escape}}</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="row pt-1">

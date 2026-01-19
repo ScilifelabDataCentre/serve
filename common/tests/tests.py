@@ -290,12 +290,13 @@ def test_pass_validation_profile_edit_form(department):
     request = HttpRequest()
     request.POST = {
         "department": department,
+        "organization": "Uppsala University",
     }
     form = ProfileEditForm(
         request.POST,
         instance=UserProfile(),
         initial={
-            "organization": "Test University",
+            "organization": "Uppsala University",
         },
     )
-    assert form.is_valid()
+    assert form.is_valid(), form.errors
