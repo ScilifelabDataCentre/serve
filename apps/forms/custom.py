@@ -56,7 +56,6 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         super()._setup_form_helper()
         # Define AccordionGroups
         general_fields = [
-
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("tags"),
