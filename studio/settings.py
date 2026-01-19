@@ -610,7 +610,7 @@ CACHES = {
 }
 
 # k8s cluster version for validation of manifests
-CLUSTER_VERSION = "1.32"
+CLUSTER_VERSION = "1.33"
 
 # Serve profiling image
 PROFILING_ENABLED = os.getenv("PROFILING_ENABLED", "false").lower() == "true"
