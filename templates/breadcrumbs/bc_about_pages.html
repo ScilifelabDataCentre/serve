@@ -1,0 +1,8 @@
+{% extends "breadcrumbs/breadcrumb_base.html" %}
+
+{% block breadcrumb_content %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'portal:about' %}">About</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">{{ breadcrumb_currentpage_title }}</li>
+{% endblock %}

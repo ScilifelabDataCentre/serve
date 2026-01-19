@@ -35,6 +35,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         self._setup_container_image_field()
         self._set_up_mount_path_field()
         super().add_metadata()
+        super()._restore_model_help_text()
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -67,11 +68,10 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
             general_fields.append(SRVCommonDivField("language", tooltip=False))
 
         general_fields += [
-            SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+            SRVCommonDivField("source_code_url", placeholder="https://..."),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
-                placeholder="Describe why you want to make the app accessible only via a link",
             ),
         ]
 
@@ -95,7 +95,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         )
 
         advanced = AccordionGroup(
-            mark_safe("<h3>Advanced Settings</h3>"),
+            mark_safe("<h3>Advanced settings</h3>"),
             PrependedText(
                 "shiny_site_dir",
                 "/srv/shiny-server/",

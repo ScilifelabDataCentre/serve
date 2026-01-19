@@ -11,11 +11,11 @@
     <div class="row">
         <div class="col">
             <div class="d-flex align-items-center mb-3 flex-wrap justify-content-center">
-                <h3 class="h3 me-2">Public Applications & Models</h3>
+                <h3 class="h3 me-2">Public applications & models</h3>
                 <span id="public-apps-count" class="ghost-number h3 me-3">{{ serialized_apps|length }}</span>
                 <div class="break"></div>
                 <div class="search-container-filter me-3 w-50">
-                  <input id="public-app-search" class="form-control search-input-filter search" placeholder="Search Apps..." {% if serialized_apps|length <= 0 %}disabled{% endif %} title="Search Apps" aria-label="Search Apps" >
+                  <input id="public-app-search" class="form-control search-input-filter search" placeholder="Search apps..." {% if serialized_apps|length <= 0 %}disabled{% endif %} title="Search Apps" aria-label="Search Apps" >
                 </div>
                 <button class="btn btn-outline-dark btn-xs" tabindex="-1" type="button" id="filterButton" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" {% if serialized_apps|length <= 0 %}disabled{% endif %}>
                     <i class="fa-solid fa-sliders fa-sm"></i> <span class="ms-1">Filters</span>
@@ -72,7 +72,7 @@
                           </li>
                       </ul>
                       <div class="search-container-filter w-25 d-flex mb-1 show-filter-search">
-                          <input id="filter-search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search Tags..." title="Search Tags" aria-label="Search Tags" >
+                          <input id="filter-search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search tags..." title="Search Tags" aria-label="Search Tags" >
                           <button class="btn btn-outline-dark btn-xs d-flex align-items-center" type="button" onclick="resetFilters()">
                             <i class="fa-solid fa-rotate-left fa-sm"></i>
                             <span class="ms-1">Reset</span>

@@ -50,6 +50,15 @@ class BaseForm(forms.ModelForm):
             else:
                 field.widget.attrs["class"] = "form-control"
 
+    # restore helptext for model in case it is rest in form
+    def _restore_model_help_text(self):
+        for name, field in self.fields.items():
+            # Only for model-backed fields
+            if name in getattr(self._meta, "fields", []):
+                model_field = self._meta.model._meta.get_field(name)
+                if not field.help_text and getattr(model_field, "help_text", ""):
+                    field.help_text = model_field.help_text
+
     def _setup_form_fields(self):
         # Populate subdomain field with instance subdomain if it exists
         self.fields["subdomain"].widget.data["project_pk"] = self.project_pk
@@ -67,6 +76,7 @@ class BaseForm(forms.ModelForm):
             self._original_tags = list(self.instance.tags.all())
         else:
             self._original_tags = []
+        self._restore_model_help_text()
 
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel

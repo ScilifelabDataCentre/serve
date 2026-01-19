@@ -51,11 +51,10 @@ class GradioForm(StorageMixin, ContainerImageMixin, AppBaseForm):
             general_fields.append(SRVCommonDivField("language", tooltip=False))
 
         general_fields += [
-            SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+            SRVCommonDivField("source_code_url", placeholder="https://..."),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
-                placeholder="Describe why you want to make the app accessible only via a link",
             ),
         ]
 

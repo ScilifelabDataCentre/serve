@@ -10,7 +10,7 @@ class VolumeForm(BaseForm):
     def _setup_form_helper(self):
         super()._setup_form_helper()
         body = Div(
-            Field("name", placeholder="Name your app"),
+            Field("name", required=True),
             Field("size"),
             Field("subdomain", placeholder="Enter a subdomain or leave blank for a random one"),
             css_class="card-body",

@@ -47,6 +47,7 @@ class DashForm(ContainerImageMixin, AppBaseForm):
 
         # Setup container image field from mixin
         self._setup_container_image_field()
+        super()._restore_model_help_text()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -62,11 +63,10 @@ class DashForm(ContainerImageMixin, AppBaseForm):
             general_fields.append(SRVCommonDivField("language", tooltip=False))
 
         general_fields += [
-            SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+           SRVCommonDivField("source_code_url", placeholder="https://..."),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
-                placeholder="Describe why you want to make the app accessible only via a link",
             ),
         ]
 
@@ -77,7 +77,7 @@ class DashForm(ContainerImageMixin, AppBaseForm):
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h3>Configuration Settings</h3>"),
+            mark_safe("<h3>Configuration</h3>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
@@ -89,7 +89,7 @@ class DashForm(ContainerImageMixin, AppBaseForm):
         )
 
         advanced = AccordionGroup(
-            mark_safe("<h3>Advanced Settings</h3>"),
+            mark_safe("<h3>Advanced settings</h3>"),
             PrependedText(
                 "default_url_subpath",
                 mark_safe("<span id='id_custom_default_url_prepend'>Subdomain/</span>"),

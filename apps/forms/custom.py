@@ -50,11 +50,13 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         # Setup container image field from mixin
         self._setup_container_image_field()
         self._set_up_mount_path_field()
+        super()._restore_model_help_text()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
         # Define AccordionGroups
         general_fields = [
+
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("tags"),
@@ -65,11 +67,10 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
             general_fields.append(SRVCommonDivField("language", tooltip=False))
 
         general_fields += [
-            SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+            SRVCommonDivField("source_code_url", placeholder="https://..."),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
-                placeholder="Describe why you want to make the app accessible only via a link",
             ),
         ]
 

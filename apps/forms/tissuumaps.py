@@ -34,7 +34,7 @@ class TissuumapsForm(VolumeMixin, AppBaseForm):
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h3>Configuration Settings</h3>"),
+            mark_safe("<h3>Configuration</h3>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
@@ -42,7 +42,6 @@ class TissuumapsForm(VolumeMixin, AppBaseForm):
             SRVCommonDivField("flavor"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
-                placeholder="Describe why you want to make the app accessible only via a link",
             ),
             active=True,
         )

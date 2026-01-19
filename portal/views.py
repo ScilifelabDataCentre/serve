@@ -208,6 +208,16 @@ def roadmap(request):
     return render(request, template, locals())
 
 
+def cite(request):
+    template = "portal/cite.html"
+    return render(request, template, locals())
+
+
+def contact(request):
+    template = "portal/contact.html"
+    return render(request, template, locals())
+
+
 def teaching(request):
     template = "portal/teaching.html"
 
