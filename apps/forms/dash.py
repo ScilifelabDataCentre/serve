@@ -63,7 +63,7 @@ class DashForm(ContainerImageMixin, AppBaseForm):
             general_fields.append(SRVCommonDivField("language", tooltip=False))
 
         general_fields += [
-           SRVCommonDivField("source_code_url", placeholder="https://..."),
+            SRVCommonDivField("source_code_url", placeholder="https://..."),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
