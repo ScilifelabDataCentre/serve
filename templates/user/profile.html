@@ -47,10 +47,16 @@
 
                         </div>
 
+                        <div class="row pt-4">
+                            <h6 class="fw-bold">Affiliation</h6>
+                        </div>
+
+                        <!-- organization row: -->
                         <div class="row pt-1">
-                            <div class="col-4"><label for="userAffiliation">University:</label></div>
-                            <div class="col-8 fw-bold"><input type="text" name="affiliation" disabled value="{{user_profile.affiliation}}" class="form-control" id="userAffiliation"></div>
-                            <div class="col-4"></div>
+                            <div class="col-4"><label for="userOrganization">Organization:</label></div>
+                            <div class="col-8 fw-bold">
+                                <input type="text" name="organization" disabled value="{{user_profile.get_organization_name}}" class="form-control" id="userOrganization">
+                            </div>
                         </div>
 
                         <div class="row pt-1">

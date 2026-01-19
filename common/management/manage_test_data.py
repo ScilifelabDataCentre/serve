@@ -37,10 +37,18 @@ class TestDataManager:
         user.save()
 
         # Profile creation
-        if all(field in self.user_data for field in ("department", "affiliation")):
+        if any(field in self.user_data for field in ("affiliation", "organization")):
             user_profile = UserProfile.objects.create_user_profile(user)
-            user_profile.department = self.user_data["department"]
-            user_profile.affiliation = self.user_data["affiliation"]
+
+            if "department" in self.user_data:
+                user_profile.department = self.user_data["department"]
+
+            if "organization" in self.user_data:
+                user_profile.organization = self.user_data["organization"]
+
+            if "affiliation" in self.user_data:
+                user_profile.affiliation = self.user_data["affiliation"]
+
             user_profile.save()
 
         return user
@@ -64,7 +72,7 @@ class TestDataManager:
 
         user_to_delete = User.objects.filter(email__exact=self.user_data["email"])
 
-        if all(field in self.user_data for field in ("department", "affiliation")):
+        if any(field in self.user_data for field in ("department", "affiliation", "organization")):
             UserProfile.objects.filter(user__in=user_to_delete).delete()
 
         deleted_count, _ = user_to_delete.delete()
