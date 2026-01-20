@@ -1,3 +1,4 @@
+import json
 import re
 
 from django.conf import settings
@@ -49,7 +50,12 @@ class UserProfileManager(models.Manager):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    affiliation = models.CharField(max_length=100, blank=True)
+    affiliation = models.CharField(max_length=100, blank=True)  # Keep for now
+    """
+    Stores organization as {"title": "Organization Name", "ror_id":
+    "https://ror.org/xxxxx" or "migrated_from_legacy"}
+    """
+    organization = models.JSONField(default=dict, blank=True)
     department = models.CharField(max_length=100, blank=True)
     deleted_on = models.DateTimeField(null=True, blank=True)
     why_account_needed = models.TextField(max_length=1000, blank=True)
@@ -63,6 +69,145 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.email}"
+
+    def get_organization_name(self):
+        """
+        Get organization name, handling both new and legacy data
+        """
+        if self.organization:
+            # Handle case where organization might be a string (JSON) instead of dict
+            org_data = self.organization
+            if isinstance(org_data, str):
+                try:
+                    org_data = json.loads(org_data)
+                except (json.JSONDecodeError, TypeError):
+                    return org_data  # Return string as-is if not valid JSON
+
+            if isinstance(org_data, dict) and org_data.get("title"):
+                return org_data["title"]
+
+        if self.affiliation:
+            # Fallback to legacy affiliation
+            return self.get_affiliation_display_name()
+        return "Unknown"
+
+    def get_affiliation_display_name(self):
+        """
+        Convert affiliation code to display name
+        Handles legacy data
+        """
+        if not self.affiliation:
+            return "Unknown"
+
+        # Load universities mapping
+        with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
+            universities = json.load(f).get("universities", {})
+
+        return universities.get(self.affiliation, self.affiliation)
+
+    def get_ror_id(self):
+        """
+        Get ROR ID if available
+        """
+        if self.organization and self.organization.get("ror_id"):
+            ror = self.organization["ror_id"]
+            if ror != "no ror":
+                return ror
+        return None
+
+    def is_legacy_affiliation(self):
+        """
+        Check if this profile uses legacy affiliation data
+        """
+        return bool(self.affiliation)  # and (
+        # not self.organization or
+        # self.organization.get('ror_id') == 'migrated_from_legacy'
+        # )
+
+    def migrate_to_organization(self):
+        """
+        Migrate legacy affiliation data to the new organization field with ROR ID lookup.
+        Returns True if migration was successful, False if skipped.
+        """
+        # Skip if already migrated or no legacy data
+        if not self.is_legacy_affiliation():
+            return False
+
+        # Load universities mapping
+        try:
+            with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
+                universities = json.load(f).get("universities", {})
+        except (FileNotFoundError, json.JSONDecodeError, IndexError) as e:
+            logger.error(f"Failed to load universities.json: {e}")
+            return False
+
+        ror_id = "migrated_from_legacy"  # Default fallback
+
+        # Get university name from affiliation code
+        # If affiliation code is not in the mapping, use default fallback
+        if self.affiliation == "other":
+            logger.warning(
+                f"Affiliation code '{self.affiliation}' not found in universities mapping for {self.user.email}"
+            )
+            title = "Other"
+        else:
+            university_name = universities[self.affiliation]
+            title = university_name
+
+            # Try to fetch ROR ID from ROR API
+            try:
+                import requests
+
+                response = requests.get(
+                    "https://api.ror.org/organizations", params={"query": university_name}, timeout=5
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                # Look for exact or close match
+                if data.get("items"):
+                    for item in data.get("items", []):
+                        # Extract the organization title from names array
+                        item_title = ""
+                        for name in item.get("names", []):
+                            if "ror_display" in name.get("types", []):
+                                item_title = name.get("value", "")
+                                break
+
+                        # If no ror_display found, use the first name
+                        if not item_title and item.get("names"):
+                            item_title = item["names"][0].get("value", "")
+
+                        # Check for exact match (case-insensitive)
+                        if item_title.lower() == university_name.lower():
+                            ror_id = item.get("id", "migrated_from_legacy")
+                            logger.info(f"Found ROR ID for {university_name}: {ror_id}")
+                            break
+                    else:
+                        # If no exact match, take the first result as best guess
+                        if data.get("items"):
+                            first_item = data["items"][0]
+                            ror_id = first_item.get("id", "migrated_from_legacy")
+                            logger.warning(f"No exact match for {university_name}, using first result: {ror_id}")
+
+            except Exception as e:
+                logger.warning(f"Failed to fetch ROR ID for {university_name}: {e}. Using fallback.")
+                ror_id = "migrated_from_legacy"
+
+        # Create organization data from affiliation
+        self.organization = {
+            "title": title,
+            "ror_id": ror_id,
+            "legacy_affiliation": self.affiliation,  # Keep original for reference
+        }
+
+        try:
+            self.save()
+            logger.info(f"Migrated {self.user.email}: {self.affiliation} -> {title} (ROR: {ror_id})")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save migration for {self.user.email}: {e}")
+            return False
 
 
 class EmailVerificationTable(models.Model):
