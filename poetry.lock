@@ -2442,14 +2442,14 @@ zookeeper = ["kazoo (>=2.8.0)"]
 
 [[package]]
 name = "kubernetes-validate"
-version = "1.32.0"
+version = "1.33.1"
 description = "validates kubernetes resource definitions against schemas"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "kubernetes_validate-1.32.0-py3-none-any.whl", hash = "sha256:0d5610622bd9c8fdea67f114faf4dc71fda755c9640e58a1ad9f4bc13c8b7751"},
-    {file = "kubernetes_validate-1.32.0.tar.gz", hash = "sha256:192837fdc2c191652501fe268dda34253dfacae0034505a51b0a3884d159361d"},
+    {file = "kubernetes_validate-1.33.1-py3-none-any.whl", hash = "sha256:fd910cff492ea32c85b8733fedd31dd0cf582925d3b3a3e73ceda1876f87bdcb"},
+    {file = "kubernetes_validate-1.33.1.tar.gz", hash = "sha256:53635bf66a5e04901209ae7f6aff0e8c19efa145cc9a90872344c92a31353a99"},
 ]
 
 [package.dependencies]
@@ -5362,4 +5362,4 @@ tests = ["hypothesis", "moto", "pytest", "pytest-cov", "pytest-django", "pytest-
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10.0"
-content-hash = "db0487bb6d4276172a8cda72a983c12dd8a8ed3e2fd8ee6412b3b73e3466147f"
+content-hash = "c5bc7ee430eee50870cf102955edb6762488f6292620d864c9b73ea15272af6c"
