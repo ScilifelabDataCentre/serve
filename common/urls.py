@@ -35,4 +35,5 @@ if settings.DEBUG:
             name="cleanup-all-test-projects",
         ),
         path("devtools/populate-test-app/", views.PopulateTestAppView.as_view(), name="populate-test-app"),
+        path("api/ror-autocomplete/", views.RORAutocompleteView.as_view(), name="ror-autocomplete"),
     ]

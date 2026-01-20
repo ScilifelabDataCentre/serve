@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
 from django.contrib.auth.models import User
 from django.template.response import TemplateResponse
 from django.urls import path
+from django.utils.html import format_html
 
 from .models import (
     EmailSendingTable,
@@ -17,6 +18,14 @@ class UserProfileInline(admin.StackedInline):
     can_delete = False
     verbose_name_plural = "Profile"
     fk_name = "user"
+
+    # Show both fields but make affiliation readonly to indicate it's legacy
+    readonly_fields = ("affiliation",)
+
+    fieldsets = (
+        ("Organization Information", {"fields": ("organization", "affiliation", "department")}),
+        ("Account Information", {"fields": ("is_approved", "why_account_needed", "note", "deleted_on")}),
+    )
 
 
 class EmailVerificationTableInline(admin.StackedInline):
@@ -96,13 +105,85 @@ class EmailSendingTableAdmin(admin.ModelAdmin):
 
 class UserAdmin(DefaultUserAdmin):
     inlines = (UserProfileInline, EmailVerificationTableInline)
-    list_display = ("email", "first_name", "last_name", "is_active", "is_staff", "get_affiliation", "date_joined")
+    list_display = (
+        "email",
+        "first_name",
+        "last_name",
+        "is_active",
+        "is_staff",
+        "get_organization",
+        "get_ror_status",
+        "is_legacy_data",
+        "date_joined",
+    )
     list_select_related = ("userprofile",)
+    list_filter = ("is_active", "is_staff", "userprofile__is_approved")
+    search_fields = ("email", "first_name", "last_name", "userprofile__organization__title", "userprofile__affiliation")
+    actions = ["migrate_legacy_profiles"]
 
-    def get_affiliation(self, instance):
-        return instance.userprofile.affiliation
+    @admin.display(description="Organization", ordering="userprofile__organization")
+    def get_organization(self, instance):
+        """Display organization name (works for both new and legacy data)"""
+        try:
+            return instance.userprofile.get_organization_name()
+        except UserProfile.DoesNotExist:
+            return "N/A"
 
-    get_affiliation.short_description = "Affiliation"  # type: ignore
+    @admin.display(description="ROR ID")
+    def get_ror_status(self, instance):
+        """Show ROR ID with colored indicator"""
+        try:
+            ror_id = instance.userprofile.get_ror_id()
+            if ror_id:
+                # Extract just the ID from the URL
+                ror_display = ror_id.split("/")[-1] if "/" in ror_id else ror_id
+                return format_html('<span style="color: green;">✓ {}</span>', ror_display)
+            else:
+                return format_html('<span style="color: orange;">No ROR</span>')
+        except UserProfile.DoesNotExist:
+            return "N/A"
+
+    @admin.display(description="Legacy Data", boolean=True)
+    def is_legacy_data(self, instance):
+        """Indicate if profile uses legacy affiliation data"""
+        try:
+            return instance.userprofile.is_legacy_affiliation()
+        except UserProfile.DoesNotExist:
+            return False
+
+    @admin.action(description="Migrate selected users to new organization format")
+    def migrate_legacy_profiles(self, request, queryset):
+        """Admin action to migrate selected users' profiles to new organization format"""
+        migrated = 0
+        skipped = 0
+        errors = 0
+
+        for user in queryset:
+            try:
+                profile = user.userprofile
+                if profile.is_legacy_affiliation():
+                    if profile.migrate_to_organization():
+                        migrated += 1
+                    else:
+                        skipped += 1
+                else:
+                    skipped += 1
+            except UserProfile.DoesNotExist:
+                errors += 1
+            except Exception as e:
+                errors += 1
+                self.message_user(request, f"Error migrating {user.email}: {str(e)}", level="ERROR")
+
+        # Build success message
+        messages = []
+        if migrated > 0:
+            messages.append(f"{migrated} profile(s) migrated successfully")
+        if skipped > 0:
+            messages.append(f"{skipped} no legacy data")
+        if errors > 0:
+            messages.append(f"{errors} error(s) occurred")
+
+        self.message_user(request, ". ".join(messages) + ".", level="SUCCESS" if errors == 0 else "WARNING")
 
 
 admin.site.unregister(User)

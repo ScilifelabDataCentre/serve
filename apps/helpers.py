@@ -715,7 +715,7 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
         user_data.update(
             {
                 "department": user_profile.department,
-                "affiliation": get_university_suffix_information(user_profile.affiliation),
+                "affiliation": user_profile.get_organization_name(),
             }
         )
 

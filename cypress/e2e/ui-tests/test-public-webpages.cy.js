@@ -123,7 +123,7 @@ describe("Tests of the public pages of the website", () => {
             cy.get('#owner_name').should('contain', `${TEST_USER_DATA.first_name} ${TEST_USER_DATA.last_name}`)
             cy.get('#owner_email').should('contain', TEST_USER_DATA.email)
             cy.get('#owner_dept').should('contain', TEST_USER_DATA.department)
-            cy.get('#owner_aff').should('contain', 'Uppsala universitet (Uppsala University)')
+            cy.get('#owner_aff').should('contain', 'Uppsala University')
 
             // Verify download link exists and has correct href
             cy.contains('a.btn.btn-primary', 'Download all metadata (JSON)')
