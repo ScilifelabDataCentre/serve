@@ -471,3 +471,27 @@ class InvenioClient:
         response = delete(self.session, url, timeout=self.timeout)
         self._handle_response(response, success_codes=[204])
         return True
+
+    @staticmethod
+    def extract_language_id(record: Dict[str, Any]) -> Optional[str]:
+        """
+        Extract the first language id from an Invenio record/draft.
+        Expected shape: metadata.languages = [{"id": "eng"}]
+        """
+        metadata = record.get("metadata")
+        if not isinstance(metadata, dict):
+            return None
+
+        languages = metadata.get("languages")
+        if not isinstance(languages, list) or not languages:
+            return None
+
+        language_entry = languages[0]
+        if not isinstance(language_entry, dict):
+            return None
+
+        language_id = language_entry.get("id")
+        if not isinstance(language_id, str):
+            return None
+
+        return language_id

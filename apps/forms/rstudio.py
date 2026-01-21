@@ -46,8 +46,8 @@ class RStudioForm(VolumeMixin, AppBaseForm):
             active=True,
         )
         accordion = BS5Accordion(
-            general,
             configuration,
+            general,
             always_open=True,
             css_class="form-accordion",
         )

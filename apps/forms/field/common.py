@@ -14,15 +14,18 @@ class SRVCommonDivField(Div):
     using this class.
     """
 
-    def __init__(self, field_name: str, spinner=False, css_class=None, template="apps/custom_field.html", **kwargs):
+    def __init__(
+        self, field_name: str, spinner=False, tooltip=True, css_class=None, template="apps/custom_field.html", **kwargs
+    ):
         if css_class is None and spinner:
             css_class = "form-input-with-spinner"
         base_args = dict(
-            css_class="form-control form-control-with-spinner" if spinner else "form-control",
+            css_class="form-control form-control-with-spinner" if spinner else "",
             wrapper_class="mb-3",
             rows=3,
             help_message=HELP_MESSAGE_MAP.get(field_name, ""),
             spinner=spinner,
+            tooltip=tooltip,
         )
         base_args.update(kwargs)
         field_ = CustomField(field_name, **base_args)

@@ -396,7 +396,12 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             if field.lower() == "image":
                 image_value_changed = True
                 break
-
+        # Collect additional metadata from form
+        additional_metadata = {}
+        lang = form.cleaned_data.get("language")
+        if lang:
+            additional_metadata["languages"] = lang
+        # Check for changes
         if image_value_changed:
             logger.info(
                 f"App '{app_slug}' with app id '{app_id}', Image value changed in form," "checking to minting DOI.."
@@ -404,7 +409,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             continuation_message = "Continuing with app deployment despite DOI minting failure"
             try:
                 # Wrap the DOI minting call in try-except to handle potential failures
-                save_metadata_to_invenio_then_mint_doi(app_slug, instance_id)
+                save_metadata_to_invenio_then_mint_doi(app_slug, instance_id, additional_metadata=additional_metadata)
 
             except ValueError as e:
                 logger.error(
@@ -1128,7 +1133,30 @@ def export_k8s_values_to_yaml(instances: QuerySet[BaseAppInstance] | Iterable[Ba
         raise ValueError(f"Error exporting values to YAML: {e}") from e
 
 
-def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
+def _apply_additional_invenio_metadata(target_metadata: dict[str, Any], extra: dict[str, Any]) -> None:
+    """
+    Apply additional form-only metadata into Invenio metadata.
+
+    Only allow specific keys and enforce correct structure.
+    """
+    # Allowlist of keys permitted coming from the form
+    allowed = {"languages"}  # extend later: "funding", etc.
+
+    for key, value in extra.items():
+        if key not in allowed:
+            continue  # ignore unknown/unsafe keys
+
+        if key == "languages":
+            # Expect either ""/None or a string like "eng" or a list of {"id": "..."}
+            if not value:
+                target_metadata.pop("languages", None)
+            elif isinstance(value, str):
+                target_metadata["languages"] = [{"id": value}]
+            elif isinstance(value, list):
+                target_metadata["languages"] = value
+
+
+def generate_invenio_metadata(app_instance: Any, additional_metadata: dict[str, Any] | None = None) -> Dict[str, Any]:
     """
     Generate direct InvenioRDM metadata structure.
 
@@ -1228,7 +1256,8 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
             ],
         },
     }
-
+    if additional_metadata:
+        _apply_additional_invenio_metadata(invenio_metadata["metadata"], additional_metadata)
     access = app_data.get("access")
 
     if access == "public":
@@ -1258,7 +1287,9 @@ def generate_invenio_metadata(app_instance: Any) -> Dict[str, Any]:
     return invenio_metadata
 
 
-def save_metadata_to_invenio_then_mint_doi(app_slug: str, app_id: int) -> None:
+def save_metadata_to_invenio_then_mint_doi(
+    app_slug: str, app_id: int, additional_metadata: dict[str, Any] | None = None
+) -> None:
     """
     Save or update application metadata in InvenioRDM.
 
@@ -1352,7 +1383,7 @@ def save_metadata_to_invenio_then_mint_doi(app_slug: str, app_id: int) -> None:
 
         try:
             # Transform to Invenio format
-            invenio_data: Dict[str, Any] = generate_invenio_metadata(app)
+            invenio_data: Dict[str, Any] = generate_invenio_metadata(app, additional_metadata=additional_metadata)
 
             # Extract components
             metadata: Dict[str, Any] = invenio_data["metadata"]
