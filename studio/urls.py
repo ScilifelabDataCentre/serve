@@ -38,6 +38,7 @@ urlpatterns = (
             views.delete_account_post_handler,
             name="delete_account_post_handler",
         ),
+        path("status", views.status_view, name="status"),
         path("user/account-deleted/<int:user_id>", views.account_deleted, name="account_deleted"),
         path("auth/", views.AuthView.as_view()),
         # API paths using NamespaceVersioning

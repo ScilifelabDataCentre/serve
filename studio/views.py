@@ -9,7 +9,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, reverse
 from django.template.loader import render_to_string
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
@@ -248,3 +248,8 @@ def __get_university_name(request: Response, code: str) -> str:
         return cast(str, data["name"])
     else:
         raise Exception("API did not return status 200")
+
+
+def status_view(request: HttpRequest) -> HttpResponse:
+    """Health check endpoint returning JSON status."""
+    return JsonResponse({"status": "ok"})
