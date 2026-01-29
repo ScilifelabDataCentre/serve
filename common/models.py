@@ -307,7 +307,7 @@ class EmailSendingTable(models.Model):
             subject=self.subject,
             message=plain_message,
             html_message=html_message,
-            recipient_list=[self.to_email, settings.ADMIN_EMAIL],
+            recipient_list=[self.to_email],
             fail_silently=False,
             from_email=self.from_email,
         )
