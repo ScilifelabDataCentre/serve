@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('ROR verification error:', error);
-                showError('Unable to verify organization. Please try again.');
+                showError('Unable to verify organization.');
                 return false;
             });
     }
