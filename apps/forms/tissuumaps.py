@@ -23,16 +23,6 @@ class TissuumapsForm(VolumeMixin, AppBaseForm):
     def _setup_form_helper(self):
         super()._setup_form_helper()
 
-        # Define AccordionGroups
-        general = AccordionGroup(
-            mark_safe("<h3>Description</h3>"),
-            SRVCommonDivField("name", required=True),
-            SRVCommonDivField("description", rows=4, required=True),
-            SRVCommonDivField("tags"),
-            SRVCommonDivField("access"),
-            active=True,
-        )
-
         configuration = AccordionGroup(
             mark_safe("<h3>Configuration</h3>"),
             SRVCommonDivField(
@@ -40,6 +30,16 @@ class TissuumapsForm(VolumeMixin, AppBaseForm):
             ),
             self._set_up_volume_helper(),
             SRVCommonDivField("flavor"),
+            active=True,
+        )
+
+        # Define AccordionGroups
+        general = AccordionGroup(
+            mark_safe("<h3>Description</h3>"),
+            SRVCommonDivField("name", required=True),
+            SRVCommonDivField("description", rows=4, required=True),
+            SRVCommonDivField("tags"),
+            SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
             ),
@@ -47,8 +47,8 @@ class TissuumapsForm(VolumeMixin, AppBaseForm):
         )
 
         accordion = BS5Accordion(
-            general,
             configuration,
+            general,
             always_open=True,
             css_class="form-accordion",
         )
