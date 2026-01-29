@@ -57,6 +57,10 @@ class DashForm(ContainerImageMixin, AppBaseForm):
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("tags"),
             SRVCommonDivField("access"),
+            SRVCommonDivField(
+                "note_on_linkonly_privacy",
+                rows=1,
+            ),
         ]
 
         if "language" in self.fields:
@@ -64,10 +68,6 @@ class DashForm(ContainerImageMixin, AppBaseForm):
 
         general_fields += [
             SRVCommonDivField("source_code_url", placeholder="https://..."),
-            SRVCommonDivField(
-                "note_on_linkonly_privacy",
-                rows=1,
-            ),
         ]
 
         general = AccordionGroup(
