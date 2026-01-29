@@ -82,14 +82,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create error message element
     const errorDiv = document.createElement('div');
     errorDiv.id = 'validation_organization_custom';
-    errorDiv.className = 'invalid-feedback pt-1';
+    errorDiv.className = 'pt-1 text-warning';
     errorDiv.style.display = 'none';
     orgInput.parentNode.insertBefore(errorDiv, orgInput.nextSibling);
 
     function showError(message) {
         errorDiv.innerHTML = `<p class="m-0">${message}</p>`;
         errorDiv.style.display = 'block';
-        orgInput.classList.add('is-invalid');
+        //orgInput.classList.add('is-invalid');
         isValidSelection = false;
     }
 
@@ -226,13 +226,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const inputValue = orgInput.value.trim();
 
         if (inputValue && !isValidSelection) {
-            e.preventDefault();
+            // Submit even when ROR is invalid
             showError(
-                'Please select a valid organization from the ROR list. ' +
+                'No match found in ROR registry. You can still register, but please double-check your organization name. ' +
                 '<a href="https://ror.org/search" target="_blank" rel="noopener">Search ROR registry</a>'
             );
-            orgInput.focus();
-            return false;
+        } else {
+            clearError();
         }
     });
 });
