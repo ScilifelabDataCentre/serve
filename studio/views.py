@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.auth.views import PasswordResetView
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.db.models.signals import pre_save
@@ -138,6 +139,12 @@ def profile(request: Response) -> Response:
         user_profile = UserProfile()
 
     return render(request, "user/profile.html", {"user_profile": user_profile})
+
+
+class PassResetView(PasswordResetView):
+    subject_template_name = "registration/password_reset_subject.txt"
+    email_template_name = "registration/password_reset_email.txt"
+    html_email_template_name = "registration/password_reset_email.html"
 
 
 @login_required

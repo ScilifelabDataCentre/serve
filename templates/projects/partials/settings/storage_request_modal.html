@@ -3,7 +3,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="requestStorageModalLabel">Request Additional Storage</h5>
+        <h5 class="modal-title" id="requestStorageModalLabel">Request additional storage</h5>
         <button type="button" class="btn-close" onclick="closeStorageModal()"></button>
       </div>
       <div class="modal-body">
@@ -13,7 +13,7 @@
         </div>
         {% endif %}
         <div class="mb-3">
-          <label for="requestedSize" class="form-label">Total Storage Needed (GB)</label>
+          <label for="requestedSize" class="form-label">Total storage needed (GB)</label>
           <input type="number" class="form-control" id="requestedSize" name="requested_size"
                  min="1" max="100" required
                  hx-include="closest div"
@@ -21,7 +21,7 @@
           <div class="form-text">How much storage would you like to request?</div>
         </div>
         <div class="mb-3">
-          <label for="requestReasonType" class="form-label">Reason for Request</label>
+          <label for="requestReasonType" class="form-label">Reason for request</label>
           <select class="form-select" id="requestReasonType" name="request_reason_type"
                   onchange="toggleCustomReason(this.value)" required>
             <option value="">Select a reason</option>
@@ -32,7 +32,7 @@
           </select>
         </div>
         <div class="mb-3" id="customReasonContainer" style="display: none;">
-          <label for="requestReason" class="form-label">Custom Reason</label>
+          <label for="requestReason" class="form-label">Custom reason</label>
           <textarea class="form-control" id="requestReason" name="request_reason"
                    rows="3"
                    hx-include="closest div"
@@ -61,7 +61,7 @@
                 hx-include="closest .modal"
                 hx-target="#storageRequestModalContainer"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-          Submit Request
+          Submit request
         </button>
       </div>
     </div>
