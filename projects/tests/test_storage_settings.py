@@ -383,7 +383,7 @@ class StorageRequestTestCase(TestCase):
         self.assertTemplateUsed(response, "projects/partials/settings/storage_request_modal.html")
 
         # Test modal content
-        self.assertContains(response, "Request Additional Storage")
+        self.assertContains(response, "Request additional storage")
         self.assertContains(response, str(self.volume.size))
         self.assertContains(response, 'min="1"')  # Only lower limit constraint
         self.assertContains(response, 'type="number"')
