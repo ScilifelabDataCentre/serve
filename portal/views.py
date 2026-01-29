@@ -232,7 +232,7 @@ def teaching(request):
             course_description = form.cleaned_data["course_description"]
 
             # Prepare email content
-            subject = "New Teaching Request - SciLifeLab Serve"
+            subject = "New teaching request - SciLifeLab Serve"
             message = f"""A new teaching request has been submitted:
 
 Name: {name}

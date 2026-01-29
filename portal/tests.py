@@ -122,7 +122,7 @@ def test_teaching_view_post_valid(mock_altcha_clean):
 
     # Check email content
     email = mail.outbox[0]
-    assert email.subject == "New Teaching Request - SciLifeLab Serve"
+    assert email.subject == "New teaching request - SciLifeLab Serve"
     assert "serve@scilifelab.se" in email.to
     assert "John Doe" in email.body
     assert "john.doe@example.com" in email.body

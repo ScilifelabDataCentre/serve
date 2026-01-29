@@ -1,7 +1,7 @@
 Storage increase request
 
 Project: {{ project.name }}
-Requested additional size: {{ requested_size }} GB
+Requested total size: {{ requested_size }} GB
 
 User information:
 Name: {{ user.get_full_name }}

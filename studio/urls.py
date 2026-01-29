@@ -30,6 +30,8 @@ from . import views
 urlpatterns = (
     [
         path(settings.DJANGO_ADMIN_URL_PATH.rstrip("/") + "/", admin.site.urls, name="django-admin"),
+        path("accounts/password_reset/", views.PassResetView.as_view(), name="password_reset"),
+        path("accounts/", include("django.contrib.auth.urls")),
         path("accounts/", include("django.contrib.auth.urls")),
         path("user/profile/", views.profile, name="user-profile"),
         path("user/delete-account/", views.delete_account, name="delete_account"),
