@@ -19,7 +19,8 @@ This is simply a reminder of what we are going to look for before merging your c
 - [ ] This pull request is against **develop** branch (not applicable for hotfixes)
 - [ ] I have included a link to the issue on GitHub or JIRA (if any)
 - [ ] I have included migration files (if there are changes to the model classes)
-- [ ] I have included, reviewed and executed tests (unit and end2end) to complement my changes
+- [ ] I have added or updated unit and end2end tests to complement my changes
+- [ ] I have ran unit and end2end tests
 - [ ] I have updated the related documentation (if necessary)
 - [ ] I have added a reviewer for this pull request
 - [ ] I have added myself as an author for this pull request
