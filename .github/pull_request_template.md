@@ -1,20 +1,12 @@
-## Status
-
-To set the status of the pull request, use the built-in github feature to set the PR as Draft or Ready for review.
-
 ## Description
 
-Describe your changes here to communicate to the maintainers why we should accept this pull request.
-If it fixes a bug or resolves a feature request, be sure to include a link to that issue.
-
-## Types of changes
-
-To indicate the type of change (such as bugfix or new feature), use a github pull request label.
+> Describe your changes here to communicate to the maintainers why we should accept this pull request.
+> If it fixes a bug or resolves a feature request, be sure to include a link to that issue.
 
 ## Checklist
 
-_If you're unsure about any of the items below, don't hesitate to ask. We're here to help!
-This is simply a reminder of what we are going to look for before merging your code._
+> If you're unsure about any of the items below, don't hesitate to ask. We're here to help!
+> This is simply a reminder of what we are going to look for before merging your code.
 
 - [ ] This pull request is against **develop** branch (not applicable for hotfixes)
 - [ ] I have included a link to the issue on GitHub or JIRA (if any)
@@ -27,6 +19,11 @@ This is simply a reminder of what we are going to look for before merging your c
 - [ ] In the case I have modified settings.py, then I have also updated the studio-settings-configmap.yaml file in serve-charts
 - [ ] In case your changes are large enough, did you deploy your changes to develop instance?
 
-## Further comments
+# PR cheatsheet
 
-Anything else you think we should know before merging your code!
+- PR -- pull request
+- Include jira ticket in the PR title (like `SS-1234 Introduced machine learning ai driven framework for DDLS Fellows from EMBL`)
+- To set the status of the pull request, use the built-in github feature to set the PR as Draft or Ready for review.
+- To indicate the type of change (such as bugfix or new feature), use a github pull request label.
+- If pr is not ready for review, set it draft. We agreed in the team, that if the PR in the draft state, no one will review it.
+- Remember, that you can trigger end2end tests manually
