@@ -17,25 +17,24 @@ from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 from django.utils import timezone
 
-from invenio_client.invenio_client import InvenioClient
-
 from apps.schemas import (
-    AdditionalMetadata, 
-    InvenioRecord, 
-    PersonOrOrg, 
-    Role, 
-    Creator, 
-    Contributor, 
-    ResourceType, 
-    Identifier, 
-    RelatedIdentifierItem, 
-    RelationType,
-    InvenioMetadata,
     AccessConfig,
+    AdditionalMetadata,
+    AppData,
+    Contributor,
+    Creator,
     FilesConfig,
+    Identifier,
+    InvenioMetadata,
+    InvenioRecord,
     Language,
-    AppData
+    PersonOrOrg,
+    RelatedIdentifierItem,
+    RelationType,
+    ResourceType,
+    Role,
 )
+from invenio_client.invenio_client import InvenioClient
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class InvenioService:
     def __init__(self, base_url: str = None, token: str = None, verify: bool = True):
         """
         Initialize the Invenio Record Service.
-        
+
         Args:
             base_url: Invenio instance base URL (defaults to settings.INVENIO_URL)
             token: API token (defaults to settings.INVENIO_API_TOKEN)
@@ -57,7 +56,7 @@ class InvenioService:
         self.base_url = base_url or settings.INVENIO_URL
         self.token = token or settings.INVENIO_API_TOKEN
         self.verify = verify
-        
+
         self.client = InvenioClient(
             base_url=self.base_url,
             token=self.token,
@@ -68,11 +67,11 @@ class InvenioService:
     def check_image_version_exists(self, app_instance, image_value: str) -> bool:
         """
         Check if the given image version already exists in Invenio records.
-        
+
         Args:
             app_instance: The application instance
             image_value: The image identifier to check
-            
+
         Returns:
             True if image version already exists, False otherwise
         """
@@ -82,65 +81,70 @@ class InvenioService:
 
         try:
             all_versions = self.client.get_all_versions(app_instance.invenio_record_id)
-            
+
             if "hits" in all_versions and "hits" in all_versions["hits"]:
                 existing_images = []
                 for hit in all_versions["hits"]["hits"]:
                     related_ids = hit["metadata"].get("related_identifiers", [])
                     if len(related_ids) > 1:
                         existing_images.append(related_ids[1]["identifier"])
-                
+
                 logger.debug(f"All previous image versions: {existing_images}")
-                
+
                 if image_value in existing_images:
                     logger.info(f"Image '{image_value}' already exists in previous versions.")
                     return True
-                    
+
         except Exception as e:
             logger.error(f"Error checking existing versions: {e}")
             # Assume it's new if we can't check
-            
+
         return False
 
     def is_app_eligible_for_doi(self, app_instance) -> tuple[bool, str]:
         """
         Check if the application is eligible for DOI minting.
-        
+
         Args:
             app_instance: The application instance to check
-            
+
         Returns:
             Tuple of (is_eligible, reason)
         """
         app_data = model_to_dict(app_instance, exclude=["_state"])
-        
+
         # Check if app is public
         if app_data.get("access") != "public":
             return False, f"App access is '{app_data.get('access')}', not 'public'"
-            
+
         # Check if it's a new image version
         image_value = app_data["image"]
         if self.check_image_version_exists(app_instance, image_value):
             return False, f"Image '{image_value}' already exists in previous versions"
-            
+
         return True, "App is eligible for DOI minting"
 
-    def create_new_record(self, app_instance, metadata: InvenioMetadata, 
-                         access: AccessConfig, custom_fields: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_new_record(
+        self,
+        app_instance,
+        metadata: InvenioMetadata,
+        access: AccessConfig,
+        custom_fields: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """
         Create a new Invenio record for the application.
-        
+
         Args:
             app_instance: The application instance
             metadata: Invenio metadata
             access: Access configuration
             custom_fields: Optional custom fields
-            
+
         Returns:
             Published record data
         """
         logger.info(f"Creating new Invenio record for app: {app_instance.id}")
-        
+
         # Create draft
         draft = self.client.create_draft(
             metadata=metadata.model_dump(),
@@ -154,7 +158,7 @@ class InvenioService:
         try:
             logger.debug(f"Reserving internal DOI for draft: {draft['id']}")
             draft_with_doi = self.client.reserve_doi(draft["id"])
-            reserved_doi = draft_with_doi.get('pids', {}).get('doi', {}).get('identifier', 'Unknown')
+            reserved_doi = draft_with_doi.get("pids", {}).get("doi", {}).get("identifier", "Unknown")
             logger.debug(f"DOI reserved: {reserved_doi}")
         except Exception as doi_error:
             logger.error(f"Could not reserve DOI: {doi_error}")
@@ -162,22 +166,22 @@ class InvenioService:
         # Publish record
         published_record = self.client.publish_draft(draft["id"])
         logger.info(f"Successfully published Invenio record with ID: {published_record['id']}")
-        
+
         return published_record
 
     def create_new_version(self, app_instance, metadata: InvenioMetadata) -> Dict[str, Any]:
         """
         Create a new version of an existing Invenio record.
-        
+
         Args:
             app_instance: The application instance
             metadata: Updated metadata for the new version
-            
+
         Returns:
             Published new version data
         """
         logger.info(f"Creating new version for existing Invenio record: {app_instance.invenio_record_id}")
-        
+
         # Create new version
         new_version = self.client.create_new_version(app_instance.invenio_record_id)
         logger.debug(f"Created new version with ID: {new_version['id']}")
@@ -191,7 +195,7 @@ class InvenioService:
             **metadata_dict,
             "publication_date": datetime.now().strftime("%Y-%m-%d"),
         }
-        
+
         updated_version = self.client.update_draft(
             record_id=current_draft["id"],
             metadata=updated_metadata,
@@ -206,7 +210,7 @@ class InvenioService:
         try:
             logger.debug(f"Reserving internal DOI for new version: {updated_version['id']}")
             version_with_doi = self.client.reserve_doi(updated_version["id"])
-            reserved_doi = version_with_doi['pids']['doi']['identifier']
+            reserved_doi = version_with_doi["pids"]["doi"]["identifier"]
             logger.debug(f"DOI reserved: {reserved_doi}")
         except Exception as doi_error:
             logger.error(f"Could not reserve DOI: {doi_error}")
@@ -214,13 +218,13 @@ class InvenioService:
         # Publish new version
         published_version = self.client.publish_draft(updated_version["id"])
         logger.info(f"Published new version: {published_version['id']}")
-        
+
         return published_version
 
     def update_app_instance(self, app_instance, record_id: str, doi: str) -> None:
         """
         Update the application instance with Invenio record ID and DOI.
-        
+
         Args:
             app_instance: The application instance to update
             record_id: The Invenio record ID
@@ -229,17 +233,19 @@ class InvenioService:
         app_instance.invenio_record_id = record_id
         app_instance.app_doi = doi
         app_instance.save()
-        
+
         logger.debug(f"Updated app instance - Record ID: {record_id}, DOI: {doi}")
 
-    def _apply_additional_invenio_metadata(self, target_metadata: dict[str, Any], extra: AdditionalMetadata) -> dict[str, Any]:
+    def _apply_additional_invenio_metadata(
+        self, target_metadata: dict[str, Any], extra: AdditionalMetadata
+    ) -> dict[str, Any]:
         """
         Apply additional metadata from AdditionalMetadata schema into Invenio metadata.
-        
+
         Args:
             target_metadata: The metadata dictionary to modify
             extra: Additional metadata following AdditionalMetadata schema
-            
+
         Returns:
             The modified metadata dictionary
         """
@@ -249,85 +255,79 @@ class InvenioService:
         elif "languages" in extra and not extra["languages"]:
             # Empty list - remove languages field
             target_metadata.pop("languages", None)
-                    
+
         return target_metadata
 
     def _build_creators(self, user_full_name: str, user_first_name: str, user_family_name: str) -> list[Creator]:
         """Build the creators list with user information."""
         user_person = PersonOrOrg(
-            name=user_full_name,
-            type="personal",
-            given_name=user_first_name,
-            family_name=user_family_name
+            name=user_full_name, type="personal", given_name=user_first_name, family_name=user_family_name
         )
-        
+
         user_role = Role(id="relatedperson")
-        
+
         return [Creator(person_or_org=user_person, role=user_role)]
-    
+
     def _build_contributors(self) -> list[Contributor]:
         """Build the contributors list with SciLifeLab Data Centre."""
-        org_person = PersonOrOrg(
-            name="SciLifeLab Data Centre", 
-            type="organizational"
-        )
-        
+        org_person = PersonOrOrg(name="SciLifeLab Data Centre", type="organizational")
+
         org_role = Role(id="hostinginstitution")
-        
+
         return [Contributor(person_or_org=org_person, role=org_role)]
-    
+
     def _build_identifiers(self, app_id: str) -> list[Identifier]:
         """Build the identifiers list with application ID."""
-        return [Identifier(
-            identifier=f"SERVE:{app_id}",
-            scheme="other"
-        )]
-    
+        return [Identifier(identifier=f"SERVE:{app_id}", scheme="other")]
+
     def _build_related_identifiers(self, app_data: AppData) -> list[RelatedIdentifierItem]:
         """Build the related identifiers list with app URL and image."""
         related_ids = []
-        
+
         # 1. Application link (running application)
         if app_data.url:
-            related_ids.append(RelatedIdentifierItem(
-                identifier=app_data.url,
-                scheme="url",
-                relation_type=RelationType(id="issourceof"),
-                resource_type=ResourceType(id="software")
-            ))
-        
+            related_ids.append(
+                RelatedIdentifierItem(
+                    identifier=app_data.url,
+                    scheme="url",
+                    relation_type=RelationType(id="issourceof"),
+                    resource_type=ResourceType(id="software"),
+                )
+            )
+
         # 2. App Image, need for versioning
         if app_data.image:
-            related_ids.append(RelatedIdentifierItem(
-                identifier=app_data.image,
-                scheme="other",
-                relation_type=RelationType(
-                    id="hasversion",
-                    title={"en": "Has image version"}
-                ),
-                resource_type=ResourceType(id="software")
-            ))
-        
+            related_ids.append(
+                RelatedIdentifierItem(
+                    identifier=app_data.image,
+                    scheme="other",
+                    relation_type=RelationType(id="hasversion", title={"en": "Has image version"}),
+                    resource_type=ResourceType(id="software"),
+                )
+            )
+
         return related_ids
-    
+
     def _add_documentation_link(self, related_ids: list[RelatedIdentifierItem], app_data: AppData) -> None:
         """Add documentation link if public app with domain."""
         if app_data.access != "public":
             return
-            
+
         k8s_values = app_data.k8s_values or {}
         domain = k8s_values.get("global", {}).get("domain")
-        
+
         if domain:
             doc_link = RelatedIdentifierItem(
                 identifier=f"https://{domain}/apps/{app_data.id}",
-                scheme="url", 
+                scheme="url",
                 relation_type=RelationType(id="isdocumentedby"),
-                resource_type=ResourceType(id="publication-softwaredocumentation")
+                resource_type=ResourceType(id="publication-softwaredocumentation"),
             )
             related_ids.append(doc_link)
 
-    def generate_invenio_metadata(self, app_instance: Any, additional_metadata: Optional[AdditionalMetadata] = None) -> InvenioRecord:
+    def generate_invenio_metadata(
+        self, app_instance: Any, additional_metadata: Optional[AdditionalMetadata] = None
+    ) -> InvenioRecord:
         """
         Generate direct InvenioRDM metadata structure.
 
@@ -373,10 +373,10 @@ class InvenioService:
         contributors = self._build_contributors()
         identifiers = self._build_identifiers(str(app_data.id))
         related_identifiers = self._build_related_identifiers(app_data)
-        
+
         # Add documentation link if applicable
         self._add_documentation_link(related_identifiers, app_data)
-        
+
         # Build metadata using Pydantic models
         metadata = InvenioMetadata(
             title=f"Application: {app_data.name}",
@@ -387,42 +387,40 @@ class InvenioService:
             creators=creators,
             contributors=contributors,
             identifiers=identifiers,
-            related_identifiers=related_identifiers
+            related_identifiers=related_identifiers,
         )
-        
+
         # Apply additional metadata if provided
         if additional_metadata:
             metadata_dict = metadata.model_dump()
             self._apply_additional_invenio_metadata(metadata_dict, additional_metadata)
             metadata = InvenioMetadata(**metadata_dict)
-        
+
         # Build complete record
         invenio_record = InvenioRecord(
-            access=AccessConfig(record="public", files="public"),
-            files=FilesConfig(enabled=False),
-            metadata=metadata
+            access=AccessConfig(record="public", files="public"), files=FilesConfig(enabled=False), metadata=metadata
         )
 
         # Log the generated metadata
         logger.info(f"Generated Invenio metadata for app '{app_data.name}'")
         logger.info(json.dumps(invenio_record.model_dump(), indent=2))
-        
+
         return invenio_record
 
     def log_version_information(self, app_instance) -> None:
         """
         Log detailed version information after processing.
-        
+
         Args:
             app_instance: The application instance
         """
         if not app_instance.invenio_record_id:
             return
-            
+
         try:
             # Wait for Invenio to process
             time.sleep(3)
-            
+
             all_versions = self.client.get_all_versions(app_instance.invenio_record_id)
             versions_total = all_versions.get("hits", {}).get("total", 0)
             logger.debug(f"Total versions: {versions_total}")
@@ -430,9 +428,9 @@ class InvenioService:
             if "hits" in all_versions and "hits" in all_versions["hits"]:
                 logger.debug("Version history:")
                 for i, hit in enumerate(all_versions["hits"]["hits"]):
-                    related_ids = hit['metadata'].get('related_identifiers', [])
-                    app_image = related_ids[1]['identifier'] if len(related_ids) > 1 else 'Unknown'
-                    
+                    related_ids = hit["metadata"].get("related_identifiers", [])
+                    app_image = related_ids[1]["identifier"] if len(related_ids) > 1 else "Unknown"
+
                     logger.debug(
                         f"  Version {i+1}: ID={hit.get('id')}, "
                         f"DOI={hit.get('pids', {}).get('doi', {}).get('identifier', '')}, "
@@ -443,18 +441,19 @@ class InvenioService:
         except Exception as e:
             logger.error(f"Error logging version information: {e}")
 
-    def process_app_metadata(self, app_slug: str, app_id: int, 
-                           additional_metadata: Optional[AdditionalMetadata] = None) -> None:
+    def process_app_metadata(
+        self, app_slug: str, app_id: int, additional_metadata: Optional[AdditionalMetadata] = None
+    ) -> None:
         """
         Main method to process application metadata and mint DOI.
-        
+
         Args:
             app_slug: Application slug for registry lookup
             app_id: Application ID to fetch from database
             additional_metadata: Optional additional metadata to include
         """
         from apps.app_registry import APP_REGISTRY
-        
+
         logger.info(f"Starting metadata processing for app '{app_slug}' with ID '{app_id}'")
 
         # Get the ORM model class
@@ -467,7 +466,7 @@ class InvenioService:
         app_instance = model_class.objects.get(pk=app_id)
         app_data_dict = model_to_dict(app_instance, exclude=["_state"])
         app_data = AppData(**app_data_dict)
-        
+
         logger.info(f"Processing app '{app_data.name}' with image '{app_data.image}'")
 
         # Check eligibility for DOI minting
@@ -517,7 +516,7 @@ def save_metadata_to_invenio_then_mint_doi(
 ) -> None:
     """
     Invenio and DOI minting process for application metadata.
-    
+
     Args:
         app_slug: Application slug for registry lookup
         app_id: Application ID to fetch from database
