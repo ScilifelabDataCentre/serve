@@ -7,7 +7,7 @@ Organized with sub-models for better maintainability and reusability.
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, TypedDict, Union
+from typing import Any, List, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class AdditionalMetadata(TypedDict, total=False):
     """Type definition for additional metadata that can be passed to Invenio."""
 
-    languages: Optional[List[Language]]  # List of language objects with ISO 639-2 codes
+    languages: List[Language] | None  # List of language objects with ISO 639-2 codes
 
 
 # ============================================================================
@@ -30,11 +30,11 @@ class AppData(BaseModel):
 
     id: int
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     image: str
-    url: Optional[str] = None
+    url: str | None = None
     access: str
-    k8s_values: Optional[dict[str, Any]] = None
+    k8s_values: dict[str, Any] | None = None
 
 
 # ============================================================================
@@ -47,15 +47,15 @@ class PersonOrOrg(BaseModel):
 
     name: str
     type: str  # "personal" or "organizational"
-    given_name: Optional[str] = None
-    family_name: Optional[str] = None
+    given_name: str | None = None
+    family_name: str | None = None
 
 
 class Role(BaseModel):
     """Role definition with localized titles."""
 
     id: str
-    title: Optional[dict] = None
+    title: dict | None = None
 
 
 class Creator(BaseModel):
@@ -81,7 +81,7 @@ class ResourceType(BaseModel):
     """Resource type definition with localized titles."""
 
     id: str  # e.g., "software", "dataset", "publication"
-    title: Optional[dict] = None  # {"en": "Software"}
+    title: dict | None = None  # {"en": "Software"}
 
 
 class Language(BaseModel):
@@ -106,7 +106,7 @@ class RelationType(BaseModel):
     """Relationship type between resources."""
 
     id: str  # e.g., "issourceof", "hasversion", "isdocumentedby"
-    title: Optional[dict] = None  # {"en": "Has image version"}
+    title: dict | None = None  # {"en": "Has image version"}
 
 
 class RelatedIdentifierItem(BaseModel):
@@ -115,7 +115,7 @@ class RelatedIdentifierItem(BaseModel):
     identifier: str
     scheme: str  # e.g., "url", "other", "doi"
     relation_type: RelationType
-    resource_type: Optional[ResourceType] = None
+    resource_type: ResourceType | None = None
 
 
 # ============================================================================
@@ -139,10 +139,10 @@ class InvenioMetadata(BaseModel):
 
     # Identifiers and relationships
     identifiers: List[Identifier]
-    related_identifiers: List[RelatedIdentifierItem]
+    related_identifiers: List[RelatedIdentifierItem] | None = None
 
     # Optional metadata
-    languages: Optional[List[Language]] = None
+    languages: List[Language] | None = None
 
 
 # ============================================================================

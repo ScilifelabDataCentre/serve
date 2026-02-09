@@ -831,13 +831,10 @@ def test_generate_invenio_metadata_validation():
     incomplete_metadata = invenio_metadata.copy()
     del incomplete_metadata["metadata"]["title"]
 
-    try:
-        InvenioRecord(**incomplete_metadata)
-        pydantic_caught_missing = False
-    except Exception:
-        pydantic_caught_missing = True
+    from pydantic import ValidationError
 
-    assert pydantic_caught_missing, "Pydantic should reject missing required fields"
+    with pytest.raises(ValidationError):
+        InvenioRecord(**incomplete_metadata)
 
     # 5. Test with private access app (should not have third related identifier for landing page)
     app_instance_private = DashInstance.objects.create(

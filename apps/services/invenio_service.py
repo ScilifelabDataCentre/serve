@@ -35,8 +35,9 @@ from apps.schemas import (
     Role,
 )
 from invenio_client.invenio_client import InvenioClient
+from studio.utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class InvenioService:
