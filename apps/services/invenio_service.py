@@ -375,6 +375,7 @@ class InvenioService:
         related_identifiers = self._build_related_identifiers(app_data)
 
         # Add documentation link if applicable
+        # Modifies the list in place by reference
         self._add_documentation_link(related_identifiers, app_data)
 
         # Build metadata using Pydantic models
@@ -445,7 +446,7 @@ class InvenioService:
         self, app_slug: str, app_id: int, additional_metadata: Optional[AdditionalMetadata] = None
     ) -> None:
         """
-        Main method to process application metadata and mint DOI.
+        Process application metadata and mint DOI.
 
         Args:
             app_slug: Application slug for registry lookup
@@ -479,8 +480,10 @@ class InvenioService:
 
         try:
             # Generate Invenio metadata
-            invenio_record = self.generate_invenio_metadata(app_instance, additional_metadata=additional_metadata)
-            metadata = invenio_record.metadata
+            invenio_record: InvenioRecord = self.generate_invenio_metadata(
+                app_instance, additional_metadata=additional_metadata
+            )
+            metadata: InvenioMetadata = invenio_record.metadata
             access = invenio_record.access
             custom_fields = None  # Not currently used
 
