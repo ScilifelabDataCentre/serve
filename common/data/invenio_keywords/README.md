@@ -19,7 +19,7 @@ This is a `dict` of `lists` file.
   ],
   "cal": [
     {'id': 'D031081', 'label': 'Calamus', 'source': 'mesh', 'score': 7},
-    # ... more terms starting with "cal"  
+    # ... more terms starting with "cal"
   ],
   # ... other prefixes
 }
@@ -34,7 +34,7 @@ These files include full term information to be used with Invenio records.
 {
   "D000001": {
     'subject': 'Calcimycin',
-    'subject_scheme': 'Medical Subject Headings', 
+    'subject_scheme': 'Medical Subject Headings',
     'scheme_uri': 'https://meshb.nlm.nih.gov/',
     'value_uri': 'https://id.nlm.nih.gov/mesh/D000001',
     'classification_code': 'D000001',

@@ -1,10 +1,10 @@
 {
-  "source": "mesh",
-  "term_count": 31110,
   "config": {
     "scheme_name": "Medical Subject Headings",
     "scheme_uri": "https://meshb.nlm.nih.gov/",
     "value_uri_template": "https://id.nlm.nih.gov/mesh/{id}"
   },
-  "created_at": "2026-02-11T12:02:18.198827"
+  "created_at": "2026-02-11T12:02:18.198827",
+  "source": "mesh",
+  "term_count": 31110
 }

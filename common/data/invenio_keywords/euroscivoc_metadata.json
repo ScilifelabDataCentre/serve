@@ -1,10 +1,10 @@
 {
-  "source": "euroscivoc",
-  "term_count": 1065,
   "config": {
     "scheme_name": "EuroSciVoc The European Science Vocabulary",
     "scheme_uri": "http://data.europa.eu/8mn/euroscivoc/",
     "value_uri_template": "http://data.europa.eu/8mn/euroscivoc/{id}"
   },
-  "created_at": "2026-02-11T12:02:19.571893"
+  "created_at": "2026-02-11T12:02:19.571893",
+  "source": "euroscivoc",
+  "term_count": 1065
 }
