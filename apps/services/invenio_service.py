@@ -256,6 +256,12 @@ class InvenioService:
         elif "languages" in extra and not extra["languages"]:
             # Empty list - remove languages field
             target_metadata.pop("languages", None)
+        # Handle invenio_tags field
+        if "invenio_tags" in extra and extra["invenio_tags"]:
+            target_metadata["subject"] = extra["invenio_tags"]
+        elif "invenio_tags" in extra and not extra["invenio_tags"]:
+            # Empty list - remove invenio_tags field
+            target_metadata.pop("invenio_tags", None)
 
         return target_metadata
 

@@ -406,6 +406,9 @@ GITHUB_API_USERNAME = os.getenv("GITHUB_API_USERNAME")
 INVENIO_URL = os.getenv("INVENIO_URL")
 INVENIO_API_TOKEN = os.getenv("INVENIO_API_TOKEN")
 
+# Invenio keywords data path
+VOCABULARY_DATA_PATH = os.getenv("VOCABULARY_DATA_PATH", os.path.join(BASE_DIR, "common", "data", "invenio_keywords"))
+
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
 IP = os.environ.get("IP", "127.0.0.1")

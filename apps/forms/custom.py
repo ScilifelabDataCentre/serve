@@ -20,16 +20,27 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
-    language = forms.ChoiceField(
-        choices=AppBaseForm.LANGUAGE_CHOICES,
-        required=False,
-        initial="eng",
-        label="Language of the application interface",
-    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         super().add_metadata()
+
+        # Add form-only fields that aren't in the model
+        if "language" not in self.fields:
+            self.fields["language"] = forms.ChoiceField(
+                choices=AppBaseForm.LANGUAGE_CHOICES,
+                required=False,
+                initial="eng",
+                label="Language of the application interface",
+            )
+
+        # Add invenio_tags as a form-only field for vocabulary input
+        self.fields["invenio_tags"] = forms.CharField(
+            required=False,
+            label="All keywords and tags",
+            help_text="Add subject keywords from controlled vocabularies (MeSH, EuroSciVoc, GEMET)",
+            widget=forms.TextInput(attrs={"class": "form-control"}),
+        )
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -58,7 +69,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         general_fields = [
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
-            SRVCommonDivField("tags"),
+            SRVCommonDivField("invenio_tags"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
@@ -114,7 +125,14 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         self.helper.layout = Layout(body, self.footer)
 
     def clean(self):
-        return self._clean()
+        cleaned_data = super().clean()
+
+        # Store invenio_tags directly as tags
+        invenio_tags_value = cleaned_data.get("invenio_tags", "").strip()
+        if invenio_tags_value:
+            cleaned_data["tags"] = invenio_tags_value
+
+        return cleaned_data
 
     class Meta:
         model = CustomAppInstance
@@ -135,5 +153,5 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         ]
         labels = {
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
-            "tags": "Subjects and Keywords",
+            "tags": "All Keywords and Tags",
         }

@@ -1,0 +1,10 @@
+{
+  "source": "gemet",
+  "term_count": 5566,
+  "config": {
+    "scheme_name": "GEMET Environmental Thesaurus",
+    "scheme_uri": "https://www.eionet.europa.eu/gemet/",
+    "value_uri_template": "https://www.eionet.europa.eu/gemet/concept/{id}"
+  },
+  "created_at": "2026-02-11T12:06:25.166863"
+}

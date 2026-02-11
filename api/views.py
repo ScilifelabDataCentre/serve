@@ -1036,6 +1036,36 @@ def container_image_search(request):
     return JsonResponse({"images": docker_images})
 
 
+@api_view(["GET"])
+@permission_classes(())
+def invenio_keyword_search(request):
+    """API endpoint to search vocabulary terms for subject autocomplete"""
+    query = request.GET.get("q", "").strip()
+
+    if len(query) < 2:
+        return JsonResponse({"suggestions": []})
+
+    try:
+        # Use vocabulary service for search
+        from apps.services.invenio_keywords_service import VocabularyMemoryService
+
+        service = VocabularyMemoryService()
+
+        # Search for terms
+        suggestions = service.search_subjects(query, limit=10)
+
+        # Format results for frontend - just return the labels as strings
+        results = []
+        for term in suggestions:
+            results.append(term["label"])  # JavaScript expects simple string array
+
+        return JsonResponse({"suggestions": results})
+
+    except Exception as e:
+        logger.error(f"Vocabulary search error: {e}")
+        return JsonResponse({"suggestions": [], "error": str(e)}, status=500)
+
+
 # TODO: Consider adding and using a new permission class here for static auth tokens
 @api_view(["GET"])
 @permission_classes(())

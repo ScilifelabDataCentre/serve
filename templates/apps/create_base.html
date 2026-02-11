@@ -257,6 +257,197 @@ document.addEventListener("DOMContentLoaded", function() {
         runScript();
         updateUrlWithSubdomain();
     })
+
+    // Invenio Tags with Bootstrap Badges
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const invenioTagsField = document.getElementById('id_invenio_tags');
+        if (!invenioTagsField) {
+            console.error('[ERROR] invenio_tags field not found');
+            return;
+        }
+
+        // Hide the original field
+        invenioTagsField.style.display = 'none';
+
+        // Create container for tags and input
+        const tagsContainer = document.createElement('div');
+        tagsContainer.className = 'border rounded p-2 d-flex flex-wrap align-items-center gap-2';
+        tagsContainer.style.minHeight = '40px';
+        tagsContainer.style.cursor = 'text';
+
+        // Create input for typing
+        const tagsInput = document.createElement('input');
+        tagsInput.type = 'text';
+        tagsInput.className = 'border-0 flex-grow-1';
+        tagsInput.style.outline = 'none';
+        tagsInput.style.minWidth = '150px';
+        tagsInput.placeholder = 'Type to search vocabulary...';
+
+        // Create dropdown for suggestions
+        const dropdown = document.createElement('div');
+        dropdown.className = 'dropdown-menu';
+        dropdown.style.cssText = `
+            position: absolute;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            width: 100%;
+            margin-top: 2px;
+        `;
+
+        // Insert new interface
+        invenioTagsField.parentNode.style.position = 'relative';
+        invenioTagsField.parentNode.insertBefore(tagsContainer, invenioTagsField);
+        invenioTagsField.parentNode.appendChild(dropdown);
+
+        tagsContainer.appendChild(tagsInput);
+
+        let currentTags = [];
+        let debounceTimer;
+
+        function updateHiddenField() {
+            invenioTagsField.value = currentTags.join(', ');
+        }
+
+        function addTag(tagText) {
+            if (!currentTags.includes(tagText)) {
+                currentTags.push(tagText);
+                updateHiddenField();
+                renderTags();
+            }
+        }
+
+        function removeTag(tagText) {
+            const index = currentTags.indexOf(tagText);
+            if (index > -1) {
+                currentTags.splice(index, 1);
+                updateHiddenField();
+                renderTags();
+            }
+        }
+
+        function renderTags() {
+            // Clear existing tags (keep input)
+            const existingTags = tagsContainer.querySelectorAll('.badge');
+            existingTags.forEach(tag => tag.remove());
+
+            // Add current tags as badges
+            currentTags.forEach(tagText => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary d-flex align-items-center gap-1';
+                badge.innerHTML = `
+                    <span>${tagText}</span>
+                    <button type="button" class="btn-close btn-close-white" style="font-size: 0.7em;" aria-label="Remove tag"></button>
+                `;
+
+                const removeBtn = badge.querySelector('.btn-close');
+                removeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    removeTag(tagText);
+                });
+
+                tagsContainer.insertBefore(badge, tagsInput);
+            });
+        }
+
+        function hideDropdown() {
+            dropdown.style.display = 'none';
+            dropdown.classList.remove('show');
+        }
+
+        function showSuggestions(suggestions) {
+            dropdown.innerHTML = '';
+
+            if (!suggestions || suggestions.length === 0) {
+                hideDropdown();
+                return;
+            }
+
+            dropdown.style.display = 'block';
+            dropdown.classList.add('show');
+
+            suggestions.forEach(suggestion => {
+                const item = document.createElement('button');
+                item.className = 'dropdown-item';
+                item.type = 'button';
+                item.textContent = suggestion;
+
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    addTag(suggestion);
+                    tagsInput.value = '';
+                    hideDropdown();
+                    tagsInput.focus();
+                });
+
+                dropdown.appendChild(item);
+            });
+        }
+
+        function searchVocabulary(query) {
+            if (query.length < 2) {
+                hideDropdown();
+                return;
+            }
+
+            fetch('/api/invenio_keyword_search/?q=' + encodeURIComponent(query))
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.suggestions) {
+                        showSuggestions(data.suggestions);
+                    }
+                })
+                .catch(error => {
+                    console.error('[ERROR] Failed to fetch suggestions:', error);
+                    hideDropdown();
+                });
+        }
+
+        tagsInput.addEventListener('input', function(e) {
+            const value = e.target.value.trim();
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchVocabulary(value);
+            }, 300);
+        });
+
+        tagsInput.addEventListener('blur', function() {
+            setTimeout(hideDropdown, 200);
+        });
+
+        tagsInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideDropdown();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const value = tagsInput.value.trim();
+                if (value) {
+                    addTag(value);
+                    tagsInput.value = '';
+                    hideDropdown();
+                }
+            }
+        });
+
+        tagsContainer.addEventListener('click', function() {
+            tagsInput.focus();
+        });
+
+        // Initialize with existing values if any
+        const existingValue = invenioTagsField.value.trim();
+        if (existingValue) {
+            currentTags = existingValue.split(',').map(tag => tag.trim()).filter(tag => tag);
+            renderTags();
+        }
+    });
     </script>
 
 {% endblock %}
