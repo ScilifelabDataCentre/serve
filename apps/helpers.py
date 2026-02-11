@@ -881,6 +881,7 @@ def get_university_suffix_information(university_sufffix: str) -> str:
         "su": "Stockholms universitet (Stockholm University)",
         "umu": "Umeå universitet (Umeå University)",
         "uu": "Uppsala universitet (Uppsala University)",
+        "nrm": "The Swedish Museum of Natural History (Naturhistoriska riksmuseet)",
     }
 
     return UNIVERSITY_NAMES.get(university_sufffix, university_sufffix)
