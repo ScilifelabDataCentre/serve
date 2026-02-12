@@ -729,7 +729,9 @@ def test_generate_invenio_metadata_validation():
 
     # Generate the invenio metadata using service method directly
     # Create a minimal service instance just for metadata generation (no client needed)
-    service = InvenioService.__new__(InvenioService)  # Create without __init__
+
+    # Use mock client for InvenioService
+    service = InvenioService(mock_mode=True)
 
     # Generate metadata directly
     invenio_record = service.generate_invenio_metadata(app_instance)
@@ -852,7 +854,7 @@ def test_generate_invenio_metadata_validation():
         url="https://private-subdomain.test.serve.scilifelab.se",
     )
 
-    invenio_service = InvenioService.__new__(InvenioService)
+    invenio_service = InvenioService(mock_mode=True)
     invenio_record_private = invenio_service.generate_invenio_metadata(app_instance_private)
     invenio_metadata_private = invenio_record_private.model_dump()
     # Should have exactly 2 related identifiers for private app
@@ -874,7 +876,7 @@ def test_generate_invenio_metadata_validation():
         # Don't set k8s_values
     )
 
-    invenio_service = InvenioService.__new__(InvenioService)
+    invenio_service = InvenioService(mock_mode=True)
     invenio_record_no_k8s = invenio_service.generate_invenio_metadata(app_instance_no_k8s)
     invenio_metadata_no_k8s = invenio_record_no_k8s.model_dump()
     # Should have 2 related identifiers (no landing page because k8s_values is None)
