@@ -127,10 +127,15 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
     def clean(self):
         cleaned_data = super().clean()
 
-        # Store invenio_tags directly as tags
+        # Store invenio_tags as a list in tags
         invenio_tags_value = cleaned_data.get("invenio_tags", "").strip()
         if invenio_tags_value:
-            cleaned_data["tags"] = invenio_tags_value
+            # Accept comma-separated or space-separated tags
+            tags_list = [tag.strip() for tag in invenio_tags_value.split(",") if tag.strip()]
+            if not tags_list:
+                # fallback: split by whitespace
+                tags_list = [tag.strip() for tag in invenio_tags_value.split() if tag.strip()]
+            cleaned_data["tags"] = tags_list
 
         return cleaned_data
 

@@ -406,9 +406,12 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         if lang:
             additional_metadata["languages"] = lang
         # Check for Invenio keywords and subject tags
-        invenio_tags = form.cleaned_data.get("invenio_tags")
+        invenio_tags = form.cleaned_data.get("tags")
         if invenio_tags:
-            additional_metadata["invenio_tags"] = invenio_tags
+            logger.debug(f"Form contains Invenio tags: {invenio_tags}")
+            additional_metadata["subject"] = invenio_tags
+        else:
+            logger.debug("Form does not contain Invenio tags")
         # Check for changes
         if image_value_changed:
             logger.info(

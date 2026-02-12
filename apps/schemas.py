@@ -143,6 +143,7 @@ class InvenioMetadata(BaseModel):
 
     # Optional metadata
     languages: List[Language] | None = None
+    subject: list | None = None  # List of tags/keywords for the record
 
 
 # ============================================================================

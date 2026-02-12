@@ -40,12 +40,35 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 
+class MockInvenioClient:
+    def create_draft(self, *args, **kwargs):
+        return {"id": "mock-draft-id"}
+
+    def reserve_doi(self, draft_id):
+        return {"pids": {"doi": {"identifier": "10.1234/mockdoi"}}}
+
+    def publish_draft(self, draft_id):
+        return {"id": "mock-record-id", "pids": {"doi": {"identifier": "10.1234/mockdoi"}}}
+
+    def create_new_version(self, record_id):
+        return {"id": "mock-version-id"}
+
+    def get_draft(self, version_id):
+        return {"id": "mock-draft-id", "access": {}, "custom_fields": {}, "pids": {}}
+
+    def update_draft(self, record_id, metadata, access, files, custom_fields, pids):
+        return {"id": "mock-draft-id"}
+
+    def get_all_versions(self, record_id):
+        return {"hits": {"hits": []}}
+
+
 class InvenioService:
     """
     Manages Invenio record creation, versioning, and DOI minting for application instances.
     """
 
-    def __init__(self, base_url: str = None, token: str = None, verify: bool = True):
+    def __init__(self, base_url: str = None, token: str = None, verify: bool = True, mock_mode: bool = False):
         """
         Initialize the Invenio Record Service.
 
@@ -53,17 +76,22 @@ class InvenioService:
             base_url: Invenio instance base URL (defaults to settings.INVENIO_URL)
             token: API token (defaults to settings.INVENIO_API_TOKEN)
             verify: Whether to verify SSL certificates
+            mock_mode: If True, will not make actual API calls (for testing)
         """
         self.base_url = base_url or settings.INVENIO_URL
         self.token = token or settings.INVENIO_API_TOKEN
         self.verify = verify
+        self.mock_mode = mock_mode
 
-        self.client = InvenioClient(
-            base_url=self.base_url,
-            token=self.token,
-            auth_scheme="Bearer",
-            verify=self.verify,
-        )
+        if self.mock_mode:
+            self.client = MockInvenioClient()
+        else:
+            self.client = InvenioClient(
+                base_url=self.base_url,
+                token=self.token,
+                auth_scheme="Bearer",
+                verify=self.verify,
+            )
 
     def check_image_version_exists(self, app_instance, image_value: str) -> bool:
         """
@@ -256,12 +284,18 @@ class InvenioService:
         elif "languages" in extra and not extra["languages"]:
             # Empty list - remove languages field
             target_metadata.pop("languages", None)
-        # Handle invenio_tags field
-        if "invenio_tags" in extra and extra["invenio_tags"]:
-            target_metadata["subject"] = extra["invenio_tags"]
-        elif "invenio_tags" in extra and not extra["invenio_tags"]:
-            # Empty list - remove invenio_tags field
-            target_metadata.pop("invenio_tags", None)
+
+        # Handle subject field (accept both 'subject' and 'tags' as input)
+        subject = None
+        if "subject" in extra and extra["subject"]:
+            subject = extra["subject"]
+
+        if subject:
+            target_metadata["subject"] = subject
+        else:
+            # Remove subject if neither present
+            target_metadata.pop("subject", None)
+        logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
 
         return target_metadata
 
@@ -532,5 +566,5 @@ def save_metadata_to_invenio_then_mint_doi(
         app_id: Application ID to fetch from database
         additional_metadata: Optional additional metadata to include
     """
-    invenio_svc = InvenioService()
+    invenio_svc = InvenioService(mock_mode=True)
     invenio_svc.process_app_metadata(app_slug, app_id, additional_metadata)
