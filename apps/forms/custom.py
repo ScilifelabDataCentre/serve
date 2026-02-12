@@ -36,7 +36,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
 
         # Add invenio_tags as a form-only field for vocabulary input
         self.fields["invenio_tags"] = forms.CharField(
-            required=False,
+            required=True,
             label="All keywords and tags",
             help_text="Add subject keywords from controlled vocabularies (MeSH, EuroSciVoc, GEMET)",
             widget=forms.TextInput(attrs={"class": "form-control"}),

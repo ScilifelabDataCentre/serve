@@ -191,6 +191,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "language": "eng",
         }
 
         changed_fields = ["port"]
@@ -223,7 +224,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "subdomain": self.subdomain_name,
         }
 
-        changed_fields = ["image"]
+        changed_fields = ["image", "language"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -254,7 +255,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "subdomain": "test-subdomain-update-app-new",
         }
 
-        changed_fields = ["subdomain"]
+        changed_fields = ["subdomain", "language"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -293,7 +294,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "tags": None,
         }
 
-        changed_fields = ["name", "description", "source_code_url"]
+        changed_fields = ["name", "description", "source_code_url", "language"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)

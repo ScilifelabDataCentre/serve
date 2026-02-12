@@ -52,8 +52,8 @@ class CustomAppFormTest(BaseAppFormTest):
             "note_on_linkonly_privacy": None,
             "port": 8000,
             "image": "mock.io/scilifelabdatacentre/image:tag",
-            "tags": ["tag1", "tag2", "tag3"],
             "default_url_subpath": "valid-default_url_subpath/",
+            "invenio_tags": "tag1, tag2, tag3",
         }
 
     def test_form_valid_data(self):
