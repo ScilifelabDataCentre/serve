@@ -24,19 +24,16 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
+    language = forms.ChoiceField(
+        choices=AppBaseForm.LANGUAGE_CHOICES,
+        required=False,
+        initial="eng",
+        label="Language of the application interface",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         super().add_metadata()
-
-        # Add form-only fields that aren't in the model
-        if "language" not in self.fields:
-            self.fields["language"] = forms.ChoiceField(
-                choices=AppBaseForm.LANGUAGE_CHOICES,
-                required=False,
-                initial="eng",
-                label="Language of the application interface",
-            )
 
         # Add invenio_tags as a form-only field for vocabulary input
         self.fields["invenio_tags"] = forms.CharField(
