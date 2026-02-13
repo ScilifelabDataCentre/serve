@@ -306,13 +306,15 @@ document.addEventListener("DOMContentLoaded", function() {
 
         let currentTags = [];
         let debounceTimer;
+        let validSuggestions = [];
 
         function updateHiddenField() {
             invenioTagsField.value = currentTags.join(', ');
         }
 
         function addTag(tagText) {
-            if (!currentTags.includes(tagText)) {
+            // Only add if tagText is in validSuggestions
+            if (!currentTags.includes(tagText) && validSuggestions.includes(tagText)) {
                 currentTags.push(tagText);
                 updateHiddenField();
                 renderTags();
@@ -359,6 +361,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         function showSuggestions(suggestions) {
             dropdown.innerHTML = '';
+            validSuggestions = suggestions || [];
 
             if (!suggestions || suggestions.length === 0) {
                 hideDropdown();
@@ -376,10 +379,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 item.addEventListener('click', function(e) {
                     e.preventDefault();
-                    addTag(suggestion);
-                    tagsInput.value = '';
-                    hideDropdown();
-                    tagsInput.focus();
+                    if (validSuggestions.includes(suggestion)) {
+                        addTag(suggestion);
+                        tagsInput.value = '';
+                        hideDropdown();
+                        tagsInput.focus();
+                    }
                 });
 
                 dropdown.appendChild(item);
@@ -429,10 +434,13 @@ document.addEventListener("DOMContentLoaded", function() {
             } else if (e.key === 'Enter') {
                 e.preventDefault();
                 const value = tagsInput.value.trim();
-                if (value) {
+                if (value && validSuggestions.includes(value)) {
                     addTag(value);
                     tagsInput.value = '';
                     hideDropdown();
+                } else if (value) {
+                    tagsInput.classList.add('is-invalid');
+                    setTimeout(() => tagsInput.classList.remove('is-invalid'), 500);
                 }
             }
         });

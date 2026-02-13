@@ -8,14 +8,18 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import ContainerImageMixin, StorageMixin
+from apps.forms.mixins import (
+    ContainerImageMixin,
+    KeywordTagsValidationMixin,
+    StorageMixin,
+)
 from apps.models import CustomAppInstance
 from projects.models import Flavor
 
 __all__ = ["CustomAppForm"]
 
 
-class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
+class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
@@ -126,17 +130,8 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, AppBaseForm):
 
     def clean(self):
         cleaned_data = super().clean()
-
-        # Store invenio_tags as a list in tags
-        invenio_tags_value = cleaned_data.get("invenio_tags", "").strip()
-        if invenio_tags_value:
-            # Accept comma-separated or space-separated tags
-            tags_list = [tag.strip() for tag in invenio_tags_value.split(",") if tag.strip()]
-            if not tags_list:
-                # fallback: split by whitespace
-                tags_list = [tag.strip() for tag in invenio_tags_value.split() if tag.strip()]
-            cleaned_data["tags"] = tags_list
-
+        # Validate invenio_tags and store valid tags
+        cleaned_data["tags"] = self.clean_keyword_tags()
         return cleaned_data
 
     class Meta:

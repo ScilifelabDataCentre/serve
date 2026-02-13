@@ -288,12 +288,45 @@ class InvenioService:
         # Handle subject field (accept both 'subject' and 'tags' as input)
         subject = None
         if "subject" in extra and extra["subject"]:
-            subject = extra["subject"]
+            subject_input = extra["subject"]
+            try:
+                from apps.schemas import SubjectTerm
+                from apps.services.invenio_keywords_service import (
+                    VocabularyMemoryService,
+                )
+
+                vocab_service = VocabularyMemoryService()
+                subject_terms = []
+                for tag in subject_input:
+                    tag_label = tag["label"] if isinstance(tag, dict) and "label" in tag else tag
+                    found = False
+                    for term_id, term_data in vocab_service.term_metadata.items():
+                        if term_data.get("subject", "").lower() == str(tag_label).lower():
+                            subject_term = SubjectTerm(
+                                subjectScheme=term_data.get("subject_scheme") or term_data.get("subjectScheme"),
+                                schemeURI=term_data.get("scheme_uri") or term_data.get("schemeURI"),
+                                valueURI=term_data.get("value_uri") or term_data.get("valueURI"),
+                                classificationCode=term_data.get("classification_code")
+                                or term_data.get("classificationCode"),
+                                label=term_data.get("subject"),
+                                lang=term_data.get("lang", "en"),
+                            )
+                            subject_terms.append(subject_term)
+                            found = True
+                            break
+                    if not found:
+                        logger.warning(f"Tag '{tag_label}' not found in vocabulary. Skipping.")
+                if subject_terms:
+                    subject = subject_terms
+                else:
+                    logger.warning("No valid subject terms found for tags.")
+            except Exception as e:
+                logger.error(f"Error transforming tags to subject terms: {e}")
 
         if subject:
-            target_metadata["subject"] = subject
+            # Convert SubjectTerm objects to dicts for serialization
+            target_metadata["subject"] = [s.model_dump() for s in subject]
         else:
-            # Remove subject if neither present
             target_metadata.pop("subject", None)
         logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
 

@@ -123,6 +123,17 @@ class RelatedIdentifierItem(BaseModel):
 # ============================================================================
 
 
+class SubjectTerm(BaseModel):
+    """Subject/keyword term with full metadata for Invenio subject field."""
+
+    subjectScheme: str
+    schemeURI: str
+    valueURI: str
+    classificationCode: str
+    label: str
+    lang: str = "en"
+
+
 class InvenioMetadata(BaseModel):
     """Core Invenio metadata structure with all required and optional fields."""
 
@@ -143,7 +154,7 @@ class InvenioMetadata(BaseModel):
 
     # Optional metadata
     languages: List[Language] | None = None
-    subject: list | None = None  # List of tags/keywords for the record
+    subject: list[SubjectTerm] | None = None  # List of subject terms for the record
 
 
 # ============================================================================

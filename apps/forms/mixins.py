@@ -153,3 +153,29 @@ class VolumeMixin:
 
     def _set_up_volume_helper(self):
         return SRVCommonDivField("volume", template="apps/storage_field.html", project_slug=self.project.slug)
+
+
+class KeywordTagsValidationMixin:
+    def clean_keyword_tags(self):
+        """Validate the invenio_tags input against the autocomplete API."""
+        print("clean_keyword_tags called")
+        tags_value = self.cleaned_data.get("invenio_tags", "").strip()
+        tags_list = [tag.strip() for tag in tags_value.split(",") if tag.strip()]
+        if not tags_list:
+            tags_list = [tag.strip() for tag in tags_value.split() if tag.strip()]
+
+        from apps.services.invenio_keywords_service import VocabularyMemoryService
+
+        service = VocabularyMemoryService()
+        valid_tags = []
+        for tag in tags_list:
+            found = False
+            for term in service.term_metadata.values():
+                if term.get("subject", "").lower() == tag.lower():
+                    valid_tags.append(tag)
+                    found = True
+                    break
+            if not found:
+                self.add_error("invenio_tags", f"Tag '{tag}' is not valid.")
+                return []
+        return valid_tags

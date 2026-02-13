@@ -53,7 +53,8 @@ class CustomAppFormTest(BaseAppFormTest):
             "port": 8000,
             "image": "mock.io/scilifelabdatacentre/image:tag",
             "default_url_subpath": "valid-default_url_subpath/",
-            "invenio_tags": "tag1, tag2, tag3",
+            # These tags are found in the vocabulary service pickled data.
+            "invenio_tags": "Antibodies, Chemistry, Cats",
         }
 
     def test_form_valid_data(self):
@@ -120,7 +121,8 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
             "note_on_linkonly_privacy": None,
             "port": 8000,
             "image": "ghcr.io/scilifelabdatacentre/image:tag",
-            "invenio_tags": "tag1, tag2, tag3",
+            # These tags are found in the vocabulary service pickled data.
+            "invenio_tags": "Antibodies, Chemistry, Cats",
         }
 
     def test_form_rendering(self):
@@ -132,7 +134,7 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
         rendered_form = template.render(context)
         for key, value in valid_data.items():
             if key == "invenio_tags":
-                value = "tag1, tag2, tag3"  # String format for invenio_tags
+                value = "Antibodies, Chemistry, Cats"
             if key == "mount_path":  # Form uses mount_path instead of volume
                 value = self.valid_data.get("path")  # Mount path is same as path in the form
             if key == "flavor":

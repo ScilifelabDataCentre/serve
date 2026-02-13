@@ -1,6 +1,8 @@
 # Invenio keywords
 
-This folder `common/data/invenio_keywords` contains pickled data use for autocomplete and term lookup. There are 2 types of files:
+This folder `common/data/invenio_keywords` contains pickled data used for autocomplete and term lookup. The files are generate using `scripts/fetch_subject_keywords.py`.
+
+There are 2 types of files in this directory:
 
 ## "_autocomplete" file structure
 
