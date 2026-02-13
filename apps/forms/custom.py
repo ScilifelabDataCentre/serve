@@ -129,9 +129,9 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         self.helper.layout = Layout(body, self.footer)
 
     def clean(self):
-        cleaned_data = super().clean()
-        # Validate invenio_tags and store valid tags
-        cleaned_data["tags"] = self.clean_keyword_tags()
+        cleaned_data = self._clean()
+        keyword_tags_data = self.clean_keyword_tags()
+        cleaned_data["tags"] = keyword_tags_data
         return cleaned_data
 
     class Meta:
