@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 import requests
-
 from invenio_client.session import make_session
 
 

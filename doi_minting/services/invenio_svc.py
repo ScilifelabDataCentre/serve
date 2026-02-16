@@ -16,6 +16,9 @@ from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 from django.utils import timezone
 
+from doi_minting.clients.invenio_client import InvenioClient
+from studio.utils import get_logger
+
 from .schemas import (
     AccessConfig,
     AdditionalMetadata,
@@ -33,8 +36,6 @@ from .schemas import (
     ResourceType,
     Role,
 )
-from doi_minting.clients.invenio_client import InvenioClient
-from studio.utils import get_logger
 
 logger = get_logger(__name__)
 

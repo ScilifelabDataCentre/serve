@@ -6,7 +6,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 import responses  # type: ignore
-
 from invenio_client import InvenioClient
 
 

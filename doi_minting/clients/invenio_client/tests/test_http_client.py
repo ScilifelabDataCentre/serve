@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import requests
-
 from invenio_client.http_client import _request, delete, get, post, put
 
 

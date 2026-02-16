@@ -55,7 +55,7 @@ class Role(BaseModel):
     """Role definition with localized titles."""
 
     id: str
-    title: dict | None = None
+    title: dict[str, Any] | None = None
 
 
 class Creator(BaseModel):
@@ -81,7 +81,7 @@ class ResourceType(BaseModel):
     """Resource type definition with localized titles."""
 
     id: str  # e.g., "software", "dataset", "publication"
-    title: dict | None = None  # {"en": "Software"}
+    title: dict[str, Any] | None = None  # {"en": "Software"}
 
 
 class Language(BaseModel):
@@ -106,7 +106,7 @@ class RelationType(BaseModel):
     """Relationship type between resources."""
 
     id: str  # e.g., "issourceof", "hasversion", "isdocumentedby"
-    title: dict | None = None  # {"en": "Has image version"}
+    title: dict[str, Any] | None = None  # {"en": "Has image version"}
 
 
 class RelatedIdentifierItem(BaseModel):
@@ -134,15 +134,15 @@ class InvenioMetadata(BaseModel):
     resource_type: ResourceType
 
     # People and organizations
-    creators: List[Creator]
-    contributors: List[Contributor]
+    creators: list[Creator]
+    contributors: list[Contributor]
 
     # Identifiers and relationships
-    identifiers: List[Identifier]
-    related_identifiers: List[RelatedIdentifierItem] | None = None
+    identifiers: list[Identifier]
+    related_identifiers: list[RelatedIdentifierItem] | None = None
 
     # Optional metadata
-    languages: List[Language] | None = None
+    languages: list[Language] | None = None
 
 
 # ============================================================================

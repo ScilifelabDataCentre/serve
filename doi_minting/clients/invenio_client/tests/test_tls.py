@@ -5,7 +5,6 @@ import os
 from unittest.mock import patch
 
 import pytest
-
 from invenio_client.tls import parse_tls_verify, tls_verify_from_env
 
 
