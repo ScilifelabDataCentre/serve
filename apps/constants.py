@@ -70,6 +70,7 @@ UNIVERSITY_NAMES = {
     "mau": "Malmö universitet (Malmö University)",
     "mdu": "Mälardalens universitet (Mälardalen University)",
     "miun": "Mittuniversitetet (Mid Sweden University)",
+    "nrm": "The Swedish Museum of Natural History",
     "oru": "Örebro universitet (Örebro University)",
     "sh": "Södertörns högskola (Södertörn University)",
     "slu": "Sveriges lantbruksuniversitet (Swedish University of Agricultural Sciences)",
