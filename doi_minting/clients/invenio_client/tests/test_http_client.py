@@ -226,7 +226,10 @@ def test_get_wrapper(mock_session):
 
 def test_post_wrapper(mock_session):
     """Test POST wrapper function."""
-    with patch("invenio_client.http_client._request") as mock_request:
+    with patch("doi_minting.clients.invenio_client.http_client._request") as mock_request:
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_request.return_value = mock_response
         post(mock_session, "https://example.com/api/test", data={"key": "value"})
 
         mock_request.assert_called_once_with(
@@ -236,7 +239,10 @@ def test_post_wrapper(mock_session):
 
 def test_put_wrapper(mock_session):
     """Test PUT wrapper function."""
-    with patch("invenio_client.http_client._request") as mock_request:
+    with patch("doi_minting.clients.invenio_client.http_client._request") as mock_request:
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_request.return_value = mock_response
         put(mock_session, "https://example.com/api/test", data={"key": "value"})
 
         mock_request.assert_called_once_with(mock_session, "PUT", "https://example.com/api/test", json={"key": "value"})
@@ -244,7 +250,10 @@ def test_put_wrapper(mock_session):
 
 def test_delete_wrapper(mock_session):
     """Test DELETE wrapper function."""
-    with patch("invenio_client.http_client._request") as mock_request:
+    with patch("doi_minting.clients.invenio_client.http_client._request") as mock_request:
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_request.return_value = mock_response
         delete(mock_session, "https://example.com/api/test")
 
         mock_request.assert_called_once_with(mock_session, "DELETE", "https://example.com/api/test")
