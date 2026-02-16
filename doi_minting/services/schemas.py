@@ -15,7 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class AdditionalMetadata(TypedDict, total=False):
     """Type definition for additional metadata that can be passed to Invenio."""
 
-    languages: List[Language] | None  # List of language objects with ISO 639-2 codes
+    languages: list[Language] | None  # List of Language objects (ISO 639-2 codes) or None
+    subject: list[str] | None  # List of tags/keywords for the record
 
 
 # ============================================================================
