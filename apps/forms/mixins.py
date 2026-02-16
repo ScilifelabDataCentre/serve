@@ -164,7 +164,7 @@ class KeywordTagsValidationMixin:
         if not tags_list:
             tags_list = [tag.strip() for tag in tags_value.split() if tag.strip()]
 
-        from apps.services.invenio_keywords_service import VocabularyMemoryService
+        from doi_minting.services.keywords_service import VocabularyMemoryService
 
         service = VocabularyMemoryService()
         valid_tags = []
