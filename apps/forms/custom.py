@@ -126,7 +126,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         self.helper.layout = Layout(body, self.footer)
 
     def clean(self):
-        cleaned_data = self._clean()
+        cleaned_data = super().clean()
         keyword_tags_data = self.clean_keyword_tags()
         cleaned_data["tags"] = keyword_tags_data
         return cleaned_data

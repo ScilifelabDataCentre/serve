@@ -58,6 +58,7 @@ class CreateAppInstanceTestCase(TestCase):
             "port": 8000,
             "image": "some-image",
             "source_code_url": "https://someurlthatdoesnotexist.com",
+            "invenio_tags": "Antibodies, Cells",
         }
 
         _, form_class = APP_REGISTRY.get(self.app_slug)
@@ -192,9 +193,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
             "language": "eng",
+            "invenio_tags": "Antibodies, Cells",
         }
 
-        changed_fields = ["port"]
+        changed_fields = ["port", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -222,9 +224,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": "test-image-new",
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "invenio_tags": "Antibodies, Cells",
         }
 
-        changed_fields = ["image"]
+        changed_fields = ["image", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -253,9 +256,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": "test-subdomain-update-app-new",
+            "invenio_tags": "Antibodies, Cells",
         }
 
-        changed_fields = ["subdomain"]
+        changed_fields = ["subdomain", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -291,10 +295,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": "https://someurlthatdoesnotexist.com/new",
             "subdomain": self.subdomain_name,
-            "tags": None,
+            "invenio_tags": "Antibodies, Cells",
         }
 
-        changed_fields = ["name", "description", "source_code_url"]
+        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -322,7 +326,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
         self.assertIsNotNone(form.changed_data)
-        self.assertEqual(form.changed_data, changed_fields)
+        self.assertEqual(set(form.changed_data), set(changed_fields))
 
         id = create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
 
@@ -377,6 +381,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "invenio_tags": "Antibodies, Cells",
         }
         form = form_class(data, project_pk=self.project.pk, instance=app_instance)
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
@@ -412,6 +417,7 @@ def test_get_subdomain_name():
         "image": "some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
         "subdomain": subdomain,
+        "invenio_tags": "Antibodies, Cells",
     }
 
     _, form_class = APP_REGISTRY.get("dashapp")
@@ -442,6 +448,7 @@ def test_get_subdomain_name_no_subdomain_in_form():
         "port": 9999,
         "image": "some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
+        "invenio_tags": "Antibodies, Cells",
     }
 
     _, form_class = APP_REGISTRY.get("dashapp")

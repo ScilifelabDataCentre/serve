@@ -7,14 +7,18 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import ContainerImageMixin, StorageMixin
+from apps.forms.mixins import (
+    ContainerImageMixin,
+    KeywordTagsValidationMixin,
+    StorageMixin,
+)
 from apps.models import ShinyInstance
 from projects.models import Flavor
 
 __all__ = ["ShinyForm"]
 
 
-class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
+class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     shiny_site_dir = forms.CharField(max_length=255, required=False, label="Path to site_dir")
@@ -27,6 +31,14 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Add invenio_tags as a form-only field for vocabulary input
+        self.fields["invenio_tags"] = forms.CharField(
+            required=True,
+            label="All keywords and tags",
+            help_text="Add subject keywords from controlled vocabularies (MeSH, EuroSciVoc, GEMET)",
+            widget=forms.TextInput(attrs={"class": "form-control"}),
+        )
 
         if self.instance and self.instance.pk:
             self.initial_subdomain = self.instance.subdomain.subdomain
@@ -60,7 +72,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         general_fields = [
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
-            SRVCommonDivField("tags"),
+            SRVCommonDivField("invenio_tags"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
@@ -129,7 +141,10 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         return shiny_site_dir
 
     def clean(self):
-        return self._clean()
+        cleaned_data = super().clean()
+        # Validate invenio_tags and store valid tags
+        cleaned_data["tags"] = self.clean_keyword_tags()
+        return cleaned_data
 
     class Meta:
         model = ShinyInstance
@@ -149,7 +164,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
             "mount_path",
         ]
         labels = {
-            "tags": "Keywords",
+            "tags": "All Keywords and Tags",
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
             "shiny_site_dir": "Custom subpath for Shiny app after /srv/shiny-server/",
         }

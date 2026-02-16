@@ -8,14 +8,14 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import ContainerImageMixin
+from apps.forms.mixins import ContainerImageMixin, KeywordTagsValidationMixin
 from apps.models import DashInstance
 from projects.models import Flavor
 
 __all__ = ["DashForm"]
 
 
-class DashForm(ContainerImageMixin, AppBaseForm):
+class DashForm(ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
@@ -29,6 +29,14 @@ class DashForm(ContainerImageMixin, AppBaseForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         super().add_metadata()
+
+        # Add invenio_tags as a form-only field for vocabulary input
+        self.fields["invenio_tags"] = forms.CharField(
+            required=True,
+            label="All keywords and tags",
+            help_text="Add subject keywords from controlled vocabularies (MeSH, EuroSciVoc, GEMET)",
+            widget=forms.TextInput(attrs={"class": "form-control"}),
+        )
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -55,7 +63,7 @@ class DashForm(ContainerImageMixin, AppBaseForm):
         general_fields = [
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
-            SRVCommonDivField("tags"),
+            SRVCommonDivField("invenio_tags"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
@@ -121,6 +129,12 @@ class DashForm(ContainerImageMixin, AppBaseForm):
             changed_data.remove("volume")
         return changed_data
 
+    def clean(self):
+        cleaned_data = super().clean()
+        keyword_tags_data = self.clean_keyword_tags()
+        cleaned_data["tags"] = keyword_tags_data
+        return cleaned_data
+
     class Meta:
         model = DashInstance
         fields = [
@@ -136,6 +150,6 @@ class DashForm(ContainerImageMixin, AppBaseForm):
             "default_url_subpath",
         ]
         labels = {
-            "tags": "Subjects and Keywords",
+            "tags": "All Keywords and Tags",
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
         }
