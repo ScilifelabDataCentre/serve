@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
-from invenio_client.session import make_session
+from doi_minting.clients.invenio_client.session import make_session
 
 
 def test_make_session_default_headers():

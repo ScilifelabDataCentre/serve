@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     "models",
     "apps",
     "api",
+    "doi_minting",
     "axes",  # django-axes for brute force login protection
     "django_password_validators",  # django-password-validators for password validation
     "django_htmx",

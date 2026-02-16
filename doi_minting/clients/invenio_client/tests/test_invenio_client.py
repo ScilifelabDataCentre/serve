@@ -7,7 +7,10 @@ from unittest.mock import Mock, call, patch
 import pytest
 import responses  # type: ignore
 
-from invenio_client import InvenioClient, InvenioClientError
+from doi_minting.clients.invenio_client.invenio_client import (
+    InvenioClient,
+    InvenioClientError,
+)
 
 
 class TestInvenioClientInitialization:

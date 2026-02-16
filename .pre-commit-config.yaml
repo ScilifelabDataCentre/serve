@@ -52,4 +52,4 @@ repos:
   hooks:
   - id: mypy
     args: [--config-file, pyproject.toml]
-    additional_dependencies: [types-requests==2.25.9]
+    additional_dependencies: [types-requests==2.25.9, pydantic==2.12.5]

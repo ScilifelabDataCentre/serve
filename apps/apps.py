@@ -9,8 +9,7 @@ class AppsConfig(AppConfig):
         import logging
 
         import apps.signals
-
-        from .services.invenio_keywords_service import VocabularyMemoryService
+        from doi_minting.services.keywords_service import VocabularyMemoryService
 
         logger = logging.getLogger(__name__)
         logger.info("Initializing Invenio keywords service...")

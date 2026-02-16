@@ -17,12 +17,12 @@ from django.views import View
 from guardian.decorators import permission_required_or_403
 from rest_framework.exceptions import NotFound
 
+from apps.constants import AppActionOrigin
 from apps.types_.subdomain import SubdomainCandidateName
 from projects.models import Project
 from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
-from .constants import AppActionOrigin
 from .helpers import (
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,

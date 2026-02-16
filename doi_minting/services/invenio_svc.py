@@ -17,7 +17,10 @@ from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 from django.utils import timezone
 
-from apps.schemas import (
+from doi_minting.clients.invenio_client import InvenioClient
+from studio.utils import get_logger
+
+from .schemas import (
     AccessConfig,
     AdditionalMetadata,
     AppData,
@@ -34,8 +37,6 @@ from apps.schemas import (
     ResourceType,
     Role,
 )
-from invenio_client.invenio_client import InvenioClient
-from studio.utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -290,10 +291,8 @@ class InvenioService:
         if "subject" in extra and extra["subject"]:
             subject_input = extra["subject"]
             try:
-                from apps.schemas import SubjectTerm
-                from apps.services.invenio_keywords_service import (
-                    VocabularyMemoryService,
-                )
+                from .keywords_service import VocabularyMemoryService
+                from .schemas import SubjectTerm
 
                 vocab_service = VocabularyMemoryService()
                 subject_terms = []

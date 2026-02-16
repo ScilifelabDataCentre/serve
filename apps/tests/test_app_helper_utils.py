@@ -9,21 +9,21 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from schema import And, Regex, Schema
 
-from common.management.manage_test_data import TestDataManager
-from common.models import UserProfile
-from projects.models import Flavor, Project
-
-from ..app_registry import APP_REGISTRY
-from ..constants import AppActionOrigin
-from ..forms import DashForm
-from ..helpers import (
+from apps.app_registry import APP_REGISTRY
+from apps.constants import AppActionOrigin
+from apps.forms import DashForm
+from apps.helpers import (
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
     get_subdomain_name,
 )
+from common.management.manage_test_data import TestDataManager
+from common.models import UserProfile
+from doi_minting.services.invenio_svc import InvenioService
+from doi_minting.services.schemas import InvenioRecord
+from projects.models import Flavor, Project
+
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
-from ..schemas import InvenioRecord
-from ..services.invenio_service import InvenioService
 from ..types_.subdomain import SubdomainTuple
 
 User = get_user_model()

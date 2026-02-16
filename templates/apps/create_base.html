@@ -397,7 +397,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
 
-            fetch('/api/invenio_keyword_search/?q=' + encodeURIComponent(query))
+            fetch('/doi_minting/keyword_search/?q=' + encodeURIComponent(query))
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
