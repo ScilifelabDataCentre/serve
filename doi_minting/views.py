@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 
 from studio.utils import get_logger
@@ -6,9 +6,9 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 
-@api_view(["GET"])
-@permission_classes(())
-def keyword_search(request):
+@api_view(["GET"])  # type: ignore[misc]
+@permission_classes(())  # type: ignore[misc]
+def keyword_search(request: HttpRequest) -> JsonResponse:
     """API endpoint to search vocabulary terms for subject autocomplete"""
     query = request.GET.get("q", "").strip()
 

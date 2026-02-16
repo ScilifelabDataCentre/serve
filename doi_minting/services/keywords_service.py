@@ -9,19 +9,22 @@ class VocabularyMemoryService:
     _instance = None
     _loaded = False
 
-    def __new__(cls):
+    def __new__(cls) -> "VocabularyMemoryService":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    autocomplete_data: dict[str, list[dict[str, object]]]
+    term_metadata: dict[str, dict[str, object]]
+
+    def __init__(self) -> None:
         if not self._loaded:
             self.autocomplete_data = {}
             self.term_metadata = {}
             self._load_vocabulary_data()
             VocabularyMemoryService._loaded = True
 
-    def _load_vocabulary_data(self):
+    def _load_vocabulary_data(self) -> None:
         """Load vocabulary data from pickle files into memory."""
         import os
         import pickle
@@ -67,7 +70,7 @@ class VocabularyMemoryService:
 
         logger.info(f"Loaded vocabulary: {len(self.term_metadata)} terms, " f"{len(self.autocomplete_data)} prefixes")
 
-    def search_subjects(self, query, limit=10):
+    def search_subjects(self, query: str, limit: int = 10) -> list[dict[str, object]]:
         """Search for subject keywords with autocomplete suggestions."""
         if not query:
             return []
@@ -84,21 +87,31 @@ class VocabularyMemoryService:
             if prefix in self.autocomplete_data:
                 # Filter terms that contain the full query
                 for term in self.autocomplete_data[prefix]:
-                    if query_lower in term["label"].lower():
+                    label = term.get("label")
+                    if isinstance(label, str) and query_lower in label.lower():
                         suggestions.append(
-                            {"id": term["id"], "label": term["label"], "source": term["source"], "score": term["score"]}
+                            {"id": term["id"], "label": label, "source": term["source"], "score": term["score"]}
                         )
                 break
 
         # Sort by relevance: exact matches first, then by score
-        suggestions.sort(key=lambda x: (0 if x["label"].lower().startswith(query_lower) else 1, x["score"], x["label"]))
+        suggestions.sort(
+            key=lambda x: (
+                0 if isinstance(x["label"], str) and x["label"].lower().startswith(query_lower) else 1,
+                x["score"],
+                x["label"],
+            )
+        )
 
         return suggestions[:limit]
 
-    def get_term_details(self, term_id):
+    def get_term_details(self, term_id: str) -> dict[str, object]:
         """Get detailed information about a specific term."""
-        return self.term_metadata.get(term_id, {})
+        result = self.term_metadata.get(term_id, {})
+        if not isinstance(result, dict):
+            return {}
+        return result
 
-    def is_loaded(self):
+    def is_loaded(self) -> bool:
         """Check if vocabulary data has been loaded."""
         return self._loaded and bool(self.autocomplete_data)

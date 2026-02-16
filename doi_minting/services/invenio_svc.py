@@ -42,25 +42,33 @@ logger = get_logger(__name__)
 
 
 class MockInvenioClient:
-    def create_draft(self, *args, **kwargs):
+    def create_draft(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         return {"id": "mock-draft-id"}
 
-    def reserve_doi(self, draft_id):
+    def reserve_doi(self, draft_id: str) -> dict[str, Any]:
         return {"pids": {"doi": {"identifier": "10.1234/mockdoi"}}}
 
-    def publish_draft(self, draft_id):
+    def publish_draft(self, draft_id: str) -> dict[str, Any]:
         return {"id": "mock-record-id", "pids": {"doi": {"identifier": "10.1234/mockdoi"}}}
 
-    def create_new_version(self, record_id):
+    def create_new_version(self, record_id: str) -> dict[str, Any]:
         return {"id": "mock-version-id"}
 
-    def get_draft(self, version_id):
+    def get_draft(self, version_id: str) -> dict[str, Any]:
         return {"id": "mock-draft-id", "access": {}, "custom_fields": {}, "pids": {}}
 
-    def update_draft(self, record_id, metadata, access, files, custom_fields, pids):
+    def update_draft(
+        self,
+        record_id: str,
+        metadata: dict[str, Any],
+        access: dict[str, Any],
+        files: dict[str, Any],
+        custom_fields: Optional[dict[str, Any]],
+        pids: dict[str, Any],
+    ) -> dict[str, Any]:
         return {"id": "mock-draft-id"}
 
-    def get_all_versions(self, record_id):
+    def get_all_versions(self, record_id: str) -> dict[str, Any]:
         return {"hits": {"hits": []}}
 
 
@@ -69,7 +77,11 @@ class InvenioService:
     Manages Invenio record creation, versioning, and DOI minting for application instances.
     """
 
-    def __init__(self, base_url: str = None, token: str = None, verify: bool = True, mock_mode: bool = False):
+    client: Any
+
+    def __init__(
+        self, base_url: Optional[str] = None, token: Optional[str] = None, verify: bool = True, mock_mode: bool = False
+    ):
         """
         Initialize the Invenio Record Service.
 
@@ -94,7 +106,7 @@ class InvenioService:
                 verify=self.verify,
             )
 
-    def check_image_version_exists(self, app_instance, image_value: str) -> bool:
+    def check_image_version_exists(self, app_instance: Any, image_value: str) -> bool:
         """
         Check if the given image version already exists in Invenio records.
 
@@ -131,7 +143,7 @@ class InvenioService:
 
         return False
 
-    def is_app_eligible_for_doi(self, app_instance) -> tuple[bool, str]:
+    def is_app_eligible_for_doi(self, app_instance: Any) -> tuple[bool, str]:
         """
         Check if the application is eligible for DOI minting.
 
@@ -156,7 +168,7 @@ class InvenioService:
 
     def create_new_record(
         self,
-        app_instance,
+        app_instance: Any,
         metadata: InvenioMetadata,
         access: AccessConfig,
         custom_fields: Optional[Dict[str, Any]] = None,
@@ -196,10 +208,11 @@ class InvenioService:
         # Publish record
         published_record = self.client.publish_draft(draft["id"])
         logger.info(f"Successfully published Invenio record with ID: {published_record['id']}")
-
+        if not isinstance(published_record, dict):
+            raise TypeError("publish_draft did not return a dict")
         return published_record
 
-    def create_new_version(self, app_instance, metadata: InvenioMetadata) -> Dict[str, Any]:
+    def create_new_version(self, app_instance: Any, metadata: InvenioMetadata) -> Dict[str, Any]:
         """
         Create a new version of an existing Invenio record.
 
@@ -249,9 +262,11 @@ class InvenioService:
         published_version = self.client.publish_draft(updated_version["id"])
         logger.info(f"Published new version: {published_version['id']}")
 
+        if not isinstance(published_version, dict):
+            raise TypeError("publish_draft did not return a dict")
         return published_version
 
-    def update_app_instance(self, app_instance, record_id: str, doi: str) -> None:
+    def update_app_instance(self, app_instance: Any, record_id: str, doi: str) -> None:
         """
         Update the application instance with Invenio record ID and DOI.
 
@@ -280,51 +295,64 @@ class InvenioService:
             The modified metadata dictionary
         """
         # Handle languages field - convert Language models to dict format
-        if "languages" in extra and extra["languages"]:
-            target_metadata["languages"] = [lang.model_dump() for lang in extra["languages"]]
-        elif "languages" in extra and not extra["languages"]:
-            # Empty list - remove languages field
+        languages = getattr(extra, "languages", None)
+        if isinstance(languages, list):
+            if languages:
+                target_metadata["languages"] = [lang.model_dump() for lang in languages if hasattr(lang, "model_dump")]
+            else:
+                # Empty list - remove languages field
+                target_metadata.pop("languages", None)
+        elif hasattr(extra, "languages") and languages is None:
             target_metadata.pop("languages", None)
 
         # Handle subject field (accept both 'subject' and 'tags' as input)
         subject = None
-        if "subject" in extra and extra["subject"]:
-            subject_input = extra["subject"]
-            try:
-                from .keywords_service import VocabularyMemoryService
-                from .schemas import SubjectTerm
+        if hasattr(extra, "subject"):
+            subject_input = getattr(extra, "subject", None)
+            if isinstance(subject_input, list) and subject_input:
+                try:
+                    from .keywords_service import VocabularyMemoryService
+                    from .schemas import SubjectTerm
 
-                vocab_service = VocabularyMemoryService()
-                subject_terms = []
-                for tag in subject_input:
-                    tag_label = tag["label"] if isinstance(tag, dict) and "label" in tag else tag
-                    found = False
-                    for term_id, term_data in vocab_service.term_metadata.items():
-                        if term_data.get("subject", "").lower() == str(tag_label).lower():
-                            subject_term = SubjectTerm(
-                                subjectScheme=term_data.get("subject_scheme") or term_data.get("subjectScheme"),
-                                schemeURI=term_data.get("scheme_uri") or term_data.get("schemeURI"),
-                                valueURI=term_data.get("value_uri") or term_data.get("valueURI"),
-                                classificationCode=term_data.get("classification_code")
-                                or term_data.get("classificationCode"),
-                                label=term_data.get("subject"),
-                                lang=term_data.get("lang", "en"),
-                            )
-                            subject_terms.append(subject_term)
-                            found = True
-                            break
-                    if not found:
-                        logger.warning(f"Tag '{tag_label}' not found in vocabulary. Skipping.")
-                if subject_terms:
-                    subject = subject_terms
-                else:
-                    logger.warning("No valid subject terms found for tags.")
-            except Exception as e:
-                logger.error(f"Error transforming tags to subject terms: {e}")
+                    vocab_service = VocabularyMemoryService()
+                    subject_terms = []
+                    for tag in subject_input:
+                        tag_label = tag["label"] if isinstance(tag, dict) and "label" in tag else tag
+                        if not isinstance(tag_label, str):
+                            continue
+                        found = False
+                        for term_id, term_data in vocab_service.term_metadata.items():
+                            subj = term_data.get("subject", "")
+                            if isinstance(subj, str) and subj.lower() == tag_label.lower():
+                                subject_term = SubjectTerm(
+                                    subjectScheme=str(
+                                        term_data.get("subject_scheme") or term_data.get("subjectScheme") or ""
+                                    ),
+                                    schemeURI=str(term_data.get("scheme_uri") or term_data.get("schemeURI") or ""),
+                                    valueURI=str(term_data.get("value_uri") or term_data.get("valueURI") or ""),
+                                    classificationCode=str(
+                                        term_data.get("classification_code")
+                                        or term_data.get("classificationCode")
+                                        or ""
+                                    ),
+                                    label=str(term_data.get("subject") or ""),
+                                    lang=str(term_data.get("lang", "en")),
+                                )
+                                subject_terms.append(subject_term)
+                                found = True
+                                break
+                        if not found:
+                            logger.warning(f"Tag '{tag_label}' not found in vocabulary. Skipping.")
+                    if subject_terms:
+                        subject = subject_terms
+                    else:
+                        logger.warning("No valid subject terms found for tags.")
+                except Exception as e:
+                    logger.error(f"Error transforming tags to subject terms: {e}")
 
         if subject:
             # Convert SubjectTerm objects to dicts for serialization
-            target_metadata["subject"] = [s.model_dump() for s in subject]
+            target_metadata["subject"] = [s.model_dump() for s in subject if hasattr(s, "model_dump")]
         else:
             target_metadata.pop("subject", None)
         logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
@@ -481,7 +509,7 @@ class InvenioService:
 
         return invenio_record
 
-    def log_version_information(self, app_instance) -> None:
+    def log_version_information(self, app_instance: Any) -> None:
         """
         Log detailed version information after processing.
 
@@ -531,7 +559,7 @@ class InvenioService:
         logger.info(f"Starting metadata processing for app '{app_slug}' with ID '{app_id}'")
 
         # Get the ORM model class
-        model_class: Optional[Type] = APP_REGISTRY.get_orm_model(app_slug)
+        model_class: Optional[Type[Any]] = APP_REGISTRY.get_orm_model(app_slug)
         if not model_class:
             logger.error(f"Missing model for slug: {app_slug}")
             raise PermissionDenied("Application model not found")
