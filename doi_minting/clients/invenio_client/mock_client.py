@@ -1,5 +1,6 @@
 from typing import Any, Optional
 
+
 class MockInvenioClient:
     def create_draft(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         return {"id": "mock-draft-id"}
