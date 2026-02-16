@@ -44,7 +44,7 @@ class InvenioService:
     Manages Invenio record creation, versioning, and DOI minting for application instances.
     """
 
-    def __init__(self, base_url: str = None, token: str = None, verify: bool = True):
+    def __init__(self, base_url: Optional[str] = None, token: Optional[str] = None, verify: bool = True):
         """
         Initialize the Invenio Record Service.
 
@@ -64,7 +64,7 @@ class InvenioService:
             verify=self.verify,
         )
 
-    def check_image_version_exists(self, app_instance, image_value: str) -> bool:
+    def check_image_version_exists(self, app_instance: Any, image_value: str) -> bool:
         """
         Check if the given image version already exists in Invenio records.
 
@@ -102,7 +102,7 @@ class InvenioService:
 
         return False
 
-    def is_app_eligible_for_doi(self, app_instance) -> tuple[bool, str]:
+    def is_app_eligible_for_doi(self, app_instance: Any) -> tuple[bool, str]:
         """
         Check if the application is eligible for DOI minting.
 
@@ -127,7 +127,7 @@ class InvenioService:
 
     def create_new_record(
         self,
-        app_instance,
+        app_instance: Any,
         metadata: InvenioMetadata,
         access: AccessConfig,
         custom_fields: Optional[Dict[str, Any]] = None,
@@ -170,7 +170,7 @@ class InvenioService:
 
         return published_record
 
-    def create_new_version(self, app_instance, metadata: InvenioMetadata) -> Dict[str, Any]:
+    def create_new_version(self, app_instance: Any, metadata: InvenioMetadata) -> Dict[str, Any]:
         """
         Create a new version of an existing Invenio record.
 
@@ -222,7 +222,7 @@ class InvenioService:
 
         return published_version
 
-    def update_app_instance(self, app_instance, record_id: str, doi: str) -> None:
+    def update_app_instance(self, app_instance: Any, record_id: str, doi: str) -> None:
         """
         Update the application instance with Invenio record ID and DOI.
 
@@ -409,7 +409,7 @@ class InvenioService:
 
         return invenio_record
 
-    def log_version_information(self, app_instance) -> None:
+    def log_version_information(self, app_instance: Any) -> None:
         """
         Log detailed version information after processing.
 
