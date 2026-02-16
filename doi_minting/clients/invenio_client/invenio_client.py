@@ -495,3 +495,56 @@ class InvenioClient:
             return None
 
         return language_id
+
+    def search_funders(self, query: str, size: int = 10) -> List[Dict[str, str]]:
+        """
+        Search Invenio funders vocabulary.
+
+        Returns a simplified list:
+        [
+          {"id": "00k4n6c32", "name": "European Commission"},
+          ...
+        ]
+        """
+        if not query:
+            return []
+
+        params: Dict[str, Any] = {
+            "q": query,
+            "size": size,
+        }
+
+        response = self.session.get(
+            f"{self.base_url}/api/vocabularies/funders",
+            params=params,
+        )
+        logger.info("Invenio funders request URL: %s", response.url)
+        logger.info("Invenio funders status code: %s", response.status_code)
+
+        try:
+            raw_json = response.json()
+            logger.info(
+                "Invenio funders raw response (truncated): %s",
+                json.dumps(raw_json, indent=2)[:2000],
+            )
+        except Exception:
+            logger.warning("Invenio funders response is not JSON")
+        
+        data = self._handle_response(response)
+
+        hits = data.get("hits", {}).get("hits", []) or []
+
+        results: List[Dict[str, str]] = []
+        for hit in hits:
+            funder_id = hit.get("id")
+            title = (hit.get("title") or {}).get("en")
+
+            if funder_id and title:
+                results.append(
+                    {
+                        "id": funder_id,
+                        "name": title,
+                    }
+                )
+
+        return results

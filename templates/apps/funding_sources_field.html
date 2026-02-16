@@ -1,0 +1,343 @@
+<div id="div_{{ field.id_for_label }}" class="{% if wrapper_class %}{{ wrapper_class }}{% endif %}">
+  {% include "apps/partials/div_label_with_help_toggle.html" %}
+
+  <div class="clearfix">
+    {{ field }} {# hidden JSON #}
+
+    <div id="fundersList" class="mb-2"></div>
+
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-2" id="addFunderBtn">
+      + Add funder
+    </button>
+
+    {% if field.help_text %}
+      <small id="{{ field.id_for_label }}_helptext" class="form-text text-muted d-block">
+        {{ field.help_text }}
+      </small>
+    {% endif %}
+
+    {% for error in field.errors %}
+      <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="modal fade" id="funderModal" tabindex="-1" aria-labelledby="funderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="funderModalLabel">Add funder</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-3 position-relative">
+          <label class="form-label">Funder <span class="text-danger">*</span></label>
+
+          <div class="input-group">
+            <input type="text"
+                   class="form-control"
+                   id="funderNameInput"
+                   placeholder="Search for a funder by name"
+                   autocomplete="off">
+            <button class="btn btn-outline-secondary" type="button" id="clearFunderBtn" aria-label="Clear">
+              &times;
+            </button>
+          </div>
+
+          <div id="funderResults"
+               class="list-group position-absolute w-100 shadow-sm"
+               style="z-index:1056; display:none; max-height:260px; overflow:auto;"></div>
+
+          <div class="form-text">You must select a funder from the Invenio list.</div>
+        </div>
+
+        <h5 class="mt-4">Additional information (optional)</h5>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Number</label>
+            <input type="text" class="form-control" id="awardNumberInput" placeholder="Award/Grant number">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-control" id="awardTitleInput" placeholder="Award/Grant Title">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">URL</label>
+            <input type="url" class="form-control" id="awardUrlInput" placeholder="Award/Grant URL">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">✕ Cancel</button>
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-primary" id="saveAndAddAnotherBtn" disabled>✓ Save and add another</button>
+          <button type="button" class="btn btn-primary" id="saveFunderBtn" disabled>✓ Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const hiddenField = document.getElementById("{{ field.id_for_label }}");
+  const fundersListEl = document.getElementById("fundersList");
+  const addBtn = document.getElementById("addFunderBtn");
+
+  const modalEl = document.getElementById("funderModal");
+  const modal = new bootstrap.Modal(modalEl);
+
+  const nameInput = document.getElementById("funderNameInput");
+  const clearBtn = document.getElementById("clearFunderBtn");
+  const resultsEl = document.getElementById("funderResults");
+
+  const numberInput = document.getElementById("awardNumberInput");
+  const titleInput  = document.getElementById("awardTitleInput");
+  const urlInput    = document.getElementById("awardUrlInput");
+
+  const saveBtn = document.getElementById("saveFunderBtn");
+  const saveAnotherBtn = document.getElementById("saveAndAddAnotherBtn");
+
+  // -------- State
+  const state = {
+    editIndex: null,
+    selected: null, // { id, name }
+    results: [],    // last search results
+    timer: null,
+  };
+
+  const escapeHtml = (s) =>
+    (s || "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+    }[c]));
+
+  const parseFunders = () => {
+    try { return JSON.parse(hiddenField.value || "[]"); }
+    catch { return []; }
+  };
+
+  const writeFunders = (list) => {
+    hiddenField.value = JSON.stringify(list || []);
+    renderFunders();
+  };
+
+  const setButtonsEnabled = (enabled) => {
+    saveBtn.disabled = !enabled;
+    saveAnotherBtn.disabled = !enabled;
+  };
+
+  const hideResults = () => {
+    resultsEl.style.display = "none";
+    resultsEl.innerHTML = "";
+    state.results = [];
+  };
+
+  const showResults = (items) => {
+    state.results = items || [];
+    if (!state.results.length) {
+      resultsEl.innerHTML = `<div class="list-group-item text-muted">No results</div>`;
+      resultsEl.style.display = "block";
+      return;
+    }
+
+    const top = state.results.slice(0, 10);
+    resultsEl.innerHTML = top.map((f, idx) => {
+      const name = escapeHtml(f?.title?.en || f?.title?.["en"] || f?.name || f?.id || "");
+      const id = escapeHtml(f?.id || "");
+      const country = escapeHtml(f?.country || "");
+      const line2 = [country, id].filter(Boolean).join(" · ");
+      return `
+        <button type="button" class="list-group-item list-group-item-action" data-idx="${idx}">
+          <div class="fw-semibold">${name || "(no name)"}</div>
+          ${line2 ? `<div class="small text-muted">${line2}</div>` : ""}
+        </button>
+      `;
+    }).join("");
+    resultsEl.style.display = "block";
+  };
+
+  const resetModal = () => {
+    state.editIndex = null;
+    state.selected = null;
+    nameInput.value = "";
+    numberInput.value = "";
+    titleInput.value = "";
+    urlInput.value = "";
+    document.getElementById("funderModalLabel").textContent = "Add funder";
+    hideResults();
+    setButtonsEnabled(false);
+  };
+
+  const openAddModal = () => {
+    resetModal();
+    modal.show();
+    setTimeout(() => nameInput.focus(), 150);
+  };
+
+  const openEditModal = (idx) => {
+    const funders = parseFunders();
+    const f = funders[idx];
+    if (!f) return;
+
+    state.editIndex = idx;
+    document.getElementById("funderModalLabel").textContent = "Edit funder";
+
+    state.selected = { id: f.funder_id || "", name: f.funder_name || "" };
+    nameInput.value = state.selected.name;
+
+    numberInput.value = f.number || "";
+    titleInput.value  = f.title || "";
+    urlInput.value    = f.url || "";
+
+    hideResults();
+    setButtonsEnabled(!!(state.selected.id && state.selected.name));
+
+    modal.show();
+    setTimeout(() => nameInput.focus(), 150);
+  };
+
+  const renderFunders = () => {
+    const funders = parseFunders();
+    if (!funders.length) {
+      fundersListEl.innerHTML = `<div class="text-muted">No funders added.</div>`;
+      return;
+    }
+
+    fundersListEl.innerHTML = funders.map((f, i) => {
+      const name = escapeHtml(f.funder_name || "");
+      const id = escapeHtml(f.funder_id || "");
+      const number = escapeHtml(f.number || "");
+      return `
+        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+          <div>
+            <div class="fw-semibold">${name}${number ? `; Number ${number}` : ""}</div>
+            <div class="small text-muted">${id}</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-edit="${i}">Edit</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-remove="${i}">Remove</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  };
+
+  const collectModalData = () => {
+    if (!state.selected?.id || !state.selected?.name) return null;
+    return {
+      funder_name: state.selected.name,
+      funder_id: state.selected.id,
+      number: numberInput.value.trim(),
+      title: titleInput.value.trim(),
+      url: urlInput.value.trim(),
+    };
+  };
+
+  const upsertFunder = (data) => {
+    const funders = parseFunders();
+    if (state.editIndex === null) funders.push(data);
+    else funders[state.editIndex] = data;
+    writeFunders(funders);
+  };
+
+  const fetchFunders = async (q) => {
+    const resp = await fetch(`/api/invenio/funders/?q=${encodeURIComponent(q)}`, {
+      headers: { "Accept": "application/json" },
+      credentials: "same-origin",
+    });
+    if (!resp.ok) throw new Error(`Funders proxy HTTP ${resp.status}`);
+    return resp.json();
+  };
+
+  const debouncedSearch = () => {
+    if (state.timer) clearTimeout(state.timer);
+    state.timer = setTimeout(async () => {
+      const q = nameInput.value.trim();
+
+      // typing clears the selection until user clicks a result
+      state.selected = null;
+      setButtonsEnabled(false);
+
+      if (q.length < 3) {
+        hideResults();
+        return;
+      }
+
+      try {
+        const data = await fetchFunders(q);
+        showResults(Array.isArray(data?.items) ? data.items : []);
+      } catch {
+        resultsEl.innerHTML = `<div class="list-group-item text-danger">Funders search failed</div>`;
+        resultsEl.style.display = "block";
+      }
+    }, 250);
+  };
+
+  addBtn.addEventListener("click", openAddModal);
+
+  fundersListEl.addEventListener("click", (e) => {
+    const editBtn = e.target.closest("[data-edit]");
+    const removeBtn = e.target.closest("[data-remove]");
+    if (editBtn) return openEditModal(parseInt(editBtn.getAttribute("data-edit"), 10));
+    if (removeBtn) {
+      const idx = parseInt(removeBtn.getAttribute("data-remove"), 10);
+      const funders = parseFunders();
+      funders.splice(idx, 1);
+      writeFunders(funders);
+    }
+  });
+
+  nameInput.addEventListener("input", debouncedSearch);
+
+  resultsEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-idx]");
+    if (!btn) return;
+
+    const idx = parseInt(btn.getAttribute("data-idx"), 10);
+    const f = state.results[idx];
+    if (!f) return;
+
+    const name = (f?.title?.en || f?.title?.["en"] || f?.name || f?.id || "").trim();
+    const id = (f?.id || "").trim();
+
+    state.selected = { id, name };
+    nameInput.value = name;
+    hideResults();
+    setButtonsEnabled(!!(id && name));
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#funderNameInput") && !e.target.closest("#funderResults")) hideResults();
+  });
+
+  clearBtn.addEventListener("click", () => {
+    nameInput.value = "";
+    state.selected = null;
+    hideResults();
+    setButtonsEnabled(false);
+    nameInput.focus();
+  });
+
+  saveBtn.addEventListener("click", () => {
+    const data = collectModalData();
+    if (!data) return;
+    upsertFunder(data);
+    modal.hide();
+  });
+
+  saveAnotherBtn.addEventListener("click", () => {
+    const data = collectModalData();
+    if (!data) return;
+    upsertFunder(data);
+    resetModal();
+    modal.show();
+    setTimeout(() => nameInput.focus(), 50);
+  });
+
+  // init
+  renderFunders();
+})();
+</script>

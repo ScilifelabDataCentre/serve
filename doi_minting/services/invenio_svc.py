@@ -23,6 +23,7 @@ from studio.utils import get_logger
 
 from .schemas import (
     AccessConfig,
+    Award,
     AdditionalMetadata,
     AppData,
     Contributor,
@@ -34,6 +35,7 @@ from .schemas import (
     InvenioMetadata,
     InvenioRecord,
     Language,
+    Funding,
     PersonOrOrg,
     RelatedIdentifierItem,
     RelationType,
@@ -342,6 +344,61 @@ class InvenioService:
             target_metadata["subjects"] = [Subject(**s) if not isinstance(s, Subject) else s for s in subject_dicts]
         else:
             target_metadata.pop("subjects", None)
+
+        funding_input: Any = extra.get("funding")
+        funding_entries: list[Funding] = []
+        if isinstance(funding_input, list):
+            for item in funding_input:
+                if isinstance(item, Funding):
+                    funding_entries.append(item)
+                    continue
+                if not isinstance(item, dict):
+                    continue
+
+                raw_funder = item.get("funder")
+                raw_funder = raw_funder if isinstance(raw_funder, dict) else {}
+
+                funder_id = (
+                    item.get("funder_id")
+                    or raw_funder.get("id")
+                    or item.get("id")
+                    or ""
+                )
+                funder_id = str(funder_id).strip()
+                if not funder_id:
+                    continue
+
+                funder_name = item.get("funder_name") or raw_funder.get("name") or item.get("name") or ""
+                funder_name = str(funder_name).strip()
+
+                raw_award = item.get("award")
+                raw_award = raw_award if isinstance(raw_award, dict) else {}
+                award_number = str(item.get("number") or raw_award.get("number") or "").strip()
+                award_title = str(item.get("title") or raw_award.get("title") or "").strip()
+                award_url = str(item.get("url") or raw_award.get("url") or "").strip()
+
+                award = None
+                if award_number or award_title or award_url:
+                    award = Award(
+                        number=award_number or None,
+                        title=award_title or None,
+                        url=award_url or None,
+                    )
+
+                funding_entry = Funding(
+                    funder={
+                        "id": funder_id,
+                        "name": funder_name or None,
+                    },
+                    award=award,
+                )
+                funding_entries.append(funding_entry)
+
+        if funding_entries:
+            target_metadata["funding"] = [entry.model_dump(exclude_none=True) for entry in funding_entries]
+        else:
+            target_metadata.pop("funding", None)
+
         logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
 
         return target_metadata

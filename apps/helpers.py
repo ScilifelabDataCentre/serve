@@ -421,6 +421,17 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
                 break
         # Collect additional metadata from form
         additional_metadata = {}
+
+        funding_raw = form.cleaned_data.get("funding_sources_json")
+        if funding_raw:
+            if isinstance(funding_raw, str):
+                funding_list = json.loads(funding_raw)
+            else:
+                funding_list = funding_raw
+        else:
+            funding_list = []
+        additional_metadata["funding"] = funding_list
+
         lang = form.cleaned_data.get("language")
         if lang:
             additional_metadata["languages"] = lang
