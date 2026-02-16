@@ -45,7 +45,7 @@ class InvenioService:
     Manages Invenio record creation, versioning, and DOI minting for application instances.
     """
 
-    def __init__(self, base_url: Optional[str] = None, token: Optional[str] = None, verify: bool = True):
+    def __init__(self, base_url: str | None = None, token: str | None = None, verify: bool = True):
         """
         Initialize the Invenio Record Service.
 
