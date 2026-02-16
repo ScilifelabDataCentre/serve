@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from apps.forms.field.widget import SubdomainInputGroup
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
-from invenio_client import InvenioClient  # adjust import path
+from doi_minting.clients.invenio_client import InvenioClient
 from projects.models import Flavor, Project
 
 logger = logging.getLogger(__name__)
