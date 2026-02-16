@@ -57,7 +57,6 @@ urlpatterns = (
         path("", include("models.urls", namespace="models")),
         path("", include("portal.urls", namespace="portal")),
         path("projects/<project>/apps/", include("apps.urls", namespace="apps")),
-        path("", include("doi_minting.urls", namespace="doi_minting")),
         path("altcha/challenge/", AltchaChallengeView.as_view(), name="altcha_challenge"),
         path("records/<app_id>", app_metadata, name="app-metadata"),
     ]
