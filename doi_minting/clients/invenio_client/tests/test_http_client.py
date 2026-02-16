@@ -5,7 +5,14 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import requests
-from invenio_client.http_client import _request, delete, get, post, put
+
+from doi_minting.clients.invenio_client.http_client import (
+    _request,
+    delete,
+    get,
+    post,
+    put,
+)
 
 
 @pytest.fixture
@@ -206,7 +213,7 @@ def test_get_wrapper(mock_session):
     mock_session.request.return_value = mock_response
 
     # Fix: patch the function in its module
-    with patch("invenio_client.http_client._request") as mock_request:
+    with patch("doi_minting.clients.invenio_client.http_client._request") as mock_request:
         mock_request.return_value = mock_response
 
         response = get(mock_session, "https://example.com/api/test", params={"test": "value"})

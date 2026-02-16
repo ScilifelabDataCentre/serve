@@ -460,7 +460,7 @@ class InvenioService:
         logger.info(f"Starting metadata processing for app '{app_slug}' with ID '{app_id}'")
 
         # Get the ORM model class
-        model_class: Optional[Type] = APP_REGISTRY.get_orm_model(app_slug)
+        model_class: Optional[Type[Any]] = APP_REGISTRY.get_orm_model(app_slug)
         if not model_class:
             logger.error(f"Missing model for slug: {app_slug}")
             raise PermissionDenied("Application model not found")
