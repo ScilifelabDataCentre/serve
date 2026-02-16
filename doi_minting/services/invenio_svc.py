@@ -5,11 +5,10 @@ This module provides a clean interface for managing Invenio records and DOI mint
 """
 
 import json
-import logging
 import time
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Optional, Type, TypedDict
+from typing import Any, Dict, Optional, Type
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -17,7 +16,7 @@ from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 from django.utils import timezone
 
-from apps.schemas import (
+from .schemas import (
     AccessConfig,
     AdditionalMetadata,
     AppData,
@@ -34,7 +33,7 @@ from apps.schemas import (
     ResourceType,
     Role,
 )
-from invenio_client.invenio_client import InvenioClient
+from doi_minting.clients.invenio_client import InvenioClient
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
@@ -98,6 +97,7 @@ class InvenioService:
 
         except Exception as e:
             logger.error(f"Error checking existing versions: {e}")
+            logger.debug(traceback.format_exc())
             # Assume it's new if we can't check
 
         return False
@@ -513,18 +513,3 @@ class InvenioService:
             raise
 
         logger.info(f"Completed metadata processing for app '{app_data.name}'")
-
-
-def save_metadata_to_invenio_then_mint_doi(
-    app_slug: str, app_id: int, additional_metadata: Optional[AdditionalMetadata] = None
-) -> None:
-    """
-    Invenio and DOI minting process for application metadata.
-
-    Args:
-        app_slug: Application slug for registry lookup
-        app_id: Application ID to fetch from database
-        additional_metadata: Optional additional metadata to include
-    """
-    invenio_svc = InvenioService()
-    invenio_svc.process_app_metadata(app_slug, app_id, additional_metadata)

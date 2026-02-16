@@ -11,6 +11,8 @@ from schema import And, Regex, Schema
 
 from common.management.manage_test_data import TestDataManager
 from common.models import UserProfile
+from doi_minting.services.invenio_svc import InvenioService
+from doi_minting.services.schemas import InvenioRecord
 from projects.models import Flavor, Project
 
 from ..app_registry import APP_REGISTRY
@@ -22,8 +24,6 @@ from ..helpers import (
     get_subdomain_name,
 )
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
-from ..schemas import InvenioRecord
-from ..services.invenio_service import InvenioService
 from ..types_.subdomain import SubdomainTuple
 
 User = get_user_model()

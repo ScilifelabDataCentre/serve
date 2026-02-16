@@ -413,7 +413,9 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             continuation_message = "Continuing with app deployment despite DOI minting failure"
             try:
                 # Wrap the DOI minting call in try-except to handle potential failures
-                from .services import save_metadata_to_invenio_then_mint_doi
+                from doi_minting.services.invenio_svc import (
+                    save_metadata_to_invenio_then_mint_doi,
+                )
 
                 save_metadata_to_invenio_then_mint_doi(app_slug, instance_id, additional_metadata=additional_metadata)
 
