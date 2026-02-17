@@ -34,9 +34,10 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, A
 
         # Add invenio_tags as a form-only field for vocabulary input
         self.fields["invenio_tags"] = forms.CharField(
-            required=True,
-            label="All keywords and tags",
-            help_text="Add subject keywords from controlled vocabularies (MeSH, EuroSciVoc, GEMET)",
+            required=False,
+            label="Subjects and keywords",
+            help_text="Select research field(s) and keyword(s) to help categorize your app. "
+            "We allow keywords from MeSH, EuroSciVoc, and GEMET.",
             widget=forms.TextInput(attrs={"class": "form-control"}),
         )
 
@@ -164,7 +165,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, A
             "mount_path",
         ]
         labels = {
-            "tags": "All Keywords and Tags",
+            "tags": "Subjects and keywords",
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
             "shiny_site_dir": "Custom subpath for Shiny app after /srv/shiny-server/",
         }

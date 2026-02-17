@@ -32,9 +32,10 @@ class DashForm(ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
 
         # Add invenio_tags as a form-only field for vocabulary input
         self.fields["invenio_tags"] = forms.CharField(
-            required=True,
-            label="All keywords and tags",
-            help_text="Add subject keywords from controlled vocabularies (MeSH, EuroSciVoc, GEMET)",
+            required=False,
+            label="Subjects and keywords",
+            help_text="Select research field(s) and keyword(s) to help categorize your app. "
+            "We allow keywords from MeSH, EuroSciVoc, and GEMET.",
             widget=forms.TextInput(attrs={"class": "form-control"}),
         )
 
@@ -150,6 +151,6 @@ class DashForm(ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
             "default_url_subpath",
         ]
         labels = {
-            "tags": "All Keywords and Tags",
+            "tags": "Subjects and keywords",
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
         }
