@@ -383,7 +383,7 @@ class StorageRequestTestCase(TestCase):
         self.assertTemplateUsed(response, "projects/partials/settings/storage_request_modal.html")
 
         # Test modal content
-        self.assertContains(response, "Request Additional Storage")
+        self.assertContains(response, "Request additional storage")
         self.assertContains(response, str(self.volume.size))
         self.assertContains(response, 'min="1"')  # Only lower limit constraint
         self.assertContains(response, 'type="number"')
@@ -630,7 +630,7 @@ class StorageRequestTestCase(TestCase):
 
             # Verify email template content
             self.assertIn(f"Project: {self.project.name}", call_args["subject"])
-            self.assertIn("Requested Additional Size: 20 GB", call_args["message"])
+            self.assertIn("Requested total size: 20 GB", call_args["message"])
             self.assertIn("Project requirements increased", call_args["message"])
             self.assertIn(f"Name: {self.user.get_full_name()}", call_args["message"])
             self.assertIn(f"Username: {self.user.username}", call_args["message"])

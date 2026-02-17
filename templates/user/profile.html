@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}My Profile{% endblock title %}
+{% block title %}My profile{% endblock title %}
 
 {% block content %}
 <!-- Begin Page Content -->
@@ -10,7 +10,7 @@
     <div class="card h-100 border-0 shadow">
         <div class="card-header d-flex card-header-text justify-content-between">
             <div>
-                <h3 class="card-title mb-0 fw-bold">My Profile</h3>
+                <h3 class="card-title mb-0 fw-bold">My profile</h3>
                 </div>
                 <button type="button" type="submit" aria-expanded="false" onclick="location.href='{% url 'common:edit-profile' %}'" class="btn btn-primary"><i class="bi bi-pencil-square"></i> Edit</button>
         </div>
@@ -47,10 +47,16 @@
 
                         </div>
 
+                        <div class="row pt-4">
+                            <h6 class="fw-bold">Affiliation</h6>
+                        </div>
+
+                        <!-- organization row: -->
                         <div class="row pt-1">
-                            <div class="col-4"><label for="userAffiliation">University:</label></div>
-                            <div class="col-8 fw-bold"><input type="text" name="affiliation" disabled value="{{user_profile.affiliation}}" class="form-control" id="userAffiliation"></div>
-                            <div class="col-4"></div>
+                            <div class="col-4"><label for="userOrganization">Organization:</label></div>
+                            <div class="col-8 fw-bold">
+                                <input type="text" name="organization" disabled value="{{user_profile.get_organization_name}}" class="form-control" id="userOrganization">
+                            </div>
                         </div>
 
                         <div class="row pt-1">
@@ -62,7 +68,7 @@
                         </div>
                     </div>
                     <div class="row pt-5">
-                        <h4 class="fw-bold">Delete Account</h4>
+                        <h4 class="fw-bold">Delete account</h4>
                         <p>
                             To delete your account, <a href="{% url 'delete_account' %}">visit this page</a>.
                         </p>

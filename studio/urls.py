@@ -23,11 +23,15 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 from django_altcha import AltchaChallengeView
 
+from apps.views import app_metadata
+
 from . import views
 
 urlpatterns = (
     [
         path(settings.DJANGO_ADMIN_URL_PATH.rstrip("/") + "/", admin.site.urls, name="django-admin"),
+        path("accounts/password_reset/", views.PassResetView.as_view(), name="password_reset"),
+        path("accounts/", include("django.contrib.auth.urls")),
         path("accounts/", include("django.contrib.auth.urls")),
         path("user/profile/", views.profile, name="user-profile"),
         path("user/delete-account/", views.delete_account, name="delete_account"),
@@ -36,6 +40,7 @@ urlpatterns = (
             views.delete_account_post_handler,
             name="delete_account_post_handler",
         ),
+        path("status", views.status_view, name="status"),
         path("user/account-deleted/<int:user_id>", views.account_deleted, name="account_deleted"),
         path("auth/", views.AuthView.as_view()),
         # API paths using NamespaceVersioning
@@ -53,6 +58,7 @@ urlpatterns = (
         path("", include("portal.urls", namespace="portal")),
         path("projects/<project>/apps/", include("apps.urls", namespace="apps")),
         path("altcha/challenge/", AltchaChallengeView.as_view(), name="altcha_challenge"),
+        path("records/<app_id>", app_metadata, name="app-metadata"),
     ]
     + staticfiles_urlpatterns()
     + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

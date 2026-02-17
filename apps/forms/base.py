@@ -1,14 +1,21 @@
+import logging
 import uuid
 
+import waffle
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Submit
 from django import forms
+from django.conf import settings
+from django.forms import Select, SelectMultiple
 from django.shortcuts import get_object_or_404
 
 from apps.forms.field.widget import SubdomainInputGroup
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
+from doi_minting.clients.invenio_client import InvenioClient
 from projects.models import Flavor, Project
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["BaseForm", "AppBaseForm"]
 
@@ -22,6 +29,11 @@ class BaseForm(forms.ModelForm):
         max_length=53,
         widget=SubdomainInputGroup(base_widget=forms.TextInput, data={}),
     )
+    LANGUAGE_CHOICES = [
+        ("eng", "English"),
+        ("swe", "Swedish"),
+        ("", "Other"),
+    ]
 
     def __init__(self, *args, **kwargs):
         self.project_pk = kwargs.pop("project_pk", None)
@@ -32,6 +44,20 @@ class BaseForm(forms.ModelForm):
 
         self._setup_form_fields()
         self._setup_form_helper()
+        for field in self.fields.values():
+            if isinstance(field.widget, (Select, SelectMultiple)):
+                field.widget.attrs["class"] = "form-select"
+            else:
+                field.widget.attrs["class"] = "form-control"
+
+    # restore helptext for model in case it is rest in form
+    def _restore_model_help_text(self):
+        for name, field in self.fields.items():
+            # Only for model-backed fields
+            if name in getattr(self._meta, "fields", []):
+                model_field = self._meta.model._meta.get_field(name)
+                if not field.help_text and getattr(model_field, "help_text", ""):
+                    field.help_text = model_field.help_text
 
     def _setup_form_fields(self):
         # Populate subdomain field with instance subdomain if it exists
@@ -50,6 +76,7 @@ class BaseForm(forms.ModelForm):
             self._original_tags = list(self.instance.tags.all())
         else:
             self._original_tags = []
+        self._restore_model_help_text()
 
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel
@@ -71,6 +98,36 @@ class BaseForm(forms.ModelForm):
         # Ensure HTML5 `required` attributes are rendered
         self.helper.use_required_attribute = True
         self.helper.form_method = "post"
+
+    def add_metadata(self):
+        # Hide language field unless DOI minting is enabled
+        if not waffle.switch_is_active("doi_minting_using_invenio"):
+            self.fields.pop("language", None)
+
+        instance = getattr(self, "instance", None)
+        if not instance or not getattr(instance, "pk", None):
+            return
+        # Only fetch from Invenio if language field exists
+        if "language" not in self.fields:
+            return
+        try:
+            client = InvenioClient(
+                base_url=settings.INVENIO_URL,
+                token=settings.INVENIO_API_TOKEN,
+            )
+
+            record = None
+
+            record_id = getattr(instance, "invenio_record_id", None)
+            if record_id:
+                record = client.get_record(record_id)
+
+            if record:
+                invenio_lang_id = client.extract_language_id(record)
+                self.fields["language"].initial = invenio_lang_id
+
+        except Exception:
+            logger.exception("Failed to fetch language from Invenio; leaving default initial.")
 
     def clean_subdomain(self):
         cleaned_data = super().clean()

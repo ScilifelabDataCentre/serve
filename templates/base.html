@@ -1,4 +1,4 @@
-{% load static sekizai_tags %}
+{% load static sekizai_tags waffle_tags %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -9,7 +9,9 @@
     {% render_block "css" %}
     {% include 'common/common_head.html' %}
     {% include 'common/analytics.html' %}
-    <link rel="stylesheet" href="{% static 'css/christmas-theme.css' %}">
+    {% switch "christmas_theme" %}
+        <link rel="stylesheet" href="{% static 'css/christmas-theme.css' %}">
+    {% endswitch %}
     {% block extra_head %} {% endblock %}
 </head>
 
@@ -171,177 +173,179 @@
 
     <button type="button" class="btn btn-secondary btn-lg btn-top" id="btn-to-top">
         <i class="bi bi-arrow-up"></i>
-        <span class="fw-small">Scroll Up</span>
+        <span class="fw-small">Scroll up</span>
     </button>
 
     <script src="{% static 'vendor/aos-2.3.4-dist/js/aos.js' %}"></script>
     <script>AOS.init({once: true});</script>
 
-    <script>
-        // Christmas Theme Toggle
-        (function() {
-            const STORAGE_KEY = 'christmasThemeEnabled';
-            const toggleButton = document.getElementById('christmas-toggle');
-            const body = document.body;
+    {% switch "christmas_theme" %}
+        <script>
+            // Christmas Theme Toggle
+            (function() {
+                const STORAGE_KEY = 'christmasThemeEnabled';
+                const toggleButton = document.getElementById('christmas-toggle');
+                const body = document.body;
 
-            // List of available Christmas images (excluding the logo)
-            // Add more image filenames here as you add them to the folder
-            const CHRISTMAS_IMAGES = [
-                'christmas-tree-winter-svgrepo-com.svg',
-                'candy-cane-3-svgrepo-com.svg',
-                'candy-illustration-5-svgrepo-com.svg',
-                'biscuit-svgrepo-com.svg',
-                'cookie-svgrepo-com.svg',
-                'candy-3-svgrepo-com.svg',
-                'snowflake-01-svgrepo-com.svg',
-                'snowflake-svgrepo-com.svg',
-                'snowflake-winter-xmas-2-svgrepo-com.svg',
-                'snowflake-5-svgrepo-com.svg',
-                'snowflake-1-svgrepo-com.svg'
-            ];
+                // List of available Christmas images (excluding the logo)
+                // Add more image filenames here as you add them to the folder
+                const CHRISTMAS_IMAGES = [
+                    'christmas-tree-winter-svgrepo-com.svg',
+                    'candy-cane-3-svgrepo-com.svg',
+                    'candy-illustration-5-svgrepo-com.svg',
+                    'biscuit-svgrepo-com.svg',
+                    'cookie-svgrepo-com.svg',
+                    'candy-3-svgrepo-com.svg',
+                    'snowflake-01-svgrepo-com.svg',
+                    'snowflake-svgrepo-com.svg',
+                    'snowflake-winter-xmas-2-svgrepo-com.svg',
+                    'snowflake-5-svgrepo-com.svg',
+                    'snowflake-1-svgrepo-com.svg'
+                ];
 
-            // Base path for Christmas images
-            const CHRISTMAS_IMAGES_PATH = '{% static "images/christmas/" %}';
+                // Base path for Christmas images
+                const CHRISTMAS_IMAGES_PATH = '{% static "images/christmas/" %}';
 
-            // Check localStorage for saved preference
-            function isChristmasModeEnabled() {
-                return localStorage.getItem(STORAGE_KEY) === 'true';
-            }
-
-            // Randomly shuffle array
-            function shuffleArray(array) {
-                const shuffled = [...array];
-                for (let i = shuffled.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                // Check localStorage for saved preference
+                function isChristmasModeEnabled() {
+                    return localStorage.getItem(STORAGE_KEY) === 'true';
                 }
-                return shuffled;
-            }
 
-            // Generate random positions
-            function generateRandomPositions(count) {
-                const positions = [];
-                for (let i = 0; i < count; i++) {
-                    positions.push({
-                        x: Math.random() * 100,
-                        y: Math.random() * 100,
-                        size: 60 + Math.random() * 80 // Random size between 60px and 140px
-                    });
+                // Randomly shuffle array
+                function shuffleArray(array) {
+                    const shuffled = [...array];
+                    for (let i = shuffled.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                    }
+                    return shuffled;
                 }
-                return positions;
-            }
-
-            // Apply random background decorations
-            function applyRandomBackground() {
-                if (!body.classList.contains('christmas-mode')) return;
-
-                // Shuffle images and select random subset
-                const shuffledImages = shuffleArray(CHRISTMAS_IMAGES);
-                const numImages = Math.min(10, shuffledImages.length * 2); // Use up to 10 images
-                const selectedImages = [];
-                const selectedSizes = [];
-                const selectedPositions = [];
 
                 // Generate random positions
-                const positions = generateRandomPositions(numImages);
-
-                // Select random images and create background strings
-                for (let i = 0; i < numImages; i++) {
-                    const randomImage = shuffledImages[Math.floor(Math.random() * shuffledImages.length)];
-                    selectedImages.push(`url('${CHRISTMAS_IMAGES_PATH}${randomImage}')`);
-                    selectedSizes.push(`${positions[i].size}px ${positions[i].size}px`);
-                    selectedPositions.push(`${positions[i].x}% ${positions[i].y}%`);
-                }
-
-                // Split into two layers for better distribution
-                const half = Math.ceil(selectedImages.length / 2);
-                const firstLayerImages = selectedImages.slice(0, half);
-                const firstLayerSizes = selectedSizes.slice(0, half);
-                const firstLayerPositions = selectedPositions.slice(0, half);
-                const secondLayerImages = selectedImages.slice(half);
-                const secondLayerSizes = selectedSizes.slice(half);
-                const secondLayerPositions = selectedPositions.slice(half);
-
-                // Create style element for ::before
-                let styleElement = document.getElementById('christmas-before-style');
-                if (!styleElement) {
-                    styleElement = document.createElement('style');
-                    styleElement.id = 'christmas-before-style';
-                    document.head.appendChild(styleElement);
-                }
-                styleElement.textContent = `
-                    body.christmas-mode::before {
-                        background-image: ${firstLayerImages.join(', ')};
-                        background-size: ${firstLayerSizes.join(', ')};
-                        background-position: ${firstLayerPositions.join(', ')};
+                function generateRandomPositions(count) {
+                    const positions = [];
+                    for (let i = 0; i < count; i++) {
+                        positions.push({
+                            x: Math.random() * 100,
+                            y: Math.random() * 100,
+                            size: 60 + Math.random() * 80 // Random size between 60px and 140px
+                        });
                     }
-                `;
-
-                // Create style element for ::after
-                let afterStyleElement = document.getElementById('christmas-after-style');
-                if (!afterStyleElement) {
-                    afterStyleElement = document.createElement('style');
-                    afterStyleElement.id = 'christmas-after-style';
-                    document.head.appendChild(afterStyleElement);
+                    return positions;
                 }
-                if (secondLayerImages.length > 0) {
-                    afterStyleElement.textContent = `
-                        body.christmas-mode::after {
-                            background-image: ${secondLayerImages.join(', ')};
-                            background-size: ${secondLayerSizes.join(', ')};
-                            background-position: ${secondLayerPositions.join(', ')};
+
+                // Apply random background decorations
+                function applyRandomBackground() {
+                    if (!body.classList.contains('christmas-mode')) return;
+
+                    // Shuffle images and select random subset
+                    const shuffledImages = shuffleArray(CHRISTMAS_IMAGES);
+                    const numImages = Math.min(10, shuffledImages.length * 2); // Use up to 10 images
+                    const selectedImages = [];
+                    const selectedSizes = [];
+                    const selectedPositions = [];
+
+                    // Generate random positions
+                    const positions = generateRandomPositions(numImages);
+
+                    // Select random images and create background strings
+                    for (let i = 0; i < numImages; i++) {
+                        const randomImage = shuffledImages[Math.floor(Math.random() * shuffledImages.length)];
+                        selectedImages.push(`url('${CHRISTMAS_IMAGES_PATH}${randomImage}')`);
+                        selectedSizes.push(`${positions[i].size}px ${positions[i].size}px`);
+                        selectedPositions.push(`${positions[i].x}% ${positions[i].y}%`);
+                    }
+
+                    // Split into two layers for better distribution
+                    const half = Math.ceil(selectedImages.length / 2);
+                    const firstLayerImages = selectedImages.slice(0, half);
+                    const firstLayerSizes = selectedSizes.slice(0, half);
+                    const firstLayerPositions = selectedPositions.slice(0, half);
+                    const secondLayerImages = selectedImages.slice(half);
+                    const secondLayerSizes = selectedSizes.slice(half);
+                    const secondLayerPositions = selectedPositions.slice(half);
+
+                    // Create style element for ::before
+                    let styleElement = document.getElementById('christmas-before-style');
+                    if (!styleElement) {
+                        styleElement = document.createElement('style');
+                        styleElement.id = 'christmas-before-style';
+                        document.head.appendChild(styleElement);
+                    }
+                    styleElement.textContent = `
+                        body.christmas-mode::before {
+                            background-image: ${firstLayerImages.join(', ')};
+                            background-size: ${firstLayerSizes.join(', ')};
+                            background-position: ${firstLayerPositions.join(', ')};
                         }
                     `;
-                } else {
-                    afterStyleElement.textContent = '';
+
+                    // Create style element for ::after
+                    let afterStyleElement = document.getElementById('christmas-after-style');
+                    if (!afterStyleElement) {
+                        afterStyleElement = document.createElement('style');
+                        afterStyleElement.id = 'christmas-after-style';
+                        document.head.appendChild(afterStyleElement);
+                    }
+                    if (secondLayerImages.length > 0) {
+                        afterStyleElement.textContent = `
+                            body.christmas-mode::after {
+                                background-image: ${secondLayerImages.join(', ')};
+                                background-size: ${secondLayerSizes.join(', ')};
+                                background-position: ${secondLayerPositions.join(', ')};
+                            }
+                        `;
+                    } else {
+                        afterStyleElement.textContent = '';
+                    }
                 }
-            }
 
-            // Apply or remove christmas mode
-            function setChristmasMode(enabled) {
-                const logoImg = document.getElementById('navbar-logo');
+                // Apply or remove christmas mode
+                function setChristmasMode(enabled) {
+                    const logoImg = document.getElementById('navbar-logo');
 
-                if (enabled) {
-                    body.classList.add('christmas-mode');
-                    if (toggleButton) {
-                        toggleButton.classList.add('active');
+                    if (enabled) {
+                        body.classList.add('christmas-mode');
+                        if (toggleButton) {
+                            toggleButton.classList.add('active');
+                        }
+                        if (logoImg && logoImg.dataset.christmasLogo) {
+                            logoImg.src = logoImg.dataset.christmasLogo;
+                        }
+                        // Apply random background decorations
+                        applyRandomBackground();
+                    } else {
+                        body.classList.remove('christmas-mode');
+                        if (toggleButton) {
+                            toggleButton.classList.remove('active');
+                        }
+                        if (logoImg && logoImg.dataset.normalLogo) {
+                            logoImg.src = logoImg.dataset.normalLogo;
+                        }
+                        // Remove style elements
+                        const beforeStyle = document.getElementById('christmas-before-style');
+                        const afterStyle = document.getElementById('christmas-after-style');
+                        if (beforeStyle) beforeStyle.remove();
+                        if (afterStyle) afterStyle.remove();
                     }
-                    if (logoImg && logoImg.dataset.christmasLogo) {
-                        logoImg.src = logoImg.dataset.christmasLogo;
-                    }
-                    // Apply random background decorations
-                    applyRandomBackground();
-                } else {
-                    body.classList.remove('christmas-mode');
-                    if (toggleButton) {
-                        toggleButton.classList.remove('active');
-                    }
-                    if (logoImg && logoImg.dataset.normalLogo) {
-                        logoImg.src = logoImg.dataset.normalLogo;
-                    }
-                    // Remove style elements
-                    const beforeStyle = document.getElementById('christmas-before-style');
-                    const afterStyle = document.getElementById('christmas-after-style');
-                    if (beforeStyle) beforeStyle.remove();
-                    if (afterStyle) afterStyle.remove();
+                    localStorage.setItem(STORAGE_KEY, enabled.toString());
                 }
-                localStorage.setItem(STORAGE_KEY, enabled.toString());
-            }
 
-            // Initialize on page load
-            if (isChristmasModeEnabled()) {
-                setChristmasMode(true);
-            }
+                // Initialize on page load
+                if (isChristmasModeEnabled()) {
+                    setChristmasMode(true);
+                }
 
-            // Add click handler to toggle button
-            if (toggleButton) {
-                toggleButton.addEventListener('click', function() {
-                    const currentlyEnabled = body.classList.contains('christmas-mode');
-                    setChristmasMode(!currentlyEnabled);
-                });
-            }
-        })();
-    </script>
+                // Add click handler to toggle button
+                if (toggleButton) {
+                    toggleButton.addEventListener('click', function() {
+                        const currentlyEnabled = body.classList.contains('christmas-mode');
+                        setChristmasMode(!currentlyEnabled);
+                    });
+                }
+            })();
+        </script>
+    {% endswitch %}
 
 </body>
 

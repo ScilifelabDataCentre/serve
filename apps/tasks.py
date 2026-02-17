@@ -34,7 +34,7 @@ def delete_old_objects():
 
     This function retrieves the old apps based on the given threshold, category, and model class.
     It then iterates through the subclasses of BaseAppInstance and deletes the old apps
-    for both the "Develop" and "Manage Files" categories.
+    for both the "Develop" and "Manage files" categories.
     It skips app instances with action set to SystemDeleting.
     TODO: Make app categories and their corresponding thresholds variables in settings.py.
     """
@@ -541,7 +541,17 @@ def execute_single_background_task(self, task_db_id: int):
     try:
         result = task_instance.execute(task_record.app_instance)
         task_record.mark_as_success(result_data=result)
-        task_instance.on_success(task_record.app_instance, result)
+        try:
+            task_instance.on_success(task_record.app_instance, result)
+        except Exception as hook_err:
+            # Hooks should not be able to flip a successful task into a failed one.
+            logger.warning(
+                "Background task %s on_success hook failed for app %s: %s",
+                task_record.task_name,
+                task_record.app_instance_id,
+                hook_err,
+                exc_info=True,
+            )
 
         logger.info(
             f"Background task {task_record.task_name} completed successfully for app {task_record.app_instance_id}"
@@ -556,17 +566,37 @@ def execute_single_background_task(self, task_db_id: int):
         should_retry = task_instance.should_retry(e, task_record.retry_count)
 
         if should_retry and task_record.can_retry():
-            task_record.mark_as_retrying()
-            task_instance.on_failure(task_record.app_instance, e)
-
             # Schedule retry with exponential backoff
+            # NOTE: compute delay before incrementing retry_count so the first retry is the smallest delay.
             retry_delay = task_instance.get_retry_delay(task_record.retry_count)
             logger.info(f"Retrying task {task_record.task_name} in {retry_delay} seconds")
+
+            task_record.mark_as_retrying()
+            try:
+                task_instance.on_failure(task_record.app_instance, e)
+            except Exception as hook_err:
+                # Still retry even if the failure hook itself errors.
+                logger.warning(
+                    "Background task %s on_failure hook failed for app %s: %s",
+                    task_record.task_name,
+                    task_record.app_instance_id,
+                    hook_err,
+                    exc_info=True,
+                )
 
             raise self.retry(exc=e, countdown=retry_delay, max_retries=task_record.max_retries)
         else:
             task_record.mark_as_failed(error_msg)
-            task_instance.on_failure(task_record.app_instance, e)
+            try:
+                task_instance.on_failure(task_record.app_instance, e)
+            except Exception as hook_err:
+                logger.warning(
+                    "Background task %s on_failure hook failed for app %s: %s",
+                    task_record.task_name,
+                    task_record.app_instance_id,
+                    hook_err,
+                    exc_info=True,
+                )
 
             return {"success": False, "error": error_msg, "is_critical": task_record.is_critical}
 
@@ -600,12 +630,13 @@ def run_background_tasks(serialized_instance, app_slug):
 
     if not tasks_by_order:
         logger.info(f"No background tasks registered for app type {app_slug}")
-        # Proceed directly to deployment
-        deploy_resource.delay(serialized_instance)
+        # Proceed directly to deployment, but only after this transaction commits.
+        transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
         return {"success": True, "message": "No tasks to run, proceeding to deployment"}
 
     # Create BackgroundTask records for all tasks
     task_records = []
+    task_timeout_by_id: dict[int, int] = {}
     for order, tasks in sorted(tasks_by_order.items()):
         for task_info in tasks:
             task_record = BackgroundTask.objects.create(
@@ -618,6 +649,9 @@ def run_background_tasks(serialized_instance, app_slug):
                 status="pending",
             )
             task_records.append(task_record)
+            timeout = getattr(task_info["class"], "timeout_seconds", 300) or 300
+            # Provide a small hard-kill buffer above the soft limit.
+            task_timeout_by_id[task_record.id] = int(timeout)
             logger.debug(f"Created task record {task_record.id} for {task_info['name']}")
 
     # Execute tasks in order
@@ -630,10 +664,22 @@ def run_background_tasks(serialized_instance, app_slug):
 
         if len(order_task_records) == 1:
             # Single task - add to chain directly
-            task_chain.append(execute_single_background_task.s(order_task_records[0].id))
+            tr = order_task_records[0]
+            timeout = task_timeout_by_id.get(tr.id, 300)
+            task_chain.append(
+                execute_single_background_task.s(tr.id).set(soft_time_limit=timeout, time_limit=timeout + 30)
+            )
         else:
             # Multiple tasks - run in parallel using group
-            parallel_tasks = group([execute_single_background_task.s(tr.id) for tr in order_task_records])
+            parallel_tasks = group(
+                [
+                    execute_single_background_task.s(tr.id).set(
+                        soft_time_limit=task_timeout_by_id.get(tr.id, 300),
+                        time_limit=task_timeout_by_id.get(tr.id, 300) + 30,
+                    )
+                    for tr in order_task_records
+                ]
+            )
             task_chain.append(parallel_tasks)
 
     # Add deployment as the final step in the chain
@@ -641,7 +687,8 @@ def run_background_tasks(serialized_instance, app_slug):
 
     # Execute the chain
     workflow = chain(*task_chain)
-    workflow.apply_async()
+    # Ensure BackgroundTask rows are committed before workers try to read them.
+    transaction.on_commit(lambda: workflow.apply_async())
 
     logger.info(f"Started background task workflow for app {instance.id}")
     return {"success": True, "message": f"Started {len(task_records)} background tasks"}
@@ -681,7 +728,7 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
         instance.save(update_fields=["latest_user_action"])
 
         # Send notification
-        send_task_failure_notification.delay(app_instance_id, failed_names)
+        transaction.on_commit(lambda: send_task_failure_notification.delay(app_instance_id, failed_names))
 
         return {
             "success": False,
@@ -692,7 +739,7 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
 
     # All critical tasks passed - proceed with deployment
     logger.info(f"All critical tasks passed for app {app_instance_id}. Proceeding with deployment.")
-    deploy_resource.delay(serialized_instance)
+    transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
 
     return {
         "success": True,
@@ -720,7 +767,9 @@ def retry_background_task(task_id: int):
         logger.error(f"BackgroundTask {task_id} not found")
         return {"success": False, "error": "Task not found"}
 
-    if task_record.status not in ["failed", "retrying"]:
+    # Only allow retrying failed tasks here to avoid duplicate concurrent executions
+    # when Celery already has a retry scheduled ("retrying").
+    if task_record.status != "failed":
         return {
             "success": False,
             "error": f"Task status is '{task_record.status}', can only retry failed tasks",
@@ -732,6 +781,8 @@ def retry_background_task(task_id: int):
     task_record.retry_count = 0
     task_record.started_at = None
     task_record.completed_at = None
+    task_record.result_data = None
+    task_record.celery_task_id = ""
     task_record.save()
 
     # Execute the task

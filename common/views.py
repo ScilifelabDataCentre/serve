@@ -1,6 +1,7 @@
 import json
 import uuid
 
+import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -106,6 +107,11 @@ class SignUpView(CreateView):
         context = self.get_context_data()
         context["form"] = user_form  # The user form with its current state and errors.
         context["profile_form"] = profile_form  # The profile form with its current state and errors.
+
+        # CRITICAL: Preserve organization-data from POST request
+        if self.request.method == "POST" and "organization-data" in self.request.POST:
+            context["organization_data"] = self.request.POST.get("organization-data")
+
         return self.render_to_response(context)
 
     def form_invalid(self, form):
@@ -214,9 +220,12 @@ class EditProfileView(TemplateView):
         else:
             user_profile_data = self.get_user_profile_info(request)
 
+            # Extract organization title from JSON field
+            org_title = user_profile_data.get_organization_name()
+
             profile_edit_form = self.profile_edit_form_class(
                 initial={
-                    "affiliation": user_profile_data.affiliation,
+                    "organization": org_title,
                     "department": user_profile_data.department,
                 }
             )
@@ -245,20 +254,49 @@ class EditProfileView(TemplateView):
         profile_form_details = self.profile_edit_form_class(
             request.POST,
             instance=user_profile_data,
-            initial={
-                "affiliation": user_profile_data.affiliation,
-            },
+            initial={"affiliation": user_profile_data.get_organization_name()},
         )
 
-        if user_form_details.is_valid() and profile_form_details.is_valid():
+        # Handle organization data from hidden field (same logic as SignUpForm.clean())
+        organization_data_str = request.POST.get("organization-data", "")
+        organization_data = {}
+
+        if organization_data_str:
+            try:
+                organization_data = json.loads(organization_data_str)
+            except json.JSONDecodeError as e:
+                logger.debug(f"Using fallback title, JSONDecodeError - {str(e)}")
+                organization_text = request.POST.get("organization", "")
+                organization_data = {"title": organization_text or "", "ror_id": "no ror"}
+        else:
+            # No JSON data, create from text field
+            organization_text = request.POST.get("organization", "")
+            if organization_text:
+                organization_data = {"title": organization_text, "ror_id": "no ror"}
+
+        # Validate organization has valid ROR ID
+        is_organization_valid = True
+        if not organization_data.get("ror_id") or organization_data.get("ror_id") == "no ror":
+            is_organization_valid = False
+            profile_form_details.add_error(
+                "organization",
+                "Please select a valid organization from the ROR list. Your organization must be registered"
+                " in the Research Organization Registry.",
+            )
+
+        if user_form_details.is_valid() and profile_form_details.is_valid() and is_organization_valid:
             try:
                 with transaction.atomic():
                     user_form_details.save()
+
+                    # Save organization data to profile
+                    user_profile_data.organization = organization_data
                     profile_form_details.save()
 
                     logger.info("Updated First Name: " + str(self.get_user_profile_info(request).user.first_name))
                     logger.info("Updated Last Name: " + str(self.get_user_profile_info(request).user.last_name))
                     logger.info("Updated Department: " + str(self.get_user_profile_info(request).department))
+                    logger.info("Updated Organization: " + str(self.get_user_profile_info(request).organization))
 
             except Exception as e:
                 return HttpResponse("Error updating records: " + str(e))
@@ -272,9 +310,15 @@ class EditProfileView(TemplateView):
             if not profile_form_details.is_valid():
                 logger.error("Edit profile error: " + str(profile_form_details.errors))
 
-            return render(
-                request, self.template_name, {"form": user_form_details, "profile_form": profile_form_details}
-            )
+            # Preserve organization-data for re-rendering
+            context = {
+                "form": user_form_details,
+                "profile_form": profile_form_details,
+            }
+            if organization_data_str:
+                context["organization_data"] = organization_data_str
+
+            return render(request, self.template_name, context)
 
 
 @method_decorator(login_required, name="dispatch")
@@ -513,3 +557,44 @@ class PopulateTestAppView(View):
         except Exception as e:
             logger.error(f"Test app creation failed: {e}")
             return JsonResponse({"error": str(e)}, status=500)
+
+
+class RORAutocompleteView(View):
+    """API endpoint to search ROR for organizations"""
+
+    def get(self, request):
+        query = request.GET.get("query", "").strip()
+
+        if len(query) < 2:
+            return JsonResponse({"results": []})
+
+        try:
+            # Call ROR API
+            response = requests.get("https://api.ror.org/organizations", params={"query": query}, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+
+            # Format results
+            results = []
+            for item in data.get("items", [])[:10]:  # Limit to 10 results
+                ror_id = item.get("id", "")
+
+                # Extract the organization title from names array
+                title = ""
+                for name in item.get("names", []):
+                    if "ror_display" in name.get("types", []):
+                        title = name.get("value", "")
+                        break
+
+                # If no ror_display found, use the first name
+                if not title and item.get("names"):
+                    title = item["names"][0].get("value", "")
+
+                if ror_id and title:
+                    results.append({"title": title, "ror_id": ror_id})
+
+            return JsonResponse({"results": results})
+
+        except Exception as e:
+            logger.error(f"ROR API error: {e}")
+            return JsonResponse({"results": [], "error": str(e)}, status=500)

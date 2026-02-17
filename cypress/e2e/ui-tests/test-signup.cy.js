@@ -43,6 +43,12 @@ describe("Test sign up", () => {
         cy.get('input[name=last_name]').type("last name");
         cy.get('input[name=password1]').type(users.signup_user.password);
         cy.get('input[name=password2]').type(users.signup_user.password);
+
+        // Fill organization using ROR autocomplete
+        cy.get('input#organization-autocomplete').type("Uppsala University");
+        cy.get('#organization-suggestions').should('be.visible');
+        cy.get('#organization-suggestions .list-group-item').first().click();
+
         cy.get('input[name="department"]').type('Biology Education Centre');
 
         cy.get("input#submit-id-save").click();
@@ -82,32 +88,15 @@ describe("Test sign up", () => {
         cy.get('input[name=last_name]').type("last name");
         cy.get('input[name=password1]').type(users.signup_user.password);
         cy.get('input[name=password2]').type(users.signup_user.password);
+        // Fill organization using ROR autocomplete
+        cy.get('input#organization-autocomplete').type("Lund University");
+        cy.get('#organization-suggestions').should('be.visible');
+        cy.get('#organization-suggestions .list-group-item').first().click();
         cy.get("input#submit-id-save").click();
         cy.get('[id="validation_why_account_needed"]').should('exist')
         // reset and check that all works
         cy.get('input[name=email]').clear().type("test-email@uu.se");
         cy.get('[id="id_request_account_info"]').should('have.class', 'hidden')
-
-        cy.logf("Invalid email rejected by the backend", Cypress.currentTest)
-        cy.visit("/signup/");
-        cy.get('input[name=email]').type("test-email@test");
-        cy.get('input[name=first_name]').type("first name");
-        cy.get('input[name=last_name]').type("last name");
-        cy.get('input[name=password1]').type(users.signup_user.password);
-        cy.get('input[name=password2]').type(users.signup_user.password);
-        cy.get("input#submit-id-save").click();
-        cy.get('[id="validation_email"]').should('exist')
-
-        cy.logf("Mismatching email and affiliation rejected by the backend", Cypress.currentTest)
-        cy.visit("/signup/")
-        cy.get('input[name=first_name]').type("first name");
-        cy.get('input[name=last_name]').type("last name");
-        cy.get('input[name=email]').clear().type("test-email@uu.se");
-        cy.get('input[name=password1]').type(users.signup_user.password);
-        cy.get('input[name=password2]').type(users.signup_user.password);
-        cy.get('select[id=id_affiliation]').select('KTH Royal Institute of Technology')
-        cy.get("input#submit-id-save").click();
-        cy.get('[id="validation_affiliation"]').should('exist')
 
         cy.logf("Empty department rejected by the backend", Cypress.currentTest)
         cy.visit("/signup/")
@@ -116,6 +105,10 @@ describe("Test sign up", () => {
         cy.get('input[name=last_name]').type("last name");
         cy.get('input[name=password1]').type(users.signup_user.password);
         cy.get('input[name=password2]').type(users.signup_user.password);
+        // Fill organization using ROR autocomplete
+        cy.get('input#organization-autocomplete').type("Karolinska");
+        cy.get('#organization-suggestions').should('be.visible');
+        cy.get('#organization-suggestions .list-group-item').first().click();
         cy.get('input[name="department"]').clear();
         cy.get("input#submit-id-save").click();
         cy.get('[id="validation_department"]').should('exist')
@@ -127,6 +120,11 @@ describe("Test sign up", () => {
         cy.get('input[name=last_name]').type("last name");
         cy.get('input[name=password1]').type("first_password");
         cy.get('input[name=password2]').type("second_password");
+        // Fill organization using ROR autocomplete
+        cy.get('input#organization-autocomplete').type("KTH Royal");
+        cy.get('#organization-suggestions').should('be.visible');
+        cy.get('#organization-suggestions .list-group-item').first().click();
+        cy.get('input[name="department"]').type('Test Department');
         cy.get("input#submit-id-save").click();
         cy.get('[id="validation_password1"]').should('exist')
     })

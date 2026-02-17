@@ -70,7 +70,7 @@
                         <div class="clearfix"></div>
                     </div>
                     <div class="col-12">
-                        <a id="app-metadata-{{ app.id }}" target="_blank" title="App metadata and details" rel="Link to the metadata of the app" href="{% url 'apps:app-metadata' app.project_slug app.slug app.id %}" class="btn btn-outline-serve-grape btn-sm w-100" style="border-radius:2px;"> <i class="bi bi-info-circle"></i> Details</a>
+                        <a id="app-metadata-{{ app.id }}" target="_blank" title="App description" rel="Link to the description of the app" href="{% url 'app-metadata' app.id %}" class="btn btn-outline-serve-grape btn-sm w-100" style="border-radius:2px;"> <i class="bi bi-info-circle"></i> Details</a>
                     </div>
                     <div class="card-footer d-flex text-muted card-footer-text justify-content-between border-top-0">
                         <div>
@@ -80,7 +80,7 @@
                             {% endif %}
                             {% endif %}
                             {% if app.source_code_url %}
-                            <a id="source-code-url-{{ app.id }}" target="_blank" title="Source code of the app" rel="Link to the source code of the app" href="{{ app.source_code_url }}" class="btn btn-outline-serve btn-sm"> <i class="bi bi-code-slash"></i> Source Code</a>
+                            <a id="source-code-url-{{ app.id }}" target="_blank" title="Source code of the app" rel="Link to the source code of the app" href="{{ app.source_code_url }}" class="btn btn-outline-serve btn-sm"> <i class="bi bi-code-slash"></i> Source code</a>
                             {% endif %}
                             </div>
                             {% if "Serve" in app.name or app.name == "Python Model Deployment" %}

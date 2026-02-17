@@ -22,7 +22,7 @@
   },
   {
     "fields": {
-      "name": "Manage Files"
+      "name": "Manage files"
     },
     "model": "apps.appcategories",
     "pk": "manage-files"

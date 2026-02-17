@@ -35,29 +35,27 @@
             <div class="card-body">
               <div class="row text-center">
                 <div class="col">
-                  <h4 id="summary-total">{{ tasks|length }}</h4>
+                  <h4 id="summary-total">{{ summary.total }}</h4>
                   <small class="text-muted">Total</small>
                 </div>
                 <div class="col">
-                  <h4 id="summary-pending" class="text-secondary">
-                    {{ tasks|length|add:"-1" }}
-                  </h4>
+                  <h4 id="summary-pending" class="text-secondary">{{ summary.pending }}</h4>
                   <small class="text-muted">Pending</small>
                 </div>
                 <div class="col">
-                  <h4 id="summary-running" class="text-primary">0</h4>
+                  <h4 id="summary-running" class="text-primary">{{ summary.running }}</h4>
                   <small class="text-muted">Running</small>
                 </div>
                 <div class="col">
-                  <h4 id="summary-success" class="text-success">0</h4>
+                  <h4 id="summary-success" class="text-success">{{ summary.success }}</h4>
                   <small class="text-muted">Success</small>
                 </div>
                 <div class="col">
-                  <h4 id="summary-failed" class="text-danger">0</h4>
+                  <h4 id="summary-failed" class="text-danger">{{ summary.failed }}</h4>
                   <small class="text-muted">Failed</small>
                 </div>
                 <div class="col">
-                  <h4 id="summary-retrying" class="text-warning">0</h4>
+                  <h4 id="summary-retrying" class="text-warning">{{ summary.retrying }}</h4>
                   <small class="text-muted">Retrying</small>
                 </div>
               </div>
@@ -132,7 +130,7 @@
                           class="btn btn-sm btn-warning retry-btn"
                           id="retry-btn-{{ task.id }}"
                           onclick="retryTask({{ task.id }})"
-                          {% if task.status not in 'failed,retrying' %}disabled{% endif %}
+                          {% if task.status != 'failed' %}disabled{% endif %}
                         >
                           Retry
                         </button>

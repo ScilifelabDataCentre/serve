@@ -59,7 +59,7 @@ def test_about_view():
 
     # Check status code
     assert response.status_code == 200
-    assert "<title>About | SciLifeLab Serve (beta)</title>" in response.content.decode()
+    assert "<title>About the platform | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
 
 @pytest.mark.django_db
@@ -71,7 +71,7 @@ def test_teaching_view_get():
 
     # Check status code
     assert response.status_code == 200
-    assert "<title>Teaching | SciLifeLab Serve (beta)</title>" in response.content.decode()
+    assert "<title>Use in courses | SciLifeLab Serve (beta)</title>" in response.content.decode()
 
     # Check that form is in context
     assert "form" in response.context
@@ -122,7 +122,7 @@ def test_teaching_view_post_valid(mock_altcha_clean):
 
     # Check email content
     email = mail.outbox[0]
-    assert email.subject == "New Teaching Request - SciLifeLab Serve"
+    assert email.subject == "New teaching request - SciLifeLab Serve"
     assert "serve@scilifelab.se" in email.to
     assert "John Doe" in email.body
     assert "john.doe@example.com" in email.body

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Edit Profile{% endblock %}
+{% block title %}Edit profile{% endblock %}
 
 {% load static %}
 {% load is_login_signup_disabled %}
@@ -16,7 +16,7 @@
     <div class="card h-100 border-0 shadow">
         <div class="card-header d-flex card-header-text justify-content-between">
             <div>
-                <h3 class="card-title mb-0 fw-bold">Edit Profile</h3>
+                <h3 class="card-title mb-0 fw-bold">Edit profile</h3>
             </div>
         </div>
         <form method="post">
@@ -67,11 +67,30 @@
                             {% endif %}
                         </div>
 
+                        <div class="row pt-4">
+                            <h6 class="fw-bold">Affiliation</h6>
+                        </div>
+
                         <div class="row pt-1">
-                            <div class="col-4">{{profile_form.affiliation.label_tag}}</div>
-                            <div class="col-8 fw-bold">{{ profile_form.affiliation }}</div>
+                            <div class="col-4">{{profile_form.organization.label_tag}}</div>
+                            <div class="col-8 fw-bold position-relative">
+                                {{ profile_form.organization }}
+                                <input type="hidden" id="organization-data" name="organization-data"
+                                    value="{{ organization_data|default:'' }}">
+                                <div id="organization-suggestions" class="list-group position-absolute" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+                            </div>
                             <div class="col-4"></div>
-                            <div class="col-8 form-text">{{profile_form.affiliation.help_text}}</div>
+                            <div class="col-8 form-text">{{profile_form.organization.help_text}}</div>
+                            {% if profile_form.organization.errors %}
+                                <div class="col-4"></div>
+                                <div class="col-8">
+                                    <div id="validation_organization" class="pt-1 invalid-feedback" style="display: block;">
+                                        {% for error in profile_form.organization.errors %}
+                                        <p class="m-0">{{error|escape}}</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="row pt-1">
@@ -99,7 +118,7 @@
                         </div>
 
                     <div class="row pt-2">
-                        <h5>Delete Account</h5>
+                        <h5>Delete account</h5>
                         <p>
                             To delete your account, <a href="{% url 'delete_account' %}">visit this page</a>.
                         </p>

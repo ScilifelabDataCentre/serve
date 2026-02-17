@@ -29,17 +29,57 @@ class DockerImageValidator(BaseBackgroundTask):
     task_type = "validation"
     timeout_seconds = 180
 
+    def _resolve_image(self, app_instance) -> str | None:
+        """
+        Resolve an image reference from different app instance types.
+
+        - Custom apps store the image in `app_instance.image`
+        - Jupyter/RStudio store the image in `app_instance.environment.get_full_image_reference()`
+        - Fallback: use `app_instance.k8s_values["appconfig"]["image"]` if present
+        """
+        image = getattr(app_instance, "image", None)
+        if image:
+            return image
+
+        environment = getattr(app_instance, "environment", None)
+        if environment and hasattr(environment, "get_full_image_reference"):
+            env_image = environment.get_full_image_reference()
+            if env_image:
+                return env_image
+
+        k8s_values = getattr(app_instance, "k8s_values", None) or {}
+        if isinstance(k8s_values, dict):
+            appconfig = k8s_values.get("appconfig") or {}
+            if isinstance(appconfig, dict):
+                k8s_image = appconfig.get("image")
+                if k8s_image:
+                    return k8s_image
+
+        return None
+
     def execute(self, app_instance, **kwargs) -> Dict[str, Any]:
         """Validate Docker image architecture."""
+        from django.conf import settings
+
         from apps.validators.container_images import (
+            DockerHubAuthenticator,
             GHCRAuthenticator,
             get_image_architectures,
         )
 
         # Extract image information from app instance
-        image = getattr(app_instance, "image", None)
+        image = self._resolve_image(app_instance)
+        logger.info("Processing image %s", image)
         if not image:
-            return {"valid": True, "message": "No image to validate"}
+            return {
+                "valid": True,
+                "message": "No image to validate",
+                "resolved_from": {
+                    "has_image_attr": hasattr(app_instance, "image"),
+                    "has_environment": bool(getattr(app_instance, "environment", None)),
+                    "has_k8s_values": bool(getattr(app_instance, "k8s_values", None)),
+                },
+            }
 
         # Parse image string (format: registry/repo:tag or repo:tag)
         parts = image.split("/")
@@ -52,11 +92,27 @@ class DockerImageValidator(BaseBackgroundTask):
             repo = image.split(":")[0]
             reference = image.split(":")[-1] if ":" in image else "latest"
 
+        # Docker Hub requires "library/" namespace for official images
+        if registry in (None, "", "docker.io", "index.docker.io", "registry-1.docker.io") and "/" not in repo:
+            repo = f"library/{repo}"
+
+        # Select registry authenticator
+        if registry in (None, "", "docker.io", "index.docker.io", "registry-1.docker.io"):
+            registry_host = "registry-1.docker.io"
+            auth = DockerHubAuthenticator(settings.DOCKER_HUB_USERNAME, settings.DOCKER_HUB_TOKEN)
+        elif registry == "ghcr.io":
+            registry_host = "ghcr.io"
+            auth = GHCRAuthenticator(settings.GITHUB_API_USERNAME, settings.GITHUB_API_TOKEN)
+        else:
+            raise ValueError(f"Unsupported registry '{registry}' for image validation (image={image})")
+
         # Validate architecture
         try:
-            auth = GHCRAuthenticator()
             architectures = get_image_architectures(
-                auth=auth, repo=repo, reference=reference, registry=registry or "ghcr.io"
+                auth=auth,
+                repo=repo,
+                reference=reference,
+                registry=registry_host,
             )
 
             # Check for amd64 architecture
@@ -72,6 +128,9 @@ class DockerImageValidator(BaseBackgroundTask):
                 "valid": True,
                 "architectures": [{"os": arch.os, "arch": arch.arch} for arch in architectures],
                 "image": image,
+                "registry": registry_host,
+                "repo": repo,
+                "reference": reference,
             }
 
         except Exception as e:

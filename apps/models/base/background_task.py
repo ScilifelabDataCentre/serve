@@ -146,7 +146,8 @@ class BackgroundTask(models.Model):
         """Mark task as successful and record completion time."""
         self.status = "success"
         self.completed_at = timezone.now()
-        if result_data:
+        # Persist empty dicts/lists too (but keep None meaning "no data").
+        if result_data is not None:
             self.result_data = result_data
         self.save(update_fields=["status", "completed_at", "result_data"])
         logger.info(f"BackgroundTask {self.id} ({self.task_name}) completed successfully")

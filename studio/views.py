@@ -5,11 +5,12 @@ from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.auth.views import PasswordResetView
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, reverse
 from django.template.loader import render_to_string
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
@@ -23,6 +24,7 @@ from common.models import UserProfile
 from common.tasks import send_email_task
 from models.models import Model
 from projects.models import Project
+from studio.throttle import WhitelistThrottleFilter
 from studio.utils import get_logger
 
 from .helpers import do_delete_account
@@ -112,6 +114,7 @@ class AuthView(APIView):
     authentication_classes = [ModifiedSessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated, AccessPermission]
     content_negotiation_class = IgnoreClientContentNegotiation
+    throttle_classes = [WhitelistThrottleFilter]
 
     def get(self, request: Response, format: str | None = None) -> Response:
         content = {
@@ -136,6 +139,12 @@ def profile(request: Response) -> Response:
         user_profile = UserProfile()
 
     return render(request, "user/profile.html", {"user_profile": user_profile})
+
+
+class PassResetView(PasswordResetView):
+    subject_template_name = "registration/password_reset_subject.txt"
+    email_template_name = "registration/password_reset_email.txt"
+    html_email_template_name = "registration/password_reset_email.html"
 
 
 @login_required
@@ -246,3 +255,8 @@ def __get_university_name(request: Response, code: str) -> str:
         return cast(str, data["name"])
     else:
         raise Exception("API did not return status 200")
+
+
+def status_view(request: HttpRequest) -> HttpResponse:
+    """Health check endpoint returning JSON status."""
+    return JsonResponse({"status": "ok"})

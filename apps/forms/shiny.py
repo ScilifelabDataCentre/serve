@@ -18,6 +18,12 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     shiny_site_dir = forms.CharField(max_length=255, required=False, label="Path to site_dir")
+    language = forms.ChoiceField(
+        choices=AppBaseForm.LANGUAGE_CHOICES,
+        required=False,
+        initial="eng",
+        label="Language of the application interface",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,6 +34,8 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         # Setup container image field from mixin
         self._setup_container_image_field()
         self._set_up_mount_path_field()
+        super().add_metadata()
+        super()._restore_model_help_text()
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -49,22 +57,32 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         super()._setup_form_helper()
 
         # Define AccordionGroups
-        general = AccordionGroup(
-            mark_safe("<h3>App Metadata</h3>"),
-            SRVCommonDivField("name", placeholder="Name your app"),
-            SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
+        general_fields = [
+            SRVCommonDivField("name", required=True),
+            SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("tags"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
-                placeholder="Describe why you want to make the app accessible only via a link",
+                rows=1,
             ),
-            SRVCommonDivField("source_code_url", placeholder="Provide a link to the public source code"),
+        ]
+
+        if "language" in self.fields:
+            general_fields.append(SRVCommonDivField("language", tooltip=False))
+
+        general_fields += [
+            SRVCommonDivField("source_code_url", placeholder="https://..."),
+        ]
+
+        general = AccordionGroup(
+            mark_safe("<h3>Description</h3>"),
+            *general_fields,
             active=True,
         )
 
         configuration = AccordionGroup(
-            mark_safe("<h3>Configuration Settings</h3>"),
+            mark_safe("<h3>Configuration</h3>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
@@ -77,7 +95,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         )
 
         advanced = AccordionGroup(
-            mark_safe("<h3>Advanced Settings</h3>"),
+            mark_safe("<h3>Advanced settings</h3>"),
             PrependedText(
                 "shiny_site_dir",
                 "/srv/shiny-server/",
@@ -87,8 +105,8 @@ class ShinyForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         )
 
         accordion = BS5Accordion(
-            general,
             configuration,
+            general,
             advanced,
             always_open=True,
             css_class="form-accordion",

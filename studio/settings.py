@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     "models",
     "apps",
     "api",
+    "doi_minting",
     "axes",  # django-axes for brute force login protection
     "django_password_validators",  # django-password-validators for password validation
     "django_htmx",
@@ -352,6 +353,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ("rest_framework.parsers.JSONParser",),
 }
 
+# Rate limit whitelist for certain IP ranges on the auth endpoint
+AUTH_RATE_LIMIT_VALUE = os.environ.get("AUTH_RATE_LIMIT_VALUE", None)
+AUTH_RATE_LIMIT_WHITELIST_RAW = os.environ.get("AUTH_RATE_LIMIT_WHITELIST", "")
+AUTH_RATE_LIMIT_WHITELIST = [ip.strip() for ip in AUTH_RATE_LIMIT_WHITELIST_RAW.split(",")]
+
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {
     "xml": "tagulous.serializers.xml_serializer",
@@ -395,6 +401,11 @@ DOCKER_HUB_USERNAME = os.getenv("DOCKER_HUB_USERNAME", "scilifelab-serve")
 GITHUB_API = "https://api.github.com"
 GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
 GITHUB_API_USERNAME = os.getenv("GITHUB_API_USERNAME")
+
+# Invenio API
+
+INVENIO_URL = os.getenv("INVENIO_URL")
+INVENIO_API_TOKEN = os.getenv("INVENIO_API_TOKEN")
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
@@ -600,7 +611,7 @@ CACHES = {
 }
 
 # k8s cluster version for validation of manifests
-CLUSTER_VERSION = "1.32"
+CLUSTER_VERSION = "1.33"
 
 # Serve profiling image
 PROFILING_ENABLED = os.getenv("PROFILING_ENABLED", "false").lower() == "true"

@@ -1,7 +1,8 @@
 import json
+import traceback
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, Optional, Type
 
 import regex as re
 import requests
@@ -10,14 +11,19 @@ import yaml
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models.query import QuerySet
 from django.forms.models import model_to_dict
 from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
+from requests.exceptions import ConnectionError, Timeout
 
-from apps.constants import AppActionOrigin, HandleUpdateStatusResponseCode
+from apps.constants import (
+    UNIVERSITY_NAMES,
+    AppActionOrigin,
+    HandleUpdateStatusResponseCode,
+)
 from apps.types_.subdomain import SubdomainCandidateName
 from apps.validators.container_images import (
     DockerHubAuthenticator,
@@ -385,9 +391,92 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
 
         # Run background tasks before deployment
         # The orchestrator will handle deployment if tasks succeed
-        run_background_tasks.delay(instance.serialize(), app_slug)
+        # Important: enqueue only after DB transaction commits, otherwise the worker
+        # may not be able to read the just-created/updated instance (or related data).
+        transaction.on_commit(lambda: run_background_tasks.delay(instance.serialize(), app_slug))
     else:
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
+
+    if waffle.switch_is_active("doi_minting_using_invenio"):
+        image_value_changed = False
+        app_contains_image = False
+        for field in form.cleaned_data:
+            if field.lower() == "image":
+                app_contains_image = True
+                break
+        for field in form.changed_data:
+            if field.lower() == "image":
+                image_value_changed = True
+                break
+        # Collect additional metadata from form
+        additional_metadata = {}
+        lang = form.cleaned_data.get("language")
+        if lang:
+            additional_metadata["languages"] = lang
+        # Check for changes
+        if image_value_changed:
+            logger.info(
+                f"App '{app_slug}' with app id '{app_id}', Image value changed in form," "checking to minting DOI.."
+            )
+            continuation_message = "Continuing with app deployment despite DOI minting failure"
+            try:
+                # Wrap the DOI minting call in try-except to handle potential failures
+                from doi_minting.services.invenio_svc import (
+                    save_metadata_to_invenio_then_mint_doi,
+                )
+
+                save_metadata_to_invenio_then_mint_doi(app_slug, instance_id, additional_metadata=additional_metadata)
+
+            except ValueError as e:
+                logger.error(
+                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Validation error - {str(e)}"
+                )
+                # Don't raise the error - app creation should continue even if DOI minting fails
+                logger.debug(continuation_message)
+
+            except PermissionDenied as e:
+                logger.error(
+                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Permission denied - {str(e)}"
+                )
+                logger.debug(continuation_message)
+
+            except requests.RequestException as e:
+                logger.error(
+                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
+                    f"Network error connecting to external service - {str(e)}"
+                )
+                logger.debug(continuation_message)
+
+            except ConnectionError as e:
+                logger.error(
+                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
+                    f"Connection error to external service - {str(e)}"
+                )
+                logger.debug(continuation_message)
+
+            except Timeout as e:
+                logger.error(
+                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
+                    f"Timeout connecting to external service - {str(e)}"
+                )
+                logger.debug(continuation_message)
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Unexpected error - {str(e)}"
+                )
+                logger.error(f"Traceback for DOI minting failure: {traceback.format_exc()}")
+                logger.debug(continuation_message)
+
+        elif app_contains_image:
+            logger.debug(f"App '{app_slug}' with app id '{app_id}', Image value did not change no need to mint DOI...")
+        else:
+            logger.debug(f"App '{app_slug}' with app id '{app_id}' does not have image, no need to mint DOI...")
+    else:
+        logger.debug(
+            "Make sure to turn the 'doi_minting_using_invenio' waffle switch on"
+            f" if you want to mint the DOI of App '{app_slug}' with app id '{app_id}'.",
+        )
 
     return instance_id
 
@@ -642,7 +731,7 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
         user_data.update(
             {
                 "department": user_profile.department,
-                "affiliation": get_university_suffix_information(user_profile.affiliation),
+                "affiliation": user_profile.get_organization_name(),
             }
         )
 
@@ -775,41 +864,6 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
 
 def get_university_suffix_information(university_sufffix: str) -> str:
     """Provide University name from official suffix, ex. uu -> Uppsala universitet (Uppsala University)"""
-    # University mapping with consistent formatting
-    UNIVERSITY_NAMES = {
-        "bth": "Blekinge Tekniska Högskola (Blekinge Institute of Technology)",
-        "chalmers": "Chalmers tekniska högskola (Chalmers University of Technology)",
-        "du": "Högskolan Dalarna (Dalarna University)",
-        "fhs": "Försvarshögskolan (Swedish Defence University)",
-        "gih": "Gymnastik- och idrottshögskolan (Swedish School of Sport and Health Sciences)",
-        "gu": "Göteborgs universitet (University of Gothenburg)",
-        "hb": "Högskolan i Borås (University of Borås)",
-        "hh": "Högskolan i Halmstad (Halmstad University)",
-        "hhs": "Handelshögskolan i Stockholm (Stockholm School of Economics)",
-        "hig": "Högskolan i Gävle (University of Gävle)",
-        "his": "Högskolan i Skövde (University of Skövde)",
-        "hkr": "Högskolan Kristianstad (Kristianstad University)",
-        "hv": "Högskolan Väst (University West)",
-        "ju": "Högskolan i Jönköping (Jönköping University)",
-        "kau": "Karlstads universitet (Karlstad University)",
-        "ki": "Karolinska Institutet (Karolinska Institute)",
-        "kth": "Kungliga Tekniska Högskolan (Royal Institute of Technology)",
-        "liu": "Linköpings universitet (Linköping University)",
-        "lnu": "Linnéuniversitetet (Linnaeus University)",
-        "ltu": "Luleå tekniska universitet (Luleå University of Technology)",
-        "lu": "Lunds universitet (Lund University)",
-        "lth": "Lunds tekniska högskola (Faculty of Engineering, Lund University)",
-        "mau": "Malmö universitet (Malmö University)",
-        "mdu": "Mälardalens universitet (Mälardalen University)",
-        "miun": "Mittuniversitetet (Mid Sweden University)",
-        "oru": "Örebro universitet (Örebro University)",
-        "sh": "Södertörns högskola (Södertörn University)",
-        "slu": "Sveriges lantbruksuniversitet (Swedish University of Agricultural Sciences)",
-        "su": "Stockholms universitet (Stockholm University)",
-        "umu": "Umeå universitet (Umeå University)",
-        "uu": "Uppsala universitet (Uppsala University)",
-    }
-
     return UNIVERSITY_NAMES.get(university_sufffix, university_sufffix)
 
 

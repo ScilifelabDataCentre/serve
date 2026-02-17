@@ -2,7 +2,7 @@
 <html lang="en">
 
 {% extends "base.html" %}
-{% block title %}App Metadata{% endblock %}
+{% block title %}{{ app.name }}{% endblock %}
 {% load static %}
 {% block head %}
 {% endblock %}
@@ -38,7 +38,7 @@
                         <h3 class="border-bottom pb-2">Application</h3>
 
                         <dl class="row">
-                            <dt class="col-sm-4">Name</dt>
+                            <dt class="col-sm-4">Title</dt>
                             <dd class="col-sm-8">{{ app.name }}</dd>
 
                             <dt class="col-sm-4">Type</dt>
@@ -51,14 +51,14 @@
                                 </a>
                             </dd>
 
-                        <dt class="col-sm-4">Source Code</dt>
+                        <dt class="col-sm-4">Source code</dt>
                             <dd class="col-sm-8">
                                 <a href="{{ schema_dict.hasPart.0.hasPart.codeRepository }}" target="_blank">
                                     {{ schema_dict.hasPart.0.hasPart.codeRepository }}<i class="bi bi-box-arrow-up-right mx-1"></i>
                                 </a>
                             </dd>
 
-                        <dt class="col-sm-4">Image</dt>
+                        <dt class="col-sm-4">Docker image</dt>
                             <dd class="col-sm-8">{{ schema_dict.hasPart.0.additionalProperty.0.value }}</dd>
 
 
@@ -68,6 +68,10 @@
 
                             <dt class="col-sm-4">Updated</dt>
                             <dd class="col-sm-8">{{ app.updated_on|date:"d M, Y" }}</dd>
+
+
+                            <dt class="col-sm-4">Description</dt>
+                            <dd class="col-sm-8">{{ app.description }}</dd>
 
                             <dt class="col-sm-4">Tags</dt>
                             <dd class="col-sm-8">
@@ -82,38 +86,13 @@
                             </dd>
 
                              </dl>
-
-
-                        <p class="col-sm-12">{{ app.description }}</p>
-
-
-
-                    </div>
-
-
-
-                    <div class="mb-4">
-                        <h3 class="border-bottom pb-2">Project</h3>
-
-                        <dl class="row">
-                            <dt class="col-sm-4">Name</dt>
-                            <dd class="col-sm-8">{{ schema_dict.about.name }}</dd>
-
-                            <dt class="col-sm-4">Created</dt>
-                            <dd class="col-sm-8">{{ schema_dict.about.additionalProperty.0.value|date:"d M, Y" }}</dd>
-                        </dl>
-
-                        <div class="mb-4">
-                        <p class="col-sm-12">{{ schema_dict.about.description }}</p>
-                    </div>
-
                     </div>
                 </div>
 
                 <div class="col-md-5 align-items-center">
                     <div class="card mb-3">
                         <div class="card-body">
-                            <h4 class="card-title">Owner</h4>
+                            <h4 class="card-title">Creator</h4>
                             <div>
                                     <div id="owner_name">{{ schema_dict.hasPart.0.author.name }}</div>
                                     <div id="owner_email">{{ schema_dict.hasPart.0.author.email }}</div>
@@ -133,10 +112,10 @@
 
         <div class="card-footer bg-transparent">
             <div>
-                <a href="{% url 'apps:app-metadata' app.project.slug app.app.slug app.pk %}?format=json"
+                <a href="{% url 'app-metadata' app.pk %}?format=json"
                    class="btn btn btn-primary">
                     <i class="bi bi-download me-2"></i>
-                    Download All Metadata (JSON)
+                    Download all metadata (JSON)
                 </a>
             </div>
         </div>

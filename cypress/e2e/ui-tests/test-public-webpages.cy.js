@@ -52,7 +52,7 @@ describe("Tests of the public pages of the website", () => {
     it("should open the Apps and models page on link click", () => {
         cy.get("li.nav-item a").contains("Apps & Models").click()
         cy.url().should("include", "/apps")
-        cy.get('h3').should('contain', 'Public Applications & Models')
+        cy.get('h3').should('contain', 'Public applications & models')
         cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
 
         if (Cypress.env('do_reset_db') === true) {
@@ -92,13 +92,13 @@ describe("Tests of the public pages of the website", () => {
 	    cy.get("title").should("have.text", "Home | SciLifeLab Serve (beta)")
     })
 
-    it("should open the App landing page on link click", () => {
+    it("should open the Apps & models landing page on link click", () => {
 
         if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
 
             cy.get("li.nav-item a").contains("Apps & Models").click()
             cy.url().should("include", "/apps")
-            cy.get('h3').should('contain', 'Public Applications & Models')
+            cy.get('h3').should('contain', 'Public applications & models')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
 
             // Find the card with specific app name and owner
@@ -114,7 +114,7 @@ describe("Tests of the public pages of the website", () => {
                     })
 
             // Verify navigation to details page
-            cy.url().should('include', '/metadata/dashapp/')
+            cy.url().should('include', '/records/')
 
             // Verify app name in header
             cy.get('h2.mb-0').should('contain', TEST_APP_DATA.name)
@@ -123,19 +123,18 @@ describe("Tests of the public pages of the website", () => {
             cy.get('#owner_name').should('contain', `${TEST_USER_DATA.first_name} ${TEST_USER_DATA.last_name}`)
             cy.get('#owner_email').should('contain', TEST_USER_DATA.email)
             cy.get('#owner_dept').should('contain', TEST_USER_DATA.department)
-            cy.get('#owner_aff').should('contain', 'Uppsala universitet (Uppsala University)')
+            cy.get('#owner_aff').should('contain', 'Uppsala University')
 
             // Verify download link exists and has correct href
-            cy.contains('a.btn.btn-primary', 'Download All Metadata (JSON)')
+            cy.contains('a.btn.btn-primary', 'Download all metadata (JSON)')
                 .should('have.attr', 'href')
-                    .and('include', '/apps/metadata/')
+                    .and('include', '/records/')
                         .and('include', '?format=json')
 
             // Verify the download request completes successfully
-            cy.intercept('GET', '**/metadata/**/*?format=json').as('metadataDownload')
-
+            cy.intercept('GET', '**/records/**/*?format=json').as('metadataDownload')
             // Click the download link (opens in same tab)
-            cy.contains('a.btn.btn-primary', 'Download All Metadata (JSON)')
+            cy.contains('a.btn.btn-primary', 'Download all metadata (JSON)')
                 .invoke('removeAttr', 'target') // Remove target="_blank"
                     .click()
 
@@ -150,20 +149,20 @@ describe("Tests of the public pages of the website", () => {
         }
     })
 
-    it("should open the Teaching page on footer link click", () => {
+    it("should open the Use in courses page on footer link click", () => {
         // Scroll to footer to make the link visible
         cy.scrollTo('bottom')
 
-        // Click the Teaching link in the footer
-        cy.get('.footer a').contains('Teaching').click()
+        // Click the Use in courses link in the footer
+        cy.get('.footer a').contains('Use in courses').click()
 
-        // Verify navigation to teaching page
+        // Verify navigation to Use in courses page
         cy.url().should("include", "/teaching")
-        cy.get("title").should("have.text", "Teaching | SciLifeLab Serve (beta)")
+        cy.get("title").should("have.text", "Use in courses | SciLifeLab Serve (beta)")
 
         // Verify page content
-        cy.get('h3').should('contain', 'Using SciLifeLab Serve in teaching')
-        cy.get('h4').should('contain', 'Application form')
+        cy.get('h2').should('contain', 'Using SciLifeLab Serve in teaching (courses)')
+        cy.get('h3').should('contain', 'Application form')
 
         // Verify form fields are present
         cy.get('input[name="name"]').should('exist')
@@ -182,9 +181,9 @@ describe("Tests of the public pages of the website", () => {
         cy.get('button[type="submit"]').should('contain', 'Submit application')
     })
 
-    it("should validate the teaching form with invalid input", () => {
+    it("should validate the Use courses form with invalid input", () => {
         cy.visit("/teaching")
-        cy.get("title").should("have.text", "Teaching | SciLifeLab Serve (beta)")
+        cy.get("title").should("have.text", "Use in courses | SciLifeLab Serve (beta)")
 
         // Try to submit empty form
         cy.get('button[type="submit"]').click()
@@ -208,9 +207,9 @@ describe("Tests of the public pages of the website", () => {
         })
     })
 
-    it("should fill the teaching form with valid input", () => {
+    it("should fill the Use in courses form with valid input", () => {
         cy.visit("/teaching")
-        cy.get("title").should("have.text", "Teaching | SciLifeLab Serve (beta)")
+        cy.get("title").should("have.text", "Use in courses | SciLifeLab Serve (beta)")
 
         // Fill in all form fields
         cy.get('input[name="name"]').type('John Doe')
@@ -228,6 +227,48 @@ describe("Tests of the public pages of the website", () => {
 
         // Note: We don't submit the form here because Altcha captcha requires client-side solving
         // which may take time. The form validation and field filling is tested above.
+    })
+
+    it("should open the About page on link click, verify content", () => {
+        cy.get("li a").contains("About").click()
+        cy.url().should("include", "about")
+        cy.get("title").should("have.text", "About the platform | SciLifeLab Serve (beta)")
+        cy.get('h2').should('contain', 'About the platform')
+    })
+
+    it("should open the News page on link click, verify content", () => {
+        cy.get("li a").contains("News").click()
+        cy.url().should("include", "news")
+        cy.get("title").should("have.text", "Platform news | SciLifeLab Serve (beta)")
+        cy.get('h2').should('contain', 'Platform news')
+    })
+
+    it("should open the Roadmap page on link click, verify content", () => {
+        cy.get("li a").contains("Roadmap").click()
+        cy.url().should("include", "about/roadmap")
+        cy.get("title").should("have.text", "Roadmap | SciLifeLab Serve (beta)")
+        cy.get('h2').should('contain', 'Roadmap')
+    })
+
+    it("should open the Citing us page on link click, verify content", () => {
+        cy.get("li a").contains("Citing us").click()
+        cy.url().should("include", "about/cite")
+        cy.get("title").should("have.text", "Citing us | SciLifeLab Serve (beta)")
+        cy.get('h2').should('contain', 'Citing us')
+    })
+
+    it("should open the Privacy policy page on link click, verify content", () => {
+        cy.get("li a").contains("Privacy").click()
+        cy.url().should("include", "privacy")
+        cy.get("title").should("have.text", "Privacy policy | SciLifeLab Serve (beta)")
+        cy.get('h2').should('contain', 'Privacy policy')
+    })
+
+    it("should open the Contact page on link click, verify content", () => {
+        cy.get("li a").contains("Contact").click()
+        cy.url().should("include", "contact")
+        cy.get("title").should("have.text", "Contact us | SciLifeLab Serve (beta)")
+        cy.get('h2').should('contain', 'Contact us')
     })
 
     after(() => {

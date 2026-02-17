@@ -23,33 +23,32 @@ class TissuumapsForm(VolumeMixin, AppBaseForm):
     def _setup_form_helper(self):
         super()._setup_form_helper()
 
-        # Define AccordionGroups
-        general = AccordionGroup(
-            mark_safe("<h3>App Metadata</h3>"),
-            SRVCommonDivField("name", placeholder="Name your app"),
-            SRVCommonDivField("description", rows="3", placeholder="Provide a detailed description of your app"),
-            SRVCommonDivField("tags"),
-            SRVCommonDivField("access"),
-            active=True,
-        )
-
         configuration = AccordionGroup(
-            mark_safe("<h3>Configuration Settings</h3>"),
+            mark_safe("<h3>Configuration</h3>"),
             SRVCommonDivField(
                 "subdomain", placeholder="Enter a subdomain or leave blank for a random one", spinner=True
             ),
             self._set_up_volume_helper(),
             SRVCommonDivField("flavor"),
+            active=True,
+        )
+
+        # Define AccordionGroups
+        general = AccordionGroup(
+            mark_safe("<h3>Description</h3>"),
+            SRVCommonDivField("name", required=True),
+            SRVCommonDivField("description", rows=4, required=True),
+            SRVCommonDivField("tags"),
+            SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
-                placeholder="Describe why you want to make the app accessible only via a link",
             ),
             active=True,
         )
 
         accordion = BS5Accordion(
-            general,
             configuration,
+            general,
             always_open=True,
             css_class="form-accordion",
         )

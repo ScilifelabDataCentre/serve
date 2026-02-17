@@ -170,7 +170,7 @@ class BaseAppInstance(models.Model):
     deleted_on = models.DateTimeField(null=True, blank=True)
     info = models.JSONField(blank=True, null=True)
     # model_dependencies = models.ManyToManyField("models.Model", blank=True)
-    name = models.CharField(max_length=512, default="app_name")
+    name = models.CharField("Title", max_length=512, default="app_name")
     owner = models.ForeignKey(
         get_user_model(),
         on_delete=models.CASCADE,
@@ -239,6 +239,13 @@ class BaseAppInstance(models.Model):
     url = models.URLField(blank=True, null=True)
     updated_on = models.DateTimeField(auto_now=True)
     upload_size = models.PositiveIntegerField(default=100, help_text="Max upload size in MB")
+
+    invenio_record_id = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Invenio record identifier for published apps"
+    )
+    app_doi = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Digital Object Identifier for the published app"
+    )
 
     class Meta:
         permissions = [("can_access_app", "Can access app service")]
