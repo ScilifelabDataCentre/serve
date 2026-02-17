@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 import responses  # type: ignore
 
-from invenio_client import InvenioClient
+from doi_minting.clients.invenio_client.invenio_client import InvenioClient
 
 
 @pytest.fixture
