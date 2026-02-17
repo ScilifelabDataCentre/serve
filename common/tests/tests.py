@@ -8,7 +8,9 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.core import mail
 from django.http import HttpRequest
-from django.test import Client, override_settings
+from django.test import Client
+from django.test import TestCase as DjangoTestCase
+from django.test import override_settings
 from hypothesis import Verbosity, given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.django import TestCase, TransactionTestCase
@@ -302,11 +304,16 @@ def test_pass_validation_profile_edit_form(department):
     assert form.is_valid(), form.errors
 
 
-@pytest.mark.django_db
-class TestOrcidViews:
+@override_settings(
+    ORCID_CLIENT_ID="APP-TEST123",
+    ORCID_CLIENT_SECRET="test-secret",
+    ORCID_REDIRECT_URI="https://example.com/orcid/callback/",
+    ORCID_BASE_URL="https://sandbox.orcid.org",
+)
+class TestOrcidViews(DjangoTestCase):
     """Tests for ORCID connect/disconnect flow."""
 
-    def setup_method(self):
+    def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(
             username="orcid_test@uu.se",
