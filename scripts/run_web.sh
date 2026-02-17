@@ -22,6 +22,7 @@ if $INIT; then
     python manage.py waffle_flag enable_depictio --create --everyone
     python manage.py waffle_switch docker_image_architecture_validator off --create
     python manage.py waffle_switch doi_minting_using_invenio off --create
+    python manage.py waffle_switch background_tasks off --create
     python manage.py waffle_switch christmas_theme off --create
 
     #Replace storageclass in project template fixture

@@ -2,13 +2,9 @@
 
 A comprehensive framework for running validation and external API tasks before app deployment.
 
-## Disclaimer
-
-This is an initial ai generated draft of the feature based on user stories for the feature. I think that it generally
-looks good, but we need to review and debug it, because from API design standpoint it looks good, but not all
-things work right now.
-
-Background tasks are actually triggered on deployment. But not all views work.
+Background tasks are triggered during deployment via `apps.helpers.create_instance_from_form()` which enqueues
+`apps.tasks.run_background_tasks` (Celery). The orchestrator runs registered tasks, blocks deployment if any
+**critical** task fails, and otherwise proceeds to deployment.
 
 ## Overview
 
@@ -29,11 +25,13 @@ Form Submission
     ↓
 create_instance_from_form()
     ↓
-run_background_tasks() [Celery Task]
+transaction.on_commit(run_background_tasks.delay(instance.serialize(), app_slug))
     ↓
-Execute tasks by order (parallel within same order)
+run_background_tasks() [Celery Task; creates BackgroundTask rows]
     ↓
-check_tasks_and_deploy()
+Execute tasks by execution_order (parallel within same order)
+    ↓
+check_tasks_and_deploy() [Celery Task]
     ↓
 deploy_resource() [if all critical tasks pass]
 ```
@@ -77,11 +75,13 @@ class MyValidationTask(BaseBackgroundTask):
 
 ### 2. Task Registration
 
-Tasks are automatically discovered when imported. Add imports to `apps/background_tasks/tasks/__init__.py`:
+Tasks are registered when their module is imported. Ensure your task modules are imported from
+`apps/background_tasks/tasks/__init__.py`:
 
 ```python
-from .validation import MyValidationTask
-from .external_api import MyAPITask
+# Import task modules here to ensure they're registered
+from .validation import *  # noqa: F401,F403
+# from .my_tasks import *  # noqa: F401,F403
 ```
 
 Or import in your app's `ready()` method in `apps.py`:
@@ -184,7 +184,7 @@ class MyTask(BaseBackgroundTask):
 View tasks for a specific app:
 
 ```
-/apps/tasks/<app_slug>/<app_id>
+/projects/<project>/apps/tasks/<app_slug>/<app_id>
 ```
 
 Features:
@@ -198,7 +198,7 @@ Features:
 View all tasks across all apps (superuser only):
 
 ```
-/apps/admin/background-tasks
+/projects/<project>/apps/admin/background-tasks
 ```
 
 Features:
@@ -212,7 +212,7 @@ Features:
 Get task status programmatically:
 
 ```
-GET /apps/tasks/<app_slug>/<app_id>/status
+GET /projects/<project>/apps/tasks/<app_slug>/<app_id>/status
 
 Response:
 {
@@ -265,33 +265,11 @@ class DockerImageValidator(BaseBackgroundTask):
         return {"architectures": architectures}
 ```
 
-### Invenio Record Creation
+### External API tasks
 
-Located in `apps/background_tasks/tasks/external_api.py`:
-
-```python
-@TASK_REGISTRY.register(
-    name='create_invenio_record',
-    is_critical=False,  # Optional - don't block deployment
-    execution_order=10,
-    app_types=['customapp', 'dash', 'streamlit']
-)
-class InvenioRecordCreator(BaseBackgroundTask):
-    """Creates Invenio record via API"""
-
-    def execute(self, app_instance, **kwargs):
-        response = requests.post(
-            invenio_api_url,
-            json=record_data,
-            timeout=30
-        )
-        response.raise_for_status()
-
-        return {
-            "success": True,
-            "record_id": response.json().get('id')
-        }
-```
+There is no `apps/background_tasks/tasks/external_api.py` module in this repo. To add an external API task, create a
+module under `apps/background_tasks/tasks/`, register the task with `@TASK_REGISTRY.register(...)`, and import the
+module from `apps/background_tasks/tasks/__init__.py` so it is registered on startup.
 
 ## Database Model
 
@@ -329,7 +307,6 @@ def send_task_failure_notification(app_instance_id, failed_task_names):
 
 Recipients:
 - App owner (always)
-- Admins (on repeated failures)
 
 ## Testing
 

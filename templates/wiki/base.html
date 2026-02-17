@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load sekizai_tags i18n wiki_tags static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/serve-user-guide.css' %}">
+{% endblock %}
+
+{% block title %}{% block wiki_pagetitle %}{% endblock %}{% endblock %}
+
+
+{% block content %}
+{% block wiki_body %}
+
+{# Breadcrumbs #}
+{% include 'wiki/breadcrumbs.html' %}
+
+{# Admin menu items #}
+{% include 'wiki/admin_menu.html' %}
+
+<div class="row">
+
+    <div class="col-12 col-lg-3 sticky-lg-top pt-2">
+        <aside class="sticky-lg-top py-2 border-bottom">
+            <h4 data-cy="sidebar-title">SciLifeLab Serve user guide</h4>
+            <div class="d-flex my-2 py-3 border-top">
+                <form class="d-flex" role="search" method="GET" action="{% spaceless %} {% url 'wiki:search' %} {% endspaceless %}">
+                    <input class="form-control me-2" type="search" name="q" placeholder="Search.." aria-label="Search">
+                    <button class="btn btn-outline-serve" type="submit">Search</button>
+                  </form>
+            </div>
+            {% if urlpath.root.get_descendants %}
+            <nav id="GuideIndex">
+            {% url 'wiki:get' path=urlpath as current_path %}
+                {% for child in urlpath.root.get_descendants %}
+                  {% if not child.is_deleted %}
+                    {% with ''|center:child.level as range %}
+                      {% for _ in range %}<ul class="my-0">{% endfor %}
+                      {% url 'wiki:get' path=child.path as childpath %}
+                      <li>
+                        {% if current_path|stringformat:"s" == childpath|stringformat:"s" %}
+                        <b>{{ child.article.current_revision.title }}</b>
+                        {% else %}
+                        <a href="{{ childpath }}">
+                          {{ child.article.current_revision.title }} {{ test }}
+                        </a>
+                        {% endif %}
+                      </li>
+                      {% for _ in range %}</ul>{% endfor %}
+                    {% endwith %}
+                  {% endif %}
+                {% endfor %}
+        </nav>
+        {% endif %}
+        </aside>
+    </div>
+    <div class="col-12 col-lg-9 mt-4 mt-lg-0">
+        <div class="container">
+        {% wiki_messages %}
+        {# Main page contents  #}
+        {% block wiki_contents %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+  <p class="border-top mt-4 pt-2 small">{% blocktrans %}The SciLifeLab Serve user guide is powered by <a href="http://www.django-wiki.org">django-wiki</a>, an open source application under the <a href="http://www.gnu.org/licenses/quick-guide-gplv3.html">GPLv3</a> license. Let knowledge be the cure.{% endblocktrans %}</p>
+
+  <script src="{% static "wiki/js/jquery-3.6.0.min.js" %}"></script>
+  <script src="{% static "wiki/js/core.js" %}"></script>
+  <script src="{% static "wiki/js/popper.js" %}"></script>
+  <script src="{% static "wiki/bootstrap/js/bootstrap.bundle.min.js" %}"></script>
+
+  <script src="{% static "wiki/js/respond.min.js" %}"></script>
+
+
+{% endblock %}

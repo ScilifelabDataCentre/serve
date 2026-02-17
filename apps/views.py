@@ -585,7 +585,8 @@ class AdminBackgroundTasksView(View):
 
     template = "apps/admin_background_tasks.html"
 
-    def get(self, request):
+    # NOTE: This view is mounted under /projects/<project>/apps/ so Django will pass `project` in kwargs.
+    def get(self, request, project, *args, **kwargs):
         from apps.models import BackgroundTask
 
         # Only allow superusers
