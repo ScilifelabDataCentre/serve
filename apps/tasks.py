@@ -727,9 +727,6 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
         instance.latest_user_action = "Failed"
         instance.save(update_fields=["latest_user_action"])
 
-        # Send notification
-        transaction.on_commit(lambda: send_task_failure_notification.delay(app_instance_id, failed_names))
-
         return {
             "success": False,
             "deployed": False,
@@ -790,45 +787,3 @@ def retry_background_task(task_id: int):
 
     logger.info(f"Manually retrying background task {task_id}")
     return {"success": True, "message": "Task retry initiated"}
-
-
-@shared_task
-def send_task_failure_notification(app_instance_id: int, failed_task_names: list):
-    """
-    Send email notification when critical tasks fail.
-
-    Args:
-        app_instance_id: App instance ID
-        failed_task_names: List of failed task names
-    """
-    from apps.models import BaseAppInstance
-
-    try:
-        instance = BaseAppInstance.objects.get(id=app_instance_id)
-    except BaseAppInstance.DoesNotExist:
-        logger.error(f"App instance {app_instance_id} not found")
-        return
-
-    owner_email = instance.owner.email if hasattr(instance, "owner") else None
-
-    if owner_email:
-        subject = f"App deployment blocked: {instance.name}"
-        message = (
-            f"Dear {instance.owner.first_name},\n\n"
-            f"The deployment of your app '{instance.name}' has been blocked because "
-            f"one or more critical validation tasks failed:\n\n"
-            f"{', '.join(failed_task_names)}\n\n"
-            f"Please review the task details and fix any issues before retrying.\n\n"
-            f"If you need assistance, please contact us at serve@scilifelab.se.\n\n"
-            f"Kind regards,\n"
-            f"SciLifeLab Serve team"
-        )
-
-        send_email_task(
-            subject=subject,
-            message=message,
-            recipient_list=[owner_email],
-            reply_to=[settings.REPLY_TO_EMAIL],
-        )
-
-        logger.info(f"Sent task failure notification to {owner_email} for app {app_instance_id}")

@@ -16,7 +16,6 @@ The background task framework provides:
 - **Manual Retry**: UI for manually retrying failed tasks
 - **Task Monitoring**: Views for per-app and admin-wide task status
 - **Critical vs Optional Tasks**: Block deployment on critical failures
-- **Email Notifications**: Alert users when critical tasks fail
 
 ## Architecture
 
@@ -292,21 +291,6 @@ BackgroundTask
 ├── completed_at (datetime)
 └── celery_task_id (str)
 ```
-
-## Email Notifications
-
-Critical task failures trigger email notifications:
-
-```python
-@shared_task
-def send_task_failure_notification(app_instance_id, failed_task_names):
-    """Send email when critical tasks fail"""
-    # Email sent to app owner
-    # Includes failed task names and instructions
-```
-
-Recipients:
-- App owner (always)
 
 ## Testing
 
