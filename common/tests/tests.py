@@ -300,3 +300,78 @@ def test_pass_validation_profile_edit_form(department):
         },
     )
     assert form.is_valid(), form.errors
+
+
+@pytest.mark.django_db
+class TestOrcidViews:
+    """Tests for ORCID connect/disconnect flow."""
+
+    def setup_method(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="orcid_test@uu.se",
+            email="orcid_test@uu.se",
+            password="TestPass123!",
+        )
+        self.profile = UserProfile.objects.create(user=self.user)
+        self.client.login(username="orcid_test@uu.se", password="TestPass123!")
+
+    def test_orcid_authorize_redirects_to_orcid(self):
+        response = self.client.get("/orcid/authorize/")
+        assert response.status_code == 302
+        assert "orcid.org/oauth/authorize" in response.url
+
+    def test_orcid_authorize_sets_state_in_session(self):
+        self.client.get("/orcid/authorize/")
+        session = self.client.session
+        assert "orcid_oauth_state" in session
+
+    def test_orcid_authorize_requires_login(self):
+        self.client.logout()
+        response = self.client.get("/orcid/authorize/")
+        assert response.status_code == 302
+        assert "login" in response.url.lower()
+
+    def test_orcid_callback_rejects_invalid_state(self):
+        session = self.client.session
+        session["orcid_oauth_state"] = "valid_state"
+        session.save()
+        response = self.client.get("/orcid/callback/", {"state": "wrong_state", "code": "test"})
+        assert response.status_code == 302
+        self.profile.refresh_from_db()
+        assert self.profile.orcid_id == ""
+
+    def test_orcid_callback_handles_user_denial(self):
+        session = self.client.session
+        session["orcid_oauth_state"] = "test_state"
+        session.save()
+        response = self.client.get("/orcid/callback/", {"state": "test_state", "error": "access_denied"})
+        assert response.status_code == 302
+        self.profile.refresh_from_db()
+        assert self.profile.orcid_id == ""
+
+    def test_orcid_disconnect_clears_fields(self):
+        self.profile.orcid_id = "0000-0001-1715-6138"
+        self.profile.orcid_access_token = "some-token"
+        self.profile.orcid_refresh_token = "some-refresh"
+        self.profile.orcid_token_scope = "/authenticate"
+        self.profile.save()
+
+        response = self.client.post("/orcid/disconnect/")
+        assert response.status_code == 302
+
+        self.profile.refresh_from_db()
+        assert self.profile.orcid_id == ""
+        assert self.profile.orcid_access_token == ""
+        assert self.profile.orcid_refresh_token == ""
+        assert self.profile.orcid_token_scope == ""
+
+    def test_orcid_disconnect_requires_login(self):
+        self.client.logout()
+        response = self.client.post("/orcid/disconnect/")
+        assert response.status_code == 302
+        assert "login" in response.url.lower()
+
+    def test_orcid_disconnect_requires_post(self):
+        response = self.client.get("/orcid/disconnect/")
+        assert response.status_code == 405

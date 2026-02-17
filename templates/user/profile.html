@@ -29,6 +29,26 @@
 
                         </div>
 
+                        <!-- ORCID iD Row -->
+<div class="row pt-1">
+    <div class="col-4"><label>ORCID iD:</label></div>
+    <div class="col-8 fw-bold">
+        {% if user_profile.orcid_id %}
+            <div class="d-flex align-items-center">
+                <img src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png"
+                     alt="ORCID" class="me-2" width="18" height="18">
+                <a href="https://orcid.org/{{ user_profile.orcid_id }}"
+                   target="_blank" rel="noopener"
+                   style="color: #A6CE39; text-decoration: none; font-size: 14px;">
+                    https://orcid.org/{{ user_profile.orcid_id }}
+                </a>
+            </div>
+        {% else %}
+            <span class="text-muted fst-italic">Not connected</span>
+        {% endif %}
+    </div>
+</div>
+
                         <div class="row pt-4">
                             <h4 class="fw-bold">Contact</h4>
                         </div>

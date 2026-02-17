@@ -74,7 +74,7 @@ def add_additional_context_to_public_apps(published_apps):
 
     for app in published_apps:
         try:
-            affiliation = universities_obj.get(app.owner.userprofile.affiliation, app.owner.userprofile.affiliation)
+            affiliation = app.owner.userprofile.get_organization_name()
             organizations.add(affiliation)
             department = app.owner.userprofile.department
             if department not in [None, ""]:
@@ -104,6 +104,9 @@ def add_additional_context_to_public_apps(published_apps):
                 "name": app.name,
                 "description": app.description,
                 "owner": app.owner.first_name + " " + app.owner.last_name,
+                "orcid_id": getattr(app.owner, "userprofile", None)
+                and getattr(app.owner.userprofile, "orcid_id", "")
+                or "",
                 "affiliation": affiliation if "affiliation" in locals() else "",
                 "department": dep_cleaned if "dep_cleaned" in locals() else "",
                 "tag_list": tag_list,

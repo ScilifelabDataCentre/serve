@@ -94,7 +94,15 @@
                         <div class="card-body">
                             <h4 class="card-title">Creator</h4>
                             <div>
-                                    <div id="owner_name">{{ schema_dict.hasPart.0.author.name }}</div>
+                                    <div id="owner_name">
+    {{ schema_dict.hasPart.0.author.name }}
+    {% if app.owner.userprofile and app.owner.userprofile.orcid_id %}
+    <a href="https://orcid.org/{{ app.owner.userprofile.orcid_id }}" target="_blank" rel="noopener" style="text-decoration: none;">
+        <img src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png" alt="ORCID" width="16" height="16" class="me-1">
+        <span style="color: #A6CE39; font-size: 0.85em;">{{ app.owner.userprofile.orcid_id }}</span>
+    </a>
+    {% endif %}
+</div>
                                     <div id="owner_email">{{ schema_dict.hasPart.0.author.email }}</div>
                                     <div id="owner_dept">{{ schema_dict.hasPart.0.author.affiliation.additionalProperty.value }}</div>
                                     <div id="owner_aff">{{ schema_dict.hasPart.0.author.affiliation.name }}</div>

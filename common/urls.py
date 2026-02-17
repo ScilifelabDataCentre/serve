@@ -17,6 +17,9 @@ urlpatterns = [
     path("password-change/", views.ChangePasswordView.as_view(), name="password-change"),
     path("admin_profile_edit_disabled/", views.EditProfileView.as_view(), name="admin_profile_edit_disabled"),
     path("api/ror-autocomplete/", views.RORAutocompleteView.as_view(), name="ror-autocomplete"),
+    path("orcid/authorize/", views.OrcidAuthorizeView.as_view(), name="orcid-authorize"),
+    path("orcid/callback/", views.OrcidCallbackView.as_view(), name="orcid-callback"),
+    path("orcid/disconnect/", views.OrcidDisconnectView.as_view(), name="orcid-disconnect"),
 ]
 
 if settings.DEBUG:

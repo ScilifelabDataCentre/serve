@@ -625,3 +625,14 @@ if PROFILING_ENABLED:
         "silk.middleware.SilkyMiddleware",
         "debug_toolbar.middleware.DebugToolbarMiddleware",
     ] + MIDDLEWARE
+
+# ORCID Integration (Public API)
+# Register credentials at: https://orcid.org/developer-tools (production)
+# or https://sandbox.orcid.org/developer-tools (sandbox/testing)
+ORCID_CLIENT_ID = os.environ.get("ORCID_CLIENT_ID", "")
+ORCID_CLIENT_SECRET = os.environ.get("ORCID_CLIENT_SECRET", "")
+ORCID_REDIRECT_URI = os.environ.get("ORCID_REDIRECT_URI", f"https://{DOMAIN}/orcid/callback/")
+
+# For testing use sandbox:  https://sandbox.orcid.org
+# For production use:       https://orcid.org
+ORCID_BASE_URL = "https://orcid.org"
