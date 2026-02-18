@@ -2,7 +2,8 @@
 Task registry for managing background tasks.
 """
 
-from typing import Any, Dict, List, Optional, Type
+from collections.abc import Callable
+from typing import Any
 
 from studio.utils import get_logger
 
@@ -20,15 +21,15 @@ class BackgroundTaskRegistry:
     """
 
     def __init__(self):
-        self._tasks: Dict[str, Dict[str, Any]] = {}
+        self._tasks: dict[str, dict[str, Any]] = {}
 
     def register(
         self,
         name: str,
         is_critical: bool = False,
         execution_order: int = 0,
-        app_types: Optional[List[str]] = None,
-    ):
+        app_types: list[str] | None = None,
+    ) -> Callable[[type[BaseBackgroundTask]], type[BaseBackgroundTask]]:
         """
         Decorator to register a task class.
 
@@ -51,7 +52,7 @@ class BackgroundTaskRegistry:
                     return {"valid": True}
         """
 
-        def decorator(cls: Type[BaseBackgroundTask]) -> Type[BaseBackgroundTask]:
+        def decorator(cls: type[BaseBackgroundTask]) -> type[BaseBackgroundTask]:
             if name in self._tasks:
                 logger.warning(f"Task '{name}' is already registered. Overwriting.")
 
@@ -67,7 +68,7 @@ class BackgroundTaskRegistry:
 
         return decorator
 
-    def get_task_class(self, name: str) -> Optional[Type[BaseBackgroundTask]]:
+    def get_task_class(self, name: str) -> type[BaseBackgroundTask] | None:
         """
         Get a task class by name.
 
@@ -80,7 +81,7 @@ class BackgroundTaskRegistry:
         task_info = self._tasks.get(name)
         return task_info["class"] if task_info else None
 
-    def get_task_info(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_task_info(self, name: str) -> dict[str, Any] | None:
         """
         Get complete task information by name.
 
@@ -92,7 +93,7 @@ class BackgroundTaskRegistry:
         """
         return self._tasks.get(name)
 
-    def get_all_tasks(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_tasks(self) -> dict[str, dict[str, Any]]:
         """
         Get all registered tasks.
 
@@ -101,7 +102,7 @@ class BackgroundTaskRegistry:
         """
         return self._tasks.copy()
 
-    def get_tasks_for_app(self, app_slug: str) -> List[Dict[str, Any]]:
+    def get_tasks_for_app(self, app_slug: str) -> list[dict[str, Any]]:
         """
         Get all tasks applicable to a specific app type.
 
@@ -131,7 +132,7 @@ class BackgroundTaskRegistry:
 
         return applicable_tasks
 
-    def get_tasks_by_order(self, app_slug: str) -> Dict[int, List[Dict[str, Any]]]:
+    def get_tasks_by_order(self, app_slug: str) -> dict[int, list[dict[str, Any]]]:
         """
         Get tasks grouped by execution order.
 
@@ -144,7 +145,7 @@ class BackgroundTaskRegistry:
             Dict mapping execution_order to list of tasks
         """
         tasks = self.get_tasks_for_app(app_slug)
-        grouped: Dict[int, List[Dict[str, Any]]] = {}
+        grouped: dict[int, list[dict[str, Any]]] = {}
 
         for task in tasks:
             order = task["execution_order"]

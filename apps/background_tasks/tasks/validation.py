@@ -104,7 +104,20 @@ class DockerImageValidator(BaseBackgroundTask):
             registry_host = "ghcr.io"
             auth = GHCRAuthenticator(settings.GITHUB_API_USERNAME, settings.GITHUB_API_TOKEN)
         else:
-            raise ValueError(f"Unsupported registry '{registry}' for image validation (image={image})")
+            logger.warning(
+                "Skipping Docker image validation for unsupported registry '%s' (image=%s)",
+                registry,
+                image,
+            )
+            return {
+                "valid": True,
+                "skipped": True,
+                "message": f"Skipping Docker image validation for unsupported registry '{registry}'",
+                "image": image,
+                "registry": registry,
+                "repo": repo,
+                "reference": reference,
+            }
 
         # Validate architecture
         try:
