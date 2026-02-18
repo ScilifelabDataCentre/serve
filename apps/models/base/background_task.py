@@ -152,12 +152,16 @@ class BackgroundTask(models.Model):
         self.save(update_fields=["status", "completed_at", "result_data"])
         logger.info(f"BackgroundTask {self.id} ({self.task_name}) completed successfully")
 
-    def mark_as_failed(self, error_message):
-        """Mark task as failed and record error."""
+    def mark_as_failed(self, error_message: str, result_data=None):
+        """Mark task as failed and record error (optionally structured)."""
         self.status = "failed"
         self.completed_at = timezone.now()
         self.error_message = error_message
-        self.save(update_fields=["status", "completed_at", "error_message"])
+        if result_data is not None:
+            self.result_data = result_data
+            self.save(update_fields=["status", "completed_at", "error_message", "result_data"])
+        else:
+            self.save(update_fields=["status", "completed_at", "error_message"])
         logger.error(f"BackgroundTask {self.id} ({self.task_name}) failed: {error_message}")
 
     def mark_as_retrying(self):

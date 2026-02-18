@@ -514,6 +514,22 @@ def execute_single_background_task(self, task_db_id: int):
         logger.error(f"BackgroundTask {task_db_id} not found")
         return {"success": False, "error": "Task record not found"}
 
+    # Idempotency / duplicate delivery guard: don't re-run terminal or in-flight rows.
+    if task_record.status in ("running", "success", "failed"):
+        logger.info(
+            "Skipping execution for BackgroundTask %s (%s) with status=%s",
+            task_record.id,
+            task_record.task_name,
+            task_record.status,
+        )
+        return {
+            "success": task_record.status == "success",
+            "skipped": True,
+            "status": task_record.status,
+            "task_id": task_record.id,
+            "task_name": task_record.task_name,
+        }
+
     # Mark as running
     task_record.mark_as_running(celery_task_id=self.request.id)
 
@@ -522,7 +538,16 @@ def execute_single_background_task(self, task_db_id: int):
     if not task_class:
         error_msg = f"Task '{task_record.task_name}' not found in registry"
         logger.error(error_msg)
-        task_record.mark_as_failed(error_msg)
+        task_record.mark_as_failed(
+            error_msg,
+            result_data={
+                "success": False,
+                "error": {
+                    "type": "TaskNotRegistered",
+                    "message": error_msg,
+                },
+            },
+        )
         return {"success": False, "error": error_msg}
 
     task_instance = task_class()
@@ -531,9 +556,23 @@ def execute_single_background_task(self, task_db_id: int):
     try:
         task_instance.validate_inputs(task_record.app_instance)
     except Exception as e:
+        import traceback
+
         error_msg = f"Input validation failed: {str(e)}"
         logger.error(error_msg)
-        task_record.mark_as_failed(error_msg)
+        task_record.mark_as_failed(
+            error_msg,
+            result_data={
+                "success": False,
+                "error": {
+                    "type": type(e).__name__,
+                    "module": type(e).__module__,
+                    "message": str(e),
+                    "traceback": traceback.format_exc()[-10000:],
+                    "stage": "validate_inputs",
+                },
+            },
+        )
         return {"success": False, "error": error_msg}
 
     # Execute the task
@@ -558,6 +597,8 @@ def execute_single_background_task(self, task_db_id: int):
         return {"success": True, "result": result}
 
     except Exception as e:
+        import traceback
+
         error_msg = str(e)
         logger.error(f"Background task {task_record.task_name} failed: {error_msg}", exc_info=True)
 
@@ -583,9 +624,25 @@ def execute_single_background_task(self, task_db_id: int):
                     exc_info=True,
                 )
 
-            raise self.retry(exc=e, countdown=retry_delay, max_retries=task_record.max_retries)
+            # Celery retries here are purely scheduling; DB retry_count/max_retries is the source of truth.
+            raise self.retry(exc=e, countdown=retry_delay, max_retries=None)
         else:
-            task_record.mark_as_failed(error_msg)
+            task_record.mark_as_failed(
+                error_msg,
+                result_data={
+                    "success": False,
+                    "error": {
+                        "type": type(e).__name__,
+                        "module": type(e).__module__,
+                        "message": str(e),
+                        "traceback": traceback.format_exc()[-10000:],
+                        "stage": "execute",
+                        "retry_count": task_record.retry_count,
+                        "max_retries": task_record.max_retries,
+                        "should_retry": bool(should_retry),
+                    },
+                },
+            )
             try:
                 task_instance.on_failure(task_record.app_instance, e)
             except Exception as hook_err:
