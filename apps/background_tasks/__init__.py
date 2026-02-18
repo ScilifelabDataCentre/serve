@@ -7,6 +7,5 @@ external API calls, and other async operations before/after app deployment.
 
 from .base import BaseBackgroundTask
 from .registry import TASK_REGISTRY
-from .tasks import *
 
 __all__ = ["BaseBackgroundTask", "TASK_REGISTRY"]

@@ -518,14 +518,13 @@ def execute_single_background_task(self, task_db_id: int):
     task_record.mark_as_running(celery_task_id=self.request.id)
 
     # Get the task class
-    task_info = TASK_REGISTRY.get_task_info(task_record.task_name)
-    if not task_info:
+    task_class = TASK_REGISTRY.get_task_class(task_record.task_name)
+    if not task_class:
         error_msg = f"Task '{task_record.task_name}' not found in registry"
         logger.error(error_msg)
         task_record.mark_as_failed(error_msg)
         return {"success": False, "error": error_msg}
 
-    task_class = task_info["class"]
     task_instance = task_class()
 
     # Validate inputs
@@ -638,21 +637,21 @@ def run_background_tasks(serialized_instance, app_slug):
     task_records = []
     task_timeout_by_id: dict[int, int] = {}
     for order, tasks in sorted(tasks_by_order.items()):
-        for task_info in tasks:
+        for task_class in tasks:
             task_record = BackgroundTask.objects.create(
                 app_instance=instance,
-                task_name=task_info["name"],
-                task_type=task_info["class"].task_type,
-                is_critical=task_info["is_critical"],
+                task_name=task_class.task_name,
+                task_type=task_class.task_type,
+                is_critical=task_class.is_critical,
                 execution_order=order,
-                max_retries=task_info["class"].max_retries,
+                max_retries=task_class.max_retries,
                 status="pending",
             )
             task_records.append(task_record)
-            timeout = getattr(task_info["class"], "timeout_seconds", 300) or 300
+            timeout = getattr(task_class, "timeout_seconds", 300) or 300
             # Provide a small hard-kill buffer above the soft limit.
             task_timeout_by_id[task_record.id] = int(timeout)
-            logger.debug(f"Created task record {task_record.id} for {task_info['name']}")
+            logger.debug("Created task record %s for %s", task_record.id, task_class.task_name)
 
     # Execute tasks in order
     # Build a chain of groups for sequential execution of parallel tasks

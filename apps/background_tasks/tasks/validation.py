@@ -13,8 +13,6 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 
-# Example task - not registered by default
-# Uncomment the decorator to activate
 @TASK_REGISTRY.register(
     name="validate_docker_image", is_critical=True, execution_order=1, app_types=["customapp", "jupyter", "rstudio"]
 )

@@ -21,6 +21,12 @@ from projects.models import Project
 User = get_user_model()
 
 
+@pytest.mark.django_db
+def test_known_tasks_are_registered_after_django_startup():
+    # Registration should happen deterministically via AppsConfig.ready().
+    assert TASK_REGISTRY.is_registered("validate_docker_image") is True
+
+
 @pytest.fixture()
 def immediate_on_commit(monkeypatch):
     """Run transaction.on_commit callbacks immediately in unit tests."""
@@ -66,11 +72,11 @@ def test_background_task_registry_filters_and_orders():
     assert registry.get_task_class("t1") is T1
 
     tasks_for_a = registry.get_tasks_for_app("a")
-    assert [t["name"] for t in tasks_for_a] == ["t0", "t1"]
+    assert [t.task_name for t in tasks_for_a] == ["t0", "t1"]
 
     grouped = registry.get_tasks_by_order("a")
     assert list(grouped.keys()) == [0, 1]
-    assert [t["name"] for t in grouped[0]] == ["t0"]
+    assert [t.task_name for t in grouped[0]] == ["t0"]
 
 
 def test_base_background_task_retry_policy_defaults():

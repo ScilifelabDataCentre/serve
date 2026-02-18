@@ -3,7 +3,7 @@ Base class for background tasks.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 from studio.utils import get_logger
 
@@ -17,6 +17,12 @@ class BaseBackgroundTask(ABC):
     Subclasses must implement the execute() method and can optionally
     override other methods for custom behavior.
     """
+
+    # Registration metadata (set by @TASK_REGISTRY.register)
+    task_name: ClassVar[str] = ""
+    is_critical: ClassVar[bool] = False
+    execution_order: ClassVar[int] = 0
+    app_types: ClassVar[tuple[str, ...] | None] = None
 
     # Default configuration
     max_retries = 3

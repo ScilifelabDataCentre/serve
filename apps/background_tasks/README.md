@@ -74,22 +74,25 @@ class MyValidationTask(BaseBackgroundTask):
 
 ### 2. Task Registration
 
-Tasks are registered when their module is imported. Ensure your task modules are imported from
-`apps/background_tasks/tasks/__init__.py`:
+Tasks are registered when their module is imported. This repo uses a single explicit
+entrypoint to ensure deterministic startup registration:
 
 ```python
-# Import task modules here to ensure they're registered
-from .validation import *  # noqa: F401,F403
-# from .my_tasks import *  # noqa: F401,F403
+# apps/background_tasks/load.py
+_TASK_MODULES = (
+    "apps.background_tasks.tasks.validation",
+    # "apps.background_tasks.tasks.my_tasks",
+)
 ```
 
-Or import in your app's `ready()` method in `apps.py`:
+That entrypoint is called from `apps/apps.py`:
 
 ```python
 class AppsConfig(AppConfig):
     def ready(self):
-        from apps.background_tasks.tasks import validation
-        # Tasks are registered on import
+        from apps.background_tasks.load import register_tasks
+
+        register_tasks()
 ```
 
 ### 3. Task Configuration
@@ -268,7 +271,7 @@ class DockerImageValidator(BaseBackgroundTask):
 
 There is no `apps/background_tasks/tasks/external_api.py` module in this repo. To add an external API task, create a
 module under `apps/background_tasks/tasks/`, register the task with `@TASK_REGISTRY.register(...)`, and import the
-module from `apps/background_tasks/tasks/__init__.py` so it is registered on startup.
+module by adding it to `_TASK_MODULES` in `apps/background_tasks/load.py` so it is registered on startup.
 
 ## Database Model
 
@@ -430,7 +433,7 @@ if do_deploy:
 
 1. Create task class in `apps/background_tasks/tasks/`
 2. Register with `@TASK_REGISTRY.register()`
-3. Import in `__init__.py`
+3. Add the module to `_TASK_MODULES` in `apps/background_tasks/load.py`
 4. Create and run migration if needed
 5. Tasks automatically run on next app creation
 

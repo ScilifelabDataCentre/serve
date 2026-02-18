@@ -3,7 +3,6 @@ Task registry for managing background tasks.
 """
 
 from collections.abc import Callable
-from typing import Any
 
 from studio.utils import get_logger
 
@@ -21,7 +20,7 @@ class BackgroundTaskRegistry:
     """
 
     def __init__(self):
-        self._tasks: dict[str, dict[str, Any]] = {}
+        self._tasks: dict[str, type[BaseBackgroundTask]] = {}
 
     def register(
         self,
@@ -56,12 +55,13 @@ class BackgroundTaskRegistry:
             if name in self._tasks:
                 logger.warning(f"Task '{name}' is already registered. Overwriting.")
 
-            self._tasks[name] = {
-                "class": cls,
-                "is_critical": is_critical,
-                "execution_order": execution_order,
-                "app_types": app_types,  # None means all app types
-            }
+            # Store the metadata on the class so configuration lives in one place.
+            cls.task_name = name
+            cls.is_critical = is_critical
+            cls.execution_order = execution_order
+            cls.app_types = tuple(app_types) if app_types else None
+
+            self._tasks[name] = cls
 
             logger.debug(f"Registered background task: {name}")
             return cls
@@ -78,10 +78,9 @@ class BackgroundTaskRegistry:
         Returns:
             Task class or None if not found
         """
-        task_info = self._tasks.get(name)
-        return task_info["class"] if task_info else None
+        return self._tasks.get(name)
 
-    def get_task_info(self, name: str) -> dict[str, Any] | None:
+    def get_task_info(self, name: str) -> type[BaseBackgroundTask] | None:
         """
         Get complete task information by name.
 
@@ -89,11 +88,11 @@ class BackgroundTaskRegistry:
             name: Task name
 
         Returns:
-            Dict with task info or None if not found
+            Task class or None if not found
         """
         return self._tasks.get(name)
 
-    def get_all_tasks(self) -> dict[str, dict[str, Any]]:
+    def get_all_tasks(self) -> dict[str, type[BaseBackgroundTask]]:
         """
         Get all registered tasks.
 
@@ -102,7 +101,7 @@ class BackgroundTaskRegistry:
         """
         return self._tasks.copy()
 
-    def get_tasks_for_app(self, app_slug: str) -> list[dict[str, Any]]:
+    def get_tasks_for_app(self, app_slug: str) -> list[type[BaseBackgroundTask]]:
         """
         Get all tasks applicable to a specific app type.
 
@@ -110,29 +109,21 @@ class BackgroundTaskRegistry:
             app_slug: App type slug (e.g., 'customapp', 'jupyter')
 
         Returns:
-            List of task info dicts sorted by execution_order
+            List of task classes sorted by execution_order
         """
-        applicable_tasks = []
+        applicable: list[type[BaseBackgroundTask]] = []
 
-        for name, task_info in self._tasks.items():
-            app_types = task_info.get("app_types")
-
+        for task_class in self._tasks.values():
             # If app_types is None, task applies to all apps
             # Otherwise, check if app_slug is in the list
-            if app_types is None or app_slug in app_types:
-                applicable_tasks.append(
-                    {
-                        "name": name,
-                        **task_info,
-                    }
-                )
+            if task_class.app_types is None or app_slug in task_class.app_types:
+                applicable.append(task_class)
 
-        # Sort by execution order
-        applicable_tasks.sort(key=lambda x: x["execution_order"])
+        # Sort by execution order (and name for determinism)
+        applicable.sort(key=lambda c: (c.execution_order, c.task_name))
+        return applicable
 
-        return applicable_tasks
-
-    def get_tasks_by_order(self, app_slug: str) -> dict[int, list[dict[str, Any]]]:
+    def get_tasks_by_order(self, app_slug: str) -> dict[int, list[type[BaseBackgroundTask]]]:
         """
         Get tasks grouped by execution order.
 
@@ -145,13 +136,13 @@ class BackgroundTaskRegistry:
             Dict mapping execution_order to list of tasks
         """
         tasks = self.get_tasks_for_app(app_slug)
-        grouped: dict[int, list[dict[str, Any]]] = {}
+        grouped: dict[int, list[type[BaseBackgroundTask]]] = {}
 
-        for task in tasks:
-            order = task["execution_order"]
+        for task_class in tasks:
+            order = task_class.execution_order
             if order not in grouped:
                 grouped[order] = []
-            grouped[order].append(task)
+            grouped[order].append(task_class)
 
         return grouped
 
