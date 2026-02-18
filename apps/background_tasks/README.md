@@ -72,6 +72,14 @@ class MyValidationTask(BaseBackgroundTask):
         }
 ```
 
+#### Where configuration lives
+
+- **Registration metadata** (what name/order/criticality/app-types this task has) is passed to the decorator and is
+  **written onto the class** by the registry:
+  - `task_name`, `execution_order`, `is_critical`, `app_types`
+- **Execution behavior** (retry policy, type, timeout) remains on the class:
+  - `max_retries`, `task_type`, `timeout_seconds`, plus optional overrides like `should_retry()` / `get_retry_delay()`
+
 ### 2. Task Registration
 
 Tasks are registered when their module is imported. This repo uses a single explicit
@@ -157,6 +165,11 @@ class MyTask(BaseBackgroundTask):
         # Custom backoff: 60s, 300s, 900s
         return min(60 * (5**retry_count), 900)
 ```
+
+#### Idempotency / duplicate delivery
+
+`execute_single_background_task` has an idempotency guard: if a task row is already `running`/`success`/`failed`, it
+returns early instead of re-running the same row.
 
 ### 2. Task Hooks
 
@@ -337,13 +350,13 @@ def test_background_task_workflow():
 1. Check if task is registered:
    ```python
    from apps.background_tasks.registry import TASK_REGISTRY
-   print(TASK_REGISTRY.get_all_tasks())
+   print(list(TASK_REGISTRY.get_all_tasks().keys()))
    ```
 
 2. Verify app type filter:
    ```python
    tasks = TASK_REGISTRY.get_tasks_for_app('customapp')
-   print([t['name'] for t in tasks])
+   print([t.task_name for t in tasks])
    ```
 
 3. Check Celery worker logs:
@@ -364,6 +377,13 @@ def test_background_task_workflow():
 2. View error messages in task detail view
 3. Fix issue and manually retry task
 4. Or edit app to fix validation issues
+
+### Error Details
+
+On failures, the task row stores:
+
+- `error_message`: a human-readable string for quick display
+- `result_data["error"]`: structured details (exception type/module/message/traceback and stage)
 
 ## Best Practices
 
