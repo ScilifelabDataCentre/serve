@@ -539,8 +539,21 @@ class CreateProjectView(View):
         name = request.POST.get("name", "default")[:200]
         description = request.POST.get("description", "")
 
-        # Ensure no duplicate project name for the common user
+        # Ensure that the project name is not emoty or just whitespace
+        if not name.strip():
+            pre_selected_template = request.GET.get("template")
+            template = ProjectTemplate.objects.filter(name=pre_selected_template).first()
+            context = {"template": template}
+            logger.error("Cannot create a project because the name input is empty or contains only whitespace.")
 
+            messages.error(
+                request,
+                "Project name cannot be empty or contain only whitespace.",
+            )
+
+            return render(request, self.template_name, context)
+
+        # Ensure no duplicate project name for the regular user
         project_name_already_exists = (
             Project.objects.filter(
                 owner=request.user,
@@ -568,7 +581,7 @@ class CreateProjectView(View):
             project = Project.objects.create_project(
                 name=name,
                 owner=request.user,
-                description=description,
+                description=description.strip(),
                 status="created",
                 project_template=project_template,
             )
