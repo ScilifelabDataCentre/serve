@@ -15,16 +15,17 @@ def populate_affiliations_from_organization(apps, schema_editor):
 
         org = profile.organization
         if org and isinstance(org, dict) and org.get("title"):
-            profile.affiliations = [{
-                "title": org["title"],
-                "ror_id": org.get("ror_id", "no ror"),
-                "department": profile.department or "",
-            }]
+            profile.affiliations = [
+                {
+                    "title": org["title"],
+                    "ror_id": org.get("ror_id", "no ror"),
+                    "department": profile.department or "",
+                }
+            ]
             profile.save(update_fields=["affiliations"])
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("common", "0008_migrate_affiliation_to_organization"),
     ]
