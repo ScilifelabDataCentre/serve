@@ -1,0 +1,7 @@
+User-agent: *
+{% if debug %}
+Disallow: /
+{% else %}
+Disallow: /projects/
+Disallow: /docs/_search/
+{% endif %}
