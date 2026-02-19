@@ -68,45 +68,42 @@
                         </div>
 
                         <div class="row pt-4">
-                            <h6 class="fw-bold">Affiliation</h6>
-                        </div>
+    <h6 class="fw-bold">Affiliations</h6>
+</div>
 
-                        <div class="row pt-1">
-                            <div class="col-4">{{profile_form.organization.label_tag}}</div>
-                            <div class="col-8 fw-bold position-relative">
-                                {{ profile_form.organization }}
-                                <input type="hidden" id="organization-data" name="organization-data"
-                                    value="{{ organization_data|default:'' }}">
-                                <div id="organization-suggestions" class="list-group position-absolute" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
-                            </div>
-                            <div class="col-4"></div>
-                            <div class="col-8 form-text">{{profile_form.organization.help_text}}</div>
-                            {% if profile_form.organization.errors %}
-                                <div class="col-4"></div>
-                                <div class="col-8">
-                                    <div id="validation_organization" class="pt-1 invalid-feedback" style="display: block;">
-                                        {% for error in profile_form.organization.errors %}
-                                        <p class="m-0">{{error|escape}}</p>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            {% endif %}
-                        </div>
+<div class="row pt-1">
+    <div class="col-12">
+        <div id="affiliations-container">
+            <!-- JS renders rows here -->
+        </div>
 
-                        <div class="row pt-1">
-                            <div class="col-4">{{profile_form.department.label_tag}}</div>
-                            <div class="col-8 fw-bold">{{ profile_form.department | safe }}</div>
-                            <div class="col-4"></div>
-                            <div class="col-8 form-text">{{profile_form.department.help_text}}</div>
+        <input type="hidden" id="affiliations-data" name="affiliations-data"
+               value="{{ affiliations_data|default:'' }}">
 
-                                {% if profile_form.department.errors %}
-                                <div id="validation_department" class="pt-1 invalid-feedback">
-                                    {% for error in profile_form.department.errors %}
-                                    <p class="m-0">{{error|escape}}</p>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                        </div>
+        <div id="affiliations-dept-required-note" class="form-text text-muted mb-2" style="display: none;">
+            At least one affiliation must include a department for university email addresses.
+        </div>
+
+        {% if affiliations_error %}
+        <div class="text-danger mb-2" style="font-size: 0.85rem;">
+            {{ affiliations_error }}
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-end">
+        <button type="button" id="add-affiliation-btn" class="btn btn-sm btn-primary mt-2">
+            + Add affiliation
+        </button>
+        </div>
+    </div>
+</div>
+
+<!-- Shared department datalist -->
+<datalist id="department-datalist">
+    {% for dept in departments %}
+    <option value="{{ dept }}">
+    {% endfor %}
+</datalist>
 
                         <div class="row pt-1">
                             <div class="col-4">Password:</div>

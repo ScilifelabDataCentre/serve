@@ -19,12 +19,14 @@ class UserProfileInline(admin.StackedInline):
     verbose_name_plural = "Profile"
     fk_name = "user"
 
-    # Show both fields but make affiliation readonly to indicate it's legacy
-    readonly_fields = ("affiliation",)
-
     fieldsets = (
-        ("Organization Information", {"fields": ("organization", "affiliation", "department")}),
-        ("Account Information", {"fields": ("is_approved", "why_account_needed", "note", "deleted_on")}),
+        ("Affiliations", {"fields": ("affiliations",)}),
+        (
+            "Account Information",
+            {
+                "fields": ("is_approved", "why_account_needed", "note", "deleted_on"),
+            },
+        ),
     )
 
 
@@ -111,79 +113,56 @@ class UserAdmin(DefaultUserAdmin):
         "last_name",
         "is_active",
         "is_staff",
-        "get_organization",
-        "get_ror_status",
-        "is_legacy_data",
+        "get_affiliations_display",
+        "get_ror_ids_display",
+        "get_departments_display",
         "date_joined",
     )
     list_select_related = ("userprofile",)
     list_filter = ("is_active", "is_staff", "userprofile__is_approved")
-    search_fields = ("email", "first_name", "last_name", "userprofile__organization__title", "userprofile__affiliation")
+    search_fields = ("email", "first_name", "last_name", "userprofile__affiliations")
     actions = ["migrate_legacy_profiles"]
 
-    @admin.display(description="Organization", ordering="userprofile__organization")
-    def get_organization(self, instance):
-        """Display organization name (works for both new and legacy data)"""
+    @admin.display(description="Affiliations")
+    def get_affiliations_display(self, instance):
+        """Show all affiliation titles separated by pipe."""
         try:
-            return instance.userprofile.get_organization_name()
+            affs = instance.userprofile.get_affiliations()
+            if not affs:
+                return "N/A"
+            return " | ".join(aff.get("title", "Unknown") for aff in affs)
         except UserProfile.DoesNotExist:
             return "N/A"
 
-    @admin.display(description="ROR ID")
-    def get_ror_status(self, instance):
-        """Show ROR ID with colored indicator"""
+    @admin.display(description="ROR IDs")
+    def get_ror_ids_display(self, instance):
+        """Show all ROR IDs with colored indicators."""
         try:
-            ror_id = instance.userprofile.get_ror_id()
-            if ror_id:
-                # Extract just the ID from the URL
-                ror_display = ror_id.split("/")[-1] if "/" in ror_id else ror_id
-                return format_html('<span style="color: green;">✓ {}</span>', ror_display)
-            else:
-                return format_html('<span style="color: orange;">No ROR</span>')
-        except UserProfile.DoesNotExist:
-            return "N/A"
-
-    @admin.display(description="Legacy Data", boolean=True)
-    def is_legacy_data(self, instance):
-        """Indicate if profile uses legacy affiliation data"""
-        try:
-            return instance.userprofile.is_legacy_affiliation()
-        except UserProfile.DoesNotExist:
-            return False
-
-    @admin.action(description="Migrate selected users to new organization format")
-    def migrate_legacy_profiles(self, request, queryset):
-        """Admin action to migrate selected users' profiles to new organization format"""
-        migrated = 0
-        skipped = 0
-        errors = 0
-
-        for user in queryset:
-            try:
-                profile = user.userprofile
-                if profile.is_legacy_affiliation():
-                    if profile.migrate_to_organization():
-                        migrated += 1
-                    else:
-                        skipped += 1
+            affs = instance.userprofile.get_affiliations()
+            if not affs:
+                return "N/A"
+            parts = []
+            for aff in affs:
+                ror = aff.get("ror_id", "")
+                if ror and ror != "no ror":
+                    ror_short = ror.split("/")[-1] if "/" in ror else ror
+                    parts.append(f'<span style="color: green;">✓ {ror_short}</span>')
                 else:
-                    skipped += 1
-            except UserProfile.DoesNotExist:
-                errors += 1
-            except Exception as e:
-                errors += 1
-                self.message_user(request, f"Error migrating {user.email}: {str(e)}", level="ERROR")
+                    parts.append('<span style="color: orange;">No ROR</span>')
+            return format_html(" | ".join(parts))
+        except UserProfile.DoesNotExist:
+            return "N/A"
 
-        # Build success message
-        messages = []
-        if migrated > 0:
-            messages.append(f"{migrated} profile(s) migrated successfully")
-        if skipped > 0:
-            messages.append(f"{skipped} no legacy data")
-        if errors > 0:
-            messages.append(f"{errors} error(s) occurred")
-
-        self.message_user(request, ". ".join(messages) + ".", level="SUCCESS" if errors == 0 else "WARNING")
+    @admin.display(description="Departments")
+    def get_departments_display(self, instance):
+        """Show all departments, matching affiliation order."""
+        try:
+            affs = instance.userprofile.get_affiliations()
+            if not affs:
+                return "N/A"
+            return " | ".join(aff.get("department", "—") or "—" for aff in affs)
+        except UserProfile.DoesNotExist:
+            return "N/A"
 
 
 admin.site.unregister(User)

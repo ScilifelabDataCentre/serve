@@ -461,8 +461,6 @@ def test_get_subdomain_name_no_subdomain_in_form():
 def test_schema_org_compliant_app_metadata_validation():
     # creating the app metadata
     user_data = {
-        "affiliation": "uu",
-        "department": "unit_test_schema_org_description_user_department_name",
         "email": "unit_test_schema_org_description_user_email@scilifelab.uu.se",
         "first_name": "unit_test_schema_org_description_user_first_name",
         "last_name": "unit_test_schema_org_description_user_last_name",
@@ -477,6 +475,15 @@ def test_schema_org_compliant_app_metadata_validation():
 
     manager = TestDataManager(user_data=user_data)
     user = manager.create_user()
+    profile = UserProfile.objects.get(user=user)
+    profile.affiliations = [
+        {
+            "title": "Uppsala University",
+            "ror_id": "https://ror.org/048a87296",
+            "department": "unit_test_schema_org_description_user_department_name",
+        }
+    ]
+    profile.save()
     project = Project.objects.create_project(
         name=project_data["project_name"], owner=user, description=project_data["project_description"]
     )
@@ -540,11 +547,6 @@ def test_schema_org_compliant_app_metadata_validation():
         "name": user_data["first_name"] + " " + user_data["last_name"],
         "email": user_data["email"],
     }
-    schema_dict["about"]["parentOrganization"] = {
-        "@type": "Organization",
-        "name": user_data["affiliation"],
-        "additionalProperty": {"@type": "PropertyValue", "name": "department", "value": user_data["department"]},
-    }
 
     # now testing three cases
 
@@ -595,11 +597,14 @@ def validate_schema(schema_dict: dict):
                         "@type": "Person",
                         "name": str,
                         "email": And(str, Regex(r".+@.+")),
-                        "affiliation": {
-                            "@type": "Organization",
-                            "name": str,
-                            "additionalProperty": {"@type": "PropertyValue", "name": "department", "value": str},
-                        },
+                        "affiliations": [
+                            {
+                                "@type": "Organization",
+                                "name": str,
+                                "department": str,
+                                "identifier": str,
+                            }
+                        ],
                     },
                     "applicationCategory": "Cloud Application",
                     "operatingSystem": "Kubernetes",
@@ -673,8 +678,6 @@ def test_generate_invenio_metadata_validation():
     """Test function generate_invenio_metadata validation."""
     # creating the test data
     user_data = {
-        "affiliation": "uu",
-        "department": "unit_test_invenio_metadata_user_department_name",
         "email": "unit_test_invenio_metadata_user_email@scilifelab.uu.se",
         "first_name": "unit_test_invenio_metadata_user_first_name",
         "last_name": "unit_test_invenio_metadata_user_last_name",
@@ -692,6 +695,15 @@ def test_generate_invenio_metadata_validation():
 
     manager = TestDataManager(user_data=user_data)
     user = manager.create_user()
+    profile = UserProfile.objects.get(user=user)
+    profile.affiliations = [
+        {
+            "title": "Uppsala University",
+            "ror_id": "https://ror.org/048a87296",
+            "department": "unit_test_invenio_metadata_user_department_name",
+        }
+    ]
+    profile.save()
 
     project = Project.objects.create_project(
         name=project_data["project_name"], owner=user, description=project_data["project_description"]

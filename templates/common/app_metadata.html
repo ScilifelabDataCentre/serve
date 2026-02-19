@@ -90,18 +90,57 @@
                 </div>
 
                 <div class="col-md-5 align-items-center">
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h4 class="card-title">Creator</h4>
-                            <div>
-                                    <div id="owner_name">{{ schema_dict.hasPart.0.author.name }}</div>
-                                    <div id="owner_email">{{ schema_dict.hasPart.0.author.email }}</div>
-                                    <div id="owner_dept">{{ schema_dict.hasPart.0.author.affiliation.additionalProperty.value }}</div>
-                                    <div id="owner_aff">{{ schema_dict.hasPart.0.author.affiliation.name }}</div>
-                            </div>
-                        </div>
+    <div class="card mb-3">
+        <div class="card-body">
+            <h4 class="card-title">Creator</h4>
+            <div>
+                <div id="owner_name">{{ schema_dict.hasPart.0.author.name }}</div>
+                <div id="owner_email">{{ schema_dict.hasPart.0.author.email }}</div>
+
+<!-- First 3 affiliations (always visible) -->
+                {% for aff in schema_dict.hasPart.0.author.affiliations %}
+                {% if forloop.counter <= 3 %}
+                {% if not forloop.first %}<hr class="my-2">{% endif %}
+                {% if aff.department %}<div>{{ aff.department }}</div>{% endif %}
+                <div>{{ aff.name }}</div>
+                {% endif %}
+                {% endfor %}
+
+                <!-- Expandable additional affiliations (4th onward) -->
+                {% if schema_dict.hasPart.0.author.affiliations|length > 3 %}
+                <div class="mt-2">
+                    <a class="text-decoration-none" data-bs-toggle="collapse"
+                       href="#moreAffiliations" role="button" aria-expanded="false"
+                       id="affiliationsToggle">
+                        <small id="affiliationsToggleText">
+                            &#9656; Show {{ schema_dict.hasPart.0.author.affiliations|length|add:"-3" }}
+                            more affiliation{{ schema_dict.hasPart.0.author.affiliations|length|add:"-3"|pluralize }}
+                        </small>
+                    </a>
+                    <div class="collapse" id="moreAffiliations">
+                        {% for aff in schema_dict.hasPart.0.author.affiliations %}
+                        {% if forloop.counter > 3 %}
+                        <hr class="my-2">
+                        {% if aff.department %}<div>{{ aff.department }}</div>{% endif %}
+                        <div>{{ aff.name }}</div>
+                        {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
+                <script>
+                    document.getElementById('moreAffiliations').addEventListener('shown.bs.collapse', function () {
+                        document.getElementById('affiliationsToggleText').innerHTML = '&#9662; Hide additional affiliations';
+                    });
+                    document.getElementById('moreAffiliations').addEventListener('hidden.bs.collapse', function () {
+                        document.getElementById('affiliationsToggleText').innerHTML =
+                            '&#9656; Show {{ schema_dict.hasPart.0.author.affiliations|length|add:"-3" }} more affiliation{{ schema_dict.hasPart.0.author.affiliations|length|add:"-3"|pluralize }}';
+                    });
+                </script>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 
 
             </div>

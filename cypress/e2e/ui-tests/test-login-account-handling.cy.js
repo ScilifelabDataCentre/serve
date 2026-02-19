@@ -70,39 +70,43 @@ describe("Test login, profile page view, password change, password reset", () =>
         cy.get('#id_email').should("contain.value", users.login_user.email)
     })
 
-    it("can edit user profile information", () => {
+it("can edit user profile information", () => {
 
-        function editProfile(firstName, lastName, department) {
+    function editProfile(firstName, lastName, orgName, deptName) {
 
-            cy.url().should("include", "edit-profile/")
+        cy.url().should("include", "edit-profile/")
 
-            cy.get('#id_first_name').clear().type(firstName);
-            cy.get('#id_last_name').clear().type(lastName);
-            cy.get('#id_department').clear().type(department);
-            cy.get('#submit-id-save').click();
+        cy.get('#id_first_name').clear().type(firstName);
+        cy.get('#id_last_name').clear().type(lastName);
 
-            cy.get('#id_first_name').should("contain.value", firstName);
-            cy.get('#id_last_name').should("contain.value", lastName);
-            cy.get('#id_department').should("contain.value", department);
-        }
+        // Fill in the first affiliation row (replaces old #id_department)
+        cy.get('.aff-org-input').first().clear().type(orgName);
+        cy.get('.aff-dept-input').first().clear().type(deptName);
 
+        cy.get('#submit-id-save').click();
 
-        cy.loginViaUI(users.login_user.email, users.login_user.password)
+        cy.get('#id_first_name').should("contain.value", firstName);
+        cy.get('#id_last_name').should("contain.value", lastName);
+    }
 
-        cy.log("Editing and verifying userprofile by accessing it from the navbar")
-        cy.visit("/")
-        cy.get('button.btn-profile').click()
-        cy.get('li.btn-group').find('a').contains("Edit profile").click()
-        editProfile('changing first name', 'changing last name', 'changing department name');
+    // Stub ROR API to avoid external calls and autocomplete dropdown interference
+    cy.intercept('GET', '/api/ror-autocomplete/*', { body: { results: [] } }).as('rorSearch');
 
-        cy.log("Editing and verifying userprofile by accessing it from the profile view")
-        cy.visit("/")
-        cy.get('button.btn-profile').click()
-        cy.get('li.btn-group').find('a').contains("My profile").click()
-        cy.get('button.btn-primary').contains('Edit').click();
-        editProfile('changing first name again', 'changing last name again', 'changing department name again');
-    })
+    cy.loginViaUI(users.login_user.email, users.login_user.password)
 
+    cy.log("Editing and verifying userprofile by accessing it from the navbar")
+    cy.visit("/")
+    cy.get('button.btn-profile').click()
+    cy.get('li.btn-group').find('a').contains("Edit profile").click()
+    editProfile('changing first name', 'changing last name', 'Test University', 'Test Department');
+
+    cy.log("Editing and verifying userprofile by accessing it from the profile view")
+    cy.visit("/")
+    cy.get('button.btn-profile').click()
+    cy.get('li.btn-group').find('a').contains("My profile").click()
+    cy.get('button.btn-primary').contains('Edit').click();
+    editProfile('changing first name again', 'changing last name again', 'Another University', 'Another Department');
+})
     it("can change user password", () => {
         cy.loginViaUI(users.login_user.email, users.login_user.password)
         cy.visit("/")

@@ -2,12 +2,12 @@ window.onload = (event) => {
     const email = document.getElementById('id_email');
     const request_account_field = document.getElementById('id_request_account_info');
     const request_account_label = document.querySelector('label[for="id_why_account_needed"]');
-    const department_label = document.querySelector('label[for="id_department"]');
+    // CHANGED: department required indicator now targets the affiliations container
+    const affiliationsDeptNote = document.getElementById('affiliations-dept-required-note');
 
     const domainRegex = /^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[\.A-Z0-9-]{0,61}[A-Z0-9])?\.)*?(uu|lu|gu|su|umu|liu|ki|kth|chalmers|ltu|hhs|slu|kau|lth|lnu|oru|miun|mau|mdu|bth|fhs|gih|hb|du|hig|hh|hkr|his|hv|ju|sh|nrm)\.se$/i;
 
     function changeVisibility() {
-
         let shouldHide = false;
         let match;
 
@@ -21,218 +21,250 @@ window.onload = (event) => {
         }
 
         if (match) {
-            const domain = match[1];
             shouldHide = true;
-            department_label.classList.add('required');
+            // Show "at least one department required" note in affiliations block
+            if (affiliationsDeptNote) affiliationsDeptNote.style.display = 'block';
         } else {
-            department_label.classList.remove('required');
+            if (affiliationsDeptNote) affiliationsDeptNote.style.display = 'none';
         }
 
-        if (request_account_field){ // to prevent Uncaught TypeError for null value
+        if (request_account_field) {
             if (shouldHide) {
                 request_account_field.classList.add('hidden');
             } else {
                 request_account_field.classList.remove('hidden');
-                request_account_label.classList.add('required');
+                if (request_account_label) request_account_label.classList.add('required');
             }
         }
     }
 
-    if (request_account_field){ // to prevent Uncaught TypeError for null value
-        // Temporarily disable transitions
+    if (request_account_field) {
         request_account_field.style.transition = 'none';
-
         changeVisibility();
-
-        // Restore transitions after a short delay
-        setTimeout(() => {
-            request_account_field.style.transition = '';
-        }, 50);
+        setTimeout(() => { request_account_field.style.transition = ''; }, 50);
     }
 
-    email.addEventListener('input', changeVisibility);
+    if (email) email.addEventListener('input', changeVisibility);
 };
 
-// Organization auto-complete with strict ROR validation
+
+// ============================================================
+// Multi-affiliation management
+// Replaces the single-org autocomplete block
+// ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    const orgInput = document.getElementById('organization-autocomplete');
-    const orgDataInput = document.getElementById('organization-data');
-    const suggestionsDiv = document.getElementById('organization-suggestions');
+    const container = document.getElementById('affiliations-container');
+    const hiddenInput = document.getElementById('affiliations-data');
+    const addBtn = document.getElementById('add-affiliation-btn');
 
-    // Exit early if organization elements don't exist or input is disabled
-    if (!orgInput || !orgDataInput || !suggestionsDiv || orgInput.disabled) {
-        return;
-    }
+    // Exit if elements not found (e.g. admin pages)
+    if (!container || !hiddenInput) return;
 
-    const form = orgInput.closest('form');
-    let selectedOrgData = null;
-    let debounceTimer;
-
-    // On page load: if there's organization data from server, parse it
-    if (orgDataInput.value) {
+    // Parse initial affiliations from hidden input (set by server on GET or re-render)
+    let affiliations = [];
+    if (hiddenInput.value) {
         try {
-            selectedOrgData = JSON.parse(orgDataInput.value);
+            affiliations = JSON.parse(hiddenInput.value);
         } catch (e) {
-            console.error('Failed to parse organization data:', e);
+            console.error('Failed to parse affiliations-data:', e);
         }
     }
 
-    let isValidSelection = !!selectedOrgData;
-
-    // Create error message element
-    const errorDiv = document.createElement('div');
-    errorDiv.id = 'validation_organization_custom';
-    errorDiv.className = 'pt-1 text-warning';
-    errorDiv.style.display = 'none';
-    orgInput.parentNode.insertBefore(errorDiv, orgInput.nextSibling);
-
-    function showError(message) {
-        errorDiv.innerHTML = `<p class="m-0">${message}</p>`;
-        errorDiv.style.display = 'block';
-        //orgInput.classList.add('is-invalid');
-        isValidSelection = false;
+    // Ensure at least one blank row
+    if (!Array.isArray(affiliations) || affiliations.length === 0) {
+        affiliations = [{ title: '', ror_id: '', department: '' }];
     }
 
-    function clearError() {
-        errorDiv.style.display = 'none';
-        orgInput.classList.remove('is-invalid');
-        isValidSelection = true;
-    }
-
-    function verifyOrganization(orgName) {
-        if (!orgName.trim()) {
-            clearError();
-            return Promise.resolve(false);
-        }
-
-        return fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(orgName)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.results && data.results.length > 0) {
-                    const exactMatch = data.results.find(org =>
-                        org.title.toLowerCase() === orgName.toLowerCase()
-                    );
-
-                    if (exactMatch) {
-                        selectedOrgData = {
-                            title: exactMatch.title,
-                            ror_id: exactMatch.ror_id
-                        };
-                        orgDataInput.value = JSON.stringify(selectedOrgData);
-                        orgInput.value = exactMatch.title;
-                        isValidSelection = true;
-                        clearError();
-                        return true;
-                    } else {
-                        showError(
-                            'Your organization name does not match the ROR list. Please select from the suggestions. ' +
-                            '<a href="https://ror.org/search" target="_blank" rel="noopener">Search ROR registry</a>'
-                        );
-                        return false;
-                    }
-                } else {
-                    showError(
-                        'Organization not found in ROR registry. Please verify the name and select from suggestions. ' +
-                        '<a href="https://ror.org/search" target="_blank" rel="noopener">Search ROR registry</a>'
-                    );
-                    return false;
-                }
-            })
-            .catch(error => {
-                console.error('ROR verification error:', error);
-                showError('Unable to verify organization.');
-                return false;
+    // --- Serialize all rows back to hidden input ---
+    function serializeAffiliations() {
+        const rows = container.querySelectorAll('.affiliation-row');
+        const data = [];
+        rows.forEach(row => {
+            data.push({
+                title: row.querySelector('.aff-org-input').value.trim(),
+                ror_id: row.dataset.rorId || 'no ror',
+                department: row.querySelector('.aff-dept-input').value.trim(),
             });
+        });
+        hiddenInput.value = JSON.stringify(data);
     }
 
-    setTimeout(() => {
-        if (orgInput.value.trim() && !isValidSelection) {
-            verifyOrganization(orgInput.value.trim());
+    // --- Create one affiliation row ---
+    function createRow(data) {
+        const row = document.createElement('div');
+        row.className = 'affiliation-row border rounded p-3 mb-2 bg-light position-relative';
+        row.dataset.rorId = data.ror_id || '';
+
+        row.innerHTML = `
+            <div class="d-flex justify-content-end mb-1">
+                <button type="button" class="btn btn-sm btn-link text-danger aff-remove-btn p-0"
+                        title="Remove affiliation">✕ Remove</button>
+            </div>
+            <div class="row">
+                <div class="col-12 col-md-6 mb-2 mb-md-0">
+                    <label class="form-label">Organization:</label>
+                    <input type="text" class="form-control aff-org-input"
+                           placeholder="Start typing organization name..."
+                           autocomplete="off"
+                           value="${escapeHtml(data.title || '')}">
+                    <div class="aff-org-suggestions list-group position-absolute"
+                         style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+                    <div class="aff-ror-status mt-1" style="font-size: 0.75rem;"></div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Department:</label>
+                    <input type="text" class="form-control aff-dept-input"
+                           list="department-datalist"
+                           placeholder="Select or enter department"
+                           value="${escapeHtml(data.department || '')}">
+                </div>
+            </div>
+        `;
+
+        // --- ROR status indicator ---
+        const statusEl = row.querySelector('.aff-ror-status');
+        function updateRorStatus() {
+            const ror = row.dataset.rorId;
+            if (ror && ror !== 'no ror') {
+                statusEl.innerHTML = `<a href="${escapeHtml(ror)}" target="_blank" rel="noopener" class="text-success text-decoration-none">✓ ROR: ${escapeHtml(ror)}</a>`;
+            } else if (row.querySelector('.aff-org-input').value.trim()) {
+                statusEl.innerHTML =
+                    '<span style="color: #c28b00; font-size: 0.9rem;">Organization not found in ROR registry. Please verify the name and select from suggestions.</span><br>' +
+                    '<a href="https://ror.org/search" target="_blank" rel="noopener" style="color: #00857c; font-size: 0.9rem;">Search ROR registry</a><br>' +
+                    '<span style="color: #6c757d; font-size: 0.85rem;">Start typing to select your organization via ROR (Research Organization Registry).</span>';
+            } else {
+                statusEl.innerHTML = '';
+            }
         }
-    }, 100);
+        updateRorStatus();
 
-    orgInput.addEventListener('input', function() {
-        clearTimeout(debounceTimer);
-        const query = this.value.trim();
+        // --- ROR autocomplete on org input ---
+        const orgInput = row.querySelector('.aff-org-input');
+        const suggestions = row.querySelector('.aff-org-suggestions');
+        let debounceTimer;
 
-        if (!selectedOrgData || query !== selectedOrgData.title) {
-            isValidSelection = false;
-            selectedOrgData = null;
-            orgDataInput.value = '';
-        }
+        orgInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const query = this.value.trim();
 
-        if (query.length < 2) {
-            suggestionsDiv.style.display = 'none';
-            return;
-        }
+            // Clear ROR selection when user edits
+            row.dataset.rorId = '';
+            updateRorStatus();
+            serializeAffiliations();
 
-        debounceTimer = setTimeout(() => {
-            fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    suggestionsDiv.innerHTML = '';
-
-                    if (data.results && data.results.length > 0) {
-                        data.results.forEach(org => {
-                            const item = document.createElement('a');
-                            item.href = '#';
-                            item.className = 'list-group-item list-group-item-action';
-                            item.textContent = org.title;
-                            item.addEventListener('click', (e) => {
-                                e.preventDefault();
-                                orgInput.value = org.title;
-                                selectedOrgData = {
-                                    title: org.title,
-                                    ror_id: org.ror_id
-                                };
-                                orgDataInput.value = JSON.stringify(selectedOrgData);
-                                isValidSelection = true;
-                                clearError();
-                                suggestionsDiv.style.display = 'none';
-                            });
-                            suggestionsDiv.appendChild(item);
-                        });
-                        suggestionsDiv.style.display = 'block';
-                    } else {
-                        suggestionsDiv.style.display = 'none';
-                    }
-                })
-                .catch(error => {
-                    console.error('ROR autocomplete error:', error);
-                    suggestionsDiv.style.display = 'none';
-                });
-        }, 300);
-    });
-
-    orgInput.addEventListener('blur', function() {
-        setTimeout(() => {
-            const inputValue = orgInput.value.trim();
-
-            if (inputValue && !isValidSelection) {
-                verifyOrganization(inputValue);
+            if (query.length < 2) {
+                suggestions.style.display = 'none';
+                return;
             }
 
-            suggestionsDiv.style.display = 'none';
-        }, 200);
-    });
+            debounceTimer = setTimeout(() => {
+                fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(query)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        suggestions.innerHTML = '';
+                        if (data.results && data.results.length > 0) {
+                            data.results.forEach(org => {
+                                const item = document.createElement('a');
+                                item.href = '#';
+                                item.className = 'list-group-item list-group-item-action';
+                                item.textContent = org.title;
+                                item.addEventListener('click', (e) => {
+                                    e.preventDefault();
+                                    orgInput.value = org.title;
+                                    row.dataset.rorId = org.ror_id;
+                                    updateRorStatus();
+                                    suggestions.style.display = 'none';
+                                    serializeAffiliations();
+                                });
+                                suggestions.appendChild(item);
+                            });
+                            suggestions.style.display = 'block';
+                        } else {
+                            suggestions.style.display = 'none';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('ROR autocomplete error:', err);
+                        suggestions.style.display = 'none';
+                    });
+            }, 300);
+        });
 
-    orgInput.addEventListener('focus', function() {
-        if (!isValidSelection) {
-            selectedOrgData = null;
-        }
-    });
+        // Verify on blur (soft — shows warning only)
+        orgInput.addEventListener('blur', function() {
+            setTimeout(() => {
+                suggestions.style.display = 'none';
+                if (orgInput.value.trim() && !row.dataset.rorId) {
+                    // Attempt to find exact match
+                    fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(orgInput.value.trim())}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.results) {
+                                const exact = data.results.find(
+                                    o => o.title.toLowerCase() === orgInput.value.trim().toLowerCase()
+                                );
+                                if (exact) {
+                                    row.dataset.rorId = exact.ror_id;
+                                    orgInput.value = exact.title;
+                                }
+                            }
+                            updateRorStatus();
+                            serializeAffiliations();
+                        })
+                        .catch(() => { updateRorStatus(); serializeAffiliations(); });
+                }
+            }, 200);
+        });
 
-    form.addEventListener('submit', function(e) {
-        const inputValue = orgInput.value.trim();
+        // Department input change triggers serialization
+        row.querySelector('.aff-dept-input').addEventListener('input', serializeAffiliations);
 
-        if (inputValue && !isValidSelection) {
-            // Submit even when ROR is invalid
-            showError(
-                'No match found in ROR registry. You can still register, but please double-check your organization name. ' +
-                '<a href="https://ror.org/search" target="_blank" rel="noopener">Search ROR registry</a>'
-            );
-        } else {
-            clearError();
-        }
+        // --- Remove button ---
+        row.querySelector('.aff-remove-btn').addEventListener('click', function() {
+            const allRows = container.querySelectorAll('.affiliation-row');
+            if (allRows.length <= 1) {
+                // Cannot remove last row — show error
+                let errEl = container.querySelector('.aff-min-error');
+                if (!errEl) {
+                    errEl = document.createElement('div');
+                    errEl.className = 'aff-min-error text-danger mb-2';
+                    errEl.style.fontSize = '0.85rem';
+                    errEl.textContent = 'At least one affiliation is required.';
+                    container.prepend(errEl);
+                }
+                // Auto-hide after 3 seconds
+                setTimeout(() => { if (errEl) errEl.remove(); }, 3000);
+                return;
+            }
+            row.remove();
+            serializeAffiliations();
+        });
+
+        return row;
+    }
+
+    // --- HTML escaping utility ---
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // --- Render initial rows ---
+    affiliations.forEach(aff => {
+        container.appendChild(createRow(aff));
     });
+    serializeAffiliations();
+
+    // --- Add affiliation button ---
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            // Clear any "minimum 1" error
+            const errEl = container.querySelector('.aff-min-error');
+            if (errEl) errEl.remove();
+
+            container.appendChild(createRow({ title: '', ror_id: '', department: '' }));
+            serializeAffiliations();
+        });
+    }
 });

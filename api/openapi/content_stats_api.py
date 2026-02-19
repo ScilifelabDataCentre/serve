@@ -105,8 +105,13 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         # User affiliation from UserProfile
         try:
             user_profiles = UserProfile.objects.filter(user__is_active=True).filter(user__is_superuser=False)
-            user_affiliation = list(user_profiles.values_list("affiliation", flat=True).order_by("affiliation"))
-            users_by_univ = dict(Counter(user_affiliation))
+            # Extract first affiliation title from each user's affiliations JSONField
+            univ_list = []
+            for profile in user_profiles:
+                affs = profile.get_affiliations()
+                if affs:
+                    univ_list.append(affs[0].get("title", ""))
+            users_by_univ = dict(Counter(univ_list))
         except Exception as e:
             success = False
             success_msg = _append_status_msg(

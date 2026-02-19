@@ -74,19 +74,28 @@ def add_additional_context_to_public_apps(published_apps):
 
     for app in published_apps:
         try:
-            affiliation = universities_obj.get(app.owner.userprofile.affiliation, app.owner.userprofile.affiliation)
+            affs = app.owner.userprofile.get_affiliations()
+            if affs:
+                first = affs[0]
+                affiliation = first.get("title", "")
+                department = first.get("department", "")
+                if department not in [None, ""]:
+                    dep_cleaned = (
+                        department.replace("Department of", "")
+                        .replace("Division of ", "")
+                        .replace("Institute of", "")
+                        .replace("Institute for ", "")
+                    )
+                    departments.add(dep_cleaned)
+            else:
+                affiliation = ""
+                department = ""
+                dep_cleaned = ""
             organizations.add(affiliation)
-            department = app.owner.userprofile.department
-            if department not in [None, ""]:
-                dep_cleaned = (
-                    department.replace("Department of", "")
-                    .replace("Division of ", "")
-                    .replace("Institute of", "")
-                    .replace("Institute for ", "")
-                )
-                departments.add(dep_cleaned)
         except Exception as e:
             logger.error("Error: " + e.__str__())
+            affiliation = ""
+            dep_cleaned = ""
 
         print(f"Processing app: {app.name} ({app.id})")
         tag_list = app.tags.get_tag_list()
