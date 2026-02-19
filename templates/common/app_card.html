@@ -39,7 +39,7 @@
                                     <div class="col-12">
     {% if app.orcid_id %}
     <a href="https://orcid.org/{{ app.orcid_id }}" target="_blank" rel="noopener" title="ORCID: {{ app.orcid_id }}">
-        <img src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png" alt="ORCID" width="16" height="16" class="me-1">
+        <img src="{% static 'images/orcid_16x16.png' %}" alt="ORCID" width="16" height="16" class="me-1">
     </a>
     {% endif %}
     <span class="value-label fw-normal text-dark card-username">{{ app.owner }}</span>

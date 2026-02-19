@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
 from django.contrib.auth.models import User
 from django.template.response import TemplateResponse
+from django.templatetags.static import static
 from django.urls import path
 from django.utils.html import format_html
 
@@ -161,9 +162,9 @@ class UserAdmin(DefaultUserAdmin):
             orcid_id = instance.userprofile.orcid_id
             if orcid_id:
                 return format_html(
-                    '<img src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png"'
-                    'alt="ORCID" class="me-2" width="18" height="18">'
+                    '<img src="{}" alt="ORCID" class="me-2" width="16" height="16">'
                     '   <a href="https://orcid.org/{}" target="_blank" rel="noopener">{}</a>',
+                    static("images/orcid_16x16.png"),
                     orcid_id,
                     orcid_id,
                 )
