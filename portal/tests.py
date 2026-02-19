@@ -485,6 +485,38 @@ def test_privacy_view():
 
 
 @pytest.mark.django_db
+def test_roadmap_view():
+    client = Client()
+    response = client.get(reverse("portal:roadmap"))
+    assert response.status_code == 200
+    assert "<title>Roadmap | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_cite_view():
+    client = Client()
+    response = client.get(reverse("portal:cite"))
+    assert response.status_code == 200
+    assert "<title>Citing us | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_contact_view():
+    client = Client()
+    response = client.get(reverse("portal:contact"))
+    assert response.status_code == 200
+    assert "<title>Contact us | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_collections_index_view():
+    client = Client()
+    response = client.get(reverse("portal:collections_index"))
+    assert response.status_code == 200
+    assert "<title>Collections | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
 def test_events_view():
     client = Client()
     response = client.get(reverse("portal:events"))
