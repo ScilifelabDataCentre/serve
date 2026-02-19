@@ -379,12 +379,18 @@ class ProjectStatusView(View):
 )
 class GrantAccessToProjectView(View):
     def post(self, request, project_slug):
-        selected_username = request.POST["selected_user"].lower()
+        selected_username = request.POST["selected_user"].lower().strip()
         qs = User.objects.filter(username=selected_username)
 
         if len(qs) == 1:
             selected_user = qs[0]
             project = Project.objects.get(slug=project_slug)
+
+            if selected_user.id == project.owner.id:
+                messages.error(
+                    request, "You cannot give access to the project owner. The owner already has access to the project."
+                )
+                return HttpResponseRedirect(f"/projects/{project_slug}/settings?template=access")
 
             project.authorized.add(selected_user)
             assign_perm("can_view_project", selected_user, project)
@@ -454,6 +460,9 @@ class RevokeAccessToProjectView(View):
 
         selected_user = qs[0]
 
+        if selected_user.id == project.owner.id:
+            return [False, None]
+
         if selected_user not in project.authorized.all():
             return [False, None]
 
@@ -478,8 +487,8 @@ class RevokeAccessToProjectView(View):
         log = ProjectLog(
             project=project,
             module="PR",
-            headline="Removed Project members",
-            description="1 of members have been removed from the Project",
+            headline="Removed project members",
+            description="One of the members has been removed from the project",
         )
 
         log.save()
