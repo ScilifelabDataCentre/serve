@@ -482,3 +482,35 @@ def test_privacy_view():
     # Check status code
     assert response.status_code == 200
     assert "<title>Privacy policy | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_events_view():
+    client = Client()
+    response = client.get(reverse("portal:events"))
+    assert response.status_code == 200
+    assert "<title>Events | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_events_rss_view():
+    client = Client()
+    response = client.get(reverse("portal:events-rss"))
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/rss+xml; charset=utf-8"
+
+
+@pytest.mark.django_db
+def test_news_view():
+    client = Client()
+    response = client.get(reverse("portal:news"))
+    assert response.status_code == 200
+    assert "<title>Platform news | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_news_rss_view():
+    client = Client()
+    response = client.get(reverse("portal:news-rss"))
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/rss+xml; charset=utf-8"
