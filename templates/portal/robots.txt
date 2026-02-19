@@ -4,4 +4,15 @@ Disallow: /
 {% else %}
 Disallow: /projects/
 Disallow: /docs/_search/
+Disallow: /api
+Disallow: /?
+Disallow: /apps
+Disallow: /accounts
+Disallow: /user
+Disallow: /verify
+Disallow: /edit-profile
+Disallow: /password-change
+Disallow: /admin_profile_edit_disabled
+Disallow: /auth
+Disallow: /altcha
 {% endif %}
