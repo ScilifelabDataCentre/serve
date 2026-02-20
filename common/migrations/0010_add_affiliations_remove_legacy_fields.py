@@ -42,7 +42,7 @@ def populate_affiliations_from_organization(apps, schema_editor):
             print(f"Skipped {email}: organization is not a dict (type: {type(org).__name__})")
             continue
 
-        # Skip if organization dict has no title
+        # Skip if organization dict has no title (unexpected but defensive)
         if not org.get("title"):
             skipped_invalid_org_count += 1
             logger.warning(f"Skipped {email}: organization dict has no title: {org}")
