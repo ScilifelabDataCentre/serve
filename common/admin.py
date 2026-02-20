@@ -28,7 +28,7 @@ class UserProfileInline(admin.StackedInline):
         ),
         ("Account Information", {"fields": ("is_approved", "why_account_needed", "note", "deleted_on")}),
     )
-    
+
     readonly_fields = ("orcid_access_token", "orcid_refresh_token", "orcid_token_scope")
 
 
@@ -166,7 +166,7 @@ class UserAdmin(DefaultUserAdmin):
             return " | ".join(aff.get("department", "—") or "—" for aff in affs)
         except UserProfile.DoesNotExist:
             return "N/A"
-        
+
     @admin.display(description="ORCID iD")
     def get_orcid(self, instance):
         try:

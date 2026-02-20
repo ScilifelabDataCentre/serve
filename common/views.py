@@ -254,7 +254,6 @@ class EditProfileView(TemplateView):
                 "departments": departments,
                 "orcid_configured": is_orcid_configured(),
                 "orcid_id": getattr(user_profile_data, "orcid_id", ""),
-                
             },
         )
 
