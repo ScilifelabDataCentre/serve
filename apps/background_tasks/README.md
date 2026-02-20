@@ -162,8 +162,8 @@ class MyTask(BaseBackgroundTask):
         return retry_count < self.max_retries
 
     def get_retry_delay(self, retry_count):
-        # Custom backoff: 60s, 300s, 900s
-        return min(60 * (5**retry_count), 900)
+        # Custom backoff (capped at 5 minutes): 15s, 75s, 300s...
+        return min(15 * (5**retry_count), 300)
 ```
 
 #### Idempotency / duplicate delivery

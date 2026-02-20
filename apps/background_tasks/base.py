@@ -107,8 +107,8 @@ class BaseBackgroundTask(ABC):
         Returns:
             Delay in seconds
         """
-        # Exponential backoff: 60s, 300s, 900s
-        return min(60 * (5**retry_count), 900)
+        # Exponential backoff (capped at 5 minutes): 15s, 75s, 300s...
+        return min(15 * (5**retry_count), 300)
 
     def validate_inputs(self, app_instance, **kwargs) -> None:
         """

@@ -95,10 +95,10 @@ def test_base_background_task_retry_policy_defaults():
     assert t.should_retry(ValidationError("bad input"), retry_count=0) is False
     assert t.should_retry(PermissionDenied("nope"), retry_count=0) is False
 
-    assert t.get_retry_delay(0) == 60
-    assert t.get_retry_delay(1) == 300
-    assert t.get_retry_delay(2) == 900
-    assert t.get_retry_delay(3) == 900
+    assert t.get_retry_delay(0) == 15
+    assert t.get_retry_delay(1) == 75
+    assert t.get_retry_delay(2) == 300
+    assert t.get_retry_delay(3) == 300
 
 
 @pytest.fixture()
