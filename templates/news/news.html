@@ -3,6 +3,12 @@
 {% block title %}Platform news{% endblock %}
 {% load static %}
 {% load custom_tags %}
+{% block extra_head %}
+<link rel="alternate"
+      type="application/rss+xml"
+      title="SciLifeLab Serve news RSS feed"
+      href="{% url 'portal:news-rss' %}">
+{% endblock %}
 
 {% block content %}
 

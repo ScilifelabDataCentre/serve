@@ -4,10 +4,13 @@ import waffle  # type: ignore
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.syndication.views import Feed
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 from django.views.generic import View
 
 from apps.app_registry import APP_REGISTRY
@@ -329,3 +332,41 @@ def get_events(request):
     for event in past_events:
         event.description_html = markdown.markdown(event.description)
     return render(request, "events/events.html", {"future_events": future_events, "past_events": past_events})
+
+
+class EventsFeed(Feed):
+    title = "SciLifeLab Serve events"
+    link = "/events/rss/"
+    description = "List of events organised by the SciLifeLab Serve team."
+
+    def items(self):
+        return EventsObject.objects.all().order_by("-created_on")[:5]
+
+    def item_title(self, item):
+        return item.title
+
+    def item_description(self, item):
+        return item.description
+
+    def item_link(self, item):
+        base_url = reverse("portal:events")
+        return f"{base_url}#{slugify(item.title)}"
+
+
+class NewsFeed(Feed):
+    title = "SciLifeLab Serve news"
+    link = "/news/rss/"
+    description = "News from the SciLifeLab Serve platform."
+
+    def items(self):
+        return NewsObject.objects.all().order_by("-created_on")[:5]
+
+    def item_title(self, item):
+        return item.title
+
+    def item_description(self, item):
+        return item.body
+
+    def item_link(self, item):
+        base_url = reverse("portal:news")
+        return f"{base_url}#{slugify(item.title)}"
