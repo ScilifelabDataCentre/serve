@@ -632,6 +632,7 @@ class AdminBackgroundTasksView(View):
             "status_filter": status_filter,
             "app_type_filter": app_type_filter,
             "is_critical_filter": is_critical_filter,
+            "project": project,
         }
 
         return render(request, self.template, context)
