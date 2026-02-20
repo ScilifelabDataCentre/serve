@@ -11,7 +11,7 @@ module.exports = defineConfig({
 
   e2e: {
     // switch to serve-dev base url to execute the integration tests on dev
-    baseUrl: 'https://studio.127.0.0.1.nip.io',
+    baseUrl: 'http://studio.127.0.0.1.nip.io:8080',
     // baseUrl: 'https://serve-dev.scilifelab.se',
 
     // Exclude the integration tests from CI

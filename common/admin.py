@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
 from django.contrib.auth.models import User
 from django.template.response import TemplateResponse
+from django.templatetags.static import static
 from django.urls import path
 from django.utils.html import format_html
 
@@ -22,12 +23,13 @@ class UserProfileInline(admin.StackedInline):
     fieldsets = (
         ("Affiliations", {"fields": ("affiliations",)}),
         (
-            "Account Information",
-            {
-                "fields": ("is_approved", "why_account_needed", "note", "deleted_on"),
-            },
+            "ORCID Integration",
+            {"fields": ("orcid_id", "orcid_access_token", "orcid_refresh_token", "orcid_token_scope")},
         ),
+        ("Account Information", {"fields": ("is_approved", "why_account_needed", "note", "deleted_on")}),
     )
+    
+    readonly_fields = ("orcid_access_token", "orcid_refresh_token", "orcid_token_scope")
 
 
 class EmailVerificationTableInline(admin.StackedInline):
@@ -116,6 +118,7 @@ class UserAdmin(DefaultUserAdmin):
         "get_affiliations_display",
         "get_ror_ids_display",
         "get_departments_display",
+        "get_orcid",
         "date_joined",
     )
     list_select_related = ("userprofile",)
@@ -161,6 +164,22 @@ class UserAdmin(DefaultUserAdmin):
             if not affs:
                 return "N/A"
             return " | ".join(aff.get("department", "—") or "—" for aff in affs)
+        except UserProfile.DoesNotExist:
+            return "N/A"
+        
+    @admin.display(description="ORCID iD")
+    def get_orcid(self, instance):
+        try:
+            orcid_id = instance.userprofile.orcid_id
+            if orcid_id:
+                return format_html(
+                    '<img src="{}" alt="ORCID" class="me-2" width="16" height="16">'
+                    '   <a href="https://orcid.org/{}" target="_blank" rel="noopener">{}</a>',
+                    static("images/orcid_16x16.png"),
+                    orcid_id,
+                    orcid_id,
+                )
+            return format_html('<span style="color: grey;">—</span>')
         except UserProfile.DoesNotExist:
             return "N/A"
 

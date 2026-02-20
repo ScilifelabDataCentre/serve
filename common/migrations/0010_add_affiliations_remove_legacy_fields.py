@@ -27,7 +27,7 @@ def populate_affiliations_from_organization(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("common", "0008_migrate_affiliation_to_organization"),
+        ("common", "0009_userprofile_orcid_access_token_userprofile_orcid_id_and_more"),
     ]
 
     operations = [
