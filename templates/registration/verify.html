@@ -22,7 +22,7 @@
                     <form method="post">
                         {% csrf_token %}
                         {{ form.as_p }}
-                        <input type="submit" value="Verify Account" class="btn btn-primary" id="submit-id-verify">
+                        <input type="submit" value="Verify account" class="btn btn-primary" id="submit-id-verify">
                         <a class="btn btn-primary" href="{% url 'common:verifyreset' %}" role="button">Request new token</a>
                     </form>
                 </div>
