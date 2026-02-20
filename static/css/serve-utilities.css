@@ -302,17 +302,29 @@ label.required::before {
     color: #f0f1f1!important;
 }
 
+.container-serve {
+    max-width: 1420px;
+}
+
+.serve-filter-nav > .nav-item > .nav-link:hover:after {
+    width: 0!important;
+}
+
 .serve-filter-nav > .nav-item > .nav-link {
     background: #c4c4c44f!important;
-    font-size: 0.8rem!important;
+    font-size: 0.85rem!important;
     margin-right: 0.2rem!important;
-    padding: 0.3rem 0.7rem!important;
+    padding: 0 0.5rem!important;
+}
+.filter-subheading {
+    font-size: 0.85rem!important;
 }
 
 .badge-ico-text-filter {
-    background-color: #dad7dbe3 !important;
+    background-color: #eaeaea !important;
     color: #495057 !important;
     font-weight: 400 !important;
+    box-shadow: 0 3.5px 3.5px #dad7dbe3, 0 2px 2px #f5f3f4, 0 0 1px #f5f3f4;
 }
 
 .badge-ico-text-filter-selected {
@@ -430,7 +442,7 @@ label.required::before {
 }
 
 .tag-name {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
 }
 
 .card-count-tag {

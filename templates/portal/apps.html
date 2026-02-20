@@ -1,387 +1,443 @@
-{% extends 'base.html' %}
-
-{% block title %}Apps and models{% endblock %}
+{% extends "base.html" %}
 {% load static %}
-{% load custom_tags %}
+
+{% block title %}Apps{% endblock %}
 
 {% block content %}
-<div class="col d-flex">
+    <style>
+        /* Container */
+        .apps-layout {
+            display: grid;
+            grid-template-columns: 1fr 1px 2fr; /* 1/3 | divider | 2/3 */
+            /*gap: 1.25rem;*/
+            align-items: start;
+        }
 
-  <div class="w-100">
-    <div class="row">
-        <div class="col">
-            <div class="d-flex align-items-center mb-3 flex-wrap justify-content-center">
-                <h3 class="h3 me-2">Public applications & models</h3>
-                <span id="public-apps-count" class="ghost-number h3 me-3">{{ serialized_apps|length }}</span>
-                <div class="break"></div>
-                <div class="search-container-filter me-3 w-50">
-                  <input id="public-app-search" class="form-control search-input-filter search" placeholder="Search apps..." {% if serialized_apps|length <= 0 %}disabled{% endif %} title="Search Apps" aria-label="Search Apps" >
+        /* Divider line
+        .apps-divider {
+          background: rgba(0, 0, 0, 0.10);
+          width: 1px;
+          align-self: stretch;
+          min-height: 80vh;
+        }*/
+
+        /* Panels (empty placeholders for now) */
+        .apps-panel {
+            min-height: 60vh;
+        }
+
+        .filters-panel {
+  background: #fefefe;
+  border: 1px solid rgba(0,0,0,.08);
+            border-radius: 10px;
+  overflow: hidden;
+}
+        .filters-panel .sidebar-inner {
+  padding: 1rem 1rem 1.25rem 1rem;
+}
+        .filters-panel .navbar {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+        .filters-panel .serve-filter-nav {
+  gap: .5rem;
+  padding: .5rem 0;
+}
+        .filters-panel .serve-filter-nav .nav-link:hover {
+  border-color: rgba(0,0,0,.20);
+  color: rgba(0,0,0,.85);
+}
+        /* Sticky sidebar (desktop)
+@media (min-width: 992px) {
+  .filters-panel {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+  }
+}*/
+        /* --- Section headings --- */
+.filter-subheading {
+  font-size: .8rem;
+  margin-top: 1rem;
+  margin-bottom: .5rem;
+}
+/* Optional: section grouping look */
+.filters-panel .filter-section {
+  background: rgba(255,255,255,.55);
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 12px;
+  padding: .75rem;
+  margin-bottom: .75rem;
+}
+        /* Optional: make it look a bit like HF (subtle card feel) */
+
+
+        /* Responsive: stack on small screens */
+        @media (max-width: 991.98px) {
+            .apps-layout {
+                grid-template-columns: 1fr; /* stack */
+            }
+
+            .apps-divider {
+                width: 100%;
+                height: 1px;
+                min-height: 1px;
+            }
+        }
+    </style>
+
+    <div class="container">
+        <div class="d-flex align-items-center my-3 flex-wrap justify-content-center">
+                    <h3 class="h3 me-2">Applications & models</h3>
+                    <span id="public-apps-count" class="ghost-number h3 me-3">{{ serialized_apps|length }}</span>
+        </div>
+        <div class="search-container-filter w-50 mx-auto">
+                    <input id="public-app-search"
+                           class="form-control search-input-filter search"
+                           placeholder="Search apps..."
+                           {% if serialized_apps|length <= 0 %}disabled{% endif %}
+                           title="Search Apps"
+                           aria-label="Search Apps">
                 </div>
-                <button class="btn btn-outline-dark btn-xs" tabindex="-1" type="button" id="filterButton" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" {% if serialized_apps|length <= 0 %}disabled{% endif %}>
-                    <i class="fa-solid fa-sliders fa-sm"></i> <span class="ms-1">Filters</span>
-                </button>
-            </div>
-            <div class="collapse mb-2" id="collapseFilters" aria-hidden="true" tabindex="-1">
-              <div class="card">
-                <div class="card-header py-1">
-                  <div class="navbar navbar-expand-lg navbar-light bg-light">
-                    <div class="container-fluid d-flex flex-wrap">
-                      <ul class="nav nav-pills serve-filter-nav justify-content-center">
-                          <li class="nav-item me-2 mb-1">
-                            <button class="nav-link btn rounded-pill position-relative active"  id="pills-app-types-tab" data-bs-toggle="pill" data-bs-target="#pills-app-types" type="button" role="tab" aria-controls="pills-app-types" aria-selected="true" onclick="resetFilterList()">
-                              <div class="fas fa-cube fa-sm me-1"></div>
-                              App Type
-                            <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
+        <div class="apps-layout">
+            <!-- LEFT (1/3): Filters -->
+            <div class="filters-panel panel-surface mt-4 shadow-sm" style="height: 96.5%">
+                <!-- Empty for now -->
+                <div class="ms-3 me-1">
+
+
+                    <div class="navbar navbar-expand-lg navbar-light bg-light">
+                        <div class="container-fluid d-flex flex-wrap ps-0">
+                            <ul class="nav nav-pills serve-filter-nav justify-content-center">
+                                <li class="nav-item me-2 mb-1">
+                                    <a class="nav-link position-relative rounded-pill active" id="pills-all-tab"
+                                       data-bs-toggle="pill" data-bs-target="#pills-all-tab" type="button" role="tab"
+                                       aria-controls="pills-app-types" aria-selected="true" onclick="resetFilterList()">
+                                        All Filters
+                                        <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
+                            0
+                          </span>
+                                    </a>
+                                </li>
+                                <li class="nav-item me-2 mb-1">
+                                    <a class="nav-link position-relative rounded-pill" id="pills-app-types-tab" data-bs-toggle="pill"
+                                       data-bs-target="#pills-app-types" type="button" role="tab"
+                                       aria-controls="pills-app-types" aria-selected="true" onclick="resetFilterList()">
+{#                                        <div class="fas fa-cube fa-sm me-1"></div>#}
+                                        App Type
+                                        <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
+                            0
+                          </span>
+                                    </a>
+                                </li>
+                                <li class="nav-item me-2 mb-1">
+                                    <a class="nav-link position-relative rounded-pill" id="pills-organization-tab"
+                                       data-bs-toggle="pill"
+                                       data-bs-target="#pills-organization" type="button" role="tab"
+                                       aria-controls="pills-organization" aria-selected="true"
+                                       onclick="resetFilterList()">
+{#                                        <div class="fas fa-graduation-cap fa-sm me-1"></div>#}
+                                        Organizations
+                                        <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
                               0
                             </span>
-                          </button>
-                          </li>
-
-                          <li class="nav-item me-2 mb-1">
-                            <button class="nav-link btn rounded-pill position-relative"  id="pills-organization-tab" data-bs-toggle="pill" data-bs-target="#pills-organization" type="button" role="tab" aria-controls="pills-organization" aria-selected="true" onclick="resetFilterList()">
-                              <div class="fas fa-graduation-cap fa-sm me-1"></div>
-                              Organizations
-                              <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
-                                0
-                              </span>
-                            </button>
-                          </li>
-                          <li class="nav-item me-2 mb-1">
-                            <button class="nav-link btn rounded-pill position-relative" id="pills-department-tab" data-bs-toggle="pill" data-bs-target="#pills-department" type="button" role="tab" aria-controls="pills-department" aria-selected="true" onclick="resetFilterList()">
-                              <div class="fas fa-building-columns fa-sm me-1"></div>
-                              Departments
-                              <span class="card-count-tag card-department-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
-                                0
-                              </span>
-                            </button>
-                          </li>
-                          <li class="nav-item me-2 mb-1">
-                            <button class="nav-link btn rounded-pill position-relative" id="pills-keyword-tab" data-bs-toggle="pill" data-bs-target="#pills-keyword" type="button" role="tab" aria-controls="pills-keyword" aria-selected="true" onclick="resetFilterList()">
-                              <div class="fas fa-tag fa-sm me-1"></div>
-                              Keywords
-                              <span class="card-count-tag card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
-                              0
-                            </span>
-                            </button>
-                          </li>
-                          <li class="nav-item me-2 mb-1 hide-filter-search-reset">
-                          <button class="btn btn-outline-dark btn-xs d-flex align-items-center" type="button" onclick="resetFilters()">
-                                <i class="fa-solid fa-rotate-left fa-sm"></i>
-                                <span class="ms-1">Reset</span>
-                              </button>
-                          </li>
-                      </ul>
-                      <div class="search-container-filter w-25 d-flex mb-1 show-filter-search">
-                          <input id="filter-search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search tags..." title="Search Tags" aria-label="Search Tags" >
-                          <button class="btn btn-outline-dark btn-xs d-flex align-items-center" type="button" onclick="resetFilters()">
-                            <i class="fa-solid fa-rotate-left fa-sm"></i>
-                            <span class="ms-1">Reset</span>
-                          </button>
-                      </div>
-                    </div>
-                  </div>
-                  </div>
-                    <div class="tab-content" id="pills-tabContent">
-                        <div class="tab-pane fade show active" id="pills-app-types" role="tabpanel" aria-labelledby="pills-app-types-tab">
-                          <div id="filters-app-type" class="card-body">
-                          <div class="list">
-                          <div style="display:none;">
-                              <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                              <span class="tag-name"></span>
-                          </div>
-                          {% for app_category in serve_category_apps %}
-                          <a class="tag tag-filter card-app-type me-3 mb-2" onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
-                            <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
-                              <div class="fas fa-cube fa-sm me-1"></div>
-                              <span class="tag-name">{{ app_category.name|title }}</span>
-                            </span>
-
-                          </a>
-                          {% endfor %}
-
-                          </div>
-                          <nav class="d-flex justify-content-end" aria-label="Category pagination">
-                              <ul class="pagination pagination-sm serve-pagination serve-pagination-filter mb-0">
-                              </ul>
-                            </nav>
-                          </div>
+                                    </a>
+                                </li>
+{#                                <li class="nav-item me-2 mb-1">#}
+{#                                    <a class="nav-link position-relative rounded-pill" id="pills-department-tab"#}
+{#                                       data-bs-toggle="pill"#}
+{#                                       data-bs-target="#pills-department" type="button" role="tab"#}
+{#                                       aria-controls="pills-department" aria-selected="true"#}
+{#                                       onclick="resetFilterList()">#}
+{#                                        <div class="fas fa-building-columns fa-sm me-1"></div>#}
+{#                                        Departments#}
+{#                                        <span class="card-count-tag card-department-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">#}
+{#                              0#}
+{#                            </span>#}
+{#                                    </a>#}
+{#                                </li>#}
+                                <li class="nav-item me-2 mb-1">
+                                    <a class="nav-link position-relative rounded-pill" id="pills-keyword-tab" data-bs-toggle="pill"
+                                       data-bs-target="#pills-keyword" type="button" role="tab"
+                                       aria-controls="pills-keyword" aria-selected="true" onclick="resetFilterList()">
+{#                                        <div class="fas fa-tag fa-sm me-1"></div>#}
+                                        Keywords
+                                        <span class="card-count-tag card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
+                            0
+                          </span>
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
-                        <div class="tab-pane fade" id="pills-organization" role="tabpanel" aria-labelledby="pills-organization-tab">
-                          <div id="filters-organization" class="card-body">
-                            <div class="list">
-                              <div style="display:none;">
-                                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                                <span class="tag-name"></span>
-                              </div>
-                              {% for org in unique_organizations %}
-                              <a class="tag tag-filter  card-institution me-3 mb-2" onclick="searchByTag('{{ org }}','card-institution',this)">
-                                <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
+                    </div>
+
+                    <div class="ghost-number filter-subheading"><div class="fas fa-cube fa-sm me-1"></div>App Types</div>
+                    {% for app_category in serve_category_apps %}
+                        <a class="tag tag-filter card-app-type me-1 mb-2"
+                           onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
+                    <span class="badge text-bg-primary badge-grape badge-ico-text-filter "
+                          style="margin-right: -0.2rem;">
+                    <div class="fas fa-cube fa-sm me-1"></div>
+                    <span class="tag-name">{{ app_category.name|title }}</span>
+                    </span>
+                        </a>
+                    {% endfor %}
+                    <div class="ghost-number mb-2 filter-subheading"><div class="fas fa-graduation-cap fa-sm me-1"></div>Organizations</div>
+                    {% for org in unique_organizations %}
+                        <a class="tag tag-filter  card-institution me-1 mb-2"
+                           onclick="searchByTag('{{ org }}','card-institution',this)">
+                                <span class="badge text-bg-primary badge-grape badge-ico-text-filter "
+                                      style="margin-right: -0.2rem;">
                                   <div class="fas fa-graduation-cap fa-sm me-1"></div>
                                   <span class="tag-name">{{ org }}</span>
                                 </span>
-                              </a>
-                              {% endfor %}
-
-                            </div>
-                            <nav class="d-flex justify-content-end" aria-label="Organization pagination">
-                                  <ul class="pagination pagination-sm serve-pagination serve-pagination-filter">
-                                  </ul>
-                                </nav>
-                          </div>
-                        </div>
-                        <div class="tab-pane fade" id="pills-department" role="tabpanel" aria-labelledby="pills-department-tab">
-                          <div id="filters-department" class="card-body">
-                            <div class="list">
-                              <div style="display:none;">
-                                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                                <span class="tag-name"></span>
-                              </div>
-                              {% for dep in unique_departments %}
-                              <a class="tag tag-filter card-department me-3 mb-2" onclick="searchByTag('{{ dep }}','card-department',this)">
-                                <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
-                                  <div class="fas fa-building-columns fa-sm me-1"></div>
-                                  <span class="tag-name">{{ dep }}</span>
-                                </span>
-                              </a>
-                              {% endfor %}
-
-                            </div>
-                            <nav class="d-flex justify-content-end" aria-label="Department pagination">
-                                  <ul class="pagination pagination-sm serve-pagination serve-pagination-filter">
-                                  </ul>
-                                </nav>
-                          </div>
-                        </div>
-                        <div class="tab-pane fade" id="pills-keyword" role="tabpanel" aria-labelledby="pills-keyword-tab">
-                          <div id="filters-keyword" class="card-body">
-                            <div class="list">
-                              <div style="display:none;">
-                                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                                <span class="tag-name"></span>
-                              </div>
-                              {% for tag in unique_tags %}
-                              <a class="tag tag-filter card-keyword me-3 mb-2" onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
-                                <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
+                        </a>
+                    {% endfor %}
+{#                    <div class="ghost-number mb-2 filter-subheading">Departments</div>#}
+{#                    {% for dep in unique_departments %}#}
+{#                        <a class="tag tag-filter card-department me-1 mb-2"#}
+{#                           onclick="searchByTag('{{ dep }}','card-department',this)">#}
+{#                                <span class="badge text-bg-primary badge-grape badge-ico-text-filter "#}
+{#                                      style="margin-right: -0.2rem;">#}
+{#                                  <div class="fas fa-building-columns fa-sm me-1"></div>#}
+{#                                  <span class="tag-name">{{ dep }}</span>#}
+{#                                </span>#}
+{#                        </a>#}
+{#                    {% endfor %}#}
+                    <div class="ghost-number mb-2 filter-subheading"><div class="fas fa-tag fa-sm me-1"></div>Keywords</div>
+                    {% for tag in unique_tags %}
+                        <a class="tag tag-filter card-keyword me-1 mb-2"
+                           onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
+                                <span class="badge text-bg-primary badge-grape badge-ico-text-filter "
+                                      style="margin-right: -0.2rem;">
                                   <div class="fas fa-tag fa-sm me-1"></div>
                                   <span class="tag-name">{{ tag |title }}</span>
                                 </span>
-                              </a>
-                              {% endfor %}
-
-                          </div>
-                          <nav class="d-flex justify-content-end" aria-label="Keyword pagination">
-                                <ul class="pagination pagination-sm serve-pagination serve-pagination-filter">
-                                </ul>
-                          </nav>
-                      </div>
-                    </div>
-                  </div>
-              </div>
-            </div>
-            <div class="tag-list d-flex">
-                {% for tf in request.session.app_tag_filters %}
-                <div class="tag d-flex m-1">
-                    <span class="badge text-bg-primary badge-grape  d-flex align-items-center">{{ tf|title }}
-                        <a href="{% url 'portal:apps' %}?tf_remove={{ tf | urlencode }}">
-                            <button type="submit" class="btn-close btn-close-white ms-1" name="tag" value="{{tag}}"
-                            aria-label="Close"></button>
                         </a>
-                    </span>
+                    {% endfor %}
+
                 </div>
-                {% endfor %}
+            </div>
+
+            <!-- Divider -->
+            <div class="apps-divider" aria-hidden="true"></div>
+
+            <!-- RIGHT (2/3): Apps -->
+            <div class="apps-panel panel-surface mt-3">
+                <!-- Empty for now -->
+{#                <div class="search-container-filter w-80 mx-auto">#}
+{#                    <input id="public-app-search"#}
+{#                           class="form-control search-input-filter search"#}
+{#                           placeholder="Search apps..."#}
+{#                           {% if serialized_apps|length <= 0 %}disabled{% endif %}#}
+{#                           title="Search Apps"#}
+{#                           aria-label="Search Apps">#}
+{#                </div>#}
+                {% if not serialized_apps %}
+                    <p id="public-apps-container-empty">No public apps available.</p>
+                {% endif %}
+                <div id="public-apps-container" class="row g-4">
+                    <div class="col-12 d-flex ms-3 pt-2">
+                        <div id="app-cards" class="col-12">
+                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-2 g-4 list">
+                                {% if serialized_apps|length <= 0 %}
+                                    <div style="display:none;">
+                                        <!-- A template element is needed when list is empty, TODO: needs a better solution -->
+                                        <span class="card-title"></span>
+                                        <span class="card-description"></span>
+                                        <span class="card-username"></span>
+                                        <span class="card-department"></span>
+                                        <span class="card-institution"></span>
+                                        <span class="card-app-type"></span>
+                                        <span class="card-keyword"></span>
+                                    </div>
+                                {% endif %}
+                                {% for app in serialized_apps %}
+                                    <div class="col mb-4">
+                                        {% include 'common/app_card.html' %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if serialized_apps|length > 0 %}
+                                <nav class="d-flex justify-content-center" aria-label="Main pagination">
+                                    <ul class="pagination pagination-sm serve-pagination pagination-nav">
+                                    </ul>
+                                </nav>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    {% if not serialized_apps %}
-    <p id="public-apps-container-empty">No public apps available.</p>
-    {% endif %}
-    <div id="public-apps-container" class="row g-4">
-      <div class="col-12 d-flex sidebar">
-        <div id="app-cards" class="col-12">
-          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-3 g-4 list">
-              {% if serialized_apps|length <= 0 %}
-              <div style="display:none;">
-                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                <span class="card-title"></span>
-                <span class="card-description"></span>
-                <span class="card-username"></span>
-                <span class="card-department"></span>
-                <span class="card-institution"></span>
-                <span class="card-app-type"></span>
-                <span class="card-keyword"></span>
-              </div>
-              {% endif %}
-              {% for app in serialized_apps %}
-              <div class="col mb-4">
-                  {% include 'common/app_card.html' %}
-              </div>
-              {% endfor %}
-          </div>
-          {% if serialized_apps|length > 0 %}
-          <nav class="d-flex justify-content-center" aria-label="Main pagination">
-            <ul class="pagination pagination-sm serve-pagination pagination-nav">
-            </ul>
-          </nav>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 {% if serialized_apps|length > 0 %}
 <script>
-  // Main List.js setup
+  // ---- Main List.js setup (apps cards) ----
   const listOptions = {
-    valueNames: ['card-title','card-description','card-username','card-department','card-institution','card-app-type','card-keyword'],
+    valueNames: [
+      'card-title','card-description','card-username',
+      'card-department','card-institution','card-app-type','card-keyword'
+    ],
     page: 12,
     pagination: {
       listClass: 'pagination',
-      item: v => `<li class="page-item"><a class="page-link" onclick="addFirstLastButtons()" href="#">${v.page}</a></li>`,
-      innerWindow:2, outerWindow:2, left:2, right:2
+      item: v => `<li class="page-item"><a class="page-link" href="#">${v.page}</a></li>`,
+      innerWindow: 2, outerWindow: 2, left: 2, right: 2
     }
   };
+
   const publicAppList = new List('app-cards', listOptions);
 
-  // Filter‐pane List.js
-  const filterOptions = {
-    valueNames: ['tag-name'], page:30,
-    pagination:{ listClass:'pagination', item:v=>`<li class="page-item"><a class="page-link" onclick='resetPageFilter()'>${v.page}</a></li>`, innerWindow:2, left:2, right:2 }
-  };
-  const filterAppTypeList  = new List('filters-app-type', filterOptions);
-  const filterOrgsList     = new List('filters-organization', filterOptions);
-  const filterDepList      = new List('filters-department', filterOptions);
-  const filterKeywordsList = new List('filters-keyword', filterOptions);
+  // ---- State for tag filtering ----
+  let searchTags = [];            // { element, tagType, value }
+  let columnsToSearch = new Set(); // card-xxx columns to enforce
+  let searchValues = new Set();    // selected values (strings)
 
-  function sortAll() {
-    [filterAppTypeList,filterOrgsList,filterDepList,filterKeywordsList]
-      .forEach(fl=>fl.sort('tag-name',{order:'asc'}));
+  function normalize(s) {
+    return (s || '').toString().trim().toLowerCase();
   }
-  sortAll();
 
-  let searchTags = [];            // {element,tagType,value}
-  let columnsToSearch = new Set();
-  let searchValues    = new Set();
+  // ---- App search ----
+  const appSearchEl = document.getElementById('public-app-search');
+  if (appSearchEl) {
+    appSearchEl.addEventListener('keyup', () => {
+      publicAppList.search(appSearchEl.value);
+      document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
+    });
+  }
 
-  publicAppList.on('updated', ()=> {
-    $('.pagination-nav').toggle(publicAppList.matchingItems.length > publicAppList.page);
-  });
+  // ---- Sidebar filter search: filter chips by text ----
+  const filterSearchEl = document.getElementById('filter-search');
+  if (filterSearchEl) {
+    filterSearchEl.addEventListener('keyup', () => {
+      const q = normalize(filterSearchEl.value);
 
-  $('#public-app-search').on('keyup', ()=>{
-    publicAppList.search($('#public-app-search').val());
-    $('#public-apps-count').text(publicAppList.matchingItems.length);
-    addFirstLastButtons();
-  });
+      document.querySelectorAll('.filters-panel .tag-filter').forEach(tagEl => {
+        const nameEl = tagEl.querySelector('.tag-name');
+        const text = normalize(nameEl ? nameEl.textContent : tagEl.textContent);
+        tagEl.style.display = (!q || text.includes(q)) ? '' : 'none';
+      });
+    });
+  }
 
-  $('#filter-search').on('keyup', ()=>{
-    const q = $('#filter-search').val();
-    if ($('#pills-app-types-tab').hasClass('active'))    filterAppTypeList.search(q);
-    else if ($('#pills-organization-tab').hasClass('active')) filterOrgsList.search(q);
-    else if ($('#pills-department-tab').hasClass('active'))   filterDepList.search(q);
-    else if ($('#pills-keyword-tab').hasClass('active'))      filterKeywordsList.search(q);
-  });
+  // ---- Chip click handling (your template calls searchByTag(...)) ----
+  window.searchByTag = function(value, tagType, element) {
+    // Use the visible text to match what's in the cards (important for title-cased keywords)
+    const nameEl = element.querySelector('.tag-name');
+    const displayValue = (nameEl ? nameEl.textContent.trim() : value);
 
-  function searchByTag(value, tagType, element) {
-    const wasSelected = searchValues.has(value);
+    const key = displayValue; // keep as-is (case sensitive match is handled below per-column)
+    const wasSelected = searchValues.has(key);
 
     if (wasSelected) {
-      // deselect
-      searchTags = searchTags.filter(t=>t.value!==value);
-      searchValues.delete(value);
-      if (!searchTags.some(t=>t.tagType===tagType)) columnsToSearch.delete(tagType);
+      searchTags = searchTags.filter(t => t.value !== key);
+      searchValues.delete(key);
+
+      if (!searchTags.some(t => t.tagType === tagType)) {
+        columnsToSearch.delete(tagType);
+      }
     } else {
-      // select
-      searchTags.push({element,tagType,value});
-      searchValues.add(value);
+      searchTags.push({ element, tagType, value: key });
+      searchValues.add(key);
       columnsToSearch.add(tagType);
     }
 
-    // resort filters
-    sortAll();
+    // Reset visuals
+    document.querySelectorAll('.badge-ico-text-filter').forEach(b => b.classList.remove('badge-ico-text-filter-selected'));
+    document.querySelectorAll('.tag-filter').forEach(t => t.classList.remove('inactive'));
 
-    // reset classes
-    $('.badge-ico-text-filter').removeClass('badge-ico-text-filter-selected');
-    $('.tag-filter').removeClass('inactive');
-
-    // update each tag element state
     if (searchTags.length === 0) {
-      // no tags selected, reset everything
       resetFilters();
       return;
     }
-    $(`.tag-filter.`+tagType).addClass('inactive');
+
+    // Dim all tags of the same type, then undim selected ones
+    document.querySelectorAll(`.tag-filter.${tagType}`).forEach(t => t.classList.add('inactive'));
+
     const countMap = {};
-    searchTags.forEach(({element,tagType,value})=>{
-      // selected color
-      element.querySelector('.badge-ico-text-filter')
-             .classList.add('badge-ico-text-filter-selected');
-      // other tags of same type inactive
+    searchTags.forEach(({ element, tagType, value }) => {
+      const badge = element.querySelector('.badge-ico-text-filter');
+      if (badge) badge.classList.add('badge-ico-text-filter-selected');
       element.classList.remove('inactive');
-      //$(`.tag-filter.${tagType}`).not(element).removeClass('inactive');
-      countMap[tagType] = (countMap[tagType]||0) + 1;
+      countMap[tagType] = (countMap[tagType] || 0) + 1;
     });
 
-    // update badge counts & hide zeros
-    ['card-app-type','card-institution','card-department','card-keyword']
-      .forEach(type=>{
-        const b = $(`.${type}-count`);
-        if (countMap[type]) b.text(countMap[type]).removeClass('visually-hidden');
-        else b.text(0).addClass('visually-hidden');
-      });
+    // Update count badges (if you keep them)
+    ['card-app-type','card-institution','card-department','card-keyword'].forEach(type => {
+      const badge = document.querySelector(`.${type}-count`);
+      if (!badge) return;
+      if (countMap[type]) {
+        badge.textContent = countMap[type];
+        badge.classList.remove('visually-hidden');
+      } else {
+        badge.textContent = '0';
+        badge.classList.add('visually-hidden');
+      }
+    });
 
     applyTagFilters();
+  };
+
+  function valueMatchesColumn(cardValue, selectedValue, column) {
+    // Compare case-insensitively, but keep original display values in UI
+    const cv = normalize(cardValue);
+    const sv = normalize(selectedValue);
+
+    if (column === 'card-keyword') {
+      // keywords are comma-separated
+      const parts = cv.split(',').map(p => p.trim());
+      return parts.includes(sv);
+    }
+    return cv === sv;
   }
 
   function applyTagFilters() {
-    publicAppList.filter(item=>{
-      return [...columnsToSearch].every(col=>{
-        const v = item.values()[col]||'';
-        if (col==='card-keyword') {
-          const arr=v.split(',').map(s=>s.trim());
-          return [...searchValues].some(sv=>arr.includes(sv));
+    publicAppList.filter(item => {
+      return [...columnsToSearch].every(col => {
+        const v = item.values()[col] || '';
+        // For each selected value: allow OR across all selected values,
+        // but AND across columns (same behavior as your previous code)
+        for (const selected of searchValues) {
+          if (valueMatchesColumn(v, selected, col)) return true;
         }
-        return searchValues.has(v);
+        return false;
       });
     });
+
+    // If nothing selected, clear filter
     if (!searchTags.length) publicAppList.filter();
-    $('#public-apps-count').text(publicAppList.matchingItems.length);
-    addFirstLastButtons();
+
+    document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
   }
 
-  function resetFilterList() {
-    $('#filter-search').val('');
-    [filterAppTypeList,filterOrgsList,filterDepList,filterKeywordsList]
-      .forEach(fl=>{fl.search(''); fl.sort('tag-name',{order:'asc'});});
-  }
-  function resetPageFilter() {
-        $(function() {
-          if (searchTags.length === 0) {
-            $(".badge-ico-text-filter").removeClass('badge-ico-text-filter-selected');
-            $(".tag-filter").removeClass('inactive');
-          }
-        });
+  // ---- Reset helpers ----
+  window.resetFilterList = function() {
+    if (filterSearchEl) filterSearchEl.value = '';
+    document.querySelectorAll('.filters-panel .tag-filter').forEach(tagEl => { tagEl.style.display = ''; });
+  };
 
-     }
-  function resetFilters() {
-    searchTags=[]; columnsToSearch.clear(); searchValues.clear();
-    $('.badge-ico-text-filter').removeClass('badge-ico-text-filter-selected');
-    $('.tag-filter').removeClass('inactive');
-    $('.card-app-type-count, .card-institution-count, .card-department-count, .card-keyword-count')
-      .text(0).addClass('visually-hidden');
-    publicAppList.filter(); publicAppList.search();
-    $('#public-apps-count').text(publicAppList.matchingItems.length);
+  window.resetFilters = function() {
+    searchTags = [];
+    columnsToSearch.clear();
+    searchValues.clear();
+
+    document.querySelectorAll('.badge-ico-text-filter').forEach(b => b.classList.remove('badge-ico-text-filter-selected'));
+    document.querySelectorAll('.tag-filter').forEach(t => t.classList.remove('inactive'));
+
+    document.querySelectorAll('.card-app-type-count, .card-institution-count, .card-department-count, .card-keyword-count')
+      .forEach(b => { b.textContent = '0'; b.classList.add('visually-hidden'); });
+
+    publicAppList.filter();
+    publicAppList.search();
+    document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
+
     resetFilterList();
-    resetPageFilter();
-  }
+  };
 
-  function addFirstLastButtons() {
-    // placeholder
-  }
+  // Initialize count
+  document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
 </script>
 {% endif %}
-{# Including code for modals displaying Docker info #}
-{% include 'common/app_card_docker_info.html' %}
-{# Including code hiding and showing longer app descriptions #}
-{% include 'common/app_card_description.html' %}
-
 {% endblock %}
