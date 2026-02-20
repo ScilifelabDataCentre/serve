@@ -6,6 +6,13 @@ Background tasks are triggered during deployment via `apps.helpers.create_instan
 `apps.tasks.run_background_tasks` (Celery). The orchestrator runs registered tasks, blocks deployment if any
 **critical** task fails, and otherwise proceeds to deployment.
 
+## Feature flags (django-waffle)
+
+- **`background_tasks` (switch)**: Enables the background-task orchestrator (instead of direct deployment).
+- **`background_tasks_nonblocking_deploy` (switch)**:
+  - **OFF (default)**: failed *critical* background tasks block deployment (current behavior).
+  - **ON**: deployment proceeds even if critical background tasks fail (tasks are still recorded as failed).
+
 ## Overview
 
 The background task framework provides:
