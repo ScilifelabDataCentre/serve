@@ -2,13 +2,17 @@ import datetime
 import json
 import unicodedata
 from random import choice
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.core import mail
 from django.http import HttpRequest
-from django.test import Client, override_settings
+from django.test import Client
+from django.test import TestCase as DjangoTestCase
+from django.test import override_settings
+from django.urls import reverse
 from hypothesis import Verbosity, given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.django import TestCase, TransactionTestCase
@@ -300,3 +304,127 @@ def test_pass_validation_profile_edit_form(department):
         },
     )
     assert form.is_valid(), form.errors
+
+
+@override_settings(INACTIVE_USERS=True)
+class TestVerificationTokenResetView(TestCase):
+    def test_post_returns_same_message_regardless_of_verification_status(self):
+        url = reverse("common:verifyreset")
+
+        unverified = User.objects.create(
+            username="unverified@example.com",
+            email="unverified@example.com",
+            password=make_password("password123"),
+        )
+        verified = User.objects.create(
+            username="verified@example.com",
+            email="verified@example.com",
+            password=make_password("password123"),
+        )
+
+        EmailVerificationTable.objects.create(user=unverified, token="old-token-unverified")
+        # Simulate already-verified: VerifyView deletes the verification row after success.
+        EmailVerificationTable.objects.create(user=verified, token="old-token-verified")
+        EmailVerificationTable.objects.filter(user=verified).delete()
+
+        with patch("common.views.send_verification_email_task") as send_verification_email_task_mock:
+            # Unverified user: email should be sent, but response should still be the generic "done" page.
+            resp_unverified = self.client.post(url, {"email": unverified.email})
+            assert resp_unverified.status_code == 200
+            send_verification_email_task_mock.assert_called_once()
+            send_verification_email_task_mock.reset_mock()
+
+            # Verified user: no email should be sent, but response must be identical (anti-enumeration).
+            resp_verified = self.client.post(url, {"email": verified.email})
+            assert resp_verified.status_code == 200
+            send_verification_email_task_mock.assert_not_called()
+
+            # Unknown email: no email should be sent, but response must be identical (anti-enumeration).
+            resp_unknown = self.client.post(url, {"email": "does-not-exist@example.com"})
+            assert resp_unknown.status_code == 200
+            send_verification_email_task_mock.assert_not_called()
+
+        assert resp_unverified.content == resp_verified.content == resp_unknown.content
+        assert b"Note that you will not receive an email if you previously already verified your email." in (
+            resp_unverified.content
+        )
+
+
+@override_settings(
+    ORCID_CLIENT_ID="APP-TEST123",
+    ORCID_CLIENT_SECRET="test-secret",
+    ORCID_REDIRECT_URI="https://example.com/orcid/callback/",
+    ORCID_BASE_URL="https://sandbox.orcid.org",
+)
+class TestOrcidViews(DjangoTestCase):
+    """Tests for ORCID connect/disconnect flow."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="orcid_test@uu.se",
+            email="orcid_test@uu.se",
+            password="TestPass123!",
+        )
+        self.profile = UserProfile.objects.create(user=self.user)
+        self.client.login(username="orcid_test@uu.se", password="TestPass123!")
+
+    def test_orcid_authorize_redirects_to_orcid(self):
+        response = self.client.get("/orcid/authorize/")
+        assert response.status_code == 302
+        assert "orcid.org/oauth/authorize" in response.url
+
+    def test_orcid_authorize_sets_state_in_session(self):
+        self.client.get("/orcid/authorize/")
+        session = self.client.session
+        assert "orcid_oauth_state" in session
+
+    def test_orcid_authorize_requires_login(self):
+        self.client.logout()
+        response = self.client.get("/orcid/authorize/")
+        assert response.status_code == 302
+        assert "login" in response.url.lower()
+
+    def test_orcid_callback_rejects_invalid_state(self):
+        session = self.client.session
+        session["orcid_oauth_state"] = "valid_state"
+        session.save()
+        response = self.client.get("/orcid/callback/", {"state": "wrong_state", "code": "test"})
+        assert response.status_code == 302
+        self.profile.refresh_from_db()
+        assert self.profile.orcid_id == ""
+
+    def test_orcid_callback_handles_user_denial(self):
+        session = self.client.session
+        session["orcid_oauth_state"] = "test_state"
+        session.save()
+        response = self.client.get("/orcid/callback/", {"state": "test_state", "error": "access_denied"})
+        assert response.status_code == 302
+        self.profile.refresh_from_db()
+        assert self.profile.orcid_id == ""
+
+    def test_orcid_disconnect_clears_fields(self):
+        self.profile.orcid_id = "0000-0001-1715-6138"
+        self.profile.orcid_access_token = "some-token"
+        self.profile.orcid_refresh_token = "some-refresh"
+        self.profile.orcid_token_scope = "/authenticate"
+        self.profile.save()
+
+        response = self.client.post("/orcid/disconnect/")
+        assert response.status_code == 302
+
+        self.profile.refresh_from_db()
+        assert self.profile.orcid_id == ""
+        assert self.profile.orcid_access_token == ""
+        assert self.profile.orcid_refresh_token == ""
+        assert self.profile.orcid_token_scope == ""
+
+    def test_orcid_disconnect_requires_login(self):
+        self.client.logout()
+        response = self.client.post("/orcid/disconnect/")
+        assert response.status_code == 302
+        assert "login" in response.url.lower()
+
+    def test_orcid_disconnect_requires_post(self):
+        response = self.client.get("/orcid/disconnect/")
+        assert response.status_code == 405

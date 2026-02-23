@@ -492,3 +492,374 @@ def remind_about_link_only_apps():
     for app_ in send_reminder_apps:
         send_linkonly_reminder_email(app_)
         set_next_linkonly_reminder_date(app_, days_to_next_reminder)
+
+
+# Background Task Orchestration
+
+
+@shared_task(bind=True)
+def execute_single_background_task(self, task_db_id: int):
+    """
+    Execute a single background task.
+
+    Args:
+        task_db_id: ID of the BackgroundTask model instance
+    """
+    from apps.background_tasks.registry import TASK_REGISTRY
+    from apps.models import BackgroundTask
+
+    try:
+        task_record = BackgroundTask.objects.get(id=task_db_id)
+    except BackgroundTask.DoesNotExist:
+        logger.error(f"BackgroundTask {task_db_id} not found")
+        return {"success": False, "error": "Task record not found"}
+
+    # Idempotency / duplicate delivery guard: don't re-run terminal or in-flight rows.
+    if task_record.status in ("running", "success", "failed"):
+        logger.info(
+            "Skipping execution for BackgroundTask %s (%s) with status=%s",
+            task_record.id,
+            task_record.task_name,
+            task_record.status,
+        )
+        return {
+            "success": task_record.status == "success",
+            "skipped": True,
+            "status": task_record.status,
+            "task_id": task_record.id,
+            "task_name": task_record.task_name,
+        }
+
+    # Mark as running
+    task_record.mark_as_running(celery_task_id=self.request.id)
+
+    # Get the task class
+    task_class = TASK_REGISTRY.get_task_class(task_record.task_name)
+    if not task_class:
+        error_msg = f"Task '{task_record.task_name}' not found in registry"
+        logger.error(error_msg)
+        task_record.mark_as_failed(
+            error_msg,
+            result_data={
+                "success": False,
+                "error": {
+                    "type": "TaskNotRegistered",
+                    "message": error_msg,
+                },
+            },
+        )
+        return {"success": False, "error": error_msg}
+
+    task_instance = task_class()
+
+    # Validate inputs
+    try:
+        task_instance.validate_inputs(task_record.app_instance)
+    except Exception as e:
+        import traceback
+
+        error_msg = f"Input validation failed: {str(e)}"
+        logger.error(error_msg)
+        task_record.mark_as_failed(
+            error_msg,
+            result_data={
+                "success": False,
+                "error": {
+                    "type": type(e).__name__,
+                    "module": type(e).__module__,
+                    "message": str(e),
+                    "traceback": traceback.format_exc()[-10000:],
+                    "stage": "validate_inputs",
+                },
+            },
+        )
+        return {"success": False, "error": error_msg}
+
+    # Execute the task
+    try:
+        result = task_instance.execute(task_record.app_instance)
+        task_record.mark_as_success(result_data=result)
+        try:
+            task_instance.on_success(task_record.app_instance, result)
+        except Exception as hook_err:
+            # Hooks should not be able to flip a successful task into a failed one.
+            logger.warning(
+                "Background task %s on_success hook failed for app %s: %s",
+                task_record.task_name,
+                task_record.app_instance_id,
+                hook_err,
+                exc_info=True,
+            )
+
+        logger.info(
+            f"Background task {task_record.task_name} completed successfully for app {task_record.app_instance_id}"
+        )
+        return {"success": True, "result": result}
+
+    except Exception as e:
+        import traceback
+
+        error_msg = str(e)
+        logger.error(f"Background task {task_record.task_name} failed: {error_msg}", exc_info=True)
+
+        # Check if should retry
+        should_retry = task_instance.should_retry(e, task_record.retry_count)
+
+        if should_retry and task_record.can_retry():
+            # Schedule retry with exponential backoff
+            # NOTE: compute delay before incrementing retry_count so the first retry is the smallest delay.
+            retry_delay = task_instance.get_retry_delay(task_record.retry_count)
+            logger.info(f"Retrying task {task_record.task_name} in {retry_delay} seconds")
+
+            task_record.mark_as_retrying()
+            try:
+                task_instance.on_failure(task_record.app_instance, e)
+            except Exception as hook_err:
+                # Still retry even if the failure hook itself errors.
+                logger.warning(
+                    "Background task %s on_failure hook failed for app %s: %s",
+                    task_record.task_name,
+                    task_record.app_instance_id,
+                    hook_err,
+                    exc_info=True,
+                )
+
+            # Celery retries here are purely scheduling; DB retry_count/max_retries is the source of truth.
+            raise self.retry(exc=e, countdown=retry_delay, max_retries=None)
+        else:
+            task_record.mark_as_failed(
+                error_msg,
+                result_data={
+                    "success": False,
+                    "error": {
+                        "type": type(e).__name__,
+                        "module": type(e).__module__,
+                        "message": str(e),
+                        "traceback": traceback.format_exc()[-10000:],
+                        "stage": "execute",
+                        "retry_count": task_record.retry_count,
+                        "max_retries": task_record.max_retries,
+                        "should_retry": bool(should_retry),
+                    },
+                },
+            )
+            try:
+                task_instance.on_failure(task_record.app_instance, e)
+            except Exception as hook_err:
+                logger.warning(
+                    "Background task %s on_failure hook failed for app %s: %s",
+                    task_record.task_name,
+                    task_record.app_instance_id,
+                    hook_err,
+                    exc_info=True,
+                )
+
+            return {"success": False, "error": error_msg, "is_critical": task_record.is_critical}
+
+
+@shared_task
+@transaction.atomic
+def run_background_tasks(serialized_instance, app_slug):
+    """
+    Orchestrates background tasks before deployment.
+
+    Creates BackgroundTask records and executes them in order.
+    Tasks with same execution_order run in parallel using Celery groups.
+
+    Args:
+        serialized_instance: Serialized app instance
+        app_slug: App type slug
+
+    Returns:
+        Dict with success status and task results
+    """
+    from celery import chain, group
+
+    from apps.background_tasks.registry import TASK_REGISTRY
+    from apps.models import BackgroundTask
+
+    instance = deserialize(serialized_instance)
+    logger.info(f"Running background tasks for app {instance.id} ({app_slug})")
+
+    # Get tasks grouped by execution order
+    tasks_by_order = TASK_REGISTRY.get_tasks_by_order(app_slug)
+
+    if not tasks_by_order:
+        logger.info(f"No background tasks registered for app type {app_slug}")
+        # Proceed directly to deployment, but only after this transaction commits.
+        transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
+        return {"success": True, "message": "No tasks to run, proceeding to deployment"}
+
+    # Create BackgroundTask records for all tasks
+    task_records = []
+    task_timeout_by_id: dict[int, int] = {}
+    for order, tasks in sorted(tasks_by_order.items()):
+        for task_class in tasks:
+            task_record = BackgroundTask.objects.create(
+                app_instance=instance,
+                task_name=task_class.task_name,
+                task_type=task_class.task_type,
+                is_critical=task_class.is_critical,
+                execution_order=order,
+                max_retries=task_class.max_retries,
+                status="pending",
+            )
+            task_records.append(task_record)
+            timeout = getattr(task_class, "timeout_seconds", 300) or 300
+            # Provide a small hard-kill buffer above the soft limit.
+            task_timeout_by_id[task_record.id] = int(timeout)
+            logger.debug("Created task record %s for %s", task_record.id, task_class.task_name)
+
+    # Execute tasks in order
+    # Build a chain of groups for sequential execution of parallel tasks
+    task_chain = []
+
+    for order in sorted(tasks_by_order.keys()):
+        # Get all task records for this order
+        order_task_records = [tr for tr in task_records if tr.execution_order == order]
+
+        if len(order_task_records) == 1:
+            # Single task - add to chain directly
+            tr = order_task_records[0]
+            timeout = task_timeout_by_id.get(tr.id, 300)
+            task_chain.append(
+                execute_single_background_task.s(tr.id).set(soft_time_limit=timeout, time_limit=timeout + 30)
+            )
+        else:
+            # Multiple tasks - run in parallel using group
+            parallel_tasks = group(
+                [
+                    execute_single_background_task.s(tr.id).set(
+                        soft_time_limit=task_timeout_by_id.get(tr.id, 300),
+                        time_limit=task_timeout_by_id.get(tr.id, 300) + 30,
+                    )
+                    for tr in order_task_records
+                ]
+            )
+            task_chain.append(parallel_tasks)
+
+    # Add deployment as the final step in the chain
+    task_chain.append(check_tasks_and_deploy.s(instance.id, serialized_instance))
+
+    # Execute the chain
+    workflow = chain(*task_chain)
+    # Ensure BackgroundTask rows are committed before workers try to read them.
+    transaction.on_commit(lambda: workflow.apply_async())
+
+    logger.info(f"Started background task workflow for app {instance.id}")
+    return {"success": True, "message": f"Started {len(task_records)} background tasks"}
+
+
+@shared_task
+@transaction.atomic
+def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instance):
+    """
+    Check if all critical tasks succeeded, then deploy if appropriate.
+
+    This is called as the final step in the background task chain.
+
+    Args:
+        previous_results: Results from previous tasks in chain
+        app_instance_id: App instance ID
+        serialized_instance: Serialized app instance for deployment
+    """
+    from apps.models import BackgroundTask
+
+    logger.info(f"Checking background tasks before deployment for app {app_instance_id}")
+
+    # Get all tasks for this app instance
+    tasks = BackgroundTask.objects.filter(app_instance_id=app_instance_id).order_by("execution_order")
+
+    # Check if any critical tasks failed
+    failed_critical_tasks = tasks.filter(is_critical=True, status="failed")
+
+    if failed_critical_tasks.exists():
+        failed_names = [t.task_name for t in failed_critical_tasks]
+        from apps.background_tasks.feature_flags import (
+            background_tasks_nonblocking_deploy,
+        )
+
+        if background_tasks_nonblocking_deploy():
+            warning_msg = (
+                "Critical background tasks failed: "
+                f"{', '.join(failed_names)}. Deployment NOT blocked (waffle switch enabled)."
+            )
+            logger.warning(warning_msg)
+            transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
+            return {
+                "success": False,
+                "deployed": True,
+                "warning": warning_msg,
+                "failed_tasks": failed_names,
+                "blocked": False,
+            }
+
+        error_msg = f"Critical background tasks failed: {', '.join(failed_names)}. Deployment blocked."
+        logger.error(error_msg)
+
+        # Update app instance status
+        instance = deserialize(serialized_instance)
+        instance.latest_user_action = "Failed"
+        instance.save(update_fields=["latest_user_action"])
+
+        return {
+            "success": False,
+            "deployed": False,
+            "error": error_msg,
+            "failed_tasks": failed_names,
+            "blocked": True,
+        }
+
+    # All critical tasks passed - proceed with deployment
+    logger.info(f"All critical tasks passed for app {app_instance_id}. Proceeding with deployment.")
+    transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
+
+    return {
+        "success": True,
+        "deployed": True,
+        "message": "All tasks completed, deployment started",
+    }
+
+
+@shared_task
+def retry_background_task(task_id: int):
+    """
+    Manually retry a failed background task.
+
+    Args:
+        task_id: BackgroundTask ID
+
+    Returns:
+        Dict with success status
+    """
+    from apps.models import BackgroundTask
+
+    try:
+        task_record = BackgroundTask.objects.get(id=task_id)
+    except BackgroundTask.DoesNotExist:
+        logger.error(f"BackgroundTask {task_id} not found")
+        return {"success": False, "error": "Task not found"}
+
+    # Only allow retrying failed tasks here to avoid duplicate concurrent executions
+    # when Celery already has a retry scheduled ("retrying").
+    if task_record.status != "failed":
+        return {
+            "success": False,
+            "error": f"Task status is '{task_record.status}', can only retry failed tasks",
+        }
+
+    # Reset task state
+    task_record.status = "pending"
+    task_record.error_message = ""
+    task_record.retry_count = 0
+    task_record.started_at = None
+    task_record.completed_at = None
+    task_record.result_data = None
+    task_record.celery_task_id = ""
+    task_record.save()
+
+    # Execute the task
+    execute_single_background_task.delay(task_id)
+
+    logger.info(f"Manually retrying background task {task_id}")
+    return {"success": True, "message": "Task retry initiated"}
