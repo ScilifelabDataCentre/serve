@@ -480,10 +480,10 @@ class InvenioService:
 
         # Build metadata using Pydantic models
         metadata = InvenioMetadata(
-            title=f"Application: {app_data.name}",
-            description=app_data.description or "Application deployment on SciLifeLab Serve platform.",
+            title="app_data.name",
+            description=app_data.description,
             publication_date=publication_date,
-            publisher="SciLifeLab Data Centre",
+            publisher="SciLifeLab Serve",
             resource_type=ResourceType(id="software", title={"en": "Software"}),
             creators=creators,
             contributors=contributors,
