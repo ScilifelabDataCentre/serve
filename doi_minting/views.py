@@ -27,7 +27,7 @@ def keyword_search(request: HttpRequest) -> JsonResponse:
         # Format results for frontend - just return the labels as strings
         results = []
         for term in suggestions:
-            results.append(term["label"])  # JavaScript expects simple string array
+            results.append(term.label)  # JavaScript expects simple string array
 
         return JsonResponse({"suggestions": results})
 
