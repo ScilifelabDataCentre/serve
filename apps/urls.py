@@ -19,4 +19,14 @@ urlpatterns = [
         RedirectView.as_view(url="/records/%(app_id)s", permanent=True),
         name="redirect-old-app-metadata-url",
     ),
+    # Background task URLs
+    path("tasks/<app_slug>/<app_id>", views.BackgroundTasksView.as_view(), name="background_tasks"),
+    path("tasks/<app_slug>/<app_id>/status", views.BackgroundTaskStatusAPI.as_view(), name="background_tasks_status"),
+    path(
+        "tasks/<app_slug>/<app_id>/<int:task_id>/retry",
+        views.RetryBackgroundTaskView.as_view(),
+        name="retry_background_task",
+    ),
+    # Admin background tasks view
+    path("admin/background-tasks", views.AdminBackgroundTasksView.as_view(), name="admin_background_tasks"),
 ]

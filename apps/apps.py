@@ -7,3 +7,6 @@ class AppsConfig(AppConfig):
 
     def ready(self):
         import apps.signals
+        from apps.background_tasks.load import register_tasks
+
+        register_tasks()

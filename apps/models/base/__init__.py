@@ -1,6 +1,7 @@
 from .app_categories import AppCategories
 from .app_status import AppStatus
 from .app_template import Apps
+from .background_task import BackgroundTask
 from .base import AppInstanceManager, BaseAppInstance
 from .k8s_user_app_status import K8sUserAppStatus
 from .logs_enabled_mixin import LogsEnabledMixin
