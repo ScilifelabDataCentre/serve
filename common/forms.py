@@ -324,15 +324,6 @@ class SignUpForm:
         # ROR validation is SOFT — no error added for missing/invalid ror_id.
         # Affiliations with "no ror" or empty ror_id are accepted as-is.
 
-        # University email requires at least one affiliation with a department
-        if is_university_email:
-            has_dept = any(aff.get("department", "").strip() for aff in affiliations_list)
-            if not has_dept:
-                self.profile.add_error(
-                    None,
-                    ValidationError("You are required to provide a department for at least one affiliation."),
-                )
-
         if not is_university_email and is_request_account_empty:
             self.profile.add_error(
                 "why_account_needed",

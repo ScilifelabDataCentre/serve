@@ -224,17 +224,6 @@ def test_pass_validation_other_email_request_account(form):
 
 
 @pytest.mark.django_db
-@given(form=input_form(department=st.sampled_from(["", None])))
-@settings(verbosity=Verbosity.verbose, max_examples=1)
-def test_invalid_input_department_is_empty(form):
-    is_val = form.is_valid()
-    assert hasattr(form.profile, "cleaned_data")
-    assert not is_val
-    # Department validation is now a non-field error on the profile form
-    assert form.profile.non_field_errors()
-
-
-@pytest.mark.django_db
 @given(
     form=input_form(
         email=st.emails().filter(lambda x: get_affilitaion(x) not in [unis[0] for unis in UNIVERSITIES]),

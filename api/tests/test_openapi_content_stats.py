@@ -35,7 +35,12 @@ class ContentStatsApiTests(APITestCase):
                     "title": "Swedish University of Agricultural Sciences",
                     "ror_id": "https://ror.org/01tm6cn81",
                     "department": "",
-                }
+                },
+                {
+                    "title": "Uppsala University",
+                    "ror_id": "https://ror.org/048a87296",
+                    "department": "Department of Information Technology",
+                },
             ],
         )
         self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
@@ -106,7 +111,13 @@ class ContentStatsApiTests(APITestCase):
 
             self.assertEqual(actual["new_users_by_year"], {str(datetime.today().year): 1})
 
-            self.assertEqual(actual["users_by_university"], {"Swedish University of Agricultural Sciences": 1})
+            self.assertEqual(
+                actual["users_by_university"],
+                {
+                    "Swedish University of Agricultural Sciences": 1,
+                    "Uppsala University": 1,
+                },
+            )
 
             self.assertIsNotNone(actual["apps_by_image_registry"])
             self.assertEqual(len(actual["apps_by_image_registry"]), 3)

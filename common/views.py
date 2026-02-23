@@ -291,16 +291,6 @@ class EditProfileView(TemplateView):
         if not affiliations_list:
             affiliations_error = "At least one affiliation is required."
 
-        # Validate: university email needs at least one department
-        if not affiliations_error:
-            email = request.user.email
-            domain = email.split("@")[-1] if "@" in email else ""
-            is_university_email = EMAIL_ALLOW_REGEX.match(domain) is not None
-            if is_university_email:
-                has_dept = any(aff.get("department", "").strip() for aff in affiliations_list)
-                if not has_dept:
-                    affiliations_error = "You are required to provide a department for at least one affiliation."
-
         # ROR validation is SOFT — no error for missing/invalid ror_id
 
         is_valid = user_form_details.is_valid() and profile_form_details.is_valid() and not affiliations_error

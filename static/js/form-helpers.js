@@ -2,8 +2,6 @@ window.onload = (event) => {
     const email = document.getElementById('id_email');
     const request_account_field = document.getElementById('id_request_account_info');
     const request_account_label = document.querySelector('label[for="id_why_account_needed"]');
-    // CHANGED: department required indicator now targets the affiliations container
-    const affiliationsDeptNote = document.getElementById('affiliations-dept-required-note');
 
     const domainRegex = /^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[\.A-Z0-9-]{0,61}[A-Z0-9])?\.)*?(uu|lu|gu|su|umu|liu|ki|kth|chalmers|ltu|hhs|slu|kau|lth|lnu|oru|miun|mau|mdu|bth|fhs|gih|hb|du|hig|hh|hkr|his|hv|ju|sh|nrm)\.se$/i;
 
@@ -22,10 +20,6 @@ window.onload = (event) => {
 
         if (match) {
             shouldHide = true;
-            // Show "at least one department required" note in affiliations block
-            if (affiliationsDeptNote) affiliationsDeptNote.style.display = 'block';
-        } else {
-            if (affiliationsDeptNote) affiliationsDeptNote.style.display = 'none';
         }
 
         if (request_account_field) {

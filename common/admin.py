@@ -116,8 +116,6 @@ class UserAdmin(DefaultUserAdmin):
         "is_active",
         "is_staff",
         "get_affiliations_display",
-        "get_ror_ids_display",
-        "get_departments_display",
         "get_orcid",
         "date_joined",
     )
@@ -134,36 +132,6 @@ class UserAdmin(DefaultUserAdmin):
             if not affs:
                 return "N/A"
             return " | ".join(aff.get("title", "Unknown") for aff in affs)
-        except UserProfile.DoesNotExist:
-            return "N/A"
-
-    @admin.display(description="ROR IDs")
-    def get_ror_ids_display(self, instance):
-        """Show all ROR IDs with colored indicators."""
-        try:
-            affs = instance.userprofile.get_affiliations()
-            if not affs:
-                return "N/A"
-            parts = []
-            for aff in affs:
-                ror = aff.get("ror_id", "")
-                if ror and ror != "no ror":
-                    ror_short = ror.split("/")[-1] if "/" in ror else ror
-                    parts.append(f'<span style="color: green;">✓ {ror_short}</span>')
-                else:
-                    parts.append('<span style="color: orange;">No ROR</span>')
-            return format_html(" | ".join(parts))
-        except UserProfile.DoesNotExist:
-            return "N/A"
-
-    @admin.display(description="Departments")
-    def get_departments_display(self, instance):
-        """Show all departments, matching affiliation order."""
-        try:
-            affs = instance.userprofile.get_affiliations()
-            if not affs:
-                return "N/A"
-            return " | ".join(aff.get("department", "—") or "—" for aff in affs)
         except UserProfile.DoesNotExist:
             return "N/A"
 

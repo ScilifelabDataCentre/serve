@@ -109,8 +109,10 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
             univ_list = []
             for profile in user_profiles:
                 affs = profile.get_affiliations()
-                if affs:
-                    univ_list.append(affs[0].get("title", ""))
+                for aff in affs:
+                    title = aff.get("title", "").strip()
+                    if title:
+                        univ_list.append(title)
             users_by_univ = dict(Counter(univ_list))
         except Exception as e:
             success = False

@@ -92,7 +92,7 @@
                                     <!-- Affiliation Block: dynamic multi-affiliation rows -->
 <div class="row pb-3">
     <div class="col-12">
-        <label class="form-label">Affiliation:</label>
+        <label class="form-label required">Affiliation:</label>
     </div>
 </div>
 
@@ -104,10 +104,6 @@
 
         <input type="hidden" id="affiliations-data" name="affiliations-data"
                value="{% if affiliations_data %}{{ affiliations_data }}{% endif %}">
-
-        <div id="affiliations-dept-required-note" class="form-text text-muted mb-2" style="display: none;">
-            At least one affiliation must include a department for university email addresses.
-        </div>
 
         {% if profile_form.non_field_errors %}
         <div class="invalid-feedback" style="display: block;">
