@@ -65,6 +65,19 @@ class UserProfile(models.Model):
 
     note = models.TextField(max_length=1000, blank=True)
 
+    # ORCID integration
+    orcid_id = models.CharField(
+        max_length=25,
+        blank=True,
+        default="",
+        help_text="Authenticated ORCID iD, format: 0000-0002-1234-5678",
+    )
+    # Placeholder fields for future Member API integration
+    # (write-back to ORCID, e.g. adding published apps as contributions)
+    orcid_access_token = models.CharField(max_length=255, blank=True, default="")
+    orcid_refresh_token = models.CharField(max_length=255, blank=True, default="")
+    orcid_token_scope = models.CharField(max_length=100, blank=True, default="")
+
     objects = UserProfileManager()
 
     def __str__(self):

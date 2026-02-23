@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from invenio_client.tls import parse_tls_verify, tls_verify_from_env
+from doi_minting.clients.invenio_client.tls import parse_tls_verify, tls_verify_from_env
 
 
 def test_parse_tls_verify_default():
