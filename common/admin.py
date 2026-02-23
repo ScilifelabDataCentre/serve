@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
 from django.contrib.auth.models import User
 from django.template.response import TemplateResponse
+from django.templatetags.static import static
 from django.urls import path
 from django.utils.html import format_html
 
@@ -19,13 +20,16 @@ class UserProfileInline(admin.StackedInline):
     verbose_name_plural = "Profile"
     fk_name = "user"
 
-    # Show both fields but make affiliation readonly to indicate it's legacy
-    readonly_fields = ("affiliation",)
-
     fieldsets = (
         ("Organization Information", {"fields": ("organization", "affiliation", "department")}),
+        (
+            "ORCID Integration",
+            {"fields": ("orcid_id", "orcid_access_token", "orcid_refresh_token", "orcid_token_scope")},
+        ),
         ("Account Information", {"fields": ("is_approved", "why_account_needed", "note", "deleted_on")}),
     )
+    # Show both fields but make affiliation readonly to indicate it's legacy
+    readonly_fields = ("affiliation", "orcid_access_token", "orcid_refresh_token", "orcid_token_scope")
 
 
 class EmailVerificationTableInline(admin.StackedInline):
@@ -113,6 +117,7 @@ class UserAdmin(DefaultUserAdmin):
         "is_staff",
         "get_organization",
         "get_ror_status",
+        "get_orcid",
         "is_legacy_data",
         "date_joined",
     )
@@ -150,6 +155,22 @@ class UserAdmin(DefaultUserAdmin):
             return instance.userprofile.is_legacy_affiliation()
         except UserProfile.DoesNotExist:
             return False
+
+    @admin.display(description="ORCID iD")
+    def get_orcid(self, instance):
+        try:
+            orcid_id = instance.userprofile.orcid_id
+            if orcid_id:
+                return format_html(
+                    '<img src="{}" alt="ORCID" class="me-2" width="16" height="16">'
+                    '   <a href="https://orcid.org/{}" target="_blank" rel="noopener">{}</a>',
+                    static("images/orcid_16x16.png"),
+                    orcid_id,
+                    orcid_id,
+                )
+            return format_html('<span style="color: grey;">—</span>')
+        except UserProfile.DoesNotExist:
+            return "N/A"
 
     @admin.action(description="Migrate selected users to new organization format")
     def migrate_legacy_profiles(self, request, queryset):

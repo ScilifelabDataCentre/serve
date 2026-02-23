@@ -3,6 +3,12 @@
 {% block title %}Events{% endblock %}
 {% load static %}
 {% load custom_tags %}
+{% block extra_head %}
+<link rel="alternate"
+      type="application/rss+xml"
+      title="SciLifeLab Serve events RSS feed"
+      href="{% url 'portal:events-rss' %}">
+{% endblock %}
 
 {% block content %}
 
@@ -10,7 +16,7 @@
     <div class="row">
         <div class="col">
             <h2>Events</h2>
-            <p>Below you can find an overview of events organised by the SciLifeLab Serve team. Life science researchers in Sweden is our primary focus but some webinars may also be interesting for an international audience. Our events are open to everyone (regardless of affiliation) so feel free to sign up and attend. However, please pay attention to the described target audience of each event as some of them are prepared for groups with specific prior knowledge. When possible, we try to record our webinars and provide links to the recorded video afterwards on this page.</p>
+            <p>Below you can find an overview of events organised by the SciLifeLab Serve team. Life science researchers in Sweden is our primary focus but some webinars may also be interesting for an international audience. Our events are open to everyone (regardless of affiliation) so feel free to sign up and attend. However, please pay attention to the described target audience of each event as some of them are prepared for groups with specific prior knowledge. When possible, we try to record our webinars and provide links to the recorded video afterwards on this page. The list of events is also <a href="{% url 'portal:events-rss' %}">available as an RSS feed</a>.</p>
             <p>If you have any questions about the events below or if you would like to collaborate with us on organising an event, feel free to get in touch with us (<a href="mailto:serve@scilifelab.se">serve@scilifelab.se)</a>.</p>
         </div>
     </div>
