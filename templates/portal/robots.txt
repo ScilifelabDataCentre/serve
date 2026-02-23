@@ -6,7 +6,6 @@ Disallow: /projects/
 Disallow: /docs/_search/
 Disallow: /api
 Disallow: /?
-Disallow: /apps
 Disallow: /accounts
 Disallow: /user
 Disallow: /verify
