@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+
+{% block title %}Background Tasks - {{ instance.name }}{% endblock %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h3>{{ instance.name }} - Background Tasks</h3>
+        <div>
+          <a href="{% url 'projects:details' project.slug %}" class="btn btn-secondary">Back to Project</a>
+        </div>
+      </div>
+
+      <div class="alert alert-info">
+        <strong>About Background Tasks:</strong> These tasks run automatically when your app is created or updated.
+        Tasks include validation checks, external API calls, and other operations that need to complete before deployment.
+      </div>
+
+      {% if not tasks %}
+      <div class="alert alert-warning">
+        No background tasks found for this app instance.
+      </div>
+      {% else %}
+
+      <!-- Task Summary -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="card shadow">
+            <div class="card-header">
+              <h5>Task Summary</h5>
+            </div>
+            <div class="card-body">
+              <div class="row text-center">
+                <div class="col">
+                  <h4 id="summary-total">{{ summary.total }}</h4>
+                  <small class="text-muted">Total</small>
+                </div>
+                <div class="col">
+                  <h4 id="summary-pending" class="text-secondary">{{ summary.pending }}</h4>
+                  <small class="text-muted">Pending</small>
+                </div>
+                <div class="col">
+                  <h4 id="summary-running" class="text-primary">{{ summary.running }}</h4>
+                  <small class="text-muted">Running</small>
+                </div>
+                <div class="col">
+                  <h4 id="summary-success" class="text-success">{{ summary.success }}</h4>
+                  <small class="text-muted">Success</small>
+                </div>
+                <div class="col">
+                  <h4 id="summary-failed" class="text-danger">{{ summary.failed }}</h4>
+                  <small class="text-muted">Failed</small>
+                </div>
+                <div class="col">
+                  <h4 id="summary-retrying" class="text-warning">{{ summary.retrying }}</h4>
+                  <small class="text-muted">Retrying</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks List -->
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card shadow">
+            <div class="card-header d-flex justify-content-between">
+              <h5>Tasks</h5>
+              <button class="btn btn-sm btn-primary" onclick="refreshTasks()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Order</th>
+                      <th>Task Name</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Critical</th>
+                      <th>Duration</th>
+                      <th>Retries</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tasks-table-body">
+                    {% for task in tasks %}
+                    <tr id="task-row-{{ task.id }}" data-task-id="{{ task.id }}">
+                      <td>{{ task.execution_order }}</td>
+                      <td>
+                        <strong>{{ task.task_name }}</strong>
+                        <br>
+                        <small class="text-muted">
+                          Created: {{ task.created_at|date:"Y-m-d H:i:s" }}
+                        </small>
+                      </td>
+                      <td>
+                        <span class="badge bg-secondary">{{ task.task_type }}</span>
+                      </td>
+                      <td>
+                        <span class="badge bg-{{ task.get_status_display_class }}" id="task-status-{{ task.id }}">
+                          {{ task.get_status_display }}
+                        </span>
+                      </td>
+                      <td>
+                        {% if task.is_critical %}
+                        <span class="badge bg-danger">Critical</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Optional</span>
+                        {% endif %}
+                      </td>
+                      <td id="task-duration-{{ task.id }}">
+                        {% if task.get_duration %}
+                        {{ task.get_duration|floatformat:2 }}s
+                        {% else %}
+                        -
+                        {% endif %}
+                      </td>
+                      <td id="task-retries-{{ task.id }}">
+                        {{ task.retry_count }} / {{ task.max_retries }}
+                      </td>
+                      <td>
+                        <button
+                          class="btn btn-sm btn-warning retry-btn"
+                          id="retry-btn-{{ task.id }}"
+                          onclick="retryTask({{ task.id }})"
+                          {% if task.status != 'failed' %}disabled{% endif %}
+                        >
+                          Retry
+                        </button>
+                        <button
+                          class="btn btn-sm btn-info"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#task-details-{{ task.id }}"
+                        >
+                          Details
+                        </button>
+                      </td>
+                    </tr>
+                    <tr class="collapse" id="task-details-{{ task.id }}">
+                      <td colspan="8">
+                        <div class="card card-body">
+                          <h6>Task Details</h6>
+                          <dl class="row">
+                            <dt class="col-sm-3">Started At:</dt>
+                            <dd class="col-sm-9" id="task-started-{{ task.id }}">
+                              {{ task.started_at|date:"Y-m-d H:i:s"|default:"-" }}
+                            </dd>
+
+                            <dt class="col-sm-3">Completed At:</dt>
+                            <dd class="col-sm-9" id="task-completed-{{ task.id }}">
+                              {{ task.completed_at|date:"Y-m-d H:i:s"|default:"-" }}
+                            </dd>
+
+                            <dt class="col-sm-3">Celery Task ID:</dt>
+                            <dd class="col-sm-9">
+                              <code>{{ task.celery_task_id|default:"-" }}</code>
+                            </dd>
+
+                            {% if task.error_message %}
+                            <dt class="col-sm-3">Error Message:</dt>
+                            <dd class="col-sm-9">
+                              <div class="alert alert-danger" id="task-error-{{ task.id }}">
+                                <pre>{{ task.error_message }}</pre>
+                              </div>
+                            </dd>
+                            {% endif %}
+
+                            {% if task.result_data %}
+                            <dt class="col-sm-3">Result Data:</dt>
+                            <dd class="col-sm-9">
+                              <pre class="bg-light p-2" id="task-result-{{ task.id }}">{{ task.result_data|pprint }}</pre>
+                            </dd>
+                            {% endif %}
+                          </dl>
+                        </div>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+const statusApiUrl = "{% url 'apps:background_tasks_status' project.slug app_slug instance.pk %}";
+const retryUrl = "{% url 'apps:retry_background_task' project.slug app_slug instance.pk 0 %}".replace('/0/', '/{task_id}/');
+const csrftoken = getCookie('csrftoken');
+
+// Poll for task status updates every 3 seconds
+let refreshInterval;
+
+function startAutoRefresh() {
+  refreshInterval = setInterval(refreshTasks, 3000);
+}
+
+function stopAutoRefresh() {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+  }
+}
+
+function refreshTasks() {
+  fetch(statusApiUrl)
+    .then(response => response.json())
+    .then(data => {
+      updateTasksDisplay(data);
+      updateSummary(data.summary);
+
+      // Stop auto-refresh if all tasks are completed
+      const allCompleted = data.summary.running === 0 && data.summary.pending === 0 && data.summary.retrying === 0;
+      if (allCompleted) {
+        stopAutoRefresh();
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching task status:', error);
+    });
+}
+
+function updateSummary(summary) {
+  document.getElementById('summary-total').textContent = summary.total;
+  document.getElementById('summary-pending').textContent = summary.pending;
+  document.getElementById('summary-running').textContent = summary.running;
+  document.getElementById('summary-success').textContent = summary.success;
+  document.getElementById('summary-failed').textContent = summary.failed;
+  document.getElementById('summary-retrying').textContent = summary.retrying;
+}
+
+function updateTasksDisplay(data) {
+  data.tasks.forEach(task => {
+    // Update status badge
+    const statusBadge = document.getElementById(`task-status-${task.id}`);
+    if (statusBadge) {
+      statusBadge.className = `badge bg-${getStatusClass(task.status)}`;
+      statusBadge.textContent = task.status.charAt(0).toUpperCase() + task.status.slice(1);
+    }
+
+    // Update duration
+    const durationCell = document.getElementById(`task-duration-${task.id}`);
+    if (durationCell && task.duration_seconds) {
+      durationCell.textContent = `${task.duration_seconds.toFixed(2)}s`;
+    }
+
+    // Update retries
+    const retriesCell = document.getElementById(`task-retries-${task.id}`);
+    if (retriesCell) {
+      retriesCell.textContent = `${task.retry_count} / ${task.max_retries}`;
+    }
+
+    // Update retry button
+    const retryBtn = document.getElementById(`retry-btn-${task.id}`);
+    if (retryBtn) {
+      retryBtn.disabled = !task.can_retry;
+    }
+  });
+}
+
+function getStatusClass(status) {
+  const statusClasses = {
+    'pending': 'secondary',
+    'running': 'primary',
+    'success': 'success',
+    'failed': 'danger',
+    'retrying': 'warning'
+  };
+  return statusClasses[status] || 'secondary';
+}
+
+function retryTask(taskId) {
+  if (!confirm('Are you sure you want to retry this task?')) {
+    return;
+  }
+
+  const url = retryUrl.replace('{task_id}', taskId);
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrftoken,
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Task retry initiated');
+      refreshTasks();
+      startAutoRefresh();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error retrying task:', error);
+    alert('Failed to retry task');
+  });
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+// Start auto-refresh when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  refreshTasks();
+  startAutoRefresh();
+});
+
+// Stop auto-refresh when page is hidden
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    stopAutoRefresh();
+  } else {
+    refreshTasks();
+    startAutoRefresh();
+  }
+});
+</script>
+
+{% endblock %}

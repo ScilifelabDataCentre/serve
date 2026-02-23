@@ -15,3 +15,6 @@ class AppsConfig(AppConfig):
         logger.info("Initializing Invenio keywords service...")
         VocabularyMemoryService()
         logger.info("Invenio keywords service ready")
+        from apps.background_tasks.load import register_tasks
+
+        register_tasks()

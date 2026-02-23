@@ -15,6 +15,7 @@ from .models import (
     AppCategories,
     Apps,
     AppStatus,
+    BackgroundTask,
     BaseAppInstance,
     CustomAppInstance,
     DashInstance,
@@ -405,6 +406,88 @@ class SubdomainAdmin(admin.ModelAdmin):
 @admin.register(DepictioInstance)
 class DepictioInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display
+
+
+@admin.register(BackgroundTask)
+class BackgroundTaskAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "task_name",
+        "display_app",
+        "status",
+        "is_critical",
+        "execution_order",
+        "retry_count",
+        "created_at",
+    )
+    list_filter = ("status", "task_type", "is_critical", "created_at")
+    search_fields = ("task_name", "app_instance__name", "error_message")
+    readonly_fields = (
+        "created_at",
+        "started_at",
+        "completed_at",
+        "celery_task_id",
+        "result_data",
+    )
+    ordering = ("-created_at",)
+
+    def display_app(self, obj):
+        return f"{obj.app_instance.name} ({obj.app_instance.app.slug})"
+
+    display_app.short_description = "App Instance"
+
+    fieldsets = (
+        (
+            "Task Information",
+            {
+                "fields": (
+                    "app_instance",
+                    "task_name",
+                    "task_type",
+                    "execution_order",
+                )
+            },
+        ),
+        (
+            "Status",
+            {
+                "fields": (
+                    "status",
+                    "is_critical",
+                    "error_message",
+                )
+            },
+        ),
+        (
+            "Retry Configuration",
+            {
+                "fields": (
+                    "retry_count",
+                    "max_retries",
+                )
+            },
+        ),
+        (
+            "Timing",
+            {
+                "fields": (
+                    "created_at",
+                    "started_at",
+                    "completed_at",
+                )
+            },
+        ),
+        (
+            "Results",
+            {
+                "fields": (
+                    "result_data",
+                    "celery_task_id",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+    )
 
 
 admin.site.register(Subdomain, SubdomainAdmin)
