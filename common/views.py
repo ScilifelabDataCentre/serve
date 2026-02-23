@@ -186,7 +186,13 @@ class VerificationTokenResetView(TemplateView):
         try:
             user: User = User.objects.get(email=email)
             token = str(uuid.uuid4())
-            verify_table = user.emailverificationtable
+            try:
+                verify_table = user.emailverificationtable
+            except ObjectDoesNotExist:
+                logger.warning(
+                    "User tried to get a new verification token even though email %s already verified.", email
+                )
+                return
             verify_table.token = token
             verify_table.date_created = timezone.now()
             verify_table.save()
