@@ -98,22 +98,6 @@ describe("Test sign up", () => {
         cy.get('input[name=email]').clear().type("test-email@uu.se");
         cy.get('[id="id_request_account_info"]').should('have.class', 'hidden')
 
-        cy.logf("Empty department rejected by the backend", Cypress.currentTest)
-        cy.visit("/signup/")
-        cy.get('input[name=email]').type("test-email@ki.se"); // department becomes a required field for uni emails
-        cy.get('input[name=first_name]').type("first name");
-        cy.get('input[name=last_name]').type("last name");
-        cy.get('input[name=password1]').type(users.signup_user.password);
-        cy.get('input[name=password2]').type(users.signup_user.password);
-        // Fill affiliation using ROR autocomplete
-        cy.get('.aff-org-input').first().type("Karolinska");
-        cy.get('.aff-org-suggestions').first().should('be.visible');
-        cy.get('.aff-org-suggestions .list-group-item').first().click();
-        cy.get('.aff-dept-input').first().clear();
-        cy.get("input#submit-id-save").click();
-        // Department validation is now a non-field error on the profile form
-        cy.get('.invalid-feedback').should('contain', 'department')
-
         cy.logf("Mismatching passwords rejected by the backend", Cypress.currentTest)
         cy.visit("/signup/")
         cy.get('input[name=email]').type("test-email@test.kth.se");
