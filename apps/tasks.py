@@ -775,6 +775,25 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
 
     if failed_critical_tasks.exists():
         failed_names = [t.task_name for t in failed_critical_tasks]
+        from apps.background_tasks.feature_flags import (
+            background_tasks_nonblocking_deploy,
+        )
+
+        if background_tasks_nonblocking_deploy():
+            warning_msg = (
+                "Critical background tasks failed: "
+                f"{', '.join(failed_names)}. Deployment NOT blocked (waffle switch enabled)."
+            )
+            logger.warning(warning_msg)
+            transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
+            return {
+                "success": False,
+                "deployed": True,
+                "warning": warning_msg,
+                "failed_tasks": failed_names,
+                "blocked": False,
+            }
+
         error_msg = f"Critical background tasks failed: {', '.join(failed_names)}. Deployment blocked."
         logger.error(error_msg)
 
@@ -788,6 +807,7 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
             "deployed": False,
             "error": error_msg,
             "failed_tasks": failed_names,
+            "blocked": True,
         }
 
     # All critical tasks passed - proceed with deployment

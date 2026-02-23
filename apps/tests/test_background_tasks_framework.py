@@ -219,6 +219,37 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
 
 
 @pytest.mark.django_db
+def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_commit, app_instance):
+    BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="t1",
+        task_type="validation",
+        status="failed",
+        is_critical=True,
+        execution_order=0,
+        max_retries=0,
+        error_message="boom",
+    )
+
+    with patch(
+        "apps.background_tasks.feature_flags.background_tasks_nonblocking_deploy",
+        return_value=True,
+    ), patch.object(deploy_resource, "delay") as mock_deploy:
+        result = check_tasks_and_deploy(
+            previous_results=None,
+            app_instance_id=app_instance.id,
+            serialized_instance=app_instance.serialize(),
+        )
+
+    assert result["deployed"] is True
+    assert result.get("blocked") is False
+    mock_deploy.assert_called_once()
+
+    app_instance.refresh_from_db()
+    assert app_instance.latest_user_action != "Failed"
+
+
+@pytest.mark.django_db
 def test_retry_background_task_resets_and_enqueues(app_instance):
     record = BackgroundTask.objects.create(
         app_instance=app_instance,
