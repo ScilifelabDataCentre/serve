@@ -482,3 +482,67 @@ def test_privacy_view():
     # Check status code
     assert response.status_code == 200
     assert "<title>Privacy policy | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_roadmap_view():
+    client = Client()
+    response = client.get(reverse("portal:roadmap"))
+    assert response.status_code == 200
+    assert "<title>Roadmap | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_cite_view():
+    client = Client()
+    response = client.get(reverse("portal:cite"))
+    assert response.status_code == 200
+    assert "<title>Citing us | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_contact_view():
+    client = Client()
+    response = client.get(reverse("portal:contact"))
+    assert response.status_code == 200
+    assert "<title>Contact us | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_collections_index_view():
+    client = Client()
+    response = client.get(reverse("portal:collections_index"))
+    assert response.status_code == 200
+    assert "<title>Collections | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_events_view():
+    client = Client()
+    response = client.get(reverse("portal:events"))
+    assert response.status_code == 200
+    assert "<title>Events | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_events_rss_view():
+    client = Client()
+    response = client.get(reverse("portal:events-rss"))
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/rss+xml; charset=utf-8"
+
+
+@pytest.mark.django_db
+def test_news_view():
+    client = Client()
+    response = client.get(reverse("portal:news"))
+    assert response.status_code == 200
+    assert "<title>Platform news | SciLifeLab Serve (beta)</title>" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_news_rss_view():
+    client = Client()
+    response = client.get(reverse("portal:news-rss"))
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/rss+xml; charset=utf-8"

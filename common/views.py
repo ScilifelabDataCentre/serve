@@ -1,4 +1,5 @@
 import json
+import secrets
 import uuid
 
 import requests
@@ -34,6 +35,11 @@ from .forms import (
     UserForm,
 )
 from .models import EmailVerificationTable, UserProfile
+from .orcid_utils import (
+    exchange_code_for_token,
+    get_authorization_url,
+    is_orcid_configured,
+)
 from .tasks import send_email_task, send_verification_email_task
 
 logger = get_logger(__name__)
@@ -244,7 +250,16 @@ class EditProfileView(TemplateView):
                 }
             )
 
-            return render(request, self.template_name, {"form": user_edit_form, "profile_form": profile_edit_form})
+            return render(
+                request,
+                self.template_name,
+                {
+                    "form": user_edit_form,
+                    "profile_form": profile_edit_form,
+                    "orcid_configured": is_orcid_configured(),
+                    "orcid_id": getattr(user_profile_data, "orcid_id", ""),
+                },
+            )
 
     def post(self, request, *args, **kwargs):
         user_profile_data = self.get_user_profile_info(request)
@@ -307,7 +322,14 @@ class EditProfileView(TemplateView):
             except Exception as e:
                 return HttpResponse("Error updating records: " + str(e))
 
-            return render(request, "user/profile.html", {"user_profile": self.get_user_profile_info(request)})
+            return render(
+                request,
+                "user/profile.html",
+                {
+                    "user_profile": self.get_user_profile_info(request),
+                    "orcid_id": getattr(self.get_user_profile_info(request), "orcid_id", ""),
+                },
+            )
 
         else:
             if not user_form_details.is_valid():
@@ -320,6 +342,8 @@ class EditProfileView(TemplateView):
             context = {
                 "form": user_form_details,
                 "profile_form": profile_form_details,
+                "orcid_configured": is_orcid_configured(),
+                "orcid_id": getattr(user_profile_data, "orcid_id", ""),
             }
             if organization_data_str:
                 context["organization_data"] = organization_data_str
@@ -604,3 +628,110 @@ class RORAutocompleteView(View):
         except Exception as e:
             logger.error(f"ROR API error: {e}")
             return JsonResponse({"results": [], "error": str(e)}, status=500)
+
+
+class OrcidAuthorizeView(View):
+    """Initiates the ORCID OAuth flow from the Profile Edit page."""
+
+    @method_decorator(login_required)
+    def get(self, request):
+        if not is_orcid_configured():
+            logger.error("ORCID integration is not configured.")
+            return redirect("common:edit-profile")
+
+        state = secrets.token_urlsafe(32)
+        request.session["orcid_oauth_state"] = state
+
+        authorization_url = get_authorization_url(state)
+        return HttpResponseRedirect(authorization_url)
+
+
+class OrcidCallbackView(View):
+    """
+    Handles the OAuth callback from ORCID.
+
+    ORCID redirects here with ?code=...&state=...
+    We exchange the code for a token + ORCID iD, save to the user's profile,
+    and redirect back to the profile edit page.
+    """
+
+    @method_decorator(login_required)
+    def get(self, request):
+        # Validate state
+        state = request.GET.get("state", "")
+        expected_state = request.session.pop("orcid_oauth_state", "")
+        if not state or state != expected_state:
+            logger.error("ORCID authentication failed: invalid state parameter.")
+            return redirect("common:edit-profile")
+
+        # Check if user denied access
+        error = request.GET.get("error")
+        if error:
+            error_desc = request.GET.get("error_description", "Unknown error")
+            logger.warning(f"ORCID OAuth error: {error} - {error_desc}")
+            messages.info(request, "ORCID connection was cancelled.")
+            return redirect("common:edit-profile")
+
+        # Exchange authorization code for token
+        code = request.GET.get("code", "")
+        if not code:
+            logger.error("ORCID authentication failed: no authorization code received.")
+            return redirect("common:edit-profile")
+
+        token_data = exchange_code_for_token(code)
+        logger.debug(
+            "ORCID token response: %s",
+            {k: v for k, v in (token_data or {}).items() if k not in ("access_token", "refresh_token")},
+        )
+        if not token_data or "orcid" not in token_data:
+            messages.error(request, "Failed to authenticate with ORCID. Please try again.")
+            return redirect("common:edit-profile")
+
+        # Save ORCID iD (and tokens for future use) to user profile
+        try:
+            user_profile = UserProfile.objects.get(user=request.user)
+            user_profile.orcid_id = token_data["orcid"]
+            user_profile.orcid_access_token = token_data.get("access_token", "")
+            user_profile.orcid_refresh_token = token_data.get("refresh_token", "")
+            user_profile.orcid_token_scope = token_data.get("scope", "")
+            user_profile.save(
+                update_fields=["orcid_id", "orcid_access_token", "orcid_refresh_token", "orcid_token_scope"]
+            )
+            logger.info(
+                "ORCID connected for user=%s | orcid_id=%s | name=%s | scope=%s | token_type=%s | expires_in=%s",
+                request.user.email,
+                token_data.get("orcid"),
+                token_data.get("name", ""),
+                token_data.get("scope", ""),
+                token_data.get("token_type", ""),
+                token_data.get("expires_in", ""),
+            )
+        except UserProfile.DoesNotExist:
+            logger.error(f"UserProfile not found for user {request.user.email}")
+
+        return redirect("common:edit-profile")
+
+
+class OrcidDisconnectView(View):
+    """Remove ORCID iD and tokens from user profile."""
+
+    @method_decorator(login_required)
+    def post(self, request):
+        try:
+            user_profile = UserProfile.objects.get(user=request.user)
+            logger.info(
+                "ORCID disconnected for user=%s | orcid_id=%s",
+                request.user.email,
+                user_profile.orcid_id,
+            )
+            user_profile.orcid_id = ""
+            user_profile.orcid_access_token = ""
+            user_profile.orcid_refresh_token = ""
+            user_profile.orcid_token_scope = ""
+            user_profile.save(
+                update_fields=["orcid_id", "orcid_access_token", "orcid_refresh_token", "orcid_token_scope"]
+            )
+        except UserProfile.DoesNotExist:
+            logger.error("User profile not found.")
+
+        return redirect("common:edit-profile")
