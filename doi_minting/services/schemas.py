@@ -31,7 +31,7 @@ class AppData(BaseModel):
 
     id: int
     name: str
-    description: str | None = None
+    description: str
     image: str
     url: str | None = None
     access: str
