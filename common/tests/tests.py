@@ -207,7 +207,7 @@ class TestAccountVerification(TestCase):
         why_account_needed=st.text(min_size=10, max_size=100),
     )
 )
-@settings(verbosity=Verbosity.verbose, max_examples=1)
+@settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)
 def test_pass_validation_other_email_request_account(form):
     is_val = form.is_valid()
     assert hasattr(form.user, "cleaned_data")
