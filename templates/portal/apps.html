@@ -43,8 +43,9 @@
   </button>
 </div>
 </div>
+    {% if serialized_apps|length > 0 %}
     <div class="apps-layout gap-1">
-        <div class="filters-panel panel-surface mt-4 shadow-sm d-none d-lg-block" style="height: 100%">
+    <div class="filters-panel panel-surface mt-4 shadow-sm d-none d-lg-block" style="height: 100%">
             <div class="ms-2 me-1">
                 <div class="navbar navbar-expand-lg navbar-light bg-light">
                     <div class="container-fluid d-flex flex-wrap ps-1 pe-0">
@@ -149,8 +150,11 @@
                 </div>
             </div>
         </div>
-        <!-- Divider -->
-        <div class="apps-divider" aria-hidden="true"></div>
+    <!-- Divider -->
+    <div class="apps-divider" aria-hidden="true"></div>
+    {% else %}
+    <div class="d-flex justify-content-center">
+    {% endif %}
         <div class="apps-panel panel-surface mt-3">
             {% if not serialized_apps %}
                 <p id="public-apps-container-empty">No public apps available.</p>
