@@ -44,12 +44,12 @@ describe("Test sign up", () => {
         cy.get('input[name=password1]').type(users.signup_user.password);
         cy.get('input[name=password2]').type(users.signup_user.password);
 
-        // Fill organization using ROR autocomplete
-        cy.get('input#organization-autocomplete').type("Uppsala University");
-        cy.get('#organization-suggestions').should('be.visible');
-        cy.get('#organization-suggestions .list-group-item').first().click();
+        // Fill affiliation using ROR autocomplete
+        cy.get('.aff-org-input').first().type("Uppsala University");
+        cy.get('.aff-org-suggestions').first().should('be.visible');
+        cy.get('.aff-org-suggestions .list-group-item').first().click();
 
-        cy.get('input[name="department"]').type('Biology Education Centre');
+        cy.get('.aff-dept-input').first().type('Biology Education Centre');
 
         cy.get("input#submit-id-save").click();
 
@@ -72,7 +72,7 @@ describe("Test sign up", () => {
         cy.logf("Last name is a required field in the HTML form", Cypress.currentTest)
         cy.get('input[name=last_name]').invoke('prop', 'validationMessage')
         cy.logf("Department is not a required field in the HTML form", Cypress.currentTest)
-        cy.get('input[name=department]').invoke('prop', 'validationMessage') // department is not a required field because those without uni  affiliation do not need to fill it out
+        cy.get('.aff-dept-input').first().invoke('prop', 'validationMessage') // department is not a required field because those without uni affiliation do not need to fill it out
 
         // Backend checks
 
@@ -88,30 +88,15 @@ describe("Test sign up", () => {
         cy.get('input[name=last_name]').type("last name");
         cy.get('input[name=password1]').type(users.signup_user.password);
         cy.get('input[name=password2]').type(users.signup_user.password);
-        // Fill organization using ROR autocomplete
-        cy.get('input#organization-autocomplete').type("Lund University");
-        cy.get('#organization-suggestions').should('be.visible');
-        cy.get('#organization-suggestions .list-group-item').first().click();
+        // Fill affiliation using ROR autocomplete
+        cy.get('.aff-org-input').first().type("Lund University");
+        cy.get('.aff-org-suggestions').first().should('be.visible');
+        cy.get('.aff-org-suggestions .list-group-item').first().click();
         cy.get("input#submit-id-save").click();
         cy.get('[id="validation_why_account_needed"]').should('exist')
         // reset and check that all works
         cy.get('input[name=email]').clear().type("test-email@uu.se");
         cy.get('[id="id_request_account_info"]').should('have.class', 'hidden')
-
-        cy.logf("Empty department rejected by the backend", Cypress.currentTest)
-        cy.visit("/signup/")
-        cy.get('input[name=email]').type("test-email@ki.se"); // department becomes a required field for uni emails
-        cy.get('input[name=first_name]').type("first name");
-        cy.get('input[name=last_name]').type("last name");
-        cy.get('input[name=password1]').type(users.signup_user.password);
-        cy.get('input[name=password2]').type(users.signup_user.password);
-        // Fill organization using ROR autocomplete
-        cy.get('input#organization-autocomplete').type("Karolinska");
-        cy.get('#organization-suggestions').should('be.visible');
-        cy.get('#organization-suggestions .list-group-item').first().click();
-        cy.get('input[name="department"]').clear();
-        cy.get("input#submit-id-save").click();
-        cy.get('[id="validation_department"]').should('exist')
 
         cy.logf("Mismatching passwords rejected by the backend", Cypress.currentTest)
         cy.visit("/signup/")
@@ -120,11 +105,11 @@ describe("Test sign up", () => {
         cy.get('input[name=last_name]').type("last name");
         cy.get('input[name=password1]').type("first_password");
         cy.get('input[name=password2]').type("second_password");
-        // Fill organization using ROR autocomplete
-        cy.get('input#organization-autocomplete').type("KTH Royal");
-        cy.get('#organization-suggestions').should('be.visible');
-        cy.get('#organization-suggestions .list-group-item').first().click();
-        cy.get('input[name="department"]').type('Test Department');
+        // Fill affiliation using ROR autocomplete
+        cy.get('.aff-org-input').first().type("KTH Royal");
+        cy.get('.aff-org-suggestions').first().should('be.visible');
+        cy.get('.aff-org-suggestions .list-group-item').first().click();
+        cy.get('.aff-dept-input').first().type('Test Department');
         cy.get("input#submit-id-save").click();
         cy.get('[id="validation_password1"]').should('exist')
     })

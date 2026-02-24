@@ -25,6 +25,7 @@ from common.management.manage_test_data import TestDataManager
 from studio.utils import get_logger
 
 from .forms import (
+    EMAIL_ALLOW_REGEX,
     ChangePasswordForm,
     ProfileEditForm,
     ProfileForm,
@@ -77,6 +78,10 @@ class SignUpView(CreateView):
         context = super().get_context_data(**kwargs)
         if "profile_form" not in context:
             context["profile_form"] = ProfileForm(self.request.POST or None)
+
+        # Pass departments list for the datalist
+        with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+            context["departments"] = json.load(f).get("departments", [])
         return context
 
     # Transaction decorator is needed for form_.save() to work properly
@@ -114,9 +119,9 @@ class SignUpView(CreateView):
         context["form"] = user_form  # The user form with its current state and errors.
         context["profile_form"] = profile_form  # The profile form with its current state and errors.
 
-        # CRITICAL: Preserve organization-data from POST request
-        if self.request.method == "POST" and "organization-data" in self.request.POST:
-            context["organization_data"] = self.request.POST.get("organization-data")
+        # Preserve affiliations-data from POST for re-rendering
+        if self.request.method == "POST" and "affiliations-data" in self.request.POST:
+            context["affiliations_data"] = self.request.POST.get("affiliations-data")
 
         return self.render_to_response(context)
 
@@ -224,42 +229,39 @@ class EditProfileView(TemplateView):
         return user_profile
 
     def get(self, request, *args, **kwargs):
-        # admin user
         if request.user.email in ["admin@serve.scilifelab.se", "event_user@serve.scilifelab.se"]:
             return render(request, "user/admin_profile_edit_disabled.html")
 
-        # common user with or without Staff/Superuser status
-        else:
-            user_profile_data = self.get_user_profile_info(request)
+        user_profile_data = self.get_user_profile_info(request)
 
-            # Extract organization title from JSON field
-            org_title = user_profile_data.get_organization_name()
+        # Serialize existing affiliations for the template's hidden input
+        affiliations_json = json.dumps(user_profile_data.get_affiliations())
 
-            profile_edit_form = self.profile_edit_form_class(
-                initial={
-                    "organization": org_title,
-                    "department": user_profile_data.department,
-                }
-            )
+        profile_edit_form = self.profile_edit_form_class()
 
-            user_edit_form = self.user_edit_form_class(
-                initial={
-                    "email": user_profile_data.user.email,
-                    "first_name": user_profile_data.user.first_name,
-                    "last_name": user_profile_data.user.last_name,
-                }
-            )
+        user_edit_form = self.user_edit_form_class(
+            initial={
+                "email": user_profile_data.user.email,
+                "first_name": user_profile_data.user.first_name,
+                "last_name": user_profile_data.user.last_name,
+            }
+        )
 
-            return render(
-                request,
-                self.template_name,
-                {
-                    "form": user_edit_form,
-                    "profile_form": profile_edit_form,
-                    "orcid_configured": is_orcid_configured(),
-                    "orcid_id": getattr(user_profile_data, "orcid_id", ""),
-                },
-            )
+        with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+            departments = json.load(f).get("departments", [])
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": user_edit_form,
+                "profile_form": profile_edit_form,
+                "affiliations_data": affiliations_json,
+                "departments": departments,
+                "orcid_configured": is_orcid_configured(),
+                "orcid_id": getattr(user_profile_data, "orcid_id", ""),
+            },
+        )
 
     def post(self, request, *args, **kwargs):
         user_profile_data = self.get_user_profile_info(request)
@@ -267,57 +269,47 @@ class EditProfileView(TemplateView):
         user_form_details = self.user_edit_form_class(
             request.POST,
             instance=request.user,
-            initial={
-                "email": user_profile_data.user.email,
-            },
+            initial={"email": user_profile_data.user.email},
         )
 
         profile_form_details = self.profile_edit_form_class(
             request.POST,
             instance=user_profile_data,
-            initial={"affiliation": user_profile_data.get_organization_name()},
         )
 
-        # Handle organization data from hidden field (same logic as SignUpForm.clean())
-        organization_data_str = request.POST.get("organization-data", "")
-        organization_data = {}
+        # --- Parse affiliations-data from hidden field ---
+        affiliations_data_str = request.POST.get("affiliations-data", "")
+        affiliations_list = []
+        affiliations_error = None
 
-        if organization_data_str:
+        if affiliations_data_str:
             try:
-                organization_data = json.loads(organization_data_str)
+                affiliations_list = json.loads(affiliations_data_str)
             except json.JSONDecodeError as e:
-                logger.debug(f"Using fallback title, JSONDecodeError - {str(e)}")
-                organization_text = request.POST.get("organization", "")
-                organization_data = {"title": organization_text or "", "ror_id": "no ror"}
-        else:
-            # No JSON data, create from text field
-            organization_text = request.POST.get("organization", "")
-            if organization_text:
-                organization_data = {"title": organization_text, "ror_id": "no ror"}
+                logger.debug(f"JSONDecodeError parsing affiliations-data: {e}")
 
-        # Validate organization has valid ROR ID
-        is_organization_valid = True
-        if not organization_data.get("ror_id") or organization_data.get("ror_id") == "no ror":
-            is_organization_valid = False
-            profile_form_details.add_error(
-                "organization",
-                "Please select a valid organization from the ROR list. Your organization must be registered"
-                " in the Research Organization Registry.",
-            )
+        # Ensure list format and filter empty entries
+        if not isinstance(affiliations_list, list):
+            affiliations_list = []
+        affiliations_list = [aff for aff in affiliations_list if isinstance(aff, dict) and aff.get("title", "").strip()]
 
-        if user_form_details.is_valid() and profile_form_details.is_valid() and is_organization_valid:
+        # Validate: at least one affiliation
+        if not affiliations_list:
+            affiliations_error = "At least one affiliation is required."
+
+        # ROR validation is SOFT — no error for missing/invalid ror_id
+
+        is_valid = user_form_details.is_valid() and profile_form_details.is_valid() and not affiliations_error
+
+        if is_valid:
             try:
                 with transaction.atomic():
                     user_form_details.save()
 
-                    # Save organization data to profile
-                    user_profile_data.organization = organization_data
-                    profile_form_details.save()
+                    # Save affiliations to profile
+                    user_profile_data.affiliations = affiliations_list
 
-                    logger.info("Updated First Name: " + str(self.get_user_profile_info(request).user.first_name))
-                    logger.info("Updated Last Name: " + str(self.get_user_profile_info(request).user.last_name))
-                    logger.info("Updated Department: " + str(self.get_user_profile_info(request).department))
-                    logger.info("Updated Organization: " + str(self.get_user_profile_info(request).organization))
+                    profile_form_details.save()
 
             except Exception as e:
                 return HttpResponse("Error updating records: " + str(e))
@@ -330,23 +322,27 @@ class EditProfileView(TemplateView):
                     "orcid_id": getattr(self.get_user_profile_info(request), "orcid_id", ""),
                 },
             )
-
         else:
             if not user_form_details.is_valid():
                 logger.error("Edit user error: " + str(user_form_details.errors))
-
             if not profile_form_details.is_valid():
                 logger.error("Edit profile error: " + str(profile_form_details.errors))
 
-            # Preserve organization-data for re-rendering
+            with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+                departments = json.load(f).get("departments", [])
+
             context = {
                 "form": user_form_details,
                 "profile_form": profile_form_details,
+                "affiliations_data": affiliations_data_str,  # Preserve for re-rendering
+                "affiliations_error": affiliations_error,  # Pass error to template
+                "departments": departments,
                 "orcid_configured": is_orcid_configured(),
                 "orcid_id": getattr(user_profile_data, "orcid_id", ""),
             }
-            if organization_data_str:
-                context["organization_data"] = organization_data_str
+
+            with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+                context["departments"] = json.load(f).get("departments", [])
 
             return render(request, self.template_name, context)
 

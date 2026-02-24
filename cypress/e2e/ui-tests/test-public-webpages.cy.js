@@ -1,14 +1,19 @@
 describe("Tests of the public pages of the website", () => {
 
     const TEST_USER_DATA = {
-        "affiliation": "uu",
-        "department": "test-user-department-name",
-        "email": "test-user@scilifelab.uu.se",
-        "first_name": "test-user-first-name",
-        "last_name": "test-user-last-name",
-        "password": "tesT12345@",
-        "username": "e2e-app-metadata-test_user"
-    };
+    "affiliations": [
+        {
+            "title": "Uppsala University",
+            "ror_id": "https://ror.org/048a87296",
+            "department": "test-user-department-name"
+        }
+    ],
+    "email": "test-user@scilifelab.uu.se",
+    "first_name": "test-user-first-name",
+    "last_name": "test-user-last-name",
+    "password": "tesT12345@",
+    "username": "e2e-app-metadata-test_user"
+};
 
     const TEST_PROJECT_DATA = {
         project_name: "e2e-app-metadata-test-proj",
@@ -120,10 +125,10 @@ describe("Tests of the public pages of the website", () => {
             cy.get('h2.mb-0').should('contain', TEST_APP_DATA.name)
 
             // Verify owner information
-            cy.get('#owner_name').should('contain', `${TEST_USER_DATA.first_name} ${TEST_USER_DATA.last_name}`)
-            cy.get('#owner_email').should('contain', TEST_USER_DATA.email)
-            cy.get('#owner_dept').should('contain', TEST_USER_DATA.department)
-            cy.get('#owner_aff').should('contain', 'Uppsala University')
+cy.get('#owner_name').should('contain', `${TEST_USER_DATA.first_name} ${TEST_USER_DATA.last_name}`)
+cy.get('#owner_email').should('contain', TEST_USER_DATA.email)
+cy.get('#owner_dept').should('contain', TEST_USER_DATA.affiliations[0].department)
+cy.get('#owner_aff').should('contain', TEST_USER_DATA.affiliations[0].title)
 
             // Verify download link exists and has correct href
             cy.contains('a.btn.btn-primary', 'Download all metadata (JSON)')

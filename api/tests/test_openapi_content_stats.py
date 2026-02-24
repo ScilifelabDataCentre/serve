@@ -27,7 +27,22 @@ class ContentStatsApiTests(APITestCase):
     def load_data(self):
         # Create a public app with status Running
         self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
-        self.profile = UserProfile.objects.create(user=self.user, is_approved=True, affiliation="slu")
+        self.profile = UserProfile.objects.create(
+            user=self.user,
+            is_approved=True,
+            affiliations=[
+                {
+                    "title": "Swedish University of Agricultural Sciences",
+                    "ror_id": "https://ror.org/01tm6cn81",
+                    "department": "",
+                },
+                {
+                    "title": "Uppsala University",
+                    "ror_id": "https://ror.org/048a87296",
+                    "department": "Department of Information Technology",
+                },
+            ],
+        )
         self.project = Project.objects.create_project(name="test-perm", owner=self.user, description="")
         self.category = AppCategories.objects.create(name="Serve", priority=100, slug="serve")
 
@@ -96,7 +111,13 @@ class ContentStatsApiTests(APITestCase):
 
             self.assertEqual(actual["new_users_by_year"], {str(datetime.today().year): 1})
 
-            self.assertEqual(actual["users_by_university"], {"slu": 1})
+            self.assertEqual(
+                actual["users_by_university"],
+                {
+                    "Swedish University of Agricultural Sciences": 1,
+                    "Uppsala University": 1,
+                },
+            )
 
             self.assertIsNotNone(actual["apps_by_image_registry"])
             self.assertEqual(len(actual["apps_by_image_registry"]), 3)
