@@ -105,7 +105,6 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         # User affiliation from UserProfile
         try:
             user_profiles = UserProfile.objects.filter(user__is_active=True).filter(user__is_superuser=False)
-            # Extract first affiliation title from each user's affiliations JSONField
             univ_list = []
             for profile in user_profiles:
                 affs = profile.get_affiliations()
