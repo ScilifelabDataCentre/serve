@@ -371,12 +371,11 @@ label.required::before {
     font-size: 0.7rem;
 }
 
-/* We hide via class so JS can show it */
 .is-hidden {
     display: none !important;
 }
 
-/* Hide collapsed tags (JS adds this class) */
+/* Hide collapsed tags */
 .filter-collapsed {
     display: none !important;
 }
@@ -386,7 +385,7 @@ label.required::before {
     display: none !important;
 }
 
-/* HuggingFace-like pagination */
+/* pagination */
 .serve-pagination {
     --serve-border: rgba(0, 0, 0, .08);
     --serve-text: rgba(0, 0, 0, .70);
@@ -430,7 +429,8 @@ label.required::before {
 
 .serve-pagination .page-item.disabled .page-link,
 .serve-pagination .page-item.disabled .page-link:hover {
-    opacity: .5;
+    opacity: .9;
+    color: black;
     background: transparent;
     cursor: default;
 }
@@ -471,8 +471,29 @@ label.required::before {
 
 .search-container-filter {
     position: relative;
+    width: 50%;
 }
 
+@media (max-width: 991.98px) {
+    .search-container-filter {
+    position: relative;
+    width: 80%;
+}
+}
+
+#active-filters-bar {
+    background:#f5f5f5;
+    border:1px solid rgba(0,0,0,.06);
+}
+
+.active-filters-text {
+    color:#055c64;
+}
+
+.active-filters-cancel {
+    color:#000;
+    text-decoration: underline;
+}
 .search-input-filter {
     height: 30px;
     border-radius: 30px;
@@ -488,7 +509,6 @@ label.required::before {
 /*}*/
 
 .sidebar {
-    position: -webkit-sticky;
     position: sticky;
     top: 0;
 }
@@ -518,7 +538,7 @@ label.required::before {
 }
 
 .pagination-nav .page-item.disabled .page-link {
-    opacity: .5;
+    opacity: .6;
     pointer-events: none;
 }
 
@@ -533,6 +553,29 @@ label.required::before {
 }
 .w-70 {
     width: 70%;
+}
+
+@media (max-width: 991.98px) {
+  #small-screenFilters {
+    height: 100vh !important;    /* full screen */
+    max-height: 100vh !important;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+  }
+
+  #small-screenFilters .offcanvas-body {
+    padding: 0;
+  }
+  #small-screenFilters .small-screen-scroll {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 602px) {
+    .apps-layout {
+    display: block!important;
+ }
 }
 /* Container */
 .apps-layout {
