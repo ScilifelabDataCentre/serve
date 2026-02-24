@@ -1,12 +1,13 @@
 """This module is used to test the helper functions that are used by user app instance functionality."""
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import ANY, patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from schema import And, Regex, Schema
 
 from apps.app_registry import APP_REGISTRY
@@ -85,6 +86,7 @@ class CreateAppInstanceTestCase(TestCase):
             self.assertEqual(app_instance.image, data.get("image"))
             self.assertEqual(app_instance.source_code_url, data.get("source_code_url"))
             self.assertIsNone(app_instance.reminder_date_linkonly_privacy)
+            self.assertAlmostEqual(app_instance.made_public_on, timezone.now(), delta=timedelta(seconds=10))
 
             self.assertIsNotNone(app_instance.subdomain)
             subdomain_name = app_instance.subdomain.subdomain
@@ -98,6 +100,7 @@ class CreateAppInstanceTestCase(TestCase):
             mock_task.assert_called_once()
 
         # check that the date for reminder is set when choosing the Link permission
+        # check that the date for being made public is not set when choosing the Link permission
         data = {**data, "access": "link", "note_on_linkonly_privacy": "testing"}
 
         form = form_class(data, project_pk=self.project.pk)
@@ -107,11 +110,12 @@ class CreateAppInstanceTestCase(TestCase):
         with patch("apps.tasks.deploy_resource.delay") as mock_task:
             id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
 
-            # Get app instance and verify the reminder date is present
             app_instance = DashInstance.objects.get(pk=id)
-
+            # verify the reminder date is present
             self.assertIsNotNone(app_instance.reminder_date_linkonly_privacy)
             self.assertIsInstance(app_instance.reminder_date_linkonly_privacy, date)
+            # verify the made_public_on date is not present
+            self.assertIsNone(app_instance.made_public_on)
 
 
 # Mock the tasks that manipulate k8s resources.
@@ -224,6 +228,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": "test-image-new",
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "language": "eng",
             "invenio_tags": "Antibodies, Cells",
         }
 
@@ -256,6 +261,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": "test-subdomain-update-app-new",
+            "language": "eng",
             "invenio_tags": "Antibodies, Cells",
         }
 
@@ -295,6 +301,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": "https://someurlthatdoesnotexist.com/new",
             "subdomain": self.subdomain_name,
+            "language": "eng",
             "invenio_tags": "Antibodies, Cells",
         }
 
@@ -713,7 +720,7 @@ def test_generate_invenio_metadata_validation():
     # Create timestamp for consistent testing
     from django.utils import timezone
 
-    test_created_date = timezone.now()
+    test_madepublic_date = timezone.now() + timedelta(days=1)
 
     # Create k8s_values for the app instance
     k8s_values = {"global": {"domain": "test.serve.scilifelab.se"}, "project": {"slug": project.slug}}
@@ -730,7 +737,7 @@ def test_generate_invenio_metadata_validation():
         project=project,
         subdomain=subdomain,
         k8s_user_app_status=k8s_user_app_status,
-        created_on=test_created_date,
+        made_public_on=test_madepublic_date,
         k8s_values=k8s_values,
         url="https://unit_test_invenio_metadata_subdomain.test.serve.scilifelab.se",
     )
@@ -757,9 +764,9 @@ def test_generate_invenio_metadata_validation():
     assert pydantic_valid, f"Pydantic validation failed: {pydantic_error}"
 
     # Check specific values match the test data
-    assert invenio_metadata["metadata"]["title"] == f"Application: {app_instance.name}"
+    assert invenio_metadata["metadata"]["title"] == app_instance.name
     assert invenio_metadata["metadata"]["description"] == app_instance.description
-    assert invenio_metadata["metadata"]["publisher"] == "SciLifeLab Data Centre"
+    assert invenio_metadata["metadata"]["publisher"] == "SciLifeLab Serve"
     assert invenio_metadata["metadata"]["identifiers"][0]["identifier"].startswith("SERVE:")
 
     # Check creator information
@@ -774,10 +781,12 @@ def test_generate_invenio_metadata_validation():
     assert contributor["person_or_org"]["type"] == "organizational"
     assert contributor["role"]["id"] == "hostinginstitution"
 
-    # Check publication date format
-    import re
-
-    assert re.match(r"^\d{4}-\d{2}-\d{2}$", invenio_metadata["metadata"]["publication_date"])
+    # check date information
+    dates = invenio_metadata["metadata"]["dates"]
+    dates_by_type = {entry["type"]["id"]: entry["date"] for entry in dates}
+    assert abs(dates_by_type["submitted"] - timezone.now()) < timedelta(seconds=30)
+    assert abs(dates_by_type["updated"] - timezone.now()) < timedelta(seconds=30)
+    assert dates_by_type["available"] == test_madepublic_date.replace(microsecond=0)
 
     # Check related identifiers - should have 3 for public access
     assert len(invenio_metadata["metadata"]["related_identifiers"]) == 3
