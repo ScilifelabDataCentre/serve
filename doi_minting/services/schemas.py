@@ -193,6 +193,7 @@ class InvenioMetadata(BaseModel):
     # Required core metadata
     title: str
     description: str
+    publication_date: str
     dates: list[Date]
     publisher: str
     resource_type: ResourceType

@@ -162,7 +162,7 @@ class InvenioService:
 
         # Create draft
         draft = self.client.create_draft(
-            metadata=metadata.model_dump(),
+            metadata=metadata.model_dump(mode="json"),
             access=access.model_dump(),
             custom_fields=custom_fields,
             files={"enabled": False},  # Explicitly set for metadata-only
@@ -417,35 +417,38 @@ class InvenioService:
         """Build the dates list with app information."""
         dates: list[Date] = []
 
-        created_on = getattr(app_instance, "created_on", None)
-        if created_on:
-            created_on = created_on.replace(microsecond=0)
-            dates.append(
-                Date(
-                    date=created_on,
-                    type=DateType(id="submitted"),
-                )
+        created_on = app_instance.created_on
+        if created_on is None:
+            raise ValueError("'created_on' cannot be None for DOI minting")
+        created_on = created_on.replace(microsecond=0)
+        dates.append(
+            Date(
+                date=created_on,
+                type=DateType(id="submitted"),
             )
+        )
 
-        updated_on = getattr(app_instance, "updated_on", None)
-        if updated_on:
-            updated_on = updated_on.replace(microsecond=0)
-            dates.append(
-                Date(
-                    date=updated_on,
-                    type=DateType(id="updated"),
-                )
+        updated_on = app_instance.updated_on
+        if updated_on is None:
+            raise ValueError("'updated_on' cannot be None for DOI minting")
+        updated_on = updated_on.replace(microsecond=0)
+        dates.append(
+            Date(
+                date=updated_on,
+                type=DateType(id="updated"),
             )
+        )
 
-        made_public_on = getattr(app_instance, "made_public_on", None)
-        if made_public_on:
-            made_public_on = made_public_on.replace(microsecond=0)
-            dates.append(
-                Date(
-                    date=made_public_on,
-                    type=DateType(id="available"),
-                )
-            )  # TODO: add to the model
+        made_public_on = app_instance.made_public_on
+        if made_public_on is None:
+            raise ValueError("'made_public_on' cannot be None for DOI minting")
+        made_public_on = made_public_on.replace(microsecond=0)
+        dates.append(
+            Date(
+                date=made_public_on,
+                type=DateType(id="available"),
+            )
+        )
 
         return dates
 
@@ -502,6 +505,9 @@ class InvenioService:
         metadata = InvenioMetadata(
             title=app_data.name,
             description=app_data.description,
+            publication_date=next(
+                d.date.strftime("%Y-%m-%d") for d in dates if d.type.id == "available"
+            ),  # this one is a separate field on purpose
             dates=dates,
             publisher="SciLifeLab Serve",
             resource_type=ResourceType(id="software", title={"en": "Software"}),
