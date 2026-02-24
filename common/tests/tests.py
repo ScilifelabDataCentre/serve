@@ -2,6 +2,7 @@ import datetime
 import json
 import unicodedata
 from random import choice
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.hashers import make_password
@@ -11,6 +12,7 @@ from django.http import HttpRequest
 from django.test import Client
 from django.test import TestCase as DjangoTestCase
 from django.test import override_settings
+from django.urls import reverse
 from hypothesis import Verbosity, given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.django import TestCase, TransactionTestCase
@@ -207,7 +209,7 @@ class TestAccountVerification(TestCase):
         why_account_needed=st.text(min_size=10, max_size=100),
     )
 )
-@settings(verbosity=Verbosity.verbose, max_examples=1)
+@settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)
 def test_pass_validation_other_email_request_account(form):
     is_val = form.is_valid()
     assert hasattr(form.user, "cleaned_data")
@@ -302,6 +304,50 @@ def test_pass_validation_profile_edit_form(department):
         },
     )
     assert form.is_valid(), form.errors
+
+
+@override_settings(INACTIVE_USERS=True)
+class TestVerificationTokenResetView(TestCase):
+    def test_post_returns_same_message_regardless_of_verification_status(self):
+        url = reverse("common:verifyreset")
+
+        unverified = User.objects.create(
+            username="unverified@example.com",
+            email="unverified@example.com",
+            password=make_password("password123"),
+        )
+        verified = User.objects.create(
+            username="verified@example.com",
+            email="verified@example.com",
+            password=make_password("password123"),
+        )
+
+        EmailVerificationTable.objects.create(user=unverified, token="old-token-unverified")
+        # Simulate already-verified: VerifyView deletes the verification row after success.
+        EmailVerificationTable.objects.create(user=verified, token="old-token-verified")
+        EmailVerificationTable.objects.filter(user=verified).delete()
+
+        with patch("common.views.send_verification_email_task") as send_verification_email_task_mock:
+            # Unverified user: email should be sent, but response should still be the generic "done" page.
+            resp_unverified = self.client.post(url, {"email": unverified.email})
+            assert resp_unverified.status_code == 200
+            send_verification_email_task_mock.assert_called_once()
+            send_verification_email_task_mock.reset_mock()
+
+            # Verified user: no email should be sent, but response must be identical (anti-enumeration).
+            resp_verified = self.client.post(url, {"email": verified.email})
+            assert resp_verified.status_code == 200
+            send_verification_email_task_mock.assert_not_called()
+
+            # Unknown email: no email should be sent, but response must be identical (anti-enumeration).
+            resp_unknown = self.client.post(url, {"email": "does-not-exist@example.com"})
+            assert resp_unknown.status_code == 200
+            send_verification_email_task_mock.assert_not_called()
+
+        assert resp_unverified.content == resp_verified.content == resp_unknown.content
+        assert b"Note that you will not receive an email if you previously already verified your email." in (
+            resp_unverified.content
+        )
 
 
 @override_settings(

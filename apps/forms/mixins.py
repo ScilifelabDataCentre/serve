@@ -171,7 +171,7 @@ class KeywordTagsValidationMixin:
         for tag in tags_list:
             found = False
             for term in service.term_metadata.values():
-                if term.get("subject", "").lower() == tag.lower():
+                if (term.subject or "").lower() == tag.lower():
                     valid_tags.append(tag)
                     found = True
                     break

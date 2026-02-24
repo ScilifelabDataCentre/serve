@@ -1,5 +1,7 @@
 import logging
 
+from .schemas import AutocompleteTerm, TermMetadata
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,8 +16,8 @@ class VocabularyMemoryService:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    autocomplete_data: dict[str, list[dict[str, object]]]
-    term_metadata: dict[str, dict[str, object]]
+    autocomplete_data: dict[str, list[AutocompleteTerm]]
+    term_metadata: dict[str, TermMetadata]
 
     def __init__(self) -> None:
         if not self._loaded:
@@ -49,7 +51,13 @@ class VocabularyMemoryService:
                     for prefix, terms in source_autocomplete.items():
                         if prefix not in self.autocomplete_data:
                             self.autocomplete_data[prefix] = []
-                        self.autocomplete_data[prefix].extend(terms)
+                        # Convert dicts to AutocompleteTerm models
+                        self.autocomplete_data[prefix].extend(
+                            [
+                                AutocompleteTerm(**term) if not isinstance(term, AutocompleteTerm) else term
+                                for term in terms
+                            ]
+                        )
 
                 # Load term metadata
                 terms_file = os.path.join(vocab_dir, f"{source}_terms.pickle")
@@ -59,18 +67,21 @@ class VocabularyMemoryService:
 
                     # Store with source prefix to avoid ID conflicts
                     for term_id, term_data in source_terms.items():
-                        self.term_metadata[f"{source}:{term_id}"] = term_data
+                        if isinstance(term_data, dict):
+                            self.term_metadata[f"{source}:{term_id}"] = TermMetadata(**term_data)
+                        else:
+                            self.term_metadata[f"{source}:{term_id}"] = term_data
 
             except Exception as e:
                 logger.error(f"Failed to load {source} vocabulary: {e}")
 
         # Sort combined autocomplete data
         for prefix, terms in self.autocomplete_data.items():
-            terms.sort(key=lambda x: (x["score"], x["label"]))
+            terms.sort(key=lambda x: (x.score, x.label))
 
         logger.info(f"Loaded vocabulary: {len(self.term_metadata)} terms, " f"{len(self.autocomplete_data)} prefixes")
 
-    def search_subjects(self, query: str, limit: int = 10) -> list[dict[str, object]]:
+    def search_subjects(self, query: str, limit: int = 10) -> list[AutocompleteTerm]:
         """Search for subject keywords with autocomplete suggestions."""
         if not query:
             return []
@@ -79,7 +90,7 @@ class VocabularyMemoryService:
         if len(query_lower) < 2:  # Minimum query length
             return []
 
-        suggestions = []
+        suggestions: list[AutocompleteTerm] = []
 
         # Look for exact prefix matches first
         for prefix_len in range(len(query_lower), 1, -1):
@@ -87,30 +98,24 @@ class VocabularyMemoryService:
             if prefix in self.autocomplete_data:
                 # Filter terms that contain the full query
                 for term in self.autocomplete_data[prefix]:
-                    label = term.get("label")
-                    if isinstance(label, str) and query_lower in label.lower():
-                        suggestions.append(
-                            {"id": term["id"], "label": label, "source": term["source"], "score": term["score"]}
-                        )
+                    if query_lower in term.label.lower():
+                        suggestions.append(term)
                 break
 
         # Sort by relevance: exact matches first, then by score
         suggestions.sort(
             key=lambda x: (
-                0 if isinstance(x["label"], str) and x["label"].lower().startswith(query_lower) else 1,
-                x["score"],
-                x["label"],
+                0 if x.label.lower().startswith(query_lower) else 1,
+                x.score,
+                x.label,
             )
         )
 
         return suggestions[:limit]
 
-    def get_term_details(self, term_id: str) -> dict[str, object]:
+    def get_term_details(self, term_id: str) -> TermMetadata | None:
         """Get detailed information about a specific term."""
-        result = self.term_metadata.get(term_id, {})
-        if not isinstance(result, dict):
-            return {}
-        return result
+        return self.term_metadata.get(term_id)
 
     def is_loaded(self) -> bool:
         """Check if vocabulary data has been loaded."""

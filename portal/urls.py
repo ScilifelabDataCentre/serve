@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.urls import path
+from django.views.generic.base import TemplateView
 
 from projects.views import IndexView as IndexView
 
@@ -22,4 +24,10 @@ urlpatterns = [
     path("collections/", views.get_collections_index, name="collections_index"),
     path("collections/<slug:slug>/", views.get_collection, name="collection"),
     path("", views.HomeView.as_view(), name="home"),
+    path(
+        "robots.txt",
+        TemplateView.as_view(
+            template_name="portal/robots.txt", content_type="text/plain", extra_context={"debug": settings.DEBUG}
+        ),
+    ),
 ]

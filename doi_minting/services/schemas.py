@@ -10,14 +10,14 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, List, Literal, TypedDict
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 class AdditionalMetadata(TypedDict, total=False):
     """Type definition for additional metadata that can be passed to Invenio."""
 
     languages: list[Language] | None  # List of Language objects (ISO 639-2 codes) or None
-    subject: list[str] | None  # List of tags/keywords for the record
+    subjects: list[Subject] | None  # List of tags/keywords for the record
 
 
 # ============================================================================
@@ -148,15 +148,43 @@ class RelatedIdentifierItem(BaseModel):
 # ============================================================================
 
 
-class SubjectTerm(BaseModel):
+class Subject(BaseModel):
     """Subject/keyword term with full metadata for Invenio subject field."""
 
-    subjectScheme: str
-    schemeURI: str
-    valueURI: str
-    classificationCode: str
-    label: str
+    subject: str
+    scheme: str = Field(
+        default="", alias="subjectSchema", validation_alias=AliasChoices("scheme", "subjectSchema", "subject_scheme")
+    )
+    url: str = Field(default="", alias="valueURI", validation_alias=AliasChoices("url", "valueURI", "value_uri"))
+    identifier: str = Field(
+        default="", validation_alias=AliasChoices("identifier", "classificationCode", "classification_code")
+    )
     lang: str = "en"
+
+
+class AutocompleteTerm(BaseModel):
+    """Autocomplete term with search metadata."""
+
+    id: str
+    label: str
+    source: str
+    score: float
+
+
+class TermMetadata(BaseModel):
+    """Term metadata with detailed information."""
+
+    subject: str | None = None
+    subject_scheme: str | None = None
+    subjectScheme: str | None = None
+    scheme_uri: str | None = None
+    schemeURI: str | None = None
+    value_uri: str | None = None
+    valueURI: str | None = None
+    classification_code: str | None = None
+    classificationCode: str | None = None
+    label: str | None = None
+    lang: str | None = None
 
 
 class InvenioMetadata(BaseModel):
@@ -179,7 +207,7 @@ class InvenioMetadata(BaseModel):
 
     # Optional metadata
     languages: List[Language] | None = None
-    subject: list[SubjectTerm] | None = None  # List of subject terms for the record
+    subjects: list[Subject] | None = None  # List of subject terms for the record
 
 
 # ============================================================================

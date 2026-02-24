@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from unittest.mock import ANY, patch
 
 import pytest
+import waffle
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
@@ -67,8 +68,11 @@ class CreateAppInstanceTestCase(TestCase):
 
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
-        with patch("apps.tasks.deploy_resource.delay") as mock_task:
-            id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
+        with patch.object(waffle, "switch_is_active", return_value=False), patch(
+            "apps.tasks.deploy_resource.delay"
+        ) as mock_task:
+            with self.captureOnCommitCallbacks(execute=True):
+                id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
 
             self.assertIsNotNone(id)
             self.assertTrue(id > 0)
@@ -107,8 +111,11 @@ class CreateAppInstanceTestCase(TestCase):
 
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
-        with patch("apps.tasks.deploy_resource.delay") as mock_task:
-            id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
+        with patch.object(waffle, "switch_is_active", return_value=False), patch(
+            "apps.tasks.deploy_resource.delay"
+        ) as mock_task:
+            with self.captureOnCommitCallbacks(execute=True):
+                id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
 
             app_instance = DashInstance.objects.get(pk=id)
             # verify the reminder date is present
@@ -335,7 +342,9 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertIsNotNone(form.changed_data)
         self.assertEqual(set(form.changed_data), set(changed_fields))
 
-        id = create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+        with patch.object(waffle, "switch_is_active", return_value=False):
+            with self.captureOnCommitCallbacks(execute=True):
+                id = create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
 
         self.assertIsNotNone(id)
         self.assertTrue(id > 0)
@@ -392,7 +401,9 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         }
         form = form_class(data, project_pk=self.project.pk, instance=app_instance)
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
-        id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id)
+        with patch.object(waffle, "switch_is_active", return_value=False):
+            with self.captureOnCommitCallbacks(execute=True):
+                id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id)
         # get the updated app instance and verify reminder date field is set
         app_instance = DashInstance.objects.get(pk=id)
         self.assertIsNotNone(app_instance.reminder_date_linkonly_privacy)
@@ -402,7 +413,9 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         data = {**data, "access": "public"}
         form = form_class(data, project_pk=self.project.pk, instance=app_instance)
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
-        id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id)
+        with patch.object(waffle, "switch_is_active", return_value=False):
+            with self.captureOnCommitCallbacks(execute=True):
+                id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id)
         # get updated app instance and verify reminder date field is not set
         app_instance = DashInstance.objects.get(pk=id)
         self.assertIsNone(app_instance.reminder_date_linkonly_privacy)

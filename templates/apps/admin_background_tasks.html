@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin - Background Tasks{% endblock %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h3>Background Tasks - Admin View</h3>
+      </div>
+
+      <!-- Filters -->
+      <div class="card shadow mb-4">
+        <div class="card-header">
+          <h5>Filters</h5>
+        </div>
+        <div class="card-body">
+          <form method="get" action="" class="row g-3">
+            <div class="col-md-3">
+              <label for="status" class="form-label">Status</label>
+              <select name="status" id="status" class="form-select">
+                <option value="">All</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="running" {% if status_filter == 'running' %}selected{% endif %}>Running</option>
+                <option value="success" {% if status_filter == 'success' %}selected{% endif %}>Success</option>
+                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+                <option value="retrying" {% if status_filter == 'retrying' %}selected{% endif %}>Retrying</option>
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label for="app_type" class="form-label">App Type</label>
+              <select name="app_type" id="app_type" class="form-select">
+                <option value="">All</option>
+                {% for app in app_types %}
+                <option value="{{ app.slug }}" {% if app_type_filter == app.slug %}selected{% endif %}>
+                  {{ app.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label for="is_critical" class="form-label">Critical Tasks</label>
+              <select name="is_critical" id="is_critical" class="form-select">
+                <option value="">All</option>
+                <option value="true" {% if is_critical_filter == 'true' %}selected{% endif %}>Critical Only</option>
+                <option value="false" {% if is_critical_filter == 'false' %}selected{% endif %}>Non-Critical Only</option>
+              </select>
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+              <a href="{% url 'apps:admin_background_tasks' project %}" class="btn btn-secondary">Clear</a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tasks Table -->
+      <div class="card shadow">
+        <div class="card-header">
+          <h5>Tasks ({{ page_obj.paginator.count }} total)</h5>
+        </div>
+        <div class="card-body">
+          {% if page_obj %}
+          <div class="table-responsive">
+            <table class="table table-hover table-sm">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Task Name</th>
+                  <th>App Instance</th>
+                  <th>Project</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Critical</th>
+                  <th>Created</th>
+                  <th>Duration</th>
+                  <th>Retries</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for task in page_obj %}
+                <tr>
+                  <td>{{ task.id }}</td>
+                  <td>
+                    <strong>{{ task.task_name }}</strong>
+                  </td>
+                  <td>
+                    <a href="{% url 'apps:background_tasks' task.app_instance.project.slug task.app_instance.app.slug task.app_instance.pk %}">
+                      {{ task.app_instance.name|truncatechars:30 }}
+                    </a>
+                    <br>
+                    <small class="text-muted">{{ task.app_instance.app.name }}</small>
+                  </td>
+                  <td>
+                    <a href="{% url 'projects:details' task.app_instance.project.slug %}">
+                      {{ task.app_instance.project.name|truncatechars:20 }}
+                    </a>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">{{ task.task_type }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-{{ task.get_status_display_class }}">
+                      {{ task.get_status_display }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if task.is_critical %}
+                    <span class="badge bg-danger">Critical</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Optional</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <small>{{ task.created_at|date:"Y-m-d H:i" }}</small>
+                  </td>
+                  <td>
+                    {% if task.get_duration %}
+                    {{ task.get_duration|floatformat:2 }}s
+                    {% else %}
+                    -
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ task.retry_count }} / {{ task.max_retries }}
+                  </td>
+                  <td>
+                    <button
+                      class="btn btn-sm btn-info"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#task-details-{{ task.id }}"
+                    >
+                      Details
+                    </button>
+                  </td>
+                </tr>
+                <tr class="collapse" id="task-details-{{ task.id }}">
+                  <td colspan="11">
+                    <div class="card card-body bg-light">
+                      <h6>Task Details</h6>
+                      <dl class="row">
+                        <dt class="col-sm-2">Task Name:</dt>
+                        <dd class="col-sm-10">{{ task.task_name }}</dd>
+
+                        <dt class="col-sm-2">Status:</dt>
+                        <dd class="col-sm-10">{{ task.get_status_display }}</dd>
+
+                        <dt class="col-sm-2">Started At:</dt>
+                        <dd class="col-sm-10">{{ task.started_at|date:"Y-m-d H:i:s"|default:"-" }}</dd>
+
+                        <dt class="col-sm-2">Completed At:</dt>
+                        <dd class="col-sm-10">{{ task.completed_at|date:"Y-m-d H:i:s"|default:"-" }}</dd>
+
+                        <dt class="col-sm-2">Celery Task ID:</dt>
+                        <dd class="col-sm-10"><code>{{ task.celery_task_id|default:"-" }}</code></dd>
+
+                        {% if task.error_message %}
+                        <dt class="col-sm-2">Error:</dt>
+                        <dd class="col-sm-10">
+                          <div class="alert alert-danger mb-0">
+                            <pre class="mb-0">{{ task.error_message }}</pre>
+                          </div>
+                        </dd>
+                        {% endif %}
+
+                        {% if task.result_data %}
+                        <dt class="col-sm-2">Result Data:</dt>
+                        <dd class="col-sm-10">
+                          <pre class="bg-white p-2 border mb-0">{{ task.result_data|pprint }}</pre>
+                        </dd>
+                        {% endif %}
+                      </dl>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="11" class="text-center">No tasks found matching the filters.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          {% if page_obj.has_other_pages %}
+          <nav aria-label="Task pagination">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if app_type_filter %}&app_type={{ app_type_filter }}{% endif %}{% if is_critical_filter %}&is_critical={{ is_critical_filter }}{% endif %}">First</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if app_type_filter %}&app_type={{ app_type_filter }}{% endif %}{% if is_critical_filter %}&is_critical={{ is_critical_filter }}{% endif %}">Previous</a>
+              </li>
+              {% endif %}
+
+              <li class="page-item active">
+                <span class="page-link">
+                  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+              </li>
+
+              {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if app_type_filter %}&app_type={{ app_type_filter }}{% endif %}{% if is_critical_filter %}&is_critical={{ is_critical_filter }}{% endif %}">Next</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if app_type_filter %}&app_type={{ app_type_filter }}{% endif %}{% if is_critical_filter %}&is_critical={{ is_critical_filter }}{% endif %}">Last</a>
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+          {% else %}
+          <p>No tasks found.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

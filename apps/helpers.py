@@ -392,7 +392,19 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
 
     if do_deploy:
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
-        deploy_resource.delay(instance.serialize())
+
+        # Run background tasks before deployment (feature-flagged).
+        #
+        # Important: enqueue only after DB transaction commits, otherwise the worker
+        # may not be able to read the just-created/updated instance (or related data).
+        if waffle.switch_is_active("background_tasks"):
+            from .tasks import run_background_tasks
+
+            # The orchestrator will handle deployment if tasks succeed.
+            transaction.on_commit(lambda: run_background_tasks.delay(instance.serialize(), app_slug))
+        else:
+            # Fall back to direct deployment.
+            transaction.on_commit(lambda: deploy_resource.delay(instance.serialize()))
     else:
         logger.debug(f"Not re-deploying this app with app_id = {app_id}")
 
@@ -414,11 +426,13 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             additional_metadata["languages"] = lang
         # Check for Invenio keywords and subject tags
         invenio_tags = form.cleaned_data.get("tags")
+        logger.debug(f"Raw invenio_tags from form: {invenio_tags} (type: {type(invenio_tags)})")
         if invenio_tags:
             logger.debug(f"Form contains Invenio tags: {invenio_tags}")
-            additional_metadata["subject"] = invenio_tags
+            additional_metadata["subjects"] = invenio_tags
         else:
             logger.debug("Form does not contain Invenio tags")
+        logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
         # Check for changes
         if image_value_changed:
             logger.info(
