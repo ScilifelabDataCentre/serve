@@ -6,10 +6,10 @@ from django.db.models.query import QuerySet
 from django.http import HttpResponse
 from django.utils import timezone
 
+from apps.constants import AppActionOrigin
 from projects.models import PersistentVolumeMountPath
 from studio.utils import get_logger
 
-from .constants import AppActionOrigin
 from .helpers import export_k8s_values_to_yaml, get_URI, set_linkonly_reminder_date
 from .models import (
     AppCategories,

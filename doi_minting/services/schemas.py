@@ -9,13 +9,14 @@ from __future__ import annotations
 
 from typing import Any, List, TypedDict
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class AdditionalMetadata(TypedDict, total=False):
     """Type definition for additional metadata that can be passed to Invenio."""
 
-    languages: list[Language] | None  # List of language objects with ISO 639-2 codes
+    languages: list[Language] | None  # List of Language objects (ISO 639-2 codes) or None
+    subjects: list[Subject] | None  # List of tags/keywords for the record
 
 
 # ============================================================================
@@ -123,6 +124,45 @@ class RelatedIdentifierItem(BaseModel):
 # ============================================================================
 
 
+class Subject(BaseModel):
+    """Subject/keyword term with full metadata for Invenio subject field."""
+
+    subject: str
+    scheme: str = Field(
+        default="", alias="subjectSchema", validation_alias=AliasChoices("scheme", "subjectSchema", "subject_scheme")
+    )
+    url: str = Field(default="", alias="valueURI", validation_alias=AliasChoices("url", "valueURI", "value_uri"))
+    identifier: str = Field(
+        default="", validation_alias=AliasChoices("identifier", "classificationCode", "classification_code")
+    )
+    lang: str = "en"
+
+
+class AutocompleteTerm(BaseModel):
+    """Autocomplete term with search metadata."""
+
+    id: str
+    label: str
+    source: str
+    score: float
+
+
+class TermMetadata(BaseModel):
+    """Term metadata with detailed information."""
+
+    subject: str | None = None
+    subject_scheme: str | None = None
+    subjectScheme: str | None = None
+    scheme_uri: str | None = None
+    schemeURI: str | None = None
+    value_uri: str | None = None
+    valueURI: str | None = None
+    classification_code: str | None = None
+    classificationCode: str | None = None
+    label: str | None = None
+    lang: str | None = None
+
+
 class InvenioMetadata(BaseModel):
     """Core Invenio metadata structure with all required and optional fields."""
 
@@ -134,15 +174,16 @@ class InvenioMetadata(BaseModel):
     resource_type: ResourceType
 
     # People and organizations
-    creators: list[Creator]
-    contributors: list[Contributor]
+    creators: List[Creator]
+    contributors: List[Contributor]
 
     # Identifiers and relationships
-    identifiers: list[Identifier]
-    related_identifiers: list[RelatedIdentifierItem] | None = None
+    identifiers: List[Identifier]
+    related_identifiers: List[RelatedIdentifierItem] | None = None
 
     # Optional metadata
-    languages: list[Language] | None = None
+    languages: List[Language] | None = None
+    subjects: list[Subject] | None = None  # List of subject terms for the record
 
 
 # ============================================================================

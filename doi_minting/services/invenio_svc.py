@@ -5,10 +5,11 @@ This module provides a clean interface for managing Invenio records and DOI mint
 """
 
 import json
+import logging
 import time
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, TypedDict
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -17,6 +18,7 @@ from django.forms.models import model_to_dict
 from django.utils import timezone
 
 from doi_minting.clients.invenio_client import InvenioClient
+from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
 from studio.utils import get_logger
 
 from .schemas import (
@@ -35,6 +37,7 @@ from .schemas import (
     RelationType,
     ResourceType,
     Role,
+    Subject,
 )
 
 logger = get_logger(__name__)
@@ -45,7 +48,11 @@ class InvenioService:
     Manages Invenio record creation, versioning, and DOI minting for application instances.
     """
 
-    def __init__(self, base_url: str | None = None, token: str | None = None, verify: bool = True):
+    client: Any
+
+    def __init__(
+        self, base_url: Optional[str] = None, token: Optional[str] = None, verify: bool = True, mock_mode: bool = False
+    ):
         """
         Initialize the Invenio Record Service.
 
@@ -53,17 +60,22 @@ class InvenioService:
             base_url: Invenio instance base URL (defaults to settings.INVENIO_URL)
             token: API token (defaults to settings.INVENIO_API_TOKEN)
             verify: Whether to verify SSL certificates
+            mock_mode: If True, will not make actual API calls (for testing)
         """
         self.base_url = base_url or settings.INVENIO_URL
         self.token = token or settings.INVENIO_API_TOKEN
         self.verify = verify
+        self.mock_mode = mock_mode
 
-        self.client = InvenioClient(
-            base_url=self.base_url,
-            token=self.token,
-            auth_scheme="Bearer",
-            verify=self.verify,
-        )
+        if self.mock_mode:
+            self.client = MockInvenioClient()
+        else:
+            self.client = InvenioClient(
+                base_url=self.base_url,
+                token=self.token,
+                auth_scheme="Bearer",
+                verify=self.verify,
+            )
 
     def check_image_version_exists(self, app_instance: Any, image_value: str) -> bool:
         """
@@ -98,7 +110,6 @@ class InvenioService:
 
         except Exception as e:
             logger.error(f"Error checking existing versions: {e}")
-            logger.debug(traceback.format_exc())
             # Assume it's new if we can't check
 
         return False
@@ -168,7 +179,8 @@ class InvenioService:
         # Publish record
         published_record = self.client.publish_draft(draft["id"])
         logger.info(f"Successfully published Invenio record with ID: {published_record['id']}")
-
+        if not isinstance(published_record, dict):
+            raise TypeError("publish_draft did not return a dict")
         return published_record
 
     def create_new_version(self, app_instance: Any, metadata: InvenioMetadata) -> Dict[str, Any]:
@@ -221,6 +233,8 @@ class InvenioService:
         published_version = self.client.publish_draft(updated_version["id"])
         logger.info(f"Published new version: {published_version['id']}")
 
+        if not isinstance(published_version, dict):
+            raise TypeError("publish_draft did not return a dict")
         return published_version
 
     def update_app_instance(self, app_instance: Any, record_id: str, doi: str) -> None:
@@ -251,12 +265,85 @@ class InvenioService:
         Returns:
             The modified metadata dictionary
         """
-        # Handle languages field - convert Language models to dict format
-        if "languages" in extra and extra["languages"]:
-            target_metadata["languages"] = [lang.model_dump() for lang in extra["languages"]]
-        elif "languages" in extra and not extra["languages"]:
-            # Empty list - remove languages field
+        logger.debug(f"[Invenio] _apply_additional_invenio_metadata: extra={extra} (type={type(extra)})")
+        logger.debug(f"[Invenio] Keys in extra: {list(extra.keys()) if isinstance(extra, dict) else 'Not a dict'}")
+
+        # Handle languages field - accept string, list of strings, or list of Language objects
+        languages = extra.get("languages")
+
+        language_objs = []
+        if isinstance(languages, str):
+            # Single language code as string
+            language_objs = [Language(id=languages)]
+        elif isinstance(languages, list):
+            if languages:
+                # List of strings or Language objects
+                for lang in languages:
+                    if isinstance(lang, Language):
+                        language_objs.append(lang)
+                    elif isinstance(lang, str):
+                        language_objs.append(Language(id=lang))
+            # If empty list, leave language_objs empty
+        if language_objs:
+            target_metadata["languages"] = [lang.model_dump() for lang in language_objs]
+        else:
             target_metadata.pop("languages", None)
+
+        # Handle subject field (accept both 'subject' and 'subjects' as input)
+        subject: list[Subject] | None = None
+        if "subjects" in extra:
+            subject_input: Any = extra.get("subjects")
+            logger.debug(f"[Invenio] _apply_additional_invenio_metadata: subject_input={subject_input}")
+        elif "subject" in extra:
+            subject_input = extra.get("subject")
+            logger.debug(f"[Invenio] _apply_additional_invenio_metadata: subject_input={subject_input}")
+        else:
+            subject_input = None
+
+        if subject_input and isinstance(subject_input, list) and subject_input:
+            subject_terms: list[Subject] = []
+            try:
+                from .keywords_service import VocabularyMemoryService
+
+                vocab_service = VocabularyMemoryService()
+            except Exception:
+                vocab_service = None
+            for tag in subject_input:
+                tag_label: str
+                if isinstance(tag, dict) and "label" in tag:
+                    tag_label = tag["label"]
+                elif isinstance(tag, str):
+                    tag_label = tag
+                else:
+                    continue
+                subject_term = None
+                if vocab_service:
+                    for term_id, term_data in vocab_service.term_metadata.items():
+                        subj = term_data.subject or ""
+                        if isinstance(subj, str) and subj.lower() == tag_label.lower():
+                            # Use the vocabulary data but override subject with tag_label
+                            vocab_data = term_data.model_dump()
+                            vocab_data["subject"] = tag_label
+                            # Filter out None values to prevent validation errors
+                            vocab_data = {k: v for k, v in vocab_data.items() if v is not None}
+                            subject_term = Subject(**vocab_data)
+                            break
+                if not subject_term:
+                    subject_term = Subject(subject=tag_label)
+                subject_terms.append(subject_term)
+            logger.debug(f"[Invenio] _apply_additional_invenio_metadata: subject_terms={subject_terms}")
+            if subject_terms:
+                subject = subject_terms
+
+        if subject:
+            # Convert Subject objects to dicts for serialization
+            subject_dicts = [s.model_dump() for s in subject if hasattr(s, "model_dump")]
+            # Also store as Subject objects for downstream use
+
+            target_metadata["subjects"] = [Subject(**s) if not isinstance(s, Subject) else s for s in subject_dicts]
+        else:
+            target_metadata.pop("subjects", None)
+        logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
 
         return target_metadata
 
@@ -397,6 +484,12 @@ class InvenioService:
         if additional_metadata:
             metadata_dict = metadata.model_dump()
             self._apply_additional_invenio_metadata(metadata_dict, additional_metadata)
+            # Debug: log subject type and value before constructing InvenioMetadata
+            subj_val = metadata_dict.get("subjects", None)
+            logger.debug(f"[Invenio] Subjects field before model: type={type(subj_val)}, value={subj_val}")
+            # If subjects is an empty list, keep it as an empty list (not None)
+            if "subjects" in metadata_dict and metadata_dict["subjects"] is None:
+                metadata_dict["subjects"] = []
             metadata = InvenioMetadata(**metadata_dict)
 
         # Build complete record
@@ -406,7 +499,7 @@ class InvenioService:
 
         # Log the generated metadata
         logger.info(f"Generated Invenio metadata for app '{app_data.name}'")
-        logger.info(json.dumps(invenio_record.model_dump(), indent=2))
+        logger.info(json.dumps(invenio_record.model_dump(by_alias=True), indent=2))
 
         return invenio_record
 
@@ -514,3 +607,18 @@ class InvenioService:
             raise
 
         logger.info(f"Completed metadata processing for app '{app_data.name}'")
+
+
+def save_metadata_to_invenio_then_mint_doi(
+    app_slug: str, app_id: int, additional_metadata: Optional[AdditionalMetadata] = None
+) -> None:
+    """
+    Invenio and DOI minting process for application metadata.
+
+    Args:
+        app_slug: Application slug for registry lookup
+        app_id: Application ID to fetch from database
+        additional_metadata: Optional additional metadata to include
+    """
+    invenio_svc = InvenioService(mock_mode=True)
+    invenio_svc.process_app_metadata(app_slug, app_id, additional_metadata)

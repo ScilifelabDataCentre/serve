@@ -19,6 +19,8 @@ HELP_MESSAGE_MAP = {
     "name": "The app title is visible in the app catalogue if the app is public",
     "description": "The app description is visible in the app catalogue if the app is public.",
     "tags": "These keywords are displayed along with the description in the app catalogue if the app is public.",
+    "invenio_tags": "Add subjects and keywords describing your app from controlled vocabularies "
+    "(MeSH, EuroSciVoc, GEMET). These will enhance discoverability of your app.",
     "subdomain": "Valid subdomain names have minimum length of 3 characters and may contain lower case letters a-z "
     "and numbers 0-9 and a hyphen '-'. The hyphen should not be at the start or end of the subdomain.",
     "access": "Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to "
