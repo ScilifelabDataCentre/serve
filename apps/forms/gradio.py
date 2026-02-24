@@ -6,14 +6,18 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import ContainerImageMixin, StorageMixin
+from apps.forms.mixins import (
+    ContainerImageMixin,
+    KeywordTagsValidationMixin,
+    StorageMixin,
+)
 from apps.models import GradioInstance
 from projects.models import Flavor
 
 __all__ = ["GradioForm"]
 
 
-class GradioForm(StorageMixin, ContainerImageMixin, AppBaseForm):
+class GradioForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
@@ -27,6 +31,15 @@ class GradioForm(StorageMixin, ContainerImageMixin, AppBaseForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         super().add_metadata()
+
+        # Add invenio_tags as a form-only field for vocabulary input
+        self.fields["invenio_tags"] = forms.CharField(
+            required=False,
+            label="Subjects and keywords",
+            help_text="Select research field(s) and keyword(s) to help categorize your app."
+            "We allow keywords from MeSH, EuroSciVoc, and GEMET.",
+            widget=forms.TextInput(attrs={"class": "form-control"}),
+        )
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -43,7 +56,7 @@ class GradioForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         general_fields = [
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
-            SRVCommonDivField("tags"),
+            SRVCommonDivField("invenio_tags"),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
@@ -87,7 +100,10 @@ class GradioForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         self.helper.layout = Layout(body, self.footer)
 
     def clean(self):
-        return self._clean()
+        cleaned_data = super().clean()
+        # Validate invenio_tags and store valid tags
+        cleaned_data["tags"] = self.clean_keyword_tags()
+        return cleaned_data
 
     class Meta:
         model = GradioInstance
@@ -107,5 +123,5 @@ class GradioForm(StorageMixin, ContainerImageMixin, AppBaseForm):
         ]
         labels = {
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
-            "tags": "Keywords",
+            "tags": "Subjects and keywords",
         }

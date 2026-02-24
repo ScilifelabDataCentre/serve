@@ -8,11 +8,16 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.test import TestCase, TransactionTestCase
 
+from apps.constants import HandleUpdateStatusResponseCode
+from apps.helpers import handle_update_status_request
+from apps.models import (
+    AppCategories,
+    Apps,
+    JupyterInstance,
+    K8sUserAppStatus,
+    Subdomain,
+)
 from projects.models import Project
-
-from ..constants import HandleUpdateStatusResponseCode
-from ..helpers import handle_update_status_request
-from ..models import AppCategories, Apps, JupyterInstance, K8sUserAppStatus, Subdomain
 
 utc = pytz.UTC
 

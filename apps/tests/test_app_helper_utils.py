@@ -10,20 +10,20 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from schema import And, Regex, Schema
 
+from apps.app_registry import APP_REGISTRY
+from apps.constants import AppActionOrigin
+from apps.forms import DashForm
+from apps.helpers import (
+    create_instance_from_form,
+    generate_schema_org_compliant_app_metadata,
+    get_subdomain_name,
+)
 from common.management.manage_test_data import TestDataManager
 from common.models import UserProfile
 from doi_minting.services.invenio_svc import InvenioService
 from doi_minting.services.schemas import InvenioRecord
 from projects.models import Flavor, Project
 
-from ..app_registry import APP_REGISTRY
-from ..constants import AppActionOrigin
-from ..forms import DashForm
-from ..helpers import (
-    create_instance_from_form,
-    generate_schema_org_compliant_app_metadata,
-    get_subdomain_name,
-)
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
 from ..types_.subdomain import SubdomainTuple
 
@@ -59,6 +59,7 @@ class CreateAppInstanceTestCase(TestCase):
             "port": 8000,
             "image": "some-image",
             "source_code_url": "https://someurlthatdoesnotexist.com",
+            "invenio_tags": "Antibodies, Cells",
         }
 
         _, form_class = APP_REGISTRY.get(self.app_slug)
@@ -198,9 +199,11 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "language": "eng",
+            "invenio_tags": "Antibodies, Cells",
         }
 
-        changed_fields = ["port"]
+        changed_fields = ["port", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -228,9 +231,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": "test-image-new",
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "invenio_tags": "Antibodies, Cells",
         }
 
-        changed_fields = ["image"]
+        changed_fields = ["image", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -259,9 +263,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": "test-subdomain-update-app-new",
+            "invenio_tags": "Antibodies, Cells",
         }
 
-        changed_fields = ["subdomain"]
+        changed_fields = ["subdomain", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -297,10 +302,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": "https://someurlthatdoesnotexist.com/new",
             "subdomain": self.subdomain_name,
-            "tags": None,
+            "invenio_tags": "Antibodies, Cells",
         }
 
-        changed_fields = ["name", "description", "source_code_url"]
+        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -328,7 +333,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
         self.assertIsNotNone(form.changed_data)
-        self.assertEqual(form.changed_data, changed_fields)
+        self.assertEqual(set(form.changed_data), set(changed_fields))
 
         with patch.object(waffle, "switch_is_active", return_value=False):
             with self.captureOnCommitCallbacks(execute=True):
@@ -385,6 +390,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "invenio_tags": "Antibodies, Cells",
         }
         form = form_class(data, project_pk=self.project.pk, instance=app_instance)
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
@@ -424,6 +430,7 @@ def test_get_subdomain_name():
         "image": "some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
         "subdomain": subdomain,
+        "invenio_tags": "Antibodies, Cells",
     }
 
     _, form_class = APP_REGISTRY.get("dashapp")
@@ -454,6 +461,7 @@ def test_get_subdomain_name_no_subdomain_in_form():
         "port": 9999,
         "image": "some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
+        "invenio_tags": "Antibodies, Cells",
     }
 
     _, form_class = APP_REGISTRY.get("dashapp")
@@ -742,7 +750,9 @@ def test_generate_invenio_metadata_validation():
 
     # Generate the invenio metadata using service method directly
     # Create a minimal service instance just for metadata generation (no client needed)
-    service = InvenioService.__new__(InvenioService)  # Create without __init__
+
+    # Use mock client for InvenioService
+    service = InvenioService(mock_mode=True)
 
     # Generate metadata directly
     invenio_record = service.generate_invenio_metadata(app_instance)
@@ -865,7 +875,7 @@ def test_generate_invenio_metadata_validation():
         url="https://private-subdomain.test.serve.scilifelab.se",
     )
 
-    invenio_service = InvenioService.__new__(InvenioService)
+    invenio_service = InvenioService(mock_mode=True)
     invenio_record_private = invenio_service.generate_invenio_metadata(app_instance_private)
     invenio_metadata_private = invenio_record_private.model_dump()
     # Should have exactly 2 related identifiers for private app
@@ -887,7 +897,7 @@ def test_generate_invenio_metadata_validation():
         # Don't set k8s_values
     )
 
-    invenio_service = InvenioService.__new__(InvenioService)
+    invenio_service = InvenioService(mock_mode=True)
     invenio_record_no_k8s = invenio_service.generate_invenio_metadata(app_instance_no_k8s)
     invenio_metadata_no_k8s = invenio_record_no_k8s.model_dump()
     # Should have 2 related identifiers (no landing page because k8s_values is None)

@@ -1,7 +1,7 @@
 from django.urls import path
 
-app_name = "doi_minting"
+from .views import keyword_search
 
-urlpatterns: list[path] = [
-    # path('mint/', views.mint_doi, name='mint_doi'),
+urlpatterns = [
+    path("keyword_search/", keyword_search, name="keyword_search"),
 ]
