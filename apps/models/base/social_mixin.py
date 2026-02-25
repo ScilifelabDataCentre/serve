@@ -23,5 +23,13 @@ class SocialMixin(models.Model):
         help_text="Provide a detailed description of your app. Think of it as the abstract of a research article.",
     )
 
+    invenio_record_id = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Invenio record identifier for published apps"
+    )
+    app_doi = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Digital Object Identifier for the published app"
+    )
+    made_public_on = models.DateTimeField(blank=True, null=True)
+
     class Meta:
         abstract = True
