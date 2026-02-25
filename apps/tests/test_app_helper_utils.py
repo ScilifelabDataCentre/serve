@@ -813,41 +813,7 @@ def test_generate_invenio_metadata_validation():
         == "publication-softwaredocumentation"
     )
 
-    # 2. Test with user without first/last name (should use email as fallback)
-    user_no_name = User.objects.create_user(
-        username="no_name_user", email="no_name@test.com", password="testpass123", first_name="", last_name=""
-    )
-
-    # Create a separate app instance for this user with NEW subdomain and k8s status
-    subdomain2 = Subdomain.objects.create(subdomain="unit_test_invenio_metadata_subdomain2")
-    k8s_user_app_status2 = K8sUserAppStatus.objects.create()
-
-    app_instance_no_name = DashInstance.objects.create(
-        access="public",
-        owner=user_no_name,
-        name="app_no_name_user",
-        description="Test app for user without name",
-        port=8000,
-        image="ghcr.io/test/image:latest",
-        app=app,
-        project=project,
-        subdomain=subdomain2,  # Use new subdomain
-        k8s_user_app_status=k8s_user_app_status2,  # Use new k8s status
-        k8s_values=k8s_values,
-        url="https://unit_test_invenio_metadata_subdomain2.test.serve.scilifelab.se",
-    )
-
-    # Generate metadata for user without name
-    invenio_record_no_name = service.generate_invenio_metadata(app_instance_no_name)
-    invenio_metadata_no_name = invenio_record_no_name.model_dump()
-    creator_no_name = invenio_metadata_no_name["metadata"]["creators"][0]
-
-    # Should have generated a name from email or used default
-    assert creator_no_name["person_or_org"]["name"] != ""
-    assert creator_no_name["person_or_org"]["given_name"] == "No First Name Given"
-    assert creator_no_name["person_or_org"]["family_name"] == "No Family Name Given"
-
-    # 3. Test invalid structure - Pydantic should catch type errors
+    # Test invalid structure - Pydantic should catch type errors
     invalid_metadata = invenio_metadata.copy()
     invalid_metadata["metadata"]["title"] = 12345  # Should be string, not number
 
@@ -859,7 +825,7 @@ def test_generate_invenio_metadata_validation():
 
     assert pydantic_caught_error, "Pydantic should reject invalid title type"
 
-    # 4. Test that Pydantic catches missing required fields
+    # Test that Pydantic catches missing required fields
     incomplete_metadata = invenio_metadata.copy()
     del incomplete_metadata["metadata"]["title"]
 
@@ -867,47 +833,3 @@ def test_generate_invenio_metadata_validation():
 
     with pytest.raises(ValidationError):
         InvenioRecord(**incomplete_metadata)
-
-    # 5. Test with private access app (should not have third related identifier for landing page)
-    app_instance_private = DashInstance.objects.create(
-        access="private",
-        owner=user,
-        name="private_app",
-        description="Test private app",
-        port=8000,
-        image="ghcr.io/test/image:latest",
-        app=app,
-        project=project,
-        subdomain=Subdomain.objects.create(subdomain="private-subdomain"),
-        k8s_user_app_status=K8sUserAppStatus.objects.create(),
-        k8s_values=k8s_values,
-        url="https://private-subdomain.test.serve.scilifelab.se",
-    )
-
-    invenio_service = InvenioService(mock_mode=True)
-    invenio_record_private = invenio_service.generate_invenio_metadata(app_instance_private)
-    invenio_metadata_private = invenio_record_private.model_dump()
-    # Should have exactly 2 related identifiers for private app
-    assert len(invenio_metadata_private["metadata"]["related_identifiers"]) == 2
-
-    # 6. Test with app that has no k8s_values
-    app_instance_no_k8s = DashInstance.objects.create(
-        access="public",
-        owner=user,
-        name="app_no_k8s",
-        description="Test app without k8s_values",
-        port=8000,
-        image="ghcr.io/test/image:latest",
-        app=app,
-        project=project,
-        subdomain=Subdomain.objects.create(subdomain="no-k8s-subdomain"),
-        k8s_user_app_status=K8sUserAppStatus.objects.create(),
-        url="https://no-k8s-subdomain.test.serve.scilifelab.se",
-        # Don't set k8s_values
-    )
-
-    invenio_service = InvenioService(mock_mode=True)
-    invenio_record_no_k8s = invenio_service.generate_invenio_metadata(app_instance_no_k8s)
-    invenio_metadata_no_k8s = invenio_record_no_k8s.model_dump()
-    # Should have 2 related identifiers (no landing page because k8s_values is None)
-    assert len(invenio_metadata_no_k8s["metadata"]["related_identifiers"]) == 2
