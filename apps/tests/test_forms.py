@@ -134,7 +134,7 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
         rendered_form = template.render(context)
         for key, value in valid_data.items():
             if key == "invenio_tags":
-                value = "Antibodies, Chemistry, Cats"
+                value = "Antibodies|Chemistry|Cats"
             if key == "mount_path":  # Form uses mount_path instead of volume
                 value = self.valid_data.get("path")  # Mount path is same as path in the form
             if key == "flavor":
