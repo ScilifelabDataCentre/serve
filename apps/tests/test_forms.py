@@ -54,7 +54,7 @@ class CustomAppFormTest(BaseAppFormTest):
             "image": "mock.io/scilifelabdatacentre/image:tag",
             "default_url_subpath": "valid-default_url_subpath/",
             # These tags are found in the vocabulary service pickled data.
-            "invenio_tags": "Antibodies, Chemistry, Cats",
+            "invenio_tags": "Antibodies|Chemistry|Cats",
         }
 
     def test_form_valid_data(self):
@@ -122,7 +122,7 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
             "port": 8000,
             "image": "ghcr.io/scilifelabdatacentre/image:tag",
             # These tags are found in the vocabulary service pickled data.
-            "invenio_tags": "Antibodies, Chemistry, Cats",
+            "invenio_tags": "Antibodies|Chemistry|Cats",
         }
 
     def test_form_rendering(self):

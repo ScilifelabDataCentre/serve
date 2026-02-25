@@ -309,7 +309,7 @@ document.addEventListener("DOMContentLoaded", function() {
         let validSuggestions = [];
 
         function updateHiddenField() {
-            invenioTagsField.value = currentTags.join(', ');
+            invenioTagsField.value = currentTags.join('|');
         }
 
         function addTag(tagText) {
@@ -452,7 +452,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // Initialize with existing values if any
         const existingValue = invenioTagsField.value.trim();
         if (existingValue) {
-            currentTags = existingValue.split(',').map(tag => tag.trim()).filter(tag => tag);
+            currentTags = existingValue.split('|').map(tag => tag.trim()).filter(tag => tag);
             renderTags();
         }
     });
