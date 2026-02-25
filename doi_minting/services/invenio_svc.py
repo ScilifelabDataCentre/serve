@@ -290,57 +290,38 @@ class InvenioService:
             target_metadata.pop("languages", None)
 
         # Handle subject field (accept both 'subject' and 'subjects' as input)
-        subject: list[Subject] | None = None
-        if "subjects" in extra:
-            subject_input: Any = extra.get("subjects")
-            logger.debug(f"[Invenio] _apply_additional_invenio_metadata: subject_input={subject_input}")
-        elif "subject" in extra:
-            subject_input = extra.get("subject")
-            logger.debug(f"[Invenio] _apply_additional_invenio_metadata: subject_input={subject_input}")
-        else:
-            subject_input = None
+        subject_input = extra.get("subjects") or extra.get("subject")
 
-        if subject_input and isinstance(subject_input, list) and subject_input:
-            subject_terms: list[Subject] = []
+        if subject_input and isinstance(subject_input, list):
             try:
                 from .keywords_service import VocabularyMemoryService
 
                 vocab_service = VocabularyMemoryService()
             except Exception:
                 vocab_service = None
-            for tag in subject_input:
-                tag_label: str
-                if isinstance(tag, dict) and "label" in tag:
-                    tag_label = tag["label"]
-                elif isinstance(tag, str):
-                    tag_label = tag
-                else:
-                    continue
-                subject_term = None
-                if vocab_service:
+
+            subject_terms = []
+            if vocab_service:
+                for tag in subject_input:
+                    # Extract tag label
+                    tag_label = str(tag) if isinstance(tag, str) else None
+                    if not tag_label:
+                        continue
+
+                    # Find matching vocabulary term
                     for term_id, term_data in vocab_service.term_metadata.items():
-                        subj = term_data.subject or ""
-                        if isinstance(subj, str) and subj.lower() == tag_label.lower():
-                            # Use the vocabulary data but override subject with tag_label
-                            vocab_data = term_data.model_dump()
-                            vocab_data["subject"] = tag_label
-                            # Filter out None values to prevent validation errors
-                            vocab_data = {k: v for k, v in vocab_data.items() if v is not None}
-                            subject_term = Subject(**vocab_data)
+                        if term_data.subject and term_data.subject.lower() == tag_label.lower():
+                            subject_term = Subject(
+                                subject=tag_label,
+                                scheme=term_data.subject_scheme or "NA",
+                                url=term_data.scheme_uri or "NA",
+                                identifier=term_data.classification_code or tag_label.lower().replace(" ", "_"),
+                                lang=term_data.lang or "en",
+                            )
+                            subject_terms.append(subject_term)
                             break
-                if not subject_term:
-                    subject_term = Subject(subject=tag_label)
-                subject_terms.append(subject_term)
-            logger.debug(f"[Invenio] _apply_additional_invenio_metadata: subject_terms={subject_terms}")
-            if subject_terms:
-                subject = subject_terms
 
-        if subject:
-            # Convert Subject objects to dicts for serialization
-            subject_dicts = [s.model_dump() for s in subject if hasattr(s, "model_dump")]
-            # Also store as Subject objects for downstream use
-
-            target_metadata["subjects"] = [Subject(**s) if not isinstance(s, Subject) else s for s in subject_dicts]
+            target_metadata["subjects"] = subject_terms if subject_terms else None
         else:
             target_metadata.pop("subjects", None)
         logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
@@ -499,7 +480,7 @@ class InvenioService:
 
         # Log the generated metadata
         logger.info(f"Generated Invenio metadata for app '{app_data.name}'")
-        logger.info(json.dumps(invenio_record.model_dump(by_alias=True), indent=2))
+        logger.info(json.dumps(invenio_record.model_dump(), indent=2))
 
         return invenio_record
 

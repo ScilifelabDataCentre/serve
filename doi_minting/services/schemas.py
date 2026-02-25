@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, List, TypedDict
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class AdditionalMetadata(TypedDict, total=False):
@@ -128,13 +128,9 @@ class Subject(BaseModel):
     """Subject/keyword term with full metadata for Invenio subject field."""
 
     subject: str
-    scheme: str = Field(
-        default="", alias="subjectSchema", validation_alias=AliasChoices("scheme", "subjectSchema", "subject_scheme")
-    )
-    url: str = Field(default="", alias="valueURI", validation_alias=AliasChoices("url", "valueURI", "value_uri"))
-    identifier: str = Field(
-        default="", validation_alias=AliasChoices("identifier", "classificationCode", "classification_code")
-    )
+    scheme: str
+    url: str
+    identifier: str
     lang: str = "en"
 
 
@@ -152,14 +148,9 @@ class TermMetadata(BaseModel):
 
     subject: str | None = None
     subject_scheme: str | None = None
-    subjectScheme: str | None = None
     scheme_uri: str | None = None
-    schemeURI: str | None = None
     value_uri: str | None = None
-    valueURI: str | None = None
     classification_code: str | None = None
-    classificationCode: str | None = None
-    label: str | None = None
     lang: str | None = None
 
 
