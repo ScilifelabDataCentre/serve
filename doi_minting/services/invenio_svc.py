@@ -440,15 +440,14 @@ class InvenioService:
         )
 
         made_public_on = app_instance.made_public_on
-        if made_public_on is None:
-            raise ValueError("'made_public_on' cannot be None for DOI minting")
-        made_public_on = made_public_on.replace(microsecond=0)
-        dates.append(
-            Date(
-                date=made_public_on,
-                type=DateType(id="available"),
+        if made_public_on:
+            made_public_on = made_public_on.replace(microsecond=0)
+            dates.append(
+                Date(
+                    date=made_public_on,
+                    type=DateType(id="available"),
+                )
             )
-        )
 
         return dates
 
@@ -490,6 +489,10 @@ class InvenioService:
             user_family_name = "No Family Name Given"
 
         dates = self._build_dates(app_instance)
+        publication_date = next(
+            (d.date.strftime("%Y-%m-%d") for d in dates if d.type.id == "available"),
+            datetime.now().strftime("%Y-%m-%d"),  # in case the app has not yet been made publicly available, use today
+        )
 
         # Build components using helper methods
         creators = self._build_creators(user_full_name, user_first_name, user_family_name)
@@ -501,13 +504,13 @@ class InvenioService:
         # Modifies the list in place by reference
         self._add_documentation_link(related_identifiers, app_data)
 
+        next(d.date.strftime("%Y-%m-%d") for d in dates if d.type.id == "available")
+
         # Build metadata using Pydantic models
         metadata = InvenioMetadata(
             title=app_data.name,
             description=app_data.description,
-            publication_date=next(
-                d.date.strftime("%Y-%m-%d") for d in dates if d.type.id == "available"
-            ),  # this one is a separate field on purpose
+            publication_date=publication_date,  # this one is a separate field on purpose
             dates=dates,
             publisher="SciLifeLab Serve",
             resource_type=ResourceType(id="software", title={"en": "Software"}),
