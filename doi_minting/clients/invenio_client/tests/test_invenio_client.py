@@ -134,8 +134,8 @@ class TestDraftOperations:
 
         responses.add(responses.POST, url, json=expected_response, status=201)
 
-        metadata = {"title": "Test Draft"}
-        result = invenio_client.create_draft(metadata=metadata)
+        record_data = {"metadata": {"title": "Test Draft"}}
+        result = invenio_client.create_draft(record_data)
 
         assert result == expected_response
 
@@ -145,7 +145,7 @@ class TestDraftOperations:
         assert request.headers["Authorization"] == "Bearer test-token-12345"
 
         request_body = json.loads(request.body)
-        assert request_body["metadata"] == metadata
+        assert request_body["metadata"] == {"title": "Test Draft"}
         assert request_body["access"]["record"] == "public"
         assert request_body["files"]["enabled"] is False
 
@@ -157,17 +157,19 @@ class TestDraftOperations:
 
         responses.add(responses.POST, url, json=expected_response, status=201)
 
-        metadata = {"title": "Test"}
-        custom_fields = {"custom": "value"}
-        pids = {"doi": {"identifier": "10.1234/test", "provider": "external"}}
+        record_data = {
+            "metadata": {"title": "Test"},
+            "custom_fields": {"custom": "value"},
+            "pids": {"doi": {"identifier": "10.1234/test", "provider": "external"}},
+        }
 
-        result = invenio_client.create_draft(metadata=metadata, custom_fields=custom_fields, pids=pids)
+        result = invenio_client.create_draft(record_data)
 
         assert result == expected_response
 
         request_body = json.loads(responses.calls[0].request.body)
-        assert request_body["custom_fields"] == custom_fields
-        assert request_body["pids"] == pids
+        assert request_body["custom_fields"] == {"custom": "value"}
+        assert request_body["pids"] == {"doi": {"identifier": "10.1234/test", "provider": "external"}}
 
     @responses.activate
     def test_get_draft(self, invenio_client):
