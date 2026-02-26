@@ -380,6 +380,13 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     else:
         instance.reminder_date_linkonly_privacy = None
 
+    # set the date when the app was made public
+    if hasattr(instance, "access") and instance.access == "public":
+        if instance.made_public_on is None:
+            instance.made_public_on = timezone.now()
+    else:
+        instance.made_public_on = None
+
     setup_instance(instance, subdomain, app, project, user_action)
     instance_id = save_instance_and_related_data(instance, form)
 
@@ -417,6 +424,15 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         lang = form.cleaned_data.get("language")
         if lang:
             additional_metadata["languages"] = lang
+        # Check for Invenio keywords and subject tags
+        invenio_tags = form.cleaned_data.get("tags")
+        logger.debug(f"Raw invenio_tags from form: {invenio_tags} (type: {type(invenio_tags)})")
+        if invenio_tags:
+            logger.debug(f"Form contains Invenio tags: {invenio_tags}")
+            additional_metadata["subjects"] = invenio_tags
+        else:
+            logger.debug("Form does not contain Invenio tags")
+        logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
         # Check for changes
         if image_value_changed:
             logger.info(
@@ -732,12 +748,8 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
     project_data = model_to_dict(project_instance, exclude=["_state"])
 
     if user_profile := UserProfile.objects.filter(user=user_instance).first():
-        user_data.update(
-            {
-                "department": user_profile.department,
-                "affiliation": user_profile.get_organization_name(),
-            }
-        )
+        affs = user_profile.get_affiliations()
+        user_data["affiliations"] = affs
 
     # Safely add special fields
     app_data.update(
@@ -813,15 +825,15 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
                     "@type": "Person",
                     "name": f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}",
                     "email": user_data.get("email"),
-                    "affiliation": {
-                        "@type": "Organization",
-                        "name": user_data.get("affiliation"),
-                        "additionalProperty": {
-                            "@type": "PropertyValue",
-                            "name": "department",
-                            "value": user_data.get("department"),
-                        },
-                    },
+                    "affiliations": [
+                        {
+                            "@type": "Organization",
+                            "name": aff.get("title", ""),
+                            "department": aff.get("department", ""),
+                            "identifier": aff.get("ror_id", ""),
+                        }
+                        for aff in user_data.get("affiliations", [])
+                    ],
                 },
                 "applicationCategory": "Cloud Application",
                 "operatingSystem": "Kubernetes",
@@ -841,11 +853,15 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
             },
             "parentOrganization": {
                 "@type": "Organization",
-                "name": user_data.get("affiliation"),
+                "name": user_data.get("affiliations", [{}])[0].get("title", "")
+                if user_data.get("affiliations")
+                else "",
                 "additionalProperty": {
                     "@type": "PropertyValue",
                     "name": "department",
-                    "value": user_data.get("department"),
+                    "value": user_data.get("affiliations", [{}])[0].get("department", "")
+                    if user_data.get("affiliations")
+                    else "",
                 },
             },
         },

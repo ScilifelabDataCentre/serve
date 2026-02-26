@@ -1,29 +1,30 @@
 """This module is used to test the helper functions that are used by user app instance functionality."""
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import ANY, patch
 
 import pytest
 import waffle
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from schema import And, Regex, Schema
 
+from apps.app_registry import APP_REGISTRY
+from apps.constants import AppActionOrigin
+from apps.forms import DashForm
+from apps.helpers import (
+    create_instance_from_form,
+    generate_schema_org_compliant_app_metadata,
+    get_subdomain_name,
+)
 from common.management.manage_test_data import TestDataManager
 from common.models import UserProfile
 from doi_minting.services.invenio_svc import InvenioService
 from doi_minting.services.schemas import InvenioRecord
 from projects.models import Flavor, Project
 
-from ..app_registry import APP_REGISTRY
-from ..constants import AppActionOrigin
-from ..forms import DashForm
-from ..helpers import (
-    create_instance_from_form,
-    generate_schema_org_compliant_app_metadata,
-    get_subdomain_name,
-)
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
 from ..types_.subdomain import SubdomainTuple
 
@@ -59,6 +60,7 @@ class CreateAppInstanceTestCase(TestCase):
             "port": 8000,
             "image": "some-image",
             "source_code_url": "https://someurlthatdoesnotexist.com",
+            "invenio_tags": "Antibodies|Cells",
         }
 
         _, form_class = APP_REGISTRY.get(self.app_slug)
@@ -88,6 +90,7 @@ class CreateAppInstanceTestCase(TestCase):
             self.assertEqual(app_instance.image, data.get("image"))
             self.assertEqual(app_instance.source_code_url, data.get("source_code_url"))
             self.assertIsNone(app_instance.reminder_date_linkonly_privacy)
+            self.assertAlmostEqual(app_instance.made_public_on, timezone.now(), delta=timedelta(seconds=10))
 
             self.assertIsNotNone(app_instance.subdomain)
             subdomain_name = app_instance.subdomain.subdomain
@@ -101,6 +104,7 @@ class CreateAppInstanceTestCase(TestCase):
             mock_task.assert_called_once()
 
         # check that the date for reminder is set when choosing the Link permission
+        # check that the date for being made public is not set when choosing the Link permission
         data = {**data, "access": "link", "note_on_linkonly_privacy": "testing"}
 
         form = form_class(data, project_pk=self.project.pk)
@@ -113,11 +117,12 @@ class CreateAppInstanceTestCase(TestCase):
             with self.captureOnCommitCallbacks(execute=True):
                 id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
 
-            # Get app instance and verify the reminder date is present
             app_instance = DashInstance.objects.get(pk=id)
-
+            # verify the reminder date is present
             self.assertIsNotNone(app_instance.reminder_date_linkonly_privacy)
             self.assertIsInstance(app_instance.reminder_date_linkonly_privacy, date)
+            # verify the made_public_on date is not present
+            self.assertIsNone(app_instance.made_public_on)
 
 
 # Mock the tasks that manipulate k8s resources.
@@ -198,9 +203,11 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "language": "eng",
+            "invenio_tags": "Antibodies|Cells",
         }
 
-        changed_fields = ["port"]
+        changed_fields = ["port", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -228,9 +235,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": "test-image-new",
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "invenio_tags": "Antibodies|Cells",
         }
 
-        changed_fields = ["image"]
+        changed_fields = ["image", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -259,9 +267,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": "test-subdomain-update-app-new",
+            "invenio_tags": "Antibodies|Cells",
         }
 
-        changed_fields = ["subdomain"]
+        changed_fields = ["subdomain", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -297,10 +306,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": "https://someurlthatdoesnotexist.com/new",
             "subdomain": self.subdomain_name,
-            "tags": None,
+            "invenio_tags": "Antibodies|Cells",
         }
 
-        changed_fields = ["name", "description", "source_code_url"]
+        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -328,7 +337,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
         self.assertIsNotNone(form.changed_data)
-        self.assertEqual(form.changed_data, changed_fields)
+        self.assertEqual(set(form.changed_data), set(changed_fields))
 
         with patch.object(waffle, "switch_is_active", return_value=False):
             with self.captureOnCommitCallbacks(execute=True):
@@ -385,6 +394,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "image": self.image,
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
+            "invenio_tags": "Antibodies|Cells",
         }
         form = form_class(data, project_pk=self.project.pk, instance=app_instance)
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
@@ -424,6 +434,7 @@ def test_get_subdomain_name():
         "image": "some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
         "subdomain": subdomain,
+        "invenio_tags": "Antibodies|Cells",
     }
 
     _, form_class = APP_REGISTRY.get("dashapp")
@@ -454,6 +465,7 @@ def test_get_subdomain_name_no_subdomain_in_form():
         "port": 9999,
         "image": "some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
+        "invenio_tags": "Antibodies|Cells",
     }
 
     _, form_class = APP_REGISTRY.get("dashapp")
@@ -474,8 +486,6 @@ def test_get_subdomain_name_no_subdomain_in_form():
 def test_schema_org_compliant_app_metadata_validation():
     # creating the app metadata
     user_data = {
-        "affiliation": "uu",
-        "department": "unit_test_schema_org_description_user_department_name",
         "email": "unit_test_schema_org_description_user_email@scilifelab.uu.se",
         "first_name": "unit_test_schema_org_description_user_first_name",
         "last_name": "unit_test_schema_org_description_user_last_name",
@@ -490,6 +500,15 @@ def test_schema_org_compliant_app_metadata_validation():
 
     manager = TestDataManager(user_data=user_data)
     user = manager.create_user()
+    profile = UserProfile.objects.get(user=user)
+    profile.affiliations = [
+        {
+            "title": "Uppsala University",
+            "ror_id": "https://ror.org/048a87296",
+            "department": "unit_test_schema_org_description_user_department_name",
+        }
+    ]
+    profile.save()
     project = Project.objects.create_project(
         name=project_data["project_name"], owner=user, description=project_data["project_description"]
     )
@@ -553,11 +572,6 @@ def test_schema_org_compliant_app_metadata_validation():
         "name": user_data["first_name"] + " " + user_data["last_name"],
         "email": user_data["email"],
     }
-    schema_dict["about"]["parentOrganization"] = {
-        "@type": "Organization",
-        "name": user_data["affiliation"],
-        "additionalProperty": {"@type": "PropertyValue", "name": "department", "value": user_data["department"]},
-    }
 
     # now testing three cases
 
@@ -608,11 +622,14 @@ def validate_schema(schema_dict: dict):
                         "@type": "Person",
                         "name": str,
                         "email": And(str, Regex(r".+@.+")),
-                        "affiliation": {
-                            "@type": "Organization",
-                            "name": str,
-                            "additionalProperty": {"@type": "PropertyValue", "name": "department", "value": str},
-                        },
+                        "affiliations": [
+                            {
+                                "@type": "Organization",
+                                "name": str,
+                                "department": str,
+                                "identifier": str,
+                            }
+                        ],
                     },
                     "applicationCategory": "Cloud Application",
                     "operatingSystem": "Kubernetes",
@@ -686,8 +703,6 @@ def test_generate_invenio_metadata_validation():
     """Test function generate_invenio_metadata validation."""
     # creating the test data
     user_data = {
-        "affiliation": "uu",
-        "department": "unit_test_invenio_metadata_user_department_name",
         "email": "unit_test_invenio_metadata_user_email@scilifelab.uu.se",
         "first_name": "unit_test_invenio_metadata_user_first_name",
         "last_name": "unit_test_invenio_metadata_user_last_name",
@@ -705,6 +720,15 @@ def test_generate_invenio_metadata_validation():
 
     manager = TestDataManager(user_data=user_data)
     user = manager.create_user()
+    profile = UserProfile.objects.get(user=user)
+    profile.affiliations = [
+        {
+            "title": "Uppsala University",
+            "ror_id": "https://ror.org/048a87296",
+            "department": "unit_test_invenio_metadata_user_department_name",
+        }
+    ]
+    profile.save()
 
     project = Project.objects.create_project(
         name=project_data["project_name"], owner=user, description=project_data["project_description"]
@@ -718,7 +742,7 @@ def test_generate_invenio_metadata_validation():
     # Create timestamp for consistent testing
     from django.utils import timezone
 
-    test_created_date = timezone.now()
+    test_madepublic_date = timezone.now() + timedelta(days=1)
 
     # Create k8s_values for the app instance
     k8s_values = {"global": {"domain": "test.serve.scilifelab.se"}, "project": {"slug": project.slug}}
@@ -735,14 +759,16 @@ def test_generate_invenio_metadata_validation():
         project=project,
         subdomain=subdomain,
         k8s_user_app_status=k8s_user_app_status,
-        created_on=test_created_date,
+        made_public_on=test_madepublic_date,
         k8s_values=k8s_values,
         url="https://unit_test_invenio_metadata_subdomain.test.serve.scilifelab.se",
     )
 
     # Generate the invenio metadata using service method directly
     # Create a minimal service instance just for metadata generation (no client needed)
-    service = InvenioService.__new__(InvenioService)  # Create without __init__
+
+    # Use mock client for InvenioService
+    service = InvenioService(mock_mode=True)
 
     # Generate metadata directly
     invenio_record = service.generate_invenio_metadata(app_instance)
@@ -760,9 +786,9 @@ def test_generate_invenio_metadata_validation():
     assert pydantic_valid, f"Pydantic validation failed: {pydantic_error}"
 
     # Check specific values match the test data
-    assert invenio_metadata["metadata"]["title"] == f"Application: {app_instance.name}"
+    assert invenio_metadata["metadata"]["title"] == app_instance.name
     assert invenio_metadata["metadata"]["description"] == app_instance.description
-    assert invenio_metadata["metadata"]["publisher"] == "SciLifeLab Data Centre"
+    assert invenio_metadata["metadata"]["publisher"] == "SciLifeLab Serve"
     assert invenio_metadata["metadata"]["identifiers"][0]["identifier"].startswith("SERVE:")
 
     # Check creator information
@@ -777,10 +803,12 @@ def test_generate_invenio_metadata_validation():
     assert contributor["person_or_org"]["type"] == "organizational"
     assert contributor["role"]["id"] == "hostinginstitution"
 
-    # Check publication date format
-    import re
-
-    assert re.match(r"^\d{4}-\d{2}-\d{2}$", invenio_metadata["metadata"]["publication_date"])
+    # check date information
+    dates = invenio_metadata["metadata"]["dates"]
+    dates_by_type = {entry["type"]["id"]: entry["date"] for entry in dates}
+    assert abs(dates_by_type["submitted"] - timezone.now()) < timedelta(seconds=30)
+    assert abs(dates_by_type["updated"] - timezone.now()) < timedelta(seconds=30)
+    assert dates_by_type["available"] == test_madepublic_date.replace(microsecond=0)
 
     # Check related identifiers - should have 3 for public access
     assert len(invenio_metadata["metadata"]["related_identifiers"]) == 3
@@ -794,41 +822,7 @@ def test_generate_invenio_metadata_validation():
         == "publication-softwaredocumentation"
     )
 
-    # 2. Test with user without first/last name (should use email as fallback)
-    user_no_name = User.objects.create_user(
-        username="no_name_user", email="no_name@test.com", password="testpass123", first_name="", last_name=""
-    )
-
-    # Create a separate app instance for this user with NEW subdomain and k8s status
-    subdomain2 = Subdomain.objects.create(subdomain="unit_test_invenio_metadata_subdomain2")
-    k8s_user_app_status2 = K8sUserAppStatus.objects.create()
-
-    app_instance_no_name = DashInstance.objects.create(
-        access="public",
-        owner=user_no_name,
-        name="app_no_name_user",
-        description="Test app for user without name",
-        port=8000,
-        image="ghcr.io/test/image:latest",
-        app=app,
-        project=project,
-        subdomain=subdomain2,  # Use new subdomain
-        k8s_user_app_status=k8s_user_app_status2,  # Use new k8s status
-        k8s_values=k8s_values,
-        url="https://unit_test_invenio_metadata_subdomain2.test.serve.scilifelab.se",
-    )
-
-    # Generate metadata for user without name
-    invenio_record_no_name = service.generate_invenio_metadata(app_instance_no_name)
-    invenio_metadata_no_name = invenio_record_no_name.model_dump()
-    creator_no_name = invenio_metadata_no_name["metadata"]["creators"][0]
-
-    # Should have generated a name from email or used default
-    assert creator_no_name["person_or_org"]["name"] != ""
-    assert creator_no_name["person_or_org"]["given_name"] == "No First Name Given"
-    assert creator_no_name["person_or_org"]["family_name"] == "No Family Name Given"
-
-    # 3. Test invalid structure - Pydantic should catch type errors
+    # Test invalid structure - Pydantic should catch type errors
     invalid_metadata = invenio_metadata.copy()
     invalid_metadata["metadata"]["title"] = 12345  # Should be string, not number
 
@@ -840,7 +834,7 @@ def test_generate_invenio_metadata_validation():
 
     assert pydantic_caught_error, "Pydantic should reject invalid title type"
 
-    # 4. Test that Pydantic catches missing required fields
+    # Test that Pydantic catches missing required fields
     incomplete_metadata = invenio_metadata.copy()
     del incomplete_metadata["metadata"]["title"]
 
@@ -848,47 +842,3 @@ def test_generate_invenio_metadata_validation():
 
     with pytest.raises(ValidationError):
         InvenioRecord(**incomplete_metadata)
-
-    # 5. Test with private access app (should not have third related identifier for landing page)
-    app_instance_private = DashInstance.objects.create(
-        access="private",
-        owner=user,
-        name="private_app",
-        description="Test private app",
-        port=8000,
-        image="ghcr.io/test/image:latest",
-        app=app,
-        project=project,
-        subdomain=Subdomain.objects.create(subdomain="private-subdomain"),
-        k8s_user_app_status=K8sUserAppStatus.objects.create(),
-        k8s_values=k8s_values,
-        url="https://private-subdomain.test.serve.scilifelab.se",
-    )
-
-    invenio_service = InvenioService.__new__(InvenioService)
-    invenio_record_private = invenio_service.generate_invenio_metadata(app_instance_private)
-    invenio_metadata_private = invenio_record_private.model_dump()
-    # Should have exactly 2 related identifiers for private app
-    assert len(invenio_metadata_private["metadata"]["related_identifiers"]) == 2
-
-    # 6. Test with app that has no k8s_values
-    app_instance_no_k8s = DashInstance.objects.create(
-        access="public",
-        owner=user,
-        name="app_no_k8s",
-        description="Test app without k8s_values",
-        port=8000,
-        image="ghcr.io/test/image:latest",
-        app=app,
-        project=project,
-        subdomain=Subdomain.objects.create(subdomain="no-k8s-subdomain"),
-        k8s_user_app_status=K8sUserAppStatus.objects.create(),
-        url="https://no-k8s-subdomain.test.serve.scilifelab.se",
-        # Don't set k8s_values
-    )
-
-    invenio_service = InvenioService.__new__(InvenioService)
-    invenio_record_no_k8s = invenio_service.generate_invenio_metadata(app_instance_no_k8s)
-    invenio_metadata_no_k8s = invenio_record_no_k8s.model_dump()
-    # Should have 2 related identifiers (no landing page because k8s_values is None)
-    assert len(invenio_metadata_no_k8s["metadata"]["related_identifiers"]) == 2

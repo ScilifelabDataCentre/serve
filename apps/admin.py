@@ -6,10 +6,10 @@ from django.db.models.query import QuerySet
 from django.http import HttpResponse
 from django.utils import timezone
 
+from apps.constants import AppActionOrigin
 from projects.models import PersistentVolumeMountPath
 from studio.utils import get_logger
 
-from .constants import AppActionOrigin
 from .helpers import export_k8s_values_to_yaml, get_URI, set_linkonly_reminder_date
 from .models import (
     AppCategories,
@@ -88,7 +88,7 @@ class BaseAppAdmin(admin.ModelAdmin):
         "chart",
         "upload_size",
     )
-    readonly_fields = ("id", "created_on")
+    readonly_fields = ("id", "created_on", "updated_on")
     list_filter = ["owner", "project", "k8s_user_app_status__status", "chart"]
     actions = [
         "redeploy_apps",

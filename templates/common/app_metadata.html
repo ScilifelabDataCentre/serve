@@ -90,26 +90,78 @@
                 </div>
 
                 <div class="col-md-5 align-items-center">
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h4 class="card-title">Creator</h4>
-                            <div>
-                                    <div id="owner_name">
-    {{ schema_dict.hasPart.0.author.name }}
-    {% if app.owner.userprofile and app.owner.userprofile.orcid_id %}
-    <a href="https://orcid.org/{{ app.owner.userprofile.orcid_id }}" target="_blank" rel="noopener" style="text-decoration: none;">
-        <img src="{% static 'images/orcid_16x16.png' %}" alt="ORCID" width="16" height="16" class="me-1">
-        <span style="color: #A6CE39; font-size: 0.85em;">{{ app.owner.userprofile.orcid_id }}</span>
-    </a>
-    {% endif %}
-</div>
-                                    <div id="owner_email">{{ schema_dict.hasPart.0.author.email }}</div>
-                                    <div id="owner_dept">{{ schema_dict.hasPart.0.author.affiliation.additionalProperty.value }}</div>
-                                    <div id="owner_aff">{{ schema_dict.hasPart.0.author.affiliation.name }}</div>
-                            </div>
+    <div class="card mb-3">
+        <div class="card-body">
+            <h4 class="card-title">Creator</h4>
+            <div>
+                <div id="owner_name">
+                    {{ schema_dict.hasPart.0.author.name }}
+                    {% if app.owner.userprofile and app.owner.userprofile.orcid_id %}
+                        <a href="https://orcid.org/{{ app.owner.userprofile.orcid_id }}" target="_blank" rel="noopener" style="text-decoration: none;">
+                        <img src="{% static 'images/orcid_16x16.png' %}" alt="ORCID" width="16" height="16" class="me-1">
+                        <span style="color: #A6CE39; font-size: 0.85em;">{{ app.owner.userprofile.orcid_id }}</span>
+                        </a>
+                    {% endif %}
+                </div>
+
+                <div id="owner_email">{{ schema_dict.hasPart.0.author.email }}</div>
+
+<!-- First 3 affiliations (always visible) -->
+                {% for aff in schema_dict.hasPart.0.author.affiliations %}
+                {% if forloop.counter <= 3 %}
+                <hr class="my-2">
+                {% if aff.department %}<div id="owner_dept">{{ aff.department }}</div>{% endif %}
+                <div id="owner_aff">
+                    {% if aff.identifier and aff.identifier != "no ror" %}
+                        <a href="{{ aff.identifier }}" target="_blank" rel="noopener">{{ aff.name }} <i class="bi bi-box-arrow-up-right" style="font-size: 0.75em;"></i></a>
+                    {% else %}
+                        {{ aff.name }}
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% endfor %}
+
+                <!-- Expandable additional affiliations (4th onward) -->
+                {% if schema_dict.hasPart.0.author.affiliations|length > 3 %}
+                <div class="mt-2">
+                    <a class="text-decoration-none" data-bs-toggle="collapse"
+                       href="#moreAffiliations" role="button" aria-expanded="false"
+                       id="affiliationsToggle">
+                        <small id="affiliationsToggleText">
+                            &#9656; Show {{ schema_dict.hasPart.0.author.affiliations|length|add:"-3" }}
+                            more affiliation{{ schema_dict.hasPart.0.author.affiliations|length|add:"-3"|pluralize }}
+                        </small>
+                    </a>
+                    <div class="collapse" id="moreAffiliations">
+                        {% for aff in schema_dict.hasPart.0.author.affiliations %}
+                        {% if forloop.counter > 3 %}
+                        <hr class="my-2">
+                        {% if aff.department %}<div>{{ aff.department }}</div>{% endif %}
+                        <div>
+                            {% if aff.identifier and aff.identifier != "no ror" %}
+                                <a href="{{ aff.identifier }}" target="_blank" rel="noopener">{{ aff.name }} <i class="bi bi-box-arrow-up-right" style="font-size: 0.75em;"></i></a>
+                            {% else %}
+                                {{ aff.name }}
+                            {% endif %}
                         </div>
+                        {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
+                <script>
+                    document.getElementById('moreAffiliations').addEventListener('shown.bs.collapse', function () {
+                        document.getElementById('affiliationsToggleText').innerHTML = '&#9662; Hide additional affiliations';
+                    });
+                    document.getElementById('moreAffiliations').addEventListener('hidden.bs.collapse', function () {
+                        document.getElementById('affiliationsToggleText').innerHTML =
+                            '&#9656; Show {{ schema_dict.hasPart.0.author.affiliations|length|add:"-3" }} more affiliation{{ schema_dict.hasPart.0.author.affiliations|length|add:"-3"|pluralize }}';
+                    });
+                </script>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 
 
             </div>

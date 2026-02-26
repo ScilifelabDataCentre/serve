@@ -87,42 +87,45 @@
                                     </div>
                                 </div>
 
-                                <div class="row pt-2">
-                                    <div class="col-12">
-                                        <label class="form-label">Affiliation:</label>
-                                    </div>
-                                </div>
 
                                 <div class="row pb-3">
-                                    <!-- Oranization Block: -->
-                                    <div class="col-12 col-md-6 pb-3 pb-md-0">
-                                        <label class="form-label">{{profile_form.organization.label_tag}}</label>
-                                        {{ profile_form.organization }}
-                                        <input type="hidden" id="organization-data" name="organization-data"
-                                        value="{% if organization_data %}{{ organization_data }}{% endif %}">
-                                            <div id="organization-suggestions" class="list-group position-absolute" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
-                                            <div class="form-text">{{profile_form.organization.help_text}}</div>
-                                            {% if profile_form.organization.errors %}
-                                            <div id="validation_organization" class="pt-1 invalid-feedback">
-                                            {% for error in profile_form.organization.errors %}
-                                            <p class="m-0">{{error|escape}}</p>
-                                            {% endfor %}
-                                            </div>
-                                            {% endif %}
-                                    </div>
+                                    <!-- Affiliation Block: dynamic multi-affiliation rows -->
+<div class="row pb-3">
+    <div class="col-12">
+        <label class="form-label required">Affiliation:</label>
+    </div>
+</div>
 
-									<div class="col-12 col-md-6 pb-3 pb-md-0">
-                                            <label class="form-label">{{profile_form.department.label_tag}}</label>
-										    {{ profile_form.department | safe }}
-                                            <div class="form-text">{{profile_form.department.help_text}}</div>
-                                                {% if profile_form.department.errors %}
-                                                <div id="validation_department" class="pt-1 invalid-feedback">
-                                                    {% for error in profile_form.department.errors %}
-                                                    <p class="m-0">{{error|escape}}</p>
-                                                    {% endfor %}
-                                                </div>
-                                                {% endif %}
-									</div>
+<div class="row pb-3">
+    <div class="col-12">
+        <div id="affiliations-container">
+            <!-- JS dynamically renders affiliation rows here -->
+        </div>
+
+        <input type="hidden" id="affiliations-data" name="affiliations-data"
+               value="{% if affiliations_data %}{{ affiliations_data }}{% endif %}">
+
+        {% if profile_form.non_field_errors %}
+        <div class="invalid-feedback" style="display: block;">
+            {% for error in profile_form.non_field_errors %}
+            <p class="m-0">{{ error|escape }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div class="d-flex justify-content-end">
+        <button type="button" id="add-affiliation-btn" class="btn btn-sm btn-primary mt-2">
+            + Add affiliation
+        </button>
+        </div>
+    </div>
+</div>
+
+<!-- Department datalist shared by all affiliation rows -->
+<datalist id="department-datalist">
+    {% for dept in departments %}
+    <option value="{{ dept }}">
+    {% endfor %}
+</datalist>
 								</div>
 
                                 <div class="row pb-3">

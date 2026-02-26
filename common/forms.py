@@ -112,6 +112,9 @@ class BootstrapErrorFormMixin:
 
     def add_error_classes(self):
         for field_name, errors in self.errors.items():
+            # Skip non-field errors (__all__) — they don't have a widget
+            if field_name == "__all__":
+                continue
             if errors:
                 self.fields[field_name].widget.attrs.update(
                     {"class": "form-control is-invalid", "aria-describedby": f"validation_{field_name}"}
@@ -215,6 +218,9 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
 
 
 class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
+    # REMOVED: organization and department fields
+    # These are now handled by JS dynamic rows + hidden affiliations-data input in template
+    """
     organization = forms.CharField(
         widget=forms.TextInput(
             attrs={
@@ -233,6 +239,7 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
         required=False,
         help_text="Select closest department name or enter your own.",
     )
+    """
     why_account_needed = forms.CharField(
         widget=forms.Textarea(attrs={"class": "form-control", "style": "height: 70px"}),
         required=False,
@@ -254,8 +261,9 @@ class ProfileForm(BootstrapErrorFormMixin, forms.ModelForm):
     class Meta:
         model = UserProfile
         fields = [
-            "organization",
-            "department",
+            # organization and department removed — managed via affiliations-data hidden input
+            # "organization",
+            # "department",
             "note",
             "why_account_needed",
         ]
@@ -285,57 +293,44 @@ class SignUpForm:
         is_university_email = EMAIL_ALLOW_REGEX.match(email.split("@")[1]) is not None
 
         is_request_account_empty = not bool(why_account_needed)
-        is_department_empty = not bool(profile_data.get("department"))
 
         self.is_approved = is_university_email
 
-        organization_post_data = self.profile.data.get("organization-data", "")
+        # --- Parse affiliations-data from POST (replaces organization-data) ---
+        affiliations_data_str = self.profile.data.get("affiliations-data", "")
+        affiliations_list = []
 
-        organization_data = {}
-        if organization_post_data:
+        if affiliations_data_str:
             try:
-                organization_data = json.loads(organization_post_data)
+                affiliations_list = json.loads(affiliations_data_str)
             except json.JSONDecodeError as e:
-                logger.debug(f"Using fallback title, JSONDecodeError - {str(e)}")
-                # Use the text field value as fallback
-                organization_text = profile_data.get("organization", "")
-                organization_data = {"title": organization_text or "organization_text_placeholder", "ror_id": "no ror"}
-        else:
-            # No JSON data, create from text field - this is the test scenario
-            organization_text = profile_data.get("organization", "")
-            # For tests or when organization-data is missing, accept the text field value with a test ROR ID
-            if organization_text and organization_text != "organization_text_placeholder":
-                organization_data = {"title": organization_text, "ror_id": "https://ror.org/test123"}
-            else:
-                organization_data = {"title": "organization_text_placeholder", "ror_id": "no ror"}
+                logger.debug(f"JSONDecodeError parsing affiliations-data: {e}")
+                affiliations_list = []
 
-        # Check if organization is valid
-        is_organization_empty = False
-        if not organization_data.get("ror_id") or organization_data.get("ror_id") == "no ror":
-            is_organization_empty = True
+        # Ensure it's a list
+        if not isinstance(affiliations_list, list):
+            affiliations_list = []
 
-        if is_organization_empty:
+        # Filter out empty entries (no title)
+        affiliations_list = [aff for aff in affiliations_list if isinstance(aff, dict) and aff.get("title", "").strip()]
+
+        # Validation: at least one affiliation required
+        if not affiliations_list:
             self.profile.add_error(
-                "organization",
-                ValidationError(
-                    "Please select a valid organization from the ROR list. Your organization must be registered"
-                    " in the Research Organization Registry."
-                ),
+                None,  # Non-field error since org field no longer exists on form
+                ValidationError("At least one affiliation is required."),
             )
-        else:
-            self.organization_data = organization_data
 
-        # Always set organization_data even if empty for compatibility
-        if not self.organization_data:
-            self.organization_data = organization_data
-
-        if is_university_email and is_department_empty:
-            self.profile.add_error(
-                "department", ValidationError("You are required to select your university department")
-            )
+        # ROR validation is SOFT — no error added for missing/invalid ror_id.
+        # Affiliations with "no ror" or empty ror_id are accepted as-is.
 
         if not is_university_email and is_request_account_empty:
-            self.profile.add_error("why_account_needed", ValidationError("Please describe why you need an account"))
+            self.profile.add_error(
+                "why_account_needed",
+                ValidationError("Please describe why you need an account"),
+            )
+
+        self.affiliations_data = affiliations_list
 
     def _is_valid(self) -> bool:
         # these two calls are done that way, so that we can get errors for both forms and display them together
@@ -361,13 +356,11 @@ class SignUpForm:
         profile = self.profile.save(commit=False)
         profile.user = user
         profile.is_approved = self.is_approved
-        profile.organization = self.organization_data if self.organization_data is not None else {}
+
+        # Write new affiliations field
+        profile.affiliations = self.affiliations_data if self.affiliations_data else []
+
         profile.save()
-        # IMPORTANT: Set user to inactive based on approval status
-        # Non-university emails should be inactive
-        # if not self.is_approved:
-        #    user.is_active = False
-        #    user.save()
         email_verification.save()
         return profile
 
@@ -496,6 +489,9 @@ class ProfileEditForm(ProfileForm):
             "why_account_needed",
         ]
 
+    # REMOVED: __init__ that pre-populated organization from JSON
+    # Pre-population now happens via affiliations-data hidden input in template
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Pre-populate organization field with title from JSON
@@ -503,3 +499,4 @@ class ProfileEditForm(ProfileForm):
             org_data = self.instance.organization
             if isinstance(org_data, dict):
                 self.initial["organization"] = org_data.get("title", "")
+    """

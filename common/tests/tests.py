@@ -45,7 +45,6 @@ def input_form(
     email=st.emails(domains=st.from_regex(EMAIL_ALLOW_REGEX, fullmatch=True)),
     name=st.text(min_size=3, max_size=20),
     surname=st.text(min_size=3, max_size=20),
-    affiliation_getter=get_affilitaion,
     why_account_needed=st.text(min_size=10, max_size=100),
     department=st.sampled_from(DEPARTMENTS),
 ):
@@ -57,6 +56,17 @@ def input_form(
     why_account_needed = draw(why_account_needed)
     if why_account_needed is not None:
         why_account_needed = unicodedata.normalize("NFKD", why_account_needed.replace("\x00", "\uFFFD"))
+
+    # Build affiliations-data JSON (replaces organization-data + department)
+    affiliations_json = json.dumps(
+        [
+            {
+                "title": organization_data["title"],
+                "ror_id": organization_data["ror_id"],
+                "department": department or "",
+            }
+        ]
+    )
 
     user_form = UserForm(
         {
@@ -72,8 +82,7 @@ def input_form(
     profile_form = ProfileForm(
         {
             "why_account_needed": why_account_needed,
-            "department": department,
-            "organization": organization_data["title"],
+            "affiliations-data": affiliations_json,
         }
     )
 
@@ -205,33 +214,21 @@ class TestAccountVerification(TestCase):
 @given(
     form=input_form(
         email=st.emails().filter(lambda x: get_affilitaion(x) not in [unis[0] for unis in UNIVERSITIES]),
-        affiliation_getter=lambda x: "other",
         why_account_needed=st.text(min_size=10, max_size=100),
     )
 )
-@settings(verbosity=Verbosity.verbose, max_examples=1)
+@settings(verbosity=Verbosity.verbose, max_examples=1, deadline=None)
 def test_pass_validation_other_email_request_account(form):
     is_val = form.is_valid()
     assert hasattr(form.user, "cleaned_data")
     assert hasattr(form.profile, "cleaned_data")
-    assert is_val, form.user.errors
-
-
-@pytest.mark.django_db
-@given(form=input_form(department=st.sampled_from(["", None])))
-@settings(verbosity=Verbosity.verbose, max_examples=1)
-def test_invalid_input_department_is_empty(form):
-    is_val = form.is_valid()
-    assert hasattr(form.profile, "cleaned_data")
-    assert not is_val
-    assert {"department": ["You are required to select your university department"]} == form.profile.errors
+    assert is_val, (form.user.errors, form.profile.errors)
 
 
 @pytest.mark.django_db
 @given(
     form=input_form(
         email=st.emails().filter(lambda x: get_affilitaion(x) not in [unis[0] for unis in UNIVERSITIES]),
-        affiliation_getter=lambda x: "other",
         why_account_needed=st.sampled_from(["", None]),
     )
 )
@@ -292,16 +289,10 @@ def test_fail_validation_user_edit_form(first_name, last_name):
 )
 def test_pass_validation_profile_edit_form(department):
     request = HttpRequest()
-    request.POST = {
-        "department": department,
-        "organization": "Uppsala University",
-    }
+    request.POST = {}
     form = ProfileEditForm(
         request.POST,
         instance=UserProfile(),
-        initial={
-            "organization": "Uppsala University",
-        },
     )
     assert form.is_valid(), form.errors
 

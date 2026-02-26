@@ -67,25 +67,28 @@
 
                         </div>
 
-                        <div class="row pt-4">
-                            <h6 class="fw-bold">Affiliation</h6>
-                        </div>
-
-                        <!-- organization row: -->
-                        <div class="row pt-1">
-                            <div class="col-4"><label for="userOrganization">Organization:</label></div>
-                            <div class="col-8 fw-bold">
-                                <input type="text" name="organization" disabled value="{{user_profile.get_organization_name}}" class="form-control" id="userOrganization">
-                            </div>
-                        </div>
-
-                        <div class="row pt-1">
-                            <div class="col-4"><label for="id_department">Department:</label></div>
-                            <div class="col-8 fw-bold"><input type="text" name="department" disabled value="{{user_profile.department}}" class="form-control" list="list__department-list" id="id_department"></div>
-                            <div class="col-4"></div>
-
-
-                        </div>
+                       <div class="row pt-4">
+    <h4 class="fw-bold">Affiliation</h4>
+</div>
+{% for aff in user_profile.get_affiliations %}
+<div>
+    <div class="row">
+        <div class="col-4"><label for="id_org_name">Organization:</label></div>
+        <div class="col-8 fw-bold"><input type="text" disabled name="org_name" value="{{ aff.title }}" class="form-control" maxlength="30" minlength="1" id="id_org_name"></div>
+    </div>
+    {% if aff.department %}
+    <div class="row pt-1">
+        <div class="col-4"><label for="id_dep_name">Department:</label></div>
+        <div class="col-8 fw-bold"><input type="text" disabled name="dep_name" value="{{ aff.department }}" class="form-control" maxlength="30" minlength="1" id="id_dep_name"></div>
+    </div>
+    {% endif %}
+    <br>
+</div>
+{% empty %}
+<div class="row pt-1">
+    <div class="col-12 text-muted">No affiliations set.</div>
+</div>
+{% endfor %}
                     </div>
                     <div class="row pt-5">
                         <h4 class="fw-bold">Delete account</h4>
@@ -105,42 +108,4 @@
         </div>
     </div>
 </div>
-<script>
-    $(document).ready(function(){
-        displayAffiliationName()
-    });
-
-    function displayAffiliationName() {
-        // Converts the affiliation short code to name and displays it
-        let user_affilition_code = "{{user_profile.affiliation}}"
-
-        if (typeof user_affilition_code === "undefined" || user_affilition_code === "") {
-            console.log("Affiliation is not set. Skipping conversion.")
-            return
-        }
-
-        console.log("displayAffiliationName. Getting name for affiliation code: " + user_affilition_code)
-        let api_url = window.location.origin + "/openapi/v1/lookups/universities"
-        console.log("Using API URL: " + api_url)
-
-        $.ajax({
-            type: "GET",
-            url: api_url,
-            data: {"code": user_affilition_code},
-            beforeSend: function ( xhr ) {
-                $("#userAffiliation").text("...getting affiliation name for " + user_affilition_code);
-            },
-            success: function(data){
-                if (typeof data !== "undefined") {
-                    let name = data.data.name
-                    $("#userAffiliation").val(name)
-                }
-            },
-            error: function (request, status, error) {
-                console.log("error:" + error)
-                $("#userAffiliation").text(user_affilition_code + " (unable to get affiliation name)")
-            }
-        });
-    }
-</script>
 {% endblock content %}
