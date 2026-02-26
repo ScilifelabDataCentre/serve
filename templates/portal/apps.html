@@ -1,12 +1,11 @@
-{# templates/apps.html #}
 {% extends "base.html" %}
 {% load static %}
 
 {% block title %}Apps and models{% endblock %}
 
 {% block page %}
-<div class="container-fluid px-0">
-    <div id="apps-status-bar" class="row justify-content-center">
+<div class="container-fluid px-0 apps-page container-background">
+    <div id="apps-status-bar" class="container justify-content-center">
         <div class="col-12">
             <div class="apps-status-bar d-flex flex-wrap align-items-center justify-content-between px-4 py-2">
                 <div class="fw-semibold apps-status-title">
@@ -30,38 +29,64 @@
         <div class="filters-panel panel-surface d-none d-lg-flex">
             <div class="filters-shell w-100">
                 <div class="filters-header">
+                    <div class="filters-topbar d-flex align-items-center justify-content-between px-3 pt-3 pb-2">
+                        <span class="filters-topbar-title">Filters</span>
+                        <button id="sidebar-toggle"
+                                class="btn btn-sm btn-outline-dark rounded-2"
+                                type="button"
+                                aria-label="Collapse filters sidebar"
+                                aria-expanded="true">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                    </div>
                     <div class="navbar navbar-expand-lg navbar-light bg-light">
                         <div class="container-fluid d-flex flex-wrap ps-2 pe-2">
                             <ul class="nav nav-pills serve-filter-nav justify-content-center w-100">
                                 <li class="nav-item ms-2 mb-1">
                                     <a class="nav-link position-relative rounded-pill active"
+                                       data-short="All"
                                        data-filter-target="all"
+                                       aria-label="All Filters"
+                                       title="All Filters"
                                        onclick="showFilterSection('all')">
-                                        All Filters
+                                        <span class="filter-label">All Filters</span>
+                                        <span class="filter-icon" aria-hidden="true"><i class="fas fa-sliders"></i></span>
                                         <span class="card-count-tag card-all-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                                     </a>
                                 </li>
                                 <li class="nav-item ms-2 mb-1">
                                     <a class="nav-link position-relative rounded-pill"
+                                       data-short="Type"
                                        data-filter-target="app-type"
+                                       aria-label="App Type"
+                                       title="App Type"
                                        onclick="showFilterSection('app-type')">
-                                        App Type
+                                        <span class="filter-label">App Type</span>
+                                        <span class="filter-icon" aria-hidden="true"><i class="fas fa-cube"></i></span>
                                         <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                                     </a>
                                 </li>
                                 <li class="nav-item ms-2 mb-1">
                                     <a class="nav-link position-relative rounded-pill"
+                                       data-short="Org"
                                        data-filter-target="organization"
+                                       aria-label="Organizations"
+                                       title="Organizations"
                                        onclick="showFilterSection('organization')">
-                                        Organizations
+                                        <span class="filter-label">Organizations</span>
+                                        <span class="filter-icon" aria-hidden="true"><i class="fas fa-graduation-cap"></i></span>
                                         <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                                     </a>
                                 </li>
                                 <li class="nav-item ms-2 mb-1">
                                     <a class="nav-link position-relative rounded-pill"
+                                       data-short="Key"
                                        data-filter-target="keyword"
+                                       aria-label="Keywords"
+                                       title="Keywords"
                                        onclick="showFilterSection('keyword')">
-                                        Keywords
+                                        <span class="filter-label">Keywords</span>
+                                        <span class="filter-icon" aria-hidden="true"><i class="fas fa-tag"></i></span>
                                         <span class="card-count-tag card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                                     </a>
                                 </li>
@@ -153,14 +178,14 @@
         <div class="d-flex justify-content-center">
     {% endif %}
 
-        <div class="apps-panel panel-surface mx-3">
+        <div class="apps-panel panel-surface pe-5">
             <div class="apps-header d-flex flex-column align-items-center gap-2 px-2 pt-3">
                 <div class="d-flex align-items-center gap-2">
                     <h3 class="h3 m-0">Applications &amp; models</h3>
                     <span id="public-apps-count" class="ghost-number h3 m-0">{{ serialized_apps|length }}</span>
                 </div>
 
-                <div class="search-container-filter w-100 d-flex align-items-center gap-2" style="max-width: 760px;">
+                <div class="search-container-filter d-flex align-items-center gap-2">
                     <input id="public-app-search"
                            class="form-control search-input-filter search"
                            placeholder="Search apps..."
@@ -168,8 +193,7 @@
                            title="Search Apps"
                            aria-label="Search Apps">
 
-                    <!-- small-screen-only Filters button -->
-                    <button class="btn btn-sm btn-outline-dark rounded d-lg-none flex-shrink-0"
+                                        <button class="btn btn-sm btn-outline-dark rounded d-lg-none flex-shrink-0"
                             style="white-space:nowrap;"
                             type="button"
                             data-bs-toggle="offcanvas"
@@ -197,13 +221,13 @@
             </div>
 
             {% if not serialized_apps %}
-                <p id="public-apps-container-empty">No public apps available.</p>
+                <p id="public-apps-container-empty" class="d-flex justify-content-center mt-2">No public apps available.</p>
             {% endif %}
 
             <div id="public-apps-container" class="row g-4">
                 <div class="col-12 d-flex pt-2">
                     <div id="app-cards" class="col-12">
-                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-2 g-4 list">
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-2 g-4 list apps-card-grid">
                             {% if serialized_apps|length <= 0 %}
                                 <div style="display:none;">
                                     <span class="card-title"></span>
@@ -236,7 +260,6 @@
         </div>
     </div>
 
-{# ---------------- Small-screen offcanvas ---------------- #}
 <div class="offcanvas offcanvas-bottom d-lg-none"
      tabindex="-1"
      id="small-screenFilters"
@@ -244,7 +267,7 @@
      data-bs-backdrop="static"
      data-bs-keyboard="false">
     <div class="offcanvas-header border-bottom">
-        <h5 class="offcanvas-title fw-semibold" id="small-screenFiltersLabel">Edit Filters</h5>
+        <h4 class="offcanvas-title fw-semibold" id="small-screenFiltersLabel">Edit Filters</h4>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
 
@@ -372,10 +395,10 @@
 {% if serialized_apps|length > 0 %}
 <script>
         (function () {
-            // ---------- Global nav state ----------
+
             window.activeFilterNav = window.activeFilterNav || 'all';
 
-            // ---------- Small-screen state ----------
+
             let smallScreenFiltersOpen = false;
             const smallScreenOffcanvasEl = document.getElementById('small-screenFilters');
 
@@ -392,7 +415,7 @@
                 return smallScreenFiltersOpen;
             }
 
-            // ---------- List.js setup ----------
+
             const listOptions = {
                 valueNames: [
                     'card-title', 'card-description', 'card-username',
@@ -417,7 +440,7 @@
 
             const publicAppList = new List('app-cards', listOptions);
 
-            // ---------- Pagination ----------
+
             function getCurrentPage() {
                 return Math.ceil(publicAppList.i / publicAppList.page);
             }
@@ -501,12 +524,12 @@
             bindPrevNext();
             rebuildPaginationUI();
 
-            // ---------- Filter state ----------
-            let appliedSearchTags = [];             // { element, tagType, value }
-            let appliedColumnsToSearch = new Set(); // tagType strings
-            let appliedSearchValues = new Set();    // selected values
 
-            // pending = only used on small-screen while offcanvas is open
+            let appliedSearchTags = [];
+            let appliedColumnsToSearch = new Set();
+            let appliedSearchValues = new Set();
+
+
             let pendingSearchTags = [];
             let pendingColumnsToSearch = new Set();
             let pendingSearchValues = new Set();
@@ -515,7 +538,7 @@
                 return (s || '').toString().trim().toLowerCase();
             }
 
-            // ---------- App search ----------
+
             const appSearchEl = document.getElementById('public-app-search');
             if (appSearchEl) {
                 appSearchEl.addEventListener('keyup', () => {
@@ -524,7 +547,7 @@
                 });
             }
 
-            // ---------- Matching logic ----------
+
             function valueMatchesColumn(cardValue, selectedValue, column) {
                 const cv = normalize(cardValue);
                 const sv = normalize(selectedValue);
@@ -551,7 +574,7 @@
                 updateActiveFiltersBar();
             }
 
-            // ---------- Active filters bar ----------
+
             const activeBarEl = document.getElementById('active-filters-bar');
             const activeListEl = document.getElementById('active-filters-list');
             const activeClearBtn = document.getElementById('active-filters-clear');
@@ -886,18 +909,71 @@
                 });
             }
 
-            // ---------- Init ----------
+
             document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
 
             initFilterGroups();
             window.showFilterSection(window.activeFilterNav);
             updateActiveFiltersBar();
 
+
+            const appsLayout = document.querySelector('.apps-layout');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebarCollapseKey = 'apps_sidebar_collapsed_v1';
+
+            function setSidebarCollapsed(collapsed) {
+                if (!appsLayout) return;
+                appsLayout.classList.toggle('is-sidebar-collapsed', collapsed);
+                if (!sidebarToggle) return;
+                sidebarToggle.classList.toggle('is-collapsed', collapsed);
+                sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+                sidebarToggle.setAttribute(
+                    'aria-label',
+                    collapsed ? 'Expand filters sidebar' : 'Collapse filters sidebar'
+                );
+                const toggleIcon = sidebarToggle.querySelector('i');
+                if (toggleIcon) {
+                    toggleIcon.classList.remove('fa-chevron-left', 'fa-chevron-right');
+                    toggleIcon.classList.add(collapsed ? 'fa-chevron-right' : 'fa-chevron-left');
+                }
+            }
+
+            if (appsLayout && sidebarToggle) {
+                let collapsedByDefault = false;
+                try {
+                    collapsedByDefault = localStorage.getItem(sidebarCollapseKey) === '1';
+                } catch (e) {
+                    collapsedByDefault = false;
+                }
+                setSidebarCollapsed(collapsedByDefault);
+
+                sidebarToggle.addEventListener('click', function () {
+                    const collapsed = !appsLayout.classList.contains('is-sidebar-collapsed');
+                    setSidebarCollapsed(collapsed);
+                    try {
+                        localStorage.setItem(sidebarCollapseKey, collapsed ? '1' : '0');
+                    } catch (e) {
+
+                    }
+                });
+
+                document.querySelectorAll('.filters-panel .serve-filter-nav .nav-link').forEach(link => {
+                    link.addEventListener('click', function () {
+                        if (!window.matchMedia('(min-width: 992px)').matches) return;
+                        if (!appsLayout.classList.contains('is-sidebar-collapsed')) return;
+                        setSidebarCollapsed(false);
+                        try {
+                            localStorage.setItem(sidebarCollapseKey, '0');
+                        } catch (e) {
+
+                        }
+                    });
+                });
+            }
+
         })();
     </script>
 {% endif %}
-{# Including code for modals displaying Docker info #}
 {% include 'common/app_card_docker_info.html' %}
-{# Including code hiding and showing longer app descriptions #}
 {% include 'common/app_card_description.html' %}
 {% endblock %}
