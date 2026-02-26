@@ -131,51 +131,30 @@ class InvenioClient:
 
     # ==================== DRAFT RECORDS ====================
 
-    def create_draft(
-        self,
-        metadata: Dict[str, Any],
-        access: Optional[Dict[str, Any]] = None,
-        files: Optional[Dict[str, Any]] = None,
-        custom_fields: Optional[Dict[str, Any]] = None,
-        pids: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    def create_draft(self, record_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create a draft record
 
         Args:
-            metadata: Record metadata
-            access: Access options (record, files, embargo), "public" or "restricted"
-            files: Files options (enabled, default_preview, order)
-            custom_fields: Custom fields metadata (v10 and newer)
-            pids: Persistent identifiers (e.g., custom DOI)
+            record_data: Complete record data including metadata, access, files, and custom_fields
 
         Returns:
             Created draft record data
 
         Note:
             To provide your own DOI, include in pids field:
-            {"doi": {"identifier": "10.1234/your.doi", "provider": "external"}}
+            {"pids": {"doi": {"identifier": "10.1234/your.doi", "provider": "external"}}}
         """
         url = self._build_url("/api/records")
 
-        # Build request body
-        data = {"metadata": metadata}
+        # Use the complete record data directly
+        data = record_data.copy()
 
-        if access:
-            data["access"] = access
-        else:
+        # Ensure required fields have defaults if not present
+        if "access" not in data:
             data["access"] = {"record": "public", "files": "public"}
-
-        if files:
-            data["files"] = files
-        else:
+        if "files" not in data:
             data["files"] = {"enabled": False}
-
-        if custom_fields:
-            data["custom_fields"] = custom_fields
-
-        if pids:
-            data["pids"] = pids
 
         response = post(self.session, url, data=data, timeout=self.timeout)
         return self._handle_response(response, success_codes=[201])

@@ -140,18 +140,14 @@ class InvenioService:
     def create_new_record(
         self,
         app_instance: Any,
-        metadata: InvenioMetadata,
-        access: AccessConfig,
-        custom_fields: Optional[Dict[str, Any]] = None,
+        invenio_record: InvenioRecord,
     ) -> Dict[str, Any]:
         """
         Create a new Invenio record for the application.
 
         Args:
             app_instance: The application instance
-            metadata: Invenio metadata
-            access: Access configuration
-            custom_fields: Optional custom fields
+            invenio_record: Complete Invenio record object with metadata, access, and files config
 
         Returns:
             Published record data
@@ -159,12 +155,7 @@ class InvenioService:
         logger.info(f"Creating new Invenio record for app: {app_instance.id}")
 
         # Create draft
-        draft = self.client.create_draft(
-            metadata=metadata.model_dump(),
-            access=access.model_dump(),
-            custom_fields=custom_fields,
-            files={"enabled": False},  # Explicitly set for metadata-only
-        )
+        draft = self.client.create_draft(invenio_record.model_dump())
         logger.debug(f"Created Invenio draft with ID: {draft['id']}")
 
         # Reserve DOI
@@ -308,18 +299,27 @@ class InvenioService:
                     if not tag_label:
                         continue
 
+                    found_match = False
                     # Find matching vocabulary term
+                    # TODO - Include term ID/URI in subject when vocab is configured in our Invenio instance
                     for term_id, term_data in vocab_service.term_metadata.items():
                         if term_data.subject and term_data.subject.lower() == tag_label.lower():
-                            subject_term = Subject(
-                                subject=tag_label,
-                                scheme=term_data.subject_scheme or "NA",
-                                url=term_data.scheme_uri or "NA",
-                                identifier=term_data.classification_code or tag_label.lower().replace(" ", "_"),
-                                lang=term_data.lang or "en",
-                            )
+                            subject_term = Subject(subject=tag_label)
                             subject_terms.append(subject_term)
+                            found_match = True
                             break
+
+                    # If no vocabulary match found, use as free text subject
+                    if not found_match:
+                        subject_term = Subject(subject=tag_label)
+                        subject_terms.append(subject_term)
+            else:
+                # If no vocabulary service, use all as free text subjects
+                for tag in subject_input:
+                    tag_label = str(tag) if isinstance(tag, str) else None
+                    if tag_label:
+                        subject_term = Subject(subject=tag_label)
+                        subject_terms.append(subject_term)
 
             target_metadata["subjects"] = subject_terms if subject_terms else None
         else:
@@ -480,7 +480,6 @@ class InvenioService:
 
         # Log the generated metadata
         logger.info(f"Generated Invenio metadata for app '{app_data.name}'")
-        logger.info(json.dumps(invenio_record.model_dump(), indent=2))
 
         return invenio_record
 
@@ -559,15 +558,14 @@ class InvenioService:
             invenio_record: InvenioRecord = self.generate_invenio_metadata(
                 app_instance, additional_metadata=additional_metadata
             )
-            metadata: InvenioMetadata = invenio_record.metadata
-            access = invenio_record.access
-            custom_fields = None  # Not currently used
 
             # Create or update record
+            logger.info(f"About to create or update Invenio record for app '{app_data.name}'")
+            logger.info(json.dumps(invenio_record.model_dump(), indent=2))
             if not app_instance.invenio_record_id or app_instance.invenio_record_id == "":
-                published_record = self.create_new_record(app_instance, metadata, access, custom_fields)
+                published_record = self.create_new_record(app_instance, invenio_record)
             else:
-                published_record = self.create_new_version(app_instance, metadata)
+                published_record = self.create_new_version(app_instance, invenio_record.metadata)
 
             # Extract DOI and update app instance
             published_doi = published_record.get("pids", {}).get("doi", {}).get("identifier", "")

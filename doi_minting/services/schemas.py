@@ -125,13 +125,10 @@ class RelatedIdentifierItem(BaseModel):
 
 
 class Subject(BaseModel):
-    """Subject/keyword term with full metadata for Invenio subject field."""
+    """Subject/keyword term for Invenio subject field."""
 
-    subject: str
-    scheme: str
-    url: str
-    identifier: str
-    lang: str = "en"
+    id: str | None = None  # Controlled vocabulary identifier URI
+    subject: str | None = None  # Free text keyword
 
 
 class AutocompleteTerm(BaseModel):
