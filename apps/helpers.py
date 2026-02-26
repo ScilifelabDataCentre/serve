@@ -380,6 +380,13 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     else:
         instance.reminder_date_linkonly_privacy = None
 
+    # set the date when the app was made public
+    if hasattr(instance, "access") and instance.access == "public":
+        if instance.made_public_on is None:
+            instance.made_public_on = timezone.now()
+    else:
+        instance.made_public_on = None
+
     setup_instance(instance, subdomain, app, project, user_action)
     instance_id = save_instance_and_related_data(instance, form)
 

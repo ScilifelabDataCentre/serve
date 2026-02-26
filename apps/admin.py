@@ -88,7 +88,7 @@ class BaseAppAdmin(admin.ModelAdmin):
         "chart",
         "upload_size",
     )
-    readonly_fields = ("id", "created_on")
+    readonly_fields = ("id", "created_on", "updated_on")
     list_filter = ["owner", "project", "k8s_user_app_status__status", "chart"]
     actions = [
         "redeploy_apps",
