@@ -728,7 +728,7 @@ label.required::before {
 }
 
 .apps-page .apps-layout.is-sidebar-collapsed {
-    grid-template-columns: 60px 1px minmax(0, 1fr);
+    grid-template-columns: 65px 1px minmax(0, 1fr);
 }
 
 .apps-page .apps-layout.is-sidebar-collapsed .filters-topbar {
@@ -768,6 +768,7 @@ label.required::before {
     display: inline-flex;
     justify-content: center;
     align-items: center;
+    overflow: visible;
     border-radius: 8px !important;
     background: #f3f4f6 !important;
     border: 1px solid #e5e7eb !important;
@@ -809,10 +810,22 @@ label.required::before {
 }
 
 .apps-page .apps-layout.is-sidebar-collapsed .filters-panel .serve-filter-nav .card-count-tag {
-    display: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 0.28rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1;
+    top: 2px !important;
+    left: 100% !important;
+    transform: translate(-38%, -38%) !important;
+    z-index: 2;
 }
 
-@media (min-width: 992px) {
+@media (min-width: 1200px) {
     .apps-page .apps-layout.is-sidebar-collapsed #app-cards .apps-card-grid > * {
         flex: 0 0 auto;
         width: 33.333333%;

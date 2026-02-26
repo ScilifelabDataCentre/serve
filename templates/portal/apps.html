@@ -51,7 +51,6 @@
                                        onclick="showFilterSection('all')">
                                         <span class="filter-label">All Filters</span>
                                         <span class="filter-icon" aria-hidden="true"><i class="fas fa-sliders"></i></span>
-                                        <span class="card-count-tag card-all-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                                     </a>
                                 </li>
                                 <li class="nav-item ms-2 mb-1">
@@ -282,7 +281,6 @@
                                data-filter-target="all"
                                onclick="showFilterSection('all')">
                                 All Filters
-                                <span class="card-count-tag card-all-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                             </a>
                         </li>
                         <li class="nav-item me-2 mb-1">
@@ -647,6 +645,12 @@
 
             function syncTagVisuals() {
                 const {tags} = getVisualState();
+                const setCountBadge = (selector, count) => {
+                    document.querySelectorAll(selector).forEach(badge => {
+                        badge.textContent = String(count);
+                        badge.classList.toggle('visually-hidden', !count);
+                    });
+                };
 
                 document.querySelectorAll('.badge-ico-text-filter')
                     .forEach(b => b.classList.remove('badge-ico-text-filter-selected'));
@@ -654,11 +658,10 @@
                     .forEach(t => t.classList.remove('inactive'));
 
                 if (!tags.length) {
-                    document.querySelectorAll('.card-app-type-count, .card-institution-count, .card-department-count, .card-keyword-count')
-                        .forEach(b => {
-                            b.textContent = '0';
-                            b.classList.add('visually-hidden');
-                        });
+                    setCountBadge('.card-app-type-count', 0);
+                    setCountBadge('.card-institution-count', 0);
+                    setCountBadge('.card-department-count', 0);
+                    setCountBadge('.card-keyword-count', 0);
                     return;
                 }
 
@@ -674,17 +677,8 @@
                     countMap[tagType] = (countMap[tagType] || 0) + 1;
                 });
 
-                ['card-app-type', 'card-institution', 'card-department', 'card-keyword'].forEach(type => {
-                    const badge = document.querySelector(`.${type}-count`);
-                    if (!badge) return;
-                    if (countMap[type]) {
-                        badge.textContent = countMap[type];
-                        badge.classList.remove('visually-hidden');
-                    } else {
-                        badge.textContent = '0';
-                        badge.classList.add('visually-hidden');
-                    }
-                });
+                ['card-app-type', 'card-institution', 'card-department', 'card-keyword']
+                    .forEach(type => setCountBadge(`.${type}-count`, countMap[type] || 0));
             }
 
             function updateResetButtonsVisibility() {
