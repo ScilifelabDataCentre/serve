@@ -7,9 +7,10 @@ Organized with sub-models for better maintainability and reusability.
 
 from __future__ import annotations
 
-from typing import Any, List, TypedDict
+from datetime import datetime
+from typing import Any, List, Literal, TypedDict
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class AdditionalMetadata(TypedDict, total=False):
@@ -31,7 +32,7 @@ class AppData(BaseModel):
 
     id: int
     name: str
-    description: str | None = None
+    description: str
     image: str
     url: str | None = None
     access: str
@@ -89,6 +90,29 @@ class Language(BaseModel):
     """Language specification using ISO codes."""
 
     id: str  # ISO 639-2 language code like "eng", "swe"
+
+
+# ============================================================================
+# Date Models
+# ============================================================================
+
+
+class DateType(BaseModel):
+    id: Literal["submitted", "accepted", "available", "updated"]
+
+
+class Date(BaseModel):
+    """Various dates"""
+
+    date: datetime
+    type: DateType
+
+    @field_validator("date")
+    @classmethod
+    def require_timezone(cls, v: datetime) -> datetime:
+        if v.tzinfo is None or v.utcoffset() is None:
+            raise ValueError("Date must be timezone-aware (e.g. 2026-02-23T13:40:27+00:00)")
+        return v
 
 
 # ============================================================================
@@ -158,6 +182,7 @@ class InvenioMetadata(BaseModel):
     title: str
     description: str
     publication_date: str
+    dates: list[Date]
     publisher: str
     resource_type: ResourceType
 

@@ -15,7 +15,6 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
-from django.utils import timezone
 
 from doi_minting.clients.invenio_client import InvenioClient
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
@@ -27,6 +26,8 @@ from .schemas import (
     AppData,
     Contributor,
     Creator,
+    Date,
+    DateType,
     FilesConfig,
     Identifier,
     InvenioMetadata,
@@ -196,10 +197,7 @@ class InvenioService:
 
         # Update draft with new metadata
         metadata_dict = metadata.model_dump()
-        updated_metadata = {
-            **metadata_dict,
-            "publication_date": datetime.now().strftime("%Y-%m-%d"),
-        }
+        updated_metadata = {**metadata_dict}
 
         updated_version = self.client.update_draft(
             record_id=current_draft["id"],
@@ -395,6 +393,44 @@ class InvenioService:
             )
             related_ids.append(doc_link)
 
+    def _build_dates(self, app_instance: Any) -> list[Date]:
+        """Build the dates list with app information."""
+        dates: list[Date] = []
+
+        created_on = app_instance.created_on
+        if created_on is None:
+            raise ValueError("'created_on' cannot be None for DOI minting")
+        created_on = created_on.replace(microsecond=0)
+        dates.append(
+            Date(
+                date=created_on,
+                type=DateType(id="submitted"),
+            )
+        )
+
+        updated_on = app_instance.updated_on
+        if updated_on is None:
+            raise ValueError("'updated_on' cannot be None for DOI minting")
+        updated_on = updated_on.replace(microsecond=0)
+        dates.append(
+            Date(
+                date=updated_on,
+                type=DateType(id="updated"),
+            )
+        )
+
+        made_public_on = app_instance.made_public_on
+        if made_public_on:
+            made_public_on = made_public_on.replace(microsecond=0)
+            dates.append(
+                Date(
+                    date=made_public_on,
+                    type=DateType(id="available"),
+                )
+            )
+
+        return dates
+
     def generate_invenio_metadata(
         self, app_instance: Any, additional_metadata: Optional[AdditionalMetadata] = None
     ) -> InvenioRecord:
@@ -432,11 +468,11 @@ class InvenioService:
             user_first_name = "No First Name Given"
             user_family_name = "No Family Name Given"
 
-        publication_date = ""
-        if hasattr(app_instance, "created_on"):
-            publication_date = app_instance.created_on.strftime("%Y-%m-%d")
-        else:
-            publication_date = timezone.now().strftime("%Y-%m-%d")
+        dates = self._build_dates(app_instance)
+        publication_date = next(
+            (d.date.strftime("%Y-%m-%d") for d in dates if d.type.id == "available"),
+            datetime.now().strftime("%Y-%m-%d"),  # in case the app has not yet been made publicly available, use today
+        )
 
         # Build components using helper methods
         creators = self._build_creators(user_full_name, user_first_name, user_family_name)
@@ -448,12 +484,15 @@ class InvenioService:
         # Modifies the list in place by reference
         self._add_documentation_link(related_identifiers, app_data)
 
+        next(d.date.strftime("%Y-%m-%d") for d in dates if d.type.id == "available")
+
         # Build metadata using Pydantic models
         metadata = InvenioMetadata(
-            title=f"Application: {app_data.name}",
-            description=app_data.description or "Application deployment on SciLifeLab Serve platform.",
-            publication_date=publication_date,
-            publisher="SciLifeLab Data Centre",
+            title=app_data.name,
+            description=app_data.description,
+            publication_date=publication_date,  # this one is a separate field on purpose
+            dates=dates,
+            publisher="SciLifeLab Serve",
             resource_type=ResourceType(id="software", title={"en": "Software"}),
             creators=creators,
             contributors=contributors,
@@ -480,6 +519,7 @@ class InvenioService:
 
         # Log the generated metadata
         logger.info(f"Generated Invenio metadata for app '{app_data.name}'")
+        logger.info(json.dumps(invenio_record.model_dump(mode="json", by_alias=True), indent=2))
 
         return invenio_record
 
@@ -561,7 +601,7 @@ class InvenioService:
 
             # Create or update record
             logger.info(f"About to create or update Invenio record for app '{app_data.name}'")
-            logger.info(json.dumps(invenio_record.model_dump(), indent=2))
+            logger.info(json.dumps(invenio_record.model_dump(mode="json", by_alias=True), indent=2))
             if not app_instance.invenio_record_id or app_instance.invenio_record_id == "":
                 published_record = self.create_new_record(app_instance, invenio_record)
             else:
