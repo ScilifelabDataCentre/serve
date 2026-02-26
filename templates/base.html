@@ -19,9 +19,11 @@
 
     {% include 'common/navbar.html' with minimum=False %}
 
-    <main class="container-xl mb-3">
-    {% block content %}{% endblock %}
-    </main>
+    {% block page %}
+      <main class="container-xl mt-3 mb-3">
+        {% block content %}{% endblock %}
+      </main>
+    {% endblock %}
 
     <div class="modal fade" id="modalConfirmDelete" tabindex="-1" aria-labelledby="modalConfirmDeleteLabel"
         aria-hidden="true">
