@@ -498,15 +498,30 @@ def remind_about_link_only_apps():
 
 
 @shared_task(bind=True)
-def execute_single_background_task(self, task_db_id: int):
+def execute_single_background_task(self, *args, task_db_id=None):
     """
     Execute a single background task.
 
+    When used in a chain, Celery passes the previous task's result as the first
+    positional argument; we accept that and use the last positional (or task_db_id
+    kwarg) as the actual task record id.
+
     Args:
-        task_db_id: ID of the BackgroundTask model instance
+        *args: When first in chain, (task_db_id,). When chained, (previous_result, task_db_id).
+        task_db_id: ID of the BackgroundTask model instance (optional if passed via args).
     """
     from apps.background_tasks.registry import TASK_REGISTRY
     from apps.models import BackgroundTask
+
+    if task_db_id is not None:
+        pass
+    elif len(args) == 1:
+        task_db_id = args[0]
+    elif len(args) >= 2:
+        task_db_id = args[-1]
+    else:
+        logger.error("execute_single_background_task called without task_db_id")
+        return {"success": False, "error": "task_db_id required"}
 
     try:
         task_record = BackgroundTask.objects.get(id=task_db_id)
