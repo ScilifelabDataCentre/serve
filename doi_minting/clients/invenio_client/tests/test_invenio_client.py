@@ -122,6 +122,45 @@ class TestResponseHandling:
         with pytest.raises(InvenioClientError):
             invenio_client._handle_response(mock_response, success_codes=[200, 202])
 
+    def test_extract_funding(self):
+        record = {
+            "metadata": {
+                "funding": [
+                    {
+                        "funder": {"id": "048a87296", "name": "Uppsala University"},
+                        "award": {
+                            "number": "grant-123",
+                            "title": {"en": "Grant Title"},
+                            "identifiers": [
+                                {
+                                    "scheme": "url",
+                                    "identifier": "https://example.org/grants/123",
+                                }
+                            ],
+                        },
+                    },
+                    {
+                        "funder": {"id": "02ybfkh30"},
+                    },
+                ]
+            }
+        }
+
+        result = InvenioClient.extract_funding(record)
+        assert result == [
+            {
+                "funder_id": "048a87296",
+                "funder_name": "Uppsala University",
+                "number": "grant-123",
+                "title": "Grant Title",
+                "url": "https://example.org/grants/123",
+            },
+            {
+                "funder_id": "02ybfkh30",
+                "funder_name": "02ybfkh30",
+            },
+        ]
+
 
 class TestDraftOperations:
     """Test draft record operations."""
@@ -376,6 +415,56 @@ class TestDOIManagement:
 
         result = invenio_client.delete_doi(record_id)
         assert result is True
+
+
+class TestFundersSearch:
+    """Test funders vocabulary search operations."""
+
+    @responses.activate
+    def test_search_funders_uses_api_funders(self, invenio_client):
+        url = "https://invenio.example.com/api/funders"
+        responses.add(
+            responses.GET,
+            url,
+            json={
+                "hits": {
+                    "hits": [
+                        {"id": "abc123", "title": {"en": "Uppsala University"}},
+                        {"id": "def456", "title": {"sv": "Vetenskapsradet"}},
+                    ]
+                }
+            },
+            status=200,
+        )
+
+        result = invenio_client.search_funders("Uppsala", size=10)
+
+        assert result == [
+            {"id": "abc123", "name": "Uppsala University"},
+            {"id": "def456", "name": "Vetenskapsradet"},
+        ]
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url.startswith(f"{url}?")
+
+    @responses.activate
+    def test_search_funders_falls_back_to_vocabulary_endpoint_on_404(self, invenio_client):
+        responses.add(
+            responses.GET,
+            "https://invenio.example.com/api/funders",
+            status=404,
+            json={"message": "Not Found"},
+        )
+        responses.add(
+            responses.GET,
+            "https://invenio.example.com/api/vocabularies/funders",
+            json={"hits": {"hits": [{"id": "xyz789", "title": {"en": "European Commission"}}]}},
+            status=200,
+        )
+
+        result = invenio_client.search_funders("European", size=10)
+
+        assert result == [{"id": "xyz789", "name": "European Commission"}]
+        assert len(responses.calls) == 2
 
 
 def test_invenio_client_error():
