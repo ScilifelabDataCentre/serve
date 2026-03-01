@@ -28,13 +28,17 @@ if (Cypress.env("create_resources") === true) {
       cy.get("#funderModal").should("be.visible");
 
       cy.get("#funderNameInput").clear().type(query);
-      cy.wait("@fundersSearch");
+      cy.wait("@fundersSearch", { timeout: 10000 });
       cy.get("#funderResults").should("be.visible");
       cy.get("#funderResults [data-idx='0']").click();
 
       cy.get("#awardNumberInput").clear().type(number);
       cy.get("#awardTitleInput").clear().type(title);
-      cy.get("#awardUrlInput").clear().type(url);
+      cy.get("#awardUrlInput").clear().then(($input) => {
+        if (url) {
+          cy.wrap($input).type(url);
+        }
+      });
 
       cy.get("#saveFunderBtn").should("not.be.disabled").click();
       cy.get("#funderModal").should("not.be.visible");
@@ -56,9 +60,13 @@ if (Cypress.env("create_resources") === true) {
       if (Cypress.env("manage_test_data_via_django_endpoint_views") === true) {
         cy.fixture("users.json").then((data) => {
           TEST_USER_DATA = data.deploy_app_user;
+          cy.manageTestData({
+            endpoint: "populate-test-user",
+            data: { user_data: TEST_USER_DATA },
+            clearSessions: true,
+            failOnStatusCode: false
+          });
           cy.cleanupAllTestProjects(TEST_USER_DATA);
-          cy.cleanupTestUser(TEST_USER_DATA);
-          cy.populateTestUser(TEST_USER_DATA);
           cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
         });
       } else {
@@ -83,9 +91,15 @@ if (Cypress.env("create_resources") === true) {
         cy.loginViaApi(TEST_USER_DATA.email, TEST_USER_DATA.password);
       });
 
-      cy.intercept("GET", "**/api/invenio/funders/**", {
-        fixture: "invenio-funders.json"
-      }).as("fundersSearch");
+      cy.intercept(
+        {
+          method: "GET",
+          pathname: "/api/invenio/funders/"
+        },
+        {
+          fixture: "invenio-funders.json"
+        }
+      ).as("fundersSearch");
     });
 
     it("shows funding field on all targeted create forms", () => {
