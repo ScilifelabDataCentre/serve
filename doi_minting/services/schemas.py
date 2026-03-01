@@ -104,7 +104,7 @@ class Award(BaseModel):
     """Optional grant/award details for a funder entry."""
 
     number: str | None = None
-    title: str | None = None
+    title: dict[str, str] | str | None = None
     url: str | None = None
 
 

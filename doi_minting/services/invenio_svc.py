@@ -23,19 +23,20 @@ from studio.utils import get_logger
 
 from .schemas import (
     AccessConfig,
-    Award,
     AdditionalMetadata,
     AppData,
+    Award,
     Contributor,
     Creator,
     Date,
     DateType,
     FilesConfig,
+    Funder,
+    Funding,
     Identifier,
     InvenioMetadata,
     InvenioRecord,
     Language,
-    Funding,
     PersonOrOrg,
     RelatedIdentifierItem,
     RelationType,
@@ -358,12 +359,7 @@ class InvenioService:
                 raw_funder = item.get("funder")
                 raw_funder = raw_funder if isinstance(raw_funder, dict) else {}
 
-                funder_id = (
-                    item.get("funder_id")
-                    or raw_funder.get("id")
-                    or item.get("id")
-                    or ""
-                )
+                funder_id = item.get("funder_id") or raw_funder.get("id") or item.get("id") or ""
                 funder_id = str(funder_id).strip()
                 if not funder_id:
                     continue
@@ -374,22 +370,31 @@ class InvenioService:
                 raw_award = item.get("award")
                 raw_award = raw_award if isinstance(raw_award, dict) else {}
                 award_number = str(item.get("number") or raw_award.get("number") or "").strip()
-                award_title = str(item.get("title") or raw_award.get("title") or "").strip()
+                award_title_raw = item.get("title") or raw_award.get("title") or ""
+                award_title: dict[str, str] | str | None = None
+                if isinstance(award_title_raw, dict):
+                    award_title_localized = {
+                        str(lang).strip(): str(text).strip()
+                        for lang, text in award_title_raw.items()
+                        if str(lang).strip() and isinstance(text, str) and text.strip()
+                    }
+                    if award_title_localized:
+                        award_title = award_title_localized
+                elif isinstance(award_title_raw, str) and award_title_raw.strip():
+                    # Invenio expects localized award titles; default to English for free-text form input.
+                    award_title = {"en": award_title_raw.strip()}
                 award_url = str(item.get("url") or raw_award.get("url") or "").strip()
 
                 award = None
                 if award_number or award_title or award_url:
                     award = Award(
                         number=award_number or None,
-                        title=award_title or None,
+                        title=award_title,
                         url=award_url or None,
                     )
 
                 funding_entry = Funding(
-                    funder={
-                        "id": funder_id,
-                        "name": funder_name or None,
-                    },
+                    funder=Funder(id=funder_id, name=funder_name or None),
                     award=award,
                 )
                 funding_entries.append(funding_entry)
@@ -463,7 +468,7 @@ class InvenioService:
 
         if domain:
             doc_link = RelatedIdentifierItem(
-                identifier=f"https://{domain}/apps/{app_data.id}",
+                identifier="https://{}/apps/{}".format(domain, app_data.id),
                 scheme="url",
                 relation_type=RelationType(id="isdocumentedby"),
                 resource_type=ResourceType(id="publication-softwaredocumentation"),

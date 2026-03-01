@@ -496,9 +496,85 @@ class InvenioClient:
 
         return language_id
 
+    @staticmethod
+    def extract_funding(record: Dict[str, Any]) -> List[Dict[str, str]]:
+        """
+        Extract funding entries from an Invenio record/draft.
+        Expected metadata shape:
+        metadata.funding = [{"funder": {"id": "...", "name": "..."}, "award": {...}}, ...]
+        """
+        metadata = record.get("metadata")
+        if not isinstance(metadata, dict):
+            return []
+
+        funding = metadata.get("funding")
+        if not isinstance(funding, list):
+            return []
+
+        items: List[Dict[str, str]] = []
+        for entry in funding:
+            if not isinstance(entry, dict):
+                continue
+
+            funder = entry.get("funder")
+            if not isinstance(funder, dict):
+                continue
+
+            funder_id = funder.get("id")
+            if not isinstance(funder_id, str) or not funder_id:
+                continue
+
+            funder_name = funder.get("name")
+            if not isinstance(funder_name, str) or not funder_name:
+                funder_name = funder_id
+
+            item: Dict[str, str] = {
+                "funder_id": funder_id,
+                "funder_name": funder_name,
+            }
+
+            award = entry.get("award")
+            if isinstance(award, dict):
+                award_number = award.get("number")
+                if isinstance(award_number, str) and award_number:
+                    item["number"] = award_number
+
+                award_title = award.get("title")
+                if isinstance(award_title, str) and award_title:
+                    item["title"] = award_title
+                elif isinstance(award_title, dict) and award_title:
+                    title_en = award_title.get("en")
+                    if isinstance(title_en, str) and title_en:
+                        item["title"] = title_en
+                    else:
+                        for localized_title in award_title.values():
+                            if isinstance(localized_title, str) and localized_title:
+                                item["title"] = localized_title
+                                break
+
+                award_url = award.get("url")
+                if not (isinstance(award_url, str) and award_url):
+                    identifiers = award.get("identifiers")
+                    if isinstance(identifiers, list):
+                        for identifier_entry in identifiers:
+                            if not isinstance(identifier_entry, dict):
+                                continue
+                            if identifier_entry.get("scheme") != "url":
+                                continue
+                            identifier_value = identifier_entry.get("identifier")
+                            if isinstance(identifier_value, str) and identifier_value:
+                                award_url = identifier_value
+                                break
+                if isinstance(award_url, str) and award_url:
+                    item["url"] = award_url
+
+            items.append(item)
+
+        return items
+
     def search_funders(self, query: str, size: int = 10) -> List[Dict[str, str]]:
         """
-        Search Invenio funders vocabulary.
+        Search Invenio funders.
 
         Returns a simplified list:
         [
@@ -509,42 +585,35 @@ class InvenioClient:
         if not query:
             return []
 
-        params: Dict[str, Any] = {
-            "q": query,
-            "size": size,
-        }
+        params: Dict[str, Any] = {"q": query, "size": size}
+        endpoints = [
+            "/api/funders",
+            "/api/vocabularies/funders",
+        ]
 
-        response = self.session.get(
-            f"{self.base_url}/api/vocabularies/funders",
-            params=params,
-        )
-        logger.info("Invenio funders request URL: %s", response.url)
-        logger.info("Invenio funders status code: %s", response.status_code)
+        for endpoint in endpoints:
+            response = self.session.get(f"{self.base_url}{endpoint}", params=params)
 
-        try:
-            raw_json = response.json()
-            logger.info(
-                "Invenio funders raw response (truncated): %s",
-                json.dumps(raw_json, indent=2)[:2000],
-            )
-        except Exception:
-            logger.warning("Invenio funders response is not JSON")
-        
-        data = self._handle_response(response)
+            if response.status_code == 404:
+                continue
 
-        hits = data.get("hits", {}).get("hits", []) or []
+            data = self._handle_response(response)
+            hits = data.get("hits", {}).get("hits", []) or []
+            results: List[Dict[str, str]] = []
+            for hit in hits:
+                funder_id = hit.get("id")
+                title = hit.get("title") or {}
+                if isinstance(title, dict):
+                    funder_name = title.get("en")
+                    if not funder_name and title:
+                        funder_name = next(iter(title.values()))
+                else:
+                    funder_name = None
 
-        results: List[Dict[str, str]] = []
-        for hit in hits:
-            funder_id = hit.get("id")
-            title = (hit.get("title") or {}).get("en")
+                if funder_id and funder_name:
+                    results.append({"id": funder_id, "name": funder_name})
 
-            if funder_id and title:
-                results.append(
-                    {
-                        "id": funder_id,
-                        "name": title,
-                    }
-                )
+            if results:
+                return results
 
-        return results
+        return []

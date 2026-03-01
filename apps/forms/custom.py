@@ -1,11 +1,7 @@
-import json
-
-import waffle
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import Div, Layout
 from django import forms
-from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
@@ -68,38 +64,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         self._setup_container_image_field()
         self._set_up_mount_path_field()
         super()._restore_model_help_text()
-
-        if not waffle.switch_is_active("doi_minting_using_invenio"):
-            self.fields.pop("funding_sources_json", None)
-        else:
-            # Ensure a valid JSON default for the hidden field
-            self.fields["funding_sources_json"].initial = self.fields["funding_sources_json"].initial or "[]"
-
-    def clean_funding_sources_json(self):
-        raw = self.cleaned_data.get("funding_sources_json") or "[]"
-
-        try:
-            data = json.loads(raw) if isinstance(raw, str) else raw
-        except json.JSONDecodeError as e:
-            raise ValidationError("Invalid funding sources data.") from e
-
-        if not isinstance(data, list):
-            raise ValidationError("Funding sources must be a list.")
-
-        for item in data:
-            if not isinstance(item, dict):
-                raise ValidationError("Invalid funding source entry.")
-
-            funder_name = (item.get("funder_name") or "").strip()
-            funder_id = (item.get("funder_id") or "").strip()
-
-            if not funder_name:
-                raise ValidationError("Each funding source must have a funder name.")
-            if not funder_id:
-                # Enforces “no free text”
-                raise ValidationError("Each funding source must be selected from the Invenio funders list.")
-
-        return json.dumps(data)
+        self._setup_optional_funding_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
