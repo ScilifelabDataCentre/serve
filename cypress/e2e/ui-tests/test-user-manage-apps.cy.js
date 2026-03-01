@@ -57,7 +57,18 @@ if (Cypress.env('create_resources') === true) {
                 cy.log("Populating test data via Django endpoint");
                 cy.fixture('users.json').then(function (data) {
                     TEST_USER_DATA = data.deploy_app_user;
-                    cy.populateTestUser(TEST_USER_DATA);
+                    cy.manageTestData({
+                        endpoint: 'populate-test-user',
+                        data: { user_data: TEST_USER_DATA },
+                        clearSessions: true,
+                        failOnStatusCode: false
+                    });
+                    cy.manageTestData({
+                        endpoint: 'cleanup-all-test-projects',
+                        data: { user_data: TEST_USER_DATA },
+                        clearSessions: true,
+                        failOnStatusCode: false
+                    });
                     cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
                 })
             }
@@ -1136,8 +1147,13 @@ if (Cypress.env('create_resources') === true) {
             if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
 
                 cy.log("Cleaning up test data via Django endpoint");
-                cy.cleanupTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
-                cy.cleanupTestUser(TEST_USER_DATA);
+                cy.cleanupAllTestProjects(TEST_USER_DATA);
+                cy.manageTestData({
+                    endpoint: 'cleanup-test-user',
+                    data: { user_data: TEST_USER_DATA },
+                    clearSessions: true,
+                    failOnStatusCode: false
+                });
             }
 
             cy.logf("End after() hook", Cypress.currentTest)
