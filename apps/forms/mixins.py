@@ -190,7 +190,12 @@ class CreatorsMixin:
         else:
             logger.warning("CreatorsMixin: No request or user object available")
 
-        self.fields["creators"].initial = json.dumps(creators_data)
+        # Only set initial value if we have creator data to avoid marking field as changed
+        if creators_data:
+            logger.info(f"CreatorsMixin: Setting creators initial data: {creators_data}")
+            self.fields["creators"].initial = json.dumps(creators_data)
+        else:
+            logger.info("CreatorsMixin: No creator data, leaving field initial value unchanged")
 
     def get_creators_data(self):
         """Get the parsed creators data from the form."""
