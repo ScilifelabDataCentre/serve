@@ -160,7 +160,7 @@ class KeywordTagsValidationMixin:
         """Validate the invenio_tags input against the autocomplete API."""
         print("clean_keyword_tags called")
         tags_value = self.cleaned_data.get("invenio_tags", "").strip()
-        tags_list = [tag.strip() for tag in tags_value.split(",") if tag.strip()]
+        tags_list = [tag.strip() for tag in tags_value.split("|") if tag.strip()]
         if not tags_list:
             tags_list = [tag.strip() for tag in tags_value.split() if tag.strip()]
 
