@@ -26,8 +26,7 @@ from apps.constants import (
 )
 from apps.types_.subdomain import SubdomainCandidateName
 from apps.validators.container_images import (
-    DockerHubAuthenticator,
-    GHCRAuthenticator,
+    get_authenticator_for_registry,
     get_image_architectures,
 )
 from common.models import UserProfile
@@ -672,16 +671,17 @@ def validate_ghcr_image(image: str):
         raise ValidationError("Unable to find GHCR image tag. Please try again.")
 
     if waffle.switch_is_active("docker_image_architecture_validator"):
-        architectures = get_image_architectures(
-            auth=GHCRAuthenticator(
-                username=settings.GITHUB_API_USERNAME,
-                token=settings.GITHUB_API_TOKEN,
-            ),
-            repo=f"{owner}/{image_name}",
-            reference=tag,
-            registry="ghcr.io",
-        )
-        if any(arch.arch != "amd64" for arch in architectures):
+        auth = get_authenticator_for_registry("ghcr.io")
+        if auth:
+            architectures = get_image_architectures(
+                auth=auth,
+                repo=f"{owner}/{image_name}",
+                reference=tag,
+                registry="ghcr.io",
+            )
+        else:
+            architectures = []
+        if architectures and any(arch.arch != "amd64" for arch in architectures):
             raise ValidationError(
                 f"Docker image '{image}' is not built for the right CPU architecture. "
                 "Please use docker build --platform linux/amd64 to build your image"
@@ -716,12 +716,16 @@ def validate_docker_image(image: str):
         )
 
     if waffle.switch_is_active("docker_image_architecture_validator"):
-        architectures = get_image_architectures(
-            auth=DockerHubAuthenticator(username=settings.DOCKER_HUB_USERNAME, token=settings.DOCKER_HUB_TOKEN),
-            repo=repository,
-            reference=tag,
-        )
-        if any(arch.arch != "amd64" for arch in architectures):
+        auth = get_authenticator_for_registry("registry-1.docker.io")
+        if auth:
+            architectures = get_image_architectures(
+                auth=auth,
+                repo=repository,
+                reference=tag,
+            )
+        else:
+            architectures = []
+        if architectures and any(arch.arch != "amd64" for arch in architectures):
             raise ValidationError(
                 f"Docker image '{image}' is not built for the right CPU architecture. "
                 "Please use docker build --platform linux/amd64 to build your image"

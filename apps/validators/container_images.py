@@ -59,6 +59,36 @@ class ImageArchitectureTuple(NamedTuple):
     """CPU architecture of the image, e.g., 'amd64', 'arm64'."""
 
 
+# Validation context (shared by all validators)
+@dataclass
+class ContainerImageContext:
+    """
+    Resolved container image info for validators.
+
+    Use get_container_image_context(app_instance) to build this once; then
+    DockerImageValidator and ImagePublicValidator can share the same resolution,
+    parsing, and registry auth lookup.
+    """
+
+    image: str | None
+    """Resolved image reference, or None if app has no image."""
+
+    registry_host: RegistryHost | str | None
+    repo: str
+    reference: str
+    registry_host_str: str
+    auth: BaseRegistryAuth | None
+    """Authenticator for this registry (from settings), or None if unsupported or no image."""
+
+    @property
+    def has_image(self) -> bool:
+        return self.image is not None
+
+    @property
+    def is_supported_registry(self) -> bool:
+        return self.auth is not None
+
+
 # Validator classes
 class DockerHubAuthenticator:
     """Handles authentication for DockerHub Container Registry."""
@@ -260,7 +290,37 @@ class OCIRegistryPublicChecker:
         return False
 
 
-# Utility functions
+# Utility functions for validators
+def get_container_image_context(app_instance) -> ContainerImageContext:
+    """
+    Resolve and parse container image from app instance, and resolve registry auth.
+
+    Reused by DockerImageValidator and ImagePublicValidator so resolution, parsing,
+    and auth logic live in one place.
+    """
+    image = resolve_image_reference(app_instance)
+    if not image:
+        return ContainerImageContext(
+            image=None,
+            registry_host=None,
+            repo="",
+            reference="",
+            registry_host_str="",
+            auth=None,
+        )
+    registry_host, repo, reference = parse_image_reference(image)
+    registry_host_str = registry_host_to_str(registry_host)
+    auth = get_authenticator_for_registry(registry_host)
+    return ContainerImageContext(
+        image=image,
+        registry_host=registry_host,
+        repo=repo,
+        reference=reference,
+        registry_host_str=registry_host_str,
+        auth=auth,
+    )
+
+
 def resolve_image_reference(app_instance) -> str | None:
     """
     Resolve an image reference from different app instance types.
@@ -292,6 +352,31 @@ def resolve_image_reference(app_instance) -> str | None:
 
 def registry_host_to_str(registry: RegistryHost | str) -> str:
     return registry.value if isinstance(registry, RegistryHost) else registry
+
+
+def get_authenticator_for_registry(registry: RegistryHost | str) -> BaseRegistryAuth | None:
+    """
+    Return the appropriate registry authenticator for the given registry, using Django settings.
+
+    Use this in validators so registry auth (Docker Hub vs GHCR credentials) is chosen in one place.
+    Returns None for unsupported registries.
+    """
+    if isinstance(registry, RegistryHost):
+        reg = registry
+    else:
+        reg_str = (registry or "").lower()
+        if reg_str in (RegistryHost.DOCKER_HUB.value, "docker.io", "index.docker.io"):
+            reg = RegistryHost.DOCKER_HUB
+        elif reg_str == RegistryHost.GHCR.value:
+            reg = RegistryHost.GHCR
+        else:
+            return None
+
+    if reg == RegistryHost.DOCKER_HUB:
+        return DockerHubAuthenticator(settings.DOCKER_HUB_USERNAME, settings.DOCKER_HUB_TOKEN)
+    if reg == RegistryHost.GHCR:
+        return GHCRAuthenticator(settings.GITHUB_API_USERNAME, settings.GITHUB_API_TOKEN)
+    return None
 
 
 def parse_image_reference(image: str) -> tuple[RegistryHost | str, str, str]:

@@ -8,9 +8,36 @@ from typing import Any, Dict
 
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
+from apps.validators.container_images import ContainerImageContext
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
+
+
+def _validation_result_no_image(app_instance) -> Dict[str, Any]:
+    """Shared 'no image to validate' result for container image validators."""
+    return {
+        "valid": True,
+        "message": "No image to validate",
+        "resolved_from": {
+            "has_image_attr": hasattr(app_instance, "image"),
+            "has_environment": bool(getattr(app_instance, "environment", None)),
+            "has_k8s_values": bool(getattr(app_instance, "k8s_values", None)),
+        },
+    }
+
+
+def _validation_result_skipped_unsupported_registry(ctx: ContainerImageContext) -> Dict[str, Any]:
+    """Shared 'skipped unsupported registry' result for container image validators."""
+    return {
+        "valid": True,
+        "skipped": True,
+        "message": f"Skipping Docker image validation for unsupported registry '{ctx.registry_host_str}'",
+        "image": ctx.image,
+        "registry": ctx.registry_host_str,
+        "repo": ctx.repo,
+        "reference": ctx.reference,
+    }
 
 
 @TASK_REGISTRY.register(
@@ -29,63 +56,30 @@ class DockerImageValidator(BaseBackgroundTask):
 
     def execute(self, app_instance, **kwargs) -> Dict[str, Any]:
         """Validate Docker image architecture."""
-        from django.conf import settings
-
         from apps.validators.container_images import (
-            DockerHubAuthenticator,
-            GHCRAuthenticator,
-            RegistryHost,
+            get_container_image_context,
             get_image_architectures,
-            parse_image_reference,
-            registry_host_to_str,
-            resolve_image_reference,
         )
 
-        # Extract image information from app instance
-        image = resolve_image_reference(app_instance)
-        logger.info("Processing image %s", image)
-        if not image:
-            return {
-                "valid": True,
-                "message": "No image to validate",
-                "resolved_from": {
-                    "has_image_attr": hasattr(app_instance, "image"),
-                    "has_environment": bool(getattr(app_instance, "environment", None)),
-                    "has_k8s_values": bool(getattr(app_instance, "k8s_values", None)),
-                },
-            }
-
-        registry_host, repo, reference = parse_image_reference(image)
-        registry_host_str = registry_host_to_str(registry_host)
-
-        # Select registry authenticator
-        if registry_host == RegistryHost.DOCKER_HUB:
-            auth = DockerHubAuthenticator(settings.DOCKER_HUB_USERNAME, settings.DOCKER_HUB_TOKEN)
-        elif registry_host == RegistryHost.GHCR:
-            auth = GHCRAuthenticator(settings.GITHUB_API_USERNAME, settings.GITHUB_API_TOKEN)
-        else:
+        ctx = get_container_image_context(app_instance)
+        logger.info("Processing image %s", ctx.image)
+        if not ctx.has_image:
+            return _validation_result_no_image(app_instance)
+        if not ctx.is_supported_registry:
             logger.warning(
                 "Skipping Docker image validation for unsupported registry '%s' (image=%s)",
-                registry_host_str,
-                image,
+                ctx.registry_host_str,
+                ctx.image,
             )
-            return {
-                "valid": True,
-                "skipped": True,
-                "message": f"Skipping Docker image validation for unsupported registry '{registry_host_str}'",
-                "image": image,
-                "registry": registry_host_str,
-                "repo": repo,
-                "reference": reference,
-            }
+            return _validation_result_skipped_unsupported_registry(ctx)
 
         # Validate architecture
         try:
             architectures = get_image_architectures(
-                auth=auth,
-                repo=repo,
-                reference=reference,
-                registry=registry_host_str,
+                auth=ctx.auth,
+                repo=ctx.repo,
+                reference=ctx.reference,
+                registry=ctx.registry_host_str,
             )
 
             # Check for amd64 architecture
@@ -93,21 +87,21 @@ class DockerImageValidator(BaseBackgroundTask):
 
             if not amd64_found:
                 raise ValueError(
-                    f"Docker image {image} does not support amd64 architecture. "
+                    f"Docker image {ctx.image} does not support amd64 architecture. "
                     f"Found: {[arch.arch for arch in architectures]}"
                 )
 
             return {
                 "valid": True,
                 "architectures": [{"os": arch.os, "arch": arch.arch} for arch in architectures],
-                "image": image,
-                "registry": registry_host_str,
-                "repo": repo,
-                "reference": reference,
+                "image": ctx.image,
+                "registry": ctx.registry_host_str,
+                "repo": ctx.repo,
+                "reference": ctx.reference,
             }
 
         except Exception as e:
-            logger.error(f"Failed to validate Docker image {image}: {e}")
+            logger.error("Failed to validate Docker image %s: %s", ctx.image, e)
             raise
 
 
@@ -131,46 +125,34 @@ class ImagePublicValidator(BaseBackgroundTask):
 
         from apps.validators.container_images import (
             OCIRegistryPublicChecker,
-            parse_image_reference,
-            registry_host_to_str,
-            resolve_image_reference,
+            get_container_image_context,
         )
 
-        image = resolve_image_reference(app_instance)
-        logger.info("Checking public accessibility for image %s", image)
-        if not image:
-            return {
-                "valid": True,
-                "message": "No image to validate",
-                "resolved_from": {
-                    "has_image_attr": hasattr(app_instance, "image"),
-                    "has_environment": bool(getattr(app_instance, "environment", None)),
-                    "has_k8s_values": bool(getattr(app_instance, "k8s_values", None)),
-                },
-            }
+        ctx = get_container_image_context(app_instance)
+        logger.info("Checking public accessibility for image %s", ctx.image)
+        if not ctx.has_image:
+            return _validation_result_no_image(app_instance)
 
-        registry_host, repo, reference = parse_image_reference(image)
-        registry_host_str = registry_host_to_str(registry_host)
-        checker = OCIRegistryPublicChecker(registry=registry_host_str, timeout=10.0)
+        checker = OCIRegistryPublicChecker(registry=ctx.registry_host_str, timeout=10.0)
 
         try:
-            is_public = checker.is_public(repository=repo, reference=reference)
+            is_public = checker.is_public(repository=ctx.repo, reference=ctx.reference)
         except requests.RequestException as exc:
-            logger.error("Public image validation failed for %s: %s", image, exc)
-            raise ValueError(f"Failed to validate image accessibility for '{image}': {exc}") from exc
+            logger.error("Public image validation failed for %s: %s", ctx.image, exc)
+            raise ValueError(f"Failed to validate image accessibility for '{ctx.image}': {exc}") from exc
 
         if not is_public:
             raise ValueError(
-                f"Container image '{image}' is not publicly pullable from registry '{registry_host_str}'. "
+                f"Container image '{ctx.image}' is not publicly pullable from registry '{ctx.registry_host_str}'. "
                 "Please use a public image or publish the image before deployment."
             )
 
         return {
             "valid": True,
-            "image": image,
-            "registry": registry_host_str,
-            "repo": repo,
-            "reference": reference,
+            "image": ctx.image,
+            "registry": ctx.registry_host_str,
+            "repo": ctx.repo,
+            "reference": ctx.reference,
             "public": True,
         }
 
