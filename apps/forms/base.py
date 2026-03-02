@@ -37,6 +37,7 @@ class BaseForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.project_pk = kwargs.pop("project_pk", None)
+        self.request = kwargs.pop("request", None)  # Store request for mixins
         self.project = get_object_or_404(Project, pk=self.project_pk) if self.project_pk else None
         self.model_name = self._meta.model._meta.verbose_name.replace("Instance", "")
 

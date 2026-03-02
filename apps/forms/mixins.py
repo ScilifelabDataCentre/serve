@@ -155,6 +155,54 @@ class VolumeMixin:
         return SRVCommonDivField("volume", template="apps/storage_field.html", project_slug=self.project.slug)
 
 
+class CreatorsMixin:
+    """Mixin to add creators field functionality for managing app creators."""
+
+    def _initialize_creators(self):
+        """Initialize the creators field with the current user as the primary creator."""
+        import json
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        creators_data = []
+
+        if self.request and hasattr(self.request, "user"):
+            if self.request.user.is_authenticated:
+                user = self.request.user
+                user_name = f"{user.first_name} {user.last_name}".strip() or user.username
+
+                logger.info(
+                    f"CreatorsMixin: User details - ID: {user.pk}, Username: {user.username}, "
+                    f"Name: '{user_name}', Email: {user.email}"
+                )
+
+                primary_creator = {
+                    "name": user_name,
+                    "email": user.email,
+                    "affiliation": "",
+                    "orcid": "",
+                    "order": 0,
+                }
+                creators_data.append(primary_creator)
+            else:
+                logger.warning("CreatorsMixin: User is not authenticated, no creator added")
+        else:
+            logger.warning("CreatorsMixin: No request or user object available")
+
+        self.fields["creators"].initial = json.dumps(creators_data)
+
+    def get_creators_data(self):
+        """Get the parsed creators data from the form."""
+        import json
+
+        creators_json = self.cleaned_data.get("creators", "[]")
+        try:
+            return json.loads(creators_json) if creators_json else []
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+
 class KeywordTagsValidationMixin:
     def clean_keyword_tags(self):
         """Validate the invenio_tags input against the autocomplete API."""
