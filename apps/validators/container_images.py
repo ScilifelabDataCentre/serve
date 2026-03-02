@@ -1,4 +1,9 @@
+import re
+import time
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import NamedTuple, Protocol
+from urllib.parse import urlparse
 
 import requests
 from django.conf import settings
@@ -8,7 +13,19 @@ from studio.utils import get_logger
 
 logger = get_logger(__name__)
 
+# Constants
 
+ACCEPT_MANIFEST = ", ".join(
+    [
+        "application/vnd.oci.image.manifest.v1+json",
+        "application/vnd.oci.image.index.v1+json",
+        "application/vnd.docker.distribution.manifest.v2+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+    ]
+)
+
+
+# Types and Protocols
 class BaseRegistryAuth(Protocol):
     """
     Protocol for registry authentication classes.
@@ -23,6 +40,17 @@ class BaseRegistryAuth(Protocol):
         ...
 
 
+class RegistryHost(StrEnum):
+    DOCKER_HUB = "registry-1.docker.io"
+    GHCR = "ghcr.io"
+
+
+@dataclass
+class CachedToken:
+    token: str
+    expires_at: float
+
+
 class ImageArchitectureTuple(NamedTuple):
     os: str
     """Operating system of the image, e.g., 'linux', 'windows'."""
@@ -31,6 +59,7 @@ class ImageArchitectureTuple(NamedTuple):
     """CPU architecture of the image, e.g., 'amd64', 'arm64'."""
 
 
+# Validator classes
 class DockerHubAuthenticator:
     """Handles authentication for DockerHub Container Registry."""
 
@@ -98,6 +127,220 @@ class GHCRAuthenticator(DockerHubAuthenticator):
         return f"https://ghcr.io/token?service=ghcr.io&scope=repository:{repo}:pull"
 
 
+class OCIRegistryPublicChecker:
+    """
+    Registry-agnostic checker for anonymous image pullability.
+    """
+
+    def __init__(self, registry: str, timeout: float = 10.0):
+        if not registry.startswith("http"):
+            registry = f"https://{registry}"
+        self.registry = registry.rstrip("/")
+        self.timeout = timeout
+        self.session = requests.Session()
+        self._token_cache: dict[tuple[str, str, str], CachedToken] = {}
+
+    @staticmethod
+    def _parse_www_authenticate(header: str | None) -> dict[str, str] | None:
+        if not header or not header.lower().startswith("bearer "):
+            return None
+        params = dict(re.findall(r'(\w+)="([^"]+)"', header))
+        if not params.get("realm"):
+            return None
+        return params
+
+    @staticmethod
+    def _cache_key(realm: str, service: str, scope: str) -> tuple[str, str, str]:
+        return (realm, service or "", scope or "")
+
+    def _get_cached_token(self, realm: str, service: str, scope: str) -> str | None:
+        key = self._cache_key(realm, service, scope)
+        cached = self._token_cache.get(key)
+        if not cached:
+            return None
+        if time.time() >= (cached.expires_at - 10):
+            self._token_cache.pop(key, None)
+            return None
+        return cached.token
+
+    def _store_token(self, realm: str, service: str, scope: str, token: str, expires_in: int | None) -> None:
+        ttl = int(expires_in) if expires_in is not None else 120
+        self._token_cache[self._cache_key(realm, service, scope)] = CachedToken(
+            token=token,
+            expires_at=time.time() + ttl,
+        )
+
+    def _fetch_token(self, realm: str, service: str, scope: str) -> str | None:
+        cached = self._get_cached_token(realm, service, scope)
+        if cached:
+            return cached
+
+        params: dict[str, str] = {}
+        if service:
+            params["service"] = service
+        if scope:
+            params["scope"] = scope
+
+        resp = self.session.get(realm, params=params, timeout=self.timeout)
+        if resp.status_code != 200:
+            return None
+
+        data = resp.json()
+        token = data.get("token") or data.get("access_token")
+        if not token:
+            return None
+
+        self._store_token(realm, service, scope, token, data.get("expires_in"))
+        return token
+
+    def _request_manifest(
+        self, repository: str, reference: str, token: str | None, use_head: bool
+    ) -> requests.Response:
+        headers = {"Accept": ACCEPT_MANIFEST}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        url = f"{self.registry}/v2/{repository}/manifests/{reference}"
+        method = self.session.head if use_head else self.session.get
+        # Follow redirects to avoid false negatives behind registry/proxy redirects.
+        return method(url, headers=headers, timeout=self.timeout, allow_redirects=True)
+
+    def is_public(self, repository: str, reference: str = "latest") -> bool:
+        for use_head in (True, False):
+            response = self._request_manifest(repository, reference, token=None, use_head=use_head)
+
+            if response.status_code == 200:
+                return True
+
+            if response.status_code == 404:
+                return False
+
+            if response.status_code in (405, 406):
+                if use_head:
+                    continue
+                return False
+
+            if response.status_code != 401:
+                return False
+
+            auth_header = (
+                response.headers.get("WWW-Authenticate")
+                or response.headers.get("Www-Authenticate")
+                or response.headers.get("www-authenticate")
+            )
+            params = self._parse_www_authenticate(auth_header)
+            if not params:
+                return False
+
+            realm = params.get("realm", "")
+            service = params.get("service", "")
+            scope = params.get("scope", "")
+
+            token = self._fetch_token(realm, service, scope)
+            if not token:
+                return False
+
+            retry_response = self._request_manifest(repository, reference, token=token, use_head=use_head)
+            if retry_response.status_code == 200:
+                return True
+            if retry_response.status_code == 404:
+                return False
+            if retry_response.status_code != 401:
+                return False
+
+            # Token may have expired/revoked in-flight; refresh once.
+            self._token_cache.pop(self._cache_key(realm, service, scope), None)
+            token = self._fetch_token(realm, service, scope)
+            if not token:
+                return False
+
+            final_response = self._request_manifest(repository, reference, token=token, use_head=use_head)
+            return final_response.status_code == 200
+
+        return False
+
+
+# Utility functions
+def resolve_image_reference(app_instance) -> str | None:
+    """
+    Resolve an image reference from different app instance types.
+
+    - Custom apps store the image in `app_instance.image`
+    - Jupyter/RStudio store the image in `app_instance.environment.get_full_image_reference()`
+    - Fallback: use `app_instance.k8s_values["appconfig"]["image"]` if present
+    """
+    image = getattr(app_instance, "image", None)
+    if image:
+        return image
+
+    environment = getattr(app_instance, "environment", None)
+    if environment and hasattr(environment, "get_full_image_reference"):
+        env_image = environment.get_full_image_reference()
+        if env_image:
+            return env_image
+
+    k8s_values = getattr(app_instance, "k8s_values", None) or {}
+    if isinstance(k8s_values, dict):
+        appconfig = k8s_values.get("appconfig") or {}
+        if isinstance(appconfig, dict):
+            k8s_image = appconfig.get("image")
+            if k8s_image:
+                return k8s_image
+
+    return None
+
+
+def registry_host_to_str(registry: RegistryHost | str) -> str:
+    return registry.value if isinstance(registry, RegistryHost) else registry
+
+
+def parse_image_reference(image: str) -> tuple[RegistryHost | str, str, str]:
+    """
+    Parse an OCI image reference into registry host, repository, and tag/digest reference.
+    """
+    image = image.strip()
+    # Handle optional scheme from accidental input like "https://ghcr.io/org/repo:tag".
+    if "://" in image:
+        parsed = urlparse(image)
+        image = f"{parsed.netloc}{parsed.path}".strip("/")
+
+    parts = image.split("/")
+    first = parts[0] if parts else ""
+    # A registry hostname must be followed by a repository path segment.
+    # Without "/", "python:3.12" is an image:tag, not "registry/repo".
+    has_registry = len(parts) > 1 and ("." in first or ":" in first or first == "localhost")
+
+    if has_registry:
+        registry: RegistryHost | str = first
+        repository_and_ref = "/".join(parts[1:])
+    else:
+        registry = RegistryHost.DOCKER_HUB
+        repository_and_ref = image
+
+    if "@" in repository_and_ref:
+        repository, reference = repository_and_ref.rsplit("@", 1)
+    else:
+        last_segment = repository_and_ref.rsplit("/", 1)[-1]
+        if ":" in last_segment:
+            repository, reference = repository_and_ref.rsplit(":", 1)
+        else:
+            repository, reference = repository_and_ref, "latest"
+
+    if isinstance(registry, str):
+        registry = {
+            "docker.io": RegistryHost.DOCKER_HUB,
+            "index.docker.io": RegistryHost.DOCKER_HUB,
+            RegistryHost.DOCKER_HUB.value: RegistryHost.DOCKER_HUB,
+            RegistryHost.GHCR.value: RegistryHost.GHCR,
+        }.get(registry.lower(), registry)
+
+    # Docker Hub official images use implicit library namespace.
+    if registry == RegistryHost.DOCKER_HUB and "/" not in repository:
+        repository = f"library/{repository}"
+
+    return registry, repository, reference
+
+
 def get_manifest_list(
     *, registry_auth: BaseRegistryAuth, repository: str, reference: str, registry: str = "registry-1.docker.io"
 ):
@@ -105,14 +348,7 @@ def get_manifest_list(
     Fetches the OCI manifest or manifest list for Docker Hub and GHCR.
     Returns the JSON manifest and the auth method used (Bearer token or Basic Auth).
     """
-    headers = {
-        "Accept": (
-            "application/vnd.docker.distribution.manifest.list.v2+json,"
-            "application/vnd.oci.image.index.v1+json,"
-            "application/vnd.docker.distribution.manifest.v2+json,"
-            "application/vnd.oci.image.manifest.v1+json"
-        )
-    }
+    headers = {"Accept": ACCEPT_MANIFEST}
 
     token = registry_auth.get_bearer_token(repository)
     headers["Authorization"] = f"Bearer {token}"

@@ -723,13 +723,13 @@ def run_background_tasks(serialized_instance, app_slug):
             tr = order_task_records[0]
             timeout = task_timeout_by_id.get(tr.id, 300)
             task_chain.append(
-                execute_single_background_task.s(tr.id).set(soft_time_limit=timeout, time_limit=timeout + 30)
+                execute_single_background_task.si(tr.id).set(soft_time_limit=timeout, time_limit=timeout + 30)
             )
         else:
             # Multiple tasks - run in parallel using group
             parallel_tasks = group(
                 [
-                    execute_single_background_task.s(tr.id).set(
+                    execute_single_background_task.si(tr.id).set(
                         soft_time_limit=task_timeout_by_id.get(tr.id, 300),
                         time_limit=task_timeout_by_id.get(tr.id, 300) + 30,
                     )
