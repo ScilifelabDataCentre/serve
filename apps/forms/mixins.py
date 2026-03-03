@@ -167,35 +167,24 @@ class CreatorsMixin:
 
         creators_data = []
 
-        if self.request and hasattr(self.request, "user"):
-            if self.request.user.is_authenticated:
-                user = self.request.user
-                user_name = f"{user.first_name} {user.last_name}".strip() or user.username
-
-                logger.info(
-                    f"CreatorsMixin: User details - ID: {user.pk}, Username: {user.username}, "
-                    f"Name: '{user_name}', Email: {user.email}"
-                )
-
-                primary_creator = {
-                    "name": user_name,
+        if (
+            hasattr(self, "request")
+            and self.request
+            and getattr(self.request, "user", None)
+            and self.request.user.is_authenticated
+        ):
+            user = self.request.user
+            creators_data = [
+                {
+                    "name": user.get_full_name() or user.username,
                     "email": user.email,
                     "affiliation": "",
                     "orcid": "",
                     "order": 0,
                 }
-                creators_data.append(primary_creator)
-            else:
-                logger.warning("CreatorsMixin: User is not authenticated, no creator added")
-        else:
-            logger.warning("CreatorsMixin: No request or user object available")
-
-        # Only set initial value if we have creator data to avoid marking field as changed
-        if creators_data:
-            logger.info(f"CreatorsMixin: Setting creators initial data: {creators_data}")
+            ]
+            logger.debug(f"Initialized creators with current user: {creators_data}")
             self.fields["creators"].initial = json.dumps(creators_data)
-        else:
-            logger.info("CreatorsMixin: No creator data, leaving field initial value unchanged")
 
     def get_creators_data(self):
         """Get the parsed creators data from the form."""
@@ -203,7 +192,8 @@ class CreatorsMixin:
 
         creators_json = self.cleaned_data.get("creators", "[]")
         try:
-            return json.loads(creators_json) if creators_json else []
+            creators_data = json.loads(creators_json) if creators_json else []
+            return creators_data
         except (json.JSONDecodeError, TypeError):
             return []
 
