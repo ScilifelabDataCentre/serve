@@ -2,8 +2,10 @@ describe("Test storage settings functionality", () => {
     // Tests for storage settings in project settings page
     let users
     let TEST_USER_DATA;
+    const TEST_RUN_ID = Date.now();
+    const TEST_APP_NAME = `storage-test-app-${TEST_RUN_ID}`;
     const TEST_PROJECT_DATA = {
-        project_name: "e2e-storage-test-proj",
+        project_name: `e2e-storage-test-proj-${TEST_RUN_ID}`,
         project_description: "Project for testing storage settings",
     };
 
@@ -14,7 +16,7 @@ describe("Test storage settings functionality", () => {
             cy.log("Populating test data via Django endpoint");
             const TEST_APP_DATA = {
                 app_slug: "customapp",
-                name: "storage-test-app",
+                name: TEST_APP_NAME,
                 description: "App for testing storage paths",
                 access: "public",
                 port: 8000,
@@ -25,7 +27,12 @@ describe("Test storage settings functionality", () => {
 
             cy.fixture('users.json').then(function (data) {
                 TEST_USER_DATA = data.deploy_app_user;
-                cy.populateTestUser(TEST_USER_DATA);
+                cy.manageTestData({
+                    endpoint: 'populate-test-user',
+                    data: { user_data: TEST_USER_DATA },
+                    clearSessions: true,
+                    failOnStatusCode: false
+                });
                 cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
                 cy.populateTestApp(TEST_USER_DATA, TEST_PROJECT_DATA, TEST_APP_DATA);
             });
@@ -195,7 +202,7 @@ describe("Test storage settings functionality", () => {
             .parents('.input-group')
             .next('.form-text')
             .should('contain', 'Used by:')
-            .and('contain', 'storage-test-app');
+            .and('contain', TEST_APP_NAME);
     });
 
     it("validates mount path during app creation", () => {
@@ -256,7 +263,6 @@ describe("Test storage settings functionality", () => {
         if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
             cy.log("Cleaning up test data via Django endpoint");
             cy.cleanupTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
-            cy.cleanupTestUser(TEST_USER_DATA);
         }
         // Note: For alternative data population methods, cleanup would need to be
         // implemented according to how the data was created

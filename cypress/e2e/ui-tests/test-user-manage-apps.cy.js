@@ -43,8 +43,9 @@ if (Cypress.env('create_resources') === true) {
         // user: e2e_tests_deploy_app_user
         let users
         let TEST_USER_DATA
+        const TEST_RUN_ID = Date.now()
         const TEST_PROJECT_DATA = {
-            project_name: "e2e-deploy-app-test",
+            project_name: `e2e-deploy-app-test-${TEST_RUN_ID}`,
             project_description: "e2e-deploy-app-test-desc",
           };
 
@@ -59,12 +60,6 @@ if (Cypress.env('create_resources') === true) {
                     TEST_USER_DATA = data.deploy_app_user;
                     cy.manageTestData({
                         endpoint: 'populate-test-user',
-                        data: { user_data: TEST_USER_DATA },
-                        clearSessions: true,
-                        failOnStatusCode: false
-                    });
-                    cy.manageTestData({
-                        endpoint: 'cleanup-all-test-projects',
                         data: { user_data: TEST_USER_DATA },
                         clearSessions: true,
                         failOnStatusCode: false
@@ -119,7 +114,7 @@ if (Cypress.env('create_resources') === true) {
         it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // This test creates two custom apps and also modifies and tests the permission levels
             // Names of objects to create
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name_project = "e2e-custom-example-project"
             const app_name_public = "e2e-custom-example-public"
             const app_name_public_2 = "e2e-custom-example-2-public"
@@ -370,7 +365,7 @@ if (Cypress.env('create_resources') === true) {
             // Test of a public Shiny proxy app
             // TODO: We need to add a test here for validating Site-dir option. See SS-1206 for details
             // Names of objects to create
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-shiny-example"
             const app_description = "e2e-shiny-description"
             const source_code_url = "https://doi.org/example"
@@ -458,7 +453,7 @@ if (Cypress.env('create_resources') === true) {
         it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test to create and delete a Dash app
             // Names of objects to create
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-dash-example"
             const app_description = "e2e-dash-description"
             const source_code_url = "https://doi.org/example"
@@ -542,7 +537,7 @@ if (Cypress.env('create_resources') === true) {
 
         it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Names of objects to create
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-tissuumaps-example"
             const app_description = "e2e-tissuumaps-description"
             const app_type = "TissUUmaps App"
@@ -611,7 +606,7 @@ if (Cypress.env('create_resources') === true) {
         it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test to create and delete a Gradio app
             // Names of objects to create
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-gradio-example"
             const app_description = "e2e-gradio-description"
             const source_code_url = "https://doi.org/example"
@@ -682,7 +677,7 @@ if (Cypress.env('create_resources') === true) {
         it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test to create and delete a Streamlit app
             // Names of objects to create
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-streamlit-example"
             const app_description = "e2e-streamlit-description"
             const source_code_url = "https://doi.org/example"
@@ -753,7 +748,7 @@ if (Cypress.env('create_resources') === true) {
         it("can modify app settings resulting in NO k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // An advanced test to verify user can modify app settings such as the name and description
             // Names of objects to create
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-change-app-settings-no-redeploy"
             const app_name_edited = app_name + "-edited"
             const app_description = "e2e-change-app-settings-description"
@@ -848,7 +843,7 @@ if (Cypress.env('create_resources') === true) {
             // An advanced test to verify user can modify app settings resulting in k8s redeployment (image)
             // still shows the correct app status.
             // Names of objects to create
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-change-app-settings-redeploy"
             const app_description = "e2e-change-app-settings-description"
             const source_code_url = "https://doi.org/example"
@@ -954,7 +949,7 @@ if (Cypress.env('create_resources') === true) {
 
         it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // A test to verify creating an app and changing the subdomain
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-subdomain-change"
             const app_description = "e2e-subdomain-change-description"
             const source_code_url = "https://doi.org/example"
@@ -1049,7 +1044,7 @@ if (Cypress.env('create_resources') === true) {
             // 3. Create app e2e-second-subdomain-example, subdomain=subdomain-test2
             // 4. Change the subdomain of the first app to subdomain=subdomain-test3
             // Names of objects to create
-            const project_name = "e2e-deploy-app-test"
+            const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-subdomain-example"
             const app_name_2 = "e2e-second-subdomain-example"
             const app_description = "e2e-subdomain-description"
@@ -1069,7 +1064,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_description').clear().type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_mount_path').select("/home/data (project-vol (e2e-deploy-app-test))")
+            cy.get('#id_mount_path').select(`/home/data (project-vol (${project_name}))`)
             // fill out subdomain field
             cy.get('#id_subdomain').clear().type(subdomain)
 
@@ -1147,10 +1142,9 @@ if (Cypress.env('create_resources') === true) {
             if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
 
                 cy.log("Cleaning up test data via Django endpoint");
-                cy.cleanupAllTestProjects(TEST_USER_DATA);
                 cy.manageTestData({
-                    endpoint: 'cleanup-test-user',
-                    data: { user_data: TEST_USER_DATA },
+                    endpoint: 'cleanup-test-project',
+                    data: { user_data: TEST_USER_DATA, project_data: TEST_PROJECT_DATA },
                     clearSessions: true,
                     failOnStatusCode: false
                 });

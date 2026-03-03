@@ -1,8 +1,9 @@
 if (Cypress.env("create_resources") === true) {
   describe("Test Invenio funding fields in app forms", () => {
     let TEST_USER_DATA;
+    const TEST_RUN_ID = Date.now();
     const TEST_PROJECT_DATA = {
-      project_name: "e2e-invenio-funding-test-proj",
+      project_name: `e2e-invenio-funding-test-proj-${TEST_RUN_ID}`,
       project_description: "Project for testing funding form behavior"
     };
 
@@ -28,9 +29,9 @@ if (Cypress.env("create_resources") === true) {
       cy.get("#funderModal").should("be.visible");
 
       cy.get("#funderNameInput").clear().type(query);
-      cy.wait("@fundersSearch", { timeout: 10000 });
-      cy.get("#funderResults").should("be.visible");
-      cy.get("#funderResults [data-idx='0']").click();
+      cy.get("#funderResults [data-idx='0']", { timeout: 10000 })
+        .should("be.visible")
+        .click();
 
       cy.get("#awardNumberInput").clear().type(number);
       cy.get("#awardTitleInput").clear().type(title);
@@ -66,7 +67,6 @@ if (Cypress.env("create_resources") === true) {
             clearSessions: true,
             failOnStatusCode: false
           });
-          cy.cleanupAllTestProjects(TEST_USER_DATA);
           cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
         });
       } else {
@@ -91,11 +91,7 @@ if (Cypress.env("create_resources") === true) {
         cy.loginViaApi(TEST_USER_DATA.email, TEST_USER_DATA.password);
       });
 
-      cy.intercept(
-        {
-          method: "GET",
-          pathname: "/api/invenio/funders/"
-        },
+      cy.intercept("GET", "**/api/invenio/funders*",
         {
           fixture: "invenio-funders.json"
         }
@@ -203,6 +199,17 @@ if (Cypress.env("create_resources") === true) {
       cy.get("#awardNumberInput").should("have.value", "2024-01567");
       cy.get("#awardTitleInput").should("have.value", "Uppsala Precision Medicine Grant");
       cy.get("#awardUrlInput").should("have.value", "");
+    });
+
+    after(() => {
+      if (Cypress.env("manage_test_data_via_django_endpoint_views") === true) {
+        cy.manageTestData({
+          endpoint: "cleanup-test-project",
+          data: { user_data: TEST_USER_DATA, project_data: TEST_PROJECT_DATA },
+          clearSessions: true,
+          failOnStatusCode: false
+        });
+      }
     });
   });
 }
