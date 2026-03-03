@@ -9,7 +9,7 @@ deployment is not blocked if DOI minting fails.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import waffle  # type: ignore
 
@@ -23,16 +23,18 @@ logger = get_logger(__name__)
 DOI_MINTING_SWITCH = "doi_minting_using_invenio"
 
 
-def _build_additional_metadata(app_instance) -> Optional[Dict[str, Any]]:
+def _build_additional_metadata(app_instance, *, language: str | None = None) -> dict[str, Any] | None:
     """
     Build additional_metadata from app instance for Invenio (language, subjects/tags).
 
     Mirrors the form-derived metadata used in helpers.create_instance_from_form().
     """
-    additional_metadata: Dict[str, Any] = {}
+    additional_metadata: dict[str, Any] = {}
 
-    # Language: only available from form in helpers; instance may not have it.
-    lang = getattr(app_instance, "language", None)
+    # Language is a form-only field (not a persisted model field). Prefer the
+    # form-provided value passed through task kwargs, and only fall back to the
+    # instance if present for some app types.
+    lang = language or getattr(app_instance, "language", None)
     if lang:
         additional_metadata["languages"] = lang
 
@@ -68,7 +70,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
     task_type = "external_api"
     timeout_seconds = 300
 
-    def execute(self, app_instance, **kwargs) -> Dict[str, Any]:
+    def execute(self, app_instance, **kwargs) -> dict[str, Any]:
         if not waffle.switch_is_active(DOI_MINTING_SWITCH):
             logger.debug(
                 "DOI provisioning skipped: waffle switch '%s' is off",
@@ -87,7 +89,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
 
         app_slug = app_instance.app.slug
         instance_id = app_instance.id
-        additional_metadata = _build_additional_metadata(app_instance)
+        additional_metadata = _build_additional_metadata(app_instance, language=kwargs.get("language"))
 
         try:
             from doi_minting.services.invenio_svc import (

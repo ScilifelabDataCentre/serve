@@ -1,5 +1,6 @@
 import re
 import subprocess
+from typing import Any
 
 import yaml
 from celery import shared_task
@@ -498,7 +499,12 @@ def remind_about_link_only_apps():
 
 
 @shared_task(bind=True)
-def execute_single_background_task(self, *args, task_db_id=None):
+def execute_single_background_task(
+    self,
+    *args,
+    task_db_id: int | None = None,
+    task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
+):
     """
     Execute a single background task.
 
@@ -509,6 +515,8 @@ def execute_single_background_task(self, *args, task_db_id=None):
     Args:
         *args: When first in chain, (task_db_id,). When chained, (previous_result, task_db_id).
         task_db_id: ID of the BackgroundTask model instance (optional if passed via args).
+        task_kwargs_by_task_name: Optional mapping of task_name -> kwargs dict passed to
+            validate_inputs/execute for that specific task.
     """
     from apps.background_tasks.registry import TASK_REGISTRY
     from apps.models import BackgroundTask
@@ -566,10 +574,17 @@ def execute_single_background_task(self, *args, task_db_id=None):
         return {"success": False, "error": error_msg}
 
     task_instance = task_class()
+    task_kwargs_by_task_name = task_kwargs_by_task_name or {}
+    task_kwargs = {}
+    if isinstance(task_kwargs_by_task_name, dict):
+        task_kwargs = task_kwargs_by_task_name.get(task_record.task_name) or {}
 
     # Validate inputs
     try:
-        task_instance.validate_inputs(task_record.app_instance)
+        if task_kwargs:
+            task_instance.validate_inputs(task_record.app_instance, **task_kwargs)
+        else:
+            task_instance.validate_inputs(task_record.app_instance)
     except Exception as e:
         import traceback
 
@@ -592,7 +607,10 @@ def execute_single_background_task(self, *args, task_db_id=None):
 
     # Execute the task
     try:
-        result = task_instance.execute(task_record.app_instance)
+        if task_kwargs:
+            result = task_instance.execute(task_record.app_instance, **task_kwargs)
+        else:
+            result = task_instance.execute(task_record.app_instance)
         task_record.mark_as_success(result_data=result)
         try:
             task_instance.on_success(task_record.app_instance, result)
@@ -674,7 +692,11 @@ def execute_single_background_task(self, *args, task_db_id=None):
 
 @shared_task
 @transaction.atomic
-def run_background_tasks(serialized_instance, app_slug):
+def run_background_tasks(
+    serialized_instance,
+    app_slug,
+    task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
+):
     """
     Orchestrates background tasks before deployment.
 
@@ -684,6 +706,8 @@ def run_background_tasks(serialized_instance, app_slug):
     Args:
         serialized_instance: Serialized app instance
         app_slug: App type slug
+        task_kwargs_by_task_name: Optional mapping of task_name -> kwargs dict passed to
+            validate_inputs/execute for that specific task.
 
     Returns:
         Dict with success status and task results
@@ -695,6 +719,8 @@ def run_background_tasks(serialized_instance, app_slug):
 
     instance = deserialize(serialized_instance)
     logger.info(f"Running background tasks for app {instance.id} ({app_slug})")
+
+    task_kwargs_by_task_name = task_kwargs_by_task_name or {}
 
     # Get tasks grouped by execution order
     tasks_by_order = TASK_REGISTRY.get_tasks_by_order(app_slug)
@@ -738,13 +764,21 @@ def run_background_tasks(serialized_instance, app_slug):
             tr = order_task_records[0]
             timeout = task_timeout_by_id.get(tr.id, 300)
             task_chain.append(
-                execute_single_background_task.s(tr.id).set(soft_time_limit=timeout, time_limit=timeout + 30)
+                execute_single_background_task.s(
+                    task_db_id=tr.id, task_kwargs_by_task_name=task_kwargs_by_task_name
+                ).set(
+                    soft_time_limit=timeout,
+                    time_limit=timeout + 30,
+                )
             )
         else:
             # Multiple tasks - run in parallel using group
             parallel_tasks = group(
                 [
-                    execute_single_background_task.s(tr.id).set(
+                    execute_single_background_task.s(
+                        task_db_id=tr.id,
+                        task_kwargs_by_task_name=task_kwargs_by_task_name,
+                    ).set(
                         soft_time_limit=task_timeout_by_id.get(tr.id, 300),
                         time_limit=task_timeout_by_id.get(tr.id, 300) + 30,
                     )

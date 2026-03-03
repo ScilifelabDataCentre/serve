@@ -401,7 +401,13 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             from .tasks import run_background_tasks
 
             # The orchestrator will handle deployment if tasks succeed.
-            transaction.on_commit(lambda: run_background_tasks.delay(instance.serialize(), app_slug))
+            task_kwargs_by_task_name = {
+                # Form-only field (not persisted on the model) needed for Invenio metadata.
+                "doi_provisioning": {"language": form.cleaned_data.get("language")},
+            }
+            transaction.on_commit(
+                lambda: run_background_tasks.delay(instance.serialize(), app_slug, task_kwargs_by_task_name)
+            )
         else:
             # Fall back to direct deployment.
             transaction.on_commit(lambda: deploy_resource.delay(instance.serialize()))
