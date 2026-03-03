@@ -64,6 +64,30 @@
         </div>
       </div>
 
+      <!-- Execution Graph -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="card shadow">
+            <div class="card-header">
+              <h5>Execution Graph</h5>
+            </div>
+            <div class="card-body">
+              <div id="workflow-status-banner" class="alert alert-secondary mb-3">
+                Waiting for task status updates...
+              </div>
+              <div id="stage-summary" class="d-flex flex-wrap gap-2 mb-3"></div>
+              <div id="execution-graph-wrapper" class="position-relative border rounded p-3 bg-light overflow-auto" style="min-height: 240px;">
+                <svg id="execution-graph-edges" class="position-absolute top-0 start-0" aria-hidden="true" style="pointer-events:none;"></svg>
+                <div id="execution-graph" class="d-flex align-items-start gap-4 position-relative"></div>
+              </div>
+              <small class="text-muted d-block mt-2">
+                Click a task node to jump to its details. Critical tasks are marked with a red border.
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Tasks List -->
       <div class="row">
         <div class="col-md-12">
@@ -198,12 +222,14 @@
 <script>
 const statusApiUrl = "{% url 'apps:background_tasks_status' project.slug app_slug instance.pk %}";
 const retryUrl = "{% url 'apps:retry_background_task' project.slug app_slug instance.pk 0 %}".replace('/0/', '/{task_id}/');
-const csrftoken = getCookie('csrftoken');
+const csrftoken = getCookieValue('csrftoken');
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 // Poll for task status updates every 3 seconds
 let refreshInterval;
 
 function startAutoRefresh() {
+  stopAutoRefresh();
   refreshInterval = setInterval(refreshTasks, 3000);
 }
 
@@ -219,6 +245,10 @@ function refreshTasks() {
     .then(data => {
       updateTasksDisplay(data);
       updateSummary(data.summary);
+      const latestRunTasks = getLatestRunTasks(data.tasks || []);
+      updateExecutionGraph({ tasks: latestRunTasks });
+      updateWorkflowStatus(deriveWorkflowFromTasks(latestRunTasks));
+      updateStageSummary(latestRunTasks);
 
       // Stop auto-refresh if all tasks are completed
       const allCompleted = data.summary.running === 0 && data.summary.pending === 0 && data.summary.retrying === 0;
@@ -228,6 +258,19 @@ function refreshTasks() {
     })
     .catch(error => {
       console.error('Error fetching task status:', error);
+      const fallbackTasks = readTasksFromTable();
+      if (fallbackTasks.length > 0) {
+        const latestRunTasks = getLatestRunTasks(fallbackTasks);
+        updateExecutionGraph({ tasks: latestRunTasks, graph: { nodes: [], edges: [] } });
+        updateStageSummary(latestRunTasks);
+        updateWorkflowStatus(deriveWorkflowFromTasks(latestRunTasks));
+      } else {
+        const banner = document.getElementById('workflow-status-banner');
+        if (banner) {
+          banner.className = 'alert alert-warning mb-3';
+          banner.textContent = 'Could not load live task status. Please try Refresh.';
+        }
+      }
     });
 }
 
@@ -246,12 +289,12 @@ function updateTasksDisplay(data) {
     const statusBadge = document.getElementById(`task-status-${task.id}`);
     if (statusBadge) {
       statusBadge.className = `badge bg-${getStatusClass(task.status)}`;
-      statusBadge.textContent = task.status.charAt(0).toUpperCase() + task.status.slice(1);
+      statusBadge.textContent = getStatusLabel(task.status);
     }
 
     // Update duration
     const durationCell = document.getElementById(`task-duration-${task.id}`);
-    if (durationCell && task.duration_seconds) {
+    if (durationCell && task.duration_seconds !== null && task.duration_seconds !== undefined) {
       durationCell.textContent = `${task.duration_seconds.toFixed(2)}s`;
     }
 
@@ -275,9 +318,393 @@ function getStatusClass(status) {
     'running': 'primary',
     'success': 'success',
     'failed': 'danger',
-    'retrying': 'warning'
+    'retrying': 'warning',
+    'blocked': 'danger',
+    'ready': 'success',
+    'waiting': 'info',
+    'idle': 'secondary'
   };
   return statusClasses[status] || 'secondary';
+}
+
+function getStatusLabel(status) {
+  const labels = {
+    pending: 'Pending',
+    running: 'Running',
+    success: 'Success',
+    failed: 'Failed',
+    retrying: 'Retrying',
+    blocked: 'Blocked',
+    ready: 'Ready',
+    waiting: 'Waiting',
+    idle: 'Idle'
+  };
+  return labels[status] || status;
+}
+
+function updateWorkflowStatus(workflow) {
+  const banner = document.getElementById('workflow-status-banner');
+  if (!banner || !workflow) {
+    return;
+  }
+
+  if (workflow.blocked) {
+    banner.className = 'alert alert-danger mb-3';
+    banner.textContent = 'Deployment blocked: one or more critical tasks failed.';
+    return;
+  }
+
+  if (workflow.ready_for_deploy) {
+    banner.className = 'alert alert-success mb-3';
+    banner.textContent = 'All critical tasks completed successfully. Deployment can proceed.';
+    return;
+  }
+
+  if (workflow.has_in_progress) {
+    banner.className = 'alert alert-info mb-3';
+    banner.textContent = 'Background task workflow is still in progress.';
+    return;
+  }
+
+  banner.className = 'alert alert-secondary mb-3';
+  banner.textContent = 'Waiting for task execution to start.';
+}
+
+function deriveWorkflowFromTasks(tasks) {
+  const hasFailedCritical = tasks.some(task => task.is_critical && task.status === 'failed');
+  const hasInProgress = tasks.some(task => ['pending', 'running', 'retrying'].includes(task.status));
+  const readyForDeploy = tasks.length > 0 && !hasFailedCritical && !hasInProgress;
+  return {
+    blocked: hasFailedCritical,
+    ready_for_deploy: readyForDeploy,
+    has_failed_critical: hasFailedCritical,
+    has_in_progress: hasInProgress
+  };
+}
+
+function getLatestRunTasks(tasks) {
+  if (!tasks || tasks.length === 0) {
+    return [];
+  }
+
+  // We currently don't persist a run-id, so approximate "last run" by taking
+  // the latest row per task signature (order + name).
+  const latestBySignature = new Map();
+  tasks.forEach(task => {
+    const signature = `${task.execution_order}::${task.task_name}`;
+    const current = latestBySignature.get(signature);
+    if (!current) {
+      latestBySignature.set(signature, task);
+      return;
+    }
+
+    const currentTs = Date.parse(current.created_at || '') || 0;
+    const candidateTs = Date.parse(task.created_at || '') || 0;
+    if (candidateTs >= currentTs) {
+      latestBySignature.set(signature, task);
+    }
+  });
+
+  return Array.from(latestBySignature.values()).sort((a, b) => {
+    if (a.execution_order !== b.execution_order) {
+      return a.execution_order - b.execution_order;
+    }
+    const aName = a.task_name || '';
+    const bName = b.task_name || '';
+    return aName.localeCompare(bName);
+  });
+}
+
+function buildStageEdges(tasks) {
+  const orderToTaskIds = {};
+  tasks.forEach(task => {
+    if (!orderToTaskIds[task.execution_order]) {
+      orderToTaskIds[task.execution_order] = [];
+    }
+    orderToTaskIds[task.execution_order].push(task.id);
+  });
+
+  const edges = [];
+  const sortedOrders = Object.keys(orderToTaskIds).map(Number).sort((a, b) => a - b);
+  for (let i = 0; i < sortedOrders.length - 1; i++) {
+    const fromOrder = sortedOrders[i];
+    const toOrder = sortedOrders[i + 1];
+    orderToTaskIds[fromOrder].forEach(sourceId => {
+      orderToTaskIds[toOrder].forEach(targetId => {
+        edges.push({ source: `task-${sourceId}`, target: `task-${targetId}` });
+      });
+    });
+  }
+
+  if (sortedOrders.length > 0) {
+    const lastOrder = sortedOrders[sortedOrders.length - 1];
+    orderToTaskIds[lastOrder].forEach(sourceId => {
+      edges.push({ source: `task-${sourceId}`, target: 'deploy' });
+    });
+  }
+
+  return edges;
+}
+
+function updateStageSummary(tasks) {
+  const stageSummary = document.getElementById('stage-summary');
+  if (!stageSummary) {
+    return;
+  }
+
+  stageSummary.innerHTML = '';
+  if (!tasks || tasks.length === 0) {
+    return;
+  }
+
+  const grouped = {};
+  tasks.forEach(task => {
+    if (!grouped[task.execution_order]) {
+      grouped[task.execution_order] = { total: 0, success: 0, failed: 0, running: 0 };
+    }
+    grouped[task.execution_order].total += 1;
+    if (task.status === 'success') {
+      grouped[task.execution_order].success += 1;
+    } else if (task.status === 'failed') {
+      grouped[task.execution_order].failed += 1;
+    } else if (task.status === 'running' || task.status === 'retrying') {
+      grouped[task.execution_order].running += 1;
+    }
+  });
+
+  Object.keys(grouped)
+    .map(v => parseInt(v, 10))
+    .sort((a, b) => a - b)
+    .forEach(order => {
+      const stats = grouped[order];
+      const chip = document.createElement('span');
+      chip.className = 'badge bg-light text-dark border';
+      chip.textContent = `Stage ${order}: ${stats.success}/${stats.total} success`;
+      stageSummary.appendChild(chip);
+    });
+}
+
+function updateExecutionGraph(data) {
+  const graphContainer = document.getElementById('execution-graph');
+  if (!graphContainer) {
+    return;
+  }
+
+  const tasks = data.tasks || [];
+  const edges = buildStageEdges(tasks);
+  const tasksById = {};
+  tasks.forEach(task => {
+    tasksById[`task-${task.id}`] = task;
+  });
+
+  const stages = {};
+  tasks.forEach(task => {
+    if (!stages[task.execution_order]) {
+      stages[task.execution_order] = [];
+    }
+    stages[task.execution_order].push(task);
+  });
+
+  graphContainer.innerHTML = '';
+  const sortedOrders = Object.keys(stages).map(Number).sort((a, b) => a - b);
+  sortedOrders.forEach(order => {
+    const stageColumn = document.createElement('div');
+    stageColumn.className = 'd-flex flex-column gap-2';
+    stageColumn.style.minWidth = '220px';
+
+    const title = document.createElement('div');
+    title.className = 'fw-semibold text-muted';
+    title.textContent = `Stage ${order}`;
+    stageColumn.appendChild(title);
+
+    stages[order]
+      .sort((a, b) => a.id - b.id)
+      .forEach(task => {
+        stageColumn.appendChild(createTaskNode(task));
+      });
+
+    graphContainer.appendChild(stageColumn);
+  });
+
+  let deployNode = null;
+  if (tasks.length > 0) {
+    const workflow = deriveWorkflowFromTasks(tasks);
+    let fallbackStatus = 'idle';
+    if (workflow.blocked) {
+      fallbackStatus = 'blocked';
+    } else if (workflow.ready_for_deploy) {
+      fallbackStatus = 'ready';
+    } else if (workflow.has_in_progress) {
+      fallbackStatus = 'waiting';
+    }
+    deployNode = { id: 'deploy', status: fallbackStatus };
+  }
+  if (deployNode) {
+    const deployColumn = document.createElement('div');
+    deployColumn.className = 'd-flex flex-column gap-2';
+    deployColumn.style.minWidth = '220px';
+
+    const title = document.createElement('div');
+    title.className = 'fw-semibold text-muted';
+    title.textContent = 'Final Step';
+    deployColumn.appendChild(title);
+
+    deployColumn.appendChild(createDeployNode(deployNode));
+    graphContainer.appendChild(deployColumn);
+  }
+
+  requestAnimationFrame(() => drawGraphEdges(edges, tasksById));
+}
+
+function createTaskNode(task) {
+  const node = document.createElement('button');
+  node.type = 'button';
+  node.id = `graph-node-task-${task.id}`;
+  node.className = `btn text-start border rounded p-2 bg-${getStatusClass(task.status)} text-white`;
+  node.style.minHeight = '64px';
+  node.style.whiteSpace = 'normal';
+  node.dataset.taskId = task.id;
+
+  if (task.is_critical) {
+    node.classList.add('border-danger', 'border-3');
+  } else {
+    node.classList.add('border-1');
+  }
+
+  const title = document.createElement('div');
+  title.className = 'fw-semibold';
+  title.textContent = task.task_name;
+  node.appendChild(title);
+
+  const subtitle = document.createElement('small');
+  subtitle.textContent = `${getStatusLabel(task.status)} • ${task.task_type}`;
+  node.appendChild(subtitle);
+
+  node.addEventListener('click', () => openTaskDetails(task.id));
+  return node;
+}
+
+function createDeployNode(deployNode) {
+  const node = document.createElement('div');
+  node.id = 'graph-node-deploy';
+  node.className = `border rounded p-2 bg-${getStatusClass(deployNode.status)} text-white fw-semibold`;
+  node.style.minHeight = '64px';
+  node.style.display = 'flex';
+  node.style.flexDirection = 'column';
+  node.style.justifyContent = 'center';
+  const title = document.createElement('div');
+  title.textContent = 'Deploy';
+  node.appendChild(title);
+
+  const subtitle = document.createElement('small');
+  subtitle.textContent = getStatusLabel(deployNode.status);
+  node.appendChild(subtitle);
+  return node;
+}
+
+function drawGraphEdges(edges, tasksById) {
+  const wrapper = document.getElementById('execution-graph-wrapper');
+  const svg = document.getElementById('execution-graph-edges');
+  if (!wrapper || !svg) {
+    return;
+  }
+
+  const width = wrapper.scrollWidth;
+  const height = wrapper.scrollHeight;
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.innerHTML = '';
+
+  edges.forEach(edge => {
+    const sourceEl = getGraphNodeElement(edge.source);
+    const targetEl = getGraphNodeElement(edge.target);
+    if (!sourceEl || !targetEl) {
+      return;
+    }
+
+    const sourceRect = sourceEl.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+
+    const x1 = sourceRect.right - wrapperRect.left + wrapper.scrollLeft;
+    const y1 = sourceRect.top - wrapperRect.top + wrapper.scrollTop + (sourceRect.height / 2);
+    const x2 = targetRect.left - wrapperRect.left + wrapper.scrollLeft;
+    const y2 = targetRect.top - wrapperRect.top + wrapper.scrollTop + (targetRect.height / 2);
+
+    const task = tasksById[edge.source];
+    const strokeColor = task && task.status === 'failed' ? '#dc3545' : '#6c757d';
+
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    line.setAttribute('stroke', strokeColor);
+    line.setAttribute('stroke-width', '2');
+    if (!(task && task.status === 'success')) {
+      line.setAttribute('stroke-dasharray', '4 3');
+    }
+    svg.appendChild(line);
+  });
+}
+
+function getGraphNodeElement(graphNodeId) {
+  if (graphNodeId === 'deploy') {
+    return document.getElementById('graph-node-deploy');
+  }
+  if (graphNodeId.startsWith('task-')) {
+    const taskId = graphNodeId.replace('task-', '');
+    return document.getElementById(`graph-node-task-${taskId}`);
+  }
+  return null;
+}
+
+function openTaskDetails(taskId) {
+  const taskRow = document.getElementById(`task-row-${taskId}`);
+  const detailsRow = document.getElementById(`task-details-${taskId}`);
+  if (detailsRow && !detailsRow.classList.contains('show')) {
+    const collapse = new bootstrap.Collapse(detailsRow, { toggle: true });
+    collapse.show();
+  }
+  if (taskRow) {
+    taskRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function readTasksFromTable() {
+  const rows = document.querySelectorAll('#tasks-table-body tr[data-task-id]');
+  const tasks = [];
+
+  rows.forEach(row => {
+    const taskId = parseInt(row.dataset.taskId, 10);
+    if (Number.isNaN(taskId)) {
+      return;
+    }
+
+    const cells = row.querySelectorAll('td');
+    const order = parseInt(cells[0]?.textContent?.trim() || '0', 10);
+    const name = cells[1]?.querySelector('strong')?.textContent?.trim() || `task-${taskId}`;
+    const type = cells[2]?.querySelector('.badge')?.textContent?.trim() || 'validation';
+    const statusLabel = document.getElementById(`task-status-${taskId}`)?.textContent?.trim().toLowerCase() || 'pending';
+    const isCritical = (cells[4]?.textContent || '').toLowerCase().includes('critical');
+    const retries = document.getElementById(`task-retries-${taskId}`)?.textContent || '0 / 0';
+    const retryParts = retries.split('/').map(v => parseInt(v.trim(), 10));
+
+    tasks.push({
+      id: taskId,
+      task_name: name,
+      task_type: type,
+      status: statusLabel,
+      is_critical: isCritical,
+      execution_order: Number.isNaN(order) ? 0 : order,
+      retry_count: Number.isNaN(retryParts[0]) ? 0 : retryParts[0],
+      max_retries: Number.isNaN(retryParts[1]) ? 0 : retryParts[1],
+      can_retry: statusLabel === 'failed',
+      duration_seconds: null
+    });
+  });
+
+  return tasks;
 }
 
 function retryTask(taskId) {
@@ -310,7 +737,7 @@ function retryTask(taskId) {
   });
 }
 
-function getCookie(name) {
+function getCookieValue(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
     const cookies = document.cookie.split(';');
@@ -327,6 +754,14 @@ function getCookie(name) {
 
 // Start auto-refresh when page loads
 document.addEventListener('DOMContentLoaded', function() {
+  const initialTasks = readTasksFromTable();
+  if (initialTasks.length > 0) {
+    const latestRunTasks = getLatestRunTasks(initialTasks);
+    updateExecutionGraph({ tasks: latestRunTasks, graph: { nodes: [], edges: [] } });
+    updateStageSummary(latestRunTasks);
+    updateWorkflowStatus(deriveWorkflowFromTasks(latestRunTasks));
+  }
+
   refreshTasks();
   startAutoRefresh();
 });
