@@ -119,4 +119,3 @@ This ADR **retroactively documents** an already-made decision to separate Inveni
   - The final public API between `doi_minting`, `app_metadata_prep`, and the client.
   - The final naming of the new module (only the intent and separation).
   - Whether the new module must be a Django app vs a pure Python package (either is acceptable as long as the boundary is respected).
-
