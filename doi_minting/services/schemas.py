@@ -18,6 +18,7 @@ class AdditionalMetadata(TypedDict, total=False):
 
     languages: list[Language] | None  # List of Language objects (ISO 639-2 codes) or None
     subjects: list[Subject] | None  # List of tags/keywords for the record
+    creators: list[Creator] | None  # List of Creator objects for the record
 
 
 # ============================================================================
@@ -61,10 +62,12 @@ class Role(BaseModel):
 
 
 class Creator(BaseModel):
-    """Creator with person/org info and role."""
+    """Creator with direct person information."""
 
-    person_or_org: PersonOrOrg
-    role: Role
+    name: str
+    email: str | None = None
+    orcid: str | None = None
+    affiliation: str | None = None
 
 
 class Contributor(BaseModel):

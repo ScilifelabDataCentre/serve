@@ -342,19 +342,58 @@ class InvenioService:
             target_metadata["subjects"] = [Subject(**s) if not isinstance(s, Subject) else s for s in subject_dicts]
         else:
             target_metadata.pop("subjects", None)
+
+        # Handle creators field
+        creators_input = extra.get("creators")
+        if creators_input and isinstance(creators_input, list) and creators_input:
+            creators_list: list[Creator] = []
+            for creator_data in creators_input:
+                if isinstance(creator_data, dict):
+                    # Build Creator directly from creator data, filtering only expected fields
+                    # Remove any unexpected fields like ror_id since ROR should be in affiliation
+                    filtered_data = {
+                        "name": creator_data.get("name", ""),
+                        "email": creator_data.get("email", ""),
+                        "affiliation": creator_data.get("affiliation", ""),
+                        "orcid": creator_data.get("orcid", ""),
+                    }
+
+                    creator = Creator(
+                        name=filtered_data["name"] or "Unknown Creator",
+                        email=filtered_data["email"] if filtered_data["email"] else None,
+                        orcid=filtered_data["orcid"] if filtered_data["orcid"] else None,
+                        affiliation=filtered_data["affiliation"] if filtered_data["affiliation"] else None,
+                    )
+                    creators_list.append(creator)
+
+            if creators_list:
+                target_metadata["creators"] = creators_list
+                logger.debug(f"[Invenio] Applied {len(creators_list)} creators from form data")
+            # If creators_input exists but results in empty list, keep existing creators
+        # If no creators_input provided, keep existing creators (don't modify target_metadata)
+
         logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
 
         return target_metadata
 
-    def _build_creators(self, user_full_name: str, user_first_name: str, user_family_name: str) -> list[Creator]:
+    def _build_creators(
+        self,
+        user_full_name: str,
+        user_first_name: str,
+        user_family_name: str,
+        user_email: str = "",
+        user_orcid: str = "",
+        user_affiliation: str = "",
+    ) -> list[Creator]:
         """Build the creators list with user information."""
-        user_person = PersonOrOrg(
-            name=user_full_name, type="personal", given_name=user_first_name, family_name=user_family_name
+        creator = Creator(
+            name=user_full_name,
+            email=user_email if user_email else None,
+            orcid=user_orcid if user_orcid else None,
+            affiliation=user_affiliation if user_affiliation else None,
         )
 
-        user_role = Role(id="relatedperson")
-
-        return [Creator(person_or_org=user_person, role=user_role)]
+        return [creator]
 
     def _build_contributors(self) -> list[Contributor]:
         """Build the contributors list with SciLifeLab Data Centre."""
@@ -477,6 +516,17 @@ class InvenioService:
         # Convert models to dictionaries
         user_data: Dict[str, Any] = model_to_dict(user_instance, exclude=["_state", "password"])
 
+        # Get user profile data for ORCID and affiliation
+        user_orcid = ""
+        user_affiliation = ""
+        try:
+            user_profile = user_instance.userprofile
+            user_orcid = user_profile.orcid_id or ""
+            user_affiliation = user_profile.get_organization_name() if user_profile.get_affiliations() else ""
+        except Exception:
+            # UserProfile doesn't exist or other error - use defaults
+            pass
+
         # Get user full name
         user_full_name: str = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip()
         user_first_name: str = user_data.get("first_name", "")
@@ -495,7 +545,9 @@ class InvenioService:
         )
 
         # Build components using helper methods
-        creators = self._build_creators(user_full_name, user_first_name, user_family_name)
+        creators = self._build_creators(
+            user_full_name, user_first_name, user_family_name, user_email, user_orcid, user_affiliation
+        )
         contributors = self._build_contributors()
         identifiers = self._build_identifiers(str(app_data.id))
         related_identifiers = self._build_related_identifiers(app_data)

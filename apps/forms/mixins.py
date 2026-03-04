@@ -202,6 +202,15 @@ class CreatorsMixin:
         user_name = user.get_full_name() or user.username
         user_email = user.email or ""
 
+        # Prepare user data as JSON for the data-creator attribute
+        import json
+
+        user_creator_data = json.dumps(
+            {"name": user_name, "email": user_email, "affiliation": "", "orcid": ""}
+        ).replace(
+            '"', "&quot;"
+        )  # Escape quotes for HTML attribute
+
         return Div(
             HTML(
                 '<label class="form-label">Creators '
@@ -216,7 +225,8 @@ class CreatorsMixin:
                 '<small class="text-muted">Drag to reorder creators</small>'
                 "</div>"
                 '<ul id="creatorsSortableList" class="list-group mb-3">'
-                '<li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;">'
+                f'<li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;" '
+                f'data-creator="{user_creator_data}">'
                 f"<div><strong>{user_name}</strong>"
                 + (f'<br><small class="text-muted">{user_email}</small>' if user_email else "")
                 + "</div>"
@@ -244,7 +254,17 @@ class CreatorsMixin:
         """Get the parsed creators data from the form."""
         import json
 
-        creators_json = self.cleaned_data.get("creators", "[]")
+        # Try to get from cleaned_data first (after form validation)
+        if hasattr(self, "cleaned_data") and self.cleaned_data:
+            creators_json = self.cleaned_data.get("creators", "[]")
+        else:
+            # Fall back to raw field value (before form validation)
+            creators_field = self.fields.get("creators")
+            if creators_field and hasattr(creators_field, "initial"):
+                creators_json = creators_field.initial or "[]"
+            else:
+                creators_json = "[]"
+
         try:
             creators_data = json.loads(creators_json) if creators_json else []
             return creators_data

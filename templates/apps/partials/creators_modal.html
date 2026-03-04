@@ -44,9 +44,10 @@ function addCreator() {
   creatorInfo += '</small>';
 
   const newItem = `
-    <li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;">
+    <li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;"
+        data-creator='${JSON.stringify({name, email, affiliation, orcid})}'>
       <div>${creatorInfo}</div>
-      <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.remove()">
+      <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCreator(this)">
         <i class="fas fa-times"></i>
       </button>
     </li>`;
@@ -57,10 +58,55 @@ function addCreator() {
   document.getElementById('newCreatorAffiliation').value = '';
   document.getElementById('newCreatorOrcid').value = '';
 
+  updateCreatorsField();
+
   // Close modal using Bootstrap's modal instance
   const modal = bootstrap.Modal.getInstance(document.getElementById('creatorsModal'));
   if (modal) {
     modal.hide();
   }
 }
+
+function removeCreator(button) {
+  button.parentElement.remove();
+  updateCreatorsField();
+}
+
+function updateCreatorsField() {
+  const creatorsList = document.getElementById('creatorsSortableList');
+  const creatorsField = document.querySelector('input[name="creators"]');
+
+  if (!creatorsList || !creatorsField) return;
+
+  const creators = [];
+  const listItems = creatorsList.querySelectorAll('li[data-creator]');
+
+  listItems.forEach(item => {
+    const creatorData = item.getAttribute('data-creator');
+    if (creatorData) {
+      try {
+        creators.push(JSON.parse(creatorData));
+      } catch (e) {
+        console.error('Error parsing creator data:', e);
+      }
+    }
+  });
+
+  creatorsField.value = JSON.stringify(creators);
+}
+
+// Update creators field when page loads and when sortable is used
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize sortable with update callback
+  if (typeof $ !== 'undefined' && $.ui) {
+    $("#creatorsSortableList").sortable({
+      placeholder: "list-group-item bg-light",
+      cursor: "move",
+      update: updateCreatorsField
+    });
+  }
+
+  // Initial update of creators field
+  setTimeout(updateCreatorsField, 100);
+});
 </script>

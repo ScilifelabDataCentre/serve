@@ -432,6 +432,17 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             additional_metadata["subjects"] = invenio_tags
         else:
             logger.debug("Form does not contain Invenio tags")
+
+        # Check for creators data from form
+        if hasattr(form, "get_creators_data"):
+            creators_data = form.get_creators_data()
+            logger.debug(f"Raw creators_data from form: {creators_data} (type: {type(creators_data)})")
+            if creators_data:
+                logger.debug(f"Form contains creators data: {creators_data}")
+                additional_metadata["creators"] = creators_data
+            else:
+                logger.debug("Form does not contain creators data")
+
         logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
         # Check for changes
         if image_value_changed:
