@@ -39,6 +39,32 @@ from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
 logger = get_logger(__name__)
 
 
+def parse_funding_sources_json(funding_raw: Any) -> list[dict[str, Any]]:
+    """Normalize funding_sources_json from form data into a list."""
+    if not funding_raw:
+        return []
+
+    parsed_funding = funding_raw
+    if isinstance(parsed_funding, str):
+        try:
+            parsed_funding = json.loads(parsed_funding)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Unable to parse funding_sources_json while creating app. "
+                "Proceeding with empty funding metadata."
+            )
+            return []
+
+    if not isinstance(parsed_funding, list):
+        logger.warning(
+            "funding_sources_json has unsupported type %s. Proceeding with empty funding metadata.",
+            type(parsed_funding).__name__,
+        )
+        return []
+
+    return parsed_funding
+
+
 def get_select_options(project_pk, selected_option=""):
     select_options = []
     for sub in Subdomain.objects.filter(project=project_pk, is_created_by_user=True).values_list(
@@ -440,10 +466,15 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         if waffle.switch_is_active("background_tasks"):
             from .tasks import run_background_tasks
 
+            funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
+
             # The orchestrator will handle deployment if tasks succeed.
             task_kwargs_by_task_name = {
                 # Form-only field (not persisted on the model) needed for Invenio metadata.
-                "doi_provisioning": {"language": form.cleaned_data.get("language")},
+                "doi_provisioning": {
+                    "language": form.cleaned_data.get("language"),
+                    "funding": funding_list,
+                },
             }
             transaction.on_commit(
                 lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name)
@@ -486,15 +517,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
 
             # Collect additional metadata from form.
             additional_metadata = {}
-            funding_raw = form.cleaned_data.get("funding_sources_json")
-            if funding_raw:
-                if isinstance(funding_raw, str):
-                    funding_list = json.loads(funding_raw)
-                else:
-                    funding_list = funding_raw
-            else:
-                funding_list = []
-            additional_metadata["funding"] = funding_list
+            additional_metadata["funding"] = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
             lang = form.cleaned_data.get("language")
             if lang:
