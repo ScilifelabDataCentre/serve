@@ -1,6 +1,6 @@
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
-from crispy_forms.layout import Div, Field, Layout
+from crispy_forms.layout import HTML, Div, Layout
 from django import forms
 from django.utils.safestring import mark_safe
 
@@ -72,6 +72,23 @@ class StreamlitForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags"),
+            Div(
+                HTML(
+                    '<label class="form-label">Creators '
+                    '<span class="bi bi-question-circle text-muted ms-2" '
+                    'data-bs-toggle="tooltip" data-bs-placement="right" '
+                    'data-bs-original-title="Manage the creators and contributors for this application.">'
+                    "</span></label>"
+                ),
+                "creators",  # Hidden field
+                HTML(
+                    '<div class="mt-2">'
+                    '<button type="button" class="btn btn-outline-secondary btn-sm" onclick="openCreatorsModal()">'
+                    '<span class="fas fa-users text-muted"></span> Manage Creators'
+                    "</button></div>"
+                ),
+                css_class="mb-3",
+            ),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
