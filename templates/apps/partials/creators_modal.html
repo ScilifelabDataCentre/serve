@@ -2,12 +2,10 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Manage Creators</h5>
+        <h5 class="modal-title">Add Creator</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div id="creatorsList" class="mb-3"></div>
-
         <div class="row g-2">
           <div class="col-md-6">
             <input type="text" class="form-control" id="newCreatorName" placeholder="Name *">
@@ -25,8 +23,44 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-primary" onclick="addCreator()">Add Creator</button>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+function addCreator() {
+  const name = document.getElementById('newCreatorName').value.trim();
+  const email = document.getElementById('newCreatorEmail').value.trim();
+  const affiliation = document.getElementById('newCreatorAffiliation').value.trim();
+  const orcid = document.getElementById('newCreatorOrcid').value.trim();
+
+  if (!name || !email) return;
+
+  let creatorInfo = `<strong>${name}</strong><br><small class="text-muted">Email: ${email}`;
+  if (affiliation) creatorInfo += `<br>Affiliation: ${affiliation}`;
+  if (orcid) creatorInfo += `<br>ORCID: ${orcid}`;
+  creatorInfo += '</small>';
+
+  const newItem = `
+    <li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;">
+      <div>${creatorInfo}</div>
+      <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    </li>`;
+
+  document.getElementById('creatorsSortableList').insertAdjacentHTML('beforeend', newItem);
+  document.getElementById('newCreatorName').value = '';
+  document.getElementById('newCreatorEmail').value = '';
+  document.getElementById('newCreatorAffiliation').value = '';
+  document.getElementById('newCreatorOrcid').value = '';
+
+  // Close modal using Bootstrap's modal instance
+  const modal = bootstrap.Modal.getInstance(document.getElementById('creatorsModal'));
+  if (modal) {
+    modal.hide();
+  }
+}
+</script>

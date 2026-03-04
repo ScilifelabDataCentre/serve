@@ -42,25 +42,12 @@ class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
         super()._setup_form_helper()
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h3>Description</h3>"),
+            mark_safe("<h3>About</h3>"),
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags"),
             Div(
-                HTML(
-                    '<label class="form-label">Creators '
-                    '<span class="bi bi-question-circle text-muted ms-2" '
-                    'data-bs-toggle="tooltip" data-bs-placement="right" '
-                    'data-bs-original-title="Manage the creators and contributors for this application.">'
-                    "</span></label>"
-                ),
-                "creators",  # Hidden field
-                HTML(
-                    '<div class="mt-2">'
-                    '<button type="button" class="btn btn-outline-secondary btn-sm" onclick="openCreatorsModal()">'
-                    '<span class="fas fa-users text-muted"></span> Manage Creators'
-                    "</button></div>"
-                ),
+                self.get_creators_field_layout(),
                 css_class="mb-3",
             ),
             SRVCommonDivField("access"),

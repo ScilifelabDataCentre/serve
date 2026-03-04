@@ -158,33 +158,87 @@ class VolumeMixin:
 class CreatorsMixin:
     """Mixin to add creators field functionality for managing app creators."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Add hidden creators field
+        self.fields["creators"] = forms.CharField(required=False, widget=forms.HiddenInput(), initial="[]")
+
+        self._initialize_creators()
+
     def _initialize_creators(self):
-        """Initialize the creators field with the current user as the primary creator."""
+        """Initialize the creators field with the current user."""
         import json
-        import logging
 
-        logger = logging.getLogger(__name__)
-
-        creators_data = []
-
-        if (
-            hasattr(self, "request")
-            and self.request
-            and getattr(self.request, "user", None)
-            and self.request.user.is_authenticated
-        ):
+        if hasattr(self, "request") and self.request and self.request.user.is_authenticated:
             user = self.request.user
             creators_data = [
                 {
                     "name": user.get_full_name() or user.username,
-                    "email": user.email,
-                    "affiliation": "",
-                    "orcid": "",
-                    "order": 0,
+                    "email": user.email or "",
                 }
             ]
-            logger.debug(f"Initialized creators with current user: {creators_data}")
             self.fields["creators"].initial = json.dumps(creators_data)
+
+    def get_creators_display(self):
+        """Get display text for current creators."""
+        import json
+
+        if hasattr(self, "request") and self.request and self.request.user.is_authenticated:
+            user = self.request.user
+            name = user.get_full_name() or user.username
+            email = user.email or ""
+            return f"{name} <{email}>" if email else name
+        return "No user logged in"
+
+    def get_creators_field_layout(self):
+        """Get the complete crispy forms layout for the creators field."""
+        from crispy_forms.layout import HTML, Div
+
+        if not (hasattr(self, "request") and self.request and self.request.user.is_authenticated):
+            return Div()  # Return empty div if no user
+
+        user = self.request.user
+        user_name = user.get_full_name() or user.username
+        user_email = user.email or ""
+
+        return Div(
+            HTML(
+                '<label class="form-label">Creators '
+                '<span class="bi bi-question-circle text-muted ms-2" '
+                'data-bs-toggle="tooltip" data-bs-placement="right" '
+                'data-bs-original-title="Manage the creators and contributors for this application.">'
+                "</span></label>"
+            ),
+            "creators",  # Hidden field
+            HTML(
+                '<div class="mb-2">'
+                '<small class="text-muted">Drag to reorder creators</small>'
+                "</div>"
+                '<ul id="creatorsSortableList" class="list-group mb-3">'
+                '<li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;">'
+                f"<div><strong>{user_name}</strong>"
+                + (f'<br><small class="text-muted">{user_email}</small>' if user_email else "")
+                + "</div>"
+                '<span class="badge bg-primary">Creator</span>'
+                "</li>"
+                "</ul>"
+                '<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>'
+                "<script>"
+                "$(document).ready(function() {"
+                '$("#creatorsSortableList").sortable({ placeholder: "list-group-item bg-light", cursor: "move" });'
+                "});"
+                "</script>"
+            ),
+            HTML(
+                '<div class="mt-2">'
+                "<button type='button' class='btn btn-outline-secondary btn-sm' "
+                "data-bs-toggle='modal' data-bs-target='#creatorsModal'>"
+                '<span class="fas fa-plus text-muted"></span> Add Creator'
+                "</button></div>"
+            ),
+            css_class="mb-3",
+        )
 
     def get_creators_data(self):
         """Get the parsed creators data from the form."""

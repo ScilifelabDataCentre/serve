@@ -45,19 +45,6 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
             widget=forms.TextInput(attrs={"class": "form-control"}),
         )
 
-        self.fields["creators"] = forms.CharField(
-            required=False,
-            label="Creators",
-            help_text=(
-                "Manage the creators of this app. You are included as the primary creator by default. "
-                "You can add, edit, remove, and reorder creators as needed."
-            ),
-            widget=forms.HiddenInput(),  # Will be handled by custom template
-        )
-
-        # Initialize creators with current user if available
-        self._initialize_creators()
-
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
@@ -86,23 +73,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags"),
-            Div(
-                HTML(
-                    '<label class="form-label">Creators '
-                    '<span class="bi bi-question-circle text-muted ms-2" '
-                    'data-bs-toggle="tooltip" data-bs-placement="right" '
-                    'data-bs-original-title="Manage the creators and contributors for this application.">'
-                    "</span></label>"
-                ),
-                "creators",  # Hidden field
-                HTML(
-                    '<div class="mt-2">'
-                    '<button type="button" class="btn btn-outline-secondary btn-sm" onclick="openCreatorsModal()">'
-                    '<span class="fas fa-users text-muted"></span> Manage Creators'
-                    "</button></div>"
-                ),
-                css_class="mb-3",
-            ),
+            self.get_creators_field_layout(),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
