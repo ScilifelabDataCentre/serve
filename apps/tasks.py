@@ -1,5 +1,6 @@
 import re
 import subprocess
+from typing import Any
 
 import yaml
 from celery import shared_task
@@ -24,6 +25,25 @@ from .models import BaseAppInstance, FilemanagerInstance
 logger = get_logger(__name__)
 
 CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
+DEPLOY_RESOURCE_MAX_RETRIES = 3
+DEPLOY_RESOURCE_RETRY_BASE_SECONDS = 10
+DEPLOY_RESOURCE_RETRY_MAX_SECONDS = 30
+
+
+class MissingSerializedInstanceError(ValueError):
+    """Raised when a serialized model/pk cannot be resolved from the database."""
+
+    def __init__(self, model: str, pk: int, base_instance_exists: bool):
+        self.model = model
+        self.pk = pk
+        self.base_instance_exists = base_instance_exists
+        super().__init__(
+            f"No instance found for model {model} with pk {pk} (base_instance_exists={base_instance_exists})"
+        )
+
+
+def _retry_countdown(current_retries: int) -> int:
+    return min(DEPLOY_RESOURCE_RETRY_BASE_SECONDS * (2**current_retries), DEPLOY_RESOURCE_RETRY_MAX_SECONDS)
 
 
 @app.task
@@ -198,11 +218,71 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
         return e.stdout, e.stderr
 
 
-@shared_task
+@shared_task(bind=True, max_retries=DEPLOY_RESOURCE_MAX_RETRIES)
 @transaction.atomic
-def deploy_resource(serialized_instance):
-    instance: BaseAppInstance = deserialize(serialized_instance)
-    logger.info("Deploying resource for instance %s", instance)
+def deploy_resource(self, serialized_instance):
+    model = serialized_instance.get("model") if isinstance(serialized_instance, dict) else None
+    pk = serialized_instance.get("pk") if isinstance(serialized_instance, dict) else None
+    task_id = getattr(self.request, "id", None)
+
+    logger.info(
+        "deploy_resource.start task_id=%s model=%s pk=%s retry=%s",
+        task_id,
+        model,
+        pk,
+        self.request.retries,
+    )
+
+    try:
+        instance: BaseAppInstance = deserialize(serialized_instance)
+    except MissingSerializedInstanceError as exc:
+        retries = self.request.retries
+        if retries < self.max_retries:
+            countdown = _retry_countdown(retries)
+            logger.warning(
+                "deploy_resource.missing_instance_retry task_id=%s model=%s pk=%s retry=%s/%s "
+                "countdown=%ss base_instance_exists=%s",
+                task_id,
+                exc.model,
+                exc.pk,
+                retries + 1,
+                self.max_retries,
+                countdown,
+                exc.base_instance_exists,
+            )
+            raise self.retry(exc=exc, countdown=countdown)
+
+        logger.error(
+            "deploy_resource.missing_instance_exhausted task_id=%s model=%s pk=%s retries=%s "
+            "base_instance_exists=%s",
+            task_id,
+            exc.model,
+            exc.pk,
+            retries,
+            exc.base_instance_exists,
+        )
+        raise
+
+    logger.info(
+        "deploy_resource.instance_resolved task_id=%s model=%s pk=%s instance_id=%s app_slug=%s",
+        task_id,
+        model,
+        pk,
+        instance.pk,
+        instance.app.slug,
+    )
+
+    deleted_on = getattr(instance, "deleted_on", None)
+    if instance.latest_user_action in {"Deleting", "SystemDeleting"} or deleted_on is not None:
+        logger.info(
+            "deploy_resource.skip_deleting task_id=%s instance_id=%s latest_user_action=%s deleted_on=%s",
+            task_id,
+            instance.pk,
+            instance.latest_user_action,
+            deleted_on,
+        )
+        return
+
     values = get_merged_k8s_values(instance, ensure_up_to_date=True)
     release = values["subdomain"]
     chart: str = instance.chart
@@ -263,9 +343,50 @@ def deploy_resource(serialized_instance):
         if not valid_deployment:
             logger.warning(f"The deployment manifest file is INVALID for release {release}. {validation_output}")
 
+    logger.info(
+        "deploy_resource.helm_install_start task_id=%s instance_id=%s release=%s namespace=%s chart=%s version=%s",
+        task_id,
+        instance.pk,
+        release,
+        values["namespace"],
+        chart,
+        version,
+    )
+
     # Install the app using Helm install
     output, error = helm_install(release, chart, values["namespace"], values_file, version)
     success = not error
+
+    if not success:
+        retries = self.request.retries
+        logger.warning(
+            "deploy_resource.helm_install_failed task_id=%s instance_id=%s retry=%s/%s release=%s stderr=%s",
+            task_id,
+            instance.pk,
+            retries,
+            self.max_retries,
+            release,
+            error,
+        )
+        if retries < self.max_retries:
+            countdown = _retry_countdown(retries)
+            logger.info(
+                "deploy_resource.helm_install_retry task_id=%s instance_id=%s retry=%s/%s countdown=%ss",
+                task_id,
+                instance.pk,
+                retries + 1,
+                self.max_retries,
+                countdown,
+            )
+            raise self.retry(exc=RuntimeError(error or "Helm install failed"), countdown=countdown)
+
+    logger.info(
+        "deploy_resource.helm_install_done task_id=%s instance_id=%s success=%s release=%s",
+        task_id,
+        instance.pk,
+        success,
+        release,
+    )
 
     helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
 
@@ -274,6 +395,7 @@ def deploy_resource(serialized_instance):
 
     # Only update the info field to avoid overriding other modified fields elsewhere
     instance.save(update_fields=["info"])
+    logger.info("deploy_resource.info_saved task_id=%s instance_id=%s success=%s", task_id, instance.pk, success)
 
     # In development, also generate and validate the k8s deployment manifest
     if settings.DEBUG:
@@ -286,6 +408,14 @@ def deploy_resource(serialized_instance):
         subprocess.run(["rm", "-f", values_file])
         if deployment_file:
             subprocess.run(["rm", "-f", deployment_file])
+
+    logger.info(
+        "deploy_resource.finish task_id=%s instance_id=%s success=%s valid_deployment=%s",
+        task_id,
+        instance.pk,
+        success,
+        valid_deployment,
+    )
 
 
 @shared_task
@@ -303,7 +433,13 @@ def delete_resource(serialized_instance, initiated_by_str: str):
     - serialized_instance: A serialized version of the app to be deleted.
     - initiated_by_str: A string of enum AppActionOrigin indicating the source of the deletion (user|system).
     """
-    logger.debug(f"Type of serialized_instance is {type(serialized_instance)}")
+    logger.info(
+        "delete_resource.start model=%s pk=%s initiated_by=%s payload_type=%s",
+        serialized_instance.get("model") if isinstance(serialized_instance, dict) else None,
+        serialized_instance.get("pk") if isinstance(serialized_instance, dict) else None,
+        initiated_by_str,
+        type(serialized_instance),
+    )
 
     initiated_by = AppActionOrigin(initiated_by_str)
     assert initiated_by == AppActionOrigin.USER or initiated_by == AppActionOrigin.SYSTEM
@@ -362,12 +498,14 @@ def deserialize(serialized_instance):
 
         model_class = apps.get_model(app_label, model_name)
         instance = model_class.objects.get(pk=pk)
+        logger.info("deserialize.resolved model=%s pk=%s concrete_model=%s", model, pk, model_class.__name__)
 
         return instance
     except (KeyError, ValueError) as e:
         raise ValueError(f"Invalid serialized data format: {e}")
     except ObjectDoesNotExist:
-        raise ValueError(f"No instance found for model {model} with pk {pk}")
+        base_instance_exists = BaseAppInstance.objects.filter(pk=pk).exists()
+        raise MissingSerializedInstanceError(model=model, pk=pk, base_instance_exists=base_instance_exists)
 
 
 @app.task
@@ -498,15 +636,37 @@ def remind_about_link_only_apps():
 
 
 @shared_task(bind=True)
-def execute_single_background_task(self, task_db_id: int):
+def execute_single_background_task(
+    self,
+    *args,
+    task_db_id: int | None = None,
+    task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
+):
     """
     Execute a single background task.
 
+    When used in a chain, Celery passes the previous task's result as the first
+    positional argument; we accept that and use the last positional (or task_db_id
+    kwarg) as the actual task record id.
+
     Args:
-        task_db_id: ID of the BackgroundTask model instance
+        *args: When first in chain, (task_db_id,). When chained, (previous_result, task_db_id).
+        task_db_id: ID of the BackgroundTask model instance (optional if passed via args).
+        task_kwargs_by_task_name: Optional mapping of task_name -> kwargs dict passed to
+            validate_inputs/execute for that specific task.
     """
     from apps.background_tasks.registry import TASK_REGISTRY
     from apps.models import BackgroundTask
+
+    if task_db_id is not None:
+        pass
+    elif len(args) == 1:
+        task_db_id = args[0]
+    elif len(args) >= 2:
+        task_db_id = args[-1]
+    else:
+        logger.error("execute_single_background_task called without task_db_id")
+        return {"success": False, "error": "task_db_id required"}
 
     try:
         task_record = BackgroundTask.objects.get(id=task_db_id)
@@ -551,10 +711,17 @@ def execute_single_background_task(self, task_db_id: int):
         return {"success": False, "error": error_msg}
 
     task_instance = task_class()
+    task_kwargs_by_task_name = task_kwargs_by_task_name or {}
+    task_kwargs = {}
+    if isinstance(task_kwargs_by_task_name, dict):
+        task_kwargs = task_kwargs_by_task_name.get(task_record.task_name) or {}
 
     # Validate inputs
     try:
-        task_instance.validate_inputs(task_record.app_instance)
+        if task_kwargs:
+            task_instance.validate_inputs(task_record.app_instance, **task_kwargs)
+        else:
+            task_instance.validate_inputs(task_record.app_instance)
     except Exception as e:
         import traceback
 
@@ -577,7 +744,10 @@ def execute_single_background_task(self, task_db_id: int):
 
     # Execute the task
     try:
-        result = task_instance.execute(task_record.app_instance)
+        if task_kwargs:
+            result = task_instance.execute(task_record.app_instance, **task_kwargs)
+        else:
+            result = task_instance.execute(task_record.app_instance)
         task_record.mark_as_success(result_data=result)
         try:
             task_instance.on_success(task_record.app_instance, result)
@@ -659,7 +829,11 @@ def execute_single_background_task(self, task_db_id: int):
 
 @shared_task
 @transaction.atomic
-def run_background_tasks(serialized_instance, app_slug):
+def run_background_tasks(
+    serialized_instance,
+    app_slug,
+    task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
+):
     """
     Orchestrates background tasks before deployment.
 
@@ -669,6 +843,8 @@ def run_background_tasks(serialized_instance, app_slug):
     Args:
         serialized_instance: Serialized app instance
         app_slug: App type slug
+        task_kwargs_by_task_name: Optional mapping of task_name -> kwargs dict passed to
+            validate_inputs/execute for that specific task.
 
     Returns:
         Dict with success status and task results
@@ -680,6 +856,8 @@ def run_background_tasks(serialized_instance, app_slug):
 
     instance = deserialize(serialized_instance)
     logger.info(f"Running background tasks for app {instance.id} ({app_slug})")
+
+    task_kwargs_by_task_name = task_kwargs_by_task_name or {}
 
     # Get tasks grouped by execution order
     tasks_by_order = TASK_REGISTRY.get_tasks_by_order(app_slug)
@@ -723,13 +901,21 @@ def run_background_tasks(serialized_instance, app_slug):
             tr = order_task_records[0]
             timeout = task_timeout_by_id.get(tr.id, 300)
             task_chain.append(
-                execute_single_background_task.s(tr.id).set(soft_time_limit=timeout, time_limit=timeout + 30)
+                execute_single_background_task.s(
+                    task_db_id=tr.id, task_kwargs_by_task_name=task_kwargs_by_task_name
+                ).set(
+                    soft_time_limit=timeout,
+                    time_limit=timeout + 30,
+                )
             )
         else:
             # Multiple tasks - run in parallel using group
             parallel_tasks = group(
                 [
-                    execute_single_background_task.s(tr.id).set(
+                    execute_single_background_task.s(
+                        task_db_id=tr.id,
+                        task_kwargs_by_task_name=task_kwargs_by_task_name,
+                    ).set(
                         soft_time_limit=task_timeout_by_id.get(tr.id, 300),
                         time_limit=task_timeout_by_id.get(tr.id, 300) + 30,
                     )

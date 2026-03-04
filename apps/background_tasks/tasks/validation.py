@@ -8,6 +8,7 @@ from typing import Any, Dict
 
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
+from apps.background_tasks.utils import resolve_app_image
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
@@ -27,34 +28,6 @@ class DockerImageValidator(BaseBackgroundTask):
     task_type = "validation"
     timeout_seconds = 180
 
-    def _resolve_image(self, app_instance) -> str | None:
-        """
-        Resolve an image reference from different app instance types.
-
-        - Custom apps store the image in `app_instance.image`
-        - Jupyter/RStudio store the image in `app_instance.environment.get_full_image_reference()`
-        - Fallback: use `app_instance.k8s_values["appconfig"]["image"]` if present
-        """
-        image = getattr(app_instance, "image", None)
-        if image:
-            return image
-
-        environment = getattr(app_instance, "environment", None)
-        if environment and hasattr(environment, "get_full_image_reference"):
-            env_image = environment.get_full_image_reference()
-            if env_image:
-                return env_image
-
-        k8s_values = getattr(app_instance, "k8s_values", None) or {}
-        if isinstance(k8s_values, dict):
-            appconfig = k8s_values.get("appconfig") or {}
-            if isinstance(appconfig, dict):
-                k8s_image = appconfig.get("image")
-                if k8s_image:
-                    return k8s_image
-
-        return None
-
     def execute(self, app_instance, **kwargs) -> Dict[str, Any]:
         """Validate Docker image architecture."""
         from django.conf import settings
@@ -65,8 +38,8 @@ class DockerImageValidator(BaseBackgroundTask):
             get_image_architectures,
         )
 
-        # Extract image information from app instance
-        image = self._resolve_image(app_instance)
+        # Extract image information from app instance using shared resolver
+        image = resolve_app_image(app_instance)
         logger.info("Processing image %s", image)
         if not image:
             return {
