@@ -158,8 +158,7 @@ Cypress.Commands.add('manageTestData', (options) => {
   const {
     endpoint,
     data,
-    clearSessions = false,
-    failOnStatusCode = true
+    clearSessions = false
   } = options;
 
   if (clearSessions) {
@@ -173,8 +172,7 @@ Cypress.Commands.add('manageTestData', (options) => {
       headers: {
         'X-CSRFToken': csrfToken
       },
-      body: data,
-      failOnStatusCode
+      body: data
     });
   });
 });

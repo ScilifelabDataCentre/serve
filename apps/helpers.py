@@ -50,8 +50,7 @@ def parse_funding_sources_json(funding_raw: Any) -> list[dict[str, Any]]:
             parsed_funding = json.loads(parsed_funding)
         except json.JSONDecodeError:
             logger.warning(
-                "Unable to parse funding_sources_json while creating app. "
-                "Proceeding with empty funding metadata."
+                "Unable to parse funding_sources_json while creating app. " "Proceeding with empty funding metadata."
             )
             return []
 
