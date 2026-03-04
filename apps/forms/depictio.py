@@ -6,13 +6,13 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import BaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import KeywordTagsValidationMixin
+from apps.forms.mixins import CreatorsMixin, KeywordTagsValidationMixin
 from apps.models import DepictioInstance
 
 __all__ = ["DepictioForm"]
 
 
-class DepictioForm(KeywordTagsValidationMixin, BaseForm):
+class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
     def _setup_form_fields(self):
         super()._setup_form_fields()
 
@@ -24,6 +24,19 @@ class DepictioForm(KeywordTagsValidationMixin, BaseForm):
             "We allow keywords from MeSH, EuroSciVoc, and GEMET.",
             widget=forms.TextInput(attrs={"class": "form-control"}),
         )
+
+        self.fields["creators"] = forms.CharField(
+            required=False,
+            label="Creators",
+            help_text=(
+                "Manage the creators of this app. You are included as the primary creator by default. "
+                "You can add, edit, remove, and reorder creators as needed."
+            ),
+            widget=forms.HiddenInput(),  # Will be handled by custom template
+        )
+
+        # Initialize creators with current user if available
+        self._initialize_creators()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()

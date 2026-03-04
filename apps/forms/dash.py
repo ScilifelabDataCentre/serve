@@ -8,14 +8,18 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import ContainerImageMixin, KeywordTagsValidationMixin
+from apps.forms.mixins import (
+    ContainerImageMixin,
+    CreatorsMixin,
+    KeywordTagsValidationMixin,
+)
 from apps.models import DashInstance
 from projects.models import Flavor
 
 __all__ = ["DashForm"]
 
 
-class DashForm(ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
+class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
@@ -38,6 +42,19 @@ class DashForm(ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
             "We allow keywords from MeSH, EuroSciVoc, and GEMET.",
             widget=forms.TextInput(attrs={"class": "form-control"}),
         )
+
+        self.fields["creators"] = forms.CharField(
+            required=False,
+            label="Creators",
+            help_text=(
+                "Manage the creators of this app. You are included as the primary creator by default. "
+                "You can add, edit, remove, and reorder creators as needed."
+            ),
+            widget=forms.HiddenInput(),  # Will be handled by custom template
+        )
+
+        # Initialize creators with current user if available
+        self._initialize_creators()
 
     def _setup_form_fields(self):
         # Handle Volume field

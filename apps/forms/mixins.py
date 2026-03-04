@@ -155,6 +155,49 @@ class VolumeMixin:
         return SRVCommonDivField("volume", template="apps/storage_field.html", project_slug=self.project.slug)
 
 
+class CreatorsMixin:
+    """Mixin to add creators field functionality for managing app creators."""
+
+    def _initialize_creators(self):
+        """Initialize the creators field with the current user as the primary creator."""
+        import json
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        creators_data = []
+
+        if (
+            hasattr(self, "request")
+            and self.request
+            and getattr(self.request, "user", None)
+            and self.request.user.is_authenticated
+        ):
+            user = self.request.user
+            creators_data = [
+                {
+                    "name": user.get_full_name() or user.username,
+                    "email": user.email,
+                    "affiliation": "",
+                    "orcid": "",
+                    "order": 0,
+                }
+            ]
+            logger.debug(f"Initialized creators with current user: {creators_data}")
+            self.fields["creators"].initial = json.dumps(creators_data)
+
+    def get_creators_data(self):
+        """Get the parsed creators data from the form."""
+        import json
+
+        creators_json = self.cleaned_data.get("creators", "[]")
+        try:
+            creators_data = json.loads(creators_json) if creators_json else []
+            return creators_data
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+
 class KeywordTagsValidationMixin:
     def clean_keyword_tags(self):
         """Validate the invenio_tags input against the autocomplete API."""
