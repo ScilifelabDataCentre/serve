@@ -1,3 +1,6 @@
+import json
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -6,8 +9,18 @@ from django.test import TestCase
 from sympy.physics.units import volume
 
 from apps.forms import CustomAppForm
+from apps.forms.dash import DashForm
+from apps.forms.gradio import GradioForm
+from apps.forms.shiny import ShinyForm
+from apps.forms.streamlit import StreamlitForm
 from apps.helpers import validate_path_k8s_label_compatible
-from apps.models import Apps, K8sUserAppStatus, Subdomain, VolumeInstance
+from apps.models import (
+    Apps,
+    CustomAppInstance,
+    K8sUserAppStatus,
+    Subdomain,
+    VolumeInstance,
+)
 from apps.models.app_types.custom.custom import validate_default_url_subpath
 from projects.models import Flavor, PersistentVolumeMountPath, Project
 
@@ -61,6 +74,21 @@ class CustomAppFormTest(BaseAppFormTest):
         form = CustomAppForm(self.valid_data, project_pk=self.project.pk)
         self.assertTrue(form.is_valid())
 
+    def test_mount_path_maps_to_volume_and_path(self):
+        form = CustomAppForm(self.valid_data, project_pk=self.project.pk)
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["volume"], self.volume)
+        self.assertEqual(form.cleaned_data["path"], self.mount_path.mount_path)
+
+    def test_empty_mount_path_clears_volume_and_path(self):
+        no_storage_data = self.valid_data.copy()
+        no_storage_data["mount_path"] = ""
+
+        form = CustomAppForm(no_storage_data, project_pk=self.project.pk)
+        self.assertTrue(form.is_valid())
+        self.assertIsNone(form.cleaned_data["volume"])
+        self.assertEqual(form.cleaned_data["path"], "")
+
     def test_form_missing_data(self):
         invalid_data = self.valid_data.copy()
         invalid_data.pop("name")
@@ -105,6 +133,45 @@ class CustomAppFormTest(BaseAppFormTest):
         valid_data["note_on_linkonly_privacy"] = "A reason"
         form = CustomAppForm(valid_data, project_pk=self.project.pk)
         self.assertTrue(form.is_valid())
+
+    @patch("apps.forms.base.InvenioClient")
+    @patch("apps.forms.base.waffle.switch_is_active", return_value=True)
+    def test_edit_form_prefills_language_and_funding_from_invenio(self, _mock_switch, mock_invenio_client):
+        instance = CustomAppInstance.objects.create(
+            app=self.app,
+            chart="custom-app",
+            owner=self.user,
+            project=self.project,
+            flavor=self.flavor,
+            subdomain=Subdomain.objects.create(subdomain="existing-custom-app", project=self.project),
+            k8s_user_app_status=K8sUserAppStatus.objects.create(),
+            name="Existing app",
+            description="Existing description",
+            access="public",
+            port=8000,
+            image="ghcr.io/scilifelabdatacentre/image:tag",
+            invenio_record_id="mock-record-id",
+        )
+
+        funding = [
+            {
+                "funder_id": "048a87296",
+                "funder_name": "Uppsala University",
+                "number": "grant-123",
+                "title": "Grant title",
+                "url": "https://example.org/grants/123",
+            }
+        ]
+        mock_client = mock_invenio_client.return_value
+        mock_client.get_record.return_value = {"metadata": {"languages": [{"id": "swe"}], "funding": []}}
+        mock_client.extract_language_id.return_value = "swe"
+        mock_client.extract_funding.return_value = funding
+
+        form = CustomAppForm(project_pk=self.project.pk, instance=instance)
+
+        self.assertEqual(form.fields["language"].initial, "swe")
+        self.assertIn("funding_sources_json", form.fields)
+        self.assertEqual(form.fields["funding_sources_json"].initial, json.dumps(funding))
 
 
 class CustomAppFormRenderingTest(BaseAppFormTest):
@@ -152,6 +219,24 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
         self.assertIn('value="private"', rendered_form)
         self.assertIn('value="link"', rendered_form)
         self.assertIn('value="public"', rendered_form)
+
+
+class FundingFieldPresenceTest(BaseAppFormTest):
+    funding_forms = [CustomAppForm, DashForm, GradioForm, ShinyForm, StreamlitForm]
+
+    @patch("apps.forms.base.waffle.switch_is_active", return_value=True)
+    def test_funding_field_present_when_doi_enabled(self, _mock_switch):
+        for form_class in self.funding_forms:
+            form = form_class(project_pk=self.project.pk)
+            self.assertIn("funding_sources_json", form.fields, f"Missing funding field in {form_class.__name__}")
+
+    @patch("apps.forms.base.waffle.switch_is_active", return_value=False)
+    def test_funding_field_hidden_when_doi_disabled(self, _mock_switch):
+        for form_class in self.funding_forms:
+            form = form_class(project_pk=self.project.pk)
+            self.assertNotIn(
+                "funding_sources_json", form.fields, f"Funding field should be hidden in {form_class.__name__}"
+            )
 
 
 invalid_default_url_subpath_list = [

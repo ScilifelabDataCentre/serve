@@ -18,6 +18,7 @@ class AdditionalMetadata(TypedDict, total=False):
 
     languages: list[Language] | None  # List of Language objects (ISO 639-2 codes) or None
     subjects: list[Subject] | None  # List of tags/keywords for the record
+    funding: list[Funding] | None  # List of funding entries for the record
 
 
 # ============================================================================
@@ -90,6 +91,36 @@ class Language(BaseModel):
     """Language specification using ISO codes."""
 
     id: str  # ISO 639-2 language code like "eng", "swe"
+
+
+class Funder(BaseModel):
+    """Funder reference used by Invenio funding metadata."""
+
+    id: str
+    name: str | None = None
+
+
+class AwardIdentifier(BaseModel):
+    """Identifier entry for an award."""
+
+    scheme: str
+    identifier: str
+
+
+class Award(BaseModel):
+    """Optional grant/award details for a funder entry."""
+
+    number: str | None = None
+    title: dict[str, str] | str | None = None
+    identifiers: list[AwardIdentifier] | None = None
+    url: str | None = None
+
+
+class Funding(BaseModel):
+    """Funding entry containing a required funder and optional award details."""
+
+    funder: Funder
+    award: Award | None = None
 
 
 # ============================================================================
@@ -197,6 +228,7 @@ class InvenioMetadata(BaseModel):
     # Optional metadata
     languages: List[Language] | None = None
     subjects: list[Subject] | None = None  # List of subject terms for the record
+    funding: list[Funding] | None = None
 
 
 # ============================================================================

@@ -24,11 +24,15 @@ from .schemas import (
     AccessConfig,
     AdditionalMetadata,
     AppData,
+    Award,
+    AwardIdentifier,
     Contributor,
     Creator,
     Date,
     DateType,
     FilesConfig,
+    Funder,
+    Funding,
     Identifier,
     InvenioMetadata,
     InvenioRecord,
@@ -322,6 +326,89 @@ class InvenioService:
             target_metadata["subjects"] = subject_terms if subject_terms else None
         else:
             target_metadata.pop("subjects", None)
+
+        funding_input: Any = extra.get("funding")
+        funding_entries: list[Funding] = []
+        if isinstance(funding_input, list):
+            for item in funding_input:
+                if isinstance(item, Funding):
+                    funding_entries.append(item)
+                    continue
+                if not isinstance(item, dict):
+                    continue
+
+                raw_funder = item.get("funder")
+                raw_funder = raw_funder if isinstance(raw_funder, dict) else {}
+
+                funder_id = item.get("funder_id") or raw_funder.get("id") or item.get("id") or ""
+                funder_id = str(funder_id).strip()
+                if not funder_id:
+                    continue
+
+                funder_name = item.get("funder_name") or raw_funder.get("name") or item.get("name") or ""
+                funder_name = str(funder_name).strip()
+
+                raw_award = item.get("award")
+                raw_award = raw_award if isinstance(raw_award, dict) else {}
+                award_number = str(item.get("number") or raw_award.get("number") or "").strip()
+                award_title_raw = item.get("title") or raw_award.get("title") or ""
+                award_title: dict[str, str] | str | None = None
+                if isinstance(award_title_raw, dict):
+                    award_title_localized = {
+                        str(lang).strip(): str(text).strip()
+                        for lang, text in award_title_raw.items()
+                        if str(lang).strip() and isinstance(text, str) and text.strip()
+                    }
+                    if award_title_localized:
+                        award_title = award_title_localized
+                elif isinstance(award_title_raw, str) and award_title_raw.strip():
+                    # Invenio expects localized award titles; default to English for free-text form input.
+                    award_title = {"en": award_title_raw.strip()}
+                award_url = str(item.get("url") or raw_award.get("url") or "").strip()
+                award_identifiers: list[AwardIdentifier] = []
+                raw_award_identifiers = raw_award.get("identifiers")
+                if isinstance(raw_award_identifiers, list):
+                    for raw_identifier in raw_award_identifiers:
+                        if not isinstance(raw_identifier, dict):
+                            continue
+                        identifier_scheme = str(raw_identifier.get("scheme") or "").strip()
+                        identifier_value = str(raw_identifier.get("identifier") or "").strip()
+                        if identifier_scheme and identifier_value:
+                            award_identifiers.append(
+                                AwardIdentifier(
+                                    scheme=identifier_scheme,
+                                    identifier=identifier_value,
+                                )
+                            )
+                if award_url and not any(
+                    identifier.scheme == "url" and identifier.identifier == award_url
+                    for identifier in award_identifiers
+                ):
+                    award_identifiers.append(
+                        AwardIdentifier(
+                            scheme="url",
+                            identifier=award_url,
+                        )
+                    )
+                award = None
+                if award_number or award_title or award_identifiers:
+                    award = Award(
+                        number=award_number or None,
+                        title=award_title,
+                        identifiers=award_identifiers or None,
+                    )
+
+                funding_entry = Funding(
+                    funder=Funder(id=funder_id, name=funder_name or None),
+                    award=award,
+                )
+                funding_entries.append(funding_entry)
+
+        if funding_entries:
+            target_metadata["funding"] = [entry.model_dump(exclude_none=True) for entry in funding_entries]
+        else:
+            target_metadata.pop("funding", None)
+
         logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
 
         return target_metadata
@@ -386,7 +473,7 @@ class InvenioService:
 
         if domain:
             doc_link = RelatedIdentifierItem(
-                identifier=f"https://{domain}/apps/{app_data.id}",
+                identifier="https://{}/apps/{}".format(domain, app_data.id),
                 scheme="url",
                 relation_type=RelationType(id="isdocumentedby"),
                 resource_type=ResourceType(id="publication-softwaredocumentation"),

@@ -42,6 +42,7 @@ from apps.helpers import get_select_options, handle_update_status_request
 from apps.models import AppCategories, Apps, BaseAppInstance, Subdomain
 from apps.tasks import delete_resource
 from apps.types_.subdomain import SubdomainCandidateName
+from doi_minting.clients.invenio_client import InvenioClient
 from models.models import ObjectType
 from portal.models import PublishedModel
 from projects.models import Environment, Flavor, ProjectLog, ProjectTemplate
@@ -1263,3 +1264,49 @@ def get_unique_ingress_ip_count(request, app_subdomain: str) -> JsonResponse:
             return JsonResponse({"error": f"Error retrieving data: {str(e)}"}, status=500)
     else:
         return JsonResponse({"error": "You do not have permission to access this app's monitoring data."}, status=403)
+
+
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def funders_autocomplete(request):
+    q = (request.GET.get("q") or "").strip()
+    if len(q) < 2:
+        return JsonResponse({"items": []})
+
+    if not settings.INVENIO_URL or not settings.INVENIO_API_TOKEN:
+        logger.warning("Invenio funders autocomplete requested but Invenio credentials are not configured.")
+        return JsonResponse(
+            {
+                "items": [],
+                "error": "Funders search is not available",
+            },
+            status=503,
+        )
+
+    try:
+        client = InvenioClient(
+            base_url=settings.INVENIO_URL,
+            token=settings.INVENIO_API_TOKEN,
+            auth_scheme="Bearer",
+        )
+        res = client.search_funders(q, size=10)
+        hits = res.get("hits", {}).get("hits", []) if isinstance(res, dict) else res
+
+        items = []
+        for f in hits:
+            items.append(
+                {
+                    "id": f.get("id"),
+                    "name": f.get("name") or (f.get("title") or {}).get("en"),
+                    "title": f.get("title"),
+                    "country": f.get("country"),
+                    "identifiers": f.get("identifiers", []),
+                }
+            )
+
+    except Exception:
+        logger.exception("Funders autocomplete failed")
+        return JsonResponse({"items": [], "error": "Funders search is not available"}, status=502)
+
+    return JsonResponse({"items": items})
