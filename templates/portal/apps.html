@@ -34,7 +34,7 @@
 <div class="container px-0 apps-page container-background">
     <div id="apps-status-bar" class="w-100">
         <div class="apps-status-bar d-flex flex-wrap align-items-center justify-content-between ps-3 pe-2 py-2">
-                <div class="apps-status-title">
+                <div class="apps-status-title" data-cy="apps-status-title">
                     Applications &amp; models
                 </div>
                 <div class="d-flex flex-wrap gap-4 small apps-status-stats">
@@ -43,14 +43,14 @@
                             <span class="apps-status-label-full">Total apps and models:</span>
                             <span class="apps-status-label-short">Total</span>
                         </span>
-                        <span class="apps-status-number">{{ total_count|default:"—" }}</span>
+                        <span class="apps-status-number" data-cy="apps-status-total-number">{{ total_count|default:"—" }}</span>
                     </div>
                     <div class="d-flex align-items-center">
                         <span class="apps-status-label">
                             <span class="apps-status-label-full">Public apps and models:</span>
                             <span class="apps-status-label-short">Public</span>
                         </span>
-                        <span class="apps-status-number">{{ public_count|default:"—" }}</span>
+                        <span class="apps-status-number" data-cy="apps-status-public-number">{{ public_count|default:"—" }}</span>
                     </div>
                 </div>
         </div>
