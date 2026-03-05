@@ -13,8 +13,9 @@
           <div class="col-md-6">
             <input type="email" class="form-control" id="newCreatorEmail" placeholder="Email *">
           </div>
-          <div class="col-md-6">
+          <div class="col-md-6 position-relative">
             <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation">
+            <div id="affiliationSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
           </div>
           <div class="col-md-6">
             <input type="text" class="form-control" id="newCreatorOrcid" placeholder="ORCID">
@@ -108,5 +109,55 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initial update of creators field
   setTimeout(updateCreatorsField, 100);
+
+  // ROR autocomplete for affiliation field
+  const affiliationInput = document.getElementById('newCreatorAffiliation');
+  const suggestions = document.getElementById('affiliationSuggestions');
+  let debounceTimer;
+
+  if (affiliationInput && suggestions) {
+    affiliationInput.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      const query = this.value.trim();
+
+      if (query.length < 2) {
+        suggestions.style.display = 'none';
+        return;
+      }
+
+      debounceTimer = setTimeout(() => {
+        fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(query)}`)
+          .then(r => r.json())
+          .then(data => {
+            suggestions.innerHTML = '';
+            if (data.results && data.results.length > 0) {
+              data.results.forEach(org => {
+                const item = document.createElement('a');
+                item.href = '#';
+                item.className = 'list-group-item list-group-item-action';
+                item.textContent = org.title;
+                item.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  affiliationInput.value = org.title;
+                  suggestions.style.display = 'none';
+                });
+                suggestions.appendChild(item);
+              });
+              suggestions.style.display = 'block';
+            } else {
+              suggestions.style.display = 'none';
+            }
+          })
+          .catch(err => {
+            console.error('ROR autocomplete error:', err);
+            suggestions.style.display = 'none';
+          });
+      }, 300);
+    });
+
+    affiliationInput.addEventListener('blur', function() {
+      setTimeout(() => suggestions.style.display = 'none', 200);
+    });
+  }
 });
 </script>
