@@ -626,6 +626,53 @@ class RORAutocompleteView(View):
             return JsonResponse({"results": [], "error": str(e)}, status=500)
 
 
+class OrcidSearchView(View):
+    """API endpoint to search ORCID registry for people"""
+
+    def get(self, request):
+        query = request.GET.get("query", "").strip()
+
+        if len(query) < 2:
+            return JsonResponse({"results": []})
+
+        try:
+            # ORCID API endpoint for searching
+            headers = {
+                "Accept": "application/json",
+            }
+
+            # Use simple search query - let ORCID handle the parsing
+            params = {"q": query, "rows": 10, "start": 0}  # Simple query that ORCID can handle naturally
+
+            response = requests.get("https://pub.orcid.org/v3.0/search", params=params, headers=headers, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+
+            # Format results - the search only returns ORCID IDs
+            results = []
+            for result in data.get("result", []):
+                orcid_identifier = result.get("orcid-identifier", {})
+                orcid_id = orcid_identifier.get("path", "")
+
+                if orcid_id:
+                    # For now, just return the ORCID ID and let user fill in name
+                    # To get full details would require additional API call per person
+                    results.append(
+                        {
+                            "name": f"ORCID User ({orcid_id})",  # Placeholder name
+                            "orcid": f"https://orcid.org/{orcid_id}",
+                            "orcid_id": orcid_id,
+                            "affiliation": "",  # Would need separate API call
+                        }
+                    )
+
+            return JsonResponse({"results": results})
+
+        except Exception as e:
+            logger.error(f"ORCID API error: {e}")
+            return JsonResponse({"results": [], "error": str(e)}, status=500)
+
+
 class OrcidAuthorizeView(View):
     """Initiates the ORCID OAuth flow from the Profile Edit page."""
 

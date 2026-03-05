@@ -52,6 +52,8 @@ class PersonOrOrg(BaseModel):
     type: str  # "personal" or "organizational"
     given_name: str | None = None
     family_name: str | None = None
+    email: str | None = None
+    identifiers: list[Identifier] | None = None
 
 
 class Role(BaseModel):
@@ -62,12 +64,10 @@ class Role(BaseModel):
 
 
 class Creator(BaseModel):
-    """Creator with direct person information."""
+    """Creator with InvenioRDM-compatible person_or_org structure."""
 
-    name: str
-    email: str | None = None
-    orcid: str | None = None
-    affiliation: str | None = None
+    person_or_org: PersonOrOrg
+    affiliations: list[dict[str, Any]] | None = None
 
 
 class Contributor(BaseModel):

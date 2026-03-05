@@ -345,31 +345,67 @@ class InvenioService:
 
         # Handle creators field
         creators_input = extra.get("creators")
+        logger.debug(f"[Invenio] creators_input from extra: {creators_input}")
         if creators_input and isinstance(creators_input, list) and creators_input:
             creators_list: list[Creator] = []
             for creator_data in creators_input:
                 if isinstance(creator_data, dict):
-                    # Build Creator directly from creator data, filtering only expected fields
-                    # Remove any unexpected fields like ror_id since ROR should be in affiliation
+                    # Build Creator with InvenioRDM-compatible person_or_org structure
                     filtered_data = {
                         "name": creator_data.get("name", ""),
                         "email": creator_data.get("email", ""),
                         "affiliation": creator_data.get("affiliation", ""),
                         "orcid": creator_data.get("orcid", ""),
                     }
+                    logger.debug(f"[Invenio] Processing creator: {filtered_data}")
 
-                    creator = Creator(
-                        name=filtered_data["name"] or "Unknown Creator",
+                    # Create identifiers list for ORCID if provided
+                    identifiers = None
+                    if filtered_data["orcid"]:
+                        identifiers = [Identifier(scheme="orcid", identifier=filtered_data["orcid"])]
+
+                    # Split name into given and family names, providing fallbacks
+                    full_name = filtered_data["name"] or "Unknown Creator"
+                    name_parts = full_name.strip().split()
+
+                    if len(name_parts) >= 2:
+                        given_name = " ".join(name_parts[:-1])  # All but last as given name
+                        family_name = name_parts[-1]  # Last part as family name
+                    elif len(name_parts) == 1:
+                        given_name = name_parts[0]
+                        family_name = "No Family Name Given"  # Required fallback
+                    else:
+                        given_name = "Unknown"
+                        family_name = "Creator"
+
+                    # Create person_or_org structure with required fields for personal type
+                    person_or_org = PersonOrOrg(
+                        name=full_name,
+                        type="personal",
+                        given_name=given_name,
+                        family_name=family_name,
                         email=filtered_data["email"] if filtered_data["email"] else None,
-                        orcid=filtered_data["orcid"] if filtered_data["orcid"] else None,
-                        affiliation=filtered_data["affiliation"] if filtered_data["affiliation"] else None,
+                        identifiers=identifiers,
                     )
+
+                    # Create affiliations list if affiliation exists
+                    affiliations = None
+                    if filtered_data["affiliation"]:
+                        affiliations = [{"name": filtered_data["affiliation"]}]
+
+                    creator = Creator(person_or_org=person_or_org, affiliations=affiliations)
+                    logger.debug(f"[Invenio] Created Creator object: {creator}")
                     creators_list.append(creator)
 
             if creators_list:
                 target_metadata["creators"] = creators_list
                 logger.debug(f"[Invenio] Applied {len(creators_list)} creators from form data")
+                logger.debug(f"[Invenio] creators_list contents: {creators_list}")
+            else:
+                logger.warning("[Invenio] creators_input was not empty but no valid creators were created")
             # If creators_input exists but results in empty list, keep existing creators
+        else:
+            logger.debug("[Invenio] No valid creators_input provided, keeping existing creators")
         # If no creators_input provided, keep existing creators (don't modify target_metadata)
 
         logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
@@ -386,12 +422,31 @@ class InvenioService:
         user_affiliation: str = "",
     ) -> list[Creator]:
         """Build the creators list with user information."""
-        creator = Creator(
+
+        # Create identifiers list for ORCID if provided
+        identifiers = None
+        if user_orcid:
+            identifiers = [Identifier(scheme="orcid", identifier=user_orcid)]
+
+        # InvenioRDM requires family_name and given_name for personal type
+        # Ensure they are never None/empty
+        final_given_name = user_first_name if user_first_name else "No First Name Given"
+        final_family_name = user_family_name if user_family_name else "No Family Name Given"
+
+        person_or_org = PersonOrOrg(
             name=user_full_name,
+            type="personal",
+            given_name=final_given_name,
+            family_name=final_family_name,
             email=user_email if user_email else None,
-            orcid=user_orcid if user_orcid else None,
-            affiliation=user_affiliation if user_affiliation else None,
+            identifiers=identifiers,
         )
+
+        affiliations = None
+        if user_affiliation:
+            affiliations = [{"name": user_affiliation}]
+
+        creator = Creator(person_or_org=person_or_org, affiliations=affiliations)
 
         return [creator]
 
@@ -533,10 +588,21 @@ class InvenioService:
         user_family_name: str = user_data.get("last_name", "")
         user_email: str = user_data.get("email", "")
 
+        # Handle missing names - InvenioRDM requires family_name for personal type
         if not user_full_name:
             user_full_name = user_email.split("@")[0] if user_email else "Unknown"
             user_first_name = "No First Name Given"
             user_family_name = "No Family Name Given"
+        else:
+            # Ensure we always have a family_name for personal type creators
+            if not user_family_name:
+                if user_first_name:
+                    # If we have first name but no last name, use email or fallback
+                    user_family_name = user_email.split("@")[0] if user_email else "No Family Name Given"
+                else:
+                    user_family_name = "No Family Name Given"
+            if not user_first_name:
+                user_first_name = "No First Name Given"
 
         dates = self._build_dates(app_instance)
         publication_date = next(
@@ -575,14 +641,47 @@ class InvenioService:
         # Apply additional metadata if provided
         if additional_metadata:
             metadata_dict = metadata.model_dump()
+            logger.debug(
+                "[Invenio] metadata_dict before apply_additional: creators = %s",
+                metadata_dict.get("creators", "NOT_FOUND"),
+            )
             self._apply_additional_invenio_metadata(metadata_dict, additional_metadata)
+            logger.debug(
+                "[Invenio] metadata_dict after apply_additional: creators = %s",
+                metadata_dict.get("creators", "NOT_FOUND"),
+            )
+
             # Debug: log subject type and value before constructing InvenioMetadata
             subj_val = metadata_dict.get("subjects", None)
-            logger.debug(f"[Invenio] Subjects field before model: type={type(subj_val)}, value={subj_val}")
+            logger.debug("[Invenio] Subjects field before model: type=%s, value=%s", type(subj_val), subj_val)
             # If subjects is an empty list, keep it as an empty list (not None)
             if "subjects" in metadata_dict and metadata_dict["subjects"] is None:
                 metadata_dict["subjects"] = []
+
+            # Convert Creator objects back to dicts for Pydantic model creation
+            creators_val = metadata_dict.get("creators")
+            logger.debug(f"[Invenio] creators_val before conversion: type={type(creators_val)}, value={creators_val}")
+            if creators_val and isinstance(creators_val, list):
+                creators_dicts = []
+                for creator in creators_val:
+                    if hasattr(creator, "model_dump"):  # Creator object
+                        creator_dict = creator.model_dump()
+                        logger.debug(f"[Invenio] Converting Creator object to dict: {creator_dict}")
+                        creators_dicts.append(creator_dict)
+                    else:  # Already a dict
+                        logger.debug(f"[Invenio] Creator already a dict: {creator}")
+                        creators_dicts.append(creator)
+                metadata_dict["creators"] = creators_dicts
+                logger.debug(f"[Invenio] Final creators_dicts: {creators_dicts}")
+            else:
+                logger.warning("[Invenio] No creators found in metadata_dict or creators_val is not a list")
+
+            logger.debug(
+                "[Invenio] metadata_dict before InvenioMetadata construction: creators = %s",
+                metadata_dict.get("creators", "NOT_FOUND"),
+            )
             metadata = InvenioMetadata(**metadata_dict)
+            logger.debug(f"[Invenio] Final InvenioMetadata creators: {metadata.creators}")
 
         # Build complete record
         invenio_record = InvenioRecord(

@@ -172,10 +172,24 @@ class CreatorsMixin:
 
         if hasattr(self, "request") and self.request and self.request.user.is_authenticated:
             user = self.request.user
+
+            # Get user profile data for ROR/affiliation information
+            user_orcid = ""
+            user_affiliation = ""
+            try:
+                user_profile = user.userprofile
+                user_orcid = user_profile.orcid_id or ""
+                user_affiliation = user_profile.get_organization_name() or ""
+            except Exception:
+                # UserProfile doesn't exist or other error - use defaults
+                pass
+
             creators_data = [
                 {
                     "name": user.get_full_name() or user.username,
                     "email": user.email or "",
+                    "orcid": user_orcid,
+                    "affiliation": user_affiliation,
                 }
             ]
             self.fields["creators"].initial = json.dumps(creators_data)
@@ -202,11 +216,22 @@ class CreatorsMixin:
         user_name = user.get_full_name() or user.username
         user_email = user.email or ""
 
-        # Prepare user data as JSON for the data-creator attribute
+        # Get user profile data for the display
+        user_orcid = ""
+        user_affiliation = ""
+        try:
+            user_profile = user.userprofile
+            user_orcid = user_profile.orcid_id or ""
+            user_affiliation = user_profile.get_organization_name() or ""
+        except Exception:
+            # UserProfile doesn't exist - use defaults
+            pass
+
+        # Prepare user data as JSON for the data-creator attribute with actual profile data
         import json
 
         user_creator_data = json.dumps(
-            {"name": user_name, "email": user_email, "affiliation": "", "orcid": ""}
+            {"name": user_name, "email": user_email, "affiliation": user_affiliation, "orcid": user_orcid}
         ).replace(
             '"', "&quot;"
         )  # Escape quotes for HTML attribute
