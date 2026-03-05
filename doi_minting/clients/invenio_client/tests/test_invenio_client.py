@@ -1,16 +1,19 @@
 """
 Tests for the main InvenioClient class.
 """
+import importlib
 import json
+from typing import Any, cast
 from unittest.mock import Mock, call, patch
 
 import pytest
-import responses
 
 from doi_minting.clients.invenio_client.invenio_client import (
     InvenioClient,
     InvenioClientError,
 )
+
+responses = cast(Any, importlib.import_module("responses"))
 
 
 class TestInvenioClientInitialization:
