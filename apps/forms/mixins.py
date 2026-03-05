@@ -230,7 +230,7 @@ class CreatorsMixin:
                 f"<div><strong>{user_name}</strong>"
                 + (f'<br><small class="text-muted">{user_email}</small>' if user_email else "")
                 + "</div>"
-                '<span class="badge bg-primary">Creator</span>'
+                '<span class="badge bg-secondary">You</span>'
                 "</li>"
                 "</ul>"
                 '<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>'
