@@ -122,7 +122,7 @@ if (Cypress.env("create_resources") === true) {
             cy.intercept(
                 {
                     method: "GET",
-                    pathname: /\/api\/invenio\/funders\/?$/,
+                    pathname: "/api/invenio/funders/",
                     query: {
                         q: /.+/
                     }
