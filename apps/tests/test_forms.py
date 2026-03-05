@@ -74,6 +74,21 @@ class CustomAppFormTest(BaseAppFormTest):
         form = CustomAppForm(self.valid_data, project_pk=self.project.pk)
         self.assertTrue(form.is_valid())
 
+    def test_mount_path_maps_to_volume_and_path(self):
+        form = CustomAppForm(self.valid_data, project_pk=self.project.pk)
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["volume"], self.volume)
+        self.assertEqual(form.cleaned_data["path"], self.mount_path.mount_path)
+
+    def test_empty_mount_path_clears_volume_and_path(self):
+        no_storage_data = self.valid_data.copy()
+        no_storage_data["mount_path"] = ""
+
+        form = CustomAppForm(no_storage_data, project_pk=self.project.pk)
+        self.assertTrue(form.is_valid())
+        self.assertIsNone(form.cleaned_data["volume"])
+        self.assertEqual(form.cleaned_data["path"], "")
+
     def test_form_missing_data(self):
         invalid_data = self.valid_data.copy()
         invalid_data.pop("name")
