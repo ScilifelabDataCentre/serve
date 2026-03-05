@@ -3,34 +3,65 @@
 
 {% block title %}Apps and models{% endblock %}
 
+{% block extra_head %}
+    {{ block.super }}
+    <script>
+        (function () {
+            try {
+                if (!window.matchMedia('(min-width: 992px)').matches) return;
+                if (localStorage.getItem('apps_sidebar_collapsed') !== '1') return;
+
+                const applyCollapsed = function () {
+                    const appsLayoutEl = document.getElementById('apps-layout');
+                    if (!appsLayoutEl) return false;
+                    appsLayoutEl.classList.add('is-sidebar-collapsed');
+                    return true;
+                };
+
+                if (applyCollapsed()) return;
+
+                const observer = new MutationObserver(function () {
+                    if (applyCollapsed()) observer.disconnect();
+                });
+                observer.observe(document.documentElement, {childList: true, subtree: true});
+            } catch (e) {
+            }
+        })();
+    </script>
+{% endblock %}
+
 {% block page %}
-<div class="container-fluid px-0 apps-page container-background">
-    <div id="apps-status-bar" class="container justify-content-center">
-        <div class="col-12">
-            <div class="apps-status-bar d-flex flex-wrap align-items-center justify-content-between px-4 py-2">
-                <div class="fw-semibold apps-status-title">
-                    Platform overview
+<div class="container px-0 apps-page container-background">
+    <div id="apps-status-bar" class="w-100">
+        <div class="apps-status-bar d-flex flex-wrap align-items-center justify-content-between ps-3 pe-2 py-2">
+                <div class="apps-status-title">
+                    Applications &amp; models
                 </div>
                 <div class="d-flex flex-wrap gap-4 small apps-status-stats">
-                    <div>
+                    <div class="d-flex align-items-center">
+                        <span class="apps-status-label">
+                            <span class="apps-status-label-full">Total apps and models:</span>
+                            <span class="apps-status-label-short">Total</span>
+                        </span>
                         <span class="apps-status-number">{{ total_count|default:"—" }}</span>
-                        <span class="apps-status-label">Total apps</span>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center">
+                        <span class="apps-status-label">
+                            <span class="apps-status-label-full">Public apps and models:</span>
+                            <span class="apps-status-label-short">Public</span>
+                        </span>
                         <span class="apps-status-number">{{ public_count|default:"—" }}</span>
-                        <span class="apps-status-label">Public apps</span>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
     {% if serialized_apps|length > 0 %}
-    <div class="apps-layout">
+    <div class="apps-layout" id="apps-layout">
         <div class="filters-panel panel-surface d-none d-lg-flex">
             <div class="filters-shell w-100">
                 <div class="filters-header">
                     <div class="filters-topbar d-flex align-items-center justify-content-between px-3 pt-3 pb-2">
-                        <span class="filters-topbar-title">Filters</span>
+                        <span class="filters-topbar-title">Filter panel</span>
                         <button id="sidebar-toggle"
                                 class="btn btn-sm btn-outline-dark rounded-2"
                                 type="button"
@@ -38,6 +69,13 @@
                                 aria-expanded="true">
                             <i class="fa-solid fa-chevron-left"></i>
                         </button>
+                    </div>
+                    <div class="filter-section filter-section-search px-3 pt-2 pb-2" data-filter-type="search">
+                        <input class="form-control search-input-filter search public-app-search-input search-input-sidebar"
+                               placeholder="Search apps..."
+                               {% if serialized_apps|length <= 0 %}disabled{% endif %}
+                               title="Search Apps"
+                               aria-label="Search Apps">
                     </div>
                     <div class="navbar navbar-expand-lg navbar-light bg-light">
                         <div class="container-fluid d-flex flex-wrap ps-2 pe-2">
@@ -47,7 +85,6 @@
                                        data-short="All"
                                        data-filter-target="all"
                                        aria-label="All Filters"
-                                       title="All Filters"
                                        onclick="showFilterSection('all')">
                                         <span class="filter-label">All Filters</span>
                                         <span class="filter-icon" aria-hidden="true"><i class="fas fa-sliders"></i></span>
@@ -57,10 +94,10 @@
                                     <a class="nav-link position-relative rounded-pill"
                                        data-short="Type"
                                        data-filter-target="app-type"
-                                       aria-label="App Type"
-                                       title="App Type"
+                                       aria-label="Framework"
+                                       title="Framework"
                                        onclick="showFilterSection('app-type')">
-                                        <span class="filter-label">App Type</span>
+                                        <span class="filter-label">Framework</span>
                                         <span class="filter-icon" aria-hidden="true"><i class="fas fa-cube"></i></span>
                                         <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                                     </a>
@@ -97,21 +134,30 @@
 
                     <div class="filter-section" data-filter-type="app-type">
                         <div class="d-flex align-items-center justify-content-between filter-subheading">
-                            <div class="ghost-number">App Types</div>
+                            <div class="ghost-number filter-subheading-title">
+                                <i class="fas fa-cube fa-sm filter-subheading-icon filter-subheading-icon-framework" aria-hidden="true"></i>
+                                <span>Frameworks</span>
+                            </div>
                             <button type="button"
                                     class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
                                     data-reset-type="card-app-type">
-                                <i class="fa-solid fa-rotate-left fa-sm"></i>
-                                Reset App Types
+                                <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                                <span class="filter-reset-label-full">Reset Frameworks</span>
+                                <span class="filter-reset-label-short">Reset</span>
                             </button>
                         </div>
 
                         <div class="filter-group" data-max-visible="15">
+                            {% static 'images/logos/apps/' as app_logo_static_url %}
                             {% for app_category in serve_category_apps %}
                                 <a class="tag tag-filter card-app-type me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                                    onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
     <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-    <div class="fas fa-cube fa-sm me-1"></div>
+    {% if app_category.logo %}
+    <img class="filter-tag-app-icon me-1" src="{{ app_logo_static_url }}{{ app_category.logo }}" alt="{{ app_category.name }} icon" loading="lazy">
+    {% else %}
+    <i class="fas fa-cube fa-sm me-1"></i>
+    {% endif %}
     <span class="tag-name">{{ app_category.name|title }}</span>
     </span>
                                 </a>
@@ -121,12 +167,16 @@
 
                     <div class="filter-section" data-filter-type="organization">
                         <div class="d-flex align-items-center justify-content-between filter-subheading">
-                            <div class="ghost-number">Organizations</div>
+                            <div class="ghost-number filter-subheading-title">
+                                <i class="fas fa-graduation-cap fa-sm filter-subheading-icon filter-subheading-icon-org" aria-hidden="true"></i>
+                                <span>Organizations</span>
+                            </div>
                             <button type="button"
                                     class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
                                     data-reset-type="card-institution">
-                                <i class="fa-solid fa-rotate-left fa-sm"></i>
-                                Reset Organizations
+                                <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                                <span class="filter-reset-label-full">Reset Organizations</span>
+                                <span class="filter-reset-label-short">Reset</span>
                             </button>
                         </div>
 
@@ -135,7 +185,7 @@
                                 <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                                    onclick="searchByTag('{{ org }}','card-institution',this)">
     <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-    <div class="fas fa-graduation-cap fa-sm me-1"></div>
+    <i class="fas fa-graduation-cap fa-sm me-1 filter-tag-icon-org" aria-hidden="true"></i>
     <span class="tag-name">{{ org }}</span>
     </span>
                                 </a>
@@ -145,12 +195,16 @@
 
                     <div class="filter-section" data-filter-type="keyword">
                         <div class="d-flex align-items-center justify-content-between filter-subheading">
-                            <div class="ghost-number">Keywords</div>
+                            <div class="ghost-number filter-subheading-title">
+                                <i class="fas fa-tag fa-sm filter-subheading-icon filter-subheading-icon-keyword" aria-hidden="true"></i>
+                                <span>Keywords</span>
+                            </div>
                             <button type="button"
                                     class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
                                     data-reset-type="card-keyword">
-                                <i class="fa-solid fa-rotate-left fa-sm"></i>
-                                Reset Keywords
+                                <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                                <span class="filter-reset-label-full">Reset Keywords</span>
+                                <span class="filter-reset-label-short">Reset</span>
                             </button>
                         </div>
 
@@ -159,7 +213,7 @@
                                 <a class="tag tag-filter card-keyword me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                                    onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
     <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-    <div class="fas fa-tag fa-sm me-1"></div>
+    <i class="fas fa-tag fa-sm me-1 filter-tag-icon-keyword" aria-hidden="true"></i>
     <span class="tag-name">{{ tag|title }}</span>
     </span>
                                 </a>
@@ -177,22 +231,26 @@
         <div class="d-flex justify-content-center">
     {% endif %}
 
-        <div class="apps-panel panel-surface pe-5">
-            <div class="apps-header d-flex flex-column align-items-center gap-2 px-2 pt-3">
-                <div class="d-flex align-items-center gap-2">
-                    <h3 class="h3 m-0">Applications &amp; models</h3>
-                    <span id="public-apps-count" class="ghost-number h3 m-0">{{ serialized_apps|length }}</span>
+        <div class="apps-panel panel-surface pe-3">
+            <div class="apps-header d-flex align-items-center justify-content-end gap-2 px-2 pt-2">
+                <div id="apps-results-indicator" class="apps-results-indicator">
+                    <span class="apps-results-text">
+                        Displaying
+                        <span id="public-apps-count" class="apps-results-value">{{ serialized_apps|length }}</span>
+                        of
+                        <span id="public-apps-total" class="apps-results-value">{{ serialized_apps|length }}</span>
+                    </span>
                 </div>
 
-                <div class="search-container-filter d-flex align-items-center gap-2">
-                    <input id="public-app-search"
-                           class="form-control search-input-filter search"
+                <div class="search-container-filter d-flex d-lg-none align-items-center gap-2">
+                    <input id="public-app-search-mobile"
+                           class="form-control search-input-filter search public-app-search-input"
                            placeholder="Search apps..."
                            {% if serialized_apps|length <= 0 %}disabled{% endif %}
                            title="Search Apps"
                            aria-label="Search Apps">
 
-                                        <button class="btn btn-sm btn-outline-dark rounded d-lg-none flex-shrink-0"
+                    <button class="btn btn-sm btn-outline-dark rounded d-lg-none flex-shrink-0"
                             style="white-space:nowrap;"
                             type="button"
                             data-bs-toggle="offcanvas"
@@ -272,6 +330,19 @@
 
     <div class="offcanvas-body d-flex flex-column p-0">
         <div class="small-screen-scroll flex-grow-1 px-3 pt-3">
+            <div class="filter-section filter-section-search mb-3" data-filter-type="search">
+                <div class="filter-subheading">
+                    <div class="ghost-number filter-subheading-title">
+                        <i class="fas fa-magnifying-glass fa-sm filter-subheading-icon filter-subheading-icon-search" aria-hidden="true"></i>
+                        <span>Search</span>
+                    </div>
+                </div>
+                <input class="form-control search-input-filter search public-app-search-input search-input-sidebar"
+                       placeholder="Search apps..."
+                       {% if serialized_apps|length <= 0 %}disabled{% endif %}
+                       title="Search Apps"
+                       aria-label="Search Apps">
+            </div>
 
             <div class="navbar navbar-expand-lg navbar-light bg-light mb-3">
                 <div class="container-fluid d-flex flex-wrap ps-0">
@@ -287,7 +358,7 @@
                             <a class="nav-link position-relative rounded-pill"
                                data-filter-target="app-type"
                                onclick="showFilterSection('app-type')">
-                                App Type
+                                Framework
                                 <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                             </a>
                         </li>
@@ -313,20 +384,29 @@
 
             <div class="filter-section" data-filter-type="app-type">
                 <div class="d-flex align-items-center justify-content-between filter-subheading">
-                    <div class="ghost-number">App Types</div>
+                    <div class="ghost-number filter-subheading-title">
+                        <i class="fas fa-cube fa-sm filter-subheading-icon filter-subheading-icon-framework" aria-hidden="true"></i>
+                        <span>Frameworks</span>
+                    </div>
                     <button type="button"
                             class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
                             data-reset-type="card-app-type">
-                        <i class="fa-solid fa-rotate-left fa-sm"></i>
-                        Reset App Types
+                        <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                        <span class="filter-reset-label-full">Reset Frameworks</span>
+                        <span class="filter-reset-label-short">Reset</span>
                     </button>
                 </div>
                 <div class="filter-group" data-max-visible="15">
+                    {% static 'images/logos/apps/' as app_logo_static_url %}
                     {% for app_category in serve_category_apps %}
                         <a class="tag tag-filter card-app-type me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                            onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
 <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-<div class="fas fa-cube fa-sm me-1"></div>
+{% if app_category.logo %}
+<img class="filter-tag-app-icon me-1" src="{{ app_logo_static_url }}{{ app_category.logo }}" alt="{{ app_category.name }} icon" loading="lazy">
+{% else %}
+<i class="fas fa-cube fa-sm me-1"></i>
+{% endif %}
 <span class="tag-name">{{ app_category.name|title }}</span>
 </span>
                         </a>
@@ -336,12 +416,16 @@
 
             <div class="filter-section" data-filter-type="organization">
                 <div class="d-flex align-items-center justify-content-between filter-subheading">
-                    <div class="ghost-number">Organizations</div>
+                    <div class="ghost-number filter-subheading-title">
+                        <i class="fas fa-graduation-cap fa-sm filter-subheading-icon filter-subheading-icon-org" aria-hidden="true"></i>
+                        <span>Organizations</span>
+                    </div>
                     <button type="button"
                             class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
                             data-reset-type="card-institution">
-                        <i class="fa-solid fa-rotate-left fa-sm"></i>
-                        Reset Organizations
+                        <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                        <span class="filter-reset-label-full">Reset Organizations</span>
+                        <span class="filter-reset-label-short">Reset</span>
                     </button>
                 </div>
                 <div class="filter-group" data-max-visible="15">
@@ -349,7 +433,7 @@
                         <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                            onclick="searchByTag('{{ org }}','card-institution',this)">
 <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-<div class="fas fa-graduation-cap fa-sm me-1"></div>
+<i class="fas fa-graduation-cap fa-sm me-1 filter-tag-icon-org" aria-hidden="true"></i>
 <span class="tag-name">{{ org }}</span>
 </span>
                         </a>
@@ -359,12 +443,16 @@
 
             <div class="filter-section" data-filter-type="keyword">
                 <div class="d-flex align-items-center justify-content-between filter-subheading">
-                    <div class="ghost-number">Keywords</div>
+                    <div class="ghost-number filter-subheading-title">
+                        <i class="fas fa-tag fa-sm filter-subheading-icon filter-subheading-icon-keyword" aria-hidden="true"></i>
+                        <span>Keywords</span>
+                    </div>
                     <button type="button"
                             class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
                             data-reset-type="card-keyword">
-                        <i class="fa-solid fa-rotate-left fa-sm"></i>
-                        Reset Keywords
+                        <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                        <span class="filter-reset-label-full">Reset Keywords</span>
+                        <span class="filter-reset-label-short">Reset</span>
                     </button>
                 </div>
                 <div class="filter-group" data-max-visible="15">
@@ -372,7 +460,7 @@
                         <a class="tag tag-filter card-keyword me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                            onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
 <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-<div class="fas fa-tag fa-sm me-1"></div>
+<i class="fas fa-tag fa-sm me-1 filter-tag-icon-keyword" aria-hidden="true"></i>
 <span class="tag-name">{{ tag|title }}</span>
 </span>
                         </a>
@@ -454,6 +542,15 @@
                 publicAppList.show(start, publicAppList.page);
             }
 
+            function scrollToAppsTop() {
+                const appsPageTop = document.querySelector('.apps-page');
+                if (appsPageTop) {
+                    appsPageTop.scrollIntoView({behavior: 'smooth', block: 'start'});
+                    return;
+                }
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            }
+
             function ensurePrevNext() {
                 const ul = document.querySelector('ul.pagination-nav');
                 if (!ul) return;
@@ -504,9 +601,11 @@
                     if (prev) {
                         if (prev.classList.contains('disabled')) return;
                         goToPage(getCurrentPage() - 1);
+                        requestAnimationFrame(scrollToAppsTop);
                     } else if (next) {
                         if (next.classList.contains('disabled')) return;
                         goToPage(getCurrentPage() + 1);
+                        requestAnimationFrame(scrollToAppsTop);
                     }
                 });
             }
@@ -536,14 +635,35 @@
                 return (s || '').toString().trim().toLowerCase();
             }
 
+            const appSearchInputs = Array.from(document.querySelectorAll('.public-app-search-input'));
+            const resultsCountEl = document.getElementById('public-apps-count');
+            const resultsTotalEl = document.getElementById('public-apps-total');
 
-            const appSearchEl = document.getElementById('public-app-search');
-            if (appSearchEl) {
-                appSearchEl.addEventListener('keyup', () => {
-                    publicAppList.search(appSearchEl.value);
-                    document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
-                });
+            function setResultsCount(count) {
+                if (resultsCountEl) resultsCountEl.textContent = String(count);
             }
+
+            function setResultsTotal(total) {
+                if (resultsTotalEl) resultsTotalEl.textContent = String(total);
+            }
+
+            let isSyncingSearchInputs = false;
+            function syncSearchInputs(sourceInput) {
+                if (isSyncingSearchInputs) return;
+                isSyncingSearchInputs = true;
+                appSearchInputs.forEach(input => {
+                    if (input !== sourceInput) input.value = sourceInput.value;
+                });
+                isSyncingSearchInputs = false;
+            }
+
+            appSearchInputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    syncSearchInputs(input);
+                    publicAppList.search(input.value);
+                    setResultsCount(publicAppList.matchingItems.length);
+                });
+            });
 
 
             function valueMatchesColumn(cardValue, selectedValue, column) {
@@ -568,7 +688,7 @@
                 });
 
                 if (!appliedSearchTags.length) publicAppList.filter();
-                document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
+                setResultsCount(publicAppList.matchingItems.length);
                 updateActiveFiltersBar();
             }
 
@@ -628,8 +748,8 @@
                     cloneAppliedToPending();
 
                     publicAppList.filter();
-                    publicAppList.search();
-                    document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
+                    publicAppList.search(appSearchInputs[0] ? appSearchInputs[0].value : '');
+                    setResultsCount(publicAppList.matchingItems.length);
 
                     syncTagVisuals();
                     updateResetButtonsVisibility();
@@ -759,8 +879,8 @@
                 syncTagVisuals();
 
                 publicAppList.filter();
-                publicAppList.search();
-                document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
+                publicAppList.search(appSearchInputs[0] ? appSearchInputs[0].value : '');
+                setResultsCount(publicAppList.matchingItems.length);
 
                 updateResetButtonsVisibility();
                 updateActiveFiltersBar();
@@ -867,7 +987,8 @@
                 });
 
                 document.querySelectorAll('.filter-section').forEach(section => {
-                    const match = (type === 'all') || (section.dataset.filterType === type);
+                    const filterType = section.dataset.filterType;
+                    const match = (filterType === 'search') || (type === 'all') || (filterType === type);
                     section.style.display = match ? '' : 'none';
                 });
 
@@ -904,7 +1025,8 @@
             }
 
 
-            document.getElementById('public-apps-count').textContent = publicAppList.matchingItems.length;
+            setResultsCount(publicAppList.matchingItems.length);
+            setResultsTotal(publicAppList.items.length);
 
             initFilterGroups();
             window.showFilterSection(window.activeFilterNav);
@@ -913,7 +1035,7 @@
 
             const appsLayout = document.querySelector('.apps-layout');
             const sidebarToggle = document.getElementById('sidebar-toggle');
-            const sidebarCollapseKey = 'apps_sidebar_collapsed_v1';
+            const sidebarCollapseKey = 'apps_sidebar_collapsed';
 
             function setSidebarCollapsed(collapsed) {
                 if (!appsLayout) return;

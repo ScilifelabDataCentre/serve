@@ -167,7 +167,13 @@ def add_additional_context_to_public_apps(published_apps):
 def public_apps(request, app_id=0):
     try:
         published_apps = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
-        exclude_list = ["ShinyProxy App", "Tensorflow Serving", "PyTorch Serve", "Python Model Deployment"]
+        exclude_list = [
+            "ShinyProxy App",
+            "Tensorflow Serving",
+            "PyTorch Serve",
+            "Python Model Deployment",
+            "MLFlow Serve",
+        ]
         if not waffle.flag_is_active(request, "enable_depictio"):
             exclude_list.append("Depictio")
 
