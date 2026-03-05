@@ -106,11 +106,10 @@ if (Cypress.env("create_resources") === true) {
                 users = data;
                 cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password);
             });
-<<<<<<< HEAD
             cy.intercept(
                 {
                     method: "GET",
-                    pathname: /\/api\/invenio\/funders\/?$/,
+                    pathname: "/api/invenio/funders/",
                     query: {
                         q: /.+/
                     }
