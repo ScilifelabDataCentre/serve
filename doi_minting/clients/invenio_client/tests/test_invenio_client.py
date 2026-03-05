@@ -5,7 +5,7 @@ import json
 from unittest.mock import Mock, call, patch
 
 import pytest
-import responses  # type: ignore
+import responses
 
 from doi_minting.clients.invenio_client.invenio_client import (
     InvenioClient,
@@ -46,11 +46,11 @@ class TestInvenioClientInitialization:
 
     def test_client_missing_base_url_raises_clear_error(self, token):
         with pytest.raises(InvenioClientError, match="base_url"):
-            InvenioClient(base_url=None, token=token)  # type: ignore[arg-type]
+            InvenioClient(base_url=None, token=token)
 
     def test_client_missing_token_raises_clear_error(self, base_url):
         with pytest.raises(InvenioClientError, match="token"):
-            InvenioClient(base_url=base_url, token=None)  # type: ignore[arg-type]
+            InvenioClient(base_url=base_url, token=None)
 
     def test_client_url_building(self, invenio_client):
         """Test URL building method."""
