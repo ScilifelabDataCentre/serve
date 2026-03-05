@@ -155,8 +155,8 @@ class InvenioService:
         """
         logger.info(f"Creating new Invenio record for app: {app_instance.id}")
 
-        # Create draft
-        draft = self.client.create_draft(invenio_record.model_dump())
+        # Create draft - use mode="json" to ensure datetime objects are serialized as strings
+        draft = self.client.create_draft(invenio_record.model_dump(mode="json"))
         logger.debug(f"Created Invenio draft with ID: {draft['id']}")
 
         # Reserve DOI
@@ -196,7 +196,7 @@ class InvenioService:
         current_draft = self.client.get_draft(new_version["id"])
 
         # Update draft with new metadata
-        metadata_dict = metadata.model_dump()
+        metadata_dict = metadata.model_dump(mode="json")
         updated_metadata = {**metadata_dict}
 
         updated_version = self.client.update_draft(
@@ -274,7 +274,7 @@ class InvenioService:
                         language_objs.append(Language(id=lang))
             # If empty list, leave language_objs empty
         if language_objs:
-            target_metadata["languages"] = [lang.model_dump() for lang in language_objs]
+            target_metadata["languages"] = [lang.model_dump(mode="json") for lang in language_objs]
         else:
             target_metadata.pop("languages", None)
 
