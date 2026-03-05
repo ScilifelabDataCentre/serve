@@ -56,6 +56,11 @@ class InvenioClient:
             verify: SSL verification (True, False, or path to CA bundle)
             timeout: Request timeout in seconds (connect, read)
         """
+        if not isinstance(base_url, str) or not base_url.strip():
+            raise InvenioClientError("Invenio client misconfigured: 'base_url' is missing.")
+        if not isinstance(token, str) or not token.strip():
+            raise InvenioClientError("Invenio client misconfigured: 'token' is missing.")
+
         self.base_url = base_url.rstrip("/")
         self.token = token
         self.auth_scheme = auth_scheme

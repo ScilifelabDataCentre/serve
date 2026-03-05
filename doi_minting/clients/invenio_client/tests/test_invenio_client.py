@@ -44,6 +44,14 @@ class TestInvenioClientInitialization:
 
         assert client.timeout == (5.0, 30.0)
 
+    def test_client_missing_base_url_raises_clear_error(self, token):
+        with pytest.raises(InvenioClientError, match="base_url"):
+            InvenioClient(base_url=None, token=token)  # type: ignore[arg-type]
+
+    def test_client_missing_token_raises_clear_error(self, base_url):
+        with pytest.raises(InvenioClientError, match="token"):
+            InvenioClient(base_url=base_url, token=None)  # type: ignore[arg-type]
+
     def test_client_url_building(self, invenio_client):
         """Test URL building method."""
         # Test with endpoint starting with slash

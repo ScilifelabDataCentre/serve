@@ -1274,13 +1274,22 @@ def funders_autocomplete(request):
     if len(q) < 2:
         return JsonResponse({"items": []})
 
-    client = InvenioClient(
-        base_url=settings.INVENIO_URL,
-        token=settings.INVENIO_API_TOKEN,
-        auth_scheme="Bearer",
-    )
+    if not settings.INVENIO_URL or not settings.INVENIO_API_TOKEN:
+        logger.warning("Invenio funders autocomplete requested but Invenio credentials are not configured.")
+        return JsonResponse(
+            {
+                "items": [],
+                "error": "Funders search is not available",
+            },
+            status=503,
+        )
 
     try:
+        client = InvenioClient(
+            base_url=settings.INVENIO_URL,
+            token=settings.INVENIO_API_TOKEN,
+            auth_scheme="Bearer",
+        )
         res = client.search_funders(q, size=10)
         hits = res.get("hits", {}).get("hits", []) if isinstance(res, dict) else res
 
@@ -1296,7 +1305,8 @@ def funders_autocomplete(request):
                 }
             )
 
-    except Exception as e:
-        return JsonResponse({"items": [], "error": str(e)}, status=500)
+    except Exception:
+        logger.exception("Funders autocomplete failed")
+        return JsonResponse({"items": [], "error": "Funders search is not available"}, status=502)
 
     return JsonResponse({"items": items})

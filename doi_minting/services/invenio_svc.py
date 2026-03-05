@@ -26,6 +26,7 @@ from .schemas import (
     AdditionalMetadata,
     AppData,
     Award,
+    AwardIdentifier,
     Contributor,
     Creator,
     Date,
@@ -384,13 +385,37 @@ class InvenioService:
                     # Invenio expects localized award titles; default to English for free-text form input.
                     award_title = {"en": award_title_raw.strip()}
                 award_url = str(item.get("url") or raw_award.get("url") or "").strip()
-
+                award_identifiers: list[AwardIdentifier] = []
+                raw_award_identifiers = raw_award.get("identifiers")
+                if isinstance(raw_award_identifiers, list):
+                    for raw_identifier in raw_award_identifiers:
+                        if not isinstance(raw_identifier, dict):
+                            continue
+                        identifier_scheme = str(raw_identifier.get("scheme") or "").strip()
+                        identifier_value = str(raw_identifier.get("identifier") or "").strip()
+                        if identifier_scheme and identifier_value:
+                            award_identifiers.append(
+                                AwardIdentifier(
+                                    scheme=identifier_scheme,
+                                    identifier=identifier_value,
+                                )
+                            )
+                if award_url and not any(
+                    identifier.scheme == "url" and identifier.identifier == award_url
+                    for identifier in award_identifiers
+                ):
+                    award_identifiers.append(
+                        AwardIdentifier(
+                            scheme="url",
+                            identifier=award_url,
+                        )
+                    )
                 award = None
-                if award_number or award_title or award_url:
+                if award_number or award_title or award_identifiers:
                     award = Award(
                         number=award_number or None,
                         title=award_title,
-                        url=award_url or None,
+                        identifiers=award_identifiers or None,
                     )
 
                 funding_entry = Funding(

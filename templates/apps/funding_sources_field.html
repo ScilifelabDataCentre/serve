@@ -49,7 +49,7 @@
                class="list-group position-absolute w-100 shadow-sm"
                style="z-index:1056; display:none; max-height:260px; overflow:auto;"></div>
 
-          <div class="form-text">You must select a funder from the Invenio list.</div>
+          <div class="form-text">You must select a funder from the list of funders. Can't find yours? Get in touch with us.</div>
         </div>
 
         <h5 class="mt-4">Additional information (optional)</h5>
@@ -65,6 +65,7 @@
           <div class="col-md-4">
             <label class="form-label">URL</label>
             <input type="url" class="form-control" id="awardUrlInput" placeholder="Award/Grant URL">
+            <div class="invalid-feedback">Enter a valid URL starting with http:// or https://</div>
           </div>
         </div>
       </div>
@@ -129,6 +130,29 @@
     saveAnotherBtn.disabled = !enabled;
   };
 
+  const isAwardUrlValid = (value) => {
+    const raw = (value || "").trim();
+    if (!raw) return true;
+    try {
+      const parsed = new URL(raw);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
+  const markAwardUrlValidity = () => {
+    const valid = isAwardUrlValid(urlInput.value);
+    urlInput.classList.toggle("is-invalid", !valid);
+    return valid;
+  };
+
+  const syncSaveButtons = () => {
+    const hasSelectedFunder = !!(state.selected?.id && state.selected?.name);
+    const hasValidUrl = markAwardUrlValidity();
+    setButtonsEnabled(hasSelectedFunder && hasValidUrl);
+  };
+
   const hideResults = () => {
     resultsEl.style.display = "none";
     resultsEl.innerHTML = "";
@@ -168,7 +192,7 @@
     urlInput.value = "";
     document.getElementById("funderModalLabel").textContent = "Add funder";
     hideResults();
-    setButtonsEnabled(false);
+    syncSaveButtons();
   };
 
   const openAddModal = () => {
@@ -193,7 +217,7 @@
     urlInput.value    = f.url || "";
 
     hideResults();
-    setButtonsEnabled(!!(state.selected.id && state.selected.name));
+    syncSaveButtons();
 
     modal.show();
     setTimeout(() => nameInput.focus(), 150);
@@ -227,6 +251,10 @@
 
   const collectModalData = () => {
     if (!state.selected?.id || !state.selected?.name) return null;
+    if (!markAwardUrlValidity()) {
+      urlInput.focus();
+      return null;
+    }
     return {
       funder_name: state.selected.name,
       funder_id: state.selected.id,
@@ -248,8 +276,12 @@
       headers: { "Accept": "application/json" },
       credentials: "same-origin",
     });
-    if (!resp.ok) throw new Error(`Funders proxy HTTP ${resp.status}`);
-    return resp.json();
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      const msg = typeof data?.error === "string" && data.error ? data.error : `Funders proxy HTTP ${resp.status}`;
+      throw new Error(msg);
+    }
+    return data;
   };
 
   const debouncedSearch = () => {
@@ -259,7 +291,7 @@
 
       // typing clears the selection until user clicks a result
       state.selected = null;
-      setButtonsEnabled(false);
+      syncSaveButtons();
 
       if (q.length < 3) {
         hideResults();
@@ -269,8 +301,9 @@
       try {
         const data = await fetchFunders(q);
         showResults(Array.isArray(data?.items) ? data.items : []);
-      } catch {
-        resultsEl.innerHTML = `<div class="list-group-item text-danger">Funders search failed</div>`;
+      } catch (err) {
+        const message = (err && typeof err.message === "string" && err.message) ? err.message : "Funders search failed";
+        resultsEl.innerHTML = `<div class="list-group-item text-danger">${escapeHtml(message)}</div>`;
         resultsEl.style.display = "block";
       }
     }, 250);
@@ -306,7 +339,7 @@
     state.selected = { id, name };
     nameInput.value = name;
     hideResults();
-    setButtonsEnabled(!!(id && name));
+    syncSaveButtons();
   });
 
   document.addEventListener("click", (e) => {
@@ -317,8 +350,12 @@
     nameInput.value = "";
     state.selected = null;
     hideResults();
-    setButtonsEnabled(false);
+    syncSaveButtons();
     nameInput.focus();
+  });
+
+  urlInput.addEventListener("input", () => {
+    syncSaveButtons();
   });
 
   saveBtn.addEventListener("click", () => {

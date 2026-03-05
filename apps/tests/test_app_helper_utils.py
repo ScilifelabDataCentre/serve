@@ -947,7 +947,12 @@ def test_apply_additional_metadata_maps_funding_entries():
             "award": {
                 "number": "grant-123",
                 "title": {"en": "EU Grant"},
-                "url": "https://example.org/grants/123",
+                "identifiers": [
+                    {
+                        "scheme": "url",
+                        "identifier": "https://example.org/grants/123",
+                    }
+                ],
             },
         },
         {
