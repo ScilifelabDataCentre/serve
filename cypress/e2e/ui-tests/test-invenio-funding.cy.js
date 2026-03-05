@@ -1,16 +1,19 @@
 if (Cypress.env("create_resources") === true) {
     describe("Test Invenio funding fields in app forms", () => {
         const defaultCmdTimeoutMs = 10000;
+        const testRunId = `${Date.now()}-${Cypress._.random(1000, 9999)}`;
         let users;
         let TEST_USER_DATA;
         const getEndpointUserData = (userData) => ({
             ...userData,
             // Keep endpoint-created user aligned with environments that use email as username.
-            username: userData.email
+            // Use a spec-specific account to avoid clashes with other specs in parallel CI runs.
+            email: `no-reply-invenio-funding-${testRunId}@scilifelab.uu.se`,
+            username: `no-reply-invenio-funding-${testRunId}@scilifelab.uu.se`
         });
 
         const TEST_PROJECT_DATA = {
-            project_name: "e2e-invenio-funding-test-proj",
+            project_name: `e2e-invenio-funding-test-proj-${testRunId}`,
             project_description: "Project for testing funding form behavior"
         };
 
@@ -23,12 +26,13 @@ if (Cypress.env("create_resources") === true) {
                 .siblings(".card-footer")
                 .find('a:contains("Open")')
                 .first()
-                .click();
+                .scrollIntoView()
+                .click({ force: true });
         };
 
         const openCreateForm = (slug) => {
             openProjectOverview();
-            cy.get(`a[href*="/apps/create/${slug}"]`).first().should("be.visible").click();
+            cy.get(`a[href*="/apps/create/${slug}"]`).first().scrollIntoView().click({ force: true });
         };
 
         const addFundingEntry = ({ query, number, title, url = "" }) => {
@@ -36,6 +40,7 @@ if (Cypress.env("create_resources") === true) {
             cy.get("#funderModal").should("be.visible");
 
             cy.get("#funderNameInput").clear().type(query);
+            cy.wait("@funders", { timeout: 10000 });
             cy.get("#funderResults [data-idx='0']", { timeout: 10000 })
                 .should("be.visible")
                 .click();
@@ -69,8 +74,10 @@ if (Cypress.env("create_resources") === true) {
                 cy.log("Populating test data via Django endpoint");
                 cy.fixture("users.json").then((data) => {
                     TEST_USER_DATA = getEndpointUserData(data.deploy_app_user);
-                    cy.populateTestUser(TEST_USER_DATA);
+                    users = { ...data, deploy_app_user: TEST_USER_DATA };
                     cy.cleanupTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
+                    cy.cleanupTestUser(TEST_USER_DATA);
+                    cy.populateTestUser(TEST_USER_DATA);
                     cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
                 });
             } else {
@@ -94,6 +101,9 @@ if (Cypress.env("create_resources") === true) {
 
             cy.fixture("users.json").then((data) => {
                 users = data;
+                if (Cypress.env("manage_test_data_via_django_endpoint_views") === true && TEST_USER_DATA) {
+                    users.deploy_app_user = TEST_USER_DATA;
+                }
                 cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password);
             });
 
@@ -104,9 +114,21 @@ if (Cypress.env("create_resources") === true) {
             cy.logf("Begin beforeEach() hook", Cypress.currentTest);
             cy.fixture("users.json").then((data) => {
                 users = data;
+                if (Cypress.env("manage_test_data_via_django_endpoint_views") === true && TEST_USER_DATA) {
+                    users.deploy_app_user = TEST_USER_DATA;
+                }
                 cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password);
             });
-            cy.intercept("GET", "**/api/invenio/funders*", { fixture: "invenio-funders.json" });
+            cy.intercept(
+                {
+                    method: "GET",
+                    pathname: /\/api\/invenio\/funders\/?$/,
+                    query: {
+                        q: /.+/
+                    }
+                },
+                { statusCode: 200, fixture: "invenio-funders.json" }
+            ).as("funders");
             cy.logf("End beforeEach() hook", Cypress.currentTest);
         });
 

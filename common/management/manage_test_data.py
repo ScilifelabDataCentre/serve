@@ -24,9 +24,17 @@ class TestDataManager:
         if not all(key in self.user_data for key in ("username", "email", "password")):
             raise ValueError("Missing required user fields")
 
-        user = User.objects.create_user(
-            username=self.user_data["username"], email=self.user_data["email"], password=self.user_data["password"]
-        )
+        email = self.user_data["email"]
+        username = self.user_data["username"]
+        password = self.user_data["password"]
+
+        user = User.objects.filter(email__exact=email).first()
+        if user is None:
+            user = User.objects.create_user(username=username, email=email, password=password)
+        else:
+            user.username = username
+            user.email = email
+            user.set_password(password)
 
         # Optional fields
         if all(field in self.user_data for field in ("first_name", "last_name")):
@@ -51,9 +59,19 @@ class TestDataManager:
         if not all(key in self.user_data for key in ("username", "email", "password")):
             raise ValueError("Missing required user fields")
 
-        user = User.objects.create_superuser(
-            username=self.user_data["username"], email=self.user_data["email"], password=self.user_data["password"]
-        )
+        email = self.user_data["email"]
+        username = self.user_data["username"]
+        password = self.user_data["password"]
+
+        user = User.objects.filter(email__exact=email).first()
+        if user is None:
+            user = User.objects.create_superuser(username=username, email=email, password=password)
+        else:
+            user.username = username
+            user.email = email
+            user.set_password(password)
+            user.is_staff = True
+            user.is_superuser = True
         user.is_active = True
         user.save()
         return user
@@ -79,6 +97,10 @@ class TestDataManager:
         user = User.objects.get(email__exact=self.user_data["email"])
         project_template = ProjectTemplate.objects.get(pk=1)
 
+        existing_project = Project.objects.filter(owner=user, name=self.project_data["project_name"]).first()
+        if existing_project is not None:
+            return existing_project
+
         project = Project.objects.create_project(
             name=self.project_data["project_name"],
             owner=user,
@@ -99,7 +121,9 @@ class TestDataManager:
         if "email" not in self.user_data:
             raise ValueError("Missing email for user selection")
 
-        user = User.objects.get(email__exact=self.user_data["email"])
+        user = User.objects.filter(email__exact=self.user_data["email"]).first()
+        if user is None:
+            return 0
         project_to_delete = Project.objects.filter(owner=user, name=self.project_data["project_name"])
         deleted_count, _ = project_to_delete.delete()
         return deleted_count
@@ -108,7 +132,9 @@ class TestDataManager:
         """Delete all user's projects. Returns deletion count."""
         if "email" not in self.user_data:
             raise ValueError("Missing email for user selection")
-        user = User.objects.get(email__exact=self.user_data["email"])
+        user = User.objects.filter(email__exact=self.user_data["email"]).first()
+        if user is None:
+            return 0
         projects_to_delete = Project.objects.filter(owner=user)
         deleted_count, _ = projects_to_delete.delete()
         return deleted_count

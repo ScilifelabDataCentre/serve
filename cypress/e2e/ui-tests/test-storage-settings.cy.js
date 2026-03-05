@@ -1,9 +1,16 @@
 describe("Test storage settings functionality", () => {
     // Tests for storage settings in project settings page
+    const testRunId = `${Date.now()}-${Cypress._.random(1000, 9999)}`;
     let users
     let TEST_USER_DATA;
+    const getEndpointUserData = (userData) => ({
+        ...userData,
+        // Use a spec-specific account to avoid clashes with other specs in parallel CI runs.
+        email: `no-reply-storage-settings-${testRunId}@scilifelab.uu.se`,
+        username: `no-reply-storage-settings-${testRunId}@scilifelab.uu.se`
+    });
     const TEST_PROJECT_DATA = {
-        project_name: "e2e-storage-test-proj",
+        project_name: `e2e-storage-test-proj-${testRunId}`,
         project_description: "Project for testing storage settings",
     };
 
@@ -24,7 +31,10 @@ describe("Test storage settings functionality", () => {
             };
 
             cy.fixture('users.json').then(function (data) {
-                TEST_USER_DATA = data.deploy_app_user;
+                TEST_USER_DATA = getEndpointUserData(data.deploy_app_user);
+                users = { ...data, deploy_app_user: TEST_USER_DATA };
+                cy.cleanupTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
+                cy.cleanupTestUser(TEST_USER_DATA);
                 cy.populateTestUser(TEST_USER_DATA);
                 cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
                 cy.populateTestApp(TEST_USER_DATA, TEST_PROJECT_DATA, TEST_APP_DATA);
@@ -48,7 +58,11 @@ describe("Test storage settings functionality", () => {
     beforeEach(() => {
         cy.logf("Begin beforeEach() hook", Cypress.currentTest);
         cy.fixture('users.json').then(function (data) {
-            cy.loginViaUI(data.deploy_app_user.email, data.deploy_app_user.password);
+            users = data;
+            if (Cypress.env('manage_test_data_via_django_endpoint_views') === true && TEST_USER_DATA) {
+                users.deploy_app_user = TEST_USER_DATA;
+            }
+            cy.loginViaUI(users.deploy_app_user.email, users.deploy_app_user.password);
         })
         cy.logf("End beforeEach() hook", Cypress.currentTest);
     })
@@ -60,7 +74,8 @@ describe("Test storage settings functionality", () => {
             .siblings('.card-footer')
             .find('a:contains("Open")')
             .first()
-            .click();
+            .scrollIntoView()
+            .click({ force: true });
 
         // Go to settings
         cy.get('[data-cy="settings"]').should('be.visible').click();
@@ -80,7 +95,8 @@ describe("Test storage settings functionality", () => {
             .siblings('.card-footer')
             .find('a:contains("Open")')
             .first()
-            .click();
+            .scrollIntoView()
+            .click({ force: true });
 
         // Go to settings
         cy.get('[data-cy="settings"]').should('be.visible').click();
@@ -90,7 +106,7 @@ describe("Test storage settings functionality", () => {
 
         // Add new path
         cy.get('.addPathBtn').first().click();
-        cy.get('input[name^="paths_"]').last().type('/home/newpath');
+        cy.get('input[name^="paths_"]:visible').last().type('/home/newpath');
 
         // Save changes (target storage form specifically)
         cy.get('#storage form button[type="submit"]').contains('Save').click();
@@ -99,7 +115,7 @@ describe("Test storage settings functionality", () => {
         cy.get('.alert-success').should('contain', 'Storage settings saved');
 
         // Remove the path
-        cy.get('.removePathBtn').last().click();
+        cy.get('.removePathBtn:visible').last().scrollIntoView().click({ force: true });
 
         // Save changes (target storage form specifically)
         cy.get('#storage form button[type="submit"]').contains('Save').click();
@@ -116,7 +132,8 @@ describe("Test storage settings functionality", () => {
             .siblings('.card-footer')
             .find('a:contains("Open")')
             .first()
-            .click();
+            .scrollIntoView()
+            .click({ force: true });
 
         // Go to settings
         cy.get('[data-cy="settings"]').should('be.visible').click();
@@ -126,7 +143,7 @@ describe("Test storage settings functionality", () => {
 
         // Try invalid path
         cy.get('.addPathBtn').first().click();
-        cy.get('input[name^="paths_"]').last().type('/invalid/path');
+        cy.get('input[name^="paths_"]:visible').last().type('/invalid/path');
 
         // Save changes (target storage form specifically)
         cy.get('#storage form button[type="submit"]').contains('Save').click();
@@ -135,7 +152,7 @@ describe("Test storage settings functionality", () => {
         cy.get('.alert').should('contain', 'Path /invalid/path must start with "/home" or "/srv"');
 
         // Fix path and try again
-        cy.get('input[name^="paths_"]').last().clear().type('/home/valid/path');
+        cy.get('input[name^="paths_"]:visible').last().clear().type('/home/valid/path');
         cy.get('#storage form button[type="submit"]').contains('Save').click();
 
         // Verify success
@@ -150,7 +167,8 @@ describe("Test storage settings functionality", () => {
             .siblings('.card-footer')
             .find('a:contains("Open")')
             .first()
-            .click();
+            .scrollIntoView()
+            .click({ force: true });
 
         // Go to settings
         cy.get('[data-cy="settings"]').should('be.visible').click();
@@ -182,7 +200,8 @@ describe("Test storage settings functionality", () => {
             .siblings('.card-footer')
             .find('a:contains("Open")')
             .first()
-            .click();
+            .scrollIntoView()
+            .click({ force: true });
 
         // Go to settings
         cy.get('[data-cy="settings"]').should('be.visible').click();
@@ -206,10 +225,16 @@ describe("Test storage settings functionality", () => {
             .siblings('.card-footer')
             .find('a:contains("Open")')
             .first()
-            .click();
+            .scrollIntoView()
+            .click({ force: true });
 
         // Click Create on Custom App
-        cy.get('div.card-body:contains("Custom App")').siblings('.card-footer').find('a:contains("Create")').click();
+        cy.get('div.card-body:contains("Custom App")')
+            .siblings('.card-footer')
+            .find('a:contains("Create")')
+            .first()
+            .scrollIntoView()
+            .click({ force: true });
 
         // Verify mount path dropdown is available with default option
         cy.get('#id_mount_path').should('exist');
@@ -228,7 +253,8 @@ describe("Test storage settings functionality", () => {
             .siblings('.card-footer')
             .find('a:contains("Open")')
             .first()
-            .click();
+            .scrollIntoView()
+            .click({ force: true });
 
         // Go to settings
         cy.get('[data-cy="settings"]').should('be.visible').click();
