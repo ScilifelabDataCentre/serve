@@ -4,6 +4,7 @@ from apps.app_registry import APP_REGISTRY
 from apps.helpers import create_instance_from_form
 from common.models import UserProfile
 from projects.models import (
+    BasicAuth,
     Environment,
     Flavor,
     PersistentVolumeMountPath,
@@ -80,6 +81,13 @@ class TestDataManager:
             user_to_delete = user_to_delete | User.objects.filter(username__exact=self.user_data["username"])
         if "email" in self.user_data and self.user_data["email"]:
             user_to_delete = user_to_delete | User.objects.filter(email__exact=self.user_data["email"])
+        user_to_delete = user_to_delete.distinct()
+
+        if not user_to_delete.exists():
+            return 0
+
+        Project.objects.filter(owner__in=user_to_delete).delete()
+        BasicAuth.objects.filter(owner__in=user_to_delete).delete()
         UserProfile.objects.filter(user__in=user_to_delete).delete()
 
         deleted_count, _ = user_to_delete.delete()
