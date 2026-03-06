@@ -467,8 +467,35 @@ label.required::before {
     flex-shrink: 0;
 }
 
+.filter-tag-org-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+    min-width: 0.95rem;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
 .filter-tag-icon-org {
+    width: 0.95rem;
+    height: 0.95rem;
+    min-width: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    line-height: 1;
     color: #0a6770;
+    flex-shrink: 0;
+}
+
+.org-fallback-badge {
+    display: inline-flex;
+    align-items: center;
+    transform: translateY(-2.5px);
+}
+
+.org-fallback-icon {
+    transform: translateY(-1px);
 }
 
 .filter-tag-icon-keyword {

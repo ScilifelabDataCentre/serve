@@ -181,11 +181,17 @@
                         </div>
 
                         <div class="filter-group" data-max-visible="15">
+                            {% static 'images/logos/universities/' as university_logo_static_url %}
                             {% for org in unique_organizations %}
                                 <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                                    onclick="searchByTag('{{ org }}','card-institution',this)">
-    <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-    <i class="fas fa-graduation-cap fa-sm me-1 filter-tag-icon-org" aria-hidden="true"></i>
+    <span class="badge text-bg-primary badge-grape badge-ico-text-filter{% if org == 'Other' %} org-fallback-badge{% endif %}">
+    {% if org == 'Other' %}
+    <i class="fas fa-graduation-cap me-1 filter-tag-icon-org org-fallback-icon" aria-hidden="true"></i>
+    {% else %}
+    <img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');">
+    <i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
+    {% endif %}
     <span class="tag-name">{{ org }}</span>
     </span>
                                 </a>
@@ -429,11 +435,17 @@
                     </button>
                 </div>
                 <div class="filter-group" data-max-visible="15">
+                    {% static 'images/logos/universities/' as university_logo_static_url %}
                     {% for org in unique_organizations %}
                         <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                            onclick="searchByTag('{{ org }}','card-institution',this)">
-<span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-<i class="fas fa-graduation-cap fa-sm me-1 filter-tag-icon-org" aria-hidden="true"></i>
+<span class="badge text-bg-primary badge-grape badge-ico-text-filter{% if org == 'Other' %} org-fallback-badge{% endif %}">
+{% if org == 'Other' %}
+<i class="fas fa-graduation-cap me-1 filter-tag-icon-org org-fallback-icon" aria-hidden="true"></i>
+{% else %}
+<img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');">
+<i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
+{% endif %}
 <span class="tag-name">{{ org }}</span>
 </span>
                         </a>
@@ -790,10 +802,15 @@
                     document.querySelectorAll(`.tag-filter.${tagType}`).forEach(t => t.classList.add('inactive'));
                 });
 
-                tags.forEach(({element, tagType}) => {
-                    const badge = element.querySelector('.badge-ico-text-filter');
-                    if (badge) badge.classList.add('badge-ico-text-filter-selected');
-                    element.classList.remove('inactive');
+                tags.forEach(({tagType, value}) => {
+                    document.querySelectorAll(`.tag-filter.${tagType}`).forEach(el => {
+                        const nameEl = el.querySelector('.tag-name');
+                        const tagName = nameEl ? nameEl.textContent.trim() : '';
+                        if (tagName !== value) return;
+                        const badge = el.querySelector('.badge-ico-text-filter');
+                        if (badge) badge.classList.add('badge-ico-text-filter-selected');
+                        el.classList.remove('inactive');
+                    });
                     countMap[tagType] = (countMap[tagType] || 0) + 1;
                 });
 
@@ -906,7 +923,7 @@
                     vals.delete(key);
                     if (!filtered.some(t => t.tagType === tagType)) cols.delete(tagType);
                 } else {
-                    tags.push({element, tagType, value: key});
+                    tags.push({tagType, value: key});
                     vals.add(key);
                     cols.add(tagType);
                 }
