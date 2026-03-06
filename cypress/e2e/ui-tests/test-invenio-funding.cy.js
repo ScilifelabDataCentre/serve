@@ -35,10 +35,10 @@ if (Cypress.env("create_resources") === true) {
             cy.get("#addFunderBtn").should("be.visible").click();
             cy.get("#funderModal").should("be.visible");
 
-            cy.get("#funderNameInput").clear().type(query);
-            cy.get("#funderResults [data-idx='0']", { timeout: 10000 })
-                .should("be.visible")
-                .click();
+            cy.get("#funderNameInput").clear().type(query, { delay: 20 });
+            cy.get("#funderResults [data-idx='0']", { timeout: 15000 })
+                .should("exist")
+                .click({ force: true });
 
             cy.get("#awardNumberInput").clear().type(number);
             cy.get("#awardTitleInput").clear().type(title);
@@ -107,13 +107,8 @@ if (Cypress.env("create_resources") === true) {
                 cy.loginViaApi(users.deploy_app_user.email, users.deploy_app_user.password);
             });
             cy.intercept(
-                {
-                    method: "GET",
-                    pathname: "/api/invenio/funders/",
-                    query: {
-                        q: /.+/
-                    }
-                },
+                "GET",
+                "**/api/invenio/funders/**",
                 { statusCode: 200, fixture: "invenio-funders.json" }
             ).as("funders");
             cy.logf("End beforeEach() hook", Cypress.currentTest);

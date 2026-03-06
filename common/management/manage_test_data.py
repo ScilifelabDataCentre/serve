@@ -24,9 +24,14 @@ class TestDataManager:
         if not all(key in self.user_data for key in ("username", "email", "password")):
             raise ValueError("Missing required user fields")
 
-        user = User.objects.create_user(
-            username=self.user_data["username"], email=self.user_data["email"], password=self.user_data["password"]
-        )
+        user = self._find_user()
+        if user is None:
+            user = User.objects.create_user(
+                username=self.user_data["username"], email=self.user_data["email"], password=self.user_data["password"]
+            )
+        else:
+            user.set_password(self.user_data["password"])
+            user.email = self.user_data["email"]
 
         # Optional fields
         if all(field in self.user_data for field in ("first_name", "last_name")):
@@ -51,19 +56,30 @@ class TestDataManager:
         if not all(key in self.user_data for key in ("username", "email", "password")):
             raise ValueError("Missing required user fields")
 
-        user = User.objects.create_superuser(
-            username=self.user_data["username"], email=self.user_data["email"], password=self.user_data["password"]
-        )
+        user = self._find_user()
+        if user is None:
+            user = User.objects.create_superuser(
+                username=self.user_data["username"], email=self.user_data["email"], password=self.user_data["password"]
+            )
+        else:
+            user.set_password(self.user_data["password"])
+            user.email = self.user_data["email"]
+            user.is_staff = True
+            user.is_superuser = True
         user.is_active = True
         user.save()
         return user
 
     def delete_user(self):
         """Delete user and associated profile. Returns deletion count."""
-        if "email" not in self.user_data:
-            raise ValueError("Missing email for user deletion")
+        if not any(key in self.user_data for key in ("email", "username")):
+            raise ValueError("Missing username/email for user deletion")
 
-        user_to_delete = User.objects.filter(email__exact=self.user_data["email"])
+        user_to_delete = User.objects.none()
+        if "username" in self.user_data and self.user_data["username"]:
+            user_to_delete = user_to_delete | User.objects.filter(username__exact=self.user_data["username"])
+        if "email" in self.user_data and self.user_data["email"]:
+            user_to_delete = user_to_delete | User.objects.filter(email__exact=self.user_data["email"])
         UserProfile.objects.filter(user__in=user_to_delete).delete()
 
         deleted_count, _ = user_to_delete.delete()
@@ -73,10 +89,17 @@ class TestDataManager:
         """Create a project with associated resources."""
         if not all(key in self.project_data for key in ("project_name", "project_description")):
             raise ValueError("Missing required project fields")
-        if "email" not in self.user_data:
-            raise ValueError("Missing email for user selection")
+        user = self._find_user()
+        if user is None:
+            raise ValueError("User not found for provided username/email")
 
-        user = User.objects.get(email__exact=self.user_data["email"])
+        existing_project = Project.objects.filter(owner=user, name=self.project_data["project_name"]).first()
+        if existing_project:
+            if existing_project.description != self.project_data["project_description"]:
+                existing_project.description = self.project_data["project_description"]
+                existing_project.save(update_fields=["description"])
+            return existing_project
+
         project_template = ProjectTemplate.objects.get(pk=1)
 
         project = Project.objects.create_project(
@@ -96,19 +119,18 @@ class TestDataManager:
         """Delete specific project. Returns deletion count."""
         if "project_name" not in self.project_data:
             raise ValueError("Missing project name for deletion")
-        if "email" not in self.user_data:
-            raise ValueError("Missing email for user selection")
-
-        user = User.objects.get(email__exact=self.user_data["email"])
+        user = self._find_user()
+        if user is None:
+            raise ValueError("User not found for provided username/email")
         project_to_delete = Project.objects.filter(owner=user, name=self.project_data["project_name"])
         deleted_count, _ = project_to_delete.delete()
         return deleted_count
 
     def delete_all_projects(self):
         """Delete all user's projects. Returns deletion count."""
-        if "email" not in self.user_data:
-            raise ValueError("Missing email for user selection")
-        user = User.objects.get(email__exact=self.user_data["email"])
+        user = self._find_user()
+        if user is None:
+            raise ValueError("User not found for provided username/email")
         projects_to_delete = Project.objects.filter(owner=user)
         deleted_count, _ = projects_to_delete.delete()
         return deleted_count
@@ -117,13 +139,30 @@ class TestDataManager:
         """Create an application instance with validation."""
         if "project_name" not in self.project_data:
             raise ValueError("Missing project name for deletion")
-        if "email" not in self.user_data:
-            raise ValueError("Missing email for user selection")
-        user = User.objects.get(email__exact=self.user_data["email"])
+        user = self._find_user()
+        if user is None:
+            raise ValueError("User not found for provided username/email")
         project = Project.objects.filter(owner=user, name=self.project_data["project_name"]).first()
+        if project is None:
+            raise ValueError(f"Project '{self.project_data['project_name']}' not found for user '{user.username}'")
+
+        app_slug = self.app_data["app_slug"]
+        if app_slug not in APP_REGISTRY:
+            raise ValueError(f"Form class not found for app slug {app_slug}")
+
+        orm_model = APP_REGISTRY.get_orm_model(app_slug)
+        existing_app = orm_model.objects.filter(
+            owner=user,
+            project=project,
+            name=self.app_data.get("name"),
+            deleted_on__isnull=True,
+        ).first()
+        if existing_app:
+            return existing_app.id
+
         flavor = Flavor.objects.filter(project=project).first()
         environment = Environment.objects.filter(project=project).first()
-        app_slug = self.app_data["app_slug"]
+
         del self.app_data["app_slug"]
 
         self.app_data["flavor"] = str(flavor.pk)
@@ -139,9 +178,6 @@ class TestDataManager:
             # If no default mount path exists, leave it unset (None/no storage)
 
         # Check if the model form tuple exists
-        if app_slug not in APP_REGISTRY:
-            raise ValueError(f"Form class not found for app slug {app_slug}")
-
         form_class = APP_REGISTRY.get_form_class(app_slug)
 
         # Create form
@@ -154,3 +190,22 @@ class TestDataManager:
             raise ValueError(f"Form is invalid: {form.errors.as_data()}")
 
         return app_id
+
+    def _find_user(self):
+        if not self.user_data:
+            return None
+
+        username = self.user_data.get("username")
+        email = self.user_data.get("email")
+
+        if username:
+            user = User.objects.filter(username__exact=username).first()
+            if user:
+                return user
+
+        if email:
+            user = User.objects.filter(email__exact=email).first()
+            if user:
+                return user
+
+        return None

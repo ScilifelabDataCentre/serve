@@ -86,7 +86,7 @@ describe("Test project contributor user functionality", () => {
 
         cy.logf("Create a new project", Cypress.currentTest)
         // Click button for UI to create a new project
-        cy.get("a").contains('New project').click()
+        cy.contains("a,button", "New project").first().click()
         cy.url().should("include", "projects/templates")
         cy.get('h3').should('contain', 'New project')
 
@@ -139,7 +139,7 @@ describe("Test project contributor user functionality", () => {
 
         cy.logf("Check that creating another project with same existing project name will create an error", Cypress.currentTest)
         cy.visit("/projects/")
-        cy.get("a").contains('New project').click()
+        cy.contains("a,button", "New project").first().click()
         cy.get("a").contains('Create').first().click()
         cy.get('input[name=name]').type(project_name_2) // same name used before
         cy.get('textarea[name=description]').type(project_description)
@@ -204,7 +204,7 @@ describe("Test project contributor user functionality", () => {
 
         // Create a project
         cy.visit("/projects/")
-        cy.get("a").contains('New project').click()
+        cy.contains("a,button", "New project").first().click()
         cy.get("a").contains('Create').first().click()
         cy.get('input[name=name]').type(project_name)
         cy.get("input[name=save]").contains('Create project').click()
@@ -247,7 +247,7 @@ describe("Test project contributor user functionality", () => {
         // Create 10 projects (current limit)
         Cypress._.times(10, (i) => {
             cy.visit("/projects/")
-            cy.get("a").contains('New project').click()
+            cy.contains("a,button", "New project").first().click()
             cy.get("a").contains('Create').first().click()
             cy.get('input[name=name]').type(`${project_name}-${i + 1}`);
             cy.get("input[name=save]").contains('Create project').click()
@@ -333,7 +333,7 @@ describe("Test project contributor user functionality", () => {
         cy.logf("Now creating a project", Cypress.currentTest)
         cy.visit("/projects/")
         // Click button for UI to create a new project
-        cy.get("a").contains('New project').click()
+        cy.contains("a,button", "New project").first().click()
         // Next click button to create a new blank project
         cy.get("a").contains('Create').first().click()
         // Fill in the options for creating a new blank project
