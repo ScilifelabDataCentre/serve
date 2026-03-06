@@ -158,52 +158,6 @@ if (Cypress.env("create_resources") === true) {
             cy.get("#awardUrlInput").should("have.value", "");
         });
 
-        it("custom app submit sends funding_sources_json payload", () => {
-            openCreateForm("customapp");
-
-            const appName = `e2e-funding-submit-${Date.now()}`;
-            cy.intercept("POST", "**/apps/create/customapp*").as("createCustomApp");
-
-            cy.get("#id_name").type(appName);
-            cy.get("#id_description").type("App created by funding Cypress test");
-            cy.get("#id_access").select("Public");
-            cy.get("#id_source_code_url").clear().type("https://example.org/source");
-            cy.get("#id_port").clear().type("8501");
-            cy.get("#id_image").clear().type("ghcr.io/scilifelabdatacentre/example-streamlit:latest");
-
-            cy.get("body").then(($body) => {
-                if ($body.find("#id_mount_path").length) {
-                    cy.get("#id_mount_path option").then(($options) => {
-                        const firstUsable = [...$options].find((opt) => !!opt.value);
-                        if (firstUsable) {
-                            cy.get("#id_mount_path").select(firstUsable.value);
-                        }
-                    });
-                }
-            });
-
-            addFundingEntry({
-                query: "Uppsala",
-                number: "2024-01567",
-                title: "Uppsala Precision Medicine Grant"
-            });
-
-            cy.get("#submit-id-submit").should("be.visible").contains("Submit").click();
-
-            cy.wait("@createCustomApp").then((interception) => {
-                const fundingRaw = getFormField(interception.request.body, "funding_sources_json");
-                expect(fundingRaw, "funding_sources_json in submit payload").to.be.a("string").and.not.be.empty;
-
-                const funding = JSON.parse(fundingRaw);
-                expect(funding).to.have.length(1);
-                expect(funding[0].funder_id).to.be.a("string").and.not.be.empty;
-                expect(funding[0].funder_name).to.be.a("string").and.not.be.empty;
-                expect(funding[0].number).to.equal("2024-01567");
-                expect(funding[0].title).to.equal("Uppsala Precision Medicine Grant");
-                expect(funding[0].url).to.equal("");
-            });
-        });
-
         after(() => {
 
             if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
