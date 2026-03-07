@@ -24,6 +24,21 @@
     "password": "tesT12345@",
     "username": "e2e_tests_deploy_app_user"
   },
+  "storage_settings_user": {
+    "email": "no-reply-storage-settings@scilifelab.uu.se",
+    "password": "tesT12345@",
+    "username": "e2e_tests_storage_settings_user"
+  },
+  "user_manage_apps_user": {
+    "email": "no-reply-user-manage-apps@scilifelab.uu.se",
+    "password": "tesT12345@",
+    "username": "e2e_tests_user_manage_apps_user"
+  },
+  "invenio_user": {
+    "email": "no-reply-invenio@scilifelab.uu.se",
+    "password": "tesT12345@",
+    "username": "e2e_tests_invenio_user"
+  },
   "login_user": {
     "affiliations": [
       {
