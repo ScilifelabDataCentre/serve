@@ -80,7 +80,7 @@
                     <div class="navbar navbar-expand-lg navbar-light bg-light">
                         <div class="container-fluid d-flex flex-wrap ps-2 pe-2">
                             <ul class="nav nav-pills serve-filter-nav justify-content-center w-100">
-                                <li class="nav-item ms-2 mb-1">
+                                <li class="nav-item ms-1 mb-1">
                                     <a class="nav-link position-relative rounded-pill active"
                                        data-short="All"
                                        data-filter-target="all"
@@ -90,19 +90,19 @@
                                         <span class="filter-icon" aria-hidden="true"><i class="fas fa-sliders"></i></span>
                                     </a>
                                 </li>
-                                <li class="nav-item ms-2 mb-1">
+                                <li class="nav-item ms-1 mb-1">
                                     <a class="nav-link position-relative rounded-pill"
                                        data-short="Type"
                                        data-filter-target="app-type"
-                                       aria-label="Framework"
-                                       title="Framework"
+                                       aria-label="Frameworks"
+                                       title="Frameworks"
                                        onclick="showFilterSection('app-type')">
-                                        <span class="filter-label">Framework</span>
+                                        <span class="filter-label">Frameworks</span>
                                         <span class="filter-icon" aria-hidden="true"><i class="fas fa-cube"></i></span>
                                         <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                                     </a>
                                 </li>
-                                <li class="nav-item ms-2 mb-1">
+                                <li class="nav-item ms-1 mb-1">
                                     <a class="nav-link position-relative rounded-pill"
                                        data-short="Org"
                                        data-filter-target="organization"
@@ -114,7 +114,7 @@
                                         <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                                     </a>
                                 </li>
-                                <li class="nav-item ms-2 mb-1">
+                                <li class="nav-item ms-1 mb-1">
                                     <a class="nav-link position-relative rounded-pill"
                                        data-short="Key"
                                        data-filter-target="keyword"
@@ -185,13 +185,9 @@
                             {% for org in unique_organizations %}
                                 <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                                    onclick="searchByTag('{{ org }}','card-institution',this)">
-    <span class="badge text-bg-primary badge-grape badge-ico-text-filter{% if org == 'Other' %} org-fallback-badge{% endif %}">
-    {% if org == 'Other' %}
-    <i class="fas fa-graduation-cap me-1 filter-tag-icon-org org-fallback-icon" aria-hidden="true"></i>
-    {% else %}
-    <img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');">
+    <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+    <img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
     <i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
-    {% endif %}
     <span class="tag-name">{{ org }}</span>
     </span>
                                 </a>
@@ -353,22 +349,22 @@
             <div class="navbar navbar-expand-lg navbar-light bg-light mb-3">
                 <div class="container-fluid d-flex flex-wrap ps-0">
                     <ul class="nav nav-pills serve-filter-nav justify-content-center w-100">
-                        <li class="nav-item me-2 mb-1">
+                        <li class="nav-item me-1 mb-1">
                             <a class="nav-link position-relative rounded-pill active"
                                data-filter-target="all"
                                onclick="showFilterSection('all')">
                                 All Filters
                             </a>
                         </li>
-                        <li class="nav-item me-2 mb-1">
+                        <li class="nav-item me-1 mb-1">
                             <a class="nav-link position-relative rounded-pill"
                                data-filter-target="app-type"
                                onclick="showFilterSection('app-type')">
-                                Framework
+                                Frameworks
                                 <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                             </a>
                         </li>
-                        <li class="nav-item me-2 mb-1">
+                        <li class="nav-item me-1 mb-1">
                             <a class="nav-link position-relative rounded-pill"
                                data-filter-target="organization"
                                onclick="showFilterSection('organization')">
@@ -376,7 +372,7 @@
                                 <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
                             </a>
                         </li>
-                        <li class="nav-item me-2 mb-1">
+                        <li class="nav-item me-1 mb-1">
                             <a class="nav-link position-relative rounded-pill"
                                data-filter-target="keyword"
                                onclick="showFilterSection('keyword')">
@@ -439,13 +435,9 @@
                     {% for org in unique_organizations %}
                         <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                            onclick="searchByTag('{{ org }}','card-institution',this)">
-<span class="badge text-bg-primary badge-grape badge-ico-text-filter{% if org == 'Other' %} org-fallback-badge{% endif %}">
-{% if org == 'Other' %}
-<i class="fas fa-graduation-cap me-1 filter-tag-icon-org org-fallback-icon" aria-hidden="true"></i>
-{% else %}
-<img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');">
+<span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+<img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
 <i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
-{% endif %}
 <span class="tag-name">{{ org }}</span>
 </span>
                         </a>
