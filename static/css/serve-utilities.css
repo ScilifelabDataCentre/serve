@@ -243,7 +243,6 @@ label.required::before {
 
 .card-text {
     font-size: 1rem !important;
-    text-align: centre !important;
 }
 
 .nav-separator {
@@ -457,14 +456,36 @@ label.required::before {
     font-weight: 400 !important;
     display: inline-flex;
     align-items: center;
+    min-height: 1.52rem;
+    padding: 0.1rem 0.44rem;
+    border: 1.5px solid transparent;
+    box-sizing: border-box;
     box-shadow: 0 3.5px 3.5px #dad7dbe3, 0 2px 2px #f5f3f4, 0 0 1px #f5f3f4;
 }
 
 .filter-tag-app-icon {
     width: 0.95rem;
     height: 0.95rem;
+    min-width: 0.95rem;
     object-fit: contain;
     flex-shrink: 0;
+}
+
+.filter-tag-icon-framework,
+.filter-tag-icon-org {
+    width: 0.95rem;
+    height: 0.95rem;
+    min-width: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.filter-tag-icon-framework {
+    font-size: 0.72rem;
+    color: #0a6770;
 }
 
 .filter-tag-org-icon {
@@ -476,16 +497,8 @@ label.required::before {
 }
 
 .filter-tag-icon-org {
-    width: 0.95rem;
-    height: 0.95rem;
-    min-width: 0.95rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     font-size: 0.72rem;
-    line-height: 1;
     color: #0a6770;
-    flex-shrink: 0;
 }
 
 .org-fallback-badge {
@@ -499,24 +512,37 @@ label.required::before {
 }
 
 .filter-tag-icon-keyword {
+    width: 0.95rem;
+    height: 0.95rem;
+    min-width: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    line-height: 1;
     color: #77577e;
+    flex-shrink: 0;
 }
 
+.badge-ico-text-filter-selected .filter-tag-icon-framework,
 .badge-ico-text-filter-selected .filter-tag-icon-org,
 .badge-ico-text-filter-selected .filter-tag-icon-keyword,
+.badge-ico-text-filter:hover .filter-tag-icon-framework,
 .badge-ico-text-filter:hover .filter-tag-icon-org,
 .badge-ico-text-filter:hover .filter-tag-icon-keyword {
     color: inherit;
 }
 
 .badge-ico-text-filter-selected {
-    background-color: #77577eca !important;
-    color: #ededee !important;
+    background-color: #eaeaea !important;
+    color: #1b1b1c !important;
+    border: 1.5px solid #77577e;
+    font-weight: 600 !important;
 }
 
 .badge-ico-text-filter:hover {
-    background-color: #77577eca !important;
-    color: #ededee !important;
+    background-color: #dddddd !important;
+    color: #1b1b1c !important;
 }
 
 .min-vh-80 {
