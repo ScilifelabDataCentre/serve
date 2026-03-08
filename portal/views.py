@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import markdown
 import requests
 import waffle  # type: ignore
@@ -12,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.views.generic import View
+from requests.exceptions import RequestException, Timeout
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import Apps, BaseAppInstance, SocialMixin
@@ -30,6 +33,22 @@ Collection = apps.get_model(app_label="portal.Collection")
 
 # TODO minor refactor
 # 2. add type annotations
+
+
+def __get_content_stats(request) -> dict[str, Any]:
+    """
+    Gets content statistics via internal API call.
+    """
+
+    host = request.build_absolute_uri("/")
+    api_url = host + reverse("v1:openapi-content-stats")
+
+    response = requests.get(api_url)
+
+    if response.status_code == 200:
+        return cast(dict[str, Any], response.json()["data"])
+    else:
+        raise Exception("Content Stats API did not return status 200")
 
 
 def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", order_reverse=False):
@@ -148,7 +167,13 @@ def add_additional_context_to_public_apps(published_apps):
 def public_apps(request, app_id=0):
     try:
         published_apps = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
-        exclude_list = ["ShinyProxy App", "Tensorflow Serving", "PyTorch Serve", "Python Model Deployment"]
+        exclude_list = [
+            "ShinyProxy App",
+            "Tensorflow Serving",
+            "PyTorch Serve",
+            "Python Model Deployment",
+            "MLFlow Serve",
+        ]
         if not waffle.flag_is_active(request, "enable_depictio"):
             exclude_list.append("Depictio")
 
@@ -156,7 +181,20 @@ def public_apps(request, app_id=0):
         serialized_apps, unique_organizations, unique_departments, unique_tags = add_additional_context_to_public_apps(
             published_apps
         )
-
+        try:
+            total_count = None
+            public_count = None
+            n_users = None
+            n_projects = None
+            stats_error = None
+            stats = __get_content_stats(request)  # make sure this uses a timeout (see below)
+            total_count = stats.get("n_apps", total_count)
+            public_count = stats.get("n_apps_public", public_count)
+            n_users = stats.get("n_users", n_users)
+            n_projects = stats.get("n_projects", n_projects)
+        except (Timeout, RequestException, ValueError, KeyError) as e:
+            stats_error = str(e)
+            logger.warning("Content stats API failed: %s", e, exc_info=True)
     except Exception as e:
         print({"error": str(e)})
 

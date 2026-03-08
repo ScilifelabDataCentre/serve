@@ -57,22 +57,17 @@ describe("Tests of the public pages of the website", () => {
     it("should open the Apps and models page on link click", () => {
         cy.get("li.nav-item a").contains("Apps & Models").click()
         cy.url().should("include", "/apps")
-        cy.get('h3').should('contain', 'Public applications & models')
+        cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
         cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
 
         if (Cypress.env('do_reset_db') === true) {
             // This test was flaky before as other test failures could make this test fail as well
             cy.get('p').should('contain', 'No public apps available.')
         } else {
-            cy.get('h3').then($parent => {
-                if ($parent.find("span.ghost-number").length > 0) {
-                    cy.get('span.ghost-number').then(($element) => {
-                        // There are public apps and the text must be an integer
-                        const text = $element.text().trim();
-                        const isInteger = Number.isInteger(Number(text));
-                        expect(isInteger).to.be.true;
-                    });
-                }
+            cy.get('[data-cy="apps-status-total-number"]').then(($element) => {
+                const text = $element.text().trim()
+                const isInteger = Number.isInteger(Number(text))
+                expect(isInteger).to.be.true
             });
         }
     })
@@ -103,7 +98,7 @@ describe("Tests of the public pages of the website", () => {
 
             cy.get("li.nav-item a").contains("Apps & Models").click()
             cy.url().should("include", "/apps")
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
 
             // Find the card with specific app name and owner

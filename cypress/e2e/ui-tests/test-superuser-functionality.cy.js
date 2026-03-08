@@ -104,7 +104,7 @@ describe("Test superuser access", () => {
 
         cy.logf("Creating a project as a superuser", Cypress.currentTest)
         // Click button for UI to create a new project
-        cy.get("a").should('be.visible').contains('New project').click()
+        cy.contains("a,button", "New project").should("be.visible").first().click()
         cy.url().should("include", "projects/templates")
         cy.get('h3').should('contain', 'New project')
 
@@ -140,7 +140,7 @@ describe("Test superuser access", () => {
 
         cy.logf("Check that creating another project with same existing project name will work for a superuser", Cypress.currentTest)
         cy.visit("/projects/")
-        cy.get("a").should('be.visible').contains('New project').click()
+        cy.contains("a,button", "New project").should("be.visible").first().click()
         cy.get("a").should('be.visible').contains('Create').first().click()
         cy.get('input[name=name]').type(project_name) // this name already exists
         cy.get('textarea[name=description]').type(project_description_duplicate) // this will be used to ensure to delete it
@@ -260,7 +260,7 @@ describe("Test superuser access", () => {
             cy.loginViaUI(users.superuser_testuser.email, users.superuser_testuser.password)
         })
         cy.visit("/projects/")
-        cy.get("a").should('be.visible').contains('New project').click()
+        cy.contains("a,button", "New project").should("be.visible").first().click()
         cy.get("a").should('be.visible').contains('Create').first().click()
         cy.get('input[name=name]').type(project_name)
         cy.get("input[name=save]").should('be.visible').contains('Create project').click()
@@ -490,7 +490,7 @@ describe("Test superuser access", () => {
         Cypress._.times(10, () => {
             // better to write this out rather than use the createBlankProject command because then we can do a 5000 ms pause only once
             cy.visit("/projects/")
-            cy.get("a").should('be.visible').contains('New project').click()
+            cy.contains("a,button", "New project").should("be.visible").first().click()
             cy.get("a").should('be.visible').contains('Create').first().click()
             cy.get('input[name=name]').type(project_name)
             cy.get("input[name=save]").should('be.visible').contains('Create project').click()
@@ -500,7 +500,7 @@ describe("Test superuser access", () => {
 
         cy.logf("Check that it is still possible to click the button to create a new project", Cypress.currentTest)
         cy.visit("/projects/")
-        cy.get("a").should('be.visible').contains('New project').should('exist')
+        cy.contains("a,button", "New project").should("be.visible").should("exist")
 
         cy.logf("Create one more project to check it is possible to bypass the limit", Cypress.currentTest)
         cy.createBlankProject(project_name)
