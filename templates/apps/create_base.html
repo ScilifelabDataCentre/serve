@@ -258,12 +258,12 @@ document.addEventListener("DOMContentLoaded", function() {
         updateUrlWithSubdomain();
     })
 
-    // Invenio Tags with Bootstrap Badges
+    // Invenio Tags with Bootstrap Badges (only if field exists)
     document.addEventListener('DOMContentLoaded', function() {
 
         const invenioTagsField = document.getElementById('id_invenio_tags');
         if (!invenioTagsField) {
-            console.error('[ERROR] invenio_tags field not found');
+            // Field not present - Invenio features disabled or not needed for this form, skip initialization
             return;
         }
 
