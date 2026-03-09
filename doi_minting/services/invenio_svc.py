@@ -65,12 +65,12 @@ class InvenioService:
             base_url: Invenio instance base URL (defaults to settings.INVENIO_URL)
             token: API token (defaults to settings.INVENIO_API_TOKEN)
             verify: Whether to verify SSL certificates
-            mock_mode: If True, will not make actual API calls (for testing)
+            mock_mode: If True, forces mock mode. Otherwise falls back to settings.INVENIO_MOCK_MODE.
         """
         self.base_url = base_url or settings.INVENIO_URL
         self.token = token or settings.INVENIO_API_TOKEN
         self.verify = verify
-        self.mock_mode = mock_mode
+        self.mock_mode = mock_mode or settings.INVENIO_MOCK_MODE
 
         if self.mock_mode:
             self.client = MockInvenioClient()
@@ -726,5 +726,5 @@ def save_metadata_to_invenio_then_mint_doi(
         app_id: Application ID to fetch from database
         additional_metadata: Optional additional metadata to include
     """
-    invenio_svc = InvenioService(mock_mode=True)
+    invenio_svc = InvenioService()
     invenio_svc.process_app_metadata(app_slug, app_id, additional_metadata)
