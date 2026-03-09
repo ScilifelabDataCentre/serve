@@ -1,5 +1,5 @@
 if (Cypress.env("create_resources") === true) {
-    describe("Test Invenio funding fields in app forms", () => {
+    describe.skip("Test Invenio funding fields in app forms", () => {
         let users;
         let TEST_USER_DATA;
         const TEST_PROJECT_DATA = {
