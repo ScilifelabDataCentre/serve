@@ -56,7 +56,7 @@ class InvenioService:
     client: Any
 
     def __init__(
-        self, base_url: Optional[str] = None, token: Optional[str] = None, verify: bool = True, mock_mode: bool = True
+        self, base_url: Optional[str] = None, token: Optional[str] = None, verify: bool = True, mock_mode: bool = False
     ):
         """
         Initialize the Invenio Record Service.
