@@ -72,7 +72,7 @@
                     </div>
                     <div class="filter-section filter-section-search px-3 pt-2 pb-2" data-filter-type="search">
                         <input class="form-control search-input-filter search public-app-search-input search-input-sidebar"
-                               placeholder="Search apps..."
+                               placeholder="Search apps and models..."
                                {% if serialized_apps|length <= 0 %}disabled{% endif %}
                                title="Search Apps"
                                aria-label="Search Apps">
@@ -247,7 +247,7 @@
                 <div class="search-container-filter d-flex d-lg-none align-items-center gap-2">
                     <input id="public-app-search-mobile"
                            class="form-control search-input-filter search public-app-search-input"
-                           placeholder="Search apps..."
+                           placeholder="Search apps and models..."
                            {% if serialized_apps|length <= 0 %}disabled{% endif %}
                            title="Search Apps"
                            aria-label="Search Apps">
@@ -340,7 +340,7 @@
                     </div>
                 </div>
                 <input class="form-control search-input-filter search public-app-search-input search-input-sidebar"
-                       placeholder="Search apps..."
+                       placeholder="Search apps and models..."
                        {% if serialized_apps|length <= 0 %}disabled{% endif %}
                        title="Search Apps"
                        aria-label="Search Apps">
@@ -977,7 +977,9 @@
                             else tag.classList.remove('filter-collapsed');
                         });
 
-                        badge.textContent = expanded ? "Show less" : `+ ${tags.length - maxVisible} more`;
+                        badge.innerHTML = expanded
+                            ? '<i class="fa-solid fa-minus me-1 filter-tag-icon-toggle" aria-hidden="true"></i><span class="tag-name">Show less</span>'
+                            : `<i class="fa-solid fa-plus me-1 filter-tag-icon-toggle" aria-hidden="true"></i><span class="tag-name">${tags.length - maxVisible} more</span>`;
                     }
 
                     group._renderCollapse = render;
