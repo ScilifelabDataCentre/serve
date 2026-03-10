@@ -139,7 +139,9 @@ class UserAdmin(DefaultUserAdmin):
                     titles.append(f"Unknown (legacy value, type: {type(aff).__name__})")
             return " | ".join(titles) if titles else "N/A"
         except UserProfile.DoesNotExist:
-            return "N/A"
+            return "N/A (no profile)"
+        except Exception as e:
+            return f"N/A (error: {e})"
 
     @admin.display(description="ORCID iD")
     def get_orcid(self, instance):
