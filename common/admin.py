@@ -136,7 +136,7 @@ class UserAdmin(DefaultUserAdmin):
                 if isinstance(aff, dict):
                     titles.append(aff.get("title", "Unknown"))
                 else:
-                    titles.append("Unknown (legacy value)")
+                    titles.append(f"Unknown (legacy value, type: {type(aff).__name__})")
             return " | ".join(titles) if titles else "N/A"
         except UserProfile.DoesNotExist:
             return "N/A"
