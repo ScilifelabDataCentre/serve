@@ -391,7 +391,9 @@ a.collection-logo:hover::after, a:focus::after, a.active::after {
 }
 
 .tag-filter {
-    cursor: pointer!important;
+    cursor: pointer !important;
+    display: inline-flex;
+    vertical-align: middle;
 }
 .ui.table {
   width: 100%;

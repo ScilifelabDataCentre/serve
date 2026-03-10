@@ -358,6 +358,11 @@ label.required::before {
     display: none !important;
 }
 
+.tag-toggle {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
 .filter-reset-btn {
     font-size: 0.7rem;
 }
@@ -504,11 +509,9 @@ label.required::before {
 .org-fallback-badge {
     display: inline-flex;
     align-items: center;
-    transform: translateY(-2.5px);
 }
 
 .org-fallback-icon {
-    transform: translateY(-1px);
 }
 
 .filter-tag-icon-keyword {
@@ -524,12 +527,27 @@ label.required::before {
     flex-shrink: 0;
 }
 
+.filter-tag-icon-toggle {
+    width: 0.95rem;
+    height: 0.95rem;
+    min-width: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    line-height: 1;
+    color: currentColor;
+    flex-shrink: 0;
+}
+
 .badge-ico-text-filter-selected .filter-tag-icon-framework,
 .badge-ico-text-filter-selected .filter-tag-icon-org,
 .badge-ico-text-filter-selected .filter-tag-icon-keyword,
+.badge-ico-text-filter-selected .filter-tag-icon-toggle,
 .badge-ico-text-filter:hover .filter-tag-icon-framework,
 .badge-ico-text-filter:hover .filter-tag-icon-org,
-.badge-ico-text-filter:hover .filter-tag-icon-keyword {
+.badge-ico-text-filter:hover .filter-tag-icon-keyword,
+.badge-ico-text-filter:hover .filter-tag-icon-toggle {
     color: inherit;
 }
 
