@@ -131,7 +131,13 @@ class UserAdmin(DefaultUserAdmin):
             affs = instance.userprofile.get_affiliations()
             if not affs:
                 return "N/A"
-            return " | ".join(aff.get("title", "Unknown") for aff in affs)
+            titles = []
+            for aff in affs:
+                if isinstance(aff, dict):
+                    titles.append(aff.get("title", "Unknown"))
+                else:
+                    titles.append("Unknown (legacy value)")
+            return " | ".join(titles) if titles else "N/A"
         except UserProfile.DoesNotExist:
             return "N/A"
 
