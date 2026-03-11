@@ -29,7 +29,6 @@ class DashForm(ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        super().add_metadata()
 
         # Add invenio_tags as a form-only field for vocabulary input
         self.fields["invenio_tags"] = forms.CharField(
