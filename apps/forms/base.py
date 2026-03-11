@@ -44,6 +44,7 @@ class BaseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self._setup_form_fields()
+        self.add_metadata()
         self._setup_form_helper()
         for field in self.fields.values():
             if isinstance(field.widget, (Select, SelectMultiple)):
