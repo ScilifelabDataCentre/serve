@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "country": "SE",
+      "id": "048a87296",
+      "title": {
+        "en": "Uppsala University"
+      }
+    },
+    {
+      "country": "EU",
+      "id": "00k4n6c32",
+      "title": {
+        "en": "European Commission"
+      }
+    }
+  ]
+}

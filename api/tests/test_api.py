@@ -66,6 +66,29 @@ class ApiTests(APITestCase):
         response = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    @patch("api.views.settings.INVENIO_URL", None)
+    @patch("api.views.settings.INVENIO_API_TOKEN", None)
+    def test_funders_autocomplete_returns_503_when_invenio_not_configured(self):
+        self.client.force_authenticate(user=self.user)
+        url = os.path.join(self.BASE_API_URL, "invenio/funders/")
+
+        response = self.client.get(url, {"q": "Swedish"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.json(), {"items": [], "error": "Funders search is not available"})
+
+    @patch("api.views.settings.INVENIO_URL", "https://invenio.example.com")
+    @patch("api.views.settings.INVENIO_API_TOKEN", "token")
+    @patch("api.views.InvenioClient.search_funders", side_effect=Exception("boom"))
+    def test_funders_autocomplete_returns_502_when_search_fails(self, _mock_search):
+        self.client.force_authenticate(user=self.user)
+        url = os.path.join(self.BASE_API_URL, "invenio/funders/")
+
+        response = self.client.get(url, {"q": "Swedish"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        self.assertEqual(response.json(), {"items": [], "error": "Funders search is not available"})
+
     def test_get_content_review_invalid_token_should_return_401(self):
         url = os.path.join(self.BASE_API_URL, "content-review/")
         response = self.client.get(url, query_params={"token": "badToken"}, format="json")

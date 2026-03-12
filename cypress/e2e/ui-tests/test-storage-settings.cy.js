@@ -24,7 +24,7 @@ describe("Test storage settings functionality", () => {
             };
 
             cy.fixture('users.json').then(function (data) {
-                TEST_USER_DATA = data.deploy_app_user;
+                TEST_USER_DATA = data.storage_settings_user;
                 cy.populateTestUser(TEST_USER_DATA);
                 cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA);
                 cy.populateTestApp(TEST_USER_DATA, TEST_PROJECT_DATA, TEST_APP_DATA);
@@ -35,7 +35,7 @@ describe("Test storage settings functionality", () => {
                 cy.exec("./cypress/e2e/db-reset.sh");
                 cy.wait(Cypress.env('wait_db_reset'));
             }
-            cy.exec("./cypress/e2e/db-seed-deploy-app-user.sh");
+            cy.exec("./cypress/e2e/db-seed-storage-settings-user.sh");
 
             // Note: For alternative data population methods, the shell script approach
             // would need to be extended to create both project and app data.
@@ -48,7 +48,7 @@ describe("Test storage settings functionality", () => {
     beforeEach(() => {
         cy.logf("Begin beforeEach() hook", Cypress.currentTest);
         cy.fixture('users.json').then(function (data) {
-            cy.loginViaUI(data.deploy_app_user.email, data.deploy_app_user.password);
+            cy.loginViaUI(data.storage_settings_user.email, data.storage_settings_user.password);
         })
         cy.logf("End beforeEach() hook", Cypress.currentTest);
     })

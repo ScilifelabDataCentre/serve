@@ -9,6 +9,7 @@ deployment is not blocked if DOI minting fails.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import waffle  # type: ignore
@@ -23,7 +24,12 @@ logger = get_logger(__name__)
 DOI_MINTING_SWITCH = "doi_minting_using_invenio"
 
 
-def _build_additional_metadata(app_instance, *, language: str | None = None) -> dict[str, Any] | None:
+def _build_additional_metadata(
+    app_instance,
+    *,
+    language: str | None = None,
+    funding: list[dict[str, Any]] | str | None = None,
+) -> dict[str, Any] | None:
     """
     Build additional_metadata from app instance for Invenio (language, subjects/tags).
 
@@ -37,6 +43,17 @@ def _build_additional_metadata(app_instance, *, language: str | None = None) -> 
     lang = language or getattr(app_instance, "language", None)
     if lang:
         additional_metadata["languages"] = lang
+
+    funding_entries = funding
+    if isinstance(funding_entries, str):
+        try:
+            funding_entries = json.loads(funding_entries)
+        except json.JSONDecodeError:
+            logger.warning("Invalid funding payload received by DOI provisioning task; skipping funding metadata.")
+            funding_entries = []
+
+    if isinstance(funding_entries, list):
+        additional_metadata["funding"] = funding_entries
 
     # Tags / subjects (from SocialMixin; tagulous TagField)
     if hasattr(app_instance, "tags") and app_instance.tags:
@@ -89,7 +106,11 @@ class DOIProvisioningTask(BaseBackgroundTask):
 
         app_slug = app_instance.app.slug
         instance_id = app_instance.id
-        additional_metadata = _build_additional_metadata(app_instance, language=kwargs.get("language"))
+        additional_metadata = _build_additional_metadata(
+            app_instance,
+            language=kwargs.get("language"),
+            funding=kwargs.get("funding"),
+        )
 
         try:
             from doi_minting.services.invenio_svc import (

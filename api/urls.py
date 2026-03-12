@@ -19,6 +19,7 @@ from .views import (
     ProjectTemplateList,
     ResourceList,
     container_image_search,
+    funders_autocomplete,
     get_content_review,
     get_subdomain_input_html,
     get_subdomain_is_available,
@@ -66,4 +67,5 @@ urlpatterns = [
     path("container_image_search/", container_image_search, name="container_image_search"),
     path("content-review/", get_content_review),
     path("monitoring/unique-ip-count/<str:app_subdomain>", get_unique_ingress_ip_count),
+    path("invenio/funders/", funders_autocomplete, name="funders_autocomplete"),
 ]

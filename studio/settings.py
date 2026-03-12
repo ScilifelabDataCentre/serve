@@ -406,6 +406,7 @@ GITHUB_API_USERNAME = os.getenv("GITHUB_API_USERNAME")
 
 INVENIO_URL = os.getenv("INVENIO_URL")
 INVENIO_API_TOKEN = os.getenv("INVENIO_API_TOKEN")
+INVENIO_MOCK_MODE = os.getenv("INVENIO_MOCK_MODE", "true").lower() == "true"
 
 # Invenio keywords data path
 VOCABULARY_DATA_PATH = os.getenv("VOCABULARY_DATA_PATH", os.path.join(BASE_DIR, "common", "data", "invenio_keywords"))

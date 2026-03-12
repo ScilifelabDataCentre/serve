@@ -50,6 +50,7 @@ uvicorn = "^0.32.0"
 flask-cors = "==4.0.2"
 Pillow = "10.3.0"
 schema = "^0.7.7"
+pydantic = "^2.12.5"
 
 flatten-json = "==0.1.13"
 PyYAML = "==6.0.1"

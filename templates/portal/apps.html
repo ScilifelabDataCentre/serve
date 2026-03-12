@@ -1,387 +1,1106 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
 
 {% block title %}Apps and models{% endblock %}
-{% load static %}
-{% load custom_tags %}
 
-{% block content %}
-<div class="col d-flex">
+{% block extra_head %}
+    {{ block.super }}
+    <script>
+        (function () {
+            try {
+                if (!window.matchMedia('(min-width: 992px)').matches) return;
+                if (localStorage.getItem('apps_sidebar_collapsed') !== '1') return;
 
-  <div class="w-100">
-    <div class="row">
-        <div class="col">
-            <div class="d-flex align-items-center mb-3 flex-wrap justify-content-center">
-                <h3 class="h3 me-2">Public applications & models</h3>
-                <span id="public-apps-count" class="ghost-number h3 me-3">{{ serialized_apps|length }}</span>
-                <div class="break"></div>
-                <div class="search-container-filter me-3 w-50">
-                  <input id="public-app-search" class="form-control search-input-filter search" placeholder="Search apps..." {% if serialized_apps|length <= 0 %}disabled{% endif %} title="Search Apps" aria-label="Search Apps" >
+                const applyCollapsed = function () {
+                    const appsLayoutEl = document.getElementById('apps-layout');
+                    if (!appsLayoutEl) return false;
+                    appsLayoutEl.classList.add('is-sidebar-collapsed');
+                    return true;
+                };
+
+                if (applyCollapsed()) return;
+
+                const observer = new MutationObserver(function () {
+                    if (applyCollapsed()) observer.disconnect();
+                });
+                observer.observe(document.documentElement, {childList: true, subtree: true});
+            } catch (e) {
+            }
+        })();
+    </script>
+{% endblock %}
+
+{% block page %}
+<div class="container px-0 apps-page container-background">
+    <div id="apps-status-bar" class="w-100">
+        <div class="apps-status-bar d-flex flex-wrap align-items-center justify-content-between ps-3 pe-2 py-2">
+                <div class="apps-status-title" data-cy="apps-status-title">
+                    Applications &amp; models
                 </div>
-                <button class="btn btn-outline-dark btn-xs" tabindex="-1" type="button" id="filterButton" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" {% if serialized_apps|length <= 0 %}disabled{% endif %}>
-                    <i class="fa-solid fa-sliders fa-sm"></i> <span class="ms-1">Filters</span>
-                </button>
-            </div>
-            <div class="collapse mb-2" id="collapseFilters" aria-hidden="true" tabindex="-1">
-              <div class="card">
-                <div class="card-header py-1">
-                  <div class="navbar navbar-expand-lg navbar-light bg-light">
-                    <div class="container-fluid d-flex flex-wrap">
-                      <ul class="nav nav-pills serve-filter-nav justify-content-center">
-                          <li class="nav-item me-2 mb-1">
-                            <button class="nav-link btn rounded-pill position-relative active"  id="pills-app-types-tab" data-bs-toggle="pill" data-bs-target="#pills-app-types" type="button" role="tab" aria-controls="pills-app-types" aria-selected="true" onclick="resetFilterList()">
-                              <div class="fas fa-cube fa-sm me-1"></div>
-                              App Type
-                            <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
-                              0
-                            </span>
-                          </button>
-                          </li>
-
-                          <li class="nav-item me-2 mb-1">
-                            <button class="nav-link btn rounded-pill position-relative"  id="pills-organization-tab" data-bs-toggle="pill" data-bs-target="#pills-organization" type="button" role="tab" aria-controls="pills-organization" aria-selected="true" onclick="resetFilterList()">
-                              <div class="fas fa-graduation-cap fa-sm me-1"></div>
-                              Organizations
-                              <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
-                                0
-                              </span>
-                            </button>
-                          </li>
-                          <li class="nav-item me-2 mb-1">
-                            <button class="nav-link btn rounded-pill position-relative" id="pills-department-tab" data-bs-toggle="pill" data-bs-target="#pills-department" type="button" role="tab" aria-controls="pills-department" aria-selected="true" onclick="resetFilterList()">
-                              <div class="fas fa-building-columns fa-sm me-1"></div>
-                              Departments
-                              <span class="card-count-tag card-department-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
-                                0
-                              </span>
-                            </button>
-                          </li>
-                          <li class="nav-item me-2 mb-1">
-                            <button class="nav-link btn rounded-pill position-relative" id="pills-keyword-tab" data-bs-toggle="pill" data-bs-target="#pills-keyword" type="button" role="tab" aria-controls="pills-keyword" aria-selected="true" onclick="resetFilterList()">
-                              <div class="fas fa-tag fa-sm me-1"></div>
-                              Keywords
-                              <span class="card-count-tag card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">
-                              0
-                            </span>
-                            </button>
-                          </li>
-                          <li class="nav-item me-2 mb-1 hide-filter-search-reset">
-                          <button class="btn btn-outline-dark btn-xs d-flex align-items-center" type="button" onclick="resetFilters()">
-                                <i class="fa-solid fa-rotate-left fa-sm"></i>
-                                <span class="ms-1">Reset</span>
-                              </button>
-                          </li>
-                      </ul>
-                      <div class="search-container-filter w-25 d-flex mb-1 show-filter-search">
-                          <input id="filter-search" class="form-control search-input-filter search w-75 me-3 d-flex" placeholder="Search tags..." title="Search Tags" aria-label="Search Tags" >
-                          <button class="btn btn-outline-dark btn-xs d-flex align-items-center" type="button" onclick="resetFilters()">
-                            <i class="fa-solid fa-rotate-left fa-sm"></i>
-                            <span class="ms-1">Reset</span>
-                          </button>
-                      </div>
+                <div class="d-flex flex-wrap gap-4 small apps-status-stats">
+                    <div class="d-flex align-items-center">
+                        <span class="apps-status-label">
+                            <span class="apps-status-label-full">Total apps and models:</span>
+                            <span class="apps-status-label-short">Total</span>
+                        </span>
+                        <span class="apps-status-number" data-cy="apps-status-total-number">{{ total_count|default:"—" }}</span>
                     </div>
-                  </div>
-                  </div>
-                    <div class="tab-content" id="pills-tabContent">
-                        <div class="tab-pane fade show active" id="pills-app-types" role="tabpanel" aria-labelledby="pills-app-types-tab">
-                          <div id="filters-app-type" class="card-body">
-                          <div class="list">
-                          <div style="display:none;">
-                              <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                              <span class="tag-name"></span>
-                          </div>
-                          {% for app_category in serve_category_apps %}
-                          <a class="tag tag-filter card-app-type me-3 mb-2" onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
-                            <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
-                              <div class="fas fa-cube fa-sm me-1"></div>
-                              <span class="tag-name">{{ app_category.name|title }}</span>
-                            </span>
-
-                          </a>
-                          {% endfor %}
-
-                          </div>
-                          <nav class="d-flex justify-content-end" aria-label="Category pagination">
-                              <ul class="pagination pagination-sm serve-pagination serve-pagination-filter mb-0">
-                              </ul>
-                            </nav>
-                          </div>
-                        </div>
-                        <div class="tab-pane fade" id="pills-organization" role="tabpanel" aria-labelledby="pills-organization-tab">
-                          <div id="filters-organization" class="card-body">
-                            <div class="list">
-                              <div style="display:none;">
-                                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                                <span class="tag-name"></span>
-                              </div>
-                              {% for org in unique_organizations %}
-                              <a class="tag tag-filter  card-institution me-3 mb-2" onclick="searchByTag('{{ org }}','card-institution',this)">
-                                <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
-                                  <div class="fas fa-graduation-cap fa-sm me-1"></div>
-                                  <span class="tag-name">{{ org }}</span>
-                                </span>
-                              </a>
-                              {% endfor %}
-
-                            </div>
-                            <nav class="d-flex justify-content-end" aria-label="Organization pagination">
-                                  <ul class="pagination pagination-sm serve-pagination serve-pagination-filter">
-                                  </ul>
-                                </nav>
-                          </div>
-                        </div>
-                        <div class="tab-pane fade" id="pills-department" role="tabpanel" aria-labelledby="pills-department-tab">
-                          <div id="filters-department" class="card-body">
-                            <div class="list">
-                              <div style="display:none;">
-                                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                                <span class="tag-name"></span>
-                              </div>
-                              {% for dep in unique_departments %}
-                              <a class="tag tag-filter card-department me-3 mb-2" onclick="searchByTag('{{ dep }}','card-department',this)">
-                                <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
-                                  <div class="fas fa-building-columns fa-sm me-1"></div>
-                                  <span class="tag-name">{{ dep }}</span>
-                                </span>
-                              </a>
-                              {% endfor %}
-
-                            </div>
-                            <nav class="d-flex justify-content-end" aria-label="Department pagination">
-                                  <ul class="pagination pagination-sm serve-pagination serve-pagination-filter">
-                                  </ul>
-                                </nav>
-                          </div>
-                        </div>
-                        <div class="tab-pane fade" id="pills-keyword" role="tabpanel" aria-labelledby="pills-keyword-tab">
-                          <div id="filters-keyword" class="card-body">
-                            <div class="list">
-                              <div style="display:none;">
-                                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                                <span class="tag-name"></span>
-                              </div>
-                              {% for tag in unique_tags %}
-                              <a class="tag tag-filter card-keyword me-3 mb-2" onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
-                                <span class="badge text-bg-primary badge-grape badge-ico-text-filter " style="margin-right: -0.2rem;">
-                                  <div class="fas fa-tag fa-sm me-1"></div>
-                                  <span class="tag-name">{{ tag |title }}</span>
-                                </span>
-                              </a>
-                              {% endfor %}
-
-                          </div>
-                          <nav class="d-flex justify-content-end" aria-label="Keyword pagination">
-                                <ul class="pagination pagination-sm serve-pagination serve-pagination-filter">
-                                </ul>
-                          </nav>
-                      </div>
+                    <div class="d-flex align-items-center">
+                        <span class="apps-status-label">
+                            <span class="apps-status-label-full">Public apps and models:</span>
+                            <span class="apps-status-label-short">Public</span>
+                        </span>
+                        <span class="apps-status-number" data-cy="apps-status-public-number">{{ public_count|default:"—" }}</span>
                     </div>
-                  </div>
-              </div>
+                </div>
+        </div>
+    </div>
+    {% if serialized_apps|length > 0 %}
+    <div class="apps-layout" id="apps-layout">
+        <div class="filters-panel panel-surface d-none d-lg-flex">
+            <div class="filters-shell w-100">
+                <div class="filters-header">
+                    <div class="filters-topbar d-flex align-items-center justify-content-between px-3 pt-3 pb-2">
+                        <span class="filters-topbar-title">Filter panel</span>
+                        <button id="sidebar-toggle"
+                                class="btn btn-sm btn-outline-dark rounded-2"
+                                type="button"
+                                aria-label="Collapse filters sidebar"
+                                aria-expanded="true">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                    </div>
+                    <div class="filter-section filter-section-search px-3 pt-2 pb-2" data-filter-type="search">
+                        <input class="form-control search-input-filter search public-app-search-input search-input-sidebar"
+                               placeholder="Search apps and models..."
+                               {% if serialized_apps|length <= 0 %}disabled{% endif %}
+                               title="Search Apps"
+                               aria-label="Search Apps">
+                    </div>
+                    <div class="navbar navbar-expand-lg navbar-light bg-light">
+                        <div class="container-fluid d-flex flex-wrap ps-2 pe-2">
+                            <ul class="nav nav-pills serve-filter-nav justify-content-center w-100">
+                                <li class="nav-item ms-1 mb-1">
+                                    <a class="nav-link position-relative rounded-pill active"
+                                       data-short="All"
+                                       data-filter-target="all"
+                                       aria-label="All Filters"
+                                       onclick="showFilterSection('all')">
+                                        <span class="filter-label">All Filters</span>
+                                        <span class="filter-icon" aria-hidden="true"><i class="fas fa-sliders"></i></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item ms-1 mb-1">
+                                    <a class="nav-link position-relative rounded-pill"
+                                       data-short="Type"
+                                       data-filter-target="app-type"
+                                       aria-label="Frameworks"
+                                       title="Frameworks"
+                                       onclick="showFilterSection('app-type')">
+                                        <span class="filter-label">Frameworks</span>
+                                        <span class="filter-icon" aria-hidden="true"><i class="fas fa-cube"></i></span>
+                                        <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item ms-1 mb-1">
+                                    <a class="nav-link position-relative rounded-pill"
+                                       data-short="Org"
+                                       data-filter-target="organization"
+                                       aria-label="Organizations"
+                                       title="Organizations"
+                                       onclick="showFilterSection('organization')">
+                                        <span class="filter-label">Organizations</span>
+                                        <span class="filter-icon" aria-hidden="true"><i class="fas fa-graduation-cap"></i></span>
+                                        <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item ms-1 mb-1">
+                                    <a class="nav-link position-relative rounded-pill"
+                                       data-short="Key"
+                                       data-filter-target="keyword"
+                                       aria-label="Keywords"
+                                       title="Keywords"
+                                       onclick="showFilterSection('keyword')">
+                                        <span class="filter-label">Keywords</span>
+                                        <span class="filter-icon" aria-hidden="true"><i class="fas fa-tag"></i></span>
+                                        <span class="card-count-tag card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="filters-body ps-3 pb-3">
+
+                    <div class="filter-section" data-filter-type="app-type">
+                        <div class="d-flex align-items-center justify-content-between filter-subheading">
+                            <div class="ghost-number filter-subheading-title">
+                                <i class="fas fa-cube fa-sm filter-subheading-icon filter-subheading-icon-framework" aria-hidden="true"></i>
+                                <span>Frameworks</span>
+                            </div>
+                            <button type="button"
+                                    class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
+                                    data-reset-type="card-app-type">
+                                <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                                <span class="filter-reset-label-full">Reset Frameworks</span>
+                                <span class="filter-reset-label-short">Reset</span>
+                            </button>
+                        </div>
+
+                        <div class="filter-group" data-max-visible="15">
+                            {% static 'images/logos/apps/' as app_logo_static_url %}
+                            {% for app_category in serve_category_apps %}
+                                <a class="tag tag-filter card-app-type me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
+                                   onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
+    <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+    {% if app_category.logo %}
+    <img class="filter-tag-app-icon me-1" src="{{ app_logo_static_url }}{{ app_category.logo }}" alt="{{ app_category.name }} icon" loading="lazy">
+    {% else %}
+    <i class="fas fa-cube fa-sm me-1 filter-tag-icon-framework" aria-hidden="true"></i>
+    {% endif %}
+    <span class="tag-name">{{ app_category.name|title }}</span>
+    </span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="filter-section" data-filter-type="organization">
+                        <div class="d-flex align-items-center justify-content-between filter-subheading">
+                            <div class="ghost-number filter-subheading-title">
+                                <i class="fas fa-graduation-cap fa-sm filter-subheading-icon filter-subheading-icon-org" aria-hidden="true"></i>
+                                <span>Organizations</span>
+                            </div>
+                            <button type="button"
+                                    class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
+                                    data-reset-type="card-institution">
+                                <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                                <span class="filter-reset-label-full">Reset Organizations</span>
+                                <span class="filter-reset-label-short">Reset</span>
+                            </button>
+                        </div>
+
+                        <div class="filter-group" data-max-visible="15">
+                            {% static 'images/logos/universities/' as university_logo_static_url %}
+                            {% for org in unique_organizations %}
+                                <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
+                                   onclick="searchByTag('{{ org }}','card-institution',this)">
+    <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+    <img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
+    <i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
+    <span class="tag-name">{{ org }}</span>
+    </span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="filter-section" data-filter-type="keyword">
+                        <div class="d-flex align-items-center justify-content-between filter-subheading">
+                            <div class="ghost-number filter-subheading-title">
+                                <i class="fas fa-tag fa-sm filter-subheading-icon filter-subheading-icon-keyword" aria-hidden="true"></i>
+                                <span>Keywords</span>
+                            </div>
+                            <button type="button"
+                                    class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
+                                    data-reset-type="card-keyword">
+                                <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                                <span class="filter-reset-label-full">Reset Keywords</span>
+                                <span class="filter-reset-label-short">Reset</span>
+                            </button>
+                        </div>
+
+                        <div class="filter-group" data-max-visible="15">
+                            {% for tag in unique_tags %}
+                                <a class="tag tag-filter card-keyword me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
+                                   onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
+    <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+    <i class="fas fa-tag fa-sm me-1 filter-tag-icon-keyword" aria-hidden="true"></i>
+    <span class="tag-name">{{ tag|title }}</span>
+    </span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
             </div>
-            <div class="tag-list d-flex">
-                {% for tf in request.session.app_tag_filters %}
-                <div class="tag d-flex m-1">
-                    <span class="badge text-bg-primary badge-grape  d-flex align-items-center">{{ tf|title }}
-                        <a href="{% url 'portal:apps' %}?tf_remove={{ tf | urlencode }}">
-                            <button type="submit" class="btn-close btn-close-white ms-1" name="tag" value="{{tag}}"
-                            aria-label="Close"></button>
-                        </a>
+        </div>
+
+        <div class="apps-divider" aria-hidden="true"></div>
+
+    {% else %}
+        <div class="d-flex justify-content-center">
+    {% endif %}
+
+        <div class="apps-panel panel-surface pe-3">
+            <div class="apps-header d-flex align-items-center justify-content-end gap-2 px-2 pt-2">
+                <div id="apps-results-indicator" class="apps-results-indicator">
+                    <span class="apps-results-text">
+                        Displaying
+                        <span id="public-apps-count" class="apps-results-value">{{ serialized_apps|length }}</span>
+                        of
+                        <span id="public-apps-total" class="apps-results-value">{{ serialized_apps|length }}</span>
                     </span>
                 </div>
-                {% endfor %}
+
+                <div class="search-container-filter d-flex d-lg-none align-items-center gap-2">
+                    <input id="public-app-search-mobile"
+                           class="form-control search-input-filter search public-app-search-input"
+                           placeholder="Search apps and models..."
+                           {% if serialized_apps|length <= 0 %}disabled{% endif %}
+                           title="Search Apps"
+                           aria-label="Search Apps">
+
+                    <button class="btn btn-sm btn-outline-dark rounded d-lg-none flex-shrink-0"
+                            style="white-space:nowrap;"
+                            type="button"
+                            data-bs-toggle="offcanvas"
+                            data-bs-target="#small-screenFilters"
+                            aria-controls="small-screenFilters">
+                        <i class="fa-solid fa-sliders"></i>
+                        Filters
+                    </button>
+                </div>
+                <div id="active-filters-bar"
+                     class="d-none d-lg-none rounded-3 px-3 py-2 mx-1 my-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <strong class="me-1 active-filters-text">Active filters:</strong>
+                            <span id="active-filters-list" class="fw-semibold active-filters-text"></span>
+                        </div>
+
+                        <button id="active-filters-clear"
+                                type="button"
+                                class="btn btn-link p-0 fw-semibold active-filters-cancel">
+                            Clear all
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {% if not serialized_apps %}
+                <p id="public-apps-container-empty" class="d-flex justify-content-center mt-2">No public apps available.</p>
+            {% endif %}
+
+            <div id="public-apps-container" class="row g-4">
+                <div class="col-12 d-flex pt-2">
+                    <div id="app-cards" class="col-12">
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-2 g-4 list apps-card-grid">
+                            {% if serialized_apps|length <= 0 %}
+                                <div style="display:none;">
+                                    <span class="card-title"></span>
+                                    <span class="card-description"></span>
+                                    <span class="card-username"></span>
+                                    <span class="card-department"></span>
+                                    <span class="card-institution"></span>
+                                    <span class="card-app-type"></span>
+                                    <span class="card-keyword"></span>
+                                </div>
+                            {% endif %}
+
+                            {% for app in serialized_apps %}
+                                <div class="col mb-4">
+                                    {% include 'common/app_card.html' %}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        {% if serialized_apps|length > 0 %}
+                            <nav class="d-flex justify-content-center" aria-label="Main pagination">
+                                <ul class="pagination serve-pagination pagination-nav mt-0 mb-2"></ul>
+                            </nav>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
+
+        </div>
     </div>
 
-    {% if not serialized_apps %}
-    <p id="public-apps-container-empty">No public apps available.</p>
-    {% endif %}
-    <div id="public-apps-container" class="row g-4">
-      <div class="col-12 d-flex sidebar">
-        <div id="app-cards" class="col-12">
-          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-3 g-4 list">
-              {% if serialized_apps|length <= 0 %}
-              <div style="display:none;">
-                <!-- A template element is needed when list is empty, TODO: needs a better solution -->
-                <span class="card-title"></span>
-                <span class="card-description"></span>
-                <span class="card-username"></span>
-                <span class="card-department"></span>
-                <span class="card-institution"></span>
-                <span class="card-app-type"></span>
-                <span class="card-keyword"></span>
-              </div>
-              {% endif %}
-              {% for app in serialized_apps %}
-              <div class="col mb-4">
-                  {% include 'common/app_card.html' %}
-              </div>
-              {% endfor %}
-          </div>
-          {% if serialized_apps|length > 0 %}
-          <nav class="d-flex justify-content-center" aria-label="Main pagination">
-            <ul class="pagination pagination-sm serve-pagination pagination-nav">
-            </ul>
-          </nav>
-          {% endif %}
-        </div>
-      </div>
+<div class="offcanvas offcanvas-bottom d-lg-none"
+     tabindex="-1"
+     id="small-screenFilters"
+     aria-labelledby="small-screenFiltersLabel"
+     data-bs-backdrop="static"
+     data-bs-keyboard="false">
+    <div class="offcanvas-header border-bottom">
+        <h4 class="offcanvas-title fw-semibold" id="small-screenFiltersLabel">Edit Filters</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
-  </div>
+
+    <div class="offcanvas-body d-flex flex-column p-0">
+        <div class="small-screen-scroll flex-grow-1 px-3 pt-3">
+            <div class="filter-section filter-section-search mb-3" data-filter-type="search">
+                <div class="filter-subheading">
+                    <div class="ghost-number filter-subheading-title">
+                        <i class="fas fa-magnifying-glass fa-sm filter-subheading-icon filter-subheading-icon-search" aria-hidden="true"></i>
+                        <span>Search</span>
+                    </div>
+                </div>
+                <input class="form-control search-input-filter search public-app-search-input search-input-sidebar"
+                       placeholder="Search apps and models..."
+                       {% if serialized_apps|length <= 0 %}disabled{% endif %}
+                       title="Search Apps"
+                       aria-label="Search Apps">
+            </div>
+
+            <div class="navbar navbar-expand-lg navbar-light bg-light mb-3">
+                <div class="container-fluid d-flex flex-wrap ps-0">
+                    <ul class="nav nav-pills serve-filter-nav justify-content-center w-100">
+                        <li class="nav-item me-1 mb-1">
+                            <a class="nav-link position-relative rounded-pill active"
+                               data-filter-target="all"
+                               onclick="showFilterSection('all')">
+                                All Filters
+                            </a>
+                        </li>
+                        <li class="nav-item me-1 mb-1">
+                            <a class="nav-link position-relative rounded-pill"
+                               data-filter-target="app-type"
+                               onclick="showFilterSection('app-type')">
+                                Frameworks
+                                <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item me-1 mb-1">
+                            <a class="nav-link position-relative rounded-pill"
+                               data-filter-target="organization"
+                               onclick="showFilterSection('organization')">
+                                Organizations
+                                <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item me-1 mb-1">
+                            <a class="nav-link position-relative rounded-pill"
+                               data-filter-target="keyword"
+                               onclick="showFilterSection('keyword')">
+                                Keywords
+                                <span class="card-count-tag card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="filter-section" data-filter-type="app-type">
+                <div class="d-flex align-items-center justify-content-between filter-subheading">
+                    <div class="ghost-number filter-subheading-title">
+                        <i class="fas fa-cube fa-sm filter-subheading-icon filter-subheading-icon-framework" aria-hidden="true"></i>
+                        <span>Frameworks</span>
+                    </div>
+                    <button type="button"
+                            class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
+                            data-reset-type="card-app-type">
+                        <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                        <span class="filter-reset-label-full">Reset Frameworks</span>
+                        <span class="filter-reset-label-short">Reset</span>
+                    </button>
+                </div>
+                <div class="filter-group" data-max-visible="15">
+                    {% static 'images/logos/apps/' as app_logo_static_url %}
+                    {% for app_category in serve_category_apps %}
+                        <a class="tag tag-filter card-app-type me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
+                           onclick="searchByTag('{{ app_category.name }}','card-app-type',this)">
+<span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+{% if app_category.logo %}
+<img class="filter-tag-app-icon me-1" src="{{ app_logo_static_url }}{{ app_category.logo }}" alt="{{ app_category.name }} icon" loading="lazy">
+{% else %}
+<i class="fas fa-cube fa-sm me-1 filter-tag-icon-framework" aria-hidden="true"></i>
+{% endif %}
+<span class="tag-name">{{ app_category.name|title }}</span>
+</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="filter-section" data-filter-type="organization">
+                <div class="d-flex align-items-center justify-content-between filter-subheading">
+                    <div class="ghost-number filter-subheading-title">
+                        <i class="fas fa-graduation-cap fa-sm filter-subheading-icon filter-subheading-icon-org" aria-hidden="true"></i>
+                        <span>Organizations</span>
+                    </div>
+                    <button type="button"
+                            class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
+                            data-reset-type="card-institution">
+                        <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                        <span class="filter-reset-label-full">Reset Organizations</span>
+                        <span class="filter-reset-label-short">Reset</span>
+                    </button>
+                </div>
+                <div class="filter-group" data-max-visible="15">
+                    {% static 'images/logos/universities/' as university_logo_static_url %}
+                    {% for org in unique_organizations %}
+                        <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
+                           onclick="searchByTag('{{ org }}','card-institution',this)">
+<span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+<img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
+<i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
+<span class="tag-name">{{ org }}</span>
+</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="filter-section" data-filter-type="keyword">
+                <div class="d-flex align-items-center justify-content-between filter-subheading">
+                    <div class="ghost-number filter-subheading-title">
+                        <i class="fas fa-tag fa-sm filter-subheading-icon filter-subheading-icon-keyword" aria-hidden="true"></i>
+                        <span>Keywords</span>
+                    </div>
+                    <button type="button"
+                            class="btn btn-outline-dark btn-xs d-flex align-items-center rounded filter-reset-btn is-hidden"
+                            data-reset-type="card-keyword">
+                        <i class="fa-solid fa-rotate-left fa-sm me-1"></i>
+                        <span class="filter-reset-label-full">Reset Keywords</span>
+                        <span class="filter-reset-label-short">Reset</span>
+                    </button>
+                </div>
+                <div class="filter-group" data-max-visible="15">
+                    {% for tag in unique_tags %}
+                        <a class="tag tag-filter card-keyword me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
+                           onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
+<span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+<i class="fas fa-tag fa-sm me-1 filter-tag-icon-keyword" aria-hidden="true"></i>
+<span class="tag-name">{{ tag|title }}</span>
+</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="border-top bg-white p-3">
+            <button id="small-screenApplyFilters" class="btn btn-primary w-100 py-2 fw-semibold">
+                ✓ Apply filters
+            </button>
+        </div>
+    </div>
 </div>
+
 {% if serialized_apps|length > 0 %}
 <script>
-  // Main List.js setup
-  const listOptions = {
-    valueNames: ['card-title','card-description','card-username','card-department','card-institution','card-app-type','card-keyword'],
-    page: 12,
-    pagination: {
-      listClass: 'pagination',
-      item: v => `<li class="page-item"><a class="page-link" onclick="addFirstLastButtons()" href="#">${v.page}</a></li>`,
-      innerWindow:2, outerWindow:2, left:2, right:2
-    }
-  };
-  const publicAppList = new List('app-cards', listOptions);
+        (function () {
 
-  // Filter‐pane List.js
-  const filterOptions = {
-    valueNames: ['tag-name'], page:30,
-    pagination:{ listClass:'pagination', item:v=>`<li class="page-item"><a class="page-link" onclick='resetPageFilter()'>${v.page}</a></li>`, innerWindow:2, left:2, right:2 }
-  };
-  const filterAppTypeList  = new List('filters-app-type', filterOptions);
-  const filterOrgsList     = new List('filters-organization', filterOptions);
-  const filterDepList      = new List('filters-department', filterOptions);
-  const filterKeywordsList = new List('filters-keyword', filterOptions);
+            window.activeFilterNav = window.activeFilterNav || 'all';
 
-  function sortAll() {
-    [filterAppTypeList,filterOrgsList,filterDepList,filterKeywordsList]
-      .forEach(fl=>fl.sort('tag-name',{order:'asc'}));
-  }
-  sortAll();
 
-  let searchTags = [];            // {element,tagType,value}
-  let columnsToSearch = new Set();
-  let searchValues    = new Set();
+            let smallScreenFiltersOpen = false;
+            const smallScreenOffcanvasEl = document.getElementById('small-screenFilters');
 
-  publicAppList.on('updated', ()=> {
-    $('.pagination-nav').toggle(publicAppList.matchingItems.length > publicAppList.page);
-  });
+            if (smallScreenOffcanvasEl) {
+                smallScreenOffcanvasEl.addEventListener('show.bs.offcanvas', () => {
+                    smallScreenFiltersOpen = true;
+                });
+                smallScreenOffcanvasEl.addEventListener('hidden.bs.offcanvas', () => {
+                    smallScreenFiltersOpen = false;
+                });
+            }
 
-  $('#public-app-search').on('keyup', ()=>{
-    publicAppList.search($('#public-app-search').val());
-    $('#public-apps-count').text(publicAppList.matchingItems.length);
-    addFirstLastButtons();
-  });
+            function isSmallScreenMode() {
+                return smallScreenFiltersOpen;
+            }
 
-  $('#filter-search').on('keyup', ()=>{
-    const q = $('#filter-search').val();
-    if ($('#pills-app-types-tab').hasClass('active'))    filterAppTypeList.search(q);
-    else if ($('#pills-organization-tab').hasClass('active')) filterOrgsList.search(q);
-    else if ($('#pills-department-tab').hasClass('active'))   filterDepList.search(q);
-    else if ($('#pills-keyword-tab').hasClass('active'))      filterKeywordsList.search(q);
-  });
 
-  function searchByTag(value, tagType, element) {
-    const wasSelected = searchValues.has(value);
+            const listOptions = {
+                valueNames: [
+                    'card-title', 'card-description', 'card-username',
+                    'card-department', 'card-institution', 'card-app-type', 'card-keyword'
+                ],
+                page: 12,
+                pagination: {
+                    listClass: 'pagination-nav',
+                    innerWindow: 1,
+                    outerWindow: 1,
+                    left: 1,
+                    right: 1,
+                    item: function (v) {
+                        if (v.dots) {
+                            return '<li class="page-item serve-dots disabled"><a class="page-link page" href="#" tabindex="-1" aria-disabled="true">…</a></li>';
+                        }
+                        const active = v.active ? 'active' : '';
+                        return '<li class="page-item ' + active + '"><a class="page-link page" href="#">' + v.page + '</a></li>';
+                    }
+                }
+            };
 
-    if (wasSelected) {
-      // deselect
-      searchTags = searchTags.filter(t=>t.value!==value);
-      searchValues.delete(value);
-      if (!searchTags.some(t=>t.tagType===tagType)) columnsToSearch.delete(tagType);
-    } else {
-      // select
-      searchTags.push({element,tagType,value});
-      searchValues.add(value);
-      columnsToSearch.add(tagType);
-    }
+            const publicAppList = new List('app-cards', listOptions);
 
-    // resort filters
-    sortAll();
 
-    // reset classes
-    $('.badge-ico-text-filter').removeClass('badge-ico-text-filter-selected');
-    $('.tag-filter').removeClass('inactive');
+            function getCurrentPage() {
+                return Math.ceil(publicAppList.i / publicAppList.page);
+            }
 
-    // update each tag element state
-    if (searchTags.length === 0) {
-      // no tags selected, reset everything
-      resetFilters();
-      return;
-    }
-    $(`.tag-filter.`+tagType).addClass('inactive');
-    const countMap = {};
-    searchTags.forEach(({element,tagType,value})=>{
-      // selected color
-      element.querySelector('.badge-ico-text-filter')
-             .classList.add('badge-ico-text-filter-selected');
-      // other tags of same type inactive
-      element.classList.remove('inactive');
-      //$(`.tag-filter.${tagType}`).not(element).removeClass('inactive');
-      countMap[tagType] = (countMap[tagType]||0) + 1;
-    });
+            function getTotalPages() {
+                return Math.max(1, Math.ceil(publicAppList.matchingItems.length / publicAppList.page));
+            }
 
-    // update badge counts & hide zeros
-    ['card-app-type','card-institution','card-department','card-keyword']
-      .forEach(type=>{
-        const b = $(`.${type}-count`);
-        if (countMap[type]) b.text(countMap[type]).removeClass('visually-hidden');
-        else b.text(0).addClass('visually-hidden');
-      });
+            function goToPage(pageNum) {
+                const total = getTotalPages();
+                const target = Math.min(Math.max(1, pageNum), total);
+                const start = (target - 1) * publicAppList.page + 1;
+                publicAppList.show(start, publicAppList.page);
+            }
 
-    applyTagFilters();
-  }
+            function scrollToAppsTop() {
+                const appsPageTop = document.querySelector('.apps-page');
+                if (appsPageTop) {
+                    appsPageTop.scrollIntoView({behavior: 'smooth', block: 'start'});
+                    return;
+                }
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            }
 
-  function applyTagFilters() {
-    publicAppList.filter(item=>{
-      return [...columnsToSearch].every(col=>{
-        const v = item.values()[col]||'';
-        if (col==='card-keyword') {
-          const arr=v.split(',').map(s=>s.trim());
-          return [...searchValues].some(sv=>arr.includes(sv));
-        }
-        return searchValues.has(v);
-      });
-    });
-    if (!searchTags.length) publicAppList.filter();
-    $('#public-apps-count').text(publicAppList.matchingItems.length);
-    addFirstLastButtons();
-  }
+            function ensurePrevNext() {
+                const ul = document.querySelector('ul.pagination-nav');
+                if (!ul) return;
 
-  function resetFilterList() {
-    $('#filter-search').val('');
-    [filterAppTypeList,filterOrgsList,filterDepList,filterKeywordsList]
-      .forEach(fl=>{fl.search(''); fl.sort('tag-name',{order:'asc'});});
-  }
-  function resetPageFilter() {
-        $(function() {
-          if (searchTags.length === 0) {
-            $(".badge-ico-text-filter").removeClass('badge-ico-text-filter-selected');
-            $(".tag-filter").removeClass('inactive');
-          }
-        });
+                ul.querySelectorAll('.serve-prev, .serve-next').forEach(el => el.remove());
 
-     }
-  function resetFilters() {
-    searchTags=[]; columnsToSearch.clear(); searchValues.clear();
-    $('.badge-ico-text-filter').removeClass('badge-ico-text-filter-selected');
-    $('.tag-filter').removeClass('inactive');
-    $('.card-app-type-count, .card-institution-count, .card-department-count, .card-keyword-count')
-      .text(0).addClass('visually-hidden');
-    publicAppList.filter(); publicAppList.search();
-    $('#public-apps-count').text(publicAppList.matchingItems.length);
-    resetFilterList();
-    resetPageFilter();
-  }
+                const prevLi = document.createElement('li');
+                prevLi.className = 'page-item serve-prev';
+                prevLi.innerHTML = '<a class="page-link" href="#" aria-label="Previous">‹ <span>Previous</span></a>';
 
-  function addFirstLastButtons() {
-    // placeholder
-  }
-</script>
+                const nextLi = document.createElement('li');
+                nextLi.className = 'page-item serve-next';
+                nextLi.innerHTML = '<a class="page-link" href="#" aria-label="Next"><span>Next</span> ›</a>';
+
+                ul.insertBefore(prevLi, ul.firstChild);
+                ul.appendChild(nextLi);
+            }
+
+            function updatePrevNextState() {
+                const ul = document.querySelector('ul.pagination-nav');
+                if (!ul) return;
+
+                const prev = ul.querySelector('.serve-prev');
+                const next = ul.querySelector('.serve-next');
+
+                const current = getCurrentPage();
+                const total = getTotalPages();
+
+                if (prev) prev.classList.toggle('disabled', current <= 1);
+                if (next) next.classList.toggle('disabled', current >= total);
+
+                ul.style.display = total <= 1 ? 'none' : '';
+            }
+
+            let pageBound = false;
+
+            function bindPrevNext() {
+                if (pageBound) return;
+                pageBound = true;
+
+                document.addEventListener('click', function (e) {
+                    const prev = e.target.closest('.serve-prev');
+                    const next = e.target.closest('.serve-next');
+                    if (!prev && !next) return;
+
+                    e.preventDefault();
+
+                    if (prev) {
+                        if (prev.classList.contains('disabled')) return;
+                        goToPage(getCurrentPage() - 1);
+                        requestAnimationFrame(scrollToAppsTop);
+                    } else if (next) {
+                        if (next.classList.contains('disabled')) return;
+                        goToPage(getCurrentPage() + 1);
+                        requestAnimationFrame(scrollToAppsTop);
+                    }
+                });
+            }
+
+            function rebuildPaginationUI() {
+                requestAnimationFrame(() => {
+                    ensurePrevNext();
+                    updatePrevNextState();
+                });
+            }
+
+            publicAppList.on('updated', rebuildPaginationUI);
+            bindPrevNext();
+            rebuildPaginationUI();
+
+
+            let appliedSearchTags = [];
+            let appliedColumnsToSearch = new Set();
+            let appliedSearchValues = new Set();
+
+
+            let pendingSearchTags = [];
+            let pendingColumnsToSearch = new Set();
+            let pendingSearchValues = new Set();
+
+            function normalize(s) {
+                return (s || '').toString().trim().toLowerCase();
+            }
+
+            const appSearchInputs = Array.from(document.querySelectorAll('.public-app-search-input'));
+            const resultsCountEl = document.getElementById('public-apps-count');
+            const resultsTotalEl = document.getElementById('public-apps-total');
+
+            function setResultsCount(count) {
+                if (resultsCountEl) resultsCountEl.textContent = String(count);
+            }
+
+            function setResultsTotal(total) {
+                if (resultsTotalEl) resultsTotalEl.textContent = String(total);
+            }
+
+            let isSyncingSearchInputs = false;
+            function syncSearchInputs(sourceInput) {
+                if (isSyncingSearchInputs) return;
+                isSyncingSearchInputs = true;
+                appSearchInputs.forEach(input => {
+                    if (input !== sourceInput) input.value = sourceInput.value;
+                });
+                isSyncingSearchInputs = false;
+            }
+
+            appSearchInputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    syncSearchInputs(input);
+                    publicAppList.search(input.value);
+                    setResultsCount(publicAppList.matchingItems.length);
+                });
+            });
+
+
+            function valueMatchesColumn(cardValue, selectedValue, column) {
+                const cv = normalize(cardValue);
+                const sv = normalize(selectedValue);
+                if (column === 'card-keyword') {
+                    const parts = cv.split(',').map(p => p.trim());
+                    return parts.includes(sv);
+                }
+                return cv === sv;
+            }
+
+            function applyTagFilters() {
+                publicAppList.filter(item => {
+                    return [...appliedColumnsToSearch].every(col => {
+                        const v = item.values()[col] || '';
+                        for (const selected of appliedSearchValues) {
+                            if (valueMatchesColumn(v, selected, col)) return true;
+                        }
+                        return false;
+                    });
+                });
+
+                if (!appliedSearchTags.length) publicAppList.filter();
+                setResultsCount(publicAppList.matchingItems.length);
+                updateActiveFiltersBar();
+            }
+
+
+            const activeBarEl = document.getElementById('active-filters-bar');
+            const activeListEl = document.getElementById('active-filters-list');
+            const activeClearBtn = document.getElementById('active-filters-clear');
+
+            function escapeHtml(str) {
+                return (str || '').replace(/[&<>"']/g, (m) => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+                }[m]));
+            }
+
+            function getAppliedLabels() {
+                const labels = [];
+                const seen = new Set();
+                appliedSearchTags.forEach(t => {
+                    const label = (t.value || '').toString().trim();
+                    if (!label) return;
+                    const key = `${t.tagType}::${label}`;
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    labels.push(label);
+                });
+                return labels;
+            }
+
+            function updateActiveFiltersBar() {
+                if (!activeBarEl || !activeListEl) return;
+                const isLargeScreen = window.matchMedia && window.matchMedia('(min-width: 992px)').matches;
+                if (isLargeScreen) {
+                    activeBarEl.classList.add('d-none');
+                    activeListEl.textContent = '';
+                    return;
+                }
+
+                const labels = getAppliedLabels();
+                const hasAny = labels.length > 0;
+
+                activeBarEl.classList.toggle('d-none', !hasAny);
+
+                if (!hasAny) {
+                    activeListEl.textContent = '';
+                    return;
+                }
+
+                activeListEl.innerHTML = labels.map(escapeHtml).join(', ');
+            }
+
+            if (activeClearBtn) {
+                activeClearBtn.addEventListener('click', () => {
+                    appliedSearchTags = [];
+                    appliedColumnsToSearch.clear();
+                    appliedSearchValues.clear();
+
+                    cloneAppliedToPending();
+
+                    publicAppList.filter();
+                    publicAppList.search(appSearchInputs[0] ? appSearchInputs[0].value : '');
+                    setResultsCount(publicAppList.matchingItems.length);
+
+                    syncTagVisuals();
+                    updateResetButtonsVisibility();
+                    updateActiveFiltersBar();
+                });
+            }
+
+            function getVisualState() {
+                return isSmallScreenMode()
+                    ? {tags: pendingSearchTags, cols: pendingColumnsToSearch, vals: pendingSearchValues}
+                    : {tags: appliedSearchTags, cols: appliedColumnsToSearch, vals: appliedSearchValues};
+            }
+
+            function syncTagVisuals() {
+                const {tags} = getVisualState();
+                const setCountBadge = (selector, count) => {
+                    document.querySelectorAll(selector).forEach(badge => {
+                        badge.textContent = String(count);
+                        badge.classList.toggle('visually-hidden', !count);
+                    });
+                };
+
+                document.querySelectorAll('.badge-ico-text-filter')
+                    .forEach(b => b.classList.remove('badge-ico-text-filter-selected'));
+                document.querySelectorAll('.tag-filter')
+                    .forEach(t => t.classList.remove('inactive'));
+
+                if (!tags.length) {
+                    setCountBadge('.card-app-type-count', 0);
+                    setCountBadge('.card-institution-count', 0);
+                    setCountBadge('.card-department-count', 0);
+                    setCountBadge('.card-keyword-count', 0);
+                    return;
+                }
+
+                const countMap = {};
+                tags.forEach(({tagType}) => {
+                    document.querySelectorAll(`.tag-filter.${tagType}`).forEach(t => t.classList.add('inactive'));
+                });
+
+                tags.forEach(({tagType, value}) => {
+                    document.querySelectorAll(`.tag-filter.${tagType}`).forEach(el => {
+                        const nameEl = el.querySelector('.tag-name');
+                        const tagName = nameEl ? nameEl.textContent.trim() : '';
+                        if (tagName !== value) return;
+                        const badge = el.querySelector('.badge-ico-text-filter');
+                        if (badge) badge.classList.add('badge-ico-text-filter-selected');
+                        el.classList.remove('inactive');
+                    });
+                    countMap[tagType] = (countMap[tagType] || 0) + 1;
+                });
+
+                ['card-app-type', 'card-institution', 'card-department', 'card-keyword']
+                    .forEach(type => setCountBadge(`.${type}-count`, countMap[type] || 0));
+            }
+
+            function updateResetButtonsVisibility() {
+                const isAll = (window.activeFilterNav === 'all');
+                const {tags} = getVisualState();
+
+                document.querySelectorAll('.filter-reset-btn').forEach(btn => {
+                    const tagType = btn.dataset.resetType;
+                    const hasSelection = tags.some(t => t.tagType === tagType);
+                    btn.classList.toggle('is-hidden', !(isAll && hasSelection));
+                });
+            }
+
+            function cloneAppliedToPending() {
+                pendingSearchTags = appliedSearchTags.map(t => ({...t}));
+                pendingColumnsToSearch = new Set([...appliedColumnsToSearch]);
+                pendingSearchValues = new Set([...appliedSearchValues]);
+            }
+
+            function commitPendingToApplied() {
+                appliedSearchTags = pendingSearchTags.map(t => ({...t}));
+                appliedColumnsToSearch = new Set([...pendingColumnsToSearch]);
+                appliedSearchValues = new Set([...pendingSearchValues]);
+            }
+
+            function resetFilterType(tagType) {
+                const smallScreen = isSmallScreenMode();
+                const tags = smallScreen ? pendingSearchTags : appliedSearchTags;
+                const cols = smallScreen ? pendingColumnsToSearch : appliedColumnsToSearch;
+                const vals = smallScreen ? pendingSearchValues : appliedSearchValues;
+
+                const remaining = [];
+                tags.forEach(t => {
+                    if (t.tagType === tagType) vals.delete(t.value);
+                    else remaining.push(t);
+                });
+
+                if (smallScreen) pendingSearchTags = remaining;
+                else appliedSearchTags = remaining;
+
+                if (!remaining.some(t => t.tagType === tagType)) cols.delete(tagType);
+
+                syncTagVisuals();
+                updateResetButtonsVisibility();
+
+                if (!isSmallScreenMode()) {
+                    if (!appliedSearchTags.length) {
+                        window.resetFilters();
+                        return;
+                    }
+                    applyTagFilters();
+                }
+            }
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.filter-reset-btn');
+                if (!btn) return;
+                e.preventDefault();
+                const tagType = btn.dataset.resetType;
+                if (!tagType) return;
+                resetFilterType(tagType);
+            });
+
+            window.resetFilters = function () {
+                if (isSmallScreenMode()) {
+                    pendingSearchTags = [];
+                    pendingColumnsToSearch.clear();
+                    pendingSearchValues.clear();
+                    syncTagVisuals();
+                    updateResetButtonsVisibility();
+                    return;
+                }
+
+                appliedSearchTags = [];
+                appliedColumnsToSearch.clear();
+                appliedSearchValues.clear();
+
+                syncTagVisuals();
+
+                publicAppList.filter();
+                publicAppList.search(appSearchInputs[0] ? appSearchInputs[0].value : '');
+                setResultsCount(publicAppList.matchingItems.length);
+
+                updateResetButtonsVisibility();
+                updateActiveFiltersBar();
+            };
+
+            window.searchByTag = function (value, tagType, element) {
+                const nameEl = element.querySelector('.tag-name');
+                const displayValue = (nameEl ? nameEl.textContent.trim() : value);
+                const key = displayValue;
+
+                const smallScreen = isSmallScreenMode();
+                const tags = smallScreen ? pendingSearchTags : appliedSearchTags;
+                const cols = smallScreen ? pendingColumnsToSearch : appliedColumnsToSearch;
+                const vals = smallScreen ? pendingSearchValues : appliedSearchValues;
+
+                const wasSelected = vals.has(key);
+
+                if (wasSelected) {
+                    const filtered = tags.filter(t => !(t.value === key && t.tagType === tagType));
+                    if (smallScreen) pendingSearchTags = filtered;
+                    else appliedSearchTags = filtered;
+
+                    vals.delete(key);
+                    if (!filtered.some(t => t.tagType === tagType)) cols.delete(tagType);
+                } else {
+                    tags.push({tagType, value: key});
+                    vals.add(key);
+                    cols.add(tagType);
+                }
+
+                if ((smallScreen ? pendingSearchTags : appliedSearchTags).length === 0) {
+                    window.resetFilters();
+                    return;
+                }
+
+                syncTagVisuals();
+                updateResetButtonsVisibility();
+
+                if (!smallScreen) {
+                    cloneAppliedToPending();
+                    applyTagFilters();
+                }
+            };
+
+            function initFilterGroups() {
+                document.querySelectorAll('.filter-group').forEach(group => {
+                    if (group.dataset.collapseInit === '1') return;
+                    group.dataset.collapseInit = '1';
+
+                    const maxVisible = parseInt(group.dataset.maxVisible || 15, 10);
+                    const tags = Array.from(group.children).filter(el => el.classList.contains('tag-filter'));
+                    if (tags.length <= maxVisible) return;
+
+                    let expanded = false;
+
+                    const toggleBtn = document.createElement('a');
+                    toggleBtn.href = "#";
+                    toggleBtn.className = "tag tag-toggle me-1 mb-2";
+
+                    const badge = document.createElement('span');
+                    badge.className = "badge badge-ico-text-filter";
+                    toggleBtn.appendChild(badge);
+
+                    toggleBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        expanded = !expanded;
+                        render();
+                    });
+
+                    group.appendChild(toggleBtn);
+
+                    function render() {
+                        const isAll = (window.activeFilterNav === 'all');
+
+                        if (!isAll) {
+                            tags.forEach(t => t.classList.remove('filter-collapsed'));
+                            toggleBtn.classList.add('filter-toggle-hidden');
+                            return;
+                        }
+
+                        toggleBtn.classList.remove('filter-toggle-hidden');
+
+                        tags.forEach((tag, idx) => {
+                            if (!expanded && idx >= maxVisible) tag.classList.add('filter-collapsed');
+                            else tag.classList.remove('filter-collapsed');
+                        });
+
+                        badge.innerHTML = expanded
+                            ? '<i class="fa-solid fa-minus me-1 filter-tag-icon-toggle" aria-hidden="true"></i><span class="tag-name">Show less</span>'
+                            : `<i class="fa-solid fa-plus me-1 filter-tag-icon-toggle" aria-hidden="true"></i><span class="tag-name">${tags.length - maxVisible} more</span>`;
+                    }
+
+                    group._renderCollapse = render;
+                    group._setCollapsedDefault = function () {
+                        expanded = false;
+                    };
+                    render();
+                });
+            }
+
+            window.showFilterSection = function (type) {
+                window.activeFilterNav = type;
+
+                document.querySelectorAll('.serve-filter-nav .nav-link').forEach(a => {
+                    a.classList.toggle('active', a.dataset.filterTarget === type);
+                });
+
+                document.querySelectorAll('.filter-section').forEach(section => {
+                    const filterType = section.dataset.filterType;
+                    const match = (filterType === 'search') || (type === 'all') || (filterType === type);
+                    section.style.display = match ? '' : 'none';
+                });
+
+                document.querySelectorAll('.filter-group').forEach(group => {
+                    if (type === 'all' && group._setCollapsedDefault) group._setCollapsedDefault();
+                    if (group._renderCollapse) group._renderCollapse();
+                });
+
+                updateResetButtonsVisibility();
+            };
+
+            const smallScreenApplyBtn = document.getElementById('small-screenApplyFilters');
+            if (smallScreenApplyBtn) {
+                smallScreenApplyBtn.addEventListener('click', function () {
+                    if (!isSmallScreenMode()) return;
+
+                    commitPendingToApplied();
+                    applyTagFilters();
+
+                    const offcanvasEl = document.getElementById('small-screenFilters');
+                    const offcanvas = offcanvasEl ? bootstrap.Offcanvas.getInstance(offcanvasEl) : null;
+                    if (offcanvas) offcanvas.hide();
+                });
+            }
+
+            const offcanvasEl = document.getElementById('small-screenFilters');
+            if (offcanvasEl) {
+                offcanvasEl.addEventListener('show.bs.offcanvas', () => {
+                    if (!isSmallScreenMode()) return;
+                    cloneAppliedToPending();
+                    syncTagVisuals();
+                    updateResetButtonsVisibility();
+                });
+            }
+
+
+            setResultsCount(publicAppList.matchingItems.length);
+            setResultsTotal(publicAppList.items.length);
+
+            initFilterGroups();
+            window.showFilterSection(window.activeFilterNav);
+            updateActiveFiltersBar();
+
+
+            const appsLayout = document.querySelector('.apps-layout');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebarCollapseKey = 'apps_sidebar_collapsed';
+
+            function setSidebarCollapsed(collapsed) {
+                if (!appsLayout) return;
+                appsLayout.classList.toggle('is-sidebar-collapsed', collapsed);
+                if (!sidebarToggle) return;
+                sidebarToggle.classList.toggle('is-collapsed', collapsed);
+                sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+                sidebarToggle.setAttribute(
+                    'aria-label',
+                    collapsed ? 'Expand filters sidebar' : 'Collapse filters sidebar'
+                );
+                const toggleIcon = sidebarToggle.querySelector('i');
+                if (toggleIcon) {
+                    toggleIcon.classList.remove('fa-chevron-left', 'fa-chevron-right');
+                    toggleIcon.classList.add(collapsed ? 'fa-chevron-right' : 'fa-chevron-left');
+                }
+            }
+
+            if (appsLayout && sidebarToggle) {
+                let collapsedByDefault = false;
+                try {
+                    collapsedByDefault = localStorage.getItem(sidebarCollapseKey) === '1';
+                } catch (e) {
+                    collapsedByDefault = false;
+                }
+                setSidebarCollapsed(collapsedByDefault);
+
+                sidebarToggle.addEventListener('click', function () {
+                    const collapsed = !appsLayout.classList.contains('is-sidebar-collapsed');
+                    setSidebarCollapsed(collapsed);
+                    try {
+                        localStorage.setItem(sidebarCollapseKey, collapsed ? '1' : '0');
+                    } catch (e) {
+
+                    }
+                });
+
+                document.querySelectorAll('.filters-panel .serve-filter-nav .nav-link').forEach(link => {
+                    link.addEventListener('click', function () {
+                        if (!window.matchMedia('(min-width: 992px)').matches) return;
+                        if (!appsLayout.classList.contains('is-sidebar-collapsed')) return;
+                        setSidebarCollapsed(false);
+                        try {
+                            localStorage.setItem(sidebarCollapseKey, '0');
+                        } catch (e) {
+
+                        }
+                    });
+                });
+            }
+
+        })();
+    </script>
 {% endif %}
-{# Including code for modals displaying Docker info #}
 {% include 'common/app_card_docker_info.html' %}
-{# Including code hiding and showing longer app descriptions #}
 {% include 'common/app_card_description.html' %}
-
 {% endblock %}

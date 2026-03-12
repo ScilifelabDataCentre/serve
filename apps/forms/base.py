@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 
@@ -43,6 +44,7 @@ class BaseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self._setup_form_fields()
+        self.add_metadata()
         self._setup_form_helper()
         for field in self.fields.values():
             if isinstance(field.widget, (Select, SelectMultiple)):
@@ -78,6 +80,15 @@ class BaseForm(forms.ModelForm):
             self._original_tags = []
         self._restore_model_help_text()
 
+    def _setup_optional_funding_field(self):
+        """Configure optional funding field controlled by DOI minting switch."""
+        if "funding_sources_json" not in self.fields:
+            return
+        if not waffle.switch_is_active("doi_minting_using_invenio"):
+            self.fields.pop("funding_sources_json", None)
+        else:
+            self.fields["funding_sources_json"].initial = self.fields["funding_sources_json"].initial or "[]"
+
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel
         self.footer = Div(
@@ -107,8 +118,10 @@ class BaseForm(forms.ModelForm):
         instance = getattr(self, "instance", None)
         if not instance or not getattr(instance, "pk", None):
             return
-        # Only fetch from Invenio if language field exists
-        if "language" not in self.fields:
+        has_language_field = "language" in self.fields
+        has_funding_field = "funding_sources_json" in self.fields
+        # Fetch from Invenio only if there is at least one metadata field to prefill.
+        if not has_language_field and not has_funding_field:
             return
         try:
             client = InvenioClient(
@@ -123,11 +136,15 @@ class BaseForm(forms.ModelForm):
                 record = client.get_record(record_id)
 
             if record:
-                invenio_lang_id = client.extract_language_id(record)
-                self.fields["language"].initial = invenio_lang_id
+                if has_language_field:
+                    invenio_lang_id = client.extract_language_id(record)
+                    self.fields["language"].initial = invenio_lang_id
+                if has_funding_field:
+                    funding_entries = client.extract_funding(record)
+                    self.fields["funding_sources_json"].initial = json.dumps(funding_entries)
 
         except Exception:
-            logger.exception("Failed to fetch language from Invenio; leaving default initial.")
+            logger.exception("Failed to fetch metadata from Invenio; leaving default initial values.")
 
     def clean_subdomain(self):
         cleaned_data = super().clean()
@@ -160,6 +177,30 @@ class BaseForm(forms.ModelForm):
     def clean_tags(self):
         cleaned_data = super().clean()
         return cleaned_data.get("tags", [])
+
+    def clean_funding_sources_json(self):
+        raw = self.cleaned_data.get("funding_sources_json") or "[]"
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+        except json.JSONDecodeError as e:
+            raise forms.ValidationError("Invalid funding sources data.") from e
+
+        if not isinstance(data, list):
+            raise forms.ValidationError("Funding sources must be a list.")
+
+        for item in data:
+            if not isinstance(item, dict):
+                raise forms.ValidationError("Invalid funding source entry.")
+
+            funder_name = (item.get("funder_name") or "").strip()
+            funder_id = (item.get("funder_id") or "").strip()
+
+            if not funder_name:
+                raise forms.ValidationError("Each funding source must have a funder name.")
+            if not funder_id:
+                raise forms.ValidationError("Each funding source must be selected from the Invenio funders list.")
+
+        return json.dumps(data)
 
     def validate_subdomain(self, subdomain_input):
         # If user did not input subdomain, set it to our standard release name
