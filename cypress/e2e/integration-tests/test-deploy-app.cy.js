@@ -1354,7 +1354,7 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // verify that the app was created. Using custom timeout.
-            cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Error: ErrImagePull')
+            cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: shinyAppCmdTimeoutMs}).should('contain', 'Error: ErrImagePull')
             cy.logf("Now updating the app to give a correct image reference - expecting Running", Cypress.currentTest)
             cy.get('tr:contains("' + app_name_statuses + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
