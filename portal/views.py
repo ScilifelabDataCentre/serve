@@ -41,7 +41,7 @@ def __get_content_stats(request) -> dict[str, Any]:
     """
 
     host = request.build_absolute_uri("/")
-    api_url = host + reverse("v1:openapi-content-stats")
+    api_url = host.rstrip("/") + reverse("v1:openapi-content-stats")
 
     response = requests.get(api_url)
 
