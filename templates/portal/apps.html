@@ -186,8 +186,12 @@
                                 <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                                    onclick="searchByTag('{{ org }}','card-institution',this)">
     <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+    {% if org in university_logo_names %}
     <img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
     <i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
+    {% else %}
+    <i class="fas fa-graduation-cap me-1 filter-tag-icon-org org-fallback-icon" aria-hidden="true"></i>
+    {% endif %}
     <span class="tag-name">{{ org }}</span>
     </span>
                                 </a>
@@ -436,8 +440,12 @@
                         <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
                            onclick="searchByTag('{{ org }}','card-institution',this)">
 <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
+{% if org in university_logo_names %}
 <img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
 <i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
+{% else %}
+<i class="fas fa-graduation-cap me-1 filter-tag-icon-org org-fallback-icon" aria-hidden="true"></i>
+{% endif %}
 <span class="tag-name">{{ org }}</span>
 </span>
                         </a>
