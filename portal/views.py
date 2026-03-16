@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Any
+
 import markdown
 import requests
 import waffle  # type: ignore
@@ -12,6 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.views.generic import View
+from requests.exceptions import RequestException
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import Apps, BaseAppInstance, SocialMixin
@@ -30,6 +34,21 @@ Collection = apps.get_model(app_label="portal.Collection")
 
 # TODO minor refactor
 # 2. add type annotations
+
+
+def __get_university_logo_names() -> list[str]:
+    logo_dir = Path(settings.BASE_DIR) / "static" / "images" / "logos" / "universities"
+    if not logo_dir.exists():
+        return []
+    return sorted(path.stem for path in logo_dir.glob("*.png"))
+
+
+def __get_content_stats() -> dict[str, int]:
+    apps = BaseAppInstance.objects.get_app_instances_not_deleted().filter(app__category__slug="serve")
+    return {
+        "n_apps": apps.count(),
+        "n_apps_public": apps.filter(k8s_values__permission="public").count(),
+    }
 
 
 def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", order_reverse=False):
@@ -71,10 +90,6 @@ def add_additional_context_to_public_apps(published_apps):
     serialized_apps = []
     organizations, departments, tags = set(), set(), set()
 
-    universities_lookup = requests.get(settings.STUDIO_URL + "/openapi/v1/lookups/universities")
-    universities = universities_lookup.json().get("data")
-    universities_obj = {u["code"]: u["name"] for u in universities}
-
     for app in published_apps:
         try:
             affs = app.owner.userprofile.get_affiliations()
@@ -100,7 +115,6 @@ def add_additional_context_to_public_apps(published_apps):
             affiliation = ""
             dep_cleaned = ""
 
-        print(f"Processing app: {app.name} ({app.id})")
         tag_list = app.tags.get_tag_list()
         tags.update(tag_list)
         k8s_values = getattr(app, "k8s_values", {})
@@ -138,7 +152,12 @@ def add_additional_context_to_public_apps(published_apps):
             }
         )
 
-    unique_organizations = list(organizations)
+    if organizations:
+        unique_organizations = sorted(organizations)
+    else:
+        universities_lookup = requests.get(settings.STUDIO_URL + "/openapi/v1/lookups/universities")
+        universities = universities_lookup.json().get("data", [])
+        unique_organizations = sorted(u["name"] for u in universities if u.get("name"))
     unique_departments = list(departments)
     unique_tags = list(tags)
     return serialized_apps, unique_organizations, unique_departments, unique_tags
@@ -148,7 +167,13 @@ def add_additional_context_to_public_apps(published_apps):
 def public_apps(request, app_id=0):
     try:
         published_apps = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
-        exclude_list = ["ShinyProxy App", "Tensorflow Serving", "PyTorch Serve", "Python Model Deployment"]
+        exclude_list = [
+            "ShinyProxy App",
+            "Tensorflow Serving",
+            "PyTorch Serve",
+            "Python Model Deployment",
+            "MLFlow Serve",
+        ]
         if not waffle.flag_is_active(request, "enable_depictio"):
             exclude_list.append("Depictio")
 
@@ -156,7 +181,17 @@ def public_apps(request, app_id=0):
         serialized_apps, unique_organizations, unique_departments, unique_tags = add_additional_context_to_public_apps(
             published_apps
         )
-
+        university_logo_names = __get_university_logo_names()
+        try:
+            total_count = None
+            public_count = None
+            stats_error = None
+            stats = __get_content_stats()
+            total_count = stats.get("n_apps", total_count)
+            public_count = stats.get("n_apps_public", public_count)
+        except (RequestException, ValueError, KeyError) as e:
+            stats_error = str(e)
+            logger.warning("Content stats API failed: %s", e, exc_info=True)
     except Exception as e:
         print({"error": str(e)})
 

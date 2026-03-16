@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, List, Literal, TypedDict
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class AdditionalMetadata(TypedDict, total=False):
@@ -19,6 +19,7 @@ class AdditionalMetadata(TypedDict, total=False):
     languages: list[Language] | None  # List of Language objects (ISO 639-2 codes) or None
     subjects: list[Subject] | None  # List of tags/keywords for the record
     creators: list[Creator] | None  # List of Creator objects for the record
+    funding: list[Funding] | None  # List of funding entries for the record
 
 
 # ============================================================================
@@ -95,6 +96,36 @@ class Language(BaseModel):
     id: str  # ISO 639-2 language code like "eng", "swe"
 
 
+class Funder(BaseModel):
+    """Funder reference used by Invenio funding metadata."""
+
+    id: str
+    name: str | None = None
+
+
+class AwardIdentifier(BaseModel):
+    """Identifier entry for an award."""
+
+    scheme: str
+    identifier: str
+
+
+class Award(BaseModel):
+    """Optional grant/award details for a funder entry."""
+
+    number: str | None = None
+    title: dict[str, str] | str | None = None
+    identifiers: list[AwardIdentifier] | None = None
+    url: str | None = None
+
+
+class Funding(BaseModel):
+    """Funding entry containing a required funder and optional award details."""
+
+    funder: Funder
+    award: Award | None = None
+
+
 # ============================================================================
 # Date Models
 # ============================================================================
@@ -152,17 +183,10 @@ class RelatedIdentifierItem(BaseModel):
 
 
 class Subject(BaseModel):
-    """Subject/keyword term with full metadata for Invenio subject field."""
+    """Subject/keyword term for Invenio subject field."""
 
-    subject: str
-    scheme: str = Field(
-        default="", alias="subjectSchema", validation_alias=AliasChoices("scheme", "subjectSchema", "subject_scheme")
-    )
-    url: str = Field(default="", alias="valueURI", validation_alias=AliasChoices("url", "valueURI", "value_uri"))
-    identifier: str = Field(
-        default="", validation_alias=AliasChoices("identifier", "classificationCode", "classification_code")
-    )
-    lang: str = "en"
+    id: str | None = None  # Controlled vocabulary identifier URI
+    subject: str | None = None  # Free text keyword
 
 
 class AutocompleteTerm(BaseModel):
@@ -179,14 +203,9 @@ class TermMetadata(BaseModel):
 
     subject: str | None = None
     subject_scheme: str | None = None
-    subjectScheme: str | None = None
     scheme_uri: str | None = None
-    schemeURI: str | None = None
     value_uri: str | None = None
-    valueURI: str | None = None
     classification_code: str | None = None
-    classificationCode: str | None = None
-    label: str | None = None
     lang: str | None = None
 
 
@@ -212,6 +231,7 @@ class InvenioMetadata(BaseModel):
     # Optional metadata
     languages: List[Language] | None = None
     subjects: list[Subject] | None = None  # List of subject terms for the record
+    funding: list[Funding] | None = None
 
 
 # ============================================================================

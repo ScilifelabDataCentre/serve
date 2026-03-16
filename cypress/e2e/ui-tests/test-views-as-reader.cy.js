@@ -47,7 +47,7 @@ describe("Test views as authenticated user", () => {
 
     cy.visit("/apps")
 
-    cy.get('h3').should('contain', 'applications')
+    cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
   })
 
   it("can view the Projects view", () => {

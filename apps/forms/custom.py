@@ -1,4 +1,3 @@
-import requests
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.layout import HTML, Div, Layout
@@ -31,10 +30,10 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         initial="eng",
         label="Language of the application interface",
     )
+    funding_sources_json = forms.CharField(required=False, widget=forms.HiddenInput(), label="Funding sources")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        super().add_metadata()
 
         # Add invenio_tags as a form-only field for vocabulary input
         self.fields["invenio_tags"] = forms.CharField(
@@ -65,9 +64,11 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         self._setup_container_image_field()
         self._set_up_mount_path_field()
         super()._restore_model_help_text()
+        self._setup_optional_funding_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
+
         # Define AccordionGroups
         general_fields = [
             SRVCommonDivField("name", required=True),
@@ -80,9 +81,18 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
                 rows=1,
             ),
         ]
-
         if "language" in self.fields:
             general_fields.append(SRVCommonDivField("language", tooltip=False))
+
+        if "funding_sources_json" in self.fields:
+            general_fields.append(
+                SRVCommonDivField(
+                    "funding_sources_json",
+                    tooltip=False,
+                    label="Funding sources",
+                    template="apps/funding_sources_field.html",
+                )
+            )
 
         general_fields += [
             SRVCommonDivField("source_code_url", placeholder="https://..."),

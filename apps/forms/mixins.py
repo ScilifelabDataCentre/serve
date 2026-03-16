@@ -115,7 +115,7 @@ class StorageMixin:
     def _set_up_mount_path_helper(self):
         return SRVCommonDivField("mount_path", template="apps/storage_field.html", project_slug=self.project.slug)
 
-    def _clean(self):
+    def clean(self):
         cleaned = super().clean()  # keep parent validations, if any
         mount_path_data: PersistentVolumeMountPath = cleaned.get("mount_path")
 

@@ -15,7 +15,6 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
-from django.utils import timezone
 
 from doi_minting.clients.invenio_client import InvenioClient
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
@@ -25,11 +24,15 @@ from .schemas import (
     AccessConfig,
     AdditionalMetadata,
     AppData,
+    Award,
+    AwardIdentifier,
     Contributor,
     Creator,
     Date,
     DateType,
     FilesConfig,
+    Funder,
+    Funding,
     Identifier,
     InvenioMetadata,
     InvenioRecord,
@@ -62,12 +65,12 @@ class InvenioService:
             base_url: Invenio instance base URL (defaults to settings.INVENIO_URL)
             token: API token (defaults to settings.INVENIO_API_TOKEN)
             verify: Whether to verify SSL certificates
-            mock_mode: If True, will not make actual API calls (for testing)
+            mock_mode: If True, forces mock mode. Otherwise falls back to settings.INVENIO_MOCK_MODE.
         """
         self.base_url = base_url or settings.INVENIO_URL
         self.token = token or settings.INVENIO_API_TOKEN
         self.verify = verify
-        self.mock_mode = mock_mode
+        self.mock_mode = mock_mode or settings.INVENIO_MOCK_MODE
 
         if self.mock_mode:
             self.client = MockInvenioClient()
@@ -142,31 +145,22 @@ class InvenioService:
     def create_new_record(
         self,
         app_instance: Any,
-        metadata: InvenioMetadata,
-        access: AccessConfig,
-        custom_fields: Optional[Dict[str, Any]] = None,
+        invenio_record: InvenioRecord,
     ) -> Dict[str, Any]:
         """
         Create a new Invenio record for the application.
 
         Args:
             app_instance: The application instance
-            metadata: Invenio metadata
-            access: Access configuration
-            custom_fields: Optional custom fields
+            invenio_record: Complete Invenio record object with metadata, access, and files config
 
         Returns:
             Published record data
         """
         logger.info(f"Creating new Invenio record for app: {app_instance.id}")
 
-        # Create draft
-        draft = self.client.create_draft(
-            metadata=metadata.model_dump(mode="json"),
-            access=access.model_dump(),
-            custom_fields=custom_fields,
-            files={"enabled": False},  # Explicitly set for metadata-only
-        )
+        # Create draft - use mode="json" to ensure datetime objects are serialized as strings
+        draft = self.client.create_draft(invenio_record.model_dump(mode="json"))
         logger.debug(f"Created Invenio draft with ID: {draft['id']}")
 
         # Reserve DOI
@@ -206,7 +200,7 @@ class InvenioService:
         current_draft = self.client.get_draft(new_version["id"])
 
         # Update draft with new metadata
-        metadata_dict = metadata.model_dump()
+        metadata_dict = metadata.model_dump(mode="json")
         updated_metadata = {**metadata_dict}
 
         updated_version = self.client.update_draft(
@@ -284,62 +278,52 @@ class InvenioService:
                         language_objs.append(Language(id=lang))
             # If empty list, leave language_objs empty
         if language_objs:
-            target_metadata["languages"] = [lang.model_dump() for lang in language_objs]
+            target_metadata["languages"] = [lang.model_dump(mode="json") for lang in language_objs]
         else:
             target_metadata.pop("languages", None)
 
         # Handle subject field (accept both 'subject' and 'subjects' as input)
-        subject: list[Subject] | None = None
-        if "subjects" in extra:
-            subject_input: Any = extra.get("subjects")
-            logger.debug(f"[Invenio] _apply_additional_invenio_metadata: subject_input={subject_input}")
-        elif "subject" in extra:
-            subject_input = extra.get("subject")
-            logger.debug(f"[Invenio] _apply_additional_invenio_metadata: subject_input={subject_input}")
-        else:
-            subject_input = None
+        subject_input = extra.get("subjects") or extra.get("subject")
 
-        if subject_input and isinstance(subject_input, list) and subject_input:
-            subject_terms: list[Subject] = []
+        if subject_input and isinstance(subject_input, list):
             try:
                 from .keywords_service import VocabularyMemoryService
 
                 vocab_service = VocabularyMemoryService()
             except Exception:
                 vocab_service = None
-            for tag in subject_input:
-                tag_label: str
-                if isinstance(tag, dict) and "label" in tag:
-                    tag_label = tag["label"]
-                elif isinstance(tag, str):
-                    tag_label = tag
-                else:
-                    continue
-                subject_term = None
-                if vocab_service:
+
+            subject_terms = []
+            if vocab_service:
+                for tag in subject_input:
+                    # Extract tag label
+                    tag_label = str(tag) if isinstance(tag, str) else None
+                    if not tag_label:
+                        continue
+
+                    found_match = False
+                    # Find matching vocabulary term
+                    # TODO - Include term ID/URI in subject when vocab is configured in our Invenio instance
                     for term_id, term_data in vocab_service.term_metadata.items():
-                        subj = term_data.subject or ""
-                        if isinstance(subj, str) and subj.lower() == tag_label.lower():
-                            # Use the vocabulary data but override subject with tag_label
-                            vocab_data = term_data.model_dump()
-                            vocab_data["subject"] = tag_label
-                            # Filter out None values to prevent validation errors
-                            vocab_data = {k: v for k, v in vocab_data.items() if v is not None}
-                            subject_term = Subject(**vocab_data)
+                        if term_data.subject and term_data.subject.lower() == tag_label.lower():
+                            subject_term = Subject(subject=tag_label)
+                            subject_terms.append(subject_term)
+                            found_match = True
                             break
-                if not subject_term:
-                    subject_term = Subject(subject=tag_label)
-                subject_terms.append(subject_term)
-            logger.debug(f"[Invenio] _apply_additional_invenio_metadata: subject_terms={subject_terms}")
-            if subject_terms:
-                subject = subject_terms
 
-        if subject:
-            # Convert Subject objects to dicts for serialization
-            subject_dicts = [s.model_dump() for s in subject if hasattr(s, "model_dump")]
-            # Also store as Subject objects for downstream use
+                    # If no vocabulary match found, use as free text subject
+                    if not found_match:
+                        subject_term = Subject(subject=tag_label)
+                        subject_terms.append(subject_term)
+            else:
+                # If no vocabulary service, use all as free text subjects
+                for tag in subject_input:
+                    tag_label = str(tag) if isinstance(tag, str) else None
+                    if tag_label:
+                        subject_term = Subject(subject=tag_label)
+                        subject_terms.append(subject_term)
 
-            target_metadata["subjects"] = [Subject(**s) if not isinstance(s, Subject) else s for s in subject_dicts]
+            target_metadata["subjects"] = subject_terms if subject_terms else None
         else:
             target_metadata.pop("subjects", None)
 
@@ -407,6 +391,87 @@ class InvenioService:
         else:
             logger.debug("[Invenio] No valid creators_input provided, keeping existing creators")
         # If no creators_input provided, keep existing creators (don't modify target_metadata)
+        funding_input: Any = extra.get("funding")
+        funding_entries: list[Funding] = []
+        if isinstance(funding_input, list):
+            for item in funding_input:
+                if isinstance(item, Funding):
+                    funding_entries.append(item)
+                    continue
+                if not isinstance(item, dict):
+                    continue
+
+                raw_funder = item.get("funder")
+                raw_funder = raw_funder if isinstance(raw_funder, dict) else {}
+
+                funder_id = item.get("funder_id") or raw_funder.get("id") or item.get("id") or ""
+                funder_id = str(funder_id).strip()
+                if not funder_id:
+                    continue
+
+                funder_name = item.get("funder_name") or raw_funder.get("name") or item.get("name") or ""
+                funder_name = str(funder_name).strip()
+
+                raw_award = item.get("award")
+                raw_award = raw_award if isinstance(raw_award, dict) else {}
+                award_number = str(item.get("number") or raw_award.get("number") or "").strip()
+                award_title_raw = item.get("title") or raw_award.get("title") or ""
+                award_title: dict[str, str] | str | None = None
+                if isinstance(award_title_raw, dict):
+                    award_title_localized = {
+                        str(lang).strip(): str(text).strip()
+                        for lang, text in award_title_raw.items()
+                        if str(lang).strip() and isinstance(text, str) and text.strip()
+                    }
+                    if award_title_localized:
+                        award_title = award_title_localized
+                elif isinstance(award_title_raw, str) and award_title_raw.strip():
+                    # Invenio expects localized award titles; default to English for free-text form input.
+                    award_title = {"en": award_title_raw.strip()}
+                award_url = str(item.get("url") or raw_award.get("url") or "").strip()
+                award_identifiers: list[AwardIdentifier] = []
+                raw_award_identifiers = raw_award.get("identifiers")
+                if isinstance(raw_award_identifiers, list):
+                    for raw_identifier in raw_award_identifiers:
+                        if not isinstance(raw_identifier, dict):
+                            continue
+                        identifier_scheme = str(raw_identifier.get("scheme") or "").strip()
+                        identifier_value = str(raw_identifier.get("identifier") or "").strip()
+                        if identifier_scheme and identifier_value:
+                            award_identifiers.append(
+                                AwardIdentifier(
+                                    scheme=identifier_scheme,
+                                    identifier=identifier_value,
+                                )
+                            )
+                if award_url and not any(
+                    identifier.scheme == "url" and identifier.identifier == award_url
+                    for identifier in award_identifiers
+                ):
+                    award_identifiers.append(
+                        AwardIdentifier(
+                            scheme="url",
+                            identifier=award_url,
+                        )
+                    )
+                award = None
+                if award_number or award_title or award_identifiers:
+                    award = Award(
+                        number=award_number or None,
+                        title=award_title,
+                        identifiers=award_identifiers or None,
+                    )
+
+                funding_entry = Funding(
+                    funder=Funder(id=funder_id, name=funder_name or None),
+                    award=award,
+                )
+                funding_entries.append(funding_entry)
+
+        if funding_entries:
+            target_metadata["funding"] = [entry.model_dump(exclude_none=True) for entry in funding_entries]
+        else:
+            target_metadata.pop("funding", None)
 
         logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
 
@@ -500,7 +565,7 @@ class InvenioService:
 
         if domain:
             doc_link = RelatedIdentifierItem(
-                identifier=f"https://{domain}/apps/{app_data.id}",
+                identifier="https://{}/apps/{}".format(domain, app_data.id),
                 scheme="url",
                 relation_type=RelationType(id="isdocumentedby"),
                 resource_type=ResourceType(id="publication-softwaredocumentation"),
@@ -769,15 +834,14 @@ class InvenioService:
             invenio_record: InvenioRecord = self.generate_invenio_metadata(
                 app_instance, additional_metadata=additional_metadata
             )
-            metadata: InvenioMetadata = invenio_record.metadata
-            access = invenio_record.access
-            custom_fields = None  # Not currently used
 
             # Create or update record
+            logger.info(f"About to create or update Invenio record for app '{app_data.name}'")
+            logger.info(json.dumps(invenio_record.model_dump(mode="json", by_alias=True), indent=2))
             if not app_instance.invenio_record_id or app_instance.invenio_record_id == "":
-                published_record = self.create_new_record(app_instance, metadata, access, custom_fields)
+                published_record = self.create_new_record(app_instance, invenio_record)
             else:
-                published_record = self.create_new_version(app_instance, metadata)
+                published_record = self.create_new_version(app_instance, invenio_record.metadata)
 
             # Extract DOI and update app instance
             published_doi = published_record.get("pids", {}).get("doi", {}).get("identifier", "")
@@ -811,5 +875,5 @@ def save_metadata_to_invenio_then_mint_doi(
         app_id: Application ID to fetch from database
         additional_metadata: Optional additional metadata to include
     """
-    invenio_svc = InvenioService(mock_mode=True)
+    invenio_svc = InvenioService()
     invenio_svc.process_app_metadata(app_slug, app_id, additional_metadata)

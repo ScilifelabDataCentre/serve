@@ -24,7 +24,11 @@ urlpatterns = [
     path("public-apps", PublicAppsAPI.as_view({"get": "list_apps"})),
     path("public-apps/<int:pk_in>", PublicAppsAPI.as_view({"get": "retrieve"})),
     # The Content statistics resource API
-    path("content-stats", ContentStatsAPI.as_view({"get": "get_stats"})),
+    path(
+        "content-stats",
+        ContentStatsAPI.as_view({"get": "get_stats"}),
+        name="openapi-content-stats",
+    ),
     # Supplementary lookups API
     path(
         "lookups/universities",

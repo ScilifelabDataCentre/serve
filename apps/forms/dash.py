@@ -23,6 +23,7 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
+    funding_sources_json = forms.CharField(required=False, widget=forms.HiddenInput(), label="Funding sources")
     language = forms.ChoiceField(
         choices=AppBaseForm.LANGUAGE_CHOICES,
         required=False,
@@ -32,7 +33,6 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        super().add_metadata()
 
         # Add invenio_tags as a form-only field for vocabulary input
         self.fields["invenio_tags"] = forms.CharField(
@@ -61,6 +61,7 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
         # Setup container image field from mixin
         self._setup_container_image_field()
         super()._restore_model_help_text()
+        self._setup_optional_funding_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
@@ -82,6 +83,15 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
 
         if "language" in self.fields:
             general_fields.append(SRVCommonDivField("language", tooltip=False))
+        if "funding_sources_json" in self.fields:
+            general_fields.append(
+                SRVCommonDivField(
+                    "funding_sources_json",
+                    tooltip=False,
+                    label="Funding sources",
+                    template="apps/funding_sources_field.html",
+                )
+            )
 
         general_fields += [
             SRVCommonDivField("source_code_url", placeholder="https://..."),

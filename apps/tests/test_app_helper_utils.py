@@ -487,6 +487,76 @@ def test_get_subdomain_name_no_subdomain_in_form():
 
 
 @pytest.mark.django_db
+def test_forms_submit_funding_and_generate_mock_doi():
+    user = User.objects.create_user("funding-doi-user", "funding-doi@test.com", "bar")
+    project = Project.objects.create_project(name="test-funding-doi", owner=user, description="")
+    flavor = Flavor.objects.create(name="funding-doi-flavor", project=project)
+
+    app_configs = [
+        ("customapp", "Custom App"),
+        ("dashapp", "Dash App"),
+        ("gradio", "Gradio App"),
+        ("shinyapp", "Shiny App"),
+        ("streamlit", "Streamlit App"),
+    ]
+    catalog_apps = app_configs + [("shinyproxyapp", "Shiny Proxy App")]
+    for slug, name in catalog_apps:
+        Apps.objects.create(
+            name=name,
+            slug=slug,
+            chart=f"ghcr.io/scilifelabdatacentre/serve-charts/{slug}:test",
+            user_can_delete=False,
+        )
+
+    funding_payload = [{"funder_name": "Uppsala University", "funder_id": "048a87296"}]
+    captured_metadata: dict[int, dict] = {}
+
+    from doi_minting.services import invenio_svc
+
+    original_mint = invenio_svc.save_metadata_to_invenio_then_mint_doi
+
+    def wrapped_mint(app_slug, app_id, additional_metadata=None):
+        captured_metadata[app_id] = additional_metadata or {}
+        return original_mint(app_slug, app_id, additional_metadata=additional_metadata)
+
+    def switch_enabled_only_for_doi_minting(name):
+        return name == "doi_minting_using_invenio"
+
+    with patch.object(waffle, "switch_is_active", side_effect=switch_enabled_only_for_doi_minting), patch(
+        "apps.tasks.deploy_resource.delay"
+    ), patch("doi_minting.services.invenio_svc.time.sleep", return_value=None), patch(
+        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi",
+        side_effect=wrapped_mint,
+    ):
+        for app_slug, _ in app_configs:
+            model_class, form_class = APP_REGISTRY.get(app_slug)
+            form_data = {
+                "name": f"{app_slug}-funding-doi-test",
+                "description": "form with funding and tags",
+                "flavor": str(flavor.pk),
+                "access": "public",
+                "port": 8000,
+                "image": f"some-image-{app_slug}",
+                "source_code_url": "https://example.org/source",
+                "language": "eng",
+                "invenio_tags": "Antibodies|Cells",
+                "funding_sources_json": json.dumps(funding_payload),
+            }
+            form = form_class(form_data, project_pk=project.pk)
+            assert form.is_valid(), f"{app_slug} form should be valid but has errors: {form.errors}"
+
+            app_id = create_instance_from_form(form, project, app_slug, app_id=None)
+            app_instance = model_class.objects.get(pk=app_id)
+
+            assert app_instance.app_doi == "10.1234/mockdoi"
+            assert app_instance.invenio_record_id == "mock-record-id"
+            assert app_id in captured_metadata, f"Expected captured metadata for {app_slug}"
+            assert captured_metadata[app_id].get("funding") == funding_payload
+            assert captured_metadata[app_id].get("languages") == "eng"
+            assert captured_metadata[app_id].get("subjects")
+
+
+@pytest.mark.django_db
 def test_schema_org_compliant_app_metadata_validation():
     # creating the app metadata
     user_data = {
@@ -846,3 +916,52 @@ def test_generate_invenio_metadata_validation():
 
     with pytest.raises(ValidationError):
         InvenioRecord(**incomplete_metadata)
+
+
+def test_apply_additional_metadata_maps_funding_entries():
+    service = InvenioService(mock_mode=True)
+
+    target_metadata = {}
+    extra_metadata = {
+        "funding": [
+            {
+                "funder_id": "00k4n6c32",
+                "funder_name": "European Commission",
+                "number": "grant-123",
+                "title": "EU Grant",
+                "url": "https://example.org/grants/123",
+            },
+            {
+                "funder_id": "0014h3x09",
+            },
+            {
+                "funder_name": "missing-id-should-be-ignored",
+            },
+        ]
+    }
+
+    result = service._apply_additional_invenio_metadata(target_metadata, extra_metadata)
+
+    assert result["funding"] == [
+        {
+            "funder": {
+                "id": "00k4n6c32",
+                "name": "European Commission",
+            },
+            "award": {
+                "number": "grant-123",
+                "title": {"en": "EU Grant"},
+                "identifiers": [
+                    {
+                        "scheme": "url",
+                        "identifier": "https://example.org/grants/123",
+                    }
+                ],
+            },
+        },
+        {
+            "funder": {
+                "id": "0014h3x09",
+            },
+        },
+    ]

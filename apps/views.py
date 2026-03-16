@@ -527,6 +527,73 @@ class BackgroundTaskStatusAPI(View):
         failed = sum(1 for t in tasks_data if t["status"] == "failed")
         retrying = sum(1 for t in tasks_data if t["status"] == "retrying")
 
+        # Build execution graph data (stage-based DAG from execution_order).
+        order_to_task_ids: dict[int, list[int]] = {}
+        for task in tasks_data:
+            order = task["execution_order"]
+            order_to_task_ids.setdefault(order, []).append(task["id"])
+
+        sorted_orders = sorted(order_to_task_ids.keys())
+        graph_nodes = [
+            {
+                "id": f"task-{task['id']}",
+                "task_id": task["id"],
+                "label": task["task_name"],
+                "status": task["status"],
+                "execution_order": task["execution_order"],
+                "is_critical": task["is_critical"],
+                "task_type": task["task_type"],
+            }
+            for task in tasks_data
+        ]
+        graph_edges: list[dict[str, str]] = []
+
+        for idx in range(len(sorted_orders) - 1):
+            current_order = sorted_orders[idx]
+            next_order = sorted_orders[idx + 1]
+            for source_id in order_to_task_ids[current_order]:
+                for target_id in order_to_task_ids[next_order]:
+                    graph_edges.append(
+                        {
+                            "source": f"task-{source_id}",
+                            "target": f"task-{target_id}",
+                        }
+                    )
+
+        has_failed_critical = any(t["is_critical"] and t["status"] == "failed" for t in tasks_data)
+        has_in_progress = any(t["status"] in {"pending", "running", "retrying"} for t in tasks_data)
+        ready_for_deploy = bool(tasks_data) and not has_failed_critical and not has_in_progress
+        blocked = has_failed_critical
+
+        if sorted_orders:
+            for source_id in order_to_task_ids[sorted_orders[-1]]:
+                graph_edges.append(
+                    {
+                        "source": f"task-{source_id}",
+                        "target": "deploy",
+                    }
+                )
+
+        if blocked:
+            deploy_status = "blocked"
+        elif ready_for_deploy:
+            deploy_status = "ready"
+        elif has_in_progress:
+            deploy_status = "waiting"
+        else:
+            deploy_status = "idle"
+
+        graph_nodes.append(
+            {
+                "id": "deploy",
+                "label": "Deploy",
+                "status": deploy_status,
+                "execution_order": (sorted_orders[-1] + 1) if sorted_orders else 0,
+                "is_critical": True,
+                "task_type": "deploy",
+            }
+        )
+
         return JsonResponse(
             {
                 "tasks": tasks_data,
@@ -537,6 +604,16 @@ class BackgroundTaskStatusAPI(View):
                     "success": success,
                     "failed": failed,
                     "retrying": retrying,
+                },
+                "graph": {
+                    "nodes": graph_nodes,
+                    "edges": graph_edges,
+                },
+                "workflow": {
+                    "blocked": blocked,
+                    "ready_for_deploy": ready_for_deploy,
+                    "has_failed_critical": has_failed_critical,
+                    "has_in_progress": has_in_progress,
                 },
             }
         )
