@@ -495,46 +495,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
     if waffle.switch_is_active("doi_minting_using_invenio"):
-        image_value_changed = False
-        app_contains_image = False
-        for field in form.cleaned_data:
-            if field.lower() == "image":
-                app_contains_image = True
-                break
-        for field in form.changed_data:
-            if field.lower() == "image":
-                image_value_changed = True
-                break
-        # Collect additional metadata from form
-        additional_metadata = {}
-        lang = form.cleaned_data.get("language")
-        if lang:
-            additional_metadata["languages"] = lang
-        # Check for Invenio keywords and subject tags
-        invenio_tags = form.cleaned_data.get("tags")
-        logger.debug(f"Raw invenio_tags from form: {invenio_tags} (type: {type(invenio_tags)})")
-        if invenio_tags:
-            logger.debug(f"Form contains Invenio tags: {invenio_tags}")
-            additional_metadata["subjects"] = invenio_tags
-        else:
-            logger.debug("Form does not contain Invenio tags")
-
-        # Check for creators data from form
-        if hasattr(form, "get_creators_data"):
-            creators_data = form.get_creators_data()
-            logger.debug(f"Raw creators_data from form: {creators_data} (type: {type(creators_data)})")
-            if creators_data:
-                logger.debug(f"Form contains creators data: {creators_data}")
-                additional_metadata["creators"] = creators_data
-            else:
-                logger.debug("Form does not contain creators data")
-
-        logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
-        # Check for changes
-        if image_value_changed:
-            logger.info(
-                f"App '{app_slug}' with app id '{app_id}', Image value changed in form," "checking to minting DOI.."
-            )
         if waffle.switch_is_active("background_tasks"):
             # DOI provisioning is handled by the optional doi_provisioning background task.
             logger.debug(
@@ -571,6 +531,16 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             else:
                 logger.debug("Form does not contain Invenio tags")
             logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
+
+            # Check for creators data from form
+            if hasattr(form, "get_creators_data"):
+                creators_data = form.get_creators_data()
+                logger.debug(f"Raw creators_data from form: {creators_data} (type: {type(creators_data)})")
+                if creators_data:
+                    logger.debug(f"Form contains creators data: {creators_data}")
+                    additional_metadata["creators"] = creators_data
+                else:
+                    logger.debug("Form does not contain creators data")
 
             # Check for changes.
             if image_value_changed:
