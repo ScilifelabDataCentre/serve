@@ -648,29 +648,85 @@ class OrcidSearchView(View):
             response.raise_for_status()
             data = response.json()
 
-            # Format results - the search only returns ORCID IDs
+            # Format results - fetch names from individual person records
             results = []
             for result in data.get("result", []):
                 orcid_identifier = result.get("orcid-identifier", {})
                 orcid_id = orcid_identifier.get("path", "")
 
                 if orcid_id:
-                    # For now, just return the ORCID ID and let user fill in name
-                    # To get full details would require additional API call per person
-                    results.append(
-                        {
-                            "name": f"ORCID User ({orcid_id})",  # Placeholder name
-                            "orcid": f"https://orcid.org/{orcid_id}",
-                            "orcid_id": orcid_id,
-                            "affiliation": "",  # Would need separate API call
-                        }
-                    )
+                    # Get person details to retrieve actual names
+                    person_data = self._get_orcid_person_details(orcid_id)
+                    if person_data:
+                        results.append(person_data)
+                    else:
+                        # Fallback if person details can't be fetched
+                        results.append(
+                            {
+                                "display_name": f"ORCID User ({orcid_id})",
+                                "given_name": "",
+                                "family_name": "",
+                                "orcid": f"https://orcid.org/{orcid_id}",
+                                "orcid_id": orcid_id,
+                                "affiliation": "",
+                            }
+                        )
 
             return JsonResponse({"results": results})
 
         except Exception as e:
             logger.error(f"ORCID API error: {e}")
             return JsonResponse({"results": [], "error": str(e)}, status=500)
+
+    def _get_orcid_person_details(self, orcid_id):
+        """Fetch detailed person information from ORCID API."""
+        try:
+            headers = {
+                "Accept": "application/json",
+            }
+
+            # Get person details from ORCID
+            person_url = f"https://pub.orcid.org/v3.0/{orcid_id}/person"
+            response = requests.get(person_url, headers=headers, timeout=5)
+            response.raise_for_status()
+            person_data = response.json()
+
+            # Extract name information
+            name_data = person_data.get("name", {})
+
+            given_name = ""
+            family_name = ""
+            display_name = f"ORCID User ({orcid_id})"  # Fallback display name
+
+            if name_data:
+                # Get given names (first names)
+                given_names = name_data.get("given-names", {})
+                if given_names and given_names.get("value"):
+                    given_name = given_names["value"]
+
+                # Get family name (last name)
+                family_name_data = name_data.get("family-name", {})
+                if family_name_data and family_name_data.get("value"):
+                    family_name = family_name_data["value"]
+
+                # Create display name from actual names
+                if given_name or family_name:
+                    display_name = f"{given_name} {family_name}".strip()
+                    if display_name:
+                        display_name = f"{display_name} ({orcid_id})"
+
+            return {
+                "display_name": display_name,
+                "given_name": given_name,
+                "family_name": family_name,
+                "orcid": f"https://orcid.org/{orcid_id}",
+                "orcid_id": orcid_id,
+                "affiliation": "",  # Could be extended to fetch affiliations too
+            }
+
+        except Exception as e:
+            logger.error(f"Error fetching ORCID person details for {orcid_id}: {e}")
+            return None
 
 
 class OrcidAuthorizeView(View):

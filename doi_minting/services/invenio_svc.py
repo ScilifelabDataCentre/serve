@@ -23,6 +23,7 @@ from studio.utils import get_logger
 from .schemas import (
     AccessConfig,
     AdditionalMetadata,
+    Affiliation,
     AppData,
     Award,
     AwardIdentifier,
@@ -337,7 +338,7 @@ class InvenioService:
                     # Build Creator with InvenioRDM-compatible person_or_org structure
                     filtered_data = {
                         "name": creator_data.get("name", ""),
-                        "email": creator_data.get("email", ""),
+                        "lastName": creator_data.get("lastName", ""),
                         "affiliation": creator_data.get("affiliation", ""),
                         "orcid": creator_data.get("orcid", ""),
                     }
@@ -348,34 +349,52 @@ class InvenioService:
                     if filtered_data["orcid"]:
                         identifiers = [Identifier(scheme="orcid", identifier=filtered_data["orcid"])]
 
-                    # Split name into given and family names, providing fallbacks
-                    full_name = filtered_data["name"] or "Unknown Creator"
-                    name_parts = full_name.strip().split()
-
-                    if len(name_parts) >= 2:
-                        given_name = " ".join(name_parts[:-1])  # All but last as given name
-                        family_name = name_parts[-1]  # Last part as family name
-                    elif len(name_parts) == 1:
-                        given_name = name_parts[0]
-                        family_name = "No Family Name Given"  # Required fallback
-                    else:
-                        given_name = "Unknown"
-                        family_name = "Creator"
+                    # Create person name from first and last name
+                    first_name = filtered_data["name"] or "Unknown"
+                    last_name = filtered_data["lastName"] or "Creator"
+                    full_name = f"{first_name} {last_name}"
 
                     # Create person_or_org structure with required fields for personal type
                     person_or_org = PersonOrOrg(
                         name=full_name,
                         type="personal",
-                        given_name=given_name,
-                        family_name=family_name,
-                        email=filtered_data["email"] if filtered_data["email"] else None,
+                        given_name=first_name,
+                        family_name=last_name,
                         identifiers=identifiers,
                     )
 
                     # Create affiliations list if affiliation exists
                     affiliations = None
-                    if filtered_data["affiliation"]:
-                        affiliations = [{"name": filtered_data["affiliation"]}]
+                    affiliation_data = creator_data.get("affiliation")
+                    if affiliation_data:
+                        logger.debug(
+                            f"[Invenio] Processing affiliation data: {affiliation_data} "
+                            f"(type: {type(affiliation_data)})"
+                        )
+                        affiliations_list = []
+
+                        if isinstance(affiliation_data, str):
+                            # Simple string affiliation
+                            affiliations_list.append(Affiliation(name=affiliation_data))
+                        elif isinstance(affiliation_data, dict) and "ror_id" in affiliation_data:
+                            # ROR API format: transform to structured Affiliation
+                            ror_identifier = affiliation_data["ror_id"].replace("https://ror.org/", "")
+                            affiliations_list.append(
+                                Affiliation(
+                                    name=affiliation_data.get("title", ""),
+                                    affiliationIdentifier=ror_identifier,
+                                    affiliationIdentifierScheme="ROR",
+                                    schemeUri="https://ror.org/",
+                                )
+                            )
+                        else:
+                            # Fallback: use as name
+                            name = str(affiliation_data)
+                            if isinstance(affiliation_data, dict):
+                                name = affiliation_data.get("name") or affiliation_data.get("title", name)
+                            affiliations_list.append(Affiliation(name=name))
+
+                        affiliations = affiliations_list
 
                     creator = Creator(person_or_org=person_or_org, affiliations=affiliations)
                     logger.debug(f"[Invenio] Created Creator object: {creator}")
@@ -482,7 +501,6 @@ class InvenioService:
         user_full_name: str,
         user_first_name: str,
         user_family_name: str,
-        user_email: str = "",
         user_orcid: str = "",
         user_affiliation: str = "",
     ) -> list[Creator]:
@@ -503,13 +521,12 @@ class InvenioService:
             type="personal",
             given_name=final_given_name,
             family_name=final_family_name,
-            email=user_email if user_email else None,
             identifiers=identifiers,
         )
 
         affiliations = None
         if user_affiliation:
-            affiliations = [{"name": user_affiliation}]
+            affiliations = [Affiliation(name=user_affiliation)]
 
         creator = Creator(person_or_org=person_or_org, affiliations=affiliations)
 
@@ -676,9 +693,7 @@ class InvenioService:
         )
 
         # Build components using helper methods
-        creators = self._build_creators(
-            user_full_name, user_first_name, user_family_name, user_email, user_orcid, user_affiliation
-        )
+        creators = self._build_creators(user_full_name, user_first_name, user_family_name, user_orcid, user_affiliation)
         contributors = self._build_contributors()
         identifiers = self._build_identifiers(str(app_data.id))
         related_identifiers = self._build_related_identifiers(app_data)

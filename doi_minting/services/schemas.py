@@ -53,7 +53,6 @@ class PersonOrOrg(BaseModel):
     type: str  # "personal" or "organizational"
     given_name: str | None = None
     family_name: str | None = None
-    email: str | None = None
     identifiers: list[Identifier] | None = None
 
 
@@ -64,11 +63,20 @@ class Role(BaseModel):
     title: dict[str, Any] | None = None
 
 
+class Affiliation(BaseModel):
+    """Affiliation with identifier and scheme information."""
+
+    name: str
+    affiliationIdentifier: str | None = None
+    affiliationIdentifierScheme: str | None = None
+    schemeUri: str | None = None
+
+
 class Creator(BaseModel):
     """Creator with InvenioRDM-compatible person_or_org structure."""
 
     person_or_org: PersonOrOrg
-    affiliations: list[dict[str, Any]] | None = None
+    affiliations: list[Affiliation] | None = None
 
 
 class Contributor(BaseModel):

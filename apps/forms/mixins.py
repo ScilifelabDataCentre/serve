@@ -184,10 +184,14 @@ class CreatorsMixin:
                 # UserProfile doesn't exist or other error - use defaults
                 pass
 
+            # Get user's first and last name
+            user_first_name = user.first_name or user.username
+            user_last_name = user.last_name or "User"
+
             creators_data = [
                 {
-                    "name": user.get_full_name() or user.username,
-                    "email": user.email or "",
+                    "name": user_first_name,
+                    "lastName": user_last_name,
                     "orcid": user_orcid,
                     "affiliation": user_affiliation,
                 }
@@ -200,9 +204,9 @@ class CreatorsMixin:
 
         if hasattr(self, "request") and self.request and self.request.user.is_authenticated:
             user = self.request.user
-            name = user.get_full_name() or user.username
-            email = user.email or ""
-            return f"{name} <{email}>" if email else name
+            first_name = user.first_name or user.username
+            last_name = user.last_name or "User"
+            return f"{first_name} {last_name}"
         return "No user logged in"
 
     def get_creators_field_layout(self):
@@ -213,8 +217,9 @@ class CreatorsMixin:
             return Div()  # Return empty div if no user
 
         user = self.request.user
-        user_name = user.get_full_name() or user.username
-        user_email = user.email or ""
+        user_first_name = user.first_name or user.username
+        user_last_name = user.last_name or "User"
+        user_full_name = f"{user_first_name} {user_last_name}"
 
         # Get user profile data for the display
         user_orcid = ""
@@ -231,7 +236,7 @@ class CreatorsMixin:
         import json
 
         user_creator_data = json.dumps(
-            {"name": user_name, "email": user_email, "affiliation": user_affiliation, "orcid": user_orcid}
+            {"name": user_first_name, "lastName": user_last_name, "affiliation": user_affiliation, "orcid": user_orcid}
         ).replace(
             '"', "&quot;"
         )  # Escape quotes for HTML attribute
@@ -241,20 +246,19 @@ class CreatorsMixin:
                 '<label class="form-label">Creators '
                 '<span class="bi bi-question-circle text-muted ms-2" '
                 'data-bs-toggle="tooltip" data-bs-placement="right" '
-                'data-bs-original-title="Manage the creators and contributors for this application.">'
+                'data-bs-original-title="List one or more creators of the application.">'
                 "</span></label>"
             ),
             "creators",  # Hidden field
             HTML(
                 '<div class="mb-2">'
-                '<small class="text-muted">Drag to reorder creators</small>'
+                '<small class="text-muted">List the creators that should appear in the citation. '
+                "Drag to reorder the names.</small>"
                 "</div>"
                 '<ul id="creatorsSortableList" class="list-group mb-3">'
-                f'<li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;" '
-                f'data-creator="{user_creator_data}">'
-                f"<div><strong>{user_name}</strong>"
-                + (f'<br><small class="text-muted">{user_email}</small>' if user_email else "")
-                + "</div>"
+                f'<li class="list-group-item d-flex justify-content-between align-items-center" '
+                f'style="cursor: move;" data-creator="{user_creator_data}">'
+                f"<div><strong>{user_full_name}</strong></div>"
                 '<span class="badge bg-secondary">You</span>'
                 "</li>"
                 "</ul>"

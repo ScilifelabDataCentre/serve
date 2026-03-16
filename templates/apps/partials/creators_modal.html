@@ -6,48 +6,71 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div class="row g-2">
-          <div class="col-md-6">
-            <input type="text" class="form-control" id="newCreatorName" placeholder="Name *">
-          </div>
-          <div class="col-md-6">
-            <input type="email" class="form-control" id="newCreatorEmail" placeholder="Email *">
-          </div>
+        <div class="row g-3">
+          <!-- ORCID Search - Primary field at top -->
           <div class="col-md-6 position-relative">
+            <label for="newCreatorOrcid" class="form-label fw-bold">ORCID ID <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Name or ORCID ID">
+            <div id="orcidSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
+          </div>
+          <!-- Affiliation -->
+          <div class="col-md-6 position-relative">
+            <label for="newCreatorAffiliation" class="form-label fw-bold">Affiliation</label>
             <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation">
+            <input type="hidden" id="newCreatorRorData" value="">
             <div id="affiliationSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
           </div>
-          <div class="col-md-6 position-relative">
-            <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Search by name or ORCID ID">
-            <div id="orcidSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
+          <!-- Name fields - Auto-populated from ORCID, read-only -->
+          <div class="col-md-6">
+            <input type="text" class="form-control form-control-sm bg-light" id="newCreatorName" placeholder="First name" readonly>
+            <small class="form-text text-muted">Extracted from the ORCID above</small>
+          </div>
+          <div class="col-md-6">
+            <input type="text" class="form-control form-control-sm bg-light" id="newCreatorLastName" placeholder="Last name" readonly>
+            <small class="form-text text-muted">Extracted from the ORCID above</small>
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="addCreator()">Add Creator</button>
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">✕ Cancel</button>
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-primary" id="saveAndAddAnotherCreatorBtn" disabled>✓ Save and add another</button>
+          <button type="button" class="btn btn-primary" id="saveCreatorBtn" disabled>✓ Save</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-function addCreator() {
+function addCreator(shouldCloseModal = true) {
   const name = document.getElementById('newCreatorName').value.trim();
-  const email = document.getElementById('newCreatorEmail').value.trim();
-  const affiliation = document.getElementById('newCreatorAffiliation').value.trim();
+  const lastName = document.getElementById('newCreatorLastName').value.trim();
   const orcid = document.getElementById('newCreatorOrcid').value.trim();
 
-  if (!name || !email) return;
+  // Get affiliation data - prefer structured ROR data over text input
+  const rorDataJson = document.getElementById('newCreatorRorData').value;
+  const affiliationText = document.getElementById('newCreatorAffiliation').value.trim();
+  const affiliation = rorDataJson ? JSON.parse(rorDataJson) : affiliationText;
 
-  let creatorInfo = `<strong>${name}</strong><br><small class="text-muted">Email: ${email}`;
-  if (affiliation) creatorInfo += `<br>Affiliation: ${affiliation}`;
-  if (orcid) creatorInfo += `<br>ORCID: ${orcid}`;
+  // Require ORCID selection (which auto-populates names)
+  if (!orcid || !name || !lastName) {
+    alert('Please select an ORCID ID from the search results to add a creator.');
+    return;
+  }
+
+  let creatorInfo = `<strong>${name} ${lastName}</strong><br><small class="text-muted">`;
+  if (affiliation) {
+    const affiliationName = typeof affiliation === 'string' ? affiliation : affiliation.title;
+    creatorInfo += `Affiliation: ${affiliationName}<br>`;
+  }
+  if (orcid) creatorInfo += `ORCID: ${orcid}`;
   creatorInfo += '</small>';
 
   const newItem = `
     <li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;"
-        data-creator='${JSON.stringify({name, email, affiliation, orcid})}'>
+        data-creator='${JSON.stringify({name, lastName, affiliation, orcid})}'>
       <div>${creatorInfo}</div>
       <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCreator(this)">
         <i class="fas fa-times"></i>
@@ -55,18 +78,49 @@ function addCreator() {
     </li>`;
 
   document.getElementById('creatorsSortableList').insertAdjacentHTML('beforeend', newItem);
-  document.getElementById('newCreatorName').value = '';
-  document.getElementById('newCreatorEmail').value = '';
-  document.getElementById('newCreatorAffiliation').value = '';
-  document.getElementById('newCreatorOrcid').value = '';
+
+  // Clear form fields
+  clearCreatorForm();
 
   updateCreatorsField();
 
-  // Close modal using Bootstrap's modal instance
-  const modal = bootstrap.Modal.getInstance(document.getElementById('creatorsModal'));
-  if (modal) {
-    modal.hide();
+  // Close modal only if requested
+  if (shouldCloseModal) {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('creatorsModal'));
+    if (modal) {
+      modal.hide();
+    }
+  } else {
+    // If keeping modal open, focus on ORCID input for next entry
+    setTimeout(() => document.getElementById('newCreatorOrcid').focus(), 50);
   }
+}
+
+function clearCreatorForm() {
+  document.getElementById('newCreatorName').value = '';
+  document.getElementById('newCreatorLastName').value = '';
+  document.getElementById('newCreatorAffiliation').value = '';
+  document.getElementById('newCreatorRorData').value = '';
+  document.getElementById('newCreatorOrcid').value = '';
+  syncCreatorButtons();
+}
+
+function validateCreatorForm() {
+  const name = document.getElementById('newCreatorName').value.trim();
+  const lastName = document.getElementById('newCreatorLastName').value.trim();
+  const orcid = document.getElementById('newCreatorOrcid').value.trim();
+
+  // Valid if we have ORCID and both names (names are auto-populated from ORCID)
+  return !!(orcid && name && lastName);
+}
+
+function syncCreatorButtons() {
+  const isValid = validateCreatorForm();
+  const saveBtn = document.getElementById('saveCreatorBtn');
+  const saveAnotherBtn = document.getElementById('saveAndAddAnotherCreatorBtn');
+
+  if (saveBtn) saveBtn.disabled = !isValid;
+  if (saveAnotherBtn) saveAnotherBtn.disabled = !isValid;
 }
 
 function removeCreator(button) {
@@ -118,6 +172,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (affiliationInput && suggestions) {
     affiliationInput.addEventListener('input', function() {
+      // Clear ROR data when user types manually
+      if (!this.value.trim()) {
+        document.getElementById('newCreatorRorData').value = '';
+      }
+
       clearTimeout(debounceTimer);
       const query = this.value.trim();
 
@@ -140,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 item.addEventListener('click', (e) => {
                   e.preventDefault();
                   affiliationInput.value = org.title;
+                  document.getElementById('newCreatorRorData').value = JSON.stringify(org);
                   suggestions.style.display = 'none';
                 });
                 suggestions.appendChild(item);
@@ -187,16 +247,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 item.href = '#';
                 item.className = 'list-group-item list-group-item-action';
 
-                // Simple display with ORCID ID
+                // Display actual person name with ORCID ID
                 item.innerHTML = `
-                  <div class="fw-semibold">ORCID: ${person.orcid_id}</div>
-                  <small class="text-muted">Click to add this ORCID ID</small>
+                  <div class="fw-semibold">${person.display_name}</div>
+                  <small class="text-muted">Click to add this person</small>
                 `;
 
                 item.addEventListener('click', (e) => {
                   e.preventDefault();
-                  // Fill in the ORCID field with the ORCID URL
+                  // Fill in the ORCID field and populate name fields
                   orcidInput.value = person.orcid;
+
+                  // Auto-populate first and last name fields
+                  if (person.given_name) {
+                    document.getElementById('newCreatorName').value = person.given_name;
+                  }
+                  if (person.family_name) {
+                    document.getElementById('newCreatorLastName').value = person.family_name;
+                  }
+
+                  // Sync button states after populating fields
+                  syncCreatorButtons();
+
                   orcidSuggestions.style.display = 'none';
                 });
                 orcidSuggestions.appendChild(item);
@@ -217,5 +289,40 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(() => orcidSuggestions.style.display = 'none', 200);
     });
   }
+
+  // Clear form when modal opens
+  const creatorsModal = document.getElementById('creatorsModal');
+  if (creatorsModal) {
+    creatorsModal.addEventListener('show.bs.modal', function() {
+      clearCreatorForm();
+      syncCreatorButtons();
+    });
+  }
+
+  // Add event listeners for new buttons
+  const saveBtn = document.getElementById('saveCreatorBtn');
+  const saveAnotherBtn = document.getElementById('saveAndAddAnotherCreatorBtn');
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function() {
+      addCreator(true); // Close modal after saving
+    });
+  }
+
+  if (saveAnotherBtn) {
+    saveAnotherBtn.addEventListener('click', function() {
+      addCreator(false); // Keep modal open for another entry
+    });
+  }
+
+  // Add input event listeners to sync button states
+  const nameInput = document.getElementById('newCreatorName');
+  const lastNameInput = document.getElementById('newCreatorLastName');
+
+  [nameInput, lastNameInput, orcidInput].forEach(input => {
+    if (input) {
+      input.addEventListener('input', syncCreatorButtons);
+    }
+  });
 });
 </script>
