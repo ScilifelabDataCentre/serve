@@ -7,27 +7,28 @@
       </div>
       <div class="modal-body">
         <div class="row g-3">
-          <!-- ORCID Search - Primary field at top -->
-          <div class="col-md-6 position-relative">
-            <label for="newCreatorOrcid" class="form-label fw-bold">ORCID ID <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Name or ORCID ID">
-            <div id="orcidSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
+          <!-- Name fields - Required and editable -->
+          <div class="col-md-6">
+            <label for="newCreatorName" class="form-label fw-bold">First Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="newCreatorName" placeholder="First name" required>
           </div>
-          <!-- Affiliation -->
+          <div class="col-md-6">
+            <label for="newCreatorLastName" class="form-label fw-bold">Last Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="newCreatorLastName" placeholder="Last name" required>
+          </div>
+          <!-- Affiliation - Required -->
           <div class="col-md-6 position-relative">
-            <label for="newCreatorAffiliation" class="form-label fw-bold">Affiliation</label>
-            <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation">
+            <label for="newCreatorAffiliation" class="form-label fw-bold">Affiliation <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation" required>
             <input type="hidden" id="newCreatorRorData" value="">
             <div id="affiliationSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
           </div>
-          <!-- Name fields - Auto-populated from ORCID, read-only -->
-          <div class="col-md-6">
-            <input type="text" class="form-control form-control-sm bg-light" id="newCreatorName" placeholder="First name" readonly>
-            <small class="form-text text-muted">Extracted from the ORCID above</small>
-          </div>
-          <div class="col-md-6">
-            <input type="text" class="form-control form-control-sm bg-light" id="newCreatorLastName" placeholder="Last name" readonly>
-            <small class="form-text text-muted">Extracted from the ORCID above</small>
+          <!-- ORCID Search - Optional but auto-populates fields -->
+          <div class="col-md-6 position-relative">
+            <label for="newCreatorOrcid" class="form-label fw-bold">ORCID ID <small class="text-muted">(optional)</small></label>
+            <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Name or ORCID ID">
+            <div id="orcidSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
+            <small class="form-text text-muted">Search by name or ORCID ID</small>
           </div>
         </div>
       </div>
@@ -54,9 +55,9 @@ function addCreator(shouldCloseModal = true) {
   const affiliationText = document.getElementById('newCreatorAffiliation').value.trim();
   const affiliation = rorDataJson ? JSON.parse(rorDataJson) : affiliationText;
 
-  // Require ORCID selection (which auto-populates names)
-  if (!orcid || !name || !lastName) {
-    alert('Please select an ORCID ID from the search results to add a creator.');
+  // Validate required fields: name, lastName, and affiliation (ORCID is optional)
+  if (!name || !lastName || !affiliation) {
+    alert('Please fill in all required fields: First Name, Last Name, and Affiliation.');
     return;
   }
 
@@ -108,10 +109,10 @@ function clearCreatorForm() {
 function validateCreatorForm() {
   const name = document.getElementById('newCreatorName').value.trim();
   const lastName = document.getElementById('newCreatorLastName').value.trim();
-  const orcid = document.getElementById('newCreatorOrcid').value.trim();
+  const affiliation = document.getElementById('newCreatorAffiliation').value.trim();
 
-  // Valid if we have ORCID and both names (names are auto-populated from ORCID)
-  return !!(orcid && name && lastName);
+  // Valid if we have name, lastName, and affiliation (ORCID is optional)
+  return !!(name && lastName && affiliation);
 }
 
 function syncCreatorButtons() {
@@ -319,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const nameInput = document.getElementById('newCreatorName');
   const lastNameInput = document.getElementById('newCreatorLastName');
 
-  [nameInput, lastNameInput, orcidInput].forEach(input => {
+  [nameInput, lastNameInput, affiliationInput, orcidInput].forEach(input => {
     if (input) {
       input.addEventListener('input', syncCreatorButtons);
     }
