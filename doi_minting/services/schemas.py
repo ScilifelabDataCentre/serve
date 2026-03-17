@@ -50,7 +50,7 @@ class PersonOrOrg(BaseModel):
     """Person or organization in Invenio metadata."""
 
     name: str
-    type: str  # "personal" or "organizational"
+    type: str  # 'personal' or 'organizational'
     given_name: str | None = None
     family_name: str | None = None
     identifiers: list[Identifier] | None = None
@@ -77,13 +77,6 @@ class Creator(BaseModel):
 
     person_or_org: PersonOrOrg
     affiliations: list[Affiliation] | None = None
-
-
-class Contributor(BaseModel):
-    """Contributor with person/org info and role."""
-
-    person_or_org: PersonOrOrg
-    role: Role
 
 
 # ============================================================================
@@ -230,7 +223,6 @@ class InvenioMetadata(BaseModel):
 
     # People and organizations
     creators: List[Creator]
-    contributors: List[Contributor]
 
     # Identifiers and relationships
     identifiers: List[Identifier]

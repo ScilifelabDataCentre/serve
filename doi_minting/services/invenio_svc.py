@@ -27,7 +27,6 @@ from .schemas import (
     AppData,
     Award,
     AwardIdentifier,
-    Contributor,
     Creator,
     Date,
     DateType,
@@ -328,10 +327,10 @@ class InvenioService:
         else:
             target_metadata.pop("subjects", None)
 
-        # Handle creators field
+        # Handle creators metadata
         creators_input = extra.get("creators")
         logger.debug(f"[Invenio] creators_input from extra: {creators_input}")
-        if creators_input and isinstance(creators_input, list) and creators_input:
+        if creators_input and isinstance(creators_input, list):
             creators_list: list[Creator] = []
             for creator_data in creators_input:
                 if isinstance(creator_data, dict):
@@ -532,14 +531,6 @@ class InvenioService:
 
         return [creator]
 
-    def _build_contributors(self) -> list[Contributor]:
-        """Build the contributors list with SciLifeLab Data Centre."""
-        org_person = PersonOrOrg(name="SciLifeLab Data Centre", type="organizational")
-
-        org_role = Role(id="hostinginstitution")
-
-        return [Contributor(person_or_org=org_person, role=org_role)]
-
     def _build_identifiers(self, app_id: str) -> list[Identifier]:
         """Build the identifiers list with application ID."""
         return [Identifier(identifier=f"SERVE:{app_id}", scheme="other")]
@@ -694,7 +685,6 @@ class InvenioService:
 
         # Build components using helper methods
         creators = self._build_creators(user_full_name, user_first_name, user_family_name, user_orcid, user_affiliation)
-        contributors = self._build_contributors()
         identifiers = self._build_identifiers(str(app_data.id))
         related_identifiers = self._build_related_identifiers(app_data)
 
@@ -713,7 +703,6 @@ class InvenioService:
             publisher="SciLifeLab Serve",
             resource_type=ResourceType(id="software", title={"en": "Software"}),
             creators=creators,
-            contributors=contributors,
             identifiers=identifiers,
             related_identifiers=related_identifiers,
         )

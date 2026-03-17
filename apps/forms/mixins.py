@@ -198,6 +198,28 @@ class CreatorsMixin:
             ]
             self.fields["creators"].initial = json.dumps(creators_data)
 
+    def clean_creators(self):
+        """Basic validation for creators field."""
+        import json
+        
+        creators_json = self.cleaned_data.get("creators", "[]")
+        
+        try:
+            creators_data = json.loads(creators_json) if creators_json else []
+        except (json.JSONDecodeError, TypeError):
+            raise ValidationError("Invalid creators data format.")
+            
+        if not isinstance(creators_data, list):
+            raise ValidationError("Creators must be a list.")
+            
+        for i, creator in enumerate(creators_data):
+            if not isinstance(creator, dict):
+                raise ValidationError(f"Creator {i+1} must be an object.")
+            if not creator.get("name") or not creator.get("lastName"):
+                raise ValidationError(f"Creator {i+1} must have both name and lastName.")
+                
+        return creators_json
+
     def get_creators_field_layout(self):
         """Get the complete crispy forms layout for the creators field."""
         from crispy_forms.layout import HTML, Div
