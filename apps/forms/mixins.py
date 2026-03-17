@@ -198,17 +198,6 @@ class CreatorsMixin:
             ]
             self.fields["creators"].initial = json.dumps(creators_data)
 
-    def get_creators_display(self):
-        """Get display text for current creators."""
-        import json
-
-        if hasattr(self, "request") and self.request and self.request.user.is_authenticated:
-            user = self.request.user
-            first_name = user.first_name or user.username
-            last_name = user.last_name or "User"
-            return f"{first_name} {last_name}"
-        return "No user logged in"
-
     def get_creators_field_layout(self):
         """Get the complete crispy forms layout for the creators field."""
         from crispy_forms.layout import HTML, Div

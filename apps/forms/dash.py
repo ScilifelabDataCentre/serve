@@ -70,10 +70,7 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags"),
-            Div(
-                self.get_creators_field_layout(),
-                css_class="mb-3",
-            ),
+            self.get_creators_field_layout(),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",

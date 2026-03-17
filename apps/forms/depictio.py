@@ -25,19 +25,6 @@ class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
             widget=forms.TextInput(attrs={"class": "form-control"}),
         )
 
-        self.fields["creators"] = forms.CharField(
-            required=False,
-            label="Creators",
-            help_text=(
-                "Manage the creators of this app. You are included as the primary creator by default. "
-                "You can add, edit, remove, and reorder creators as needed."
-            ),
-            widget=forms.HiddenInput(),  # Will be handled by custom template
-        )
-
-        # Initialize creators with current user if available
-        self._initialize_creators()
-
     def _setup_form_helper(self):
         super()._setup_form_helper()
         # Define AccordionGroups
@@ -46,10 +33,7 @@ class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags"),
-            Div(
-                self.get_creators_field_layout(),
-                css_class="mb-3",
-            ),
+            self.get_creators_field_layout(),
             SRVCommonDivField("access"),
             active=True,
         )
