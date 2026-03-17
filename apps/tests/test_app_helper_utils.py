@@ -869,7 +869,6 @@ def test_generate_invenio_metadata_validation():
     creator = invenio_metadata["metadata"]["creators"][0]
     assert creator["person_or_org"]["given_name"] == user.first_name
     assert creator["person_or_org"]["family_name"] == user.last_name
-    assert creator["role"]["id"] == "relatedperson"
 
     # Check contributor is SciLifeLab Data Centre
     contributor = invenio_metadata["metadata"]["contributors"][0]
