@@ -29,6 +29,8 @@ def _build_additional_metadata(
     *,
     language: str | None = None,
     funding: list[dict[str, Any]] | str | None = None,
+    creators: list[dict[str, Any]] | None = None,
+    subjects: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """
     Build additional_metadata from app instance for Invenio (language, subjects/tags).
@@ -55,12 +57,23 @@ def _build_additional_metadata(
     if isinstance(funding_entries, list):
         additional_metadata["funding"] = funding_entries
 
-    # Tags / subjects (from SocialMixin; tagulous TagField)
-    if hasattr(app_instance, "tags") and app_instance.tags:
+    # Creators from form data
+    if creators and isinstance(creators, list):
+        additional_metadata["creators"] = creators
+        logger.debug(f"DOI provisioning: Added {len(creators)} creators from form data")
+
+    # Subjects/tags from form data (prefer form data over model instance tags)
+    if subjects and isinstance(subjects, list):
+        # Form-processed subjects/tags take priority
+        additional_metadata["subjects"] = subjects
+        logger.debug(f"DOI provisioning: Added {len(subjects)} subjects from form data")
+    elif hasattr(app_instance, "tags") and app_instance.tags:
+        # Fallback to model instance tags if no form data
         try:
             tag_names = [t.name for t in app_instance.tags.all()]
             if tag_names:
                 additional_metadata["subjects"] = tag_names
+                logger.debug(f"DOI provisioning: Added {len(tag_names)} subjects from model instance")
         except Exception:
             pass
 
@@ -110,6 +123,8 @@ class DOIProvisioningTask(BaseBackgroundTask):
             app_instance,
             language=kwargs.get("language"),
             funding=kwargs.get("funding"),
+            creators=kwargs.get("creators"),
+            subjects=kwargs.get("subjects"),
         )
 
         try:
