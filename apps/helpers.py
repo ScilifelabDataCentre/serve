@@ -38,6 +38,31 @@ from .models import Apps, BaseAppInstance, K8sUserAppStatus, Subdomain
 logger = get_logger(__name__)
 
 
+def parse_funding_sources_json(funding_raw: Any) -> list[dict[str, Any]]:
+    """Normalize funding_sources_json from form data into a list."""
+    if not funding_raw:
+        return []
+
+    parsed_funding = funding_raw
+    if isinstance(parsed_funding, str):
+        try:
+            parsed_funding = json.loads(parsed_funding)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Unable to parse funding_sources_json while creating app. " "Proceeding with empty funding metadata."
+            )
+            return []
+
+    if not isinstance(parsed_funding, list):
+        logger.warning(
+            "funding_sources_json has unsupported type %s. Proceeding with empty funding metadata.",
+            type(parsed_funding).__name__,
+        )
+        return []
+
+    return parsed_funding
+
+
 def get_select_options(project_pk, selected_option=""):
     select_options = []
     for sub in Subdomain.objects.filter(project=project_pk, is_created_by_user=True).values_list(
@@ -315,8 +340,15 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     assert project is not None, "This function requires a project object"
 
     new_app = app_id is None
+    requested_app_slug = app_slug
 
-    logger.debug(f"Creating or updating a user app via UI form for app_id={app_id}, new_app={new_app}")
+    logger.info(
+        "create_instance_from_form.start app_id=%s new_app=%s app_slug=%s project_id=%s",
+        app_id,
+        new_app,
+        app_slug,
+        project.pk,
+    )
 
     if new_app:
         do_deploy = True
@@ -351,6 +383,12 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
                     break
 
     subdomain_name, is_created_by_user = get_subdomain_name(form)
+    logger.info(
+        "create_instance_from_form.subdomain_selected app_id=%s subdomain=%s is_created_by_user=%s",
+        app_id,
+        subdomain_name,
+        is_created_by_user,
+    )
 
     instance = form.save(commit=False)
 
@@ -364,11 +402,23 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     subdomain = Subdomain.objects.get(subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user)
     assert subdomain is not None
     assert subdomain.subdomain == subdomain_name
+    logger.info(
+        "create_instance_from_form.subdomain_ready app_id=%s subdomain=%s created=%s",
+        app_id,
+        subdomain_name,
+        created,
+    )
 
     if not new_app:
         handle_subdomain_change(instance, subdomain, subdomain_name)
 
     app_slug = handle_shiny_proxy_case(instance, app_slug, app_id)
+    logger.info(
+        "create_instance_from_form.app_slug_resolved app_id=%s requested_slug=%s resolved_slug=%s",
+        app_id,
+        requested_app_slug,
+        app_slug,
+    )
 
     app = get_app(app_slug)
 
@@ -388,8 +438,23 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
 
     setup_instance(instance, subdomain, app, project, user_action)
     instance_id = save_instance_and_related_data(instance, form)
+    logger.info(
+        "create_instance_from_form.instance_saved app_id=%s instance_id=%s user_action=%s do_deploy=%s",
+        app_id,
+        instance_id,
+        user_action,
+        do_deploy,
+    )
 
     if do_deploy:
+        serialized_instance = instance.serialize()
+        logger.info(
+            "create_instance_from_form.enqueue_on_commit app_id=%s instance_id=%s model=%s pk=%s",
+            app_id,
+            instance_id,
+            serialized_instance.get("model"),
+            serialized_instance.get("pk"),
+        )
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
 
         # Run background tasks before deployment (feature-flagged).
@@ -399,98 +464,136 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         if waffle.switch_is_active("background_tasks"):
             from .tasks import run_background_tasks
 
+            funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
+
             # The orchestrator will handle deployment if tasks succeed.
-            transaction.on_commit(lambda: run_background_tasks.delay(instance.serialize(), app_slug))
+            task_kwargs_by_task_name = {
+                # Form-only field (not persisted on the model) needed for Invenio metadata.
+                "doi_provisioning": {
+                    "language": form.cleaned_data.get("language"),
+                    "funding": funding_list,
+                },
+            }
+            transaction.on_commit(
+                lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name)
+            )
         else:
-            # Fall back to direct deployment.
-            transaction.on_commit(lambda: deploy_resource.delay(instance.serialize()))
+
+            def enqueue_deploy_task():
+                logger.info(
+                    "create_instance_from_form.enqueue_dispatch app_id=%s instance_id=%s model=%s pk=%s",
+                    app_id,
+                    instance_id,
+                    serialized_instance.get("model"),
+                    serialized_instance.get("pk"),
+                )
+                deploy_resource.delay(serialized_instance)
+
+            transaction.on_commit(enqueue_deploy_task)
     else:
-        logger.debug(f"Not re-deploying this app with app_id = {app_id}")
+        logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
     if waffle.switch_is_active("doi_minting_using_invenio"):
-        image_value_changed = False
-        app_contains_image = False
-        for field in form.cleaned_data:
-            if field.lower() == "image":
-                app_contains_image = True
-                break
-        for field in form.changed_data:
-            if field.lower() == "image":
-                image_value_changed = True
-                break
-        # Collect additional metadata from form
-        additional_metadata = {}
-        lang = form.cleaned_data.get("language")
-        if lang:
-            additional_metadata["languages"] = lang
-        # Check for Invenio keywords and subject tags
-        invenio_tags = form.cleaned_data.get("tags")
-        logger.debug(f"Raw invenio_tags from form: {invenio_tags} (type: {type(invenio_tags)})")
-        if invenio_tags:
-            logger.debug(f"Form contains Invenio tags: {invenio_tags}")
-            additional_metadata["subjects"] = invenio_tags
-        else:
-            logger.debug("Form does not contain Invenio tags")
-        logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
-        # Check for changes
-        if image_value_changed:
-            logger.info(
-                f"App '{app_slug}' with app id '{app_id}', Image value changed in form," "checking to minting DOI.."
+        if waffle.switch_is_active("background_tasks"):
+            # DOI provisioning is handled by the optional doi_provisioning background task.
+            logger.debug(
+                "DOI minting will be handled by background task for app '%s' (id=%s).",
+                app_slug,
+                app_id,
             )
-            continuation_message = "Continuing with app deployment despite DOI minting failure"
-            try:
-                # Wrap the DOI minting call in try-except to handle potential failures
-                from doi_minting.services.invenio_svc import (
-                    save_metadata_to_invenio_then_mint_doi,
-                )
-
-                save_metadata_to_invenio_then_mint_doi(app_slug, instance_id, additional_metadata=additional_metadata)
-
-            except ValueError as e:
-                logger.error(
-                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Validation error - {str(e)}"
-                )
-                # Don't raise the error - app creation should continue even if DOI minting fails
-                logger.debug(continuation_message)
-
-            except PermissionDenied as e:
-                logger.error(
-                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Permission denied - {str(e)}"
-                )
-                logger.debug(continuation_message)
-
-            except requests.RequestException as e:
-                logger.error(
-                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
-                    f"Network error connecting to external service - {str(e)}"
-                )
-                logger.debug(continuation_message)
-
-            except ConnectionError as e:
-                logger.error(
-                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
-                    f"Connection error to external service - {str(e)}"
-                )
-                logger.debug(continuation_message)
-
-            except Timeout as e:
-                logger.error(
-                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
-                    f"Timeout connecting to external service - {str(e)}"
-                )
-                logger.debug(continuation_message)
-
-            except Exception as e:
-                logger.error(
-                    f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Unexpected error - {str(e)}"
-                )
-                logger.error(f"Traceback for DOI minting failure: {traceback.format_exc()}")
-                logger.debug(continuation_message)
-
-        elif app_contains_image:
-            logger.debug(f"App '{app_slug}' with app id '{app_id}', Image value did not change no need to mint DOI...")
         else:
-            logger.debug(f"App '{app_slug}' with app id '{app_id}' does not have image, no need to mint DOI...")
+            image_value_changed = False
+            app_contains_image = False
+            for field in form.cleaned_data:
+                if field.lower() == "image":
+                    app_contains_image = True
+                    break
+            for field in form.changed_data:
+                if field.lower() == "image":
+                    image_value_changed = True
+                    break
+
+            # Collect additional metadata from form.
+            additional_metadata = {}
+            additional_metadata["funding"] = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
+
+            lang = form.cleaned_data.get("language")
+            if lang:
+                additional_metadata["languages"] = lang
+
+            # Check for Invenio keywords and subject tags.
+            invenio_tags = form.cleaned_data.get("tags")
+            logger.debug(f"Raw invenio_tags from form: {invenio_tags} (type: {type(invenio_tags)})")
+            if invenio_tags:
+                logger.debug(f"Form contains Invenio tags: {invenio_tags}")
+                additional_metadata["subjects"] = invenio_tags
+            else:
+                logger.debug("Form does not contain Invenio tags")
+            logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
+
+            # Check for changes.
+            if image_value_changed:
+                logger.info(
+                    f"App '{app_slug}' with app id '{app_id}', Image value changed in form," "checking to minting DOI.."
+                )
+                continuation_message = "Continuing with app deployment despite DOI minting failure"
+                try:
+                    # Wrap the DOI minting call in try-except to handle potential failures
+                    from doi_minting.services.invenio_svc import (
+                        save_metadata_to_invenio_then_mint_doi,
+                    )
+
+                    save_metadata_to_invenio_then_mint_doi(
+                        app_slug, instance_id, additional_metadata=additional_metadata
+                    )
+
+                except ValueError as e:
+                    logger.error(
+                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Validation error - {str(e)}"
+                    )
+                    # Don't raise the error - app creation should continue even if DOI minting fails
+                    logger.debug(continuation_message)
+
+                except PermissionDenied as e:
+                    logger.error(
+                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Permission denied - {str(e)}"
+                    )
+                    logger.debug(continuation_message)
+
+                except requests.RequestException as e:
+                    logger.error(
+                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
+                        f"Network error connecting to external service - {str(e)}"
+                    )
+                    logger.debug(continuation_message)
+
+                except ConnectionError as e:
+                    logger.error(
+                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
+                        f"Connection error to external service - {str(e)}"
+                    )
+                    logger.debug(continuation_message)
+
+                except Timeout as e:
+                    logger.error(
+                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
+                        f"Timeout connecting to external service - {str(e)}"
+                    )
+                    logger.debug(continuation_message)
+
+                except Exception as e:
+                    logger.error(
+                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Unexpected error - {str(e)}"
+                    )
+                    logger.error(f"Traceback for DOI minting failure: {traceback.format_exc()}")
+                    logger.debug(continuation_message)
+
+            elif app_contains_image:
+                logger.debug(
+                    f"App '{app_slug}' with app id '{app_id}', Image value did not change no need to mint DOI..."
+                )
+            else:
+                logger.debug(f"App '{app_slug}' with app id '{app_id}' does not have image, no need to mint DOI...")
     else:
         logger.debug(
             "Make sure to turn the 'doi_minting_using_invenio' waffle switch on"
@@ -520,10 +623,16 @@ def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) 
     from .tasks import delete_resource
 
     assert instance is not None, "instance is required"
+    logger.info(
+        "handle_subdomain_change.start instance_id=%s current_subdomain=%s requested_subdomain=%s",
+        instance.pk,
+        instance.subdomain.subdomain if instance.subdomain else None,
+        subdomain_name,
+    )
 
     if instance.subdomain is None:
         # The subdomain is not yet created, nothing to do
-        logger.debug("The subdomain is not yet created, nothing to do")
+        logger.info("handle_subdomain_change.skip_no_existing_subdomain instance_id=%s", instance.pk)
         return
 
     if instance.subdomain.subdomain != subdomain_name:
@@ -533,8 +642,21 @@ def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) 
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])
+        logger.info(
+            "handle_subdomain_change.updated instance_id=%s old_subdomain=%s new_subdomain=%s",
+            instance.pk,
+            old_subdomain.subdomain if old_subdomain else None,
+            subdomain_name,
+        )
         if old_subdomain and not old_subdomain.is_created_by_user:
             old_subdomain.delete()
+            logger.info(
+                "handle_subdomain_change.deleted_old_subdomain instance_id=%s old_subdomain=%s",
+                instance.pk,
+                old_subdomain.subdomain,
+            )
+    else:
+        logger.info("handle_subdomain_change.no_change instance_id=%s subdomain=%s", instance.pk, subdomain_name)
 
 
 def handle_shiny_proxy_case(instance, app_slug, app_id):
@@ -561,6 +683,14 @@ def setup_instance(instance, subdomain, app, project, user_action=None, is_creat
     instance.project = project
     instance.owner = project.owner
     instance.latest_user_action = user_action
+    logger.info(
+        "setup_instance.assigned instance_id=%s subdomain=%s app_slug=%s project_id=%s user_action=%s",
+        instance.pk,
+        subdomain.subdomain if subdomain else None,
+        app.slug if app else None,
+        project.pk if project else None,
+        user_action,
+    )
 
 
 def save_instance_and_related_data(instance: Any, form: Any) -> int:
@@ -570,6 +700,7 @@ def save_instance_and_related_data(instance: Any, form: Any) -> int:
     Returns:
     - int: The Id of the new or updated app instance.
     """
+    logger.info("save_instance_and_related_data.start instance_id=%s", instance.pk)
     instance.save()
     form.save_m2m()
     instance.set_k8s_values()
@@ -577,6 +708,7 @@ def save_instance_and_related_data(instance: Any, form: Any) -> int:
     # For MLFLOW, we need to set the k8s_values again to update the URL
     instance.set_k8s_values()
     instance.save(update_fields=["k8s_values", "url"])
+    logger.info("save_instance_and_related_data.finish instance_id=%s url=%s", instance.id, instance.url)
     return instance.id
 
 

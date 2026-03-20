@@ -15,7 +15,10 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 # Deliberate, explicit list of task modules to import for registration.
-_TASK_MODULES: Final[tuple[str, ...]] = ("apps.background_tasks.tasks.validation",)
+_TASK_MODULES: Final[tuple[str, ...]] = (
+    "apps.background_tasks.tasks.validation",
+    "apps.background_tasks.tasks.doi_provisioning",
+)
 
 _loaded = False
 

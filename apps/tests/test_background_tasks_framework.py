@@ -26,6 +26,42 @@ def test_known_tasks_are_registered_after_django_startup():
     # Registration should happen deterministically via AppsConfig.ready().
     assert TASK_REGISTRY.is_registered("validate_docker_image") is True
     assert TASK_REGISTRY.is_registered("validate_image_public") is True
+    assert TASK_REGISTRY.is_registered("doi_provisioning") is True
+
+
+@pytest.mark.django_db
+def test_doi_provisioning_task_includes_funding_metadata(app_instance):
+    funding_payload = [
+        {
+            "funder_name": "Uppsala University",
+            "funder_id": "048a87296",
+            "number": "2024-01567",
+            "title": "Uppsala Precision Medicine Grant",
+            "url": "",
+        }
+    ]
+    task_record = BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="doi_provisioning",
+        task_type="external_api",
+        status="pending",
+        is_critical=False,
+        execution_order=2,
+        max_retries=0,
+    )
+
+    with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
+        "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"
+    ), patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint:
+        result = execute_single_background_task(
+            task_db_id=task_record.id,
+            task_kwargs_by_task_name={"doi_provisioning": {"language": "eng", "funding": funding_payload}},
+        )
+
+    assert result["success"] is True
+    mock_mint.assert_called_once()
+    assert mock_mint.call_args.kwargs["additional_metadata"]["languages"] == "eng"
+    assert mock_mint.call_args.kwargs["additional_metadata"]["funding"] == funding_payload
 
 
 @pytest.fixture()

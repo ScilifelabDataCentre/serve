@@ -109,7 +109,10 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
             for profile in user_profiles:
                 affs = profile.get_affiliations()
                 for aff in affs:
-                    title = aff.get("title", "").strip()
+                    if isinstance(aff, dict):
+                        title = aff.get("title", "").strip()
+                    else:
+                        title = f"Unknown (legacy value, type: {type(aff).__name__})"
                     if title:
                         univ_list.append(title)
             users_by_univ = dict(Counter(univ_list))

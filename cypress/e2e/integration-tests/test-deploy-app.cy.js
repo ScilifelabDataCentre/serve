@@ -229,7 +229,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             // verify heading with correct text and encoding
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name_project).should('not.exist')
 
             // verify empty state when no apps exist
@@ -414,7 +414,7 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             // Verify heading with correct text and encoding
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name_public_2).should('not.exist')
 
         } else {
@@ -522,7 +522,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
@@ -598,7 +598,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
@@ -672,7 +672,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
@@ -753,7 +753,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
@@ -833,7 +833,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
@@ -938,7 +938,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name_edited).should('not.exist')
 
         } else {
@@ -1082,7 +1082,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
@@ -1179,7 +1179,7 @@ describe("Test deploying app", () => {
             // check that the app is not visible under public apps
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('h3').should('contain', 'Public applications & models')
+            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
             cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
@@ -1354,7 +1354,7 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
             // verify that the app was created. Using custom timeout.
-            cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Error: ErrImagePull')
+            cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: shinyAppCmdTimeoutMs}).should('contain', 'Error: ErrImagePull')
             cy.logf("Now updating the app to give a correct image reference - expecting Running", Cypress.currentTest)
             cy.get('tr:contains("' + app_name_statuses + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()

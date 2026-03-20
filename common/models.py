@@ -224,3 +224,4 @@ class MaintenanceMode(models.Model):
     login_and_signup_disabled = models.BooleanField(default=False)
     message_in_header = models.TextField(max_length=1000, blank=True)
     message_in_footer = models.TextField(max_length=1000, blank=True)
+    message_in_project_dashboard = models.TextField(max_length=1000, blank=True)
