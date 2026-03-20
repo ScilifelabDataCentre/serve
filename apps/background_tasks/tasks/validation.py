@@ -118,13 +118,13 @@ class ImagePublicValidator(BaseBackgroundTask):
 
     max_retries = 1
     task_type = "validation"
-    timeout_seconds = 60
+    # Allow time for OCIRegistryPublicChecker slow retries on HTTP 5xx (linear backoff + manifest calls).
+    timeout_seconds = 120
 
     def execute(self, app_instance, **kwargs) -> Dict[str, Any]:
-        import requests
-
         from apps.validators.container_images import (
             OCIRegistryPublicChecker,
+            PublicImageAccessOutcome,
             get_container_image_context,
         )
 
@@ -134,17 +134,28 @@ class ImagePublicValidator(BaseBackgroundTask):
             return _validation_result_no_image(app_instance)
 
         checker = OCIRegistryPublicChecker(registry=ctx.registry_host_str, timeout=10.0)
+        access = checker.check_public_accessibility(repository=ctx.repo, reference=ctx.reference)
 
-        try:
-            is_public = checker.is_public(repository=ctx.repo, reference=ctx.reference)
-        except requests.RequestException as exc:
-            logger.error("Public image validation failed for %s: %s", ctx.image, exc)
-            raise ValueError(f"Failed to validate image accessibility for '{ctx.image}': {exc}") from exc
-
-        if not is_public:
+        if access.outcome == PublicImageAccessOutcome.REGISTRY_UNAVAILABLE:
+            logger.error(
+                "Public image check inconclusive for %s (registry %s): %s",
+                ctx.image,
+                ctx.registry_host_str,
+                access.detail,
+            )
             raise ValueError(
-                f"Container image '{ctx.image}' is not publicly pullable from registry '{ctx.registry_host_str}'. "
-                "Please use a public image or publish the image before deployment."
+                f"Could not verify that container image '{ctx.image}' is publicly pullable: "
+                f"registry '{ctx.registry_host_str}' is unreachable or returned a server error "
+                f"({access.detail}). Please retry later."
+            )
+
+        if access.outcome != PublicImageAccessOutcome.PUBLIC:
+            reason = access.detail or "Registry did not allow anonymous manifest access"
+            status_hint = f" [HTTP {access.status_code}]" if access.status_code is not None else ""
+            raise ValueError(
+                f"Container image '{ctx.image}' is not publicly pullable from registry '{ctx.registry_host_str}'"
+                f"{status_hint}. {reason} "
+                "Use a public image or ensure the image is published for anonymous pulls before deployment."
             )
 
         return {

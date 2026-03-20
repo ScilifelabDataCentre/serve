@@ -59,6 +59,23 @@ class ImageArchitectureTuple(NamedTuple):
     """CPU architecture of the image, e.g., 'amd64', 'arm64'."""
 
 
+class PublicImageAccessOutcome(StrEnum):
+    """Result of checking whether an image is anonymously pullable."""
+
+    PUBLIC = "public"
+    PRIVATE = "private"
+    REGISTRY_UNAVAILABLE = "registry_unavailable"
+
+
+@dataclass
+class PublicImageAccessResult:
+    """Structured result from OCIRegistryPublicChecker.check_public_accessibility."""
+
+    outcome: PublicImageAccessOutcome
+    status_code: int | None = None
+    detail: str = ""
+
+
 # Validation context (shared by all validators)
 @dataclass
 class ContainerImageContext:
@@ -162,6 +179,13 @@ class OCIRegistryPublicChecker:
     Registry-agnostic checker for anonymous image pullability.
     """
 
+    # Sentinel for token/manifest requests that failed before an HTTP response (timeout, DNS, etc.)
+    _NO_HTTP_RESPONSE = -1
+
+    # When the registry returns HTTP 5xx, re-run the full check after a linear backoff (slow retries).
+    DEFAULT_5XX_RETRY_MAX = 3
+    DEFAULT_5XX_RETRY_BASE_DELAY_SEC = 5.0
+
     def __init__(self, registry: str, timeout: float = 10.0):
         if not registry.startswith("http"):
             registry = f"https://{registry}"
@@ -169,6 +193,43 @@ class OCIRegistryPublicChecker:
         self.timeout = timeout
         self.session = requests.Session()
         self._token_cache: dict[tuple[str, str, str], CachedToken] = {}
+
+    @staticmethod
+    def _http_status_indicates_registry_unavailable(status: int | None) -> bool:
+        """True when the registry is likely down, overloaded, or unreachable
+        (not a definitive private/public answer)."""
+        if status is None:
+            return False
+        if status == OCIRegistryPublicChecker._NO_HTTP_RESPONSE:
+            return True
+        if status == 429:
+            return True
+        return 500 <= status < 600
+
+    @staticmethod
+    def _http_status_is_server_error_5xx(status: int | None) -> bool:
+        """True for HTTP 5xx only (used to decide whether to slow-retry the public check)."""
+        return status is not None and 500 <= status < 600
+
+    @staticmethod
+    def _private_manifest_http_detail(status: int) -> str:
+        """Human-readable reason for non-public manifest responses (not 401/404/5xx)."""
+        if status == 403:
+            return (
+                "HTTP 403 Forbidden: anonymous pull is not allowed, the repository may be private, "
+                "or the registry denied access (policy, authentication requirement, or IP restriction)"
+            )
+        return f"Registry returned HTTP {status}; image is not anonymously pullable"
+
+    @staticmethod
+    def _anonymous_token_denied_detail(status: int | None) -> str:
+        """Explain token endpoint failures when we cannot get an anonymous pull token."""
+        if status == 403:
+            return (
+                "Token endpoint returned HTTP 403 — anonymous pulls are not permitted for this image, "
+                "or the registry refused to issue a token"
+            )
+        return "Could not obtain anonymous pull token"
 
     @staticmethod
     def _parse_www_authenticate(header: str | None) -> dict[str, str] | None:
@@ -200,10 +261,17 @@ class OCIRegistryPublicChecker:
             expires_at=time.time() + ttl,
         )
 
-    def _fetch_token(self, realm: str, service: str, scope: str) -> str | None:
+    def _fetch_token(self, realm: str, service: str, scope: str) -> tuple[str | None, int | None]:
+        """
+        Obtain an anonymous Bearer token.
+
+        Returns (token, error_status). On success, error_status is None.
+        On failure, error_status is the HTTP status from the token endpoint, or _NO_HTTP_RESPONSE if
+        the request failed before a response (network/timeout).
+        """
         cached = self._get_cached_token(realm, service, scope)
         if cached:
-            return cached
+            return cached, None
 
         params: dict[str, str] = {}
         if service:
@@ -211,17 +279,27 @@ class OCIRegistryPublicChecker:
         if scope:
             params["scope"] = scope
 
-        resp = self.session.get(realm, params=params, timeout=self.timeout)
-        if resp.status_code != 200:
-            return None
+        try:
+            resp = self.session.get(realm, params=params, timeout=self.timeout)
+        except requests.RequestException as exc:
+            logger.warning("Registry token request failed: %s", exc)
+            return None, self._NO_HTTP_RESPONSE
 
-        data = resp.json()
+        if resp.status_code != 200:
+            return None, resp.status_code
+
+        try:
+            data = resp.json()
+        except ValueError:
+            logger.warning("Registry token response was not JSON (status %s)", resp.status_code)
+            return None, resp.status_code
+
         token = data.get("token") or data.get("access_token")
         if not token:
-            return None
+            return None, resp.status_code
 
         self._store_token(realm, service, scope, token, data.get("expires_in"))
-        return token
+        return token, None
 
     def _request_manifest(
         self, repository: str, reference: str, token: str | None, use_head: bool
@@ -235,23 +313,52 @@ class OCIRegistryPublicChecker:
         # Follow redirects to avoid false negatives behind registry/proxy redirects.
         return method(url, headers=headers, timeout=self.timeout, allow_redirects=True)
 
-    def is_public(self, repository: str, reference: str = "latest") -> bool:
+    def _check_public_accessibility_once(self, repository: str, reference: str) -> PublicImageAccessResult:
+        """Single attempt; see check_public_accessibility for 5xx retry wrapper."""
         for use_head in (True, False):
-            response = self._request_manifest(repository, reference, token=None, use_head=use_head)
+            try:
+                response = self._request_manifest(repository, reference, token=None, use_head=use_head)
+            except requests.RequestException as exc:
+                logger.error("Registry manifest request failed: %s", exc)
+                return PublicImageAccessResult(
+                    outcome=PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+                    status_code=self._NO_HTTP_RESPONSE,
+                    detail=f"Could not reach registry: {exc}",
+                )
 
-            if response.status_code == 200:
-                return True
+            status = response.status_code
+            if status == 200:
+                return PublicImageAccessResult(PublicImageAccessOutcome.PUBLIC, status)
 
-            if response.status_code == 404:
-                return False
+            if status == 404:
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.PRIVATE,
+                    status,
+                    "Image or tag not found",
+                )
 
-            if response.status_code in (405, 406):
+            if status in (405, 406):
                 if use_head:
                     continue
-                return False
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.PRIVATE,
+                    status,
+                    "Registry does not allow this manifest request",
+                )
 
-            if response.status_code != 401:
-                return False
+            if self._http_status_indicates_registry_unavailable(status):
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+                    status,
+                    f"Registry returned HTTP {status}; try again later",
+                )
+
+            if status != 401:
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.PRIVATE,
+                    status,
+                    self._private_manifest_http_detail(status),
+                )
 
             auth_header = (
                 response.headers.get("WWW-Authenticate")
@@ -260,34 +367,164 @@ class OCIRegistryPublicChecker:
             )
             params = self._parse_www_authenticate(auth_header)
             if not params:
-                return False
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.PRIVATE,
+                    status,
+                    "401 without usable WWW-Authenticate header",
+                )
 
             realm = params.get("realm", "")
             service = params.get("service", "")
             scope = params.get("scope", "")
 
-            token = self._fetch_token(realm, service, scope)
+            token, token_err_status = self._fetch_token(realm, service, scope)
             if not token:
-                return False
+                if self._http_status_indicates_registry_unavailable(token_err_status):
+                    return PublicImageAccessResult(
+                        PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+                        token_err_status,
+                        "Token endpoint failed or registry unreachable",
+                    )
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.PRIVATE,
+                    token_err_status,
+                    self._anonymous_token_denied_detail(token_err_status),
+                )
 
-            retry_response = self._request_manifest(repository, reference, token=token, use_head=use_head)
-            if retry_response.status_code == 200:
-                return True
-            if retry_response.status_code == 404:
-                return False
-            if retry_response.status_code != 401:
-                return False
+            try:
+                retry_response = self._request_manifest(repository, reference, token=token, use_head=use_head)
+            except requests.RequestException as exc:
+                logger.error("Registry manifest retry failed: %s", exc)
+                return PublicImageAccessResult(
+                    outcome=PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+                    status_code=self._NO_HTTP_RESPONSE,
+                    detail=f"Could not reach registry: {exc}",
+                )
+
+            rs = retry_response.status_code
+            if rs == 200:
+                return PublicImageAccessResult(PublicImageAccessOutcome.PUBLIC, rs)
+            if rs == 404:
+                return PublicImageAccessResult(PublicImageAccessOutcome.PRIVATE, rs, "Image or tag not found")
+            if self._http_status_indicates_registry_unavailable(rs):
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+                    rs,
+                    f"Registry returned HTTP {rs} after authentication; try again later",
+                )
+            if rs != 401:
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.PRIVATE,
+                    rs,
+                    self._private_manifest_http_detail(rs),
+                )
 
             # Token may have expired/revoked in-flight; refresh once.
             self._token_cache.pop(self._cache_key(realm, service, scope), None)
-            token = self._fetch_token(realm, service, scope)
+            token, token_err_status = self._fetch_token(realm, service, scope)
             if not token:
-                return False
+                if self._http_status_indicates_registry_unavailable(token_err_status):
+                    return PublicImageAccessResult(
+                        PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+                        token_err_status,
+                        "Token endpoint failed on retry",
+                    )
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.PRIVATE,
+                    token_err_status,
+                    f"{self._anonymous_token_denied_detail(token_err_status)} (retry)",
+                )
 
-            final_response = self._request_manifest(repository, reference, token=token, use_head=use_head)
-            return final_response.status_code == 200
+            try:
+                final_response = self._request_manifest(repository, reference, token=token, use_head=use_head)
+            except requests.RequestException as exc:
+                logger.error("Registry manifest final request failed: %s", exc)
+                return PublicImageAccessResult(
+                    outcome=PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+                    status_code=self._NO_HTTP_RESPONSE,
+                    detail=f"Could not reach registry: {exc}",
+                )
 
-        return False
+            fs = final_response.status_code
+            if fs == 200:
+                return PublicImageAccessResult(PublicImageAccessOutcome.PUBLIC, fs)
+            if fs == 404:
+                return PublicImageAccessResult(PublicImageAccessOutcome.PRIVATE, fs, "Image or tag not found")
+            if self._http_status_indicates_registry_unavailable(fs):
+                return PublicImageAccessResult(
+                    PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+                    fs,
+                    f"Registry returned HTTP {fs}; try again later",
+                )
+            return PublicImageAccessResult(
+                PublicImageAccessOutcome.PRIVATE,
+                fs,
+                self._private_manifest_http_detail(fs),
+            )
+
+        return PublicImageAccessResult(
+            PublicImageAccessOutcome.PRIVATE,
+            None,
+            "Could not determine whether the image is public",
+        )
+
+    def check_public_accessibility(
+        self,
+        repository: str,
+        reference: str = "latest",
+        *,
+        max_5xx_retries: int | None = None,
+        retry_base_delay_seconds: float | None = None,
+    ) -> PublicImageAccessResult:
+        """
+        Determine whether an image is anonymously pullable, or if the registry could not be reached.
+
+        Distinguishes definitive answers (public / private) from transient infrastructure issues
+        (5xx, 429, timeouts) so callers can avoid mis-reporting "not public" when the registry is down.
+
+        HTTP **403** is treated as **private** (forbidden / no anonymous access), not as a registry outage.
+
+        On **HTTP 5xx** (500–599) from the registry or token endpoint, this method re-runs the full check
+        up to ``max_5xx_retries`` extra times, sleeping ``retry_base_delay_seconds * (attempt + 1)``
+        before each retry (linear backoff). **429**, network errors (no HTTP status), and **non-5xx**
+        outcomes are not retried here.
+        """
+        max_retries = self.DEFAULT_5XX_RETRY_MAX if max_5xx_retries is None else max(0, max_5xx_retries)
+        base_delay = (
+            self.DEFAULT_5XX_RETRY_BASE_DELAY_SEC
+            if retry_base_delay_seconds is None
+            else max(0.0, retry_base_delay_seconds)
+        )
+
+        last: PublicImageAccessResult | None = None
+        total_attempts = max_retries + 1
+        for attempt in range(total_attempts):
+            last = self._check_public_accessibility_once(repository, reference)
+            if last.outcome != PublicImageAccessOutcome.REGISTRY_UNAVAILABLE:
+                return last
+            if not self._http_status_is_server_error_5xx(last.status_code):
+                return last
+            if attempt >= max_retries:
+                break
+            delay = base_delay * (attempt + 1)
+            logger.warning(
+                "Registry returned HTTP %s during public image check; sleeping %.1fs before "
+                "attempt %s/%s for %r @ %r",
+                last.status_code,
+                delay,
+                attempt + 2,
+                max_retries + 1,
+                repository,
+                reference,
+            )
+            time.sleep(delay)
+
+        assert last is not None
+        return last
+
+    def is_public(self, repository: str, reference: str = "latest") -> bool:
+        """Return True only when the image is confirmed anonymously pullable (backward-compatible bool API)."""
+        return self.check_public_accessibility(repository, reference).outcome == PublicImageAccessOutcome.PUBLIC
 
 
 # Utility functions for validators

@@ -3,7 +3,12 @@ from types import SimpleNamespace
 import pytest
 
 from apps.background_tasks.tasks.validation import ImagePublicValidator
-from apps.validators.container_images import RegistryHost, parse_image_reference
+from apps.validators.container_images import (
+    PublicImageAccessOutcome,
+    PublicImageAccessResult,
+    RegistryHost,
+    parse_image_reference,
+)
 
 
 @pytest.mark.parametrize(
@@ -95,8 +100,8 @@ def test_validate_image_public_success(monkeypatch):
     app_instance = SimpleNamespace(image="ghcr.io/example/team-app:stable", environment=None, k8s_values={})
 
     monkeypatch.setattr(
-        "apps.validators.container_images.OCIRegistryPublicChecker.is_public",
-        lambda self, repository, reference: True,
+        "apps.validators.container_images.OCIRegistryPublicChecker.check_public_accessibility",
+        lambda self, repository, reference: PublicImageAccessResult(PublicImageAccessOutcome.PUBLIC),
     )
 
     result = ImagePublicValidator().execute(app_instance)
@@ -112,9 +117,74 @@ def test_validate_image_public_failure(monkeypatch):
     app_instance = SimpleNamespace(image="ghcr.io/example/team-app:stable", environment=None, k8s_values={})
 
     monkeypatch.setattr(
-        "apps.validators.container_images.OCIRegistryPublicChecker.is_public",
-        lambda self, repository, reference: False,
+        "apps.validators.container_images.OCIRegistryPublicChecker.check_public_accessibility",
+        lambda self, repository, reference: PublicImageAccessResult(PublicImageAccessOutcome.PRIVATE),
     )
 
     with pytest.raises(ValueError, match="not publicly pullable"):
         ImagePublicValidator().execute(app_instance)
+
+
+def test_validate_image_public_registry_unavailable(monkeypatch):
+    app_instance = SimpleNamespace(image="ghcr.io/example/team-app:stable", environment=None, k8s_values={})
+
+    monkeypatch.setattr(
+        "apps.validators.container_images.OCIRegistryPublicChecker.check_public_accessibility",
+        lambda self, repository, reference: PublicImageAccessResult(
+            PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+            status_code=503,
+            detail="Registry returned HTTP 503; try again later",
+        ),
+    )
+
+    with pytest.raises(ValueError, match="unreachable or returned a server error"):
+        ImagePublicValidator().execute(app_instance)
+
+
+def test_oci_registry_public_checker_slow_retries_on_http_500(monkeypatch):
+    from apps.validators.container_images import OCIRegistryPublicChecker
+
+    checker = OCIRegistryPublicChecker(registry="example.com", timeout=1.0)
+    outcomes = [
+        PublicImageAccessResult(
+            PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+            status_code=500,
+            detail="temporary",
+        ),
+        PublicImageAccessResult(PublicImageAccessOutcome.PUBLIC, 200),
+    ]
+
+    def fake_once(self, repository, reference):
+        return outcomes.pop(0)
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(OCIRegistryPublicChecker, "_check_public_accessibility_once", fake_once)
+    monkeypatch.setattr("apps.validators.container_images.time.sleep", lambda s: sleeps.append(s))
+
+    result = checker.check_public_accessibility("ns/img", "latest", max_5xx_retries=3, retry_base_delay_seconds=7.0)
+
+    assert result.outcome == PublicImageAccessOutcome.PUBLIC
+    assert sleeps == [7.0]
+
+
+def test_oci_registry_public_checker_no_retry_on_429(monkeypatch):
+    from apps.validators.container_images import OCIRegistryPublicChecker
+
+    checker = OCIRegistryPublicChecker(registry="example.com", timeout=1.0)
+
+    def fake_once(self, repository, reference):
+        return PublicImageAccessResult(
+            PublicImageAccessOutcome.REGISTRY_UNAVAILABLE,
+            status_code=429,
+            detail="rate limited",
+        )
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(OCIRegistryPublicChecker, "_check_public_accessibility_once", fake_once)
+    monkeypatch.setattr("apps.validators.container_images.time.sleep", lambda s: sleeps.append(s))
+
+    result = checker.check_public_accessibility("ns/img", "latest", max_5xx_retries=3)
+
+    assert result.outcome == PublicImageAccessOutcome.REGISTRY_UNAVAILABLE
+    assert result.status_code == 429
+    assert sleeps == []
