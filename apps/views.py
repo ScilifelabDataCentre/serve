@@ -326,7 +326,15 @@ class CreateApp(View):
             instance = None
 
         if user_can_edit or user_can_create:
-            return form_class(request.POST or None, project_pk=project.pk, instance=instance)
+            form = form_class(request.POST or None, project_pk=project.pk, instance=instance)
+
+            # Disable access field for public apps to prevent changing access mode
+            if app_id and instance and hasattr(instance, "access") and instance.access == "public":
+                if hasattr(form, "fields") and "access" in form.fields:
+                    form.fields["access"].disabled = True
+                    form.fields["access"].help_text = "Cannot change access mode for public apps."
+
+            return form
             # Maybe this makes typing hard.
         else:
             return None
