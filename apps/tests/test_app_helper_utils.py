@@ -769,8 +769,8 @@ def validate_schema(schema_dict: dict):
 
 
 @pytest.mark.django_db
-def test_generate_invenio_metadata_validation():
-    """Test function generate_invenio_metadata validation."""
+def test_generate_invenio_record_validation():
+    """Test function generate_invenio_record validation."""
     # creating the test data
     user_data = {
         "email": "unit_test_invenio_metadata_user_email@scilifelab.uu.se",
@@ -841,7 +841,7 @@ def test_generate_invenio_metadata_validation():
     service = InvenioService(mock_mode=True)
 
     # Generate metadata directly
-    invenio_record = service.generate_invenio_metadata(app_instance)
+    invenio_record = service.generate_invenio_record(app_instance)
     invenio_metadata = invenio_record.model_dump()
 
     # Validate using Pydantic - this ensures our models work correctly
