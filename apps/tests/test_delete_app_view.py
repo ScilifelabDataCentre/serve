@@ -94,7 +94,7 @@ class DeleteAppViewTestCase(TestCase):
         # Create a public app instance for this test
         subdomain = Subdomain.objects.create(subdomain="test_public")
         k8s_user_app_status = K8sUserAppStatus.objects.create()
-        
+
         public_app_instance = JupyterInstance.objects.create(
             access="public",
             owner=self.user,
