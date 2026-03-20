@@ -29,6 +29,7 @@ def _build_additional_metadata(
     *,
     language: str | None = None,
     funding: list[dict[str, Any]] | str | None = None,
+    tags: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """
     Build additional_metadata from app instance for Invenio (language, subjects/tags).
@@ -55,14 +56,16 @@ def _build_additional_metadata(
     if isinstance(funding_entries, list):
         additional_metadata["funding"] = funding_entries
 
-    # Tags / subjects (from SocialMixin; tagulous TagField)
-    if hasattr(app_instance, "tags") and app_instance.tags:
+    # Tags / subjects - prefer form-provided tags over instance tags
+    tag_names = tags
+    if not tag_names and hasattr(app_instance, "tags") and app_instance.tags:
         try:
             tag_names = [t.name for t in app_instance.tags.all()]
-            if tag_names:
-                additional_metadata["subjects"] = tag_names
         except Exception:
-            pass
+            tag_names = None
+
+    if tag_names:
+        additional_metadata["subjects"] = tag_names
 
     return additional_metadata if additional_metadata else None
 
@@ -110,6 +113,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
             app_instance,
             language=kwargs.get("language"),
             funding=kwargs.get("funding"),
+            tags=kwargs.get("tags"),
         )
 
         try:

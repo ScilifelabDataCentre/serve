@@ -458,20 +458,18 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         )
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
 
-        # Flags and switches. Order matters.
+        # Flags and switches for deployment strategy
         deployment_settings = (
             waffle.switch_is_active("background_tasks"),
             waffle.switch_is_active("doi_minting_using_invenio"),
-            hasattr(instance, "access") and instance.access == "public",
         )
 
-        # Function dispatch table
+        # Function dispatch table - 4 combinations based on feature flags
         DEPLOYMENT_DISPATCH = {
-            (True, True, True): _deploy_with_background_tasks_and_doi,
-            (True, False, False): _deploy_with_background_tasks_only,
-            (False, True, True): _deploy_direct_with_doi,
-            (False, False, False): _deploy_direct_only,
-            (True, True, False): _deploy_direct_only,
+            (True, True): _deploy_with_background_tasks_and_doi,
+            (True, False): _deploy_with_background_tasks_only,
+            (False, True): _deploy_direct_with_doi,
+            (False, False): _deploy_direct_only,
         }
 
         deploy_handler = DEPLOYMENT_DISPATCH[deployment_settings]
@@ -494,16 +492,26 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug):
     )
 
     serialized_instance = instance.serialize()
-    funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
-    # The orchestrator will handle deployment if tasks succeed.
-    task_kwargs_by_task_name = {
-        # Form-only field (not persisted on the model) needed for Invenio metadata.
-        "doi_provisioning": {
-            "language": form.cleaned_data.get("language"),
-            "funding": funding_list,
-        },
-    }
+    # Only include DOI task if app is public
+    if hasattr(instance, "access") and instance.access == "public":
+        funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
+        # The orchestrator will handle deployment if tasks succeed.
+        task_kwargs_by_task_name = {
+            # Form-only field (not persisted on the model) needed for Invenio metadata.
+            "doi_provisioning": {
+                "language": form.cleaned_data.get("language"),
+                "funding": funding_list,
+                "tags": form.cleaned_data.get("tags"),
+            },
+        }
+        logger.debug(
+            "DOI provisioning will be handled by background task for public app '%s' (id=%s).", app_slug, instance.id
+        )
+    else:
+        # No DOI provisioning for non-public apps
+        task_kwargs_by_task_name = {}
+        logger.debug("Skipping DOI provisioning for non-public app '%s' (id=%s).", app_slug, instance.id)
 
     transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
 
@@ -533,7 +541,6 @@ def _deploy_with_background_tasks_only(instance, form, app_slug):
     )
 
     serialized_instance = instance.serialize()
-    #    funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
     # No DOI provisioning task in the orchestrator
     task_kwargs_by_task_name = {}
@@ -556,8 +563,12 @@ def _deploy_direct_with_doi(instance, form, app_slug):
     # Direct deployment
     transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
 
-    # Handle DOI minting directly (not via background task)
-    _handle_direct_doi_minting(instance, form, app_slug)
+    # Handle DOI minting directly (not via background task) only for public apps
+    if hasattr(instance, "access") and instance.access == "public":
+        _handle_direct_doi_minting(instance, form, app_slug)
+        logger.debug("DOI minting handled directly for public app '%s' (id=%s).", app_slug, instance.id)
+    else:
+        logger.debug("Skipping DOI minting for non-public app '%s' (id=%s).", app_slug, instance.id)
 
 
 def _handle_direct_doi_minting(instance, form, app_slug):
