@@ -198,6 +198,10 @@ def delete(request, project, app_slug, app_id):
     if not instance.app.user_can_delete:
         return HttpResponseForbidden()
 
+    # Prevent deletion of public apps
+    if hasattr(instance, "access") and instance.access == "public":
+        return HttpResponseForbidden("Cannot delete apps with public access.")
+
     serialized_instance = instance.serialize()
 
     delete_resource.delay(serialized_instance, AppActionOrigin.USER.value)

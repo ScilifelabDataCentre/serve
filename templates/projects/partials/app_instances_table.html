@@ -125,6 +125,7 @@
                           Secrets
                         </a>
                       {% endif %}
+                      {% if instance.access != 'public' %}
                         {% if instance.app.user_can_delete %}
 
                         <a class="dropdown-item bg-danger text-white confirm-delete default"
@@ -139,6 +140,7 @@
                             Delete
                         </a>
                         {% endif %}
+                      {% endif %}
                     </div>
                 </div>
             </td>
