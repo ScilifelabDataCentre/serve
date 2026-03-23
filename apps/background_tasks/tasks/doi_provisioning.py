@@ -17,9 +17,8 @@ import waffle  # type: ignore
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
 from apps.background_tasks.utils import resolve_app_image
-from studio.utils import get_logger
-
 from doi_minting.services.schemas import Creator, Subject
+from studio.utils import get_logger
 
 logger = get_logger(__name__)
 
