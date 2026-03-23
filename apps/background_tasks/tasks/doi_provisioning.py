@@ -19,6 +19,8 @@ from apps.background_tasks.registry import TASK_REGISTRY
 from apps.background_tasks.utils import resolve_app_image
 from studio.utils import get_logger
 
+from doi_minting.services.schemas import Creator, Subject
+
 logger = get_logger(__name__)
 
 DOI_MINTING_SWITCH = "doi_minting_using_invenio"
@@ -29,8 +31,8 @@ def _build_additional_metadata(
     *,
     language: str | None = None,
     funding: list[dict[str, Any]] | str | None = None,
-    creators: list[dict[str, Any]] | None = None,
-    subjects: list[str] | None = None,
+    creators: list[Creator] | None = None,
+    subjects: list[Subject] | None = None,
 ) -> dict[str, Any] | None:
     """
     Build additional_metadata from app instance for Invenio (language, subjects/tags).
