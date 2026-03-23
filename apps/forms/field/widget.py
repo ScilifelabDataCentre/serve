@@ -2,8 +2,6 @@ from django import forms
 from django.template import loader
 from django.utils.safestring import mark_safe
 
-from apps.helpers import get_select_options
-
 
 # Custom Widget that adds boostrap-style input group to the subdomain field
 class SubdomainInputGroup(forms.Widget):
@@ -16,6 +14,8 @@ class SubdomainInputGroup(forms.Widget):
         self.data = data
 
     def get_context(self, name, value, attrs=None):
+        from apps.helpers import get_select_options
+
         return {
             "initial_subdomain": value,
             "project_pk": self.data["project_pk"],
