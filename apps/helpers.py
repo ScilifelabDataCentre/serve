@@ -1,24 +1,20 @@
 import json
-import traceback
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any, Dict, Optional, Type
 
 import regex as re
-import requests
 import waffle
 import yaml
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.db.models.query import QuerySet
 from django.forms.models import model_to_dict
 from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
-from requests.exceptions import ConnectionError, Timeout
-
 from apps.constants import (
     UNIVERSITY_NAMES,
     AppActionOrigin,
@@ -335,7 +331,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     Raises:
     - ValueError: If the form does not have a 'subdomain' or if the specified app cannot be found.
     """
-    from .tasks import deploy_resource
+    from .tasks import run_background_tasks
 
     assert form is not None, "This function requires a form object"
     assert project is not None, "This function requires a project object"
@@ -458,143 +454,27 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         )
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
 
-        # Run background tasks before deployment (feature-flagged).
-        #
-        # Important: enqueue only after DB transaction commits, otherwise the worker
-        # may not be able to read the just-created/updated instance (or related data).
-        if waffle.switch_is_active("background_tasks"):
-            from .tasks import run_background_tasks
+        funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
-            funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
-
-            # The orchestrator will handle deployment if tasks succeed.
-            task_kwargs_by_task_name = {
-                # Form-only field (not persisted on the model) needed for Invenio metadata.
-                "doi_provisioning": {
-                    "language": form.cleaned_data.get("language"),
-                    "funding": funding_list,
-                },
-            }
-            transaction.on_commit(
-                lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name)
-            )
-        else:
-
-            def enqueue_deploy_task():
-                logger.info(
-                    "create_instance_from_form.enqueue_dispatch app_id=%s instance_id=%s model=%s pk=%s",
-                    app_id,
-                    instance_id,
-                    serialized_instance.get("model"),
-                    serialized_instance.get("pk"),
-                )
-                deploy_resource.delay(serialized_instance)
-
-            transaction.on_commit(enqueue_deploy_task)
+        # The orchestrator handles validation, optional DOI provisioning, and deployment.
+        task_kwargs_by_task_name = {
+            # Form-only field (not persisted on the model) needed for Invenio metadata.
+            "doi_provisioning": {
+                "language": form.cleaned_data.get("language"),
+                "funding": funding_list,
+            },
+        }
+        transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
     if waffle.switch_is_active("doi_minting_using_invenio"):
-        if waffle.switch_is_active("background_tasks"):
-            # DOI provisioning is handled by the optional doi_provisioning background task.
-            logger.debug(
-                "DOI minting will be handled by background task for app '%s' (id=%s).",
-                app_slug,
-                app_id,
-            )
-        else:
-            image_value_changed = False
-            app_contains_image = False
-            for field in form.cleaned_data:
-                if field.lower() == "image":
-                    app_contains_image = True
-                    break
-            for field in form.changed_data:
-                if field.lower() == "image":
-                    image_value_changed = True
-                    break
-
-            # Collect additional metadata from form.
-            additional_metadata = {}
-            additional_metadata["funding"] = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
-
-            lang = form.cleaned_data.get("language")
-            if lang:
-                additional_metadata["languages"] = lang
-
-            # Check for Invenio keywords and subject tags.
-            invenio_tags = form.cleaned_data.get("tags")
-            logger.debug(f"Raw invenio_tags from form: {invenio_tags} (type: {type(invenio_tags)})")
-            if invenio_tags:
-                logger.debug(f"Form contains Invenio tags: {invenio_tags}")
-                additional_metadata["subjects"] = invenio_tags
-            else:
-                logger.debug("Form does not contain Invenio tags")
-            logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
-
-            # Check for changes.
-            if image_value_changed:
-                logger.info(
-                    f"App '{app_slug}' with app id '{app_id}', Image value changed in form," "checking to minting DOI.."
-                )
-                continuation_message = "Continuing with app deployment despite DOI minting failure"
-                try:
-                    # Wrap the DOI minting call in try-except to handle potential failures
-                    from doi_minting.services.invenio_svc import (
-                        save_metadata_to_invenio_then_mint_doi,
-                    )
-
-                    save_metadata_to_invenio_then_mint_doi(
-                        app_slug, instance_id, additional_metadata=additional_metadata
-                    )
-
-                except ValueError as e:
-                    logger.error(
-                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Validation error - {str(e)}"
-                    )
-                    # Don't raise the error - app creation should continue even if DOI minting fails
-                    logger.debug(continuation_message)
-
-                except PermissionDenied as e:
-                    logger.error(
-                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Permission denied - {str(e)}"
-                    )
-                    logger.debug(continuation_message)
-
-                except requests.RequestException as e:
-                    logger.error(
-                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
-                        f"Network error connecting to external service - {str(e)}"
-                    )
-                    logger.debug(continuation_message)
-
-                except ConnectionError as e:
-                    logger.error(
-                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
-                        f"Connection error to external service - {str(e)}"
-                    )
-                    logger.debug(continuation_message)
-
-                except Timeout as e:
-                    logger.error(
-                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): "
-                        f"Timeout connecting to external service - {str(e)}"
-                    )
-                    logger.debug(continuation_message)
-
-                except Exception as e:
-                    logger.error(
-                        f"Failed to mint DOI for app '{app_slug}' (ID: {instance_id}): " f"Unexpected error - {str(e)}"
-                    )
-                    logger.error(f"Traceback for DOI minting failure: {traceback.format_exc()}")
-                    logger.debug(continuation_message)
-
-            elif app_contains_image:
-                logger.debug(
-                    f"App '{app_slug}' with app id '{app_id}', Image value did not change no need to mint DOI..."
-                )
-            else:
-                logger.debug(f"App '{app_slug}' with app id '{app_id}' does not have image, no need to mint DOI...")
+        # DOI provisioning is handled by the optional doi_provisioning background task.
+        logger.debug(
+            "DOI minting will be handled by background task for app '%s' (id=%s).",
+            app_slug,
+            app_id,
+        )
     else:
         logger.debug(
             "Make sure to turn the 'doi_minting_using_invenio' waffle switch on"
