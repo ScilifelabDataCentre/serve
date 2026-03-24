@@ -35,12 +35,15 @@
     <div class="col-8 fw-bold">
         {% if user_profile.orcid_id %}
             <div class="d-flex align-items-center">
-                <img src="{% static 'images/orcid_16x16.png' %}"
-                     alt="ORCID" class="me-2" width="18" height="18">
                 <a href="https://orcid.org/{{ user_profile.orcid_id }}"
-                   target="_blank" rel="noopener"
-                   style="color: #A6CE39; text-decoration: none; font-size: 14px;">
-                    https://orcid.org/{{ user_profile.orcid_id }}
+                   target="_blank"
+                   rel="noopener"
+                   class="app-card-orcid-link">
+                    <span class="app-card-orcid-badge app-card-orcid-badge-sm me-2">
+                        <img src="{% static 'images/orcid-vector.svg' %}"
+                             alt="ORCID" width="24" height="24" class="app-card-orcid-icon">
+                    </span>
+                    <span class="orcid-id-link">https://orcid.org/{{ user_profile.orcid_id }}</span>
                 </a>
             </div>
         {% else %}

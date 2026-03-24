@@ -21,33 +21,50 @@
                         <div id="app-{{ app.id }}" class="card-text description-app">
                             <p class="card-description fw-normal">
                                 {% if app.description|length > 349 %}
-                                    <span class="description-short card-description">{{ app.description|slice:':349'}}
+                                    <span class="description-short card-description">{{ app.description|slice:':349' }}</span>
                                     <span class="description-dots">...</span>
-                                    <span class="description-more " style="display:none;">{{ app.description|slice:'349:' }}</span>
-                                    {% comment %} <div class=""> {% endcomment %}
-                                    <a class="ui tiny left pointing label pointer" onclick="toggleDescription('app-{{ app.id }}')">
-                                        See more
+                                    <span class="description-more">{{ app.description|slice:'349:' }}</span>
+                                    <a class="ui tiny left pointing label pointer description-toggle"
+                                       role="button"
+                                       tabindex="0"
+                                       onclick="toggleDescription('app-{{ app.id }}')"
+                                       onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleDescription('app-{{ app.id }}'); }"
+                                       aria-expanded="false"
+                                       data-more-label="See more"
+                                       data-less-label="See less">
+                                        <span class="description-toggle-text">See more</span>
                                     </a>
-                                    {% comment %} </div> {% endcomment %}
-
                                 {% else %}
                                     {{ app.description|default_if_none:""}}
                                 {% endif %}
                             </p>
                             <ul class="list-unstyled">
                                 <li class="list-group-item row">
-                                    <div class="col-12">
+                                    <div class="col-12 d-flex align-items-center">
+    <span class="value-label fw-normal text-dark card-username">{{ app.owner }}</span>
     {% if app.orcid_id %}
-    <a href="https://orcid.org/{{ app.orcid_id }}" target="_blank" rel="noopener" title="ORCID: {{ app.orcid_id }}">
-        <img src="{% static 'images/orcid_16x16.png' %}" alt="ORCID" width="16" height="16" class="me-1">
+    <a href="https://orcid.org/{{ app.orcid_id }}"
+       target="_blank"
+       rel="noopener"
+       title="ORCID: {{ app.orcid_id }}"
+       aria-label="ORCID profile for {{ app.owner }}"
+       class="app-card-orcid-link ms-2">
+        <span class="app-card-orcid-badge">
+            <img src="{% static 'images/orcid-vector.svg' %}" alt="ORCID" width="24" height="24" class="app-card-orcid-icon">
+        </span>
     </a>
     {% endif %}
-    <span class="value-label fw-normal text-dark card-username">{{ app.owner }}</span>
 </div>
 
                                     <div class="d-flex text-muted justify-content-between rounded-bottom">
-                                        <div class="text-start"><span class="text-muted value-label fw-normal card-font-sm card-institution">{{ app.affiliation }}</span></div>
-                                        <div class="text-end"><span class="text-muted value-label fw-normal card-font-sm card-department">{{ app.department }}</span></div>
+                                        <div class="text-start">
+                                            <span class="text-muted value-label fw-normal card-font-sm card-institution">{{ app.affiliation }}</span>
+                                            <span class="visually-hidden card-institution-search">{{ app.affiliation_search }}</span>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="text-muted value-label fw-normal card-font-sm card-department">{{ app.department }}</span>
+                                            <span class="visually-hidden card-department-search">{{ app.department_search }}</span>
+                                        </div>
 
                                     </div>
 
