@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% block title %}{{ form_header }} {{ app.name }}{% endblock %}
-{% load static %}
 {% load custom_tags %}
 {% load crispy_forms_tags %}
 
@@ -13,14 +12,48 @@
         <div class="w-100 card shadow border-1">
             <div class="card-body">
             {% if app_id %}
-              <h1 class="h3 mb-3 card-title">Edit {{ form.instance.name }}
+              <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+                <h1 class="h3 mb-0 card-title">Edit {{ form.instance.name }}</h1>
                 {% if user.is_authenticated and user.is_staff %}
-                  <a href="{% url 'admin:apps_'|add:model_name|add:'_change' app_id %}" class="btn btn-primary ms-2"
-                     data-cy="admin-app" target="_blank">
-                    🐳 Admin view
-                  </a>
+                  <div class="dropdown">
+                    <a
+                      href="#"
+                      class="btn btn-primary serve-admin-dropdown-trigger"
+                      role="button"
+                      id="appAdminMenu"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                      data-cy="admin-app-menu"
+                    >
+                      <span class="me-1" aria-hidden="true">🐳</span>
+                      <span>Admin View</span>
+                      <i class="bi bi-caret-down-fill small ms-2" aria-hidden="true"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="appAdminMenu">
+                      <li>
+                        <a
+                          class="dropdown-item"
+                          href="{% url 'admin:apps_'|add:model_name|add:'_change' app_id %}"
+                          data-cy="admin-app"
+                          target="_blank"
+                        >
+                          App admin page
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="dropdown-item"
+                          href="{% url 'apps:background_tasks' project.slug app_slug app_id %}"
+                          data-cy="app-background-tasks"
+                          target="_blank"
+                        >
+                          Background tasks
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
                 {% endif %}
-              </h1>
+              </div>
             {% else %}
                 <h1 class="h3 mb-3 card-title">Create {{ form.model_name }}</h1>
             {% endif %}
