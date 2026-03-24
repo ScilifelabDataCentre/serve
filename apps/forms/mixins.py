@@ -259,40 +259,56 @@ class CreatorsMixin:
             '"', "&quot;"
         )  # Escape quotes for HTML attribute
 
+        # Build creator info display similar to new creators added via modal
+        creator_info = f"<strong>{user_full_name}</strong>"
+        if user_orcid or user_affiliation:
+            creator_info += "<br><small class='text-muted'>"
+            if user_affiliation:
+                creator_info += f"Affiliation: {user_affiliation}<br>"
+            if user_orcid:
+                creator_info += f"ORCID: {user_orcid}"
+            creator_info += "</small>"
+
         return Div(
-            HTML(
-                '<label class="form-label">Creators '
-                '<span class="bi bi-question-circle text-muted ms-2" '
-                'data-bs-toggle="tooltip" data-bs-placement="right" '
-                'data-bs-original-title="List one or more creators of the application.">'
-                "</span></label>"
-            ),
             "creators",  # Hidden field
             HTML(
-                '<div class="mb-2">'
-                '<small class="text-muted">List the creators that should appear in the citation. '
-                "Drag to reorder the names.</small>"
-                "</div>"
-                '<ul id="creatorsSortableList" class="list-group mb-3">'
-                f'<li class="list-group-item d-flex justify-content-between align-items-center" '
-                f'style="cursor: move;" data-creator="{user_creator_data}">'
-                f"<div><strong>{user_full_name}</strong></div>"
-                '<span class="badge bg-secondary">You</span>'
-                "</li>"
-                "</ul>"
-                '<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>'
-                "<script>"
-                "$(document).ready(function() {"
-                '$("#creatorsSortableList").sortable({ placeholder: "list-group-item bg-light", cursor: "move" });'
-                "});"
-                "</script>"
-            ),
-            HTML(
-                '<div class="mt-2">'
-                "<button type='button' class='btn btn-outline-secondary btn-sm' "
-                "data-bs-toggle='modal' data-bs-target='#creatorsModal'>"
-                '<span class="fas fa-plus text-muted"></span> Add Creator'
-                "</button></div>"
+                f"""
+                <label class="form-label">Creators
+                    <span class="bi bi-question-circle text-muted ms-2"
+                          data-bs-toggle="tooltip"
+                          data-bs-original-title="List one or more creators of the application."></span>
+                </label>
+
+                <div class="mb-2">
+                    <small class="text-muted">List the creators that should appear in the citation.
+                    Drag to reorder the names.</small>
+                </div>
+
+                <ul id="creatorsSortableList" class="list-group mb-3">
+                    <li class="list-group-item d-flex justify-content-between align-items-center"
+                        style="cursor: move;" data-creator="{user_creator_data}">
+                        <div>{creator_info}</div>
+                        <span class="badge bg-secondary">You</span>
+                    </li>
+                </ul>
+
+                <div class="mt-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#creatorsModal">
+                        <span class="fas fa-plus text-muted"></span> Add Creator
+                    </button>
+                </div>
+
+                <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+                <script>
+                    $(document).ready(function() {{
+                        $("#creatorsSortableList").sortable({{
+                            placeholder: "list-group-item bg-light",
+                            cursor: "move"
+                        }});
+                    }});
+                </script>
+            """
             ),
             css_class="mb-3",
         )
