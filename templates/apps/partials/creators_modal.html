@@ -7,14 +7,12 @@
       </div>
       <div class="modal-body">
         <div class="row g-3">
-          <!-- Name fields - Required and editable -->
-          <div class="col-md-6">
-            <label for="newCreatorName" class="form-label fw-bold">First Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="newCreatorName" placeholder="First name" required>
-          </div>
-          <div class="col-md-6">
-            <label for="newCreatorLastName" class="form-label fw-bold">Last Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="newCreatorLastName" placeholder="Last name" required>
+          <!-- ORCID Search - Optional but auto-populates fields -->
+          <div class="col-md-6 position-relative">
+            <label for="newCreatorOrcid" class="form-label fw-bold">ORCID ID <small class="text-muted">(optional)</small></label>
+            <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Name or ORCID ID">
+            <div id="orcidSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
+            <small class="form-text text-muted">Search by name or ORCID ID</small>
           </div>
           <!-- Affiliation - Required -->
           <div class="col-md-6 position-relative">
@@ -23,12 +21,14 @@
             <input type="hidden" id="newCreatorRorData" value="">
             <div id="affiliationSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
           </div>
-          <!-- ORCID Search - Optional but auto-populates fields -->
-          <div class="col-md-6 position-relative">
-            <label for="newCreatorOrcid" class="form-label fw-bold">ORCID ID <small class="text-muted">(optional)</small></label>
-            <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Name or ORCID ID">
-            <div id="orcidSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
-            <small class="form-text text-muted">Search by name or ORCID ID</small>
+          <!-- Name fields - Required and editable -->
+          <div class="col-md-6">
+            <label for="newCreatorName" class="form-label fw-bold">First Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="newCreatorName" placeholder="First name" required>
+          </div>
+          <div class="col-md-6">
+            <label for="newCreatorLastName" class="form-label fw-bold">Last Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="newCreatorLastName" placeholder="Last name" required>
           </div>
         </div>
       </div>
