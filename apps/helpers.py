@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional, Type
 
 import regex as re
+import requests
 import waffle
 import yaml
 from django.conf import settings
