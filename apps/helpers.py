@@ -480,22 +480,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         )
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
 
-        # Flags and switches for deployment strategy
-        deployment_settings = (
-            waffle.switch_is_active("background_tasks"),
-            waffle.switch_is_active("doi_minting_using_invenio"),
-        )
-
-        # Function dispatch table - 4 combinations based on feature flags
-        DEPLOYMENT_DISPATCH = {
-            (True, True): _deploy_with_background_tasks_and_doi,
-            (True, False): _deploy_with_background_tasks_only,
-            (False, True): _deploy_direct_with_doi,
-            (False, False): _deploy_direct_only,
-        }
-
-        deploy_handler = DEPLOYMENT_DISPATCH[deployment_settings]
-        deploy_handler(instance, form, app_slug, access_changed_to_public)
+        _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public)
 
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
@@ -538,124 +523,6 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
         logger.debug("Skipping DOI provisioning for non-public app '%s' (id=%s).", app_slug, instance.id)
 
     transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
-
-
-def _deploy_direct_only(instance, form, app_slug, access_changed_to_public=False):
-    """Deploy directly without DOI minting."""
-    from .tasks import deploy_resource
-
-    logger.info(
-        "_deploy_direct_only start for app_slug=%s instance_id=%s access_changed=%s",
-        app_slug,
-        instance.id,
-        access_changed_to_public,
-    )
-
-    serialized_instance = instance.serialize()
-
-    # Simple direct deployment without DOI minting
-    transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
-
-
-def _deploy_with_background_tasks_only(instance, form, app_slug, access_changed_to_public=False):
-    """Deploy using background tasks without DOI minting."""
-    from .tasks import run_background_tasks
-
-    logger.info(
-        "_deploy_with_background_tasks_only start for app_slug=%s instance_id=%s access_changed=%s",
-        app_slug,
-        instance.id,
-        access_changed_to_public,
-    )
-
-    serialized_instance = instance.serialize()
-
-    # No DOI provisioning task in the orchestrator
-    task_kwargs_by_task_name = {}
-
-    transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
-
-
-def _deploy_direct_with_doi(instance, form, app_slug, access_changed_to_public=False):
-    """Deploy directly with DOI minting for public apps."""
-    from .tasks import deploy_resource
-
-    logger.info(
-        "_deploy_direct_with_doi start for app_slug=%s instance_id=%s access_changed=%s",
-        app_slug,
-        instance.id,
-        access_changed_to_public,
-    )
-
-    serialized_instance = instance.serialize()
-
-    # Direct deployment
-    transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
-
-    # Handle DOI minting directly - mint if app is public or access just changed to public
-    should_mint_doi = (hasattr(instance, "access") and instance.access == "public") or access_changed_to_public
-    if should_mint_doi:
-        _handle_direct_doi_minting(instance, form, app_slug, access_changed_to_public)
-        logger.debug("DOI minting handled directly for public app '%s' (id=%s).", app_slug, instance.id)
-    else:
-        logger.debug("Skipping DOI minting for non-public app '%s' (id=%s).", app_slug, instance.id)
-
-
-def _handle_direct_doi_minting(instance, form, app_slug, access_changed_to_public=False):
-    """Handle DOI minting directly (extracted from main function logic)."""
-    image_value_changed = False
-    app_contains_image = False
-
-    # Check if image field exists and changed
-    for field in form.cleaned_data:
-        if field.lower() == "image":
-            app_contains_image = True
-            break
-    for field in form.changed_data:
-        if field.lower() == "image":
-            image_value_changed = True
-            break
-
-    # Collect additional metadata from form
-    additional_metadata = {}
-    additional_metadata["funding"] = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
-
-    lang = form.cleaned_data.get("language")
-    if lang:
-        additional_metadata["languages"] = lang
-
-    # Check for Invenio keywords and subject tags
-    invenio_tags = form.cleaned_data.get("tags")
-    if invenio_tags:
-        logger.debug(f"Form contains Invenio tags: {invenio_tags}")
-        additional_metadata["subjects"] = invenio_tags
-
-    # Mint DOI if image changed OR if access changed to public
-    should_mint_doi = image_value_changed or access_changed_to_public
-
-    if should_mint_doi:
-        reason = "access changed to public" if access_changed_to_public else "image value changed"
-        logger.info(f"App '{app_slug}' with app id '{instance.id}', {reason}, proceeding with DOI minting...")
-        continuation_message = "Continuing with app deployment despite DOI minting failure"
-        try:
-            from doi_minting.services.invenio_svc import (
-                save_metadata_to_invenio_then_mint_doi,
-            )
-
-            save_metadata_to_invenio_then_mint_doi(app_slug, instance.id, additional_metadata=additional_metadata)
-        except (ValueError, PermissionDenied, requests.RequestException, ConnectionError, Timeout, Exception) as e:
-            logger.error(f"Failed to mint DOI for app '{app_slug}' (ID: {instance.id}): {str(e)}")
-            logger.debug(continuation_message)
-    elif app_contains_image:
-        logger.debug(
-            f"App '{app_slug}' with app id '{instance.id}', Image value did not change and "
-            f"access did not change to public - skipping DOI minting"
-        )
-    else:
-        logger.debug(
-            f"App '{app_slug}' with app id '{instance.id}' does not have image and "
-            f"access did not change to public - skipping DOI minting"
-        )
 
 
 def get_subdomain_name(form):

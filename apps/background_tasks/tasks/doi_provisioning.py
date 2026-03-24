@@ -91,13 +91,6 @@ class DOIProvisioningTask(BaseBackgroundTask):
     timeout_seconds = 300
 
     def execute(self, app_instance, **kwargs) -> dict[str, Any]:
-        if not waffle.switch_is_active(DOI_MINTING_SWITCH):
-            logger.debug(
-                "DOI provisioning skipped: waffle switch '%s' is off",
-                DOI_MINTING_SWITCH,
-            )
-            return {"skipped": True, "reason": "doi_minting_using_invenio switch is off"}
-
         # Only run for instances that have an image (use shared resolver for all app types)
         image = resolve_app_image(app_instance)
         if not image:
