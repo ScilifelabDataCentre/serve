@@ -69,7 +69,7 @@ class CreateAppInstanceTestCase(TestCase):
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
         with patch.object(waffle, "switch_is_active", return_value=False), patch(
-            "apps.tasks.deploy_resource.delay"
+            "apps.tasks.run_background_tasks.delay"
         ) as mock_task:
             with self.captureOnCommitCallbacks(execute=True):
                 id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
@@ -112,7 +112,7 @@ class CreateAppInstanceTestCase(TestCase):
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
         with patch.object(waffle, "switch_is_active", return_value=False), patch(
-            "apps.tasks.deploy_resource.delay"
+            "apps.tasks.run_background_tasks.delay"
         ) as mock_task:
             with self.captureOnCommitCallbacks(execute=True):
                 id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
@@ -128,7 +128,7 @@ class CreateAppInstanceTestCase(TestCase):
 # Mock the tasks that manipulate k8s resources.
 # Note that these are passed to the test functions in reverse order.
 # The delete_resource task is used sync (without delay) in helpers.
-@patch("apps.tasks.deploy_resource.delay")
+@patch("apps.tasks.run_background_tasks.delay")
 @patch("apps.tasks.delete_resource")
 class UpdateExistingAppInstanceTestCase(TestCase):
     """
@@ -483,7 +483,7 @@ def test_get_subdomain_name_no_subdomain_in_form():
 
 
 @pytest.mark.django_db
-def test_forms_submit_funding_and_generate_mock_doi():
+def test_forms_submit_funding_and_enqueue_doi_background_task():
     user = User.objects.create_user("funding-doi-user", "funding-doi@test.com", "bar")
     project = Project.objects.create_project(name="test-funding-doi", owner=user, description="")
     flavor = Flavor.objects.create(name="funding-doi-flavor", project=project)
@@ -505,25 +505,13 @@ def test_forms_submit_funding_and_generate_mock_doi():
         )
 
     funding_payload = [{"funder_name": "Uppsala University", "funder_id": "048a87296"}]
-    captured_metadata: dict[int, dict] = {}
-
-    from doi_minting.services import invenio_svc
-
-    original_mint = invenio_svc.save_metadata_to_invenio_then_mint_doi
-
-    def wrapped_mint(app_slug, app_id, additional_metadata=None):
-        captured_metadata[app_id] = additional_metadata or {}
-        return original_mint(app_slug, app_id, additional_metadata=additional_metadata)
 
     def switch_enabled_only_for_doi_minting(name):
         return name == "doi_minting_using_invenio"
 
     with patch.object(waffle, "switch_is_active", side_effect=switch_enabled_only_for_doi_minting), patch(
-        "apps.tasks.deploy_resource.delay"
-    ), patch("doi_minting.services.invenio_svc.time.sleep", return_value=None), patch(
-        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi",
-        side_effect=wrapped_mint,
-    ):
+        "apps.helpers.transaction.on_commit", side_effect=lambda func: func()
+    ), patch("apps.tasks.run_background_tasks.delay") as mock_bg:
         for app_slug, _ in app_configs:
             model_class, form_class = APP_REGISTRY.get(app_slug)
             form_data = {
@@ -544,12 +532,11 @@ def test_forms_submit_funding_and_generate_mock_doi():
             app_id = create_instance_from_form(form, project, app_slug, app_id=None)
             app_instance = model_class.objects.get(pk=app_id)
 
-            assert app_instance.app_doi == "10.1234/mockdoi"
-            assert app_instance.invenio_record_id == "mock-record-id"
-            assert app_id in captured_metadata, f"Expected captured metadata for {app_slug}"
-            assert captured_metadata[app_id].get("funding") == funding_payload
-            assert captured_metadata[app_id].get("languages") == "eng"
-            assert captured_metadata[app_id].get("subjects")
+            called_serialized_instance, called_app_slug, task_kwargs_by_task_name = mock_bg.call_args.args
+            assert called_serialized_instance["pk"] == app_instance.id
+            assert called_app_slug == app_instance.app.slug
+            assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
+            assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
 
 
 @pytest.mark.django_db

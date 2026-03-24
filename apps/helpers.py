@@ -15,6 +15,7 @@ from django.db.models.query import QuerySet
 from django.forms.models import model_to_dict
 from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
+
 from apps.constants import (
     UNIVERSITY_NAMES,
     AppActionOrigin,
@@ -464,7 +465,9 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
                 "funding": funding_list,
             },
         }
-        transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
+        transaction.on_commit(
+            lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name)
+        )
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 

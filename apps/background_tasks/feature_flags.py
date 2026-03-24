@@ -12,5 +12,7 @@ import waffle  # type: ignore
 # When ON: deployments proceed even if critical background tasks failed.
 # When OFF (default/missing): critical task failure blocks deployment.
 BACKGROUND_TASKS_NONBLOCKING_DEPLOY_SWITCH = "background_tasks_nonblocking_deploy"
+
+
 def background_tasks_nonblocking_deploy() -> bool:
     return waffle.switch_is_active(BACKGROUND_TASKS_NONBLOCKING_DEPLOY_SWITCH)
