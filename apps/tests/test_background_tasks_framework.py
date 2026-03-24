@@ -29,6 +29,29 @@ def test_known_tasks_are_registered_after_django_startup():
 
 
 @pytest.mark.django_db
+def test_known_tasks_apply_to_non_custom_app_types():
+    streamlit_tasks = TASK_REGISTRY.get_tasks_for_app("streamlit")
+
+    assert "validate_docker_image" in [task.task_name for task in streamlit_tasks]
+    assert "doi_provisioning" in [task.task_name for task in streamlit_tasks]
+
+
+@pytest.mark.django_db
+def test_doi_provisioning_is_not_registered_for_jupyter_lab():
+    jupyter_tasks = TASK_REGISTRY.get_tasks_for_app("jupyter-lab")
+
+    assert "validate_docker_image" in [task.task_name for task in jupyter_tasks]
+    assert "doi_provisioning" not in [task.task_name for task in jupyter_tasks]
+
+
+@pytest.mark.django_db
+def test_validate_docker_image_is_not_registered_for_non_image_apps():
+    tissuumaps_tasks = TASK_REGISTRY.get_tasks_for_app("tissuumaps")
+
+    assert "validate_docker_image" not in [task.task_name for task in tissuumaps_tasks]
+
+
+@pytest.mark.django_db
 def test_doi_provisioning_task_includes_funding_metadata(app_instance):
     funding_payload = [
         {
@@ -381,5 +404,61 @@ def test_run_background_tasks_creates_db_rows_and_schedules_workflow(
     rows = BackgroundTask.objects.filter(app_instance=app_instance).order_by("execution_order")
     assert rows.count() == 2
     assert [r.task_name for r in rows] == ["unit_one", "unit_two"]
+    assert all(r.status == "pending" for r in rows)
+    assert called["apply_async"] == 1
+
+
+@pytest.mark.django_db
+def test_run_background_tasks_uses_known_tasks_for_streamlit(immediate_on_commit, monkeypatch):
+    user = User.objects.create_user("u_streamlit", "u_streamlit@test.com", "pw")
+    project = Project.objects.create_project(name="p_streamlit", owner=user, description="")
+    app = Apps.objects.create(name="Streamlit App", slug="streamlit")
+    app_instance = BaseAppInstance.objects.create(owner=user, project=project, app=app, chart="test-chart")
+
+    called = {"apply_async": 0}
+
+    class FakeWorkflow:
+        def apply_async(self):
+            called["apply_async"] += 1
+
+    import celery  # type: ignore
+
+    monkeypatch.setattr(celery, "chain", lambda *steps: FakeWorkflow())
+    monkeypatch.setattr(celery, "group", lambda steps: types.SimpleNamespace(steps=steps))
+
+    result = run_background_tasks(serialized_instance=app_instance.serialize(), app_slug="streamlit")
+
+    assert result["success"] is True
+
+    rows = BackgroundTask.objects.filter(app_instance=app_instance).order_by("execution_order", "task_name")
+    assert [r.task_name for r in rows] == ["validate_docker_image", "doi_provisioning"]
+    assert all(r.status == "pending" for r in rows)
+    assert called["apply_async"] == 1
+
+
+@pytest.mark.django_db
+def test_run_background_tasks_uses_only_validation_for_jupyter_lab(immediate_on_commit, monkeypatch):
+    user = User.objects.create_user("u_jupyter_run", "u_jupyter_run@test.com", "pw")
+    project = Project.objects.create_project(name="p_jupyter_run", owner=user, description="")
+    app = Apps.objects.create(name="JupyterLab", slug="jupyter-lab")
+    app_instance = BaseAppInstance.objects.create(owner=user, project=project, app=app, chart="test-chart")
+
+    called = {"apply_async": 0}
+
+    class FakeWorkflow:
+        def apply_async(self):
+            called["apply_async"] += 1
+
+    import celery  # type: ignore
+
+    monkeypatch.setattr(celery, "chain", lambda *steps: FakeWorkflow())
+    monkeypatch.setattr(celery, "group", lambda steps: types.SimpleNamespace(steps=steps))
+
+    result = run_background_tasks(serialized_instance=app_instance.serialize(), app_slug="jupyter-lab")
+
+    assert result["success"] is True
+
+    rows = BackgroundTask.objects.filter(app_instance=app_instance).order_by("execution_order", "task_name")
+    assert [r.task_name for r in rows] == ["validate_docker_image"]
     assert all(r.status == "pending" for r in rows)
     assert called["apply_async"] == 1
