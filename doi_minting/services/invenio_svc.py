@@ -386,6 +386,20 @@ class InvenioService:
                                     schemeUri="https://ror.org/",
                                 )
                             )
+                        elif isinstance(affiliation_data, dict) and "identifier" in affiliation_data:
+                            # ORCID-sourced format: structured affiliation with identifier
+                            scheme = affiliation_data.get("scheme", "").upper()
+                            identifier = affiliation_data.get("identifier", "")
+                            scheme_uri = "https://ror.org/" if scheme == "ROR" else None
+
+                            affiliations_list.append(
+                                Affiliation(
+                                    name=affiliation_data.get("name", ""),
+                                    affiliationIdentifier=identifier,
+                                    affiliationIdentifierScheme=scheme,
+                                    schemeUri=scheme_uri,
+                                )
+                            )
                         else:
                             # Fallback: use as name
                             name = str(affiliation_data)

@@ -715,13 +715,57 @@ class OrcidSearchView(View):
                     if display_name:
                         display_name = f"{display_name} ({orcid_id})"
 
+            # Get latest employment with identifiers
+            affiliation = ""
+            try:
+                emp_response = requests.get(
+                    f"https://pub.orcid.org/v3.0/{orcid_id}/employments", headers=headers, timeout=5
+                )
+                if emp_response.status_code == 200:
+                    emp_data = emp_response.json()
+                    for group in emp_data.get("affiliation-group", []):
+                        for summary in group.get("summaries", []):
+                            emp = summary.get("employment-summary", {})
+                            if not emp.get("end-date"):  # Current employment
+                                org = emp.get("organization", {})
+                                org_name = org.get("name", "")
+
+                                # Check for organization identifiers (ROR, etc.)
+                                org_identifiers = org.get("disambiguated-organization")
+                                if org_name and org_identifiers:
+                                    # Extract ROR or other identifiers
+                                    identifier_type = org_identifiers.get("disambiguation-source")
+                                    identifier_id = org_identifiers.get("disambiguated-organization-identifier")
+
+                                    if identifier_type and identifier_id:
+                                        # Strip URL prefix to get just the ID
+                                        if identifier_type.lower() == "ror":
+                                            identifier_id = identifier_id.replace("https://ror.org/", "")
+                                        # Return structured affiliation with identifier
+                                        affiliation = {
+                                            "name": org_name,
+                                            "identifier": identifier_id,
+                                            "scheme": identifier_type.upper()
+                                            if identifier_type.lower() == "ror"
+                                            else identifier_type,
+                                        }
+                                    else:
+                                        affiliation = org_name
+                                else:
+                                    affiliation = org_name
+                                break
+                        if affiliation:
+                            break
+            except Exception as e:
+                logger.error(f"Error fetching ORCID employment details for {orcid_id}: {e}")
+
             return {
                 "display_name": display_name,
                 "given_name": given_name,
                 "family_name": family_name,
                 "orcid": f"https://orcid.org/{orcid_id}",
                 "orcid_id": orcid_id,
-                "affiliation": "",  # Could be extended to fetch affiliations too
+                "affiliation": affiliation,
             }
 
         except Exception as e:

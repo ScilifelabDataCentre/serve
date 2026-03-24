@@ -19,6 +19,7 @@
             <label for="newCreatorAffiliation" class="form-label fw-bold">Affiliation <span class="text-danger">*</span></label>
             <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation" required>
             <input type="hidden" id="newCreatorRorData" value="">
+            <input type="hidden" id="newCreatorOrcidAffiliationData" value="">
             <div id="affiliationSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
           </div>
           <!-- Name fields - Required and editable -->
@@ -50,10 +51,18 @@ function addCreator(shouldCloseModal = true) {
   const lastName = document.getElementById('newCreatorLastName').value.trim();
   const orcid = document.getElementById('newCreatorOrcid').value.trim();
 
-  // Get affiliation data - prefer structured ROR data over text input
+  // Get affiliation data - prefer structured ROR data, then ORCID data, then text input
   const rorDataJson = document.getElementById('newCreatorRorData').value;
+  const orcidAffDataJson = document.getElementById('newCreatorOrcidAffiliationData').value;
   const affiliationText = document.getElementById('newCreatorAffiliation').value.trim();
-  const affiliation = rorDataJson ? JSON.parse(rorDataJson) : affiliationText;
+  let affiliation;
+  if (rorDataJson) {
+    affiliation = JSON.parse(rorDataJson);
+  } else if (orcidAffDataJson) {
+    affiliation = JSON.parse(orcidAffDataJson);
+  } else {
+    affiliation = affiliationText;
+  }
 
   // Validate required fields: name, lastName, and affiliation (ORCID is optional)
   if (!name || !lastName || !affiliation) {
@@ -63,7 +72,7 @@ function addCreator(shouldCloseModal = true) {
 
   let creatorInfo = `<strong>${name} ${lastName}</strong><br><small class="text-muted">`;
   if (affiliation) {
-    const affiliationName = typeof affiliation === 'string' ? affiliation : affiliation.title;
+    const affiliationName = typeof affiliation === 'string' ? affiliation : (affiliation.title || affiliation.name);
     creatorInfo += `Affiliation: ${affiliationName}<br>`;
   }
   if (orcid) creatorInfo += `ORCID: ${orcid}`;
@@ -102,6 +111,7 @@ function clearCreatorForm() {
   document.getElementById('newCreatorLastName').value = '';
   document.getElementById('newCreatorAffiliation').value = '';
   document.getElementById('newCreatorRorData').value = '';
+  document.getElementById('newCreatorOrcidAffiliationData').value = '';
   document.getElementById('newCreatorOrcid').value = '';
   syncCreatorButtons();
 }
@@ -265,6 +275,19 @@ document.addEventListener('DOMContentLoaded', function() {
                   }
                   if (person.family_name) {
                     document.getElementById('newCreatorLastName').value = person.family_name;
+                  }
+                  if (person.affiliation) {
+                    // Handle both string and structured affiliation data
+                    if (typeof person.affiliation === 'object') {
+                      // Structured affiliation with identifier
+                      document.getElementById('newCreatorAffiliation').value = person.affiliation.name;
+                      // Store full structured data for later use
+                      document.getElementById('newCreatorOrcidAffiliationData').value = JSON.stringify(person.affiliation);
+                    } else {
+                      // Simple string affiliation
+                      document.getElementById('newCreatorAffiliation').value = person.affiliation;
+                      document.getElementById('newCreatorOrcidAffiliationData').value = '';
+                    }
                   }
 
                   // Sync button states after populating fields
