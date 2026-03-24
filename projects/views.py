@@ -732,7 +732,10 @@ def delete(request, project_slug):
     if not request.user.is_superuser:
         has_apps = False
         for app_orm in APP_REGISTRY.iter_orm_models():
-            if app_orm.objects.filter(project=project, deleted_on__isnull=True).exists():
+            # Only check for serve and developer apps, not admin apps
+            if app_orm.objects.filter(
+                project=project, deleted_on__isnull=True, app__category__slug__in=["serve", "develop"]
+            ).exists():
                 has_apps = True
                 break
 
