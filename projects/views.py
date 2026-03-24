@@ -727,18 +727,17 @@ def delete(request, project_slug):
     else:
         project = Project.objects.filter(slug=project_slug).first()
 
-    # Check if project has any public apps before deletion.
-    # Only allow admins to delete projects with public apps.
+    # Check if project contains apps before deletion.
+    # Only allow admins to delete projects with existing apps.
     if not request.user.is_superuser:
-        has_public_apps = False
+        has_apps = False
         for app_orm in APP_REGISTRY.iter_orm_models():
-            if hasattr(app_orm, "access"):
-                if app_orm.objects.filter(project=project, access="public", deleted_on__isnull=True).exists():
-                    has_public_apps = True
-                    break
+            if app_orm.objects.filter(project=project, deleted_on__isnull=True).exists():
+                has_apps = True
+                break
 
-        if has_public_apps:
-            messages.error(request, "Cannot delete project that contains public apps.")
+        if has_apps:
+            messages.error(request, "Cannot delete a project that contains apps.")
             return HttpResponseRedirect(f"/projects/{project_slug}")
 
     logger.info("SCHEDULING DELETION OF ALL INSTALLED APPS")
