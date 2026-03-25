@@ -481,6 +481,8 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
 
         _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public)
 
+    return instance_id
+
 
 def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public=False):
     """Deploy using background tasks with DOI minting for public apps."""

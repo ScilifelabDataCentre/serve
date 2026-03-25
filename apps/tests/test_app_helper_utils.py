@@ -236,8 +236,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["image", "invenio_tags", "tags", "language"]
-        changed_fields = ["image", "invenio_tags", "tags", "creators"]
+        changed_fields = ["image", "invenio_tags", "tags", "creators", "language"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -270,8 +269,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["subdomain", "invenio_tags", "tags", "language"]
-        changed_fields = ["subdomain", "invenio_tags", "tags", "creators"]
+        changed_fields = ["subdomain", "invenio_tags", "tags", "creators", "language"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -311,8 +309,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags", "language"]
-        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags", "creators"]
+        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags", "creators", "language"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)

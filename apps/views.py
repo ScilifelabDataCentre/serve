@@ -199,7 +199,12 @@ def delete(request, project, app_slug, app_id):
         return HttpResponseForbidden()
 
     # Prevent deletion of public apps with published DOIs
-    if hasattr(instance, "access") and instance.access == "public" and instance.app_doi:
+    if (
+        hasattr(instance, "access")
+        and instance.access == "public"
+        and hasattr(instance, "app_doi")
+        and instance.app_doi
+    ):
         return HttpResponseForbidden("Cannot delete public apps with published DOIs.")
 
     serialized_instance = instance.serialize()
