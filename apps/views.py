@@ -5,12 +5,14 @@ from datetime import datetime
 
 import dateutil.parser
 import requests
+import waffle
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -34,6 +36,117 @@ from .tasks import delete_resource
 logger = get_logger(__name__)
 
 User = get_user_model()
+
+
+def _is_ajax_request(request) -> bool:
+    return request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+
+def _build_project_app_path(project_slug: str, suffix: str) -> str:
+    return f"/projects/{project_slug}/apps/{suffix}"
+
+
+def _serialize_background_task(task):
+    duration = task.get_duration()
+    result_data = task.result_data if isinstance(task.result_data, dict) else {}
+    was_skipped = bool(result_data.get("skipped"))
+    return {
+        "id": task.id,
+        "task_name": task.task_name,
+        "task_type": task.task_type,
+        "status": task.status,
+        "is_critical": task.is_critical,
+        "execution_order": task.execution_order,
+        "error_message": task.error_message,
+        "retry_count": task.retry_count,
+        "max_retries": task.max_retries,
+        "created_at": task.created_at.isoformat() if task.created_at else None,
+        "started_at": task.started_at.isoformat() if task.started_at else None,
+        "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+        "duration_seconds": duration,
+        "can_retry": task.status == "failed",
+        "was_skipped": was_skipped,
+        "skip_reason": result_data.get("reason", "") if was_skipped else "",
+    }
+
+
+def _select_latest_task_records(tasks):
+    latest_by_name = {}
+    for task in sorted(tasks, key=lambda task: (task.created_at, task.pk)):
+        latest_by_name[task.task_name] = task
+
+    return sorted(
+        latest_by_name.values(),
+        key=lambda task: (task.execution_order, task.created_at, task.pk),
+    )
+
+
+def _build_task_summary(tasks_data):
+    return {
+        "total": len(tasks_data),
+        "pending": sum(1 for t in tasks_data if t["status"] == "pending"),
+        "running": sum(1 for t in tasks_data if t["status"] == "running"),
+        "success": sum(1 for t in tasks_data if t["status"] == "success"),
+        "failed": sum(1 for t in tasks_data if t["status"] == "failed"),
+        "retrying": sum(1 for t in tasks_data if t["status"] == "retrying"),
+    }
+
+
+def _build_workflow_state(tasks_data):
+    has_failed_critical = any(t["is_critical"] and t["status"] == "failed" for t in tasks_data)
+    has_in_progress = any(t["status"] in {"pending", "running", "retrying"} for t in tasks_data)
+    ready_for_deploy = bool(tasks_data) and not has_failed_critical and not has_in_progress
+    return {
+        "blocked": has_failed_critical,
+        "ready_for_deploy": ready_for_deploy,
+        "has_failed_critical": has_failed_critical,
+        "has_in_progress": has_in_progress,
+    }
+
+
+def _build_deployment_state(instance, workflow, tasks_data):
+    app_status = instance.get_app_status()
+    latest_user_action = instance.latest_user_action
+    status = "pending"
+    label = "Pending"
+    message = "Waiting to start deployment."
+
+    if workflow["blocked"]:
+        status = "blocked"
+        label = "Blocked"
+        message = "Deployment cannot continue until the failed required check is resolved."
+    elif workflow["has_in_progress"]:
+        status = "pending"
+        label = "Pending"
+        message = "Deployment will start after the checks pass."
+    elif app_status == "Running":
+        status = "success"
+        label = "Done"
+        message = "The app is running."
+    elif app_status in {"Error", "Error (NotFound)"}:
+        status = "failed"
+        label = "Failed"
+        message = "Deployment hit an error after the checks completed."
+    elif workflow["ready_for_deploy"] or latest_user_action in {"Creating", "Changing", "Redeploying"}:
+        status = "running"
+        label = "Deploying"
+        message = "Deployment is in progress."
+    elif tasks_data:
+        status = "pending"
+        label = "Pending"
+        message = "Deployment will start after the checks pass."
+    elif waffle.switch_is_active("background_tasks"):
+        status = "pending"
+        label = "Pending"
+        message = "Waiting for deployment checks to start."
+
+    return {
+        "status": status,
+        "label": label,
+        "message": message,
+        "app_status": app_status,
+        "latest_user_action": latest_user_action,
+    }
 
 
 @method_decorator(
@@ -274,31 +387,42 @@ class CreateApp(View):
 
         if not form.is_valid():
             form_header = "Update" if app_id else "Create"
-            return render(
-                request,
-                self.template_name,
-                {
-                    "form": form,
-                    "project": project,
-                    "app_id": app_id,
-                    "app_slug": app_slug,
-                    "form_header": form_header,
-                    "user": request.user,
-                    "model_name": str(APP_REGISTRY.get_orm_model(app_slug).__name__).lower(),
-                },
-            )
+            context = {
+                "form": form,
+                "project": project,
+                "app_id": app_id,
+                "app_slug": app_slug,
+                "form_header": form_header,
+                "user": request.user,
+                "model_name": str(APP_REGISTRY.get_orm_model(app_slug).__name__).lower(),
+            }
+            if _is_ajax_request(request):
+                html = render_to_string(self.template_name, context, request=request)
+                return JsonResponse({"success": False, "html": html}, status=400)
+            return render(request, self.template_name, context)
 
         # Otherwise we can create the instance
-        create_instance_from_form(form, project, app_slug, app_id)
+        instance_id = create_instance_from_form(form, project, app_slug, app_id)
+        detail_url = _build_project_app_path(str(project_slug), f"details/{app_slug}/{instance_id}")
+        progress_url = _build_project_app_path(str(project_slug), f"progress/{app_slug}/{instance_id}")
+        background_tasks_url = _build_project_app_path(str(project_slug), f"tasks/{app_slug}/{instance_id}")
+        status_api_url = _build_project_app_path(str(project_slug), f"tasks/{app_slug}/{instance_id}/status")
 
-        return HttpResponseRedirect(
-            reverse(
-                "projects:details",
-                kwargs={
-                    "project_slug": str(project_slug),
-                },
+        if _is_ajax_request(request):
+            action = "updated" if app_id else "created"
+            return JsonResponse(
+                {
+                    "success": True,
+                    "instance_id": instance_id,
+                    "detail_url": detail_url,
+                    "progress_url": progress_url,
+                    "background_tasks_url": background_tasks_url,
+                    "status_api_url": status_api_url,
+                    "action": action,
+                }
             )
-        )
+
+        return HttpResponseRedirect(progress_url)
 
     def get_form(self, request, project, app_slug, app_id):
         model_class, form_class = APP_REGISTRY.get(app_slug)
@@ -326,6 +450,106 @@ class CreateApp(View):
             # Maybe this makes typing hard.
         else:
             return None
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class DeploymentProgressView(View):
+    template = "apps/deployment_progress.html"
+
+    def get(self, request, project, app_slug, app_id):
+        from apps.models import BackgroundTask
+
+        model_class = APP_REGISTRY.get_orm_model(app_slug)
+        if not model_class:
+            raise PermissionDenied("Application model not found")
+
+        instance = model_class.objects.get(pk=app_id)
+        project_obj = Project.objects.get(slug=project)
+
+        tasks = _select_latest_task_records(
+            list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
+        )
+        tasks_data = [_serialize_background_task(task) for task in tasks]
+        summary = _build_task_summary(tasks_data)
+        workflow = _build_workflow_state(tasks_data)
+        deployment = _build_deployment_state(instance, workflow, tasks_data)
+
+        context = {
+            "instance": instance,
+            "project": project_obj,
+            "app_slug": app_slug,
+            "summary": summary,
+            "workflow": workflow,
+            "deployment": deployment,
+            "detail_url": _build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
+            "form_url": _build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}"),
+            "background_tasks_url": _build_project_app_path(str(project_obj.slug), f"tasks/{app_slug}/{instance.pk}"),
+        }
+
+        return render(request, self.template, context)
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class AppDetailsView(View):
+    template = "apps/details.html"
+
+    def get(self, request, project, app_slug, app_id):
+        from apps.models import BackgroundTask
+
+        model_class = APP_REGISTRY.get_orm_model(app_slug)
+        if not model_class:
+            raise PermissionDenied("Application model not found")
+
+        instance = model_class.objects.get(pk=app_id)
+        project_obj = Project.objects.get(slug=project)
+
+        tasks = _select_latest_task_records(
+            list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
+        )
+        tasks_data = [_serialize_background_task(task) for task in tasks]
+        summary = _build_task_summary(tasks_data)
+        workflow = _build_workflow_state(tasks_data)
+        deployment = _build_deployment_state(instance, workflow, tasks_data)
+
+        description = getattr(instance, "description", "")
+        source_code_url = getattr(instance, "source_code_url", "")
+        image = getattr(instance, "image", "")
+        tags = instance.tags.all() if hasattr(instance, "tags") else []
+        access = getattr(instance, "access", "")
+        details_rows = [
+            ("Type", instance.app.name),
+            ("Project", project_obj.name),
+            ("Status", instance.get_app_status()),
+            ("Permissions", access.title() if access else ""),
+            ("Subdomain", instance.subdomain.subdomain if instance.subdomain else ""),
+            ("URL", instance.url or ""),
+            ("Source code", source_code_url),
+            ("Docker image", image),
+        ]
+
+        context = {
+            "instance": instance,
+            "project": project_obj,
+            "tasks": tasks,
+            "summary": summary,
+            "workflow": workflow,
+            "deployment": deployment,
+            "description": description,
+            "details_rows": details_rows,
+            "tags": tags,
+            "public_details_url": reverse("app-metadata", kwargs={"app_id": instance.pk}) if access == "public" else "",
+            "background_tasks_url": reverse(
+                "apps:background_tasks",
+                kwargs={"project": project_obj.slug, "app_slug": app_slug, "app_id": instance.pk},
+            ),
+        }
+        return render(request, self.template, context)
 
 
 @method_decorator(
@@ -453,15 +677,8 @@ class BackgroundTasksView(View):
 
         # Get all background tasks for this instance
         tasks_qs = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
-        tasks = list(tasks_qs)
-        summary = {
-            "total": len(tasks),
-            "pending": sum(1 for t in tasks if t.status == "pending"),
-            "running": sum(1 for t in tasks if t.status == "running"),
-            "success": sum(1 for t in tasks if t.status == "success"),
-            "failed": sum(1 for t in tasks if t.status == "failed"),
-            "retrying": sum(1 for t in tasks if t.status == "retrying"),
-        }
+        tasks = _select_latest_task_records(list(tasks_qs))
+        summary = _build_task_summary([_serialize_background_task(task) for task in tasks])
 
         context = {
             "instance": instance,
@@ -469,6 +686,8 @@ class BackgroundTasksView(View):
             "tasks": tasks,
             "summary": summary,
             "app_slug": app_slug,
+            "detail_url": _build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
+            "redirect_to_details": request.GET.get("redirect_to") == "details",
         }
 
         return render(request, self.template, context)
@@ -495,37 +714,11 @@ class BackgroundTaskStatusAPI(View):
             return JsonResponse({"error": "App instance not found"}, status=404)
 
         # Get all background tasks for this instance
-        tasks = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
-
-        tasks_data = []
-        for task in tasks:
-            duration = task.get_duration()
-            tasks_data.append(
-                {
-                    "id": task.id,
-                    "task_name": task.task_name,
-                    "task_type": task.task_type,
-                    "status": task.status,
-                    "is_critical": task.is_critical,
-                    "execution_order": task.execution_order,
-                    "error_message": task.error_message,
-                    "retry_count": task.retry_count,
-                    "max_retries": task.max_retries,
-                    "created_at": task.created_at.isoformat() if task.created_at else None,
-                    "started_at": task.started_at.isoformat() if task.started_at else None,
-                    "completed_at": task.completed_at.isoformat() if task.completed_at else None,
-                    "duration_seconds": duration,
-                    "can_retry": task.status == "failed",
-                }
-            )
-
-        # Calculate summary statistics
-        total = len(tasks_data)
-        pending = sum(1 for t in tasks_data if t["status"] == "pending")
-        running = sum(1 for t in tasks_data if t["status"] == "running")
-        success = sum(1 for t in tasks_data if t["status"] == "success")
-        failed = sum(1 for t in tasks_data if t["status"] == "failed")
-        retrying = sum(1 for t in tasks_data if t["status"] == "retrying")
+        tasks = _select_latest_task_records(
+            list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
+        )
+        tasks_data = [_serialize_background_task(task) for task in tasks]
+        summary = _build_task_summary(tasks_data)
 
         # Build execution graph data (stage-based DAG from execution_order).
         order_to_task_ids: dict[int, list[int]] = {}
@@ -560,10 +753,11 @@ class BackgroundTaskStatusAPI(View):
                         }
                     )
 
-        has_failed_critical = any(t["is_critical"] and t["status"] == "failed" for t in tasks_data)
-        has_in_progress = any(t["status"] in {"pending", "running", "retrying"} for t in tasks_data)
-        ready_for_deploy = bool(tasks_data) and not has_failed_critical and not has_in_progress
-        blocked = has_failed_critical
+        workflow = _build_workflow_state(tasks_data)
+        blocked = workflow["blocked"]
+        ready_for_deploy = workflow["ready_for_deploy"]
+        has_in_progress = workflow["has_in_progress"]
+        deployment = _build_deployment_state(instance, workflow, tasks_data)
 
         if sorted_orders:
             for source_id in order_to_task_ids[sorted_orders[-1]]:
@@ -597,23 +791,19 @@ class BackgroundTaskStatusAPI(View):
         return JsonResponse(
             {
                 "tasks": tasks_data,
-                "summary": {
-                    "total": total,
-                    "pending": pending,
-                    "running": running,
-                    "success": success,
-                    "failed": failed,
-                    "retrying": retrying,
-                },
+                "summary": summary,
                 "graph": {
                     "nodes": graph_nodes,
                     "edges": graph_edges,
                 },
-                "workflow": {
-                    "blocked": blocked,
-                    "ready_for_deploy": ready_for_deploy,
-                    "has_failed_critical": has_failed_critical,
-                    "has_in_progress": has_in_progress,
+                "workflow": workflow,
+                "deployment": deployment,
+                "instance": {
+                    "id": instance.pk,
+                    "name": instance.name,
+                    "app_status": instance.get_app_status(),
+                    "latest_user_action": instance.latest_user_action,
+                    "url": instance.url,
                 },
             }
         )

@@ -46,6 +46,17 @@ def _retry_countdown(current_retries: int) -> int:
     return min(DEPLOY_RESOURCE_RETRY_BASE_SECONDS * (2**current_retries), DEPLOY_RESOURCE_RETRY_MAX_SECONDS)
 
 
+def _select_latest_task_records(task_records):
+    latest_by_name = {}
+    for task_record in sorted(task_records, key=lambda task: (task.created_at, task.pk)):
+        latest_by_name[task_record.task_name] = task_record
+
+    return sorted(
+        latest_by_name.values(),
+        key=lambda task: (task.execution_order, task.created_at, task.pk),
+    )
+
+
 @app.task
 def delete_old_objects():
     """
@@ -508,6 +519,43 @@ def deserialize(serialized_instance):
         raise MissingSerializedInstanceError(model=model, pk=pk, base_instance_exists=base_instance_exists)
 
 
+def resolve_task_app_instance(task_record):
+    """
+    Resolve the concrete app instance model for a background task when possible.
+
+    BackgroundTask points to BaseAppInstance, but many task implementations expect
+    fields that live on the concrete child model (for example CustomAppInstance).
+    Fall back to the base instance if a concrete model cannot be resolved.
+    """
+    base_instance = task_record.app_instance
+    app = getattr(base_instance, "app", None)
+    app_slug = getattr(app, "slug", None)
+    if not app_slug:
+        return base_instance
+
+    model_class = APP_REGISTRY.get_orm_model(app_slug)
+    if not model_class:
+        return base_instance
+
+    try:
+        concrete_instance = model_class.objects.get(pk=task_record.app_instance_id)
+        logger.debug(
+            "background_task.instance_resolved task=%s app_id=%s concrete_model=%s",
+            task_record.task_name,
+            task_record.app_instance_id,
+            model_class.__name__,
+        )
+        return concrete_instance
+    except ObjectDoesNotExist:
+        logger.debug(
+            "background_task.instance_fallback task=%s app_id=%s base_model=%s",
+            task_record.task_name,
+            task_record.app_instance_id,
+            type(base_instance).__name__,
+        )
+        return base_instance
+
+
 @app.task
 def update_cached_app_ip_counts():
     """Update cached IP counts of every app subdomain."""
@@ -711,6 +759,7 @@ def execute_single_background_task(
         return {"success": False, "error": error_msg}
 
     task_instance = task_class()
+    app_instance = resolve_task_app_instance(task_record)
     task_kwargs_by_task_name = task_kwargs_by_task_name or {}
     task_kwargs = {}
     if isinstance(task_kwargs_by_task_name, dict):
@@ -719,9 +768,9 @@ def execute_single_background_task(
     # Validate inputs
     try:
         if task_kwargs:
-            task_instance.validate_inputs(task_record.app_instance, **task_kwargs)
+            task_instance.validate_inputs(app_instance, **task_kwargs)
         else:
-            task_instance.validate_inputs(task_record.app_instance)
+            task_instance.validate_inputs(app_instance)
     except Exception as e:
         import traceback
 
@@ -745,12 +794,12 @@ def execute_single_background_task(
     # Execute the task
     try:
         if task_kwargs:
-            result = task_instance.execute(task_record.app_instance, **task_kwargs)
+            result = task_instance.execute(app_instance, **task_kwargs)
         else:
-            result = task_instance.execute(task_record.app_instance)
+            result = task_instance.execute(app_instance)
         task_record.mark_as_success(result_data=result)
         try:
-            task_instance.on_success(task_record.app_instance, result)
+            task_instance.on_success(app_instance, result)
         except Exception as hook_err:
             # Hooks should not be able to flip a successful task into a failed one.
             logger.warning(
@@ -783,7 +832,7 @@ def execute_single_background_task(
 
             task_record.mark_as_retrying()
             try:
-                task_instance.on_failure(task_record.app_instance, e)
+                task_instance.on_failure(app_instance, e)
             except Exception as hook_err:
                 # Still retry even if the failure hook itself errors.
                 logger.warning(
@@ -814,7 +863,7 @@ def execute_single_background_task(
                 },
             )
             try:
-                task_instance.on_failure(task_record.app_instance, e)
+                task_instance.on_failure(app_instance, e)
             except Exception as hook_err:
                 logger.warning(
                     "Background task %s on_failure hook failed for app %s: %s",
@@ -954,13 +1003,15 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
     logger.info(f"Checking background tasks before deployment for app {app_instance_id}")
 
     # Get all tasks for this app instance
-    tasks = BackgroundTask.objects.filter(app_instance_id=app_instance_id).order_by("execution_order")
+    tasks = _select_latest_task_records(
+        list(BackgroundTask.objects.filter(app_instance_id=app_instance_id).order_by("execution_order", "created_at"))
+    )
 
-    # Check if any critical tasks failed
-    failed_critical_tasks = tasks.filter(is_critical=True, status="failed")
+    # Check if any critical tasks failed in the latest logical run.
+    failed_critical_tasks = [task for task in tasks if task.is_critical and task.status == "failed"]
 
-    if failed_critical_tasks.exists():
-        failed_names = [t.task_name for t in failed_critical_tasks]
+    if failed_critical_tasks:
+        failed_names = [task.task_name for task in failed_critical_tasks]
         from apps.background_tasks.feature_flags import (
             background_tasks_nonblocking_deploy,
         )

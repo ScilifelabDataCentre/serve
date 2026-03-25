@@ -121,6 +121,13 @@ class DockerImageValidator(BaseBackgroundTask):
             logger.error(f"Failed to validate Docker image {image}: {e}")
             raise
 
+    def should_retry(self, error: Exception, retry_count: int) -> bool:
+        from apps.validators.container_images import ContainerImageValidationError
+
+        if isinstance(error, ContainerImageValidationError):
+            return False
+        return super().should_retry(error, retry_count)
+
 
 # Example task - not registered by default
 # @TASK_REGISTRY.register(

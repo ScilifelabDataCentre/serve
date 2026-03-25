@@ -1,0 +1,964 @@
+{% extends 'base.html' %}
+
+{% block title %}Preparing {{ instance.name }}{% endblock %}
+{% load static %}
+{% block content %}
+
+<div class="container py-5 deployment-progress-shell">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-7">
+      <div class="card shadow-lg border-0 deployment-progress-card">
+        <div class="card-body p-4 p-lg-5">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <span class="badge text-bg-info" id="progress-pill">Checking</span>
+            <span class="small text-muted" id="progress-inline">This page updates automatically.</span>
+          </div>
+
+          <h1 class="h3 mb-2" id="progress-title">We are preparing {{ instance.name }}</h1>
+          <p class="text-muted mb-4" id="progress-message">
+            We are validating your app, running the background tasks, and then deploying it.
+          </p>
+
+          <div class="mb-4">
+            <div class="d-flex justify-content-between small mb-2">
+              <span>Progress</span>
+              <span id="progress-label">0 of 1 steps completed</span>
+            </div>
+            <div class="progress" role="progressbar" aria-label="Deployment progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div class="progress-bar progress-bar-striped progress-bar-animated" id="progress-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="border rounded overflow-hidden mb-4" id="step-list">
+            <div class="step-row">
+              <div class="step-icon-wrap">
+                <span class="step-icon step-icon-running"><span class="step-spinner"></span></span>
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-semibold">Starting deployment checks</div>
+                <div class="small text-muted">We will list each step here as soon as it starts.</div>
+              </div>
+              <div class="small text-muted">Waiting</div>
+            </div>
+          </div>
+
+          <div class="small text-muted mb-4" id="progress-next-step">
+            We will open the app details page automatically when everything is ready.
+          </div>
+
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{{ background_tasks_url }}" class="btn btn-outline-secondary">Detailed checks</a>
+            <a href="{{ form_url }}" class="btn btn-outline-secondary">Back to form</a>
+            <a href="{{ detail_url }}" class="btn btn-primary" id="details-link">App details</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .deployment-progress-shell {
+    position: relative;
+  }
+
+  .deployment-progress-shell::before {
+    content: "";
+    position: absolute;
+    inset: 2rem 1rem auto;
+    height: 18rem;
+    background:
+      radial-gradient(circle at top left, rgba(13, 110, 253, 0.12), transparent 48%),
+      radial-gradient(circle at top right, rgba(25, 135, 84, 0.1), transparent 42%);
+    filter: blur(18px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .deployment-progress-card {
+    position: relative;
+    z-index: 1;
+    border-radius: 1.4rem;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 1.5rem 4rem rgba(16, 24, 40, 0.08);
+  }
+
+  #progress-pill {
+    border-radius: 999px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.01em;
+  }
+
+  #progress-title {
+    font-size: clamp(2rem, 3vw, 2.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  #progress-message {
+    font-size: 1.08rem;
+    max-width: 42rem;
+  }
+
+  .progress {
+    height: 0.9rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    border-radius: 999px;
+    background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 55%, #60a5fa 100%);
+  }
+
+  .progress-bar.bg-success {
+    background-image: linear-gradient(90deg, #15803d 0%, #22c55e 60%, #86efac 100%);
+  }
+
+  .progress-bar.bg-danger {
+    background-image: linear-gradient(90deg, #b91c1c 0%, #ef4444 60%, #fca5a5 100%);
+  }
+
+  #step-list {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1rem;
+    background:
+      linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(255, 255, 255, 1) 100%),
+      linear-gradient(135deg, rgba(37, 99, 235, 0.03), rgba(34, 197, 94, 0.02));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .step-row:last-child {
+    border-bottom: 0;
+  }
+
+  .step-row.is-running {
+    background: rgba(37, 99, 235, 0.05);
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.06);
+  }
+
+  .step-row.is-retrying {
+    background: rgba(245, 158, 11, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.09);
+  }
+
+  .step-row.is-success {
+    background: rgba(22, 163, 74, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.07);
+  }
+
+  .step-row.is-skipped {
+    background: rgba(108, 117, 125, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(108, 117, 125, 0.07);
+  }
+
+  .step-row.is-failed {
+    background: rgba(220, 53, 69, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(220, 53, 69, 0.08);
+  }
+
+  .step-icon-wrap {
+    flex-shrink: 0;
+    padding-top: 0.1rem;
+  }
+
+  .step-icon {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    background: #fff;
+    color: #6c757d;
+    box-shadow: 0 0.25rem 0.8rem rgba(15, 23, 42, 0.07);
+  }
+
+  .step-icon-pending {
+    background: #f8fafc;
+    color: #6c757d;
+  }
+
+  .step-icon-running {
+    border-color: rgba(37, 99, 235, 0.2);
+    background: linear-gradient(180deg, rgba(239, 246, 255, 1) 0%, rgba(219, 234, 254, 0.92) 100%);
+    color: #2563eb;
+  }
+
+  .step-icon-retrying {
+    border-color: rgba(245, 158, 11, 0.22);
+    background: linear-gradient(180deg, rgba(255, 251, 235, 1) 0%, rgba(254, 243, 199, 0.94) 100%);
+    color: #d97706;
+  }
+
+  .step-icon-success {
+    border-color: rgba(22, 163, 74, 0.2);
+    background: linear-gradient(180deg, rgba(240, 253, 244, 1) 0%, rgba(220, 252, 231, 0.96) 100%);
+    color: #15803d;
+  }
+
+  .step-icon-skipped {
+    border-color: rgba(100, 116, 139, 0.2);
+    background: linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 0.96) 100%);
+    color: #475569;
+  }
+
+  .step-icon-failed {
+    border-color: rgba(220, 53, 69, 0.2);
+    background: linear-gradient(180deg, rgba(254, 242, 242, 1) 0%, rgba(254, 226, 226, 0.96) 100%);
+    color: #dc2626;
+  }
+
+  .step-symbol {
+    width: 1.05rem;
+    height: 1.05rem;
+    display: inline-block;
+  }
+
+  .step-symbol path,
+  .step-symbol line,
+  .step-symbol circle {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .step-detail {
+    margin-top: 0.6rem;
+    color: #475569;
+  }
+
+  .step-detail-copy {
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .step-detail-stack {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .step-detail-meta {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+  }
+
+  .step-detail-code {
+    display: inline-block;
+    max-width: 100%;
+    padding: 0.32rem 0.55rem;
+    border-radius: 0.55rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(248, 250, 252, 0.95);
+    color: #0f172a;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    word-break: break-word;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .step-row.is-failed .step-detail-code {
+    border-color: rgba(220, 53, 69, 0.12);
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .step-detail-note {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.45;
+  }
+
+  .step-spinner {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    display: inline-block;
+    animation: deployment-step-spin 0.8s linear infinite;
+  }
+
+  @keyframes deployment-step-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (max-width: 576px) {
+    #progress-title {
+      font-size: 1.85rem;
+    }
+
+    .step-row {
+      gap: 0.85rem;
+      padding: 1rem;
+    }
+
+    .step-icon {
+      width: 1.9rem;
+      height: 1.9rem;
+    }
+  }
+</style>
+
+<script>
+const statusApiUrl = "{% url 'apps:background_tasks_status' project.slug app_slug instance.pk %}";
+const detailUrl = "{{ detail_url }}";
+const STEP_SUCCESS_REVEAL_DELAY_MS = 1500;
+const SUCCESS_REDIRECT_DELAY_MS = 5000;
+
+let refreshInterval = null;
+let successRedirectTimer = null;
+let latestServerData = {
+  summary: {
+    total: {{ summary.total|default:0 }},
+    pending: {{ summary.pending|default:0 }},
+    running: {{ summary.running|default:0 }},
+    success: {{ summary.success|default:0 }},
+    failed: {{ summary.failed|default:0 }},
+    retrying: {{ summary.retrying|default:0 }}
+  },
+  workflow: {
+    blocked: {{ workflow.blocked|yesno:"true,false" }},
+    ready_for_deploy: {{ workflow.ready_for_deploy|yesno:"true,false" }},
+    has_failed_critical: {{ workflow.has_failed_critical|yesno:"true,false" }},
+    has_in_progress: {{ workflow.has_in_progress|yesno:"true,false" }}
+  },
+  deployment: {
+    status: "{{ deployment.status|default:'pending'|escapejs }}",
+    label: "{{ deployment.label|default:'Pending'|escapejs }}",
+    message: "{{ deployment.message|default:'Waiting to start deployment.'|escapejs }}"
+  },
+  tasks: []
+};
+
+const displayedTaskStatuses = new Map();
+const queuedTaskRevealStatuses = new Map();
+const queuedTaskRevealOrder = [];
+let activeTaskRevealTimer = null;
+let activeTaskRevealItem = null;
+let displayedDeploymentStatus = "pending";
+let deploymentRevealTimer = null;
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  refreshInterval = window.setInterval(refreshProgress, 3000);
+}
+
+function stopAutoRefresh() {
+  if (refreshInterval) {
+    window.clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+}
+
+function stopSuccessRedirect() {
+  if (successRedirectTimer) {
+    window.clearTimeout(successRedirectTimer);
+    successRedirectTimer = null;
+  }
+}
+
+function formatTaskName(taskName) {
+  const explicitLabels = {
+    validate_docker_image: "Validate Image",
+    checking_docker_image_availability: "Validate Image",
+    performing_security_checks: "Security checks",
+    doi_provisioning: "Mint DOI",
+    mint_doi: "Mint DOI",
+    deploy_app: "Deploy app"
+  };
+
+  if (explicitLabels[taskName]) {
+    return explicitLabels[taskName];
+  }
+
+  return (taskName || "Deployment step")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function isTerminalTaskStatus(status) {
+  return status === "success" || status === "failed" || status === "skipped";
+}
+
+function normalizeDeploymentStatus(status) {
+  if (status === "blocked") {
+    return "failed";
+  }
+  if (status === "success" || status === "failed" || status === "running") {
+    return status;
+  }
+  return "pending";
+}
+
+function isTerminalDeploymentStatus(status) {
+  return status === "success" || status === "failed" || status === "blocked";
+}
+
+function hasPendingTaskReveals() {
+  return queuedTaskRevealOrder.length > 0 || activeTaskRevealTimer !== null;
+}
+
+function removeQueuedTaskReveal(taskId) {
+  queuedTaskRevealStatuses.delete(taskId);
+  const queueIndex = queuedTaskRevealOrder.findIndex(item => item.taskId === taskId);
+  if (queueIndex !== -1) {
+    queuedTaskRevealOrder.splice(queueIndex, 1);
+  }
+}
+
+function processTaskRevealQueue() {
+  if (activeTaskRevealTimer || queuedTaskRevealOrder.length === 0) {
+    return;
+  }
+
+  activeTaskRevealItem = queuedTaskRevealOrder.shift();
+  if (!activeTaskRevealItem) {
+    return;
+  }
+
+  queuedTaskRevealStatuses.delete(activeTaskRevealItem.taskId);
+  activeTaskRevealTimer = window.setTimeout(() => {
+    displayedTaskStatuses.set(activeTaskRevealItem.taskId, activeTaskRevealItem.nextStatus);
+    activeTaskRevealTimer = null;
+    activeTaskRevealItem = null;
+    rerenderFromLatestData();
+    processTaskRevealQueue();
+  }, STEP_SUCCESS_REVEAL_DELAY_MS);
+}
+
+function scheduleTaskReveal(taskId, nextStatus) {
+  if (queuedTaskRevealStatuses.get(taskId) === nextStatus) {
+    return;
+  }
+
+  if (activeTaskRevealItem && activeTaskRevealItem.taskId === taskId) {
+    return;
+  }
+
+  removeQueuedTaskReveal(taskId);
+  queuedTaskRevealStatuses.set(taskId, nextStatus);
+  queuedTaskRevealOrder.push({ taskId, nextStatus });
+  processTaskRevealQueue();
+}
+
+function scheduleDeploymentReveal(nextStatus) {
+  if (deploymentRevealTimer) {
+    return;
+  }
+
+  deploymentRevealTimer = window.setTimeout(() => {
+    displayedDeploymentStatus = nextStatus;
+    deploymentRevealTimer = null;
+    rerenderFromLatestData();
+  }, STEP_SUCCESS_REVEAL_DELAY_MS);
+}
+
+function getDisplayData(data) {
+  const rawTasks = data.tasks || [];
+
+  const displayTasks = rawTasks.map(task => {
+    const visibleTaskStatus = task.was_skipped ? "skipped" : task.status;
+    const currentStatus = displayedTaskStatuses.get(task.id);
+
+    if (!isTerminalTaskStatus(visibleTaskStatus)) {
+      if (activeTaskRevealItem && activeTaskRevealItem.taskId === task.id && activeTaskRevealTimer) {
+        window.clearTimeout(activeTaskRevealTimer);
+        activeTaskRevealTimer = null;
+        activeTaskRevealItem = null;
+        processTaskRevealQueue();
+      }
+      if (queuedTaskRevealStatuses.has(task.id)) {
+        removeQueuedTaskReveal(task.id);
+      }
+      displayedTaskStatuses.set(task.id, visibleTaskStatus);
+      return { ...task, status: visibleTaskStatus };
+    }
+
+    if (!displayedTaskStatuses.has(task.id)) {
+      displayedTaskStatuses.set(task.id, "running");
+      scheduleTaskReveal(task.id, visibleTaskStatus);
+      return { ...task, status: "running" };
+    }
+
+    if (
+      currentStatus !== visibleTaskStatus &&
+      queuedTaskRevealStatuses.get(task.id) !== visibleTaskStatus &&
+      !(activeTaskRevealItem && activeTaskRevealItem.taskId === task.id)
+    ) {
+      scheduleTaskReveal(task.id, visibleTaskStatus);
+    }
+
+    return { ...task, status: displayedTaskStatuses.get(task.id) || visibleTaskStatus };
+  });
+
+  const displayWorkflow = deriveWorkflowFromTasks(displayTasks);
+  const checksComplete = displayTasks.length > 0 && !displayWorkflow.has_in_progress && !displayWorkflow.blocked;
+  const rawDeploymentStatus = data.deployment?.status || "pending";
+  const normalizedDeploymentStatus = normalizeDeploymentStatus(rawDeploymentStatus);
+  let deploymentStatus = displayedDeploymentStatus;
+
+  if (!isTerminalDeploymentStatus(rawDeploymentStatus)) {
+    if (deploymentRevealTimer) {
+      window.clearTimeout(deploymentRevealTimer);
+      deploymentRevealTimer = null;
+    }
+    deploymentStatus = normalizedDeploymentStatus;
+    displayedDeploymentStatus = normalizedDeploymentStatus;
+  } else if (!checksComplete || hasPendingTaskReveals()) {
+    if (deploymentRevealTimer) {
+      window.clearTimeout(deploymentRevealTimer);
+      deploymentRevealTimer = null;
+    }
+    deploymentStatus = "pending";
+    displayedDeploymentStatus = "pending";
+  } else if (!displayedDeploymentStatus || displayedDeploymentStatus === "pending") {
+    deploymentStatus = "running";
+    displayedDeploymentStatus = "running";
+    scheduleDeploymentReveal(normalizedDeploymentStatus);
+  } else if (displayedDeploymentStatus !== normalizedDeploymentStatus && !deploymentRevealTimer) {
+    scheduleDeploymentReveal(normalizedDeploymentStatus);
+    deploymentStatus = displayedDeploymentStatus;
+  } else {
+    deploymentStatus = displayedDeploymentStatus;
+  }
+
+  const deployment = {
+    ...(data.deployment || {}),
+    status: deploymentStatus
+  };
+
+  return {
+    ...data,
+    tasks: displayTasks,
+    workflow: displayWorkflow,
+    deployment
+  };
+}
+
+function deriveWorkflowFromTasks(tasks) {
+  const hasFailedCritical = tasks.some(task => task.is_critical && task.status === "failed");
+  const hasInProgress = tasks.some(task => ["pending", "running", "retrying"].includes(task.status));
+  const readyForDeploy = tasks.length > 0 && !hasFailedCritical && !hasInProgress;
+
+  return {
+    blocked: hasFailedCritical,
+    ready_for_deploy: readyForDeploy,
+    has_failed_critical: hasFailedCritical,
+    has_in_progress: hasInProgress
+  };
+}
+
+function getStepItems(data) {
+  const checksComplete = data.tasks.length > 0 && !data.workflow?.has_in_progress && !data.workflow?.blocked;
+  let deployStatus = "pending";
+  let deployDetail = "Waiting for the earlier checks to finish.";
+
+  if (data.workflow?.blocked) {
+    deployStatus = "failed";
+    deployDetail = "Deployment cannot continue until the failed required check is resolved.";
+  } else if (checksComplete) {
+    deployStatus = data.deployment?.status || "pending";
+    deployDetail = data.deployment?.message || "Waiting to start deployment.";
+  }
+
+  const taskSteps = (data.tasks || []).map(task => ({
+    key: `task-${task.id}`,
+    title: formatTaskName(task.task_name),
+    subtitle: task.is_critical ? "Required check" : "Optional check",
+    status: task.status,
+    detail: getTaskDetail(task),
+    taskName: task.task_name,
+    errorMessage: task.error_message || ""
+  }));
+
+  taskSteps.push({
+    key: "deploy",
+    title: "Deploy app",
+    subtitle: "Final step",
+    status: deployStatus,
+    detail: deployDetail
+  });
+
+  return taskSteps;
+}
+
+function getTaskDetail(task) {
+  if (task.status === "failed" && (task.task_name === "doi_provisioning" || task.task_name === "mint_doi")) {
+    return "Could not mint DOI for app.";
+  }
+  if (task.status === "failed" && task.error_message) {
+    return task.error_message;
+  }
+  if (task.status === "skipped") {
+    return task.skip_reason ? `Skipped: ${task.skip_reason}.` : "Skipped for this app.";
+  }
+  if (task.status === "success") {
+    return "Completed successfully.";
+  }
+  if (task.status === "retrying") {
+    return "Retrying after a temporary issue.";
+  }
+  if (task.status === "running") {
+    return "Currently running.";
+  }
+  return "Waiting for this step to start.";
+}
+
+function getTaskDetailMarkup(step) {
+  if (step.status === "failed") {
+    const formattedError = formatKnownStepError(step);
+    if (formattedError) {
+      return formattedError;
+    }
+  }
+
+  return `<div class="step-detail"><p class="step-detail-copy">${escapeHtml(step.detail)}</p></div>`;
+}
+
+function formatKnownStepError(step) {
+  if (step.taskName !== "validate_docker_image" || !step.errorMessage) {
+    return "";
+  }
+
+  const error = step.errorMessage.trim();
+
+  const notFoundMatch = error.match(/^We could not find the container image '([^']+)'\.\s*(.+)$/);
+  if (notFoundMatch) {
+    return buildImageErrorMarkup({
+      summary: "We could not find this container image.",
+      imageReference: notFoundMatch[1],
+      note: notFoundMatch[2]
+    });
+  }
+
+  const accessMatch = error.match(/^We could not access the container image '([^']+)'\.\s*(.+)$/);
+  if (accessMatch) {
+    return buildImageErrorMarkup({
+      summary: "We could not access this container image.",
+      imageReference: accessMatch[1],
+      note: accessMatch[2]
+    });
+  }
+
+  const metadataMatch = error.match(/^We could not read metadata for the container image '([^']+)'\.\s*(.+)$/);
+  if (metadataMatch) {
+    return buildImageErrorMarkup({
+      summary: "We could not read metadata for this container image.",
+      imageReference: metadataMatch[1],
+      note: metadataMatch[2]
+    });
+  }
+
+  const platformMatch = error.match(/^We found the container image '([^']+)', but could not read its platform details\.$/);
+  if (platformMatch) {
+    return buildImageErrorMarkup({
+      summary: "We found the container image, but could not read its platform details.",
+      imageReference: platformMatch[1]
+    });
+  }
+
+  const architectureMatch = error.match(/^Docker image ([^ ]+) does not support amd64 architecture\.\s*Found:\s*(.+)$/);
+  if (architectureMatch) {
+    return buildImageErrorMarkup({
+      summary: "This container image does not support amd64.",
+      imageReference: architectureMatch[1],
+      note: `Available architectures: ${architectureMatch[2]}`
+    });
+  }
+
+  return "";
+}
+
+function buildImageErrorMarkup({summary, imageReference, note = ""}) {
+  return `
+    <div class="step-detail step-detail-stack">
+      <p class="step-detail-copy">${escapeHtml(summary)}</p>
+      <div class="step-detail-meta">
+        <code class="step-detail-code">${escapeHtml(imageReference)}</code>
+      </div>
+      ${note ? `<p class="step-detail-note">${escapeHtml(note)}</p>` : ""}
+    </div>
+  `;
+}
+
+function getStatusLabel(status) {
+  const labels = {
+    pending: "Waiting",
+    running: "Running",
+    retrying: "Retrying",
+    success: "Done",
+    skipped: "Skipped",
+    failed: "Failed"
+  };
+
+  return labels[status] || "Waiting";
+}
+
+function getStepIconMarkup(status) {
+  if (status === "success") {
+    return `
+      <span class="step-icon step-icon-success" aria-hidden="true">
+        <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
+          <path d="M3.5 8.2L6.6 11.3L12.5 4.9" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </span>
+    `;
+  }
+  if (status === "skipped") {
+    return `
+      <span class="step-icon step-icon-skipped" aria-hidden="true">
+        <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
+          <line x1="4" y1="8" x2="12" y2="8" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"></line>
+        </svg>
+      </span>
+    `;
+  }
+  if (status === "failed") {
+    return `
+      <span class="step-icon step-icon-failed" aria-hidden="true">
+        <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
+          <line x1="8" y1="4" x2="8" y2="8.4" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"></line>
+          <circle cx="8" cy="11.4" r="1.1" fill="currentColor"></circle>
+        </svg>
+      </span>
+    `;
+  }
+  if (status === "retrying") {
+    return `
+      <span class="step-icon step-icon-retrying" aria-hidden="true">
+        <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
+          <path d="M11.8 5.7A4.8 4.8 0 0 0 4.5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          <path d="M4.4 2.9v2.4h2.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M4.2 10.3A4.8 4.8 0 0 0 11.5 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          <path d="M11.6 13.1v-2.4H9.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </span>
+    `;
+  }
+  if (status === "running") {
+    return '<span class="step-icon step-icon-running"><span class="step-spinner"></span></span>';
+  }
+  return `
+    <span class="step-icon step-icon-pending" aria-hidden="true">
+      <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="2" fill="currentColor"></circle>
+      </svg>
+    </span>
+  `;
+}
+
+function renderSteps(steps) {
+  const stepList = document.getElementById("step-list");
+  if (!stepList) {
+    return;
+  }
+
+  stepList.innerHTML = steps
+    .map(step => {
+      const rowClass = step.status === "failed"
+        ? "is-failed"
+        : step.status === "skipped"
+          ? "is-skipped"
+        : step.status === "retrying"
+          ? "is-retrying"
+        : step.status === "success"
+          ? "is-success"
+          : step.status === "running"
+            ? "is-running"
+            : "";
+
+      return `
+        <div class="step-row ${rowClass}">
+          <div class="step-icon-wrap">
+            ${getStepIconMarkup(step.status)}
+          </div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold">${escapeHtml(step.title)}</div>
+            <div class="small text-muted">${escapeHtml(step.subtitle)}</div>
+            ${getTaskDetailMarkup(step)}
+          </div>
+          <div class="small text-muted text-nowrap">${getStatusLabel(step.status)}</div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function updateSummary(steps) {
+  const completed = steps.filter(step => step.status === "success" || step.status === "failed" || step.status === "skipped").length;
+  const total = steps.length || 1;
+  const progressPercent = Math.round((completed / total) * 100);
+  const hasFailedStep = steps.some(step => step.status === "failed");
+
+  const progressLabel = document.getElementById("progress-label");
+  const progressBar = document.getElementById("progress-bar");
+  if (progressLabel) {
+    progressLabel.textContent = `${completed} of ${total} steps completed`;
+  }
+  if (progressBar) {
+    progressBar.style.width = `${progressPercent}%`;
+    progressBar.setAttribute("aria-valuenow", `${progressPercent}`);
+    if (hasFailedStep) {
+      progressBar.className = "progress-bar bg-danger";
+    } else if (progressPercent === 100) {
+      progressBar.className = "progress-bar bg-success";
+    } else {
+      progressBar.className = "progress-bar progress-bar-striped progress-bar-animated";
+    }
+  }
+}
+
+function updateHeader(data, steps) {
+  const pill = document.getElementById("progress-pill");
+  const inline = document.getElementById("progress-inline");
+  const title = document.getElementById("progress-title");
+  const message = document.getElementById("progress-message");
+  const nextStep = document.getElementById("progress-next-step");
+
+  const total = steps.length || 1;
+  const completed = steps.filter(step => step.status === "success" || step.status === "skipped").length;
+  const failed = steps.filter(step => step.status === "failed").length;
+
+  let pillClass = "text-bg-secondary";
+  let pillText = "Waiting";
+  let titleText = "Waiting for deployment checks";
+  let messageText = "We have not recorded any deployment work yet.";
+  let inlineText = `${completed} of ${total} steps completed`;
+  let nextStepText = "Keep this page open while the deployment starts.";
+
+  if (data.deployment?.status === "success") {
+    pillClass = "text-bg-success";
+    pillText = "Ready";
+    titleText = "Your app is ready";
+    messageText = "All checks passed and the app finished deploying. Opening the app details page in a few seconds.";
+    inlineText = `${completed} of ${total} steps completed`;
+    nextStepText = "Redirecting to the app details page in about 5 seconds.";
+  } else if (data.workflow?.blocked || data.deployment?.status === "failed") {
+    pillClass = "text-bg-danger";
+    pillText = "Attention needed";
+    titleText = "We could not finish preparing your app";
+    messageText = data.deployment?.message || "A required step failed during deployment.";
+    inlineText = failed === 1 ? "1 step needs attention" : `${failed} steps need attention`;
+    nextStepText = "Open detailed checks or logs if you want the full technical result.";
+  } else if (data.deployment?.status === "running" || data.workflow?.has_in_progress || data.workflow?.ready_for_deploy) {
+    pillClass = "text-bg-info";
+    pillText = "Checking";
+    titleText = "We are preparing your app";
+    messageText = "Each deployment check will appear here as it finishes, and then we will deploy the app.";
+    inlineText = `${completed} of ${total} steps completed`;
+    nextStepText = "You will be redirected automatically once deployment finishes.";
+  }
+
+  if (pill) {
+    pill.className = `badge ${pillClass}`;
+    pill.textContent = pillText;
+  }
+  if (inline) {
+    inline.textContent = inlineText;
+  }
+  if (title) {
+    title.textContent = titleText;
+  }
+  if (message) {
+    message.textContent = messageText;
+  }
+  if (nextStep) {
+    nextStep.textContent = nextStepText;
+  }
+}
+
+function maybeRedirectToDetails(data) {
+  const steps = getStepItems(data);
+  const allStepsVisibleAsSuccess = steps.length > 0 && steps.every(step => step.status === "success" || step.status === "skipped");
+
+  if (
+    data.deployment?.status === "success" &&
+    allStepsVisibleAsSuccess &&
+    !hasPendingTaskReveals() &&
+    !deploymentRevealTimer
+  ) {
+    if (!successRedirectTimer) {
+      successRedirectTimer = window.setTimeout(() => {
+        window.location.assign(detailUrl);
+      }, SUCCESS_REDIRECT_DELAY_MS);
+    }
+    return;
+  }
+
+  stopSuccessRedirect();
+}
+
+function refreshProgress() {
+  fetch(statusApiUrl)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Unexpected status ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      latestServerData = data;
+      const displayData = getDisplayData(data);
+      renderProgress(displayData);
+      maybeRedirectToDetails(displayData);
+
+      const rawDone = ["success", "failed", "blocked"].includes(data.deployment?.status);
+      if (rawDone && !data.workflow?.has_in_progress) {
+        stopAutoRefresh();
+      }
+    })
+    .catch(error => {
+      console.error("Error fetching deployment progress:", error);
+      const inline = document.getElementById("progress-inline");
+      if (inline) {
+        inline.textContent = "Could not load the latest deployment update. Retrying automatically.";
+      }
+    });
+}
+
+function rerenderFromLatestData() {
+  const displayData = getDisplayData(latestServerData);
+  renderProgress(displayData);
+  maybeRedirectToDetails(displayData);
+}
+
+function renderProgress(data) {
+  const steps = getStepItems(data);
+  renderSteps(steps);
+  updateSummary(steps);
+  updateHeader(data, steps);
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderProgress(latestServerData);
+  refreshProgress();
+  startAutoRefresh();
+});
+</script>
+{% endblock %}

@@ -16,6 +16,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 
+from apps.background_tasks.utils import resolve_app_image
 from doi_minting.clients.invenio_client import InvenioClient
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
 from studio.utils import get_logger
@@ -46,6 +47,20 @@ from .schemas import (
 )
 
 logger = get_logger(__name__)
+
+
+def _resolve_app_access(app_instance: Any) -> str | None:
+    access = getattr(app_instance, "access", None)
+    if isinstance(access, str) and access:
+        return access
+
+    k8s_values = getattr(app_instance, "k8s_values", None) or {}
+    if isinstance(k8s_values, dict):
+        permission = k8s_values.get("permission")
+        if isinstance(permission, str) and permission:
+            return permission
+
+    return None
 
 
 class InvenioService:
@@ -93,12 +108,13 @@ class InvenioService:
         Returns:
             True if image version already exists, False otherwise
         """
-        if not app_instance.invenio_record_id:
+        invenio_record_id = getattr(app_instance, "invenio_record_id", None)
+        if not invenio_record_id:
             logger.debug(f"No existing Invenio record ID for app, image '{image_value}' is new.")
             return False
 
         try:
-            all_versions = self.client.get_all_versions(app_instance.invenio_record_id)
+            all_versions = self.client.get_all_versions(invenio_record_id)
 
             if "hits" in all_versions and "hits" in all_versions["hits"]:
                 existing_images = []
@@ -129,14 +145,18 @@ class InvenioService:
         Returns:
             Tuple of (is_eligible, reason)
         """
-        app_data = model_to_dict(app_instance, exclude=["_state"])
+        access = _resolve_app_access(app_instance)
 
         # Check if app is public
-        if app_data.get("access") != "public":
-            return False, f"App access is '{app_data.get('access')}', not 'public'"
+        if access != "public":
+            if access:
+                return False, f"DOI minting is only available for public apps. This app is currently '{access}'."
+            return False, "DOI minting is only available for public apps."
 
         # Check if it's a new image version
-        image_value = app_data["image"]
+        image_value = resolve_app_image(app_instance)
+        if not image_value:
+            return False, "DOI minting requires an app image."
         if self.check_image_version_exists(app_instance, image_value):
             return False, f"Image '{image_value}' already exists in previous versions"
 

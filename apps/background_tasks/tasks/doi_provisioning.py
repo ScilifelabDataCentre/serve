@@ -17,11 +17,23 @@ import waffle  # type: ignore
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
 from apps.background_tasks.utils import resolve_app_image
+from apps.models import BackgroundTask
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
 
 DOI_MINTING_SWITCH = "doi_minting_using_invenio"
+
+
+def _select_latest_task_records(task_records):
+    latest_by_name = {}
+    for task_record in sorted(task_records, key=lambda task: (task.created_at, task.pk)):
+        latest_by_name[task_record.task_name] = task_record
+
+    return sorted(
+        latest_by_name.values(),
+        key=lambda task: (task.execution_order, task.created_at, task.pk),
+    )
 
 
 def _build_additional_metadata(
@@ -87,6 +99,16 @@ class DOIProvisioningTask(BaseBackgroundTask):
     task_type = "external_api"
     timeout_seconds = 300
 
+    def _has_failed_required_checks(self, app_instance) -> bool:
+        earlier_required_tasks = BackgroundTask.objects.filter(
+            app_instance_id=app_instance.id,
+            is_critical=True,
+            execution_order__lt=self.execution_order,
+        )
+
+        latest_earlier_required_tasks = _select_latest_task_records(earlier_required_tasks)
+        return any(task.status == "failed" for task in latest_earlier_required_tasks)
+
     def execute(self, app_instance, **kwargs) -> dict[str, Any]:
         if not waffle.switch_is_active(DOI_MINTING_SWITCH):
             logger.debug(
@@ -104,6 +126,13 @@ class DOIProvisioningTask(BaseBackgroundTask):
             )
             return {"skipped": True, "reason": "no image"}
 
+        if self._has_failed_required_checks(app_instance):
+            logger.info(
+                "DOI provisioning skipped for app %s: a required deployment check failed earlier",
+                app_instance.id,
+            )
+            return {"skipped": True, "reason": "A required deployment check failed earlier"}
+
         app_slug = app_instance.app.slug
         instance_id = app_instance.id
         additional_metadata = _build_additional_metadata(
@@ -114,8 +143,20 @@ class DOIProvisioningTask(BaseBackgroundTask):
 
         try:
             from doi_minting.services.invenio_svc import (
+                InvenioService,
                 save_metadata_to_invenio_then_mint_doi,
             )
+
+            invenio_svc = InvenioService()
+            is_eligible, reason = invenio_svc.is_app_eligible_for_doi(app_instance)
+            if not is_eligible:
+                logger.info(
+                    "DOI provisioning skipped for app %s (id=%s): %s",
+                    app_slug,
+                    instance_id,
+                    reason,
+                )
+                return {"skipped": True, "reason": reason}
 
             save_metadata_to_invenio_then_mint_doi(app_slug, instance_id, additional_metadata=additional_metadata)
             return {
