@@ -1,18 +1,18 @@
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import AccordionGroup
-from crispy_forms.layout import Div, Layout
+from crispy_forms.layout import HTML, Div, Layout
 from django import forms
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import BaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import KeywordTagsValidationMixin
+from apps.forms.mixins import CreatorsMixin, KeywordTagsValidationMixin
 from apps.models import DepictioInstance
 
 __all__ = ["DepictioForm"]
 
 
-class DepictioForm(KeywordTagsValidationMixin, BaseForm):
+class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
     def _setup_form_fields(self):
         super()._setup_form_fields()
 
@@ -29,10 +29,11 @@ class DepictioForm(KeywordTagsValidationMixin, BaseForm):
         super()._setup_form_helper()
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h3>Description</h3>"),
+            mark_safe("<h3>About</h3>"),
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags"),
+            self.get_creators_field_layout(),
             SRVCommonDivField("access"),
             active=True,
         )

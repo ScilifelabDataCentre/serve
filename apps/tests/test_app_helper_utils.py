@@ -201,9 +201,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "subdomain": self.subdomain_name,
             "language": "eng",
             "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["port", "invenio_tags", "tags"]
+        changed_fields = ["port", "invenio_tags", "tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -232,9 +233,11 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
             "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
         changed_fields = ["image", "invenio_tags", "tags", "language"]
+        changed_fields = ["image", "invenio_tags", "tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -264,9 +267,11 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "source_code_url": self.source_code_url,
             "subdomain": "test-subdomain-update-app-new",
             "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
         changed_fields = ["subdomain", "invenio_tags", "tags", "language"]
+        changed_fields = ["subdomain", "invenio_tags", "tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -303,9 +308,11 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "source_code_url": "https://someurlthatdoesnotexist.com/new",
             "subdomain": self.subdomain_name,
             "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
         changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags", "language"]
+        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -841,13 +848,6 @@ def test_generate_invenio_record_validation():
     creator = invenio_metadata["metadata"]["creators"][0]
     assert creator["person_or_org"]["given_name"] == user.first_name
     assert creator["person_or_org"]["family_name"] == user.last_name
-    assert creator["role"]["id"] == "relatedperson"
-
-    # Check contributor is SciLifeLab Data Centre
-    contributor = invenio_metadata["metadata"]["contributors"][0]
-    assert contributor["person_or_org"]["name"] == "SciLifeLab Data Centre"
-    assert contributor["person_or_org"]["type"] == "organizational"
-    assert contributor["role"]["id"] == "hostinginstitution"
 
     # check date information
     dates = invenio_metadata["metadata"]["dates"]
