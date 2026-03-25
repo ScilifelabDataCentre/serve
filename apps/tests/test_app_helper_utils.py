@@ -515,7 +515,7 @@ def test_forms_submit_funding_and_generate_mock_doi(django_capture_on_commit_cal
 
         with django_capture_on_commit_callbacks(execute=True):
             app_id = create_instance_from_form(form, project, "customapp", app_id=None)
-        
+
         app_instance = model_class.objects.get(pk=app_id)
 
         # Manually set the DOI fields to simulate successful DOI minting

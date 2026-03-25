@@ -1,7 +1,7 @@
 """
 DOI provisioning background task.
 
-This task sends app metadata to Invenio and mints a DOI when the app is eligible 
+This task sends app metadata to Invenio and mints a DOI when the app is eligible
 (e.g. public access, new image version). The task is optional (is_critical=False) so
 deployment is not blocked if DOI minting fails.
 """
