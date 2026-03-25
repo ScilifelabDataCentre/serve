@@ -326,7 +326,7 @@ class CreateApp(View):
             instance = None
 
         if user_can_edit or user_can_create:
-            form = form_class(request.POST or None, project_pk=project.pk, instance=instance)
+            form = form_class(request.POST or None, project_pk=project.pk, instance=instance, request=request)
 
             # Disable access field for public apps to prevent changing access mode
             if app_id and instance and hasattr(instance, "access") and instance.access == "public":

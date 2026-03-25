@@ -73,9 +73,6 @@ def _build_additional_metadata(
         except Exception:
             tag_names = None
 
-    if tag_names:
-        additional_metadata["subjects"] = tag_names
-
     return additional_metadata if additional_metadata else None
 
 
@@ -114,7 +111,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
             language=kwargs.get("language"),
             funding=kwargs.get("funding"),
             creators=kwargs.get("creators"),
-            subjects=kwargs.get("subjects"),
+            subjects=kwargs.get("tags"),  # Note: task receives 'tags' but function expects 'subjects'
         )
 
         try:
