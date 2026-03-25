@@ -26,8 +26,7 @@ from apps.constants import (
 )
 from apps.types_.subdomain import SubdomainCandidateName
 from apps.validators.container_images import (
-    DockerHubAuthenticator,
-    GHCRAuthenticator,
+    get_authenticator_for_registry,
     get_image_architectures,
 )
 from common.models import UserProfile
@@ -468,11 +467,24 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
             # The orchestrator will handle deployment if tasks succeed.
+
+            # Get creators data from form if available
+            creators_data = None
+            if hasattr(form, "get_creators_data"):
+                creators_data = form.get_creators_data()
+                logger.debug(f"Background task: creators_data from form: {creators_data}")
+
+            # Get processed tags data from form if available
+            tags_data = form.cleaned_data.get("tags") if hasattr(form, "cleaned_data") else None
+            logger.debug(f"Background task: tags_data from form: {tags_data}")
+
             task_kwargs_by_task_name = {
                 # Form-only field (not persisted on the model) needed for Invenio metadata.
                 "doi_provisioning": {
                     "language": form.cleaned_data.get("language"),
                     "funding": funding_list,
+                    "creators": creators_data,
+                    "subjects": tags_data,
                 },
             }
             transaction.on_commit(
@@ -531,6 +543,16 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             else:
                 logger.debug("Form does not contain Invenio tags")
             logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
+
+            # Check for creators data from form
+            if hasattr(form, "get_creators_data"):
+                creators_data = form.get_creators_data()
+                logger.debug(f"Raw creators_data from form: {creators_data} (type: {type(creators_data)})")
+                if creators_data:
+                    logger.debug(f"Form contains creators data: {creators_data}")
+                    additional_metadata["creators"] = creators_data
+                else:
+                    logger.debug("Form does not contain creators data")
 
             # Check for changes.
             if image_value_changed:
@@ -804,16 +826,17 @@ def validate_ghcr_image(image: str):
         raise ValidationError("Unable to find GHCR image tag. Please try again.")
 
     if waffle.switch_is_active("docker_image_architecture_validator"):
-        architectures = get_image_architectures(
-            auth=GHCRAuthenticator(
-                username=settings.GITHUB_API_USERNAME,
-                token=settings.GITHUB_API_TOKEN,
-            ),
-            repo=f"{owner}/{image_name}",
-            reference=tag,
-            registry="ghcr.io",
-        )
-        if any(arch.arch != "amd64" for arch in architectures):
+        auth = get_authenticator_for_registry("ghcr.io")
+        if auth:
+            architectures = get_image_architectures(
+                auth=auth,
+                repo=f"{owner}/{image_name}",
+                reference=tag,
+                registry="ghcr.io",
+            )
+        else:
+            architectures = []
+        if architectures and any(arch.arch != "amd64" for arch in architectures):
             raise ValidationError(
                 f"Docker image '{image}' is not built for the right CPU architecture. "
                 "Please use docker build --platform linux/amd64 to build your image"
@@ -848,12 +871,16 @@ def validate_docker_image(image: str):
         )
 
     if waffle.switch_is_active("docker_image_architecture_validator"):
-        architectures = get_image_architectures(
-            auth=DockerHubAuthenticator(username=settings.DOCKER_HUB_USERNAME, token=settings.DOCKER_HUB_TOKEN),
-            repo=repository,
-            reference=tag,
-        )
-        if any(arch.arch != "amd64" for arch in architectures):
+        auth = get_authenticator_for_registry("registry-1.docker.io")
+        if auth:
+            architectures = get_image_architectures(
+                auth=auth,
+                repo=repository,
+                reference=tag,
+            )
+        else:
+            architectures = []
+        if architectures and any(arch.arch != "amd64" for arch in architectures):
             raise ValidationError(
                 f"Docker image '{image}' is not built for the right CPU architecture. "
                 "Please use docker build --platform linux/amd64 to build your image"
