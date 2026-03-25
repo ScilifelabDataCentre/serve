@@ -49,7 +49,7 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
         max_retries=0,
     )
 
-    with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
+    with patch(
         "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"
     ), patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint:
         result = execute_single_background_task(
