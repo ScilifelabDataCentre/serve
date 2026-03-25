@@ -49,7 +49,6 @@ class StreamlitForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         # Setup container image field from mixin
         self._setup_container_image_field()
         self._set_up_mount_path_field()
-        self._setup_optional_funding_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()

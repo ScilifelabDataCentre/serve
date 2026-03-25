@@ -80,12 +80,6 @@ class BaseForm(forms.ModelForm):
             self._original_tags = []
         self._restore_model_help_text()
 
-    def _setup_optional_funding_field(self):
-        """Configure optional funding field controlled by DOI minting switch."""
-        if "funding_sources_json" not in self.fields:
-            return
-        self.fields.pop("funding_sources_json", None)
-
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel
         self.footer = Div(
