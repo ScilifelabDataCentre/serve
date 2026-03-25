@@ -8,7 +8,7 @@ from django.db import transaction
 
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY, BackgroundTaskRegistry
-from apps.models import Apps, BackgroundTask, BaseAppInstance
+from apps.models import Apps, BackgroundTask, BaseAppInstance, CustomAppInstance
 from apps.tasks import (
     check_tasks_and_deploy,
     deploy_resource,
@@ -16,6 +16,7 @@ from apps.tasks import (
     retry_background_task,
     run_background_tasks,
 )
+from doi_minting.services.invenio_svc import InvenioService
 from projects.models import Project
 
 User = get_user_model()
@@ -51,7 +52,9 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
 
     with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
         "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"
-    ), patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint:
+    ), patch("doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi", return_value=(True, "")), patch(
+        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
+    ) as mock_mint:
         result = execute_single_background_task(
             task_db_id=task_record.id,
             task_kwargs_by_task_name={"doi_provisioning": {"language": "eng", "funding": funding_payload}},
@@ -61,6 +64,156 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
     mock_mint.assert_called_once()
     assert mock_mint.call_args.kwargs["additional_metadata"]["languages"] == "eng"
     assert mock_mint.call_args.kwargs["additional_metadata"]["funding"] == funding_payload
+
+
+@pytest.mark.django_db
+def test_doi_provisioning_task_marks_ineligible_apps_as_skipped(app_instance):
+    task_record = BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="doi_provisioning",
+        task_type="external_api",
+        status="pending",
+        is_critical=False,
+        execution_order=2,
+        max_retries=0,
+    )
+
+    with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
+        "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"
+    ), patch(
+        "doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi",
+        return_value=(False, "App access is 'private', not 'public'"),
+    ), patch(
+        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
+    ) as mock_mint:
+        result = execute_single_background_task(task_db_id=task_record.id)
+
+    assert result["success"] is True
+    mock_mint.assert_not_called()
+
+    task_record.refresh_from_db()
+    assert task_record.status == "success"
+    assert task_record.result_data == {
+        "skipped": True,
+        "reason": "App access is 'private', not 'public'",
+    }
+
+
+@pytest.mark.django_db
+def test_doi_provisioning_skips_when_required_check_failed(app_instance):
+    BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="validate_docker_image",
+        task_type="validation",
+        status="failed",
+        is_critical=True,
+        execution_order=1,
+        max_retries=0,
+        error_message="bad image",
+    )
+    task_record = BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="doi_provisioning",
+        task_type="external_api",
+        status="pending",
+        is_critical=False,
+        execution_order=2,
+        max_retries=0,
+    )
+
+    with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
+        "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="ghcr.io/example/app:bad"
+    ), patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint:
+        result = execute_single_background_task(task_db_id=task_record.id)
+
+    assert result["success"] is True
+    mock_mint.assert_not_called()
+
+    task_record.refresh_from_db()
+    assert task_record.status == "success"
+    assert task_record.result_data == {
+        "skipped": True,
+        "reason": "A required deployment check failed earlier",
+    }
+
+
+@pytest.mark.django_db
+def test_doi_provisioning_ignores_older_failed_required_check_when_latest_passed(app_instance):
+    BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="validate_docker_image",
+        task_type="validation",
+        status="failed",
+        is_critical=True,
+        execution_order=1,
+        max_retries=0,
+        error_message="bad image",
+    )
+    BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="validate_docker_image",
+        task_type="validation",
+        status="success",
+        is_critical=True,
+        execution_order=1,
+        max_retries=0,
+    )
+    task_record = BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="doi_provisioning",
+        task_type="external_api",
+        status="pending",
+        is_critical=False,
+        execution_order=2,
+        max_retries=0,
+    )
+
+    with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
+        "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="ghcr.io/example/app:good"
+    ), patch(
+        "doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi",
+        return_value=(True, "App is eligible for DOI minting"),
+    ), patch(
+        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
+    ) as mock_mint:
+        result = execute_single_background_task(task_db_id=task_record.id)
+
+    assert result["success"] is True
+    mock_mint.assert_called_once()
+
+    task_record.refresh_from_db()
+    assert task_record.status == "success"
+    assert task_record.result_data == {
+        "success": True,
+        "app_slug": app_instance.app.slug,
+        "app_id": app_instance.id,
+    }
+
+
+@pytest.mark.django_db
+def test_invenio_service_uses_k8s_permission_for_access_check(app_instance):
+    app_instance.k8s_values = {"permission": "project", "appconfig": {"image": "ghcr.io/example/app:latest"}}
+    app_instance.save(update_fields=["k8s_values"])
+
+    service = InvenioService(mock_mode=True)
+
+    is_eligible, reason = service.is_app_eligible_for_doi(app_instance)
+
+    assert is_eligible is False
+    assert reason == "DOI minting is only available for public apps. This app is currently 'project'."
+
+
+@pytest.mark.django_db
+def test_invenio_service_handles_base_app_instance_without_invenio_record_id(app_instance):
+    app_instance.k8s_values = {"permission": "public", "appconfig": {"image": "ghcr.io/example/app:latest"}}
+    app_instance.save(update_fields=["k8s_values"])
+
+    service = InvenioService(mock_mode=True)
+
+    is_eligible, reason = service.is_app_eligible_for_doi(app_instance)
+
+    assert is_eligible is True
+    assert reason == "App is eligible for DOI minting"
 
 
 @pytest.fixture()
@@ -200,6 +353,50 @@ def test_execute_single_background_task_validation_error_marks_failed_no_retry(c
     assert record.status == "failed"
     assert record.retry_count == 0
     assert "invalid" in record.error_message
+
+
+@pytest.mark.django_db
+def test_execute_single_background_task_resolves_concrete_app_instance(clean_task_registry, db):
+    user = User.objects.create_user("concrete", "concrete@test.com", "pw")
+    project = Project.objects.create_project(name="concrete-project", owner=user, description="")
+    app = Apps.objects.create(name="Concrete App", slug="customapp")
+    concrete_instance = CustomAppInstance.objects.create(
+        owner=user,
+        project=project,
+        app=app,
+        chart="test-chart",
+        access="public",
+        image="ghcr.io/example/app:latest",
+    )
+
+    @TASK_REGISTRY.register(name="unit_concrete_instance", is_critical=True, execution_order=0, app_types=["customapp"])
+    class UnitConcreteInstanceTask(BaseBackgroundTask):
+        def execute(self, app_instance, **kwargs):
+            return {
+                "model_name": type(app_instance).__name__,
+                "has_access": hasattr(app_instance, "access"),
+                "has_image": hasattr(app_instance, "image"),
+            }
+
+    record = BackgroundTask.objects.create(
+        app_instance=concrete_instance,
+        task_name="unit_concrete_instance",
+        task_type="validation",
+        status="pending",
+        is_critical=True,
+        execution_order=0,
+        max_retries=0,
+    )
+
+    result = execute_single_background_task(record.id)
+
+    assert result["success"] is True
+    record.refresh_from_db()
+    assert record.result_data == {
+        "model_name": "CustomAppInstance",
+        "has_access": True,
+        "has_image": True,
+    }
 
 
 @pytest.mark.django_db

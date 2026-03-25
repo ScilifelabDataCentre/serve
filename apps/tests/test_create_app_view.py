@@ -1,3 +1,5 @@
+from unittest.mock import Mock, patch
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -293,3 +295,25 @@ class CreateAppViewTestCase(TestCase):
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
+
+    @override_settings(APPS_PER_PROJECT_LIMIT={"jupyter-lab": 1})
+    def test_submit_redirects_to_deployment_progress_page(self):
+        c = Client()
+        project = self.get_data()
+
+        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
+        self.assertEqual(response.status_code, 302)
+
+        fake_form = Mock()
+        fake_form.is_valid.return_value = True
+
+        with patch("apps.views.CreateApp.get_form", return_value=fake_form), patch(
+            "apps.views.create_instance_from_form",
+            return_value=321,
+        ):
+            response = c.post(
+                f"/projects/{project.slug}/apps/create/jupyter-lab",
+            )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/321")

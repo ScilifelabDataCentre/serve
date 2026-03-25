@@ -1,0 +1,195 @@
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from projects.models import Project, ProjectTemplate
+
+from ..models import AppCategories, Apps, BackgroundTask, CustomAppInstance, K8sUserAppStatus, Subdomain
+
+User = get_user_model()
+
+
+class BackgroundTasksViewTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
+        self.client.login(username="foo@test.com", password="bar")
+
+        self.category = AppCategories.objects.create(name="Serve", priority=100, slug="serve")
+        self.app = Apps.objects.create(
+            name="My Custom App",
+            slug="customapp",
+            user_can_edit=True,
+            category=self.category,
+        )
+        self.project_template = ProjectTemplate.objects.create(name="Default template", slug="default-template")
+        self.project_template.available_apps.add(self.app)
+        self.project = Project.objects.create_project(
+            name="test-background-tasks",
+            owner=self.user,
+            description="",
+            project_template=self.project_template,
+        )
+
+        subdomain = Subdomain.objects.create(subdomain="test-background-tasks")
+        k8s_user_app_status = K8sUserAppStatus.objects.create()
+
+        self.app_instance = CustomAppInstance.objects.create(
+            access="private",
+            owner=self.user,
+            name="test deployment app",
+            app=self.app,
+            project=self.project,
+            subdomain=subdomain,
+            k8s_user_app_status=k8s_user_app_status,
+            k8s_values={"environment": {"pk": ""}},
+        )
+
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_docker_image",
+            task_type="validation",
+            status="running",
+            is_critical=True,
+            execution_order=1,
+        )
+
+    def test_deployment_progress_page_uses_user_facing_copy(self):
+        response = self.client.get(
+            reverse(
+                "apps:deployment_progress",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Preparing test deployment app")
+        self.assertContains(response, "We are preparing your app")
+        self.assertContains(response, "Detailed checks")
+        self.assertContains(response, "Back to form")
+
+    def test_background_tasks_page_shows_detailed_checks_copy(self):
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Deployment Checks")
+        self.assertContains(response, "Detailed results for each background task")
+        self.assertContains(response, "Check Details")
+        self.assertContains(response, "validate_docker_image")
+
+    def test_private_app_details_page_shows_deployment_summary(self):
+        response = self.client.get(
+            reverse(
+                "apps:details",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Deployment Summary")
+        self.assertContains(response, "Recent Checks")
+        self.assertContains(
+            response,
+            "validate_docker_image",
+        )
+
+    def test_background_task_status_api_collapses_historical_duplicate_task_names(self):
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_docker_image",
+            task_type="validation",
+            status="success",
+            is_critical=True,
+            execution_order=1,
+        )
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="doi_provisioning",
+            task_type="external_api",
+            status="success",
+            is_critical=False,
+            execution_order=2,
+        )
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(len(payload["tasks"]), 2)
+        self.assertEqual([task["task_name"] for task in payload["tasks"]], ["validate_docker_image", "doi_provisioning"])
+        self.assertEqual(payload["summary"]["total"], 2)
+
+    def test_background_task_status_api_keeps_deploy_pending_while_checks_are_running(self):
+        self.app_instance.k8s_user_app_status.status = "Running"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.save(update_fields=["latest_user_action"])
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["deployment"]["status"], "pending")
+        self.assertEqual(payload["deployment"]["label"], "Pending")
+
+    def test_background_task_status_api_marks_skipped_tasks(self):
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="doi_provisioning",
+            task_type="external_api",
+            status="success",
+            is_critical=False,
+            execution_order=2,
+            result_data={"skipped": True, "reason": "doi_minting_using_invenio switch is off"},
+        )
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        doi_task = next(task for task in payload["tasks"] if task["task_name"] == "doi_provisioning")
+        self.assertTrue(doi_task["was_skipped"])
+        self.assertEqual(doi_task["skip_reason"], "doi_minting_using_invenio switch is off")
