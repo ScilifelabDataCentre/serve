@@ -25,6 +25,7 @@ User = get_user_model()
 def test_known_tasks_are_registered_after_django_startup():
     # Registration should happen deterministically via AppsConfig.ready().
     assert TASK_REGISTRY.is_registered("validate_docker_image") is True
+    assert TASK_REGISTRY.is_registered("validate_image_public") is True
     assert TASK_REGISTRY.is_registered("doi_provisioning") is True
 
 
@@ -363,7 +364,7 @@ def test_run_background_tasks_creates_db_rows_and_schedules_workflow(
         def execute(self, app_instance, **kwargs):
             return {"ok": 2}
 
-    called = {"apply_async": 0}
+    called = {"apply_async": 0, "steps": ()}
 
     class FakeWorkflow:
         def apply_async(self):
@@ -372,7 +373,11 @@ def test_run_background_tasks_creates_db_rows_and_schedules_workflow(
     # run_background_tasks does `from celery import chain, group` inside the function.
     import celery  # type: ignore
 
-    monkeypatch.setattr(celery, "chain", lambda *steps: FakeWorkflow())
+    def _fake_chain(*steps):
+        called["steps"] = steps
+        return FakeWorkflow()
+
+    monkeypatch.setattr(celery, "chain", _fake_chain)
     monkeypatch.setattr(celery, "group", lambda steps: types.SimpleNamespace(steps=steps))
 
     result = run_background_tasks(serialized_instance=app_instance.serialize(), app_slug="customapp")
@@ -383,3 +388,9 @@ def test_run_background_tasks_creates_db_rows_and_schedules_workflow(
     assert [r.task_name for r in rows] == ["unit_one", "unit_two"]
     assert all(r.status == "pending" for r in rows)
     assert called["apply_async"] == 1
+
+    # First two steps are execute_single_background_task signatures and must be immutable
+    # so previous chain results are not injected as positional args.
+    assert len(called["steps"]) == 3
+    assert called["steps"][0].immutable is True
+    assert called["steps"][1].immutable is True
