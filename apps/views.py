@@ -322,7 +322,7 @@ class CreateApp(View):
             instance = None
 
         if user_can_edit or user_can_create:
-            return form_class(request.POST or None, project_pk=project.pk, instance=instance)
+            return form_class(request.POST or None, project_pk=project.pk, instance=instance, request=request)
             # Maybe this makes typing hard.
         else:
             return None

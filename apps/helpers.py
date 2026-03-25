@@ -467,11 +467,24 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
             # The orchestrator will handle deployment if tasks succeed.
+
+            # Get creators data from form if available
+            creators_data = None
+            if hasattr(form, "get_creators_data"):
+                creators_data = form.get_creators_data()
+                logger.debug(f"Background task: creators_data from form: {creators_data}")
+
+            # Get processed tags data from form if available
+            tags_data = form.cleaned_data.get("tags") if hasattr(form, "cleaned_data") else None
+            logger.debug(f"Background task: tags_data from form: {tags_data}")
+
             task_kwargs_by_task_name = {
                 # Form-only field (not persisted on the model) needed for Invenio metadata.
                 "doi_provisioning": {
                     "language": form.cleaned_data.get("language"),
                     "funding": funding_list,
+                    "creators": creators_data,
+                    "subjects": tags_data,
                 },
             }
             transaction.on_commit(
@@ -530,6 +543,16 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             else:
                 logger.debug("Form does not contain Invenio tags")
             logger.debug(f"Additional metadata after subjects processing: {additional_metadata}")
+
+            # Check for creators data from form
+            if hasattr(form, "get_creators_data"):
+                creators_data = form.get_creators_data()
+                logger.debug(f"Raw creators_data from form: {creators_data} (type: {type(creators_data)})")
+                if creators_data:
+                    logger.debug(f"Form contains creators data: {creators_data}")
+                    additional_metadata["creators"] = creators_data
+                else:
+                    logger.debug("Form does not contain creators data")
 
             # Check for changes.
             if image_value_changed:

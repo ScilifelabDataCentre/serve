@@ -18,6 +18,7 @@ class AdditionalMetadata(TypedDict, total=False):
 
     languages: list[Language] | None  # List of Language objects (ISO 639-2 codes) or None
     subjects: list[Subject] | None  # List of tags/keywords for the record
+    creators: list[Creator] | None  # List of Creator objects for the record
     funding: list[Funding] | None  # List of funding entries for the record
 
 
@@ -49,9 +50,10 @@ class PersonOrOrg(BaseModel):
     """Person or organization in Invenio metadata."""
 
     name: str
-    type: str  # "personal" or "organizational"
+    type: str  # 'personal' or 'organizational'
     given_name: str | None = None
     family_name: str | None = None
+    identifiers: list[Identifier] | None = None
 
 
 class Role(BaseModel):
@@ -61,18 +63,20 @@ class Role(BaseModel):
     title: dict[str, Any] | None = None
 
 
+class Affiliation(BaseModel):
+    """Affiliation with identifier and scheme information."""
+
+    name: str
+    affiliationIdentifier: str | None = None
+    affiliationIdentifierScheme: str | None = None
+    schemeUri: str | None = None
+
+
 class Creator(BaseModel):
-    """Creator with person/org info and role."""
+    """Creator with InvenioRDM-compatible person_or_org structure."""
 
     person_or_org: PersonOrOrg
-    role: Role
-
-
-class Contributor(BaseModel):
-    """Contributor with person/org info and role."""
-
-    person_or_org: PersonOrOrg
-    role: Role
+    affiliations: list[Affiliation] | None = None
 
 
 # ============================================================================
@@ -219,7 +223,6 @@ class InvenioMetadata(BaseModel):
 
     # People and organizations
     creators: List[Creator]
-    contributors: List[Contributor]
 
     # Identifiers and relationships
     identifiers: List[Identifier]

@@ -1,6 +1,6 @@
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, Field, PrependedText
-from crispy_forms.layout import Div, Layout
+from crispy_forms.layout import HTML, Div, Layout
 from django import forms
 from django.forms.widgets import HiddenInput
 from django.utils.safestring import mark_safe
@@ -9,6 +9,7 @@ from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
 from apps.forms.mixins import (
     ContainerImageMixin,
+    CreatorsMixin,
     KeywordTagsValidationMixin,
     StorageMixin,
 )
@@ -18,7 +19,7 @@ from projects.models import Flavor
 __all__ = ["ShinyForm"]
 
 
-class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, AppBaseForm):
+class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, CreatorsMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     shiny_site_dir = forms.CharField(max_length=255, required=False, label="Path to site_dir")
@@ -75,6 +76,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, A
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags"),
+            self.get_creators_field_layout(),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
@@ -99,7 +101,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, A
         ]
 
         general = AccordionGroup(
-            mark_safe("<h3>Description</h3>"),
+            mark_safe("<h3>About</h3>"),
             *general_fields,
             active=True,
         )
