@@ -1,8 +1,9 @@
+import json
+import unicodedata
 from pathlib import Path
 from typing import Any
 
 import markdown
-import requests
 import waffle  # type: ignore
 from django.apps import apps
 from django.conf import settings
@@ -15,7 +16,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.views.generic import View
-from requests.exceptions import RequestException
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import Apps, BaseAppInstance, SocialMixin
@@ -36,11 +36,59 @@ Collection = apps.get_model(app_label="portal.Collection")
 # 2. add type annotations
 
 
-def __get_university_logo_names() -> list[str]:
+def __get_university_logo_keys() -> list[str]:
     logo_dir = Path(settings.BASE_DIR) / "static" / "images" / "logos" / "universities"
     if not logo_dir.exists():
         return []
     return sorted(path.stem for path in logo_dir.glob("*.png"))
+
+
+def __get_ror_logo_key(ror_id: str | None) -> str | None:
+    if not ror_id or ror_id == "no ror":
+        return None
+    ror_id = ror_id.strip().rstrip("/")
+    if not ror_id:
+        return None
+    return ror_id.rsplit("/", 1)[-1]
+
+
+def __normalize_text(value: str | None) -> str:
+    text = (value or "").strip().lower()
+    text = text.replace("å", "a").replace("ä", "a").replace("ö", "o")
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(character for character in text if not unicodedata.combining(character))
+    return " ".join(text.split())
+
+
+def __get_universities_lookup() -> list[dict[str, Any]]:
+    universities_path = Path(settings.STATICFILES_DIRS[0]) / "common" / "universities.json"
+    with universities_path.open() as f:
+        universities = json.load(f).get("universities", {})
+
+    university_list = []
+    for code, value in universities.items():
+        if isinstance(value, dict):
+            university_list.append(
+                {
+                    "code": code,
+                    "name": value.get("name", ""),
+                    "ror_id": value.get("ror_id", ""),
+                    "aliases": value.get("aliases", []),
+                }
+            )
+        else:
+            university_list.append({"code": code, "name": value, "ror_id": "", "aliases": []})
+    return university_list
+
+
+def __get_university_lookup_by_name() -> dict[str, dict[str, Any]]:
+    lookup = {}
+    for university in __get_universities_lookup():
+        for candidate in [university.get("name", ""), *university.get("aliases", [])]:
+            normalized_candidate = __normalize_text(candidate)
+            if normalized_candidate:
+                lookup[normalized_candidate] = university
+    return lookup
 
 
 def __get_content_stats() -> dict[str, int]:
@@ -88,32 +136,57 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
 
 def add_additional_context_to_public_apps(published_apps):
     serialized_apps = []
-    organizations, departments, tags = set(), set(), set()
+    organizations: dict[str, str | None] = {}
+    departments, tags = set(), set()
+    universities_by_name = __get_university_lookup_by_name()
 
     for app in published_apps:
+        affiliation = ""
+        affiliation_search = ""
+        affiliation_search_extra = ""
+        dep_cleaned = ""
+        department_search = ""
+        department_search_extra = ""
         try:
             affs = app.owner.userprofile.get_affiliations()
-            if affs:
-                first = affs[0]
-                affiliation = first.get("title", "")
-                department = first.get("department", "")
+            normalized_affiliations = []
+            cleaned_departments = []
+
+            for aff in affs or []:
+                raw_affiliation = aff.get("title", "")
+                ror_id = aff.get("ror_id", "")
+                university_match = universities_by_name.get(__normalize_text(raw_affiliation))
+                normalized_affiliation = raw_affiliation
+                if university_match:
+                    normalized_affiliation = university_match.get("name", raw_affiliation)
+                    ror_id = ror_id or university_match.get("ror_id", "")
+
+                if normalized_affiliation:
+                    normalized_affiliations.append(normalized_affiliation)
+                    organizations.setdefault(normalized_affiliation, ror_id)
+
+                department = aff.get("department", "")
                 if department not in [None, ""]:
-                    dep_cleaned = (
+                    cleaned_department = (
                         department.replace("Department of", "")
                         .replace("Division of ", "")
                         .replace("Institute of", "")
                         .replace("Institute for ", "")
                     )
-                    departments.add(dep_cleaned)
-            else:
-                affiliation = ""
-                department = ""
-                dep_cleaned = ""
-            organizations.add(affiliation)
+                    cleaned_departments.append(cleaned_department)
+                    departments.add(cleaned_department)
+
+            if normalized_affiliations:
+                affiliation = normalized_affiliations[0]
+                affiliation_search = ",".join(dict.fromkeys(normalized_affiliations))
+                affiliation_search_extra = ",".join(dict.fromkeys(normalized_affiliations[1:]))
+
+            if cleaned_departments:
+                dep_cleaned = cleaned_departments[0]
+                department_search = ",".join(dict.fromkeys(cleaned_departments))
+                department_search_extra = ",".join(dict.fromkeys(cleaned_departments[1:]))
         except Exception as e:
             logger.error("Error: " + e.__str__())
-            affiliation = ""
-            dep_cleaned = ""
 
         tag_list = app.tags.get_tag_list()
         tags.update(tag_list)
@@ -133,8 +206,12 @@ def add_additional_context_to_public_apps(published_apps):
                 "orcid_id": getattr(app.owner, "userprofile", None)
                 and getattr(app.owner.userprofile, "orcid_id", "")
                 or "",
-                "affiliation": affiliation if "affiliation" in locals() else "",
-                "department": dep_cleaned if "dep_cleaned" in locals() else "",
+                "affiliation": affiliation,
+                "affiliation_search": affiliation_search,
+                "affiliation_search_extra": affiliation_search_extra,
+                "department": dep_cleaned,
+                "department_search": department_search,
+                "department_search_extra": department_search_extra,
                 "tag_list": tag_list,
                 "tag_string": ",".join(tag_list),
                 "image": k8s_values.get("appconfig", {}).get("image", "Not available"),
@@ -153,11 +230,25 @@ def add_additional_context_to_public_apps(published_apps):
         )
 
     if organizations:
-        unique_organizations = sorted(organizations)
+        unique_organizations = [
+            {
+                "name": name,
+                "ror_id": ror_id,
+                "logo_key": __get_ror_logo_key(ror_id),
+            }
+            for name, ror_id in sorted(organizations.items())
+        ]
     else:
-        universities_lookup = requests.get(settings.STUDIO_URL + "/openapi/v1/lookups/universities")
-        universities = universities_lookup.json().get("data", [])
-        unique_organizations = sorted(u["name"] for u in universities if u.get("name"))
+        universities = __get_universities_lookup()
+        unique_organizations = [
+            {
+                "name": u["name"],
+                "ror_id": u.get("ror_id", ""),
+                "logo_key": __get_ror_logo_key(u.get("ror_id", "")),
+            }
+            for u in sorted(universities, key=lambda university: university.get("name", ""))
+            if u.get("name")
+        ]
     unique_departments = list(departments)
     unique_tags = list(tags)
     return serialized_apps, unique_organizations, unique_departments, unique_tags
@@ -181,7 +272,16 @@ def public_apps(request, app_id=0):
         serialized_apps, unique_organizations, unique_departments, unique_tags = add_additional_context_to_public_apps(
             published_apps
         )
-        university_logo_names = __get_university_logo_names()
+        university_logo_keys = __get_university_logo_keys()
+        university_logos = [
+            {
+                "name": university.get("name", ""),
+                "aliases": university.get("aliases", []),
+                "logo_key": __get_ror_logo_key(university.get("ror_id", "")),
+            }
+            for university in __get_universities_lookup()
+            if __get_ror_logo_key(university.get("ror_id", ""))
+        ]
         try:
             total_count = None
             public_count = None
@@ -189,7 +289,7 @@ def public_apps(request, app_id=0):
             stats = __get_content_stats()
             total_count = stats.get("n_apps", total_count)
             public_count = stats.get("n_apps_public", public_count)
-        except (RequestException, ValueError, KeyError) as e:
+        except (ValueError, KeyError) as e:
             stats_error = str(e)
             logger.warning("Content stats API failed: %s", e, exc_info=True)
     except Exception as e:

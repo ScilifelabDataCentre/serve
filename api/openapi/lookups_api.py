@@ -24,7 +24,19 @@ class UniversityLookupAPI(viewsets.GenericViewSet):
         """Get the universities data from the json file."""
         with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
             universities = json.load(f).get("universities", dict())
-            list = [{"code": k, "name": v} for k, v in universities.items()]
+            list = []
+            for code, value in universities.items():
+                if isinstance(value, dict):
+                    list.append(
+                        {
+                            "code": code,
+                            "name": value.get("name", ""),
+                            "ror_id": value.get("ror_id", ""),
+                            "aliases": value.get("aliases", []),
+                        }
+                    )
+                else:
+                    list.append({"code": code, "name": value, "ror_id": "", "aliases": []})
             return list
 
     def list_or_single(self, request):

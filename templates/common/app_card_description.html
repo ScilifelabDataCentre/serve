@@ -3,16 +3,21 @@
         var container = document.getElementById(containerId);
         var dots = container.querySelector(".description-dots");
         var moreText = container.querySelector(".description-more");
-        var btnText = container.querySelector("a.ui.tiny.label");
+        var btn = container.querySelector(".description-toggle");
+        var btnText = btn ? btn.querySelector(".description-toggle-text") : null;
+        var isExpanded = dots.style.display === "none";
 
-        if (dots.style.display === "none") {
+        if (isExpanded) {
             dots.style.display = "inline";
-            btnText.textContent = "See more";
             moreText.style.display = "none";
         } else {
             dots.style.display = "none";
-            btnText.textContent = "See less";
             moreText.style.display = "inline";
+        }
+
+        if (btn && btnText) {
+            btn.setAttribute("aria-expanded", String(!isExpanded));
+            btnText.textContent = btn.dataset[isExpanded ? "moreLabel" : "lessLabel"] || (isExpanded ? "See more" : "See less");
         }
     }
 </script>

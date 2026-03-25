@@ -184,15 +184,15 @@
                             {% static 'images/logos/universities/' as university_logo_static_url %}
                             {% for org in unique_organizations %}
                                 <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
-                                   onclick="searchByTag('{{ org }}','card-institution',this)">
+                                   onclick="searchByTag('{{ org.name }}','card-institution',this)">
     <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-    {% if org in university_logo_names %}
-    <img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
+    {% if org.logo_key and org.logo_key in university_logo_keys %}
+    <img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org.logo_key }}.png" alt="{{ org.name }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
     <i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
     {% else %}
     <i class="fas fa-graduation-cap me-1 filter-tag-icon-org org-fallback-icon" aria-hidden="true"></i>
     {% endif %}
-    <span class="tag-name">{{ org }}</span>
+    <span class="tag-name">{{ org.name }}</span>
     </span>
                                 </a>
                             {% endfor %}
@@ -438,15 +438,15 @@
                     {% static 'images/logos/universities/' as university_logo_static_url %}
                     {% for org in unique_organizations %}
                         <a class="tag tag-filter card-institution me-1 mb-2 {% if forloop.counter > 15 %}filter-collapsed{% endif %}"
-                           onclick="searchByTag('{{ org }}','card-institution',this)">
+                           onclick="searchByTag('{{ org.name }}','card-institution',this)">
 <span class="badge text-bg-primary badge-grape badge-ico-text-filter">
-{% if org in university_logo_names %}
-<img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org }}.png" alt="{{ org }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
+{% if org.logo_key and org.logo_key in university_logo_keys %}
+<img class="filter-tag-org-icon me-1" src="{{ university_logo_static_url }}{{ org.logo_key }}.png" alt="{{ org.name }} logo" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); this.nextElementSibling.classList.add('org-fallback-icon'); this.closest('.badge').classList.add('org-fallback-badge');">
 <i class="fas fa-graduation-cap me-1 filter-tag-icon-org d-none" aria-hidden="true"></i>
 {% else %}
 <i class="fas fa-graduation-cap me-1 filter-tag-icon-org org-fallback-icon" aria-hidden="true"></i>
 {% endif %}
-<span class="tag-name">{{ org }}</span>
+<span class="tag-name">{{ org.name }}</span>
 </span>
                         </a>
                     {% endfor %}
@@ -490,6 +490,8 @@
     </div>
 </div>
 
+{{ university_logos|json_script:"university-logo-data" }}
+
 {% if serialized_apps|length > 0 %}
 <script>
         (function () {
@@ -517,7 +519,9 @@
             const listOptions = {
                 valueNames: [
                     'card-title', 'card-description', 'card-username',
-                    'card-department', 'card-institution', 'card-app-type', 'card-keyword'
+                    'card-department', 'card-department-search',
+                    'card-institution', 'card-institution-search',
+                    'card-app-type', 'card-keyword'
                 ],
                 page: 12,
                 pagination: {
@@ -642,14 +646,35 @@
             let pendingSearchTags = [];
             let pendingColumnsToSearch = new Set();
             let pendingSearchValues = new Set();
+            const swedishARegex = /[åä]/g;
+            const swedishORegex = /ö/g;
+            const combiningMarksRegex = /[\u0300-\u036f]/g;
+            const whitespaceRegex = /\s+/g;
 
-            function normalize(s) {
-                return (s || '').toString().trim().toLowerCase();
+            function normalizeText(value) {
+                let text = (value || '').toString().trim().toLowerCase();
+                text = text.replace(swedishARegex, 'a');
+                text = text.replace(swedishORegex, 'o');
+                text = text.normalize('NFD');
+                text = text.replace(combiningMarksRegex, '');
+                return text.replace(whitespaceRegex, ' ');
             }
 
             const appSearchInputs = Array.from(document.querySelectorAll('.public-app-search-input'));
             const resultsCountEl = document.getElementById('public-apps-count');
             const resultsTotalEl = document.getElementById('public-apps-total');
+            const universityLogoDataEl = document.getElementById('university-logo-data');
+            const universityLogoData = universityLogoDataEl ? JSON.parse(universityLogoDataEl.textContent) : [];
+            const universityLogoByName = new Map();
+            const searchIndexCache = new WeakMap();
+            let currentSearchQuery = '';
+
+            universityLogoData.forEach(entry => {
+                [entry.name, ...(entry.aliases || [])].forEach(name => {
+                    const normalizedName = normalizeText(name);
+                    if (normalizedName && entry.logo_key) universityLogoByName.set(normalizedName, entry.logo_key);
+                });
+            });
 
             function setResultsCount(count) {
                 if (resultsCountEl) resultsCountEl.textContent = String(count);
@@ -672,36 +697,101 @@
             appSearchInputs.forEach(input => {
                 input.addEventListener('input', () => {
                     syncSearchInputs(input);
-                    publicAppList.search(input.value);
-                    setResultsCount(publicAppList.matchingItems.length);
+                    currentSearchQuery = input.value || '';
+                    applyFilters();
                 });
             });
 
 
             function valueMatchesColumn(cardValue, selectedValue, column) {
-                const cv = normalize(cardValue);
-                const sv = normalize(selectedValue);
-                if (column === 'card-keyword') {
+                const cv = normalizeText(cardValue);
+                const sv = normalizeText(selectedValue);
+                if (column === 'card-keyword' || column === 'card-institution-search' || column === 'card-department-search') {
                     const parts = cv.split(',').map(p => p.trim());
                     return parts.includes(sv);
                 }
                 return cv === sv;
             }
 
-            function applyTagFilters() {
+            function getFilterColumn(column) {
+                if (column === 'card-institution') return 'card-institution-search';
+                if (column === 'card-department') return 'card-department-search';
+                return column;
+            }
+
+            function getItemSearchText(item) {
+                if (searchIndexCache.has(item)) return searchIndexCache.get(item);
+                const values = item.values();
+                const searchText = normalizeText([
+                    values['card-title'],
+                    values['card-description'],
+                    values['card-username'],
+                    values['card-department'],
+                    values['card-department-search'],
+                    values['card-institution'],
+                    values['card-institution-search'],
+                    values['card-app-type'],
+                    values['card-keyword']
+                ].join(' '));
+                searchIndexCache.set(item, searchText);
+                return searchText;
+            }
+
+            function matchesSearch(item) {
+                const query = normalizeText(currentSearchQuery);
+                if (!query) return true;
+                return getItemSearchText(item).includes(query);
+            }
+
+            function applyFilters() {
                 publicAppList.filter(item => {
+                    if (!matchesSearch(item)) return false;
+                    if (!appliedSearchTags.length) return true;
                     return [...appliedColumnsToSearch].every(col => {
-                        const v = item.values()[col] || '';
+                        const filterColumn = getFilterColumn(col);
+                        const v = item.values()[filterColumn] || '';
                         for (const selected of appliedSearchValues) {
-                            if (valueMatchesColumn(v, selected, col)) return true;
+                            if (valueMatchesColumn(v, selected, filterColumn)) return true;
                         }
                         return false;
                     });
                 });
 
-                if (!appliedSearchTags.length) publicAppList.filter();
                 setResultsCount(publicAppList.matchingItems.length);
                 updateActiveFiltersBar();
+            }
+
+            function repairOrganizationLogos() {
+                const universityLogoStaticUrl = "{% static 'images/logos/universities/' %}";
+                document.querySelectorAll('.tag-filter.card-institution .badge-ico-text-filter').forEach(badge => {
+                    const nameEl = badge.querySelector('.tag-name');
+                    const fallbackIcon = badge.querySelector('.filter-tag-icon-org');
+                    const existingImage = badge.querySelector('img.filter-tag-org-icon');
+                    if (!nameEl || !fallbackIcon) return;
+                    if (existingImage && !existingImage.classList.contains('d-none')) return;
+
+                    const logoKey = universityLogoByName.get(normalizeText(nameEl.textContent));
+                    if (!logoKey) return;
+
+                    const image = existingImage || document.createElement('img');
+                    image.className = 'filter-tag-org-icon me-1';
+                    image.alt = `${nameEl.textContent.trim()} logo`;
+                    image.loading = 'lazy';
+                    image.src = `${universityLogoStaticUrl}${logoKey}.png`;
+                    image.onerror = function () {
+                        image.classList.add('d-none');
+                        fallbackIcon.classList.remove('d-none');
+                        fallbackIcon.classList.add('org-fallback-icon');
+                        badge.classList.add('org-fallback-badge');
+                    };
+                    if (!existingImage) {
+                        badge.insertBefore(image, fallbackIcon);
+                    }
+                    image.classList.remove('d-none');
+                    fallbackIcon.classList.add('d-none');
+                    fallbackIcon.classList.remove('org-fallback-icon');
+                    badge.classList.remove('org-fallback-badge');
+                });
             }
 
 
@@ -759,10 +849,8 @@
 
                     cloneAppliedToPending();
 
-                    publicAppList.filter();
-                    publicAppList.search(appSearchInputs[0] ? appSearchInputs[0].value : '');
-                    setResultsCount(publicAppList.matchingItems.length);
-
+                    currentSearchQuery = appSearchInputs[0] ? appSearchInputs[0].value : '';
+                    applyFilters();
                     syncTagVisuals();
                     updateResetButtonsVisibility();
                     updateActiveFiltersBar();
@@ -863,10 +951,10 @@
 
                 if (!isSmallScreenMode()) {
                     if (!appliedSearchTags.length) {
-                        window.resetFilters();
+                        applyFilters();
                         return;
                     }
-                    applyTagFilters();
+                    applyFilters();
                 }
             }
 
@@ -895,10 +983,8 @@
 
                 syncTagVisuals();
 
-                publicAppList.filter();
-                publicAppList.search(appSearchInputs[0] ? appSearchInputs[0].value : '');
-                setResultsCount(publicAppList.matchingItems.length);
-
+                currentSearchQuery = appSearchInputs[0] ? appSearchInputs[0].value : '';
+                applyFilters();
                 updateResetButtonsVisibility();
                 updateActiveFiltersBar();
             };
@@ -938,7 +1024,7 @@
 
                 if (!smallScreen) {
                     cloneAppliedToPending();
-                    applyTagFilters();
+                    applyFilters();
                 }
             };
 
@@ -1025,7 +1111,7 @@
                     if (!isSmallScreenMode()) return;
 
                     commitPendingToApplied();
-                    applyTagFilters();
+                    applyFilters();
 
                     const offcanvasEl = document.getElementById('small-screenFilters');
                     const offcanvas = offcanvasEl ? bootstrap.Offcanvas.getInstance(offcanvasEl) : null;
@@ -1048,6 +1134,7 @@
             setResultsTotal(publicAppList.items.length);
 
             initFilterGroups();
+            repairOrganizationLogos();
             window.showFilterSection(window.activeFilterNav);
             updateActiveFiltersBar();
 
