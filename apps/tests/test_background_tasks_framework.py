@@ -74,11 +74,9 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
         max_retries=0,
     )
 
-    with patch(
-        "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"
-    ), patch("doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi", return_value=(True, "")), patch(
-        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
-    ) as mock_mint:
+    with patch("apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"), patch(
+        "doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi", return_value=(True, "")
+    ), patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint:
         result = execute_single_background_task(
             task_db_id=task_record.id,
             task_kwargs_by_task_name={"doi_provisioning": {"language": "eng", "funding": funding_payload}},
@@ -105,9 +103,7 @@ def test_doi_provisioning_task_marks_ineligible_apps_as_skipped(app_instance):
     with patch("apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"), patch(
         "doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi",
         return_value=(False, "App access is 'private', not 'public'"),
-    ), patch(
-        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
-    ) as mock_mint:
+    ), patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint:
         result = execute_single_background_task(task_db_id=task_record.id)
 
     assert result["success"] is True
