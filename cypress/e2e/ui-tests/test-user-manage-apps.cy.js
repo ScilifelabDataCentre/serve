@@ -194,11 +194,11 @@ if (Cypress.env('create_resources') === true) {
 
             // Verify that the public project app cannot be deleted (due to DOI protection)
             cy.logf("Verifying that the public project app cannot be deleted by regular users", Cypress.currentTest)
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
@@ -291,7 +291,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
-            // We do not verify the app status because it depends on k8s 
+            // We do not verify the app status because it depends on k8s
             // Note: Access level remains 'Public' due to DOI protection
             verifyAppStatus(app_name_public_2, "", "Public", "Changing")
 
@@ -339,11 +339,11 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Now verifying that the public app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
@@ -427,11 +427,11 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Verifying that the public shiny app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
@@ -507,11 +507,11 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Verifying that the public dash app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
@@ -571,11 +571,11 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Verifying that the public tissuumaps app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
@@ -637,11 +637,11 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Verifying that the public gradio app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
@@ -703,11 +703,11 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Verifying that the public streamlit app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
@@ -792,11 +792,11 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Verifying that the public dash app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
@@ -895,11 +895,11 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Verifying that the public dash app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
@@ -980,11 +980,11 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Verifying that the public dash app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            
+
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
-            
+
             // Click elsewhere to close the dropdown menu
             cy.get('body').click()
 
