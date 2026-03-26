@@ -147,7 +147,16 @@ if (Cypress.env('create_resources') === true) {
             //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
-
+            // Wait for the app row to appear or log form errors if not
+            cy.get('body').then(($body) => {
+                if ($body.find('tr:contains("' + app_name_project + '")').length === 0) {
+                    // If the row is not present, check for form errors
+                    if ($body.find('.alert-danger, .errorlist').length > 0) {
+                        cy.log('Form errors: ' + $body.find('.alert-danger, .errorlist').text())
+                    }
+                }
+            })
+            cy.get('tr:contains("' + app_name_project + '")', { timeout: 10000 }).should('be.visible')
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
             verifyAppStatus(app_name_project, "Creating", "Project", "Creating")
@@ -183,20 +192,15 @@ if (Cypress.env('create_resources') === true) {
                 })
             }
 
-            // Delete the project level app
-            cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
+            // Verify that the public project app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public project app cannot be deleted by regular users", Cypress.currentTest)
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
-
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name_project + '")').should('not.exist')
-            })
+            cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
             // Create a public app and verify that it is displayed on the public apps page
             cy.logf("Now creating a public app", Cypress.currentTest)
@@ -271,10 +275,9 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_description').should('have.value', app_description) // description should be same as set before
             cy.get('#id_description').clear().type(app_description_2) // now change description
             cy.get('#id_access').find(':selected').should('contain', 'Public')
-            // checking that a) permissions can be changed to 'Link'; b) that the corresponding text field is shown and mandatory
-            cy.get('#id_access').select('Link')
-            cy.get('#id_note_on_linkonly_privacy').should('be.visible')
-            cy.get('#id_note_on_linkonly_privacy').clear().type(link_privacy_type_note)
+            // Note: DOI-protected public apps cannot change their access level
+            // Verify that the access field is disabled due to DOI protection
+            cy.get('#id_access').should('be.disabled')
             // /home/data (project-vol (e2e-user-manage-apps-test-proj))
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path + " (project-vol (" + project_name + "))")
             cy.get('#id_port').should('have.value', image_port)
@@ -288,17 +291,18 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
 
-            // We do not verify the app status because it depends on k8s
-            verifyAppStatus(app_name_public_2, "", "Link", "Changing")
+            // We do not verify the app status because it depends on k8s 
+            // Note: Access level remains 'Public' due to DOI protection
+            verifyAppStatus(app_name_public_2, "", "Public", "Changing")
 
             // This relies on the k8s event listener
             if (env_run_extended_k8s_checks === true) {
                 // NB: it will get status "Running" but it won't work because the new port is incorrect
-                verifyAppStatus(app_name_public_2, "Running", "Link", "Changing")
+                verifyAppStatus(app_name_public_2, "Running", "Public", "Changing")
 
                 // Wait for 5 seconds and check the app status again
                 cy.wait(5000).then(() => {
-                    verifyAppStatus(app_name_public_2, "Running", "Link", "Changing")
+                    verifyAppStatus(app_name_public_2, "Running", "Public", "Changing")
                 })
             }
 
@@ -314,8 +318,8 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name_public_2 + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name_public_2)
             cy.get('#id_description').should('have.value', app_description_2)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
-            cy.get('#id_note_on_linkonly_privacy').should('have.value', link_privacy_type_note)
+            // Note: Access level remains 'Public' due to DOI protection
+            cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path_2 + " (project-vol (" + project_name + "))")
@@ -331,28 +335,26 @@ if (Cypress.env('create_resources') === true) {
                 .should('exist')
                 .and('include.text', 'Your custom URL subpath is not valid, please correct it');
 
-            // Remove the created public app and verify that it is deleted from public apps page
-            cy.logf("Now deleting the public app", Cypress.currentTest)
+            // Verify that the created public app cannot be deleted (due to DOI protection)
+            cy.logf("Now verifying that the public app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
+            cy.get('tr:contains("' + app_name_public_2 + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name_public_2 + '")').should('not.exist')
-            })
+            // Note: Public apps with DOI protection remain in the system and cannot be deleted by regular users
+            // This is the intended behavior to protect published research outputs
 
-            // check that the app is not visible under public apps
+            // Verify that the app is still visible under public apps (since it wasn't deleted)
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name_public_2).should('not.exist')
+            cy.contains('h4.card-title', app_name_public_2).should('exist')
         })
 
         it("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -406,7 +408,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('.card-text').find('p').should('contain', app_description)
 
             cy.logf("Checking that instructions for running the app locally are displayed on public apps page", Cypress.currentTest)
-            cy.get('a[data-bs-target="#dockerInfoModal"]').click()
+            cy.get('a[data-bs-target="#dockerInfoModal"]').first().click()
             cy.get('div#dockerInfoModal').should('be.visible')
             cy.get('code').first().should('contain', image_name)
             cy.get('code').first().should('contain', image_port)
@@ -421,27 +423,23 @@ if (Cypress.env('create_resources') === true) {
                         // Click the Details link
                         cy.get('a[id^="source-code-url"]').should('have.attr', 'href', source_code_url)
                     })
-            cy.logf("Deleting the shiny app", Cypress.currentTest)
+            // Verify that the public shiny app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public shiny app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
+            // Verify that the app is still visible under public apps (since it wasn't deleted)
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('exist')
         })
 
         it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -505,28 +503,23 @@ if (Cypress.env('create_resources') === true) {
             //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click() // Go to Advanced settings
             cy.get('#id_default_url_subpath').should('have.value', default_url_subpath)
 
-            // Delete the Dash app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
+            // Verify that the public dash app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public dash app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
+            // Verify that the app is still visible under public apps (since it wasn't deleted)
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('exist')
         })
 
         it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -574,27 +567,23 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
 
-            cy.logf("Deleting the tissuumaps app", Cypress.currentTest)
+            // Verify that the public tissuumaps app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public tissuumaps app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
+            // Verify that the app is still visible under public apps (since it wasn't deleted)
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('exist')
         })
 
         it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -644,28 +633,23 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
-            // Delete the Gradio app
-            cy.logf("Deleting the gradio app", Cypress.currentTest)
+            // Verify that the public gradio app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public gradio app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
+            // Verify that the app is still visible under public apps (since it wasn't deleted)
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('exist')
         })
 
         it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -715,28 +699,23 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
-            // Delete the Streamlit app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
+            // Verify that the public streamlit app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public streamlit app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
+            // Verify that the app is still visible under public apps (since it wasn't deleted)
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('exist')
         })
 
         it("can modify app settings resulting in NO k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -809,28 +788,23 @@ if (Cypress.env('create_resources') === true) {
                 })
             }
 
-            // Delete the Dash app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
+            // Verify that the public dash app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public dash app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
+            cy.get('tr:contains("' + app_name_edited + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name_edited + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
+            // Verify that the app is still visible under public apps (since it wasn't deleted)
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name_edited).should('not.exist')
+            cy.contains('h4.card-title', app_name_edited).should('exist')
         })
 
         it("can modify app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -917,28 +891,23 @@ if (Cypress.env('create_resources') === true) {
                 })
             }
 
-            // Delete the Dash app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
+            // Verify that the public dash app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public dash app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
+            // Verify that the app is still visible under public apps (since it wasn't deleted)
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('exist')
         })
 
         it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -1007,28 +976,23 @@ if (Cypress.env('create_resources') === true) {
                 })
             }
 
-            // Delete the Dash app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
+            // Verify that the public dash app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public dash app cannot be deleted by regular users", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            
+            // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').click()
-            cy.get('#modalConfirmDelete')
-                .should('be.visible')
-                .find('[data-cy="delete-app-button-confirm"]')
-                .click()
+            cy.get('tr:contains("' + app_name + '")').should('be.visible').find('a.confirm-delete').should('not.exist')
+            
+            // Click elsewhere to close the dropdown menu
+            cy.get('body').click()
 
-            // Give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
+            // Verify that the app is still visible under public apps (since it wasn't deleted)
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
+            cy.contains('h4.card-title', app_name).should('exist')
         })
 
         it("can set and change custom subdomain several times", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
