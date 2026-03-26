@@ -125,7 +125,7 @@
                           Secrets
                         </a>
                       {% endif %}
-                      {% if not (instance.access == 'public' and instance.app_doi|default:False) %}
+                      {% if not instance.access == 'public' and not instance.app_doi %}
                         {% if instance.app.user_can_delete %}
 
                         <a class="dropdown-item bg-danger text-white confirm-delete default"
