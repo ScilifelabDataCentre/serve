@@ -198,9 +198,10 @@ def delete(request, project, app_slug, app_id):
     if not instance.app.user_can_delete:
         return HttpResponseForbidden()
 
-    # Prevent deletion of public apps with published DOIs
+    # Prevent deletion of public apps with published DOIs (unless user is admin)
     if (
-        hasattr(instance, "access")
+        not request.user.is_superuser
+        and hasattr(instance, "access")
         and instance.access == "public"
         and hasattr(instance, "app_doi")
         and instance.app_doi
