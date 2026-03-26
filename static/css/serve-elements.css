@@ -101,6 +101,10 @@
     opacity: 0.5;
 }
 
+.serve-admin-dropdown-trigger {
+    padding-bottom: 10px;
+}
+
 /* forms */
 
 .form-control {

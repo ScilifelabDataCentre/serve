@@ -41,7 +41,10 @@ def _validation_result_skipped_unsupported_registry(ctx: ContainerImageContext) 
 
 
 @TASK_REGISTRY.register(
-    name="validate_docker_image", is_critical=True, execution_order=1, app_types=["customapp", "jupyter", "rstudio"]
+    name="validate_docker_image",
+    is_critical=True,
+    execution_order=1,
+    app_types=["customapp", "dashapp", "jupyter-lab", "rstudio", "shinyproxyapp", "shinyapp", "gradio", "streamlit"],
 )
 class DockerImageValidator(BaseBackgroundTask):
     """
