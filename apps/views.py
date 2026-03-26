@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -29,6 +29,7 @@ from .helpers import (
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
     get_minio_usage,
+    should_trigger_deployment_from_form,
 )
 from .models import BaseAppInstance
 from .tasks import delete_resource
@@ -81,6 +82,20 @@ def _select_latest_task_records(tasks):
     )
 
 
+def _get_project_app_instance(project_slug: str, app_slug: str, app_id: int):
+    project_obj = Project.objects.get(slug=project_slug)
+    model_class = APP_REGISTRY.get_orm_model(app_slug)
+    if not model_class:
+        raise PermissionDenied("Application model not found")
+
+    try:
+        instance = model_class.objects.get(pk=app_id, project=project_obj)
+    except model_class.DoesNotExist as exc:
+        raise Http404("An app with this id does not exist in this project.") from exc
+
+    return project_obj, instance
+
+
 def _build_task_summary(tasks_data):
     return {
         "total": len(tasks_data),
@@ -107,6 +122,7 @@ def _build_workflow_state(tasks_data):
 def _build_deployment_state(instance, workflow, tasks_data):
     app_status = instance.get_app_status()
     latest_user_action = instance.latest_user_action
+    is_transitioning = latest_user_action in {"Creating", "Changing", "Redeploying"}
     status = "pending"
     label = "Pending"
     message = "Waiting to start deployment."
@@ -123,14 +139,14 @@ def _build_deployment_state(instance, workflow, tasks_data):
         status = "success"
         label = "Done"
         message = "The app is running."
-    elif app_status in {"Error", "Error (NotFound)"}:
-        status = "failed"
-        label = "Failed"
-        message = "Deployment hit an error after the checks completed."
-    elif workflow["ready_for_deploy"] or latest_user_action in {"Creating", "Changing", "Redeploying"}:
+    elif workflow["ready_for_deploy"] or is_transitioning:
         status = "running"
         label = "Deploying"
         message = "Deployment is in progress."
+    elif latest_user_action == "Failed" or app_status in {"Error", "Error (NotFound)"}:
+        status = "failed"
+        label = "Failed"
+        message = "Deployment hit an error after the checks completed."
     elif tasks_data:
         status = "pending"
         label = "Pending"
@@ -147,6 +163,23 @@ def _build_deployment_state(instance, workflow, tasks_data):
         "app_status": app_status,
         "latest_user_action": latest_user_action,
     }
+
+
+def _build_details_task_rows(tasks):
+    rows = []
+    for task in tasks:
+        result_data = task.result_data if isinstance(task.result_data, dict) else {}
+        was_skipped = bool(result_data.get("skipped"))
+        rows.append(
+            {
+                "task_name": task.task_name,
+                "execution_order": task.execution_order,
+                "is_critical": task.is_critical,
+                "status_label": "Skipped" if was_skipped else task.get_status_display(),
+                "status_class": "secondary" if was_skipped else task.get_status_display_class(),
+            }
+        )
+    return rows
 
 
 @method_decorator(
@@ -401,12 +434,15 @@ class CreateApp(View):
                 return JsonResponse({"success": False, "html": html}, status=400)
             return render(request, self.template_name, context)
 
+        should_deploy = should_trigger_deployment_from_form(form, app_id=app_id)
+
         # Otherwise we can create the instance
         instance_id = create_instance_from_form(form, project, app_slug, app_id)
         detail_url = _build_project_app_path(str(project_slug), f"details/{app_slug}/{instance_id}")
         progress_url = _build_project_app_path(str(project_slug), f"progress/{app_slug}/{instance_id}")
         background_tasks_url = _build_project_app_path(str(project_slug), f"tasks/{app_slug}/{instance_id}")
         status_api_url = _build_project_app_path(str(project_slug), f"tasks/{app_slug}/{instance_id}/status")
+        redirect_url = progress_url if should_deploy else detail_url
 
         if _is_ajax_request(request):
             action = "updated" if app_id else "created"
@@ -418,11 +454,12 @@ class CreateApp(View):
                     "progress_url": progress_url,
                     "background_tasks_url": background_tasks_url,
                     "status_api_url": status_api_url,
+                    "redirect_url": redirect_url,
                     "action": action,
                 }
             )
 
-        return HttpResponseRedirect(progress_url)
+        return HttpResponseRedirect(redirect_url)
 
     def get_form(self, request, project, app_slug, app_id):
         model_class, form_class = APP_REGISTRY.get(app_slug)
@@ -439,11 +476,14 @@ class CreateApp(View):
         if app_id:
             # Updating an existing app instance
             user_can_edit = model_class.objects.user_can_edit(request.user, project, app_slug)
-            instance = model_class.objects.get(pk=app_id)
+            instance = model_class.objects.filter(pk=app_id, project=project).first()
         else:
             # Create a new app instance
             user_can_create = model_class.objects.user_can_create(request.user, project, app_slug)
             instance = None
+
+        if app_id and instance is None:
+            return None
 
         if user_can_edit or user_can_create:
             return form_class(request.POST or None, project_pk=project.pk, instance=instance)
@@ -462,12 +502,7 @@ class DeploymentProgressView(View):
     def get(self, request, project, app_slug, app_id):
         from apps.models import BackgroundTask
 
-        model_class = APP_REGISTRY.get_orm_model(app_slug)
-        if not model_class:
-            raise PermissionDenied("Application model not found")
-
-        instance = model_class.objects.get(pk=app_id)
-        project_obj = Project.objects.get(slug=project)
+        project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
 
         tasks = _select_latest_task_records(
             list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
@@ -502,16 +537,12 @@ class AppDetailsView(View):
     def get(self, request, project, app_slug, app_id):
         from apps.models import BackgroundTask
 
-        model_class = APP_REGISTRY.get_orm_model(app_slug)
-        if not model_class:
-            raise PermissionDenied("Application model not found")
-
-        instance = model_class.objects.get(pk=app_id)
-        project_obj = Project.objects.get(slug=project)
+        project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
 
         tasks = _select_latest_task_records(
             list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
         )
+        recent_tasks = _build_details_task_rows(tasks)
         tasks_data = [_serialize_background_task(task) for task in tasks]
         summary = _build_task_summary(tasks_data)
         workflow = _build_workflow_state(tasks_data)
@@ -536,7 +567,7 @@ class AppDetailsView(View):
         context = {
             "instance": instance,
             "project": project_obj,
-            "tasks": tasks,
+            "recent_tasks": recent_tasks,
             "summary": summary,
             "workflow": workflow,
             "deployment": deployment,
@@ -667,13 +698,7 @@ class BackgroundTasksView(View):
     def get(self, request, project, app_slug, app_id):
         from apps.models import BackgroundTask
 
-        # Get app instance
-        model_class = APP_REGISTRY.get_orm_model(app_slug)
-        if not model_class:
-            raise PermissionDenied("Application model not found")
-
-        instance = model_class.objects.get(pk=app_id)
-        project_obj = Project.objects.get(slug=project)
+        project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
 
         # Get all background tasks for this instance
         tasks_qs = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
@@ -703,14 +728,9 @@ class BackgroundTaskStatusAPI(View):
     def get(self, request, project, app_slug, app_id):
         from apps.models import BackgroundTask
 
-        # Get app instance
-        model_class = APP_REGISTRY.get_orm_model(app_slug)
-        if not model_class:
-            return JsonResponse({"error": "Application model not found"}, status=404)
-
         try:
-            instance = model_class.objects.get(pk=app_id)
-        except model_class.DoesNotExist:
+            _, instance = _get_project_app_instance(project, app_slug, app_id)
+        except (Http404, PermissionDenied):
             return JsonResponse({"error": "App instance not found"}, status=404)
 
         # Get all background tasks for this instance

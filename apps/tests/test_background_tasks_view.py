@@ -109,6 +109,31 @@ class BackgroundTasksViewTestCase(TestCase):
             "validate_docker_image",
         )
 
+    def test_private_app_details_page_marks_skipped_checks_distinctly(self):
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="doi_provisioning",
+            task_type="external_api",
+            status="success",
+            is_critical=False,
+            execution_order=2,
+            result_data={"skipped": True, "reason": "DOI minting is only available for public apps."},
+        )
+
+        response = self.client.get(
+            reverse(
+                "apps:details",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Skipped")
+
     def test_background_task_status_api_collapses_historical_duplicate_task_names(self):
         BackgroundTask.objects.create(
             app_instance=self.app_instance,
@@ -166,6 +191,29 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(payload["deployment"]["status"], "pending")
         self.assertEqual(payload["deployment"]["label"], "Pending")
 
+    def test_background_task_status_api_keeps_deploy_running_during_transient_notfound_state(self):
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="success")
+        self.app_instance.k8s_user_app_status.status = "NotFound"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.save(update_fields=["latest_user_action"])
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["deployment"]["status"], "running")
+        self.assertEqual(payload["deployment"]["label"], "Deploying")
+
     def test_background_task_status_api_marks_skipped_tasks(self):
         BackgroundTask.objects.create(
             app_instance=self.app_instance,
@@ -193,3 +241,49 @@ class BackgroundTasksViewTestCase(TestCase):
         doi_task = next(task for task in payload["tasks"] if task["task_name"] == "doi_provisioning")
         self.assertTrue(doi_task["was_skipped"])
         self.assertEqual(doi_task["skip_reason"], "doi_minting_using_invenio switch is off")
+
+    def test_new_project_scoped_pages_reject_app_ids_from_other_projects(self):
+        other_user = User.objects.create_user("foo2", "foo2@test.com", "bar")
+        other_project = Project.objects.create_project(
+            name="other-project",
+            owner=other_user,
+            description="",
+            project_template=self.project_template,
+        )
+        other_subdomain = Subdomain.objects.create(subdomain="other-project-app")
+        other_k8s_status = K8sUserAppStatus.objects.create()
+        other_instance = CustomAppInstance.objects.create(
+            access="private",
+            owner=other_user,
+            name="other app",
+            app=self.app,
+            project=other_project,
+            subdomain=other_subdomain,
+            k8s_user_app_status=other_k8s_status,
+            k8s_values={"environment": {"pk": ""}},
+        )
+
+        for route_name in ("apps:deployment_progress", "apps:details"):
+            response = self.client.get(
+                reverse(
+                    route_name,
+                    kwargs={
+                        "project": self.project.slug,
+                        "app_slug": self.app.slug,
+                        "app_id": other_instance.pk,
+                    },
+                )
+            )
+            self.assertEqual(response.status_code, 404)
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": other_instance.pk,
+                },
+            )
+        )
+        self.assertEqual(response.status_code, 404)

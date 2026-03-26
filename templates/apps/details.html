@@ -117,9 +117,9 @@
           <a href="{{ background_tasks_url }}" class="small text-decoration-none">View all</a>
         </div>
         <div class="card-body">
-          {% if tasks %}
+          {% if recent_tasks %}
           <div class="list-group list-group-flush">
-            {% for task in tasks %}
+            {% for task in recent_tasks %}
             <div class="list-group-item px-0">
               <div class="d-flex justify-content-between gap-3">
                 <div>
@@ -127,7 +127,7 @@
                   <div class="small text-muted">Stage {{ task.execution_order }}{% if task.is_critical %} · Required{% endif %}</div>
                 </div>
                 <div>
-                  <span class="badge bg-{{ task.get_status_display_class }}">{{ task.get_status_display }}</span>
+                  <span class="badge bg-{{ task.status_class }}">{{ task.status_label }}</span>
                 </div>
               </div>
             </div>

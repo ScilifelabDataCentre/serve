@@ -316,6 +316,42 @@ def get_URI(instance):
 
 
 @transaction.atomic
+def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool = False) -> bool:
+    """
+    Determine whether saving the form should enqueue a deployment run.
+
+    New app creation always deploys. Existing apps only redeploy when one of the
+    infrastructure-affecting fields changes, unless force_redeploy is set.
+    """
+    if app_id is None:
+        return True
+
+    if force_redeploy:
+        return True
+
+    redeployment_fields = {
+        "subdomain",
+        "volume",
+        "path",
+        "flavor",
+        "port",
+        "image",
+        "access",
+        "shiny_site_dir",
+    }
+
+    logger.debug("An existing app has changed. The changed form fields: %s", form.changed_data)
+
+    for field in form.changed_data:
+        normalized_field = field.lower()
+        if normalized_field in redeployment_fields and (
+            normalized_field in form.Meta.fields or normalized_field == "subdomain"
+        ):
+            return True
+
+    return False
+
+
 def create_instance_from_form(form, project, app_slug, app_id=None, force_redeploy: bool = False) -> int:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
@@ -351,37 +387,13 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         project.pk,
     )
 
+    do_deploy = should_trigger_deployment_from_form(form, app_id=app_id, force_redeploy=force_redeploy)
     if new_app:
-        do_deploy = True
         user_action = "Creating"
     else:
-        do_deploy = force_redeploy
-        # Update an existing app
-        user_action = "Changing"
-
-        if not do_deploy:
-            # Only re-deploy existing apps if one of the following fields was changed:
-            redeployment_fields = [
-                "subdomain",
-                "volume",
-                "path",
-                "flavor",
-                "port",
-                "image",
-                "access",
-                "shiny_site_dir",
-            ]
-            logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
-
-            # Because not all forms contain all fields, we check if the supposedly changed field
-            # is actually contained in the form
-            for field in form.changed_data:
-                if field.lower() in redeployment_fields and (
-                    field.lower() in form.Meta.fields or field.lower() == "subdomain"
-                ):
-                    # subdomain is a special field not contained in meta fields
-                    do_deploy = True
-                    break
+        # Preserve the current action when no deploy is needed so the UI does not
+        # present an infrastructure rollout that never started.
+        user_action = "Changing" if do_deploy else getattr(form.instance, "latest_user_action", "Changing")
 
     subdomain_name, is_created_by_user = get_subdomain_name(form)
     logger.info(

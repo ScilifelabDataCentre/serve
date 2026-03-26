@@ -125,7 +125,7 @@ class DockerImageValidator(BaseBackgroundTask):
         from apps.validators.container_images import ContainerImageValidationError
 
         if isinstance(error, ContainerImageValidationError):
-            return False
+            return bool(getattr(error, "retryable", False))
         return super().should_retry(error, retry_count)
 
 

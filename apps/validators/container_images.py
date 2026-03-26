@@ -12,6 +12,14 @@ logger = get_logger(__name__)
 class ContainerImageValidationError(ValueError):
     """User-facing validation error for container image lookup and parsing."""
 
+    def __init__(self, message: str, *, retryable: bool = False):
+        super().__init__(message)
+        self.retryable = retryable
+
+
+def _is_transient_registry_status(status_code: int) -> bool:
+    return status_code == 429 or 500 <= status_code < 600
+
 
 def _format_image_reference(repository: str, reference: str, registry: str) -> str:
     return f"{registry}/{repository}:{reference}"
@@ -152,7 +160,8 @@ def get_manifest_list(
                 reference=reference,
                 registry=registry,
                 status_code=resp.status_code,
-            )
+            ),
+            retryable=_is_transient_registry_status(resp.status_code),
         )
 
     return resp.json()
@@ -171,6 +180,15 @@ def get_config_blob(*, auth: BaseRegistryAuth, repo: str, digest: str, registry:
     resp = requests.get(url, headers=headers)
     if resp.status_code != 200:
         logger.error(f"Error fetching config blob: {resp.status_code} {resp.text}")
+        if _is_transient_registry_status(resp.status_code):
+            image_reference = _format_image_reference(repo, digest, registry)
+            raise ContainerImageValidationError(
+                (
+                    f"We could not read metadata for the container image '{image_reference}'. "
+                    "Please try again in a moment."
+                ),
+                retryable=True,
+            )
         return None
 
     return resp.json()
