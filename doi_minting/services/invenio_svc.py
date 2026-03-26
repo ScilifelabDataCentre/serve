@@ -632,7 +632,7 @@ class InvenioService:
 
         return dates
 
-    def generate_invenio_metadata(
+    def generate_invenio_record(
         self, app_instance: Any, additional_metadata: Optional[AdditionalMetadata] = None
     ) -> InvenioRecord:
         """
@@ -849,7 +849,7 @@ class InvenioService:
 
         try:
             # Generate Invenio metadata
-            invenio_record: InvenioRecord = self.generate_invenio_metadata(
+            invenio_record: InvenioRecord = self.generate_invenio_record(
                 app_instance, additional_metadata=additional_metadata
             )
 

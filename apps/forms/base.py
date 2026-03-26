@@ -81,15 +81,6 @@ class BaseForm(forms.ModelForm):
             self._original_tags = []
         self._restore_model_help_text()
 
-    def _setup_optional_funding_field(self):
-        """Configure optional funding field controlled by DOI minting switch."""
-        if "funding_sources_json" not in self.fields:
-            return
-        if not waffle.switch_is_active("doi_minting_using_invenio"):
-            self.fields.pop("funding_sources_json", None)
-        else:
-            self.fields["funding_sources_json"].initial = self.fields["funding_sources_json"].initial or "[]"
-
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel
         self.footer = Div(
@@ -112,10 +103,6 @@ class BaseForm(forms.ModelForm):
         self.helper.form_method = "post"
 
     def add_metadata(self):
-        # Hide language field unless DOI minting is enabled
-        if not waffle.switch_is_active("doi_minting_using_invenio"):
-            self.fields.pop("language", None)
-
         instance = getattr(self, "instance", None)
         if not instance or not getattr(instance, "pk", None):
             return

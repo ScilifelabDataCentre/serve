@@ -64,7 +64,6 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         self._setup_container_image_field()
         self._set_up_mount_path_field()
         super()._restore_model_help_text()
-        self._setup_optional_funding_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()

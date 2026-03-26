@@ -66,7 +66,6 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, C
             'You can find more about it <a href="/docs/application-hosting/shiny/#wiki-toc-advanced-settings">'
             "in our documentation</a>."
         )
-        self._setup_optional_funding_field()
 
     def _setup_form_helper(self):
         super()._setup_form_helper()
