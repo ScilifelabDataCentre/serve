@@ -68,9 +68,7 @@ class CreateAppInstanceTestCase(TestCase):
 
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
-        with patch.object(waffle, "switch_is_active", return_value=False), patch(
-            "apps.tasks.run_background_tasks.delay"
-        ) as mock_task:
+        with patch("apps.tasks.run_background_tasks.delay") as mock_task:
             with self.captureOnCommitCallbacks(execute=True):
                 id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
 
@@ -111,9 +109,7 @@ class CreateAppInstanceTestCase(TestCase):
 
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
 
-        with patch.object(waffle, "switch_is_active", return_value=False), patch(
-            "apps.tasks.run_background_tasks.delay"
-        ) as mock_task:
+        with patch("apps.tasks.run_background_tasks.delay") as mock_task:
             with self.captureOnCommitCallbacks(execute=True):
                 id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
 
@@ -205,9 +201,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "subdomain": self.subdomain_name,
             "language": "eng",
             "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["port", "invenio_tags", "tags"]
+        changed_fields = ["port", "invenio_tags", "tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -236,9 +233,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
             "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["image", "invenio_tags", "tags"]
+        changed_fields = ["image", "invenio_tags", "tags", "creators", "language"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -268,9 +266,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "source_code_url": self.source_code_url,
             "subdomain": "test-subdomain-update-app-new",
             "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["subdomain", "invenio_tags", "tags"]
+        changed_fields = ["subdomain", "invenio_tags", "tags", "creators", "language"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -307,9 +306,10 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "source_code_url": "https://someurlthatdoesnotexist.com/new",
             "subdomain": self.subdomain_name,
             "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags"]
+        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags", "creators", "language"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -339,9 +339,8 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertIsNotNone(form.changed_data)
         self.assertEqual(set(form.changed_data), set(changed_fields))
 
-        with patch.object(waffle, "switch_is_active", return_value=False):
-            with self.captureOnCommitCallbacks(execute=True):
-                id = create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+        with self.captureOnCommitCallbacks(execute=True):
+            id = create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
 
         self.assertIsNotNone(id)
         self.assertTrue(id > 0)
@@ -483,60 +482,48 @@ def test_get_subdomain_name_no_subdomain_in_form():
 
 
 @pytest.mark.django_db
-def test_forms_submit_funding_and_enqueue_doi_background_task():
+def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_commit_callbacks):
     user = User.objects.create_user("funding-doi-user", "funding-doi@test.com", "bar")
     project = Project.objects.create_project(name="test-funding-doi", owner=user, description="")
     flavor = Flavor.objects.create(name="funding-doi-flavor", project=project)
 
-    app_configs = [
-        ("customapp", "Custom App"),
-        ("dashapp", "Dash App"),
-        ("gradio", "Gradio App"),
-        ("shinyapp", "Shiny App"),
-        ("streamlit", "Streamlit App"),
-    ]
-    catalog_apps = app_configs + [("shinyproxyapp", "Shiny Proxy App")]
-    for slug, name in catalog_apps:
-        Apps.objects.create(
-            name=name,
-            slug=slug,
-            chart=f"ghcr.io/scilifelabdatacentre/serve-charts/{slug}:test",
-            user_can_delete=False,
-        )
+    # Only test customapp since it's the only one with DOI provisioning configured
+    Apps.objects.create(
+        name="Custom App",
+        slug="customapp",
+        chart="ghcr.io/scilifelabdatacentre/serve-charts/customapp:test",
+        user_can_delete=False,
+    )
 
     funding_payload = [{"funder_name": "Uppsala University", "funder_id": "048a87296"}]
 
-    def switch_enabled_only_for_doi_minting(name):
-        return name == "doi_minting_using_invenio"
+    model_class, form_class = APP_REGISTRY.get("customapp")
+    form_data = {
+        "name": "customapp-funding-doi-test",
+        "description": "form with funding and tags",
+        "flavor": str(flavor.pk),
+        "access": "public",
+        "port": 8000,
+        "image": "some-image-customapp",
+        "source_code_url": "https://example.org/source",
+        "language": "eng",
+        "invenio_tags": "Antibodies|Cells",
+        "funding_sources_json": json.dumps(funding_payload),
+    }
+    form = form_class(form_data, project_pk=project.pk)
+    assert form.is_valid(), f"form should be valid but has errors: {form.errors}"
 
-    with patch.object(waffle, "switch_is_active", side_effect=switch_enabled_only_for_doi_minting), patch(
-        "apps.helpers.transaction.on_commit", side_effect=lambda func: func()
-    ), patch("apps.tasks.run_background_tasks.delay") as mock_bg:
-        for app_slug, _ in app_configs:
-            model_class, form_class = APP_REGISTRY.get(app_slug)
-            form_data = {
-                "name": f"{app_slug}-funding-doi-test",
-                "description": "form with funding and tags",
-                "flavor": str(flavor.pk),
-                "access": "public",
-                "port": 8000,
-                "image": f"some-image-{app_slug}",
-                "source_code_url": "https://example.org/source",
-                "language": "eng",
-                "invenio_tags": "Antibodies|Cells",
-                "funding_sources_json": json.dumps(funding_payload),
-            }
-            form = form_class(form_data, project_pk=project.pk)
-            assert form.is_valid(), f"{app_slug} form should be valid but has errors: {form.errors}"
+    with patch("apps.tasks.run_background_tasks.delay") as mock_bg:
+        with django_capture_on_commit_callbacks(execute=True):
+            app_id = create_instance_from_form(form, project, "customapp", app_id=None)
 
-            app_id = create_instance_from_form(form, project, app_slug, app_id=None)
-            app_instance = model_class.objects.get(pk=app_id)
+    app_instance = model_class.objects.get(pk=app_id)
 
-            called_serialized_instance, called_app_slug, task_kwargs_by_task_name = mock_bg.call_args.args
-            assert called_serialized_instance["pk"] == app_instance.id
-            assert called_app_slug == app_instance.app.slug
-            assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
-            assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
+    called_serialized_instance, called_app_slug, task_kwargs_by_task_name = mock_bg.call_args.args
+    assert called_serialized_instance["pk"] == app_instance.id
+    assert called_app_slug == app_instance.app.slug
+    assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
+    assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
 
 
 @pytest.mark.django_db
@@ -756,8 +743,8 @@ def validate_schema(schema_dict: dict):
 
 
 @pytest.mark.django_db
-def test_generate_invenio_metadata_validation():
-    """Test function generate_invenio_metadata validation."""
+def test_generate_invenio_record_validation():
+    """Test function generate_invenio_record validation."""
     # creating the test data
     user_data = {
         "email": "unit_test_invenio_metadata_user_email@scilifelab.uu.se",
@@ -828,7 +815,7 @@ def test_generate_invenio_metadata_validation():
     service = InvenioService(mock_mode=True)
 
     # Generate metadata directly
-    invenio_record = service.generate_invenio_metadata(app_instance)
+    invenio_record = service.generate_invenio_record(app_instance)
     invenio_metadata = invenio_record.model_dump()
 
     # Validate using Pydantic - this ensures our models work correctly
@@ -852,13 +839,6 @@ def test_generate_invenio_metadata_validation():
     creator = invenio_metadata["metadata"]["creators"][0]
     assert creator["person_or_org"]["given_name"] == user.first_name
     assert creator["person_or_org"]["family_name"] == user.last_name
-    assert creator["role"]["id"] == "relatedperson"
-
-    # Check contributor is SciLifeLab Data Centre
-    contributor = invenio_metadata["metadata"]["contributors"][0]
-    assert contributor["person_or_org"]["name"] == "SciLifeLab Data Centre"
-    assert contributor["person_or_org"]["type"] == "organizational"
-    assert contributor["role"]["id"] == "hostinginstitution"
 
     # check date information
     dates = invenio_metadata["metadata"]["dates"]

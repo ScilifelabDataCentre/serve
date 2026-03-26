@@ -22,10 +22,8 @@ from apps.constants import (
     AppActionOrigin,
     HandleUpdateStatusResponseCode,
 )
-from apps.types_.subdomain import SubdomainCandidateName
 from apps.validators.container_images import (
-    DockerHubAuthenticator,
-    GHCRAuthenticator,
+    get_authenticator_for_registry,
     get_image_architectures,
 )
 from common.models import UserProfile
@@ -63,6 +61,8 @@ def parse_funding_sources_json(funding_raw: Any) -> list[dict[str, Any]]:
 
 
 def get_select_options(project_pk, selected_option=""):
+    from apps.types_.subdomain import SubdomainCandidateName
+
     select_options = []
     for sub in Subdomain.objects.filter(project=project_pk, is_created_by_user=True).values_list(
         "subdomain", flat=True
@@ -381,6 +381,27 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
                     do_deploy = True
                     break
 
+    # For existing apps, detect if access is changing from non-public to public
+    access_changed_to_public = False
+    if not new_app:
+        # Get the original instance to compare access levels
+        from .app_registry import APP_REGISTRY
+
+        app_model = APP_REGISTRY.get_orm_model(app_slug)
+        original_instance = app_model.objects.get(pk=app_id)
+        original_access = getattr(original_instance, "access", None)
+        new_access = form.cleaned_data.get("access")
+
+        # Check if access changed from non-public to public
+        if original_access != "public" and new_access == "public":
+            access_changed_to_public = True
+            logger.info(
+                "create_instance_from_form.access_changed_to_public app_id=%s original=%s new=%s",
+                app_id,
+                original_access,
+                new_access,
+            )
+
     subdomain_name, is_created_by_user = get_subdomain_name(form)
     logger.info(
         "create_instance_from_form.subdomain_selected app_id=%s subdomain=%s is_created_by_user=%s",
@@ -456,36 +477,60 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         )
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
 
+        _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public)
+    else:
+        logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
+
+    return instance_id
+
+
+def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public=False):
+    """Deploy using background tasks with DOI minting for public apps."""
+    from .tasks import run_background_tasks
+
+    logger.info(
+        "_deploy_with_background_tasks_and_doi start for app_slug=%s instance_id=%s access_changed=%s",
+        app_slug,
+        instance.id,
+        access_changed_to_public,
+    )
+
+    serialized_instance = instance.serialize()
+
+    # Include DOI task if app is public or if access just changed to public
+    should_mint_doi = (hasattr(instance, "access") and instance.access == "public") or access_changed_to_public
+    if should_mint_doi:
         funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
-        # The orchestrator handles validation, optional DOI provisioning, and deployment.
+        # Get creators data from form if available
+        creators_data = None
+        if hasattr(form, "get_creators_data"):
+            creators_data = form.get_creators_data()
+            logger.debug(f"Background task: creators_data from form: {creators_data}")
+
+        # Get processed tags data from form if available
+        tags_data = form.cleaned_data.get("tags") if hasattr(form, "cleaned_data") else None
+        logger.debug(f"Background task: tags_data from form: {tags_data}")
+
+        # The orchestrator will handle deployment if tasks succeed.
         task_kwargs_by_task_name = {
             # Form-only field (not persisted on the model) needed for Invenio metadata.
             "doi_provisioning": {
                 "language": form.cleaned_data.get("language"),
                 "funding": funding_list,
+                "creators": creators_data,
+                "tags": form.cleaned_data.get("tags"),
             },
         }
-        transaction.on_commit(
-            lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name)
+        logger.debug(
+            "DOI provisioning will be handled by background task for public app '%s' (id=%s).", app_slug, instance.id
         )
     else:
-        logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
+        # No DOI provisioning for non-public apps
+        task_kwargs_by_task_name = {}
+        logger.debug("Skipping DOI provisioning for non-public app '%s' (id=%s).", app_slug, instance.id)
 
-    if waffle.switch_is_active("doi_minting_using_invenio"):
-        # DOI provisioning is handled by the optional doi_provisioning background task.
-        logger.debug(
-            "DOI minting will be handled by background task for app '%s' (id=%s).",
-            app_slug,
-            app_id,
-        )
-    else:
-        logger.debug(
-            "Make sure to turn the 'doi_minting_using_invenio' waffle switch on"
-            f" if you want to mint the DOI of App '{app_slug}' with app id '{app_id}'.",
-        )
-
-    return instance_id
+    transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
 
 
 def get_subdomain_name(form):
@@ -688,16 +733,17 @@ def validate_ghcr_image(image: str):
         raise ValidationError("Unable to find GHCR image tag. Please try again.")
 
     if waffle.switch_is_active("docker_image_architecture_validator"):
-        architectures = get_image_architectures(
-            auth=GHCRAuthenticator(
-                username=settings.GITHUB_API_USERNAME,
-                token=settings.GITHUB_API_TOKEN,
-            ),
-            repo=f"{owner}/{image_name}",
-            reference=tag,
-            registry="ghcr.io",
-        )
-        if any(arch.arch != "amd64" for arch in architectures):
+        auth = get_authenticator_for_registry("ghcr.io")
+        if auth:
+            architectures = get_image_architectures(
+                auth=auth,
+                repo=f"{owner}/{image_name}",
+                reference=tag,
+                registry="ghcr.io",
+            )
+        else:
+            architectures = []
+        if architectures and any(arch.arch != "amd64" for arch in architectures):
             raise ValidationError(
                 f"Docker image '{image}' is not built for the right CPU architecture. "
                 "Please use docker build --platform linux/amd64 to build your image"
@@ -732,12 +778,16 @@ def validate_docker_image(image: str):
         )
 
     if waffle.switch_is_active("docker_image_architecture_validator"):
-        architectures = get_image_architectures(
-            auth=DockerHubAuthenticator(username=settings.DOCKER_HUB_USERNAME, token=settings.DOCKER_HUB_TOKEN),
-            repo=repository,
-            reference=tag,
-        )
-        if any(arch.arch != "amd64" for arch in architectures):
+        auth = get_authenticator_for_registry("registry-1.docker.io")
+        if auth:
+            architectures = get_image_architectures(
+                auth=auth,
+                repo=repository,
+                reference=tag,
+            )
+        else:
+            architectures = []
+        if architectures and any(arch.arch != "amd64" for arch in architectures):
             raise ValidationError(
                 f"Docker image '{image}' is not built for the right CPU architecture. "
                 "Please use docker build --platform linux/amd64 to build your image"

@@ -265,8 +265,6 @@ def public_apps(request, app_id=0):
             "Python Model Deployment",
             "MLFlow Serve",
         ]
-        if not waffle.flag_is_active(request, "enable_depictio"):
-            exclude_list.append("Depictio")
 
         serve_category_apps = Apps.objects.filter(Q(category__name="Serve")).exclude(name__in=exclude_list)
         serialized_apps, unique_organizations, unique_departments, unique_tags = add_additional_context_to_public_apps(
