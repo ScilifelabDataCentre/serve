@@ -47,9 +47,8 @@
           </div>
 
           <div class="d-flex flex-wrap gap-2">
-            <a href="{{ background_tasks_url }}" class="btn btn-outline-secondary">Detailed checks</a>
             <a href="{{ form_url }}" class="btn btn-outline-secondary">Back to form</a>
-            <a href="{{ detail_url }}" class="btn btn-primary" id="details-link">App details</a>
+            <a href="{{ detail_url }}" class="btn btn-primary" id="details-link">Deployment summary</a>
           </div>
         </div>
       </div>
@@ -374,8 +373,9 @@ function stopSuccessRedirect() {
 
 function formatTaskName(taskName) {
   const explicitLabels = {
-    validate_docker_image: "Validate Image",
-    checking_docker_image_availability: "Validate Image",
+    validate_image_public: "Check Image Access",
+    validate_docker_image: "Check Image Compatibility",
+    checking_docker_image_availability: "Check Image Compatibility",
     performing_security_checks: "Security checks",
     doi_provisioning: "Mint DOI",
     mint_doi: "Mint DOI",
@@ -391,6 +391,14 @@ function formatTaskName(taskName) {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function getTaskSubtitle(task) {
+  if (task.task_name === "validate_image_public" || task.task_name === "validate_docker_image" || task.task_name === "checking_docker_image_availability") {
+    return task.is_critical ? "Required image check" : "Optional image check";
+  }
+
+  return task.is_critical ? "Required check" : "Optional check";
 }
 
 function isTerminalTaskStatus(status) {
@@ -581,7 +589,7 @@ function getStepItems(data) {
   const taskSteps = (data.tasks || []).map(task => ({
     key: `task-${task.id}`,
     title: formatTaskName(task.task_name),
-    subtitle: task.is_critical ? "Required check" : "Optional check",
+    subtitle: getTaskSubtitle(task),
     status: task.status,
     detail: getTaskDetail(task),
     taskName: task.task_name,
@@ -613,7 +621,7 @@ function getTaskDetail(task) {
     return "Completed successfully.";
   }
   if (task.status === "retrying") {
-    return "Retrying after a temporary issue.";
+    return "Check did not succeed, retrying now...";
   }
   if (task.status === "running") {
     return "Currently running.";
@@ -633,18 +641,61 @@ function getTaskDetailMarkup(step) {
 }
 
 function formatKnownStepError(step) {
-  if (step.taskName !== "validate_docker_image" || !step.errorMessage) {
+  if (!step.errorMessage) {
     return "";
   }
 
   const error = step.errorMessage.trim();
+
+  if (step.taskName === "validate_image_public") {
+    const unavailableMatch = error.match(/^Could not verify that container image '([^']+)' is publicly pullable: registry '([^']+)' is unreachable or returned a server error \((.+)\)\. Please retry later\.$/);
+    if (unavailableMatch) {
+      return buildImageErrorMarkup({
+        summary: "We could not verify public access to this container image.",
+        imageReference: unavailableMatch[1],
+        note: `${unavailableMatch[2]} is unavailable right now. Please try again in a moment.`
+      });
+    }
+
+    const publicAccessMatch = error.match(/^Container image '([^']+)' is not publicly pullable from registry '([^']+)'(?: \[HTTP (\d+)\])?\.\s*(.+?)\s*Use a public image or ensure the image is published for anonymous pulls before deployment\.$/);
+    if (publicAccessMatch) {
+      const [, imageReference, registry, statusCode, reason] = publicAccessMatch;
+      let summary = "This container image is not publicly accessible.";
+      let note = `Anonymous pulls from ${registry} were not allowed. Publish the image for anonymous pulls before deployment.`;
+
+      if (statusCode === "404" || /^Image or tag not found$/i.test(reason)) {
+        summary = "We could not find this container image.";
+        note = "Make sure the image is publicly available.";
+      } else if (statusCode === "403") {
+        note = `Anonymous pulls from ${registry} were denied. Publish the image for anonymous pulls before deployment.`;
+      } else if (reason) {
+        note = `${reason}. Use a public image or publish the image for anonymous pulls before deployment.`;
+      }
+
+      return buildImageErrorMarkup({
+        summary,
+        imageReference,
+        note
+      });
+    }
+
+    return buildImageErrorMarkup({
+      summary: "We could not verify public access to this container image.",
+      imageReference: "",
+      note: error
+    });
+  }
+
+  if (step.taskName !== "validate_docker_image") {
+    return "";
+  }
 
   const notFoundMatch = error.match(/^We could not find the container image '([^']+)'\.\s*(.+)$/);
   if (notFoundMatch) {
     return buildImageErrorMarkup({
       summary: "We could not find this container image.",
       imageReference: notFoundMatch[1],
-      note: notFoundMatch[2]
+      note: "Make sure the image is built for the correct platform i.e amd64."
     });
   }
 
@@ -690,9 +741,7 @@ function buildImageErrorMarkup({summary, imageReference, note = ""}) {
   return `
     <div class="step-detail step-detail-stack">
       <p class="step-detail-copy">${escapeHtml(summary)}</p>
-      <div class="step-detail-meta">
-        <code class="step-detail-code">${escapeHtml(imageReference)}</code>
-      </div>
+      ${imageReference ? `<div class="step-detail-meta"><code class="step-detail-code">${escapeHtml(imageReference)}</code></div>` : ""}
       ${note ? `<p class="step-detail-note">${escapeHtml(note)}</p>` : ""}
     </div>
   `;
@@ -856,7 +905,7 @@ function updateHeader(data, steps) {
     titleText = "We could not finish preparing your app";
     messageText = data.deployment?.message || "A required step failed during deployment.";
     inlineText = failed === 1 ? "1 step needs attention" : `${failed} steps need attention`;
-    nextStepText = "Open detailed checks or logs if you want the full technical result.";
+    nextStepText = "Open deployment summary or go back to form.";
   } else if (data.deployment?.status === "running" || data.workflow?.has_in_progress || data.workflow?.ready_for_deploy) {
     pillClass = "text-bg-info";
     pillText = "Checking";
