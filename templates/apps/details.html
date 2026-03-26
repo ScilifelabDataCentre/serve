@@ -166,27 +166,6 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function formatTaskName(taskName) {
-  const explicitLabels = {
-    validate_image_public: "Check Image Access",
-    validate_docker_image: "Check Image Compatibility",
-    checking_docker_image_availability: "Check Image Compatibility",
-    doi_provisioning: "Mint DOI",
-    mint_doi: "Mint DOI",
-    deploy_app: "Deploy app"
-  };
-
-  if (explicitLabels[taskName]) {
-    return explicitLabels[taskName];
-  }
-
-  return (taskName || "Deployment step")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, character => character.toUpperCase());
-}
-
 function getDeploymentBadgeClass(status) {
   if (status === "success") {
     return "badge text-bg-success";
@@ -245,7 +224,7 @@ function renderRecentChecks(tasks) {
     <div class="list-group-item px-0">
       <div class="d-flex justify-content-between gap-3">
         <div>
-          <div class="fw-semibold">${escapeHtml(formatTaskName(task.task_name))}</div>
+          <div class="fw-semibold">${escapeHtml(task.display_name || "Deployment step")}</div>
           <div class="small text-muted">Stage ${escapeHtml(task.execution_order)}${task.is_critical ? " · Required" : ""}</div>
         </div>
         <div>

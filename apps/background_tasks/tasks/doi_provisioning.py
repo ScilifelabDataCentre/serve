@@ -13,23 +13,12 @@ from typing import Any
 
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
-from apps.background_tasks.utils import resolve_app_image
+from apps.background_tasks.utils import resolve_app_image, select_latest_task_records
 from apps.models import BackgroundTask
 from doi_minting.services.schemas import Creator, Subject
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
-
-
-def _select_latest_task_records(task_records):
-    latest_by_name = {}
-    for task_record in sorted(task_records, key=lambda task: (task.created_at, task.pk)):
-        latest_by_name[task_record.task_name] = task_record
-
-    return sorted(
-        latest_by_name.values(),
-        key=lambda task: (task.execution_order, task.created_at, task.pk),
-    )
 
 
 def _build_additional_metadata(
@@ -113,7 +102,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
             execution_order__lt=self.execution_order,
         )
 
-        latest_earlier_required_tasks = _select_latest_task_records(earlier_required_tasks)
+        latest_earlier_required_tasks = select_latest_task_records(earlier_required_tasks)
         return any(task.status == "failed" for task in latest_earlier_required_tasks)
 
     def execute(self, app_instance, **kwargs) -> dict[str, Any]:

@@ -24,6 +24,7 @@ from projects.models import Project
 from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
+from .background_tasks.utils import select_latest_task_records
 from .helpers import (
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
@@ -65,17 +66,6 @@ def _serialize_background_task(task):
         "was_skipped": was_skipped,
         "skip_reason": result_data.get("reason", "") if was_skipped else "",
     }
-
-
-def _select_latest_task_records(tasks):
-    latest_by_name = {}
-    for task in sorted(tasks, key=lambda task: (task.created_at, task.pk)):
-        latest_by_name[task.task_name] = task
-
-    return sorted(
-        latest_by_name.values(),
-        key=lambda task: (task.execution_order, task.created_at, task.pk),
-    )
 
 
 def _get_project_app_instance(project_slug: str, app_slug: str, app_id: int):
@@ -539,7 +529,7 @@ class DeploymentProgressView(View):
 
         project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
 
-        tasks = _select_latest_task_records(
+        tasks = select_latest_task_records(
             list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
         )
         tasks_data = [_serialize_background_task(task) for task in tasks]
@@ -573,7 +563,7 @@ class AppDetailsView(View):
 
         project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
 
-        tasks = _select_latest_task_records(
+        tasks = select_latest_task_records(
             list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
         )
         recent_tasks = _build_details_task_rows(tasks)
@@ -740,7 +730,7 @@ class BackgroundTasksView(View):
 
         # Get all background tasks for this instance
         tasks_qs = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
-        tasks = _select_latest_task_records(list(tasks_qs))
+        tasks = select_latest_task_records(list(tasks_qs))
         for task in tasks:
             result_data = task.result_data if isinstance(task.result_data, dict) else {}
             task.display_name = _format_task_name_for_display(task.task_name)
@@ -775,7 +765,7 @@ class BackgroundTaskStatusAPI(View):
             return JsonResponse({"error": "App instance not found"}, status=404)
 
         # Get all background tasks for this instance
-        tasks = _select_latest_task_records(
+        tasks = select_latest_task_records(
             list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
         )
         tasks_data = [_serialize_background_task(task) for task in tasks]

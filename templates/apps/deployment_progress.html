@@ -371,28 +371,6 @@ function stopSuccessRedirect() {
   }
 }
 
-function formatTaskName(taskName) {
-  const explicitLabels = {
-    validate_image_public: "Check Image Access",
-    validate_docker_image: "Check Image Compatibility",
-    checking_docker_image_availability: "Check Image Compatibility",
-    performing_security_checks: "Security checks",
-    doi_provisioning: "Mint DOI",
-    mint_doi: "Mint DOI",
-    deploy_app: "Deploy app"
-  };
-
-  if (explicitLabels[taskName]) {
-    return explicitLabels[taskName];
-  }
-
-  return (taskName || "Deployment step")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, character => character.toUpperCase());
-}
-
 function getTaskSubtitle(task) {
   if (task.task_name === "validate_image_public" || task.task_name === "validate_docker_image" || task.task_name === "checking_docker_image_availability") {
     return task.is_critical ? "Required image check" : "Optional image check";
@@ -588,7 +566,7 @@ function getStepItems(data) {
 
   const taskSteps = (data.tasks || []).map(task => ({
     key: `task-${task.id}`,
-    title: formatTaskName(task.task_name),
+    title: task.display_name || "Deployment step",
     subtitle: getTaskSubtitle(task),
     status: task.status,
     detail: getTaskDetail(task),

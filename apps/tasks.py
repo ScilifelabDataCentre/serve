@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
+from apps.background_tasks.utils import select_latest_task_records
 from apps.constants import AppActionOrigin
 from apps.helpers import generate_helm_install_command, get_merged_k8s_values
 from common.tasks import send_email_task
@@ -44,17 +45,6 @@ class MissingSerializedInstanceError(ValueError):
 
 def _retry_countdown(current_retries: int) -> int:
     return min(DEPLOY_RESOURCE_RETRY_BASE_SECONDS * (2**current_retries), DEPLOY_RESOURCE_RETRY_MAX_SECONDS)
-
-
-def _select_latest_task_records(task_records):
-    latest_by_name = {}
-    for task_record in sorted(task_records, key=lambda task: (task.created_at, task.pk)):
-        latest_by_name[task_record.task_name] = task_record
-
-    return sorted(
-        latest_by_name.values(),
-        key=lambda task: (task.execution_order, task.created_at, task.pk),
-    )
 
 
 @app.task
@@ -1003,7 +993,7 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
     logger.info(f"Checking background tasks before deployment for app {app_instance_id}")
 
     # Get all tasks for this app instance
-    tasks = _select_latest_task_records(
+    tasks = select_latest_task_records(
         list(BackgroundTask.objects.filter(app_instance_id=app_instance_id).order_by("execution_order", "created_at"))
     )
 
