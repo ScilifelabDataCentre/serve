@@ -32,9 +32,12 @@ def test_known_tasks_are_registered_after_django_startup():
 @pytest.mark.django_db
 def test_known_tasks_apply_to_non_custom_app_types():
     streamlit_tasks = TASK_REGISTRY.get_tasks_for_app("streamlit")
+    dash_tasks = TASK_REGISTRY.get_tasks_for_app("dashapp")
 
     assert "validate_docker_image" in [task.task_name for task in streamlit_tasks]
     assert "doi_provisioning" in [task.task_name for task in streamlit_tasks]
+    assert "validate_docker_image" in [task.task_name for task in dash_tasks]
+    assert "doi_provisioning" in [task.task_name for task in dash_tasks]
 
 
 @pytest.mark.django_db
