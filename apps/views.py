@@ -54,6 +54,7 @@ def _serialize_background_task(task):
     return {
         "id": task.id,
         "task_name": task.task_name,
+        "display_name": _format_task_name_for_display(task.task_name),
         "task_type": task.task_type,
         "status": task.status,
         "is_critical": task.is_critical,
@@ -101,7 +102,8 @@ def _build_task_summary(tasks_data):
         "total": len(tasks_data),
         "pending": sum(1 for t in tasks_data if t["status"] == "pending"),
         "running": sum(1 for t in tasks_data if t["status"] == "running"),
-        "success": sum(1 for t in tasks_data if t["status"] == "success"),
+        "success": sum(1 for t in tasks_data if t["status"] == "success" and not t.get("was_skipped")),
+        "skipped": sum(1 for t in tasks_data if t.get("was_skipped")),
         "failed": sum(1 for t in tasks_data if t["status"] == "failed"),
         "retrying": sum(1 for t in tasks_data if t["status"] == "retrying"),
     }
@@ -173,6 +175,7 @@ def _build_details_task_rows(tasks):
         rows.append(
             {
                 "task_name": task.task_name,
+                "display_name": _format_task_name_for_display(task.task_name),
                 "execution_order": task.execution_order,
                 "is_critical": task.is_critical,
                 "status_label": "Skipped" if was_skipped else task.get_status_display(),
@@ -180,6 +183,22 @@ def _build_details_task_rows(tasks):
             }
         )
     return rows
+
+
+def _format_task_name_for_display(task_name: str) -> str:
+    explicit_labels = {
+        "validate_image_public": "Check Image Access",
+        "validate_docker_image": "Check Image Compatibility",
+        "checking_docker_image_availability": "Check Image Compatibility",
+        "doi_provisioning": "Mint DOI",
+        "mint_doi": "Mint DOI",
+        "deploy_app": "Deploy app",
+    }
+
+    if task_name in explicit_labels:
+        return explicit_labels[task_name]
+
+    return " ".join(part.capitalize() for part in task_name.replace("-", "_").split("_") if part) or "Deployment step"
 
 
 @method_decorator(
@@ -574,9 +593,14 @@ class AppDetailsView(View):
             "description": description,
             "details_rows": details_rows,
             "tags": tags,
+            "project_url": reverse("projects:details", kwargs={"project_slug": project_obj.slug}),
             "public_details_url": reverse("app-metadata", kwargs={"app_id": instance.pk}) if access == "public" else "",
             "background_tasks_url": reverse(
                 "apps:background_tasks",
+                kwargs={"project": project_obj.slug, "app_slug": app_slug, "app_id": instance.pk},
+            ),
+            "status_api_url": reverse(
+                "apps:background_tasks_status",
                 kwargs={"project": project_obj.slug, "app_slug": app_slug, "app_id": instance.pk},
             ),
         }
@@ -703,6 +727,10 @@ class BackgroundTasksView(View):
         # Get all background tasks for this instance
         tasks_qs = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
         tasks = _select_latest_task_records(list(tasks_qs))
+        for task in tasks:
+            result_data = task.result_data if isinstance(task.result_data, dict) else {}
+            task.display_name = _format_task_name_for_display(task.task_name)
+            task.was_skipped = bool(result_data.get("skipped"))
         summary = _build_task_summary([_serialize_background_task(task) for task in tasks])
 
         context = {
@@ -751,8 +779,8 @@ class BackgroundTaskStatusAPI(View):
             {
                 "id": f"task-{task['id']}",
                 "task_id": task["id"],
-                "label": task["task_name"],
-                "status": task["status"],
+                "label": task["display_name"],
+                "status": "skipped" if task["was_skipped"] else task["status"],
                 "execution_order": task["execution_order"],
                 "is_critical": task["is_critical"],
                 "task_type": task["task_type"],

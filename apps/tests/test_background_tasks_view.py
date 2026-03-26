@@ -68,8 +68,8 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Preparing test deployment app")
         self.assertContains(response, "We are preparing your app")
-        self.assertContains(response, "Detailed checks")
         self.assertContains(response, "Back to form")
+        self.assertContains(response, "Deployment summary")
 
     def test_background_tasks_page_shows_detailed_checks_copy(self):
         response = self.client.get(
@@ -85,9 +85,10 @@ class BackgroundTasksViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Deployment Checks")
-        self.assertContains(response, "Detailed results for each background task")
+        self.assertContains(response, "test deployment app - Deployment Checks")
+        self.assertContains(response, "About Deployment Checks:")
         self.assertContains(response, "Check Details")
-        self.assertContains(response, "validate_docker_image")
+        self.assertContains(response, "Check Image Compatibility")
 
     def test_private_app_details_page_shows_deployment_summary(self):
         response = self.client.get(
@@ -104,6 +105,8 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Deployment Summary")
         self.assertContains(response, "Recent Checks")
+        self.assertContains(response, "Back to project")
+        self.assertNotContains(response, ">Logs<", html=False)
         self.assertContains(
             response,
             "validate_docker_image",
@@ -241,6 +244,11 @@ class BackgroundTasksViewTestCase(TestCase):
         doi_task = next(task for task in payload["tasks"] if task["task_name"] == "doi_provisioning")
         self.assertTrue(doi_task["was_skipped"])
         self.assertEqual(doi_task["skip_reason"], "doi_minting_using_invenio switch is off")
+        self.assertEqual(payload["summary"]["success"], 0)
+        self.assertEqual(payload["summary"]["skipped"], 1)
+        doi_graph_node = next(node for node in payload["graph"]["nodes"] if node["id"] == f"task-{doi_task['id']}")
+        self.assertEqual(doi_graph_node["status"], "skipped")
+        self.assertEqual(doi_graph_node["label"], "Mint DOI")
 
     def test_new_project_scoped_pages_reject_app_ids_from_other_projects(self):
         other_user = User.objects.create_user("foo2", "foo2@test.com", "bar")

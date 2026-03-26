@@ -1,31 +1,23 @@
 {% extends 'base.html' %}
 
-{% block title %}Deployment Checks - {{ instance.name }}{% endblock %}
+{% block title %}{{ instance.name }} - Deployment Checks{% endblock %}
 {% load static %}
 {% block content %}
 
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-12">
-      <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <div>
-          <h3 class="mb-1">Deployment Checks</h3>
-          <p class="text-muted mb-0">Detailed results for each background task and deployment step for {{ instance.name }}.</p>
-        </div>
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h3>{{ instance.name }} - Deployment Checks</h3>
         <div class="d-flex flex-wrap gap-2">
           <a href="{{ detail_url }}" class="btn btn-outline-secondary">App Details</a>
-          {% if instance.logs_enabled %}
-          <a href="{% url 'apps:logs' project.slug instance.app.slug instance.pk %}" class="btn btn-outline-primary">
-            Open Logs
-          </a>
-          {% endif %}
           <a href="{% url 'projects:details' project.slug %}" class="btn btn-secondary">Back to Project</a>
         </div>
       </div>
 
-      <div class="alert alert-light border mb-4">
-        This page shows the detailed background task history for <strong>{{ instance.name }}</strong>.
-        Use it to inspect individual check results, retries, and deployment progress.
+      <div class="alert alert-info mb-4">
+        <strong>About Deployment Checks:</strong> These checks run automatically when your app is created or updated.
+        Checks include validation steps, external API calls, and other operations that need to complete before deployment.
       </div>
 
       <!-- Task Summary -->
@@ -52,6 +44,10 @@
                 <div class="col">
                   <h4 id="summary-success" class="text-success">{{ summary.success }}</h4>
                   <small class="text-muted">Success</small>
+                </div>
+                <div class="col">
+                  <h4 id="summary-skipped" class="text-secondary">{{ summary.skipped }}</h4>
+                  <small class="text-muted">Skipped</small>
                 </div>
                 <div class="col">
                   <h4 id="summary-failed" class="text-danger">{{ summary.failed }}</h4>
@@ -126,12 +122,12 @@
                   </thead>
                   <tbody id="tasks-table-body">
                     {% for task in tasks %}
-                    <tr id="task-row-{{ task.id }}" data-task-id="{{ task.id }}" class="{% if task.status == 'failed' %}table-danger{% elif task.result_data and task.result_data.skipped %}table-secondary{% elif task.status == 'success' %}table-success{% endif %}">
+                    <tr id="task-row-{{ task.id }}" data-task-id="{{ task.id }}" data-execution-order="{{ task.execution_order }}" class="{% if task.status == 'failed' %}table-danger{% elif task.was_skipped %}table-secondary{% elif task.status == 'success' %}table-success{% endif %}">
                       <td>
-                        <span class="badge bg-light text-dark border">Stage {{ task.execution_order }}</span>
+                        <span class="badge bg-light text-dark border">Stage {{ task.execution_order|add:1 }}</span>
                       </td>
                       <td>
-                        <strong>{{ task.task_name }}</strong>
+                        <strong>{{ task.display_name }}</strong>
                         <br>
                         <small class="text-muted">
                           {% if task.started_at %}
@@ -145,8 +141,8 @@
                         <span class="badge bg-secondary">{{ task.task_type }}</span>
                       </td>
                       <td>
-                        <span class="badge {% if task.result_data and task.result_data.skipped %}bg-secondary{% else %}bg-{{ task.get_status_display_class }}{% endif %}" id="task-status-{{ task.id }}">
-                          {% if task.result_data and task.result_data.skipped %}Skipped{% else %}{{ task.get_status_display }}{% endif %}
+                        <span class="badge {% if task.was_skipped %}bg-secondary{% else %}bg-{{ task.get_status_display_class }}{% endif %}" id="task-status-{{ task.id }}">
+                          {% if task.was_skipped %}Skipped{% else %}{{ task.get_status_display }}{% endif %}
                         </span>
                       </td>
                       <td>
@@ -287,6 +283,7 @@ function refreshTasks() {
             pending: fallbackTasks.filter(task => task.status === 'pending').length,
             running: fallbackTasks.filter(task => task.status === 'running').length,
             success: fallbackTasks.filter(task => task.status === 'success').length,
+            skipped: fallbackTasks.filter(task => task.status === 'skipped').length,
             failed: fallbackTasks.filter(task => task.status === 'failed').length,
             retrying: fallbackTasks.filter(task => task.status === 'retrying').length
           },
@@ -312,6 +309,7 @@ function updateSummary(summary) {
   document.getElementById('summary-pending').textContent = summary.pending;
   document.getElementById('summary-running').textContent = summary.running;
   document.getElementById('summary-success').textContent = summary.success;
+  document.getElementById('summary-skipped').textContent = summary.skipped;
   document.getElementById('summary-failed').textContent = summary.failed;
   document.getElementById('summary-retrying').textContent = summary.retrying;
 }
@@ -539,7 +537,7 @@ function updateStageSummary(tasks) {
       const stats = grouped[order];
       const chip = document.createElement('span');
       chip.className = 'badge bg-light text-dark border';
-      chip.textContent = `Stage ${order}: ${stats.success}/${stats.total} complete`;
+      chip.textContent = `Stage ${order + 1}: ${stats.success}/${stats.total} complete`;
       stageSummary.appendChild(chip);
     });
 }
@@ -574,7 +572,7 @@ function updateExecutionGraph(data) {
 
     const title = document.createElement('div');
     title.className = 'fw-semibold text-muted';
-    title.textContent = `Stage ${order}`;
+    title.textContent = `Stage ${order + 1}`;
     stageColumn.appendChild(title);
 
     stages[order]
@@ -617,10 +615,11 @@ function updateExecutionGraph(data) {
 }
 
 function createTaskNode(task) {
+  const displayStatus = getDisplayTaskStatus(task);
   const node = document.createElement('button');
   node.type = 'button';
   node.id = `graph-node-task-${task.id}`;
-  node.className = `btn text-start border rounded p-2 bg-${getStatusClass(task.status)} text-white`;
+  node.className = `btn text-start border rounded p-2 bg-${getStatusClass(displayStatus)} text-white`;
   node.style.minHeight = '64px';
   node.style.whiteSpace = 'normal';
   node.dataset.taskId = task.id;
@@ -633,11 +632,11 @@ function createTaskNode(task) {
 
   const title = document.createElement('div');
   title.className = 'fw-semibold';
-  title.textContent = task.task_name;
+  title.textContent = task.display_name || task.task_name;
   node.appendChild(title);
 
   const subtitle = document.createElement('small');
-  subtitle.textContent = `${getStatusLabel(task.status)} • ${task.task_type}`;
+  subtitle.textContent = `${getStatusLabel(displayStatus)} • ${task.task_type}`;
   node.appendChild(subtitle);
 
   node.addEventListener('click', () => openTaskDetails(task.id));
@@ -692,7 +691,8 @@ function drawGraphEdges(edges, tasksById) {
     const y2 = targetRect.top - wrapperRect.top + wrapper.scrollTop + (targetRect.height / 2);
 
     const task = tasksById[edge.source];
-    const strokeColor = task && task.status === 'failed' ? '#dc3545' : '#6c757d';
+    const displayStatus = task ? getDisplayTaskStatus(task) : null;
+    const strokeColor = displayStatus === 'failed' ? '#dc3545' : '#6c757d';
 
     const line = document.createElementNS(SVG_NS, 'line');
     line.setAttribute('x1', x1);
@@ -701,7 +701,7 @@ function drawGraphEdges(edges, tasksById) {
     line.setAttribute('y2', y2);
     line.setAttribute('stroke', strokeColor);
     line.setAttribute('stroke-width', '2');
-    if (!(task && task.status === 'success')) {
+    if (!(displayStatus === 'success' || displayStatus === 'skipped')) {
       line.setAttribute('stroke-dasharray', '4 3');
     }
     svg.appendChild(line);
@@ -742,7 +742,7 @@ function readTasksFromTable() {
     }
 
     const cells = row.querySelectorAll('td');
-    const order = parseInt(cells[0]?.textContent?.trim() || '0', 10);
+    const rawOrder = parseInt(row.dataset.executionOrder || '0', 10);
     const name = cells[1]?.querySelector('strong')?.textContent?.trim() || `task-${taskId}`;
     const type = cells[2]?.querySelector('.badge')?.textContent?.trim() || 'validation';
     const statusLabel = document.getElementById(`task-status-${taskId}`)?.textContent?.trim().toLowerCase() || 'pending';
@@ -753,10 +753,11 @@ function readTasksFromTable() {
     tasks.push({
       id: taskId,
       task_name: name,
+      display_name: name,
       task_type: type,
       status: statusLabel,
       is_critical: isCritical,
-      execution_order: Number.isNaN(order) ? 0 : order,
+      execution_order: Number.isNaN(rawOrder) ? 0 : rawOrder,
       retry_count: Number.isNaN(retryParts[0]) ? 0 : retryParts[0],
       max_retries: Number.isNaN(retryParts[1]) ? 0 : retryParts[1],
       can_retry: statusLabel === 'failed',
@@ -823,6 +824,7 @@ document.addEventListener('DOMContentLoaded', function() {
         pending: initialTasks.filter(task => task.status === 'pending').length,
         running: initialTasks.filter(task => task.status === 'running').length,
         success: initialTasks.filter(task => task.status === 'success').length,
+        skipped: initialTasks.filter(task => task.status === 'skipped').length,
         failed: initialTasks.filter(task => task.status === 'failed').length,
         retrying: initialTasks.filter(task => task.status === 'retrying').length
       },
