@@ -138,6 +138,10 @@ def _build_deployment_state(instance, workflow, tasks_data):
         status = "pending"
         label = "Pending"
         message = "Deployment will start after the checks pass."
+    elif is_transitioning and app_status in {"NotFound", "Error (NotFound)"} and helm_deploy_success is not False:
+        status = "running"
+        label = "Deploying"
+        message = "Deployment is in progress."
     elif latest_user_action == "Failed" or app_status in {"Error", "Error (NotFound)"} or helm_deploy_success is False:
         status = "failed"
         label = "Failed"

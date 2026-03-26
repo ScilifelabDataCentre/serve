@@ -116,7 +116,7 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertNotContains(response, ">Logs<", html=False)
         self.assertContains(
             response,
-            "validate_docker_image",
+            "Check Image Compatibility",
         )
 
     def test_private_app_details_page_marks_skipped_checks_distinctly(self):

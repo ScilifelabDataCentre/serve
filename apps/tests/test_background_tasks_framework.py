@@ -74,7 +74,7 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
         max_retries=0,
     )
 
-    with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
+    with patch(
         "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"
     ), patch("doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi", return_value=(True, "")), patch(
         "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
@@ -102,9 +102,7 @@ def test_doi_provisioning_task_marks_ineligible_apps_as_skipped(app_instance):
         max_retries=0,
     )
 
-    with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
-        "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"
-    ), patch(
+    with patch("apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"), patch(
         "doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi",
         return_value=(False, "App access is 'private', not 'public'"),
     ), patch(
@@ -145,7 +143,7 @@ def test_doi_provisioning_skips_when_required_check_failed(app_instance):
         max_retries=0,
     )
 
-    with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
+    with patch(
         "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="ghcr.io/example/app:bad"
     ), patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint:
         result = execute_single_background_task(task_db_id=task_record.id)
@@ -192,7 +190,7 @@ def test_doi_provisioning_ignores_older_failed_required_check_when_latest_passed
         max_retries=0,
     )
 
-    with patch("apps.background_tasks.tasks.doi_provisioning.waffle.switch_is_active", return_value=True), patch(
+    with patch(
         "apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="ghcr.io/example/app:good"
     ), patch(
         "doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi",

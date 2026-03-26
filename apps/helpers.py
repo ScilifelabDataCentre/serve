@@ -329,24 +329,59 @@ def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool 
     if force_redeploy:
         return True
 
-    redeployment_fields = {
-        "subdomain",
-        "volume",
-        "path",
-        "flavor",
-        "port",
-        "image",
-        "access",
-        "shiny_site_dir",
-    }
+    instance = getattr(form, "instance", None)
+    if instance is None or not getattr(instance, "pk", None):
+        return True
 
-    logger.debug("An existing app has changed. The changed form fields: %s", form.changed_data)
+    try:
+        original_instance = instance.__class__.objects.get(pk=instance.pk)
+    except instance.__class__.DoesNotExist:
+        return True
 
-    for field in form.changed_data:
-        normalized_field = field.lower()
-        if normalized_field in redeployment_fields and (
-            normalized_field in form.Meta.fields or normalized_field == "subdomain"
-        ):
+    logger.debug("Checking whether an existing app save should trigger deployment. changed_data=%s", form.changed_data)
+
+    cleaned_data = getattr(form, "cleaned_data", {}) or {}
+    form_fields = getattr(form, "fields", {})
+
+    def _normalized_subdomain(value):
+        if hasattr(value, "subdomain"):
+            return value.subdomain
+        return str(value or "")
+
+    def _normalized_model_pk(value):
+        if value is None:
+            return None
+        if hasattr(value, "all"):
+            return tuple(sorted(obj.pk for obj in value.all()))
+        if isinstance(value, (list, tuple, set)):
+            return tuple(sorted(getattr(obj, "pk", obj) for obj in value))
+        return getattr(value, "pk", value)
+
+    if "subdomain" in form_fields:
+        requested_subdomain = _normalized_subdomain(cleaned_data.get("subdomain"))
+        current_subdomain = getattr(getattr(original_instance, "subdomain", None), "subdomain", "")
+        if requested_subdomain != current_subdomain:
+            return True
+
+    if "mount_path" in form_fields:
+        requested_mount_path = cleaned_data.get("mount_path")
+        requested_mount_path_pk = _normalized_model_pk(requested_mount_path)
+        current_mount_path_pk = getattr(original_instance, "mount_path_id", None)
+        if requested_mount_path_pk != current_mount_path_pk:
+            return True
+    elif "volume" in form_fields:
+        requested_volume = _normalized_model_pk(cleaned_data.get("volume"))
+        current_volume = _normalized_model_pk(getattr(original_instance, "volume", None))
+        if requested_volume != current_volume:
+            return True
+
+    for field in ("flavor", "port", "image", "access", "shiny_site_dir"):
+        if field not in form_fields:
+            continue
+
+        requested_value = _normalized_model_pk(cleaned_data.get(field))
+        current_value = _normalized_model_pk(getattr(original_instance, field, None))
+        if requested_value != current_value:
             return True
 
     return False
@@ -391,9 +426,9 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     if new_app:
         user_action = "Creating"
     else:
-        # Preserve the current action when no deploy is needed so the UI does not
-        # present an infrastructure rollout that never started.
-        user_action = "Changing" if do_deploy else getattr(form.instance, "latest_user_action", "Changing")
+        # Treat every update as a user-initiated change, while the redirect logic
+        # decides whether the user should see deployment progress or details.
+        user_action = "Changing"
 
     # For existing apps, detect if access is changing from non-public to public
     access_changed_to_public = False
