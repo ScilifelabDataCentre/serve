@@ -300,9 +300,7 @@ class CreateAppViewTestCase(TestCase):
     def test_submit_redirects_to_deployment_progress_page(self):
         c = Client()
         project = self.get_data()
-
-        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
-        self.assertEqual(response.status_code, 302)
+        c.force_login(self.user)
 
         fake_form = Mock()
         fake_form.is_valid.return_value = True
@@ -322,9 +320,7 @@ class CreateAppViewTestCase(TestCase):
     def test_submit_redirects_to_details_page_when_save_does_not_trigger_deploy(self):
         c = Client()
         project = self.get_data()
-
-        response = c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
-        self.assertEqual(response.status_code, 302)
+        c.force_login(self.user)
 
         fake_form = Mock()
         fake_form.is_valid.return_value = True

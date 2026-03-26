@@ -12,7 +12,7 @@ User = get_user_model()
 class BackgroundTasksViewTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
-        self.client.login(username="foo@test.com", password="bar")
+        self.client.force_login(self.user)
 
         self.category = AppCategories.objects.create(name="Serve", priority=100, slug="serve")
         self.app = Apps.objects.create(
@@ -194,6 +194,30 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(payload["deployment"]["status"], "pending")
         self.assertEqual(payload["deployment"]["label"], "Pending")
 
+    def test_background_task_status_api_keeps_deploy_running_until_helm_records_success(self):
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="success")
+        self.app_instance.k8s_user_app_status.status = "Running"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.info = {}
+        self.app_instance.save(update_fields=["latest_user_action", "info"])
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["deployment"]["status"], "running")
+        self.assertEqual(payload["deployment"]["label"], "Deploying")
+
     def test_background_task_status_api_keeps_deploy_running_during_transient_notfound_state(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="success")
         self.app_instance.k8s_user_app_status.status = "NotFound"
@@ -216,6 +240,30 @@ class BackgroundTasksViewTestCase(TestCase):
         payload = response.json()
         self.assertEqual(payload["deployment"]["status"], "running")
         self.assertEqual(payload["deployment"]["label"], "Deploying")
+
+    def test_background_task_status_api_surfaces_helm_failure_after_checks_complete(self):
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="success")
+        self.app_instance.k8s_user_app_status.status = "Running"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.info = {"helm": {"success": False, "info": {"stderr": "chart upgrade failed"}}}
+        self.app_instance.save(update_fields=["latest_user_action", "info"])
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["deployment"]["status"], "failed")
+        self.assertEqual(payload["deployment"]["label"], "Failed")
 
     def test_background_task_status_api_marks_skipped_tasks(self):
         BackgroundTask.objects.create(

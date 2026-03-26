@@ -266,9 +266,8 @@ function refreshTasks() {
     .then(data => {
       renderProgress(data);
 
-      // Stop auto-refresh if all tasks are completed
-      const allCompleted = data.summary.running === 0 && data.summary.pending === 0 && data.summary.retrying === 0;
-      if (allCompleted) {
+      const deploymentDone = ['success', 'failed', 'blocked'].includes(data.deployment?.status);
+      if (deploymentDone && !data.workflow?.has_in_progress) {
         stopAutoRefresh();
       }
     })

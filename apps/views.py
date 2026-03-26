@@ -121,10 +121,26 @@ def _build_workflow_state(tasks_data):
     }
 
 
+def _get_helm_deploy_success(instance):
+    info = getattr(instance, "info", None) or {}
+    if not isinstance(info, dict):
+        return None
+
+    helm_info = info.get("helm")
+    if not isinstance(helm_info, dict):
+        return None
+
+    success = helm_info.get("success")
+    if isinstance(success, bool):
+        return success
+    return None
+
+
 def _build_deployment_state(instance, workflow, tasks_data):
     app_status = instance.get_app_status()
     latest_user_action = instance.latest_user_action
     is_transitioning = latest_user_action in {"Creating", "Changing", "Redeploying"}
+    helm_deploy_success = _get_helm_deploy_success(instance)
     status = "pending"
     label = "Pending"
     message = "Waiting to start deployment."
@@ -137,18 +153,22 @@ def _build_deployment_state(instance, workflow, tasks_data):
         status = "pending"
         label = "Pending"
         message = "Deployment will start after the checks pass."
+    elif latest_user_action == "Failed" or app_status in {"Error", "Error (NotFound)"} or helm_deploy_success is False:
+        status = "failed"
+        label = "Failed"
+        message = "Deployment hit an error after the checks completed."
+    elif is_transitioning and (tasks_data or helm_deploy_success is not None) and helm_deploy_success is not True:
+        status = "running"
+        label = "Deploying"
+        message = "Deployment is in progress."
     elif app_status == "Running":
         status = "success"
         label = "Done"
         message = "The app is running."
-    elif workflow["ready_for_deploy"] or is_transitioning:
+    elif workflow["ready_for_deploy"]:
         status = "running"
         label = "Deploying"
         message = "Deployment is in progress."
-    elif latest_user_action == "Failed" or app_status in {"Error", "Error (NotFound)"}:
-        status = "failed"
-        label = "Failed"
-        message = "Deployment hit an error after the checks completed."
     elif tasks_data:
         status = "pending"
         label = "Pending"
