@@ -1,18 +1,18 @@
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
-from crispy_forms.layout import Div, Field, Layout
+from crispy_forms.layout import HTML, Div, Layout
 from django import forms
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
-from apps.forms.mixins import KeywordTagsValidationMixin, VolumeMixin
+from apps.forms.mixins import CreatorsMixin, KeywordTagsValidationMixin, VolumeMixin
 from apps.models import TissuumapsInstance
 
 __all__ = ["TissuumapsForm"]
 
 
-class TissuumapsForm(VolumeMixin, KeywordTagsValidationMixin, AppBaseForm):
+class TissuumapsForm(VolumeMixin, KeywordTagsValidationMixin, CreatorsMixin, AppBaseForm):
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
@@ -45,10 +45,11 @@ class TissuumapsForm(VolumeMixin, KeywordTagsValidationMixin, AppBaseForm):
 
         # Define AccordionGroups
         general = AccordionGroup(
-            mark_safe("<h3>Description</h3>"),
+            mark_safe("<h3>About</h3>"),
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags"),
+            self.get_creators_field_layout(),
             SRVCommonDivField("access"),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",

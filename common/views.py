@@ -626,6 +626,153 @@ class RORAutocompleteView(View):
             return JsonResponse({"results": [], "error": str(e)}, status=500)
 
 
+class OrcidSearchView(View):
+    """API endpoint to search ORCID registry for people"""
+
+    def get(self, request):
+        query = request.GET.get("query", "").strip()
+
+        if len(query) < 2:
+            return JsonResponse({"results": []})
+
+        try:
+            # ORCID API endpoint for searching
+            headers = {
+                "Accept": "application/json",
+            }
+
+            # Use simple search query - let ORCID handle the parsing
+            params = {"q": query, "rows": 10, "start": 0}  # Simple query that ORCID can handle naturally
+
+            response = requests.get("https://pub.orcid.org/v3.0/search", params=params, headers=headers, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+
+            # Format results - fetch names from individual person records
+            results = []
+            for result in data.get("result", []):
+                orcid_identifier = result.get("orcid-identifier", {})
+                orcid_id = orcid_identifier.get("path", "")
+
+                if orcid_id:
+                    # Get person details to retrieve actual names
+                    person_data = self._get_orcid_person_details(orcid_id)
+                    if person_data:
+                        results.append(person_data)
+                    else:
+                        # Fallback if person details can't be fetched
+                        results.append(
+                            {
+                                "display_name": f"ORCID User ({orcid_id})",
+                                "given_name": "",
+                                "family_name": "",
+                                "orcid": f"https://orcid.org/{orcid_id}",
+                                "orcid_id": orcid_id,
+                                "affiliation": "",
+                            }
+                        )
+
+            return JsonResponse({"results": results})
+
+        except Exception as e:
+            logger.error(f"ORCID API error: {e}")
+            return JsonResponse({"results": [], "error": str(e)}, status=500)
+
+    def _get_orcid_person_details(self, orcid_id):
+        """Fetch detailed person information from ORCID API."""
+        try:
+            headers = {
+                "Accept": "application/json",
+            }
+
+            # Get person details from ORCID
+            person_url = f"https://pub.orcid.org/v3.0/{orcid_id}/person"
+            response = requests.get(person_url, headers=headers, timeout=5)
+            response.raise_for_status()
+            person_data = response.json()
+
+            # Extract name information
+            name_data = person_data.get("name", {})
+
+            given_name = ""
+            family_name = ""
+            display_name = f"ORCID User ({orcid_id})"  # Fallback display name
+
+            if name_data:
+                # Get given names (first names)
+                given_names = name_data.get("given-names", {})
+                if given_names and given_names.get("value"):
+                    given_name = given_names["value"]
+
+                # Get family name (last name)
+                family_name_data = name_data.get("family-name", {})
+                if family_name_data and family_name_data.get("value"):
+                    family_name = family_name_data["value"]
+
+                # Create display name from actual names
+                if given_name or family_name:
+                    display_name = f"{given_name} {family_name}".strip()
+                    if display_name:
+                        display_name = f"{display_name} ({orcid_id})"
+
+            # Get latest employment with identifiers
+            affiliation = ""
+            try:
+                emp_response = requests.get(
+                    f"https://pub.orcid.org/v3.0/{orcid_id}/employments", headers=headers, timeout=5
+                )
+                if emp_response.status_code == 200:
+                    emp_data = emp_response.json()
+                    for group in emp_data.get("affiliation-group", []):
+                        for summary in group.get("summaries", []):
+                            emp = summary.get("employment-summary", {})
+                            if not emp.get("end-date"):  # Current employment
+                                org = emp.get("organization", {})
+                                org_name = org.get("name", "")
+
+                                # Check for organization identifiers (ROR, etc.)
+                                org_identifiers = org.get("disambiguated-organization")
+                                if org_name and org_identifiers:
+                                    # Extract ROR or other identifiers
+                                    identifier_type = org_identifiers.get("disambiguation-source")
+                                    identifier_id = org_identifiers.get("disambiguated-organization-identifier")
+
+                                    if identifier_type and identifier_id:
+                                        # Strip URL prefix to get just the ID
+                                        if identifier_type.lower() == "ror":
+                                            identifier_id = identifier_id.replace("https://ror.org/", "")
+                                        # Return structured affiliation with identifier
+                                        affiliation = {
+                                            "name": org_name,
+                                            "identifier": identifier_id,
+                                            "scheme": identifier_type.upper()
+                                            if identifier_type.lower() == "ror"
+                                            else identifier_type,
+                                        }
+                                    else:
+                                        affiliation = org_name
+                                else:
+                                    affiliation = org_name
+                                break
+                        if affiliation:
+                            break
+            except Exception as e:
+                logger.error(f"Error fetching ORCID employment details for {orcid_id}: {e}")
+
+            return {
+                "display_name": display_name,
+                "given_name": given_name,
+                "family_name": family_name,
+                "orcid": f"https://orcid.org/{orcid_id}",
+                "orcid_id": orcid_id,
+                "affiliation": affiliation,
+            }
+
+        except Exception as e:
+            logger.error(f"Error fetching ORCID person details for {orcid_id}: {e}")
+            return None
+
+
 class OrcidAuthorizeView(View):
     """Initiates the ORCID OAuth flow from the Profile Edit page."""
 

@@ -950,7 +950,7 @@ def run_background_tasks(
             tr = order_task_records[0]
             timeout = task_timeout_by_id.get(tr.id, 300)
             task_chain.append(
-                execute_single_background_task.s(
+                execute_single_background_task.si(
                     task_db_id=tr.id, task_kwargs_by_task_name=task_kwargs_by_task_name
                 ).set(
                     soft_time_limit=timeout,
@@ -961,7 +961,7 @@ def run_background_tasks(
             # Multiple tasks - run in parallel using group
             parallel_tasks = group(
                 [
-                    execute_single_background_task.s(
+                    execute_single_background_task.si(
                         task_db_id=tr.id,
                         task_kwargs_by_task_name=task_kwargs_by_task_name,
                     ).set(

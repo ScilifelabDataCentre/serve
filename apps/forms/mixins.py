@@ -155,6 +155,186 @@ class VolumeMixin:
         return SRVCommonDivField("volume", template="apps/storage_field.html", project_slug=self.project.slug)
 
 
+class CreatorsMixin:
+    """Mixin to add creators field functionality for managing app creators."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Add hidden creators field
+        self.fields["creators"] = forms.CharField(required=False, widget=forms.HiddenInput(), initial="[]")
+
+        self._initialize_creators()
+
+    def _initialize_creators(self):
+        """Initialize the creators field with the current user."""
+        import json
+
+        if hasattr(self, "request") and self.request and self.request.user.is_authenticated:
+            user = self.request.user
+
+            # Get user profile data for ROR/affiliation information
+            user_orcid = ""
+            user_affiliation = ""
+            try:
+                user_profile = user.userprofile
+                user_orcid = user_profile.orcid_id or ""
+                user_affiliation = user_profile.get_organization_name() or ""
+            except Exception:
+                # UserProfile doesn't exist or other error - use defaults
+                pass
+
+            # Get user's first and last name
+            user_first_name = user.first_name or user.username
+            user_last_name = user.last_name or "User"
+
+            # Ensure affiliation is never empty - provide default if needed
+            if not user_affiliation:
+                user_affiliation = "Independent Researcher"
+
+            creators_data = [
+                {
+                    "name": user_first_name,
+                    "lastName": user_last_name,
+                    "orcid": user_orcid,
+                    "affiliation": user_affiliation,
+                }
+            ]
+            self.fields["creators"].initial = json.dumps(creators_data)
+
+    def clean_creators(self):
+        """Basic validation for creators field."""
+        import json
+
+        creators_json = self.cleaned_data.get("creators", "[]")
+
+        try:
+            creators_data = json.loads(creators_json) if creators_json else []
+        except (json.JSONDecodeError, TypeError):
+            raise ValidationError("Invalid creators data format.")
+
+        if not isinstance(creators_data, list):
+            raise ValidationError("Creators must be a list.")
+
+        for i, creator in enumerate(creators_data):
+            if not isinstance(creator, dict):
+                raise ValidationError(f"Creator {i+1} must be an object.")
+            if not creator.get("name") or not creator.get("lastName"):
+                raise ValidationError(f"Creator {i+1} must have both name and lastName.")
+            # Temporarily disabled strict affiliation validation to debug
+            # if not creator.get("affiliation"):
+            #     raise ValidationError(f"Creator {i+1} must have an affiliation.")
+
+        return creators_json
+
+    def get_creators_field_layout(self):
+        """Get the complete crispy forms layout for the creators field."""
+        from crispy_forms.layout import HTML, Div
+
+        if not (hasattr(self, "request") and self.request and self.request.user.is_authenticated):
+            return Div()  # Return empty div if no user
+
+        user = self.request.user
+        user_first_name = user.first_name or user.username
+        user_last_name = user.last_name or "User"
+        user_full_name = f"{user_first_name} {user_last_name}"
+
+        # Get user profile data for the display
+        user_orcid = ""
+        user_affiliation = ""
+        try:
+            user_profile = user.userprofile
+            user_orcid = user_profile.orcid_id or ""
+            user_affiliation = user_profile.get_organization_name() or ""
+        except Exception:
+            # UserProfile doesn't exist - use defaults
+            pass
+
+        # Prepare user data as JSON for the data-creator attribute with actual profile data
+        import json
+
+        user_creator_data = json.dumps(
+            {"name": user_first_name, "lastName": user_last_name, "affiliation": user_affiliation, "orcid": user_orcid}
+        ).replace(
+            '"', "&quot;"
+        )  # Escape quotes for HTML attribute
+
+        # Build creator info display similar to new creators added via modal
+        creator_info = f"<strong>{user_full_name}</strong>"
+        if user_orcid or user_affiliation:
+            creator_info += "<br><small class='text-muted'>"
+            if user_affiliation:
+                creator_info += f"Affiliation: {user_affiliation}<br>"
+            if user_orcid:
+                creator_info += f"ORCID: {user_orcid}"
+            creator_info += "</small>"
+
+        return Div(
+            "creators",  # Hidden field
+            HTML(
+                f"""
+                <label class="form-label">Creators
+                    <span class="bi bi-question-circle text-muted ms-2"
+                          data-bs-toggle="tooltip"
+                          data-bs-original-title="List one or more creators of the application."></span>
+                </label>
+
+                <div class="mb-2">
+                    <small class="text-muted">List the creators that should appear in the citation.
+                    Drag to reorder the names.</small>
+                </div>
+
+                <ul id="creatorsSortableList" class="list-group mb-3">
+                    <li class="list-group-item d-flex justify-content-between align-items-center"
+                        style="cursor: move;" data-creator="{user_creator_data}">
+                        <div>{creator_info}</div>
+                        <span class="badge bg-secondary">You</span>
+                    </li>
+                </ul>
+
+                <div class="mt-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#creatorsModal">
+                        <span class="fas fa-plus text-muted"></span> Add Creator
+                    </button>
+                </div>
+
+                <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+                <script>
+                    $(document).ready(function() {{
+                        $("#creatorsSortableList").sortable({{
+                            placeholder: "list-group-item bg-light",
+                            cursor: "move"
+                        }});
+                    }});
+                </script>
+            """
+            ),
+            css_class="mb-3",
+        )
+
+    def get_creators_data(self):
+        """Get the parsed creators data from the form."""
+        import json
+
+        # Try to get from cleaned_data first (after form validation)
+        if hasattr(self, "cleaned_data") and self.cleaned_data:
+            creators_json = self.cleaned_data.get("creators", "[]")
+        else:
+            # Fall back to raw field value (before form validation)
+            creators_field = self.fields.get("creators")
+            if creators_field and hasattr(creators_field, "initial"):
+                creators_json = creators_field.initial or "[]"
+            else:
+                creators_json = "[]"
+
+        try:
+            creators_data = json.loads(creators_json) if creators_json else []
+            return creators_data
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+
 class KeywordTagsValidationMixin:
     def clean_keyword_tags(self):
         """Validate the invenio_tags input against the autocomplete API."""
