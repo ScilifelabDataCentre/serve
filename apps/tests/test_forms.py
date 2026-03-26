@@ -224,19 +224,11 @@ class CustomAppFormRenderingTest(BaseAppFormTest):
 class FundingFieldPresenceTest(BaseAppFormTest):
     funding_forms = [CustomAppForm, DashForm, GradioForm, ShinyForm, StreamlitForm]
 
-    @patch("apps.forms.base.waffle.switch_is_active", return_value=True)
-    def test_funding_field_present_when_doi_enabled(self, _mock_switch):
+    def test_funding_field_always_present_with_doi_enabled(self):
+        """DOI functionality is always enabled, so funding field should always be present."""
         for form_class in self.funding_forms:
             form = form_class(project_pk=self.project.pk)
             self.assertIn("funding_sources_json", form.fields, f"Missing funding field in {form_class.__name__}")
-
-    @patch("apps.forms.base.waffle.switch_is_active", return_value=False)
-    def test_funding_field_hidden_when_doi_disabled(self, _mock_switch):
-        for form_class in self.funding_forms:
-            form = form_class(project_pk=self.project.pk)
-            self.assertNotIn(
-                "funding_sources_json", form.fields, f"Funding field should be hidden in {form_class.__name__}"
-            )
 
 
 invalid_default_url_subpath_list = [

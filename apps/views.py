@@ -383,6 +383,16 @@ def delete(request, project, app_slug, app_id):
     if not instance.app.user_can_delete:
         return HttpResponseForbidden()
 
+    # Prevent deletion of public apps with published DOIs (unless user is admin)
+    if (
+        not request.user.is_superuser
+        and hasattr(instance, "access")
+        and instance.access == "public"
+        and hasattr(instance, "app_doi")
+        and instance.app_doi
+    ):
+        return HttpResponseForbidden("Cannot delete public apps with published DOIs.")
+
     serialized_instance = instance.serialize()
 
     delete_resource.delay(serialized_instance, AppActionOrigin.USER.value)
@@ -525,7 +535,15 @@ class CreateApp(View):
             return None
 
         if user_can_edit or user_can_create:
-            return form_class(request.POST or None, project_pk=project.pk, instance=instance, request=request)
+            form = form_class(request.POST or None, project_pk=project.pk, instance=instance, request=request)
+
+            # Disable access field for public apps to prevent changing access mode
+            if app_id and instance and hasattr(instance, "access") and instance.access == "public":
+                if hasattr(form, "fields") and "access" in form.fields:
+                    form.fields["access"].disabled = True
+                    form.fields["access"].help_text = "Cannot change access mode for public apps."
+
+            return form
             # Maybe this makes typing hard.
         else:
             return None
