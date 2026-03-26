@@ -86,10 +86,13 @@ def test_docker_image_validator_does_not_retry_missing_image_errors():
 def test_docker_image_validator_retries_transient_registry_errors():
     validator = DockerImageValidator()
 
-    assert validator.should_retry(
-        ContainerImageValidationError("temporary registry outage", retryable=True),
-        retry_count=0,
-    ) is True
+    assert (
+        validator.should_retry(
+            ContainerImageValidationError("temporary registry outage", retryable=True),
+            retry_count=0,
+        )
+        is True
+    )
 
 
 def test_transient_manifest_lookup_errors_are_marked_retryable():

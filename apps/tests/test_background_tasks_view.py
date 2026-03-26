@@ -4,7 +4,14 @@ from django.urls import reverse
 
 from projects.models import Project, ProjectTemplate
 
-from ..models import AppCategories, Apps, BackgroundTask, CustomAppInstance, K8sUserAppStatus, Subdomain
+from ..models import (
+    AppCategories,
+    Apps,
+    BackgroundTask,
+    CustomAppInstance,
+    K8sUserAppStatus,
+    Subdomain,
+)
 
 User = get_user_model()
 
@@ -169,7 +176,9 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(len(payload["tasks"]), 2)
-        self.assertEqual([task["task_name"] for task in payload["tasks"]], ["validate_docker_image", "doi_provisioning"])
+        self.assertEqual(
+            [task["task_name"] for task in payload["tasks"]], ["validate_docker_image", "doi_provisioning"]
+        )
         self.assertEqual(payload["summary"]["total"], 2)
 
     def test_background_task_status_api_keeps_deploy_pending_while_checks_are_running(self):

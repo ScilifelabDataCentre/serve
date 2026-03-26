@@ -200,10 +200,6 @@ function getDeploymentBadgeClass(status) {
   return "badge text-bg-secondary";
 }
 
-function getTaskStatus(task) {
-  return task.was_skipped ? "skipped" : task.status;
-}
-
 function getTaskStatusLabel(task) {
   return task.was_skipped ? "Skipped" : (
     {

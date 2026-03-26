@@ -15,6 +15,7 @@ logger = get_logger(__name__)
 
 # Constants
 
+
 class ContainerImageValidationError(ValueError):
     """User-facing validation error for container image lookup and parsing."""
 

@@ -12,7 +12,6 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponseRedirect, render, reverse
-from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -37,10 +36,6 @@ from .tasks import delete_resource
 logger = get_logger(__name__)
 
 User = get_user_model()
-
-
-def _is_ajax_request(request) -> bool:
-    return request.headers.get("x-requested-with") == "XMLHttpRequest"
 
 
 def _build_project_app_path(project_slug: str, suffix: str) -> str:
@@ -469,19 +464,19 @@ class CreateApp(View):
 
         if not form.is_valid():
             form_header = "Update" if app_id else "Create"
-            context = {
-                "form": form,
-                "project": project,
-                "app_id": app_id,
-                "app_slug": app_slug,
-                "form_header": form_header,
-                "user": request.user,
-                "model_name": str(APP_REGISTRY.get_orm_model(app_slug).__name__).lower(),
-            }
-            if _is_ajax_request(request):
-                html = render_to_string(self.template_name, context, request=request)
-                return JsonResponse({"success": False, "html": html}, status=400)
-            return render(request, self.template_name, context)
+            return render(
+                request,
+                self.template_name,
+                {
+                    "form": form,
+                    "project": project,
+                    "app_id": app_id,
+                    "app_slug": app_slug,
+                    "form_header": form_header,
+                    "user": request.user,
+                    "model_name": str(APP_REGISTRY.get_orm_model(app_slug).__name__).lower(),
+                },
+            )
 
         should_deploy = should_trigger_deployment_from_form(form, app_id=app_id)
 
@@ -489,24 +484,7 @@ class CreateApp(View):
         instance_id = create_instance_from_form(form, project, app_slug, app_id)
         detail_url = _build_project_app_path(str(project_slug), f"details/{app_slug}/{instance_id}")
         progress_url = _build_project_app_path(str(project_slug), f"progress/{app_slug}/{instance_id}")
-        background_tasks_url = _build_project_app_path(str(project_slug), f"tasks/{app_slug}/{instance_id}")
-        status_api_url = _build_project_app_path(str(project_slug), f"tasks/{app_slug}/{instance_id}/status")
         redirect_url = progress_url if should_deploy else detail_url
-
-        if _is_ajax_request(request):
-            action = "updated" if app_id else "created"
-            return JsonResponse(
-                {
-                    "success": True,
-                    "instance_id": instance_id,
-                    "detail_url": detail_url,
-                    "progress_url": progress_url,
-                    "background_tasks_url": background_tasks_url,
-                    "status_api_url": status_api_url,
-                    "redirect_url": redirect_url,
-                    "action": action,
-                }
-            )
 
         return HttpResponseRedirect(redirect_url)
 
@@ -578,7 +556,6 @@ class DeploymentProgressView(View):
             "deployment": deployment,
             "detail_url": _build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
             "form_url": _build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}"),
-            "background_tasks_url": _build_project_app_path(str(project_obj.slug), f"tasks/{app_slug}/{instance.pk}"),
         }
 
         return render(request, self.template, context)
@@ -626,7 +603,6 @@ class AppDetailsView(View):
             "project": project_obj,
             "recent_tasks": recent_tasks,
             "summary": summary,
-            "workflow": workflow,
             "deployment": deployment,
             "description": description,
             "details_rows": details_rows,
@@ -778,7 +754,6 @@ class BackgroundTasksView(View):
             "summary": summary,
             "app_slug": app_slug,
             "detail_url": _build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
-            "redirect_to_details": request.GET.get("redirect_to") == "details",
         }
 
         return render(request, self.template, context)
