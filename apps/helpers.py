@@ -1,5 +1,4 @@
 import json
-import traceback
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any, Dict, Optional, Type
@@ -11,13 +10,12 @@ import yaml
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.db.models.query import QuerySet
 from django.forms.models import model_to_dict
 from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
-from requests.exceptions import ConnectionError, Timeout
 
 from apps.constants import (
     UNIVERSITY_NAMES,
@@ -335,7 +333,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     Raises:
     - ValueError: If the form does not have a 'subdomain' or if the specified app cannot be found.
     """
-    from .tasks import deploy_resource
+    from .tasks import run_background_tasks
 
     assert form is not None, "This function requires a form object"
     assert project is not None, "This function requires a project object"
@@ -480,6 +478,8 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
 
         _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public)
+    else:
+        logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
     return instance_id
 

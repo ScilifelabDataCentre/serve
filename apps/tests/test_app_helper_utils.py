@@ -482,7 +482,7 @@ def test_get_subdomain_name_no_subdomain_in_form():
 
 
 @pytest.mark.django_db
-def test_forms_submit_funding_and_generate_mock_doi(django_capture_on_commit_callbacks):
+def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_commit_callbacks):
     user = User.objects.create_user("funding-doi-user", "funding-doi@test.com", "bar")
     project = Project.objects.create_project(name="test-funding-doi", owner=user, description="")
     flavor = Flavor.objects.create(name="funding-doi-flavor", project=project)
@@ -497,39 +497,77 @@ def test_forms_submit_funding_and_generate_mock_doi(django_capture_on_commit_cal
 
     funding_payload = [{"funder_name": "Uppsala University", "funder_id": "048a87296"}]
 
-    # Simple approach: mock the entire background task system to not run and directly set DOI
-    with patch("apps.tasks.run_background_tasks.delay"), patch(
-        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
-    ):
-        model_class, form_class = APP_REGISTRY.get("customapp")
-        form_data = {
-            "name": "customapp-funding-doi-test",
-            "description": "form with funding and tags",
-            "flavor": str(flavor.pk),
-            "access": "public",
-            "port": 8000,
-            "image": "some-image-customapp",
-            "source_code_url": "https://example.org/source",
-            "language": "eng",
-            "invenio_tags": "Antibodies|Cells",
-            "funding_sources_json": json.dumps(funding_payload),
-        }
-        form = form_class(form_data, project_pk=project.pk)
-        assert form.is_valid(), f"form should be valid but has errors: {form.errors}"
+    model_class, form_class = APP_REGISTRY.get("customapp")
+    form_data = {
+        "name": "customapp-funding-doi-test",
+        "description": "form with funding and tags",
+        "flavor": str(flavor.pk),
+        "access": "public",
+        "port": 8000,
+        "image": "some-image-customapp",
+        "source_code_url": "https://example.org/source",
+        "language": "eng",
+        "invenio_tags": "Antibodies|Cells",
+        "funding_sources_json": json.dumps(funding_payload),
+    }
+    form = form_class(form_data, project_pk=project.pk)
+    assert form.is_valid(), f"form should be valid but has errors: {form.errors}"
 
+    with patch("apps.tasks.run_background_tasks.delay") as mock_bg:
         with django_capture_on_commit_callbacks(execute=True):
             app_id = create_instance_from_form(form, project, "customapp", app_id=None)
 
-        app_instance = model_class.objects.get(pk=app_id)
+    app_instance = model_class.objects.get(pk=app_id)
 
-        # Manually set the DOI fields to simulate successful DOI minting
-        app_instance.app_doi = "10.1234/mockdoi"
-        app_instance.invenio_record_id = "mock-record-id"
-        app_instance.save()
+    called_serialized_instance, called_app_slug, task_kwargs_by_task_name = mock_bg.call_args.args
+    assert called_serialized_instance["pk"] == app_instance.id
+    assert called_app_slug == app_instance.app.slug
+    assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
+    assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
 
-        # Verify the DOI was set
-        assert app_instance.app_doi == "10.1234/mockdoi"
-        assert app_instance.invenio_record_id == "mock-record-id"
+
+@pytest.mark.django_db
+def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_callbacks):
+    user = User.objects.create_user("funding-dash-user", "funding-dash@test.com", "bar")
+    project = Project.objects.create_project(name="test-funding-dash", owner=user, description="")
+    flavor = Flavor.objects.create(name="funding-dash-flavor", project=project)
+
+    Apps.objects.create(
+        name="Dash App",
+        slug="dashapp",
+        chart="ghcr.io/scilifelabdatacentre/serve-charts/dashapp:test",
+        user_can_delete=False,
+    )
+
+    funding_payload = [{"funder_name": "Uppsala University", "funder_id": "048a87296"}]
+
+    model_class, form_class = APP_REGISTRY.get("dashapp")
+    form_data = {
+        "name": "dashapp-funding-doi-test",
+        "description": "dash form with funding and tags",
+        "flavor": str(flavor.pk),
+        "access": "public",
+        "port": 8000,
+        "image": "some-image-dashapp",
+        "source_code_url": "https://example.org/source",
+        "language": "eng",
+        "invenio_tags": "Antibodies|Cells",
+        "funding_sources_json": json.dumps(funding_payload),
+    }
+    form = form_class(form_data, project_pk=project.pk)
+    assert form.is_valid(), f"form should be valid but has errors: {form.errors}"
+
+    with patch("apps.tasks.run_background_tasks.delay") as mock_bg:
+        with django_capture_on_commit_callbacks(execute=True):
+            app_id = create_instance_from_form(form, project, "dashapp", app_id=None)
+
+    app_instance = model_class.objects.get(pk=app_id)
+
+    called_serialized_instance, called_app_slug, task_kwargs_by_task_name = mock_bg.call_args.args
+    assert called_serialized_instance["pk"] == app_instance.id
+    assert called_app_slug == app_instance.app.slug
+    assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
+    assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
 
 
 @pytest.mark.django_db
