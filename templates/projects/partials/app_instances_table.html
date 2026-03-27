@@ -1,7 +1,7 @@
 {% load static %}
 <table id=""
     class="ui table table-responsive" role="grid">
-    <thead style="background-color: #6c757d14;">
+    <thead class="app-table-head">
         <tr class="text-center">
             <th tabindex="0" rowspan="1" colspan="1">Type</th>
             <th tabindex="0" rowspan="1" colspan="1">Name</th>
@@ -19,8 +19,8 @@
 
             {% static 'images/logos/apps/' as static_url %}
 
-            <td class="text-center-small-screen"><span class="me-2" style="text-align: center;">
-                <img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid " alt="{{ instance.app.name }} Logo" style="max-width:25px;min-width:20px;"></span>{{ instance.app.name }}
+            <td class="text-center-small-screen"><span class="me-2 app-table-logo-wrap">
+                <img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid app-table-logo" alt="{{ instance.app.name }} Logo"></span>{{ instance.app.name }}
             </td>
             {% if instance.url %}
             <td class="sorting_1 text-center-small-screen">
@@ -78,7 +78,7 @@
             </td>
             <td class="d-none d-xxl-table-cell" id="tags-{{ instance.pk }}">
     {% for tag in instance.tags.all %}
-        <span class="badge text-bg-primary badge-grape badge-ico me-1 tag-item {% if forloop.counter > 3 %}d-none extra-tag{% endif %}" style="margin-right: -0.2rem;">
+        <span class="badge text-bg-primary badge-grape badge-ico me-1 tag-item app-table-tag {% if forloop.counter > 3 %}d-none extra-tag{% endif %}">
             <div class="fas fa-tag fa-sm me-1"></div>
             <span class="tag-name">{{ tag.name }}</span>
         </span>
