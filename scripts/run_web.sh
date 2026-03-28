@@ -20,6 +20,7 @@ if $INIT; then
 
     python manage.py migrate waffle
     python manage.py waffle_switch docker_image_architecture_validator off --create
+    python manage.py waffle_switch background_tasks_nonblocking_deploy on --create
     python manage.py waffle_switch christmas_theme off --create
 
     #Replace storageclass in project template fixture
