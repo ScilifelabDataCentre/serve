@@ -773,7 +773,6 @@ class InvenioService:
 
         # Log the generated metadata
         logger.info(f"Generated Invenio metadata for app '{app_data.name}'")
-        logger.info(json.dumps(invenio_record.model_dump(mode="json", by_alias=True), indent=2))
 
         return invenio_record
 
