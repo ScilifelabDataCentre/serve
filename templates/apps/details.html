@@ -179,30 +179,6 @@ function getDeploymentBadgeClass(status) {
   return "badge text-bg-secondary";
 }
 
-function getTaskStatusLabel(task) {
-  return task.was_skipped ? "Skipped" : (
-    {
-      pending: "Pending",
-      running: "Running",
-      retrying: "Retrying",
-      success: "Success",
-      failed: "Failed"
-    }[task.status] || "Pending"
-  );
-}
-
-function getTaskStatusClass(task) {
-  return task.was_skipped ? "secondary" : (
-    {
-      pending: "secondary",
-      running: "primary",
-      retrying: "warning",
-      success: "success",
-      failed: "danger"
-    }[task.status] || "secondary"
-  );
-}
-
 function renderRecentChecks(tasks) {
   if (!recentChecksList) {
     return;
@@ -228,7 +204,7 @@ function renderRecentChecks(tasks) {
           <div class="small text-muted">Stage ${escapeHtml(task.execution_order)}${task.is_critical ? " · Required" : ""}</div>
         </div>
         <div>
-          <span class="badge bg-${escapeHtml(getTaskStatusClass(task))}">${escapeHtml(getTaskStatusLabel(task))}</span>
+          <span class="badge bg-${escapeHtml(task.status_class || "secondary")}">${escapeHtml(task.status_label || "Pending")}</span>
         </div>
       </div>
     </div>

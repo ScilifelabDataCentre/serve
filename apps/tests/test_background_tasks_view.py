@@ -96,6 +96,18 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertContains(response, "About Deployment Checks:")
         self.assertContains(response, "Check Details")
         self.assertContains(response, "Check Image Compatibility")
+        self.assertEqual(
+            response.context["status_api_url"],
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+            + "?mode=details",
+        )
 
     def test_private_app_details_page_shows_deployment_summary(self):
         response = self.client.get(
@@ -203,13 +215,71 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(payload["deployment"]["status"], "pending")
         self.assertEqual(payload["deployment"]["label"], "Pending")
 
+    def test_background_task_status_api_ignores_stale_failed_checks_before_new_run_records_exist(self):
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")
+        self.app_instance.k8s_user_app_status.status = "Running"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.save()
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["tasks"], [])
+        self.assertEqual(payload["deployment"]["status"], "pending")
+        self.assertEqual(payload["deployment"]["label"], "Pending")
+        self.assertEqual(payload["deployment"]["message"], "Waiting for deployment checks to start.")
+
+    def test_background_task_status_api_keeps_waiting_when_helm_succeeds_before_current_tasks_appear(self):
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")
+        self.app_instance.k8s_user_app_status.status = "Running"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.info = {"helm": {"success": True, "info": {"stdout": "ok", "stderr": ""}}}
+        self.app_instance.save()
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["tasks"], [])
+        self.assertEqual(payload["deployment"]["status"], "pending")
+        self.assertEqual(payload["deployment"]["label"], "Pending")
+        self.assertEqual(payload["deployment"]["message"], "Waiting for deployment checks to start.")
+
     def test_background_task_status_api_keeps_deploy_running_until_helm_records_success(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="success")
         self.app_instance.k8s_user_app_status.status = "Running"
         self.app_instance.k8s_user_app_status.save(update_fields=["status"])
         self.app_instance.latest_user_action = "Changing"
-        self.app_instance.info = {}
-        self.app_instance.save(update_fields=["latest_user_action", "info"])
+        self.app_instance.save(update_fields=["latest_user_action"])
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_docker_image",
+            task_type="validation",
+            status="success",
+            is_critical=True,
+            execution_order=1,
+        )
 
         response = self.client.get(
             reverse(
@@ -233,6 +303,14 @@ class BackgroundTasksViewTestCase(TestCase):
         self.app_instance.k8s_user_app_status.save(update_fields=["status"])
         self.app_instance.latest_user_action = "Changing"
         self.app_instance.save(update_fields=["latest_user_action"])
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_docker_image",
+            task_type="validation",
+            status="success",
+            is_critical=True,
+            execution_order=1,
+        )
 
         response = self.client.get(
             reverse(
@@ -256,7 +334,15 @@ class BackgroundTasksViewTestCase(TestCase):
         self.app_instance.k8s_user_app_status.save(update_fields=["status"])
         self.app_instance.latest_user_action = "Changing"
         self.app_instance.info = {"helm": {"success": False, "info": {"stderr": "chart upgrade failed"}}}
-        self.app_instance.save(update_fields=["latest_user_action", "info"])
+        self.app_instance.save()
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_docker_image",
+            task_type="validation",
+            status="success",
+            is_critical=True,
+            execution_order=1,
+        )
 
         response = self.client.get(
             reverse(
@@ -273,6 +359,91 @@ class BackgroundTasksViewTestCase(TestCase):
         payload = response.json()
         self.assertEqual(payload["deployment"]["status"], "failed")
         self.assertEqual(payload["deployment"]["label"], "Failed")
+
+    def test_background_task_status_api_returns_metadata_only_progress_state(self):
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_image_public",
+            task_type="validation",
+            status="success",
+            is_critical=True,
+            execution_order=1,
+        )
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="doi_provisioning",
+            task_type="external_api",
+            status="success",
+            is_critical=False,
+            execution_order=2,
+        )
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="success")
+        self.app_instance.k8s_user_app_status.status = "Running"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.save(update_fields=["latest_user_action"])
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+            + "?mode=metadata_only",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["metadata_only"])
+        self.assertEqual(payload["summary"]["total"], 1)
+        self.assertEqual(payload["summary"]["skipped"], 1)
+        self.assertEqual(payload["deployment"]["status"], "success")
+        self.assertEqual(payload["deployment"]["label"], "Up to date")
+        self.assertEqual(payload["deployment"]["step_status"], "skipped")
+        self.assertEqual([task["task_name"] for task in payload["tasks"]], ["metadata_only_update"])
+        self.assertEqual(payload["tasks"][0]["display_name"], "Metadata Change")
+        self.assertTrue(payload["tasks"][0]["was_skipped"])
+        self.assertEqual(
+            payload["tasks"][0]["skip_reason"],
+            "because app only gets redeployed on changes to image, subdomain, permissions and volumes",
+        )
+
+    def test_metadata_only_progress_keeps_previous_failed_deploy_step_failed(self):
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")
+        self.app_instance.k8s_user_app_status.status = "Running"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.save(update_fields=["latest_user_action"])
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+            + "?mode=metadata_only",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["metadata_only"])
+        self.assertEqual(payload["deployment"]["status"], "blocked")
+        self.assertEqual(payload["deployment"]["label"], "Blocked")
+        self.assertEqual(payload["deployment"]["step_status"], "failed")
+        self.assertEqual(
+            [task["task_name"] for task in payload["tasks"]],
+            ["metadata_only_update"],
+        )
+        self.assertEqual(
+            payload["deployment"]["message"],
+            "Your changes were saved, but deployment is blocked by a failed check.",
+        )
 
     def test_background_task_status_api_marks_skipped_tasks(self):
         BackgroundTask.objects.create(
@@ -303,9 +474,32 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(doi_task["skip_reason"], "doi_minting_using_invenio switch is off")
         self.assertEqual(payload["summary"]["success"], 0)
         self.assertEqual(payload["summary"]["skipped"], 1)
-        doi_graph_node = next(node for node in payload["graph"]["nodes"] if node["id"] == f"task-{doi_task['id']}")
-        self.assertEqual(doi_graph_node["status"], "skipped")
-        self.assertEqual(doi_graph_node["label"], "Mint DOI")
+
+    def test_background_task_status_api_details_mode_returns_recent_history(self):
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")
+        self.app_instance.k8s_user_app_status.status = "Running"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.save()
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+            + "?mode=details",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertFalse(payload["metadata_only"])
+        self.assertEqual(len(payload["tasks"]), 1)
+        self.assertEqual(payload["tasks"][0]["task_name"], "validate_docker_image")
+        self.assertEqual(payload["summary"]["total"], 1)
 
     def test_new_project_scoped_pages_reject_app_ids_from_other_projects(self):
         other_user = User.objects.create_user("foo2", "foo2@test.com", "bar")

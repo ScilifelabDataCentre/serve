@@ -317,7 +317,7 @@ class CreateAppViewTestCase(TestCase):
         self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/321")
 
     @override_settings(APPS_PER_PROJECT_LIMIT={"jupyter-lab": 1})
-    def test_submit_redirects_to_details_page_when_save_does_not_trigger_deploy(self):
+    def test_submit_redirects_to_progress_page_with_metadata_only_flag_when_save_does_not_trigger_deploy(self):
         c = Client()
         project = self.get_data()
         c.force_login(self.user)
@@ -337,4 +337,4 @@ class CreateAppViewTestCase(TestCase):
             )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, f"/projects/{project.slug}/apps/details/jupyter-lab/654")
+        self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/654?mode=metadata_only")

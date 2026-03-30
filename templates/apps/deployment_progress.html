@@ -56,7 +56,7 @@
   </div>
 </div>
 <script>
-const statusApiUrl = "{% url 'apps:background_tasks_status' project.slug app_slug instance.pk %}";
+const statusApiUrl = "{{ status_api_url|escapejs }}";
 const detailUrl = "{{ detail_url }}";
 const STEP_SUCCESS_REVEAL_DELAY_MS = 1500;
 const SUCCESS_REDIRECT_DELAY_MS = 5000;
@@ -69,6 +69,7 @@ let latestServerData = {
     pending: {{ summary.pending|default:0 }},
     running: {{ summary.running|default:0 }},
     success: {{ summary.success|default:0 }},
+    skipped: {{ summary.skipped|default:0 }},
     failed: {{ summary.failed|default:0 }},
     retrying: {{ summary.retrying|default:0 }}
   },
@@ -83,7 +84,16 @@ let latestServerData = {
     label: "{{ deployment.label|default:'Pending'|escapejs }}",
     message: "{{ deployment.message|default:'Waiting to start deployment.'|escapejs }}"
   },
-  tasks: []
+  header: {
+    pill_class: "{{ header.pill_class|default:'text-bg-secondary'|escapejs }}",
+    pill_text: "{{ header.pill_text|default:'Waiting'|escapejs }}",
+    title: "{{ header.title|default:'Waiting for deployment checks'|escapejs }}",
+    message: "{{ header.message|default:'We have not recorded any deployment work yet.'|escapejs }}",
+    inline_text: "{{ header.inline_text|default:'0 of 1 steps completed'|escapejs }}",
+    next_step_text: "{{ header.next_step_text|default:'Keep this page open while the deployment starts.'|escapejs }}"
+  },
+  metadata_only: {{ metadata_only|yesno:"true,false" }},
+  tasks: JSON.parse("{{ initial_tasks_json|escapejs }}")
 };
 
 const displayedTaskStatuses = new Map();
@@ -114,6 +124,9 @@ function stopSuccessRedirect() {
 }
 
 function getTaskSubtitle(task) {
+  if (task.task_name === "metadata_only_update") {
+    return "No redeployment was needed";
+  }
   if (task.task_name === "validate_image_public" || task.task_name === "validate_docker_image" || task.task_name === "checking_docker_image_availability") {
     return task.is_critical ? "Required image check" : "Optional image check";
   }
@@ -236,7 +249,7 @@ function getDisplayData(data) {
     return { ...task, status: displayedTaskStatuses.get(task.id) || visibleTaskStatus };
   });
 
-  const displayWorkflow = deriveWorkflowFromTasks(displayTasks);
+  const displayWorkflow = data.workflow || {};
   const checksComplete = displayTasks.length > 0 && !displayWorkflow.has_in_progress && !displayWorkflow.blocked;
   const rawDeploymentStatus = data.deployment?.status || "pending";
   const normalizedDeploymentStatus = normalizeDeploymentStatus(rawDeploymentStatus);
@@ -275,34 +288,33 @@ function getDisplayData(data) {
   return {
     ...data,
     tasks: displayTasks,
-    workflow: displayWorkflow,
     deployment
   };
 }
 
-function deriveWorkflowFromTasks(tasks) {
-  const hasFailedCritical = tasks.some(task => task.is_critical && task.status === "failed");
-  const hasInProgress = tasks.some(task => ["pending", "running", "retrying"].includes(task.status));
-  const readyForDeploy = tasks.length > 0 && !hasFailedCritical && !hasInProgress;
-
-  return {
-    blocked: hasFailedCritical,
-    ready_for_deploy: readyForDeploy,
-    has_failed_critical: hasFailedCritical,
-    has_in_progress: hasInProgress
-  };
-}
-
 function getStepItems(data) {
+  if (data.metadata_only) {
+    return (data.tasks || []).map(task => ({
+      key: `task-${task.id}`,
+      title: task.display_name || "Deployment step",
+      subtitle: getTaskSubtitle(task),
+      status: task.status,
+      statusLabel: task.status === (task.display_status || task.status) ? task.status_label : getStatusLabel(task.status),
+      detail: getTaskDetail(task),
+      taskName: task.task_name,
+      errorMessage: task.error_message || ""
+    }));
+  }
+
   const checksComplete = data.tasks.length > 0 && !data.workflow?.has_in_progress && !data.workflow?.blocked;
-  let deployStatus = "pending";
+  let deployStatus = data.deployment?.step_status || "pending";
   let deployDetail = "Waiting for the earlier checks to finish.";
 
   if (data.workflow?.blocked) {
     deployStatus = "failed";
-    deployDetail = "Deployment cannot continue until the failed required check is resolved.";
+    deployDetail = data.deployment?.message || "Deployment cannot continue until the failed required check is resolved.";
   } else if (checksComplete) {
-    deployStatus = data.deployment?.status || "pending";
+    deployStatus = data.deployment?.step_status || data.deployment?.status || "pending";
     deployDetail = data.deployment?.message || "Waiting to start deployment.";
   }
 
@@ -311,6 +323,7 @@ function getStepItems(data) {
     title: task.display_name || "Deployment step",
     subtitle: getTaskSubtitle(task),
     status: task.status,
+    statusLabel: task.status === (task.display_status || task.status) ? task.status_label : getStatusLabel(task.status),
     detail: getTaskDetail(task),
     taskName: task.task_name,
     errorMessage: task.error_message || ""
@@ -321,6 +334,7 @@ function getStepItems(data) {
     title: "Deploy app",
     subtitle: "Final step",
     status: deployStatus,
+    statusLabel: getStatusLabel(deployStatus),
     detail: deployDetail
   });
 
@@ -563,18 +577,20 @@ function renderSteps(steps) {
             <div class="small text-muted">${escapeHtml(step.subtitle)}</div>
             ${getTaskDetailMarkup(step)}
           </div>
-          <div class="small text-muted text-nowrap">${getStatusLabel(step.status)}</div>
+          <div class="small text-muted text-nowrap">${escapeHtml(step.statusLabel || getStatusLabel(step.status))}</div>
         </div>
       `;
     })
     .join("");
 }
 
-function updateSummary(steps) {
+function updateSummary(steps, data) {
   const completed = steps.filter(step => step.status === "success" || step.status === "failed" || step.status === "skipped").length;
   const total = steps.length || 1;
   const progressPercent = Math.round((completed / total) * 100);
-  const hasFailedStep = steps.some(step => step.status === "failed");
+  const headerPillClass = data?.header?.pill_class || "";
+  const hasFailedOutcome = headerPillClass.includes("danger") || steps.some(step => step.status === "failed");
+  const hasSuccessOutcome = headerPillClass.includes("success");
 
   const progressLabel = document.getElementById("progress-label");
   const progressBar = document.getElementById("progress-bar");
@@ -584,9 +600,9 @@ function updateSummary(steps) {
   if (progressBar) {
     progressBar.style.width = `${progressPercent}%`;
     progressBar.setAttribute("aria-valuenow", `${progressPercent}`);
-    if (hasFailedStep) {
+    if (hasFailedOutcome) {
       progressBar.className = "progress-bar bg-danger";
-    } else if (progressPercent === 100) {
+    } else if (hasSuccessOutcome || progressPercent === 100) {
       progressBar.className = "progress-bar bg-success";
     } else {
       progressBar.className = "progress-bar progress-bar-striped progress-bar-animated";
@@ -600,40 +616,13 @@ function updateHeader(data, steps) {
   const title = document.getElementById("progress-title");
   const message = document.getElementById("progress-message");
   const nextStep = document.getElementById("progress-next-step");
-
-  const total = steps.length || 1;
-  const completed = steps.filter(step => step.status === "success" || step.status === "skipped").length;
-  const failed = steps.filter(step => step.status === "failed").length;
-
-  let pillClass = "text-bg-secondary";
-  let pillText = "Waiting";
-  let titleText = "Waiting for deployment checks";
-  let messageText = "We have not recorded any deployment work yet.";
-  let inlineText = `${completed} of ${total} steps completed`;
-  let nextStepText = "Keep this page open while the deployment starts.";
-
-  if (data.deployment?.status === "success") {
-    pillClass = "text-bg-success";
-    pillText = "Ready";
-    titleText = "Your app is ready";
-    messageText = "All checks passed and the app finished deploying. Opening the app details page in a few seconds.";
-    inlineText = `${completed} of ${total} steps completed`;
-    nextStepText = "Redirecting to the app details page in about 5 seconds.";
-  } else if (data.workflow?.blocked || data.deployment?.status === "failed") {
-    pillClass = "text-bg-danger";
-    pillText = "Attention needed";
-    titleText = "We could not finish preparing your app";
-    messageText = data.deployment?.message || "A required step failed during deployment.";
-    inlineText = failed === 1 ? "1 step needs attention" : `${failed} steps need attention`;
-    nextStepText = "Open deployment summary or go back to form.";
-  } else if (data.deployment?.status === "running" || data.workflow?.has_in_progress || data.workflow?.ready_for_deploy) {
-    pillClass = "text-bg-info";
-    pillText = "Checking";
-    titleText = "We are preparing your app";
-    messageText = "Each deployment check will appear here as it finishes, and then we will deploy the app.";
-    inlineText = `${completed} of ${total} steps completed`;
-    nextStepText = "You will be redirected automatically once deployment finishes.";
-  }
+  const header = data.header || {};
+  const pillClass = header.pill_class || "text-bg-secondary";
+  const pillText = header.pill_text || "Waiting";
+  const titleText = header.title || "Waiting for deployment checks";
+  const messageText = header.message || "We have not recorded any deployment work yet.";
+  const inlineText = header.inline_text || "0 of 1 steps completed";
+  const nextStepText = header.next_step_text || "Keep this page open while the deployment starts.";
 
   if (pill) {
     pill.className = `badge ${pillClass}`;
@@ -711,7 +700,7 @@ function rerenderFromLatestData() {
 function renderProgress(data) {
   const steps = getStepItems(data);
   renderSteps(steps);
-  updateSummary(steps);
+  updateSummary(steps, data);
   updateHeader(data, steps);
 }
 

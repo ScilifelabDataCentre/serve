@@ -314,6 +314,24 @@ def get_URI(instance):
 
 
 @transaction.atomic
+def _get_original_instance_for_form_update(form, app_id=None):
+    if app_id is None:
+        return None
+
+    instance = getattr(form, "instance", None)
+    if instance is None:
+        return None
+
+    model_class = instance.__class__
+    lookup_pk = getattr(instance, "pk", None) or app_id
+
+    try:
+        return model_class.objects.get(pk=lookup_pk)
+    except model_class.DoesNotExist:
+        return None
+
+
+@transaction.atomic
 def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool = False) -> bool:
     """
     Determine whether saving the form should enqueue a deployment run.
@@ -331,9 +349,8 @@ def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool 
     if instance is None or not getattr(instance, "pk", None):
         return True
 
-    try:
-        original_instance = instance.__class__.objects.get(pk=instance.pk)
-    except instance.__class__.DoesNotExist:
+    original_instance = _get_original_instance_for_form_update(form, app_id=app_id)
+    if original_instance is None:
         return True
 
     logger.debug("Checking whether an existing app save should trigger deployment. changed_data=%s", form.changed_data)
@@ -341,35 +358,25 @@ def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool 
     cleaned_data = getattr(form, "cleaned_data", {}) or {}
     form_fields = getattr(form, "fields", {})
 
-    def _normalized_subdomain(value):
-        if hasattr(value, "subdomain"):
-            return value.subdomain
-        return str(value or "")
-
-    def _normalized_model_pk(value):
-        if value is None:
-            return None
-        if hasattr(value, "all"):
-            return tuple(sorted(obj.pk for obj in value.all()))
-        if isinstance(value, (list, tuple, set)):
-            return tuple(sorted(getattr(obj, "pk", obj) for obj in value))
-        return getattr(value, "pk", value)
-
     if "subdomain" in form_fields:
-        requested_subdomain = _normalized_subdomain(cleaned_data.get("subdomain"))
+        requested_subdomain_value = cleaned_data.get("subdomain")
+        requested_subdomain = getattr(requested_subdomain_value, "subdomain", requested_subdomain_value) or ""
         current_subdomain = getattr(getattr(original_instance, "subdomain", None), "subdomain", "")
         if requested_subdomain != current_subdomain:
             return True
 
     if "mount_path" in form_fields:
         requested_mount_path = cleaned_data.get("mount_path")
-        requested_mount_path_pk = _normalized_model_pk(requested_mount_path)
+        requested_mount_path_pk = getattr(requested_mount_path, "pk", requested_mount_path)
         current_mount_path_pk = getattr(original_instance, "mount_path_id", None)
         if requested_mount_path_pk != current_mount_path_pk:
             return True
     elif "volume" in form_fields:
-        requested_volume = _normalized_model_pk(cleaned_data.get("volume"))
-        current_volume = _normalized_model_pk(getattr(original_instance, "volume", None))
+        requested_volume_value = cleaned_data.get("volume")
+        requested_volume = getattr(requested_volume_value, "pk", requested_volume_value)
+        current_volume = getattr(
+            getattr(original_instance, "volume", None), "pk", getattr(original_instance, "volume", None)
+        )
         if requested_volume != current_volume:
             return True
 
@@ -377,15 +384,19 @@ def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool 
         if field not in form_fields:
             continue
 
-        requested_value = _normalized_model_pk(cleaned_data.get(field))
-        current_value = _normalized_model_pk(getattr(original_instance, field, None))
+        requested_value_raw = cleaned_data.get(field)
+        requested_value = getattr(requested_value_raw, "pk", requested_value_raw)
+        current_value_raw = getattr(original_instance, field, None)
+        current_value = getattr(current_value_raw, "pk", current_value_raw)
         if requested_value != current_value:
             return True
 
     return False
 
 
-def create_instance_from_form(form, project, app_slug, app_id=None, force_redeploy: bool = False) -> int:
+def create_instance_from_form(
+    form, project, app_slug, app_id=None, force_redeploy: bool = False, should_deploy: bool | None = None
+) -> int:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
     and the updating of existing ones based on the presence of an app_id.
@@ -397,6 +408,7 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     - app_id: Optional ID of an existing instance to update. If None, a new instance is created.
     - force_redeploy: Forces a re-deploy even if no tracked fields changed. Useful for actions that
       mutate underlying infrastructure without altering standard form fields.
+    - should_deploy: Optional precomputed deployment decision to avoid re-evaluating the same form twice.
 
     Returns:
     - The newly created or updated instance.
@@ -404,8 +416,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     Raises:
     - ValueError: If the form does not have a 'subdomain' or if the specified app cannot be found.
     """
-    from .tasks import run_background_tasks
-
     assert form is not None, "This function requires a form object"
     assert project is not None, "This function requires a project object"
 
@@ -420,7 +430,11 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         project.pk,
     )
 
-    do_deploy = should_trigger_deployment_from_form(form, app_id=app_id, force_redeploy=force_redeploy)
+    do_deploy = (
+        should_deploy
+        if should_deploy is not None
+        else should_trigger_deployment_from_form(form, app_id=app_id, force_redeploy=force_redeploy)
+    )
     if new_app:
         user_action = "Creating"
     else:
@@ -431,12 +445,8 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     # For existing apps, detect if access is changing from non-public to public
     access_changed_to_public = False
     if not new_app:
-        # Get the original instance to compare access levels
-        from .app_registry import APP_REGISTRY
-
-        app_model = APP_REGISTRY.get_orm_model(app_slug)
-        original_instance = app_model.objects.get(pk=app_id)
-        original_access = getattr(original_instance, "access", None)
+        original_instance = _get_original_instance_for_form_update(form, app_id=app_id)
+        original_access = getattr(original_instance, "access", None) if original_instance else None
         new_access = form.cleaned_data.get("access")
 
         # Check if access changed from non-public to public
@@ -463,10 +473,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     subdomain, created = Subdomain.objects.get_or_create(
         subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user
     )
-    assert subdomain is not None
-    assert subdomain.subdomain == subdomain_name
-
-    subdomain = Subdomain.objects.get(subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user)
     assert subdomain is not None
     assert subdomain.subdomain == subdomain_name
     logger.info(

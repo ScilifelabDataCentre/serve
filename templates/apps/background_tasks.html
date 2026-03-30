@@ -141,8 +141,8 @@
                         <span class="badge bg-secondary">{{ task.task_type }}</span>
                       </td>
                       <td>
-                        <span class="badge {% if task.was_skipped %}bg-secondary{% else %}bg-{{ task.get_status_display_class }}{% endif %}" id="task-status-{{ task.id }}">
-                          {% if task.was_skipped %}Skipped{% else %}{{ task.get_status_display }}{% endif %}
+                        <span class="badge bg-{{ task.status_class }}" id="task-status-{{ task.id }}">
+                          {{ task.status_label }}
                         </span>
                       </td>
                       <td>
@@ -232,7 +232,7 @@
 </div>
 
 <script>
-const statusApiUrl = "{% url 'apps:background_tasks_status' project.slug app_slug instance.pk %}";
+const statusApiUrl = "{{ status_api_url|escapejs }}";
 const retryUrl = "{% url 'apps:retry_background_task' project.slug app_slug instance.pk 0 %}".replace('/0/', '/{task_id}/');
 const csrftoken = getCookieValue('csrftoken');
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -254,10 +254,10 @@ function stopAutoRefresh() {
 function renderProgress(data) {
   updateTasksDisplay(data);
   updateSummary(data.summary);
-  const latestRunTasks = getLatestRunTasks(data.tasks || []);
-  updateExecutionGraph({ tasks: latestRunTasks });
+  const tasks = data.tasks || [];
+  updateExecutionGraph({ tasks });
   updateWorkflowStatus(data.workflow, data.deployment);
-  updateStageSummary(latestRunTasks);
+  updateStageSummary(tasks);
 }
 
 function refreshTasks() {
@@ -319,13 +319,13 @@ function getDisplayTaskStatus(task) {
 
 function updateTasksDisplay(data) {
   data.tasks.forEach(task => {
-    const displayStatus = getDisplayTaskStatus(task);
+    const displayStatus = task.display_status || getDisplayTaskStatus(task);
 
     // Update status badge
     const statusBadge = document.getElementById(`task-status-${task.id}`);
     if (statusBadge) {
-      statusBadge.className = `badge bg-${getStatusClass(displayStatus)}`;
-      statusBadge.textContent = getStatusLabel(displayStatus);
+      statusBadge.className = `badge bg-${task.status_class || getStatusClass(displayStatus)}`;
+      statusBadge.textContent = task.status_label || getStatusLabel(displayStatus);
     }
 
     // Update duration
@@ -436,39 +436,6 @@ function deriveWorkflowFromTasks(tasks) {
     has_failed_critical: hasFailedCritical,
     has_in_progress: hasInProgress
   };
-}
-
-function getLatestRunTasks(tasks) {
-  if (!tasks || tasks.length === 0) {
-    return [];
-  }
-
-  // We currently don't persist a run-id, so approximate "last run" by taking
-  // the latest row per task signature (order + name).
-  const latestBySignature = new Map();
-  tasks.forEach(task => {
-    const signature = `${task.execution_order}::${task.task_name}`;
-    const current = latestBySignature.get(signature);
-    if (!current) {
-      latestBySignature.set(signature, task);
-      return;
-    }
-
-    const currentTs = Date.parse(current.created_at || '') || 0;
-    const candidateTs = Date.parse(task.created_at || '') || 0;
-    if (candidateTs >= currentTs) {
-      latestBySignature.set(signature, task);
-    }
-  });
-
-  return Array.from(latestBySignature.values()).sort((a, b) => {
-    if (a.execution_order !== b.execution_order) {
-      return a.execution_order - b.execution_order;
-    }
-    const aName = a.task_name || '';
-    const bName = b.task_name || '';
-    return aName.localeCompare(bName);
-  });
 }
 
 function buildStageEdges(tasks) {
@@ -614,11 +581,11 @@ function updateExecutionGraph(data) {
 }
 
 function createTaskNode(task) {
-  const displayStatus = getDisplayTaskStatus(task);
+  const displayStatus = task.display_status || getDisplayTaskStatus(task);
   const node = document.createElement('button');
   node.type = 'button';
   node.id = `graph-node-task-${task.id}`;
-  node.className = `btn text-start border rounded p-2 bg-${getStatusClass(displayStatus)} text-white`;
+  node.className = `btn text-start border rounded p-2 bg-${task.status_class || getStatusClass(displayStatus)} text-white`;
   node.style.minHeight = '64px';
   node.style.whiteSpace = 'normal';
   node.dataset.taskId = task.id;
@@ -635,7 +602,7 @@ function createTaskNode(task) {
   node.appendChild(title);
 
   const subtitle = document.createElement('small');
-  subtitle.textContent = `${getStatusLabel(displayStatus)} • ${task.task_type}`;
+  subtitle.textContent = `${task.status_label || getStatusLabel(displayStatus)} • ${task.task_type}`;
   node.appendChild(subtitle);
 
   node.addEventListener('click', () => openTaskDetails(task.id));
