@@ -36,8 +36,10 @@ def test_known_tasks_apply_to_non_custom_app_types():
     dash_tasks = TASK_REGISTRY.get_tasks_for_app("dashapp")
 
     assert "validate_docker_image" in [task.task_name for task in streamlit_tasks]
+    assert "validate_image_public" in [task.task_name for task in streamlit_tasks]
     assert "doi_provisioning" in [task.task_name for task in streamlit_tasks]
     assert "validate_docker_image" in [task.task_name for task in dash_tasks]
+    assert "validate_image_public" in [task.task_name for task in dash_tasks]
     assert "doi_provisioning" in [task.task_name for task in dash_tasks]
 
 
@@ -46,6 +48,7 @@ def test_doi_provisioning_is_not_registered_for_jupyter_lab():
     jupyter_tasks = TASK_REGISTRY.get_tasks_for_app("jupyter-lab")
 
     assert "validate_docker_image" in [task.task_name for task in jupyter_tasks]
+    assert "validate_image_public" in [task.task_name for task in jupyter_tasks]
     assert "doi_provisioning" not in [task.task_name for task in jupyter_tasks]
 
 
@@ -636,7 +639,7 @@ def test_run_background_tasks_uses_known_tasks_for_streamlit(immediate_on_commit
     assert result["success"] is True
 
     rows = BackgroundTask.objects.filter(app_instance=app_instance).order_by("execution_order", "task_name")
-    assert [r.task_name for r in rows] == ["validate_docker_image", "doi_provisioning"]
+    assert [r.task_name for r in rows] == ["validate_image_public", "validate_docker_image", "doi_provisioning"]
     assert all(r.status == "pending" for r in rows)
     assert called["apply_async"] == 1
 
@@ -664,6 +667,6 @@ def test_run_background_tasks_uses_only_validation_for_jupyter_lab(immediate_on_
     assert result["success"] is True
 
     rows = BackgroundTask.objects.filter(app_instance=app_instance).order_by("execution_order", "task_name")
-    assert [r.task_name for r in rows] == ["validate_docker_image"]
+    assert [r.task_name for r in rows] == ["validate_image_public", "validate_docker_image"]
     assert all(r.status == "pending" for r in rows)
     assert called["apply_async"] == 1

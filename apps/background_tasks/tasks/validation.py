@@ -14,6 +14,18 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 
+IMAGE_COMPATIBILITY_APP_TYPES = [
+    "customapp",
+    "dashapp",
+    "jupyter-lab",
+    "rstudio",
+    "shinyproxyapp",
+    "shinyapp",
+    "gradio",
+    "streamlit",
+]
+
+
 def _validation_result_no_image(app_instance) -> Dict[str, Any]:
     """Shared 'no image to validate' result for container image validators."""
     return {
@@ -44,7 +56,7 @@ def _validation_result_skipped_unsupported_registry(ctx: ContainerImageContext) 
     name="validate_docker_image",
     is_critical=True,
     execution_order=1,
-    app_types=["customapp", "dashapp", "jupyter-lab", "rstudio", "shinyproxyapp", "shinyapp", "gradio", "streamlit"],
+    app_types=IMAGE_COMPATIBILITY_APP_TYPES,
 )
 class DockerImageValidator(BaseBackgroundTask):
     """
@@ -119,7 +131,7 @@ class DockerImageValidator(BaseBackgroundTask):
     name="validate_image_public",
     is_critical=True,
     execution_order=0,
-    app_types=["customapp", "jupyter", "rstudio"],
+    app_types=IMAGE_COMPATIBILITY_APP_TYPES,
 )
 class ImagePublicValidator(BaseBackgroundTask):
     """
