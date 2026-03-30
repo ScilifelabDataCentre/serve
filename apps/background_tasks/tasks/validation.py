@@ -7,8 +7,8 @@ These tasks validate various aspects of app instances before deployment.
 from typing import Any, Dict
 
 import requests
-from django.forms.models import model_to_dict
 
+from apps.app_registry import APP_REGISTRY
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
 from apps.background_tasks.utils import resolve_app_image
@@ -29,6 +29,22 @@ SOURCE_CODE_URL_APP_TYPES = [
     "streamlit",
     "tissuumaps",
 ]
+
+
+def _concrete_app_instance_for_social_fields(app_instance):
+    """
+    BackgroundTask.app_instance points at BaseAppInstance; subclass fields (e.g.
+    source_code_url from SocialMixin) live on the child table. Re-fetch by concrete
+    model so those attributes are loaded.
+    """
+    slug = getattr(app_instance.app, "slug", None) or ""
+    model = APP_REGISTRY.get_orm_model(slug)
+    if model is None:
+        return app_instance
+    try:
+        return model.objects.get(pk=app_instance.pk)
+    except model.DoesNotExist:
+        return app_instance
 
 
 def _validation_result_no_image(app_instance) -> Dict[str, Any]:
@@ -220,11 +236,9 @@ class SourceCodeUrlValidator(BaseBackgroundTask):
     def execute(self, app_instance, **kwargs) -> dict[str, Any]:
         from django.conf import settings
 
-        app_data = model_to_dict(app_instance, exclude=["_state"])
-        print(app_data)
-
-        url = app_data.get("source_code_url", None)
-        if not url or not url.strip():
+        concrete = _concrete_app_instance_for_social_fields(app_instance)
+        url = getattr(concrete, "source_code_url", None)
+        if not url or not str(url).strip():
             return {
                 "valid": True,
                 "message": "No source_code_url provided; skip validation",
