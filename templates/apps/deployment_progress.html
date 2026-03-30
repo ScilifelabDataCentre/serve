@@ -134,6 +134,10 @@ function getTaskSubtitle(task) {
   return task.is_critical ? "Required check" : "Optional check";
 }
 
+function getVisibleTaskStatus(task) {
+  return task.display_status || (task.was_skipped ? "skipped" : task.status);
+}
+
 function isTerminalTaskStatus(status) {
   return status === "success" || status === "failed" || status === "skipped";
 }
@@ -215,7 +219,7 @@ function getDisplayData(data) {
   const rawTasks = data.tasks || [];
 
   const displayTasks = rawTasks.map(task => {
-    const visibleTaskStatus = task.was_skipped ? "skipped" : task.status;
+    const visibleTaskStatus = getVisibleTaskStatus(task);
     const currentStatus = displayedTaskStatuses.get(task.id);
 
     if (!isTerminalTaskStatus(visibleTaskStatus)) {
@@ -250,7 +254,7 @@ function getDisplayData(data) {
   });
 
   const displayWorkflow = data.workflow || {};
-  const checksComplete = displayTasks.length > 0 && !displayWorkflow.has_in_progress && !displayWorkflow.blocked;
+  const checksComplete = !displayWorkflow.has_in_progress && !displayWorkflow.blocked;
   const rawDeploymentStatus = data.deployment?.status || "pending";
   const normalizedDeploymentStatus = normalizeDeploymentStatus(rawDeploymentStatus);
   let deploymentStatus = displayedDeploymentStatus;
@@ -299,14 +303,14 @@ function getStepItems(data) {
       title: task.display_name || "Deployment step",
       subtitle: getTaskSubtitle(task),
       status: task.status,
-      statusLabel: task.status === (task.display_status || task.status) ? task.status_label : getStatusLabel(task.status),
+      statusLabel: task.status === getVisibleTaskStatus(task) ? task.status_label : getStatusLabel(task.status),
       detail: getTaskDetail(task),
       taskName: task.task_name,
       errorMessage: task.error_message || ""
     }));
   }
 
-  const checksComplete = data.tasks.length > 0 && !data.workflow?.has_in_progress && !data.workflow?.blocked;
+  const checksComplete = !data.workflow?.has_in_progress && !data.workflow?.blocked;
   let deployStatus = data.deployment?.step_status || "pending";
   let deployDetail = "Waiting for the earlier checks to finish.";
 
@@ -323,7 +327,7 @@ function getStepItems(data) {
     title: task.display_name || "Deployment step",
     subtitle: getTaskSubtitle(task),
     status: task.status,
-    statusLabel: task.status === (task.display_status || task.status) ? task.status_label : getStatusLabel(task.status),
+    statusLabel: task.status === getVisibleTaskStatus(task) ? task.status_label : getStatusLabel(task.status),
     detail: getTaskDetail(task),
     taskName: task.task_name,
     errorMessage: task.error_message || ""
