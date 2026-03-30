@@ -331,6 +331,26 @@ def _get_original_instance_for_form_update(form, app_id=None):
         return None
 
 
+def _normalize_related_field_value(value):
+    """
+    Normalize FK and M2M form/model values so they can be compared safely.
+
+    """
+    if value is None:
+        return None
+
+    if hasattr(value, "values_list"):
+        return tuple(sorted(value.values_list("pk", flat=True)))
+
+    if hasattr(value, "all") and callable(value.all):
+        return tuple(sorted(value.all().values_list("pk", flat=True)))
+
+    if isinstance(value, (list, tuple, set)):
+        return tuple(sorted(getattr(item, "pk", item) for item in value))
+
+    return getattr(value, "pk", value)
+
+
 @transaction.atomic
 def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool = False) -> bool:
     """
@@ -373,10 +393,8 @@ def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool 
             return True
     elif "volume" in form_fields:
         requested_volume_value = cleaned_data.get("volume")
-        requested_volume = getattr(requested_volume_value, "pk", requested_volume_value)
-        current_volume = getattr(
-            getattr(original_instance, "volume", None), "pk", getattr(original_instance, "volume", None)
-        )
+        requested_volume = _normalize_related_field_value(requested_volume_value)
+        current_volume = _normalize_related_field_value(getattr(original_instance, "volume", None))
         if requested_volume != current_volume:
             return True
 
