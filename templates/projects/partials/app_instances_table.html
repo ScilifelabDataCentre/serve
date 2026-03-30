@@ -125,6 +125,7 @@
                           Secrets
                         </a>
                       {% endif %}
+                      {% if user.is_superuser %}
                         {% if instance.app.user_can_delete %}
 
                         <a class="dropdown-item bg-danger text-white confirm-delete default"
@@ -139,6 +140,24 @@
                             Delete
                         </a>
                         {% endif %}
+                      {% else %}
+                        {% if instance.access != 'public' and not instance.app_doi|default:False %}
+                          {% if instance.app.user_can_delete %}
+
+                          <a class="dropdown-item bg-danger text-white confirm-delete default"
+                              href="{% url 'apps:delete' project.slug instance.app.slug instance.pk %}?from=overview">
+                              <i class="bi bi-trash me-1"></i>
+                              Delete
+                          </a>
+                          {% else %}
+
+                          <a class="dropdown-item bg-danger text-white confirm-delete default disabled">
+                              <i class="bi bi-trash me-1"></i>
+                              Delete
+                          </a>
+                          {% endif %}
+                        {% endif %}
+                      {% endif %}
                     </div>
                 </div>
             </td>

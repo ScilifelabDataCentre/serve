@@ -97,9 +97,14 @@
                 <div id="owner_name">
                     {{ schema_dict.hasPart.0.author.name }}
                     {% if app.owner.userprofile and app.owner.userprofile.orcid_id %}
-                        <a href="https://orcid.org/{{ app.owner.userprofile.orcid_id }}" target="_blank" rel="noopener" style="text-decoration: none;">
-                        <img src="{% static 'images/orcid_16x16.png' %}" alt="ORCID" width="16" height="16" class="me-1">
-                        <span style="color: #A6CE39; font-size: 0.85em;">{{ app.owner.userprofile.orcid_id }}</span>
+                        <a href="https://orcid.org/{{ app.owner.userprofile.orcid_id }}"
+                           target="_blank"
+                           rel="noopener"
+                           class="app-card-orcid-link ms-2">
+                            <span class="app-card-orcid-badge app-card-orcid-badge-sm me-1">
+                                <img src="{% static 'images/orcid-vector.svg' %}" alt="ORCID" width="24" height="24" class="app-card-orcid-icon">
+                            </span>
+                            <span class="orcid-id-link">{{ app.owner.userprofile.orcid_id }}</span>
                         </a>
                     {% endif %}
                 </div>

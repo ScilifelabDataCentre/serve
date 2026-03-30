@@ -19,10 +19,43 @@
       Settings
     </a>
     {% if user.is_authenticated and user.is_staff %}
-      <a href="{% url 'admin:projects_project_change' project.id %}" class="btn btn-primary ms-2"
-         data-cy="admin-project" target="_blank">
-        🐳 Admin view
-      </a>
+      <div class="dropdown ms-2">
+        <a
+          href="#"
+          class="btn btn-primary serve-admin-dropdown-trigger"
+          role="button"
+          id="projectAdminMenu"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+          data-cy="admin-project-menu"
+        >
+          <span class="me-1" aria-hidden="true">🐳</span>
+          <span>Admin View</span>
+          <i class="bi bi-caret-down-fill small ms-2" aria-hidden="true"></i>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="projectAdminMenu">
+          <li>
+            <a
+              class="dropdown-item"
+              href="{% url 'admin:projects_project_change' project.id %}"
+              data-cy="admin-project"
+              target="_blank"
+            >
+              Project admin page
+            </a>
+          </li>
+          <li>
+            <a
+              class="dropdown-item"
+              href="{% url 'apps:admin_background_tasks' project.slug %}"
+              data-cy="admin-background-tasks"
+              target="_blank"
+            >
+              Background tasks
+            </a>
+          </li>
+        </ul>
+      </div>
     {% endif %}
   </div>
 </div>

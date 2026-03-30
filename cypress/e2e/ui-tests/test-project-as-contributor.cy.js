@@ -32,9 +32,11 @@ describe("Test project contributor user functionality", () => {
             cy.log("Populating test data via Django endpoint");
             cy.fixture('users.json').then(function (data) {
                 TEST_CONTRIBUTOR_USER_DATA = data.contributor;
+                cy.cleanupTestUser(TEST_CONTRIBUTOR_USER_DATA);
                 cy.populateTestUser(TEST_CONTRIBUTOR_USER_DATA);
                 cy.populateTestProject(TEST_CONTRIBUTOR_USER_DATA, TEST_CONTRIBUTOR_PROJECT_DATA);
                 TEST_COLLABORATOR_USER_DATA = data.contributor_collaborator;
+                cy.cleanupTestUser(TEST_COLLABORATOR_USER_DATA);
                 cy.populateTestUser(TEST_COLLABORATOR_USER_DATA);
                 cy.populateTestProject(TEST_COLLABORATOR_USER_DATA, TEST_COLLABORATOR_PROJECT_DATA);
             });
@@ -230,14 +232,14 @@ describe("Test project contributor user functionality", () => {
                     )
                 })
 
-        // Delete the created project
-        cy.visit("/projects/")
-        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
-            .then((href) => {
-                cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
-                    cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
-               })
+        // Clean up the created project directly because contributor users can no longer
+        // delete projects that still contain active apps.
+        cy.fixture('users.json').then(function (data) {
+            cy.cleanupTestProject(data.contributor, {
+                project_name: project_name,
+                project_description: "",
             })
+        })
     })
 
     it("limit on number of projects per user is enforced", () => {
@@ -429,16 +431,15 @@ describe("Test project contributor user functionality", () => {
             cy.loginViaApi(users.contributor.email, users.contributor.password)
         })
 
-        // Delete the created project
-        cy.logf("Now deleting the created project", Cypress.currentTest)
-        cy.visit("/projects/")
-        cy.contains('.card-title', project_name_access).parents('.card-body').siblings('.card-footer').find('.confirm-delete').click()
-            .then((href) => {
-                cy.get("h1#modalConfirmDeleteLabel").then(function($elem) {
-                    cy.get('div#modalConfirmDeleteFooter').find('button').contains('Delete').click()
-                    cy.contains(project_name_access).should('not.exist') // confirm the project has been deleted
-               })
+        // Clean up the created project directly because contributor users can no longer
+        // delete projects that still contain active apps.
+        cy.logf("Now cleaning up the created project", Cypress.currentTest)
+        cy.fixture('users.json').then(function (data) {
+            cy.cleanupTestProject(data.contributor, {
+                project_name: project_name_access,
+                project_description: "",
             })
+        })
     })
 
     it("can create a file management instance", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {

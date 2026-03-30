@@ -101,6 +101,10 @@
     opacity: 0.5;
 }
 
+.serve-admin-dropdown-trigger {
+    padding-bottom: 10px;
+}
+
 /* forms */
 
 .form-control {
@@ -280,23 +284,107 @@ a.icon-external:hover::after, a:focus::after, a.active::after {
     display: none;
 }
 
-.description-app button {
-    display: inline!important;
-    background-color: transparent!important;
-    border: 0!important;
-    padding:0!important;
-    font-family: inherit!important;
-    color: var(--serve-teal)!important;
+.description-toggle {
+    display: inline-block !important;
+    margin-left: 0.5rem;
+    background-color: var(--serve-teal-075) !important;
+    border-color: var(--serve-teal-075) !important;
+    color: var(--serve-teal) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600;
+    line-height: 1.1;
+    cursor: pointer !important;
+    vertical-align: text-bottom;
+    text-decoration: none !important;
+    box-shadow: none !important;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
-.description-toggle {
-    background-color: #c5ddde !important;
-    cursor: pointer!important;
-    vertical-align: text-bottom;
-    color: #2b2a2a !important;
-}
 .description-toggle:hover {
-    color: #2b2a2a !important
+    background-color: var(--serve-teal-050) !important;
+    color: var(--serve-teal) !important;
+    transform: translateY(-1px);
+    text-decoration: none !important;
+}
+
+.description-toggle:hover::after,
+.description-toggle:focus::after,
+.description-toggle.active::after {
+    width: 0 !important;
+}
+
+.description-toggle:focus-visible {
+    outline: 2px solid var(--serve-teal);
+    outline-offset: 2px;
+}
+
+.app-card-orcid-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none !important;
+    line-height: 1;
+}
+
+a.app-card-orcid-link:hover::after,
+a.app-card-orcid-link:focus::after,
+a.app-card-orcid-link.active::after {
+    width: 0;
+}
+
+.app-card-orcid-link:hover,
+.app-card-orcid-link:focus,
+.app-card-orcid-link:focus-visible {
+    text-decoration: none !important;
+}
+
+.app-card-orcid-link:hover img,
+.app-card-orcid-link:focus img,
+.app-card-orcid-link:focus-visible img {
+    text-decoration: none !important;
+}
+
+.app-card-orcid-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ffffff 0%, var(--serve-lime-025) 100%);
+    border: 1px solid rgba(166, 206, 57, 0.55);
+    box-shadow: 0 0.2rem 0.55rem rgba(63, 63, 63, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-card-orcid-badge-sm {
+    width: 1.6rem;
+    height: 1.6rem;
+}
+
+.app-card-orcid-link:hover .app-card-orcid-badge,
+.app-card-orcid-link:focus-visible .app-card-orcid-badge {
+    transform: translateY(-1px);
+    box-shadow: 0 0.5rem 1rem rgba(63, 63, 63, 0.12);
+}
+
+.app-card-orcid-icon {
+    width: 1rem;
+    height: 1rem;
+    display: block;
+}
+
+.orcid-id-link {
+    color: var(--serve-lime) !important;
+    text-decoration: none !important;
+    font-size: 0.875rem;
+}
+
+.orcid-id-link:hover,
+.orcid-id-link:focus,
+.orcid-id-link:focus-visible {
+    color: var(--serve-lime) !important;
+    text-decoration: none !important;
 }
 
 /* collections */

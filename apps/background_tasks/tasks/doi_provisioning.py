@@ -1,9 +1,8 @@
 """
-Optional DOI provisioning background task.
+DOI provisioning background task.
 
-When the doi_minting_using_invenio waffle switch is on, this task sends app
-metadata to Invenio and mints a DOI when the app is eligible (e.g. public
-access, new image version). The task is optional (is_critical=False) so
+This task sends app metadata to Invenio and mints a DOI when the app is eligible
+(e.g. public access, new image version). The task is optional (is_critical=False) so
 deployment is not blocked if DOI minting fails.
 """
 
@@ -12,16 +11,13 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import waffle  # type: ignore
-
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
 from apps.background_tasks.utils import resolve_app_image
+from doi_minting.services.schemas import Creator, Subject
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
-
-DOI_MINTING_SWITCH = "doi_minting_using_invenio"
 
 
 def _build_additional_metadata(
@@ -29,6 +25,8 @@ def _build_additional_metadata(
     *,
     language: str | None = None,
     funding: list[dict[str, Any]] | str | None = None,
+    creators: list[Creator] | None = None,
+    subjects: list[Subject] | None = None,
 ) -> dict[str, Any] | None:
     """
     Build additional_metadata from app instance for Invenio (language, subjects/tags).
@@ -55,14 +53,25 @@ def _build_additional_metadata(
     if isinstance(funding_entries, list):
         additional_metadata["funding"] = funding_entries
 
-    # Tags / subjects (from SocialMixin; tagulous TagField)
-    if hasattr(app_instance, "tags") and app_instance.tags:
+    # Creators from form data
+    if creators and isinstance(creators, list):
+        additional_metadata["creators"] = creators
+        logger.debug(f"DOI provisioning: Added {len(creators)} creators from form data")
+
+    # Subjects/tags from form data (prefer form data over model instance tags)
+    if subjects and isinstance(subjects, list):
+        # Form-processed subjects/tags take priority
+        additional_metadata["subjects"] = subjects
+        logger.debug(f"DOI provisioning: Added {len(subjects)} subjects from form data")
+    elif hasattr(app_instance, "tags") and app_instance.tags:
+        # Fallback to model instance tags if no form data
         try:
             tag_names = [t.name for t in app_instance.tags.all()]
             if tag_names:
                 additional_metadata["subjects"] = tag_names
+                logger.debug(f"DOI provisioning: Added {len(tag_names)} subjects from model instance")
         except Exception:
-            pass
+            tag_names = None
 
     return additional_metadata if additional_metadata else None
 
@@ -71,16 +80,14 @@ def _build_additional_metadata(
     name="doi_provisioning",
     is_critical=False,
     execution_order=2,
-    app_types=["customapp"],
+    app_types=["customapp", "dashapp", "shinyproxyapp", "shinyapp", "gradio", "streamlit", "tissuumaps", "depictio"],
 )
 class DOIProvisioningTask(BaseBackgroundTask):
     """
-    Optional task: provision DOI via Invenio when the app is eligible.
+    Task: provision DOI via Invenio when the app is eligible.
 
-    Respects the doi_minting_using_invenio waffle switch. When the switch is off,
-    the task exits successfully without calling Invenio (feature flag still controls
-    behaviour). When on, calls the same Invenio DOI minting flow as the inline
-    path in helpers.
+    DOI minting is now always enabled. Calls the Invenio DOI minting flow
+    as used in the inline path in helpers.
     """
 
     max_retries = 2
@@ -88,13 +95,6 @@ class DOIProvisioningTask(BaseBackgroundTask):
     timeout_seconds = 300
 
     def execute(self, app_instance, **kwargs) -> dict[str, Any]:
-        if not waffle.switch_is_active(DOI_MINTING_SWITCH):
-            logger.debug(
-                "DOI provisioning skipped: waffle switch '%s' is off",
-                DOI_MINTING_SWITCH,
-            )
-            return {"skipped": True, "reason": "doi_minting_using_invenio switch is off"}
-
         # Only run for instances that have an image (use shared resolver for all app types)
         image = resolve_app_image(app_instance)
         if not image:
@@ -110,6 +110,8 @@ class DOIProvisioningTask(BaseBackgroundTask):
             app_instance,
             language=kwargs.get("language"),
             funding=kwargs.get("funding"),
+            creators=kwargs.get("creators"),
+            subjects=kwargs.get("tags"),  # Note: task receives 'tags' but function expects 'subjects'
         )
 
         try:

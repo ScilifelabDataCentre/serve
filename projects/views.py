@@ -727,6 +727,25 @@ def delete(request, project_slug):
     else:
         project = Project.objects.filter(slug=project_slug).first()
 
+    # Check if project contains apps before deletion.
+    # Prevent deletion of projects that have apps.
+    if not request.user.is_superuser:
+        has_serve_develop_apps = False
+        for app_orm in APP_REGISTRY.iter_orm_models():
+            # Check for any active serve or developer apps
+            apps_in_project = app_orm.objects.filter(
+                project=project, deleted_on__isnull=True, app__category__slug__in=["serve", "develop"]
+            )
+
+            if apps_in_project.exists():
+                logger.info(f"Found {apps_in_project.count()} serve/develop apps in project {project_slug}")
+                has_serve_develop_apps = True
+                break
+
+        if has_serve_develop_apps:
+            messages.error(request, "Cannot delete a project that contains apps.")
+            return HttpResponseRedirect(f"/projects/{project_slug}")
+
     logger.info("SCHEDULING DELETION OF ALL INSTALLED APPS")
     # remove permissions to see this project
     users_with_permission = get_users_with_perms(project)

@@ -23,10 +23,10 @@ from studio.utils import get_logger
 from .schemas import (
     AccessConfig,
     AdditionalMetadata,
+    Affiliation,
     AppData,
     Award,
     AwardIdentifier,
-    Contributor,
     Creator,
     Date,
     DateType,
@@ -327,6 +327,102 @@ class InvenioService:
         else:
             target_metadata.pop("subjects", None)
 
+        # Handle creators metadata
+        creators_input = extra.get("creators")
+        logger.debug(f"[Invenio] creators_input from extra: {creators_input}")
+        if creators_input and isinstance(creators_input, list):
+            creators_list: list[Creator] = []
+            for creator_data in creators_input:
+                if isinstance(creator_data, dict):
+                    # Build Creator with InvenioRDM-compatible person_or_org structure
+                    filtered_data = {
+                        "name": creator_data.get("name", ""),
+                        "lastName": creator_data.get("lastName", ""),
+                        "affiliation": creator_data.get("affiliation", ""),
+                        "orcid": creator_data.get("orcid", ""),
+                    }
+                    logger.debug(f"[Invenio] Processing creator: {filtered_data}")
+
+                    # Create identifiers list for ORCID if provided
+                    identifiers = None
+                    if filtered_data["orcid"]:
+                        identifiers = [Identifier(scheme="orcid", identifier=filtered_data["orcid"])]
+
+                    # Create person name from first and last name
+                    first_name = filtered_data["name"] or "Unknown"
+                    last_name = filtered_data["lastName"] or "Creator"
+                    full_name = f"{first_name} {last_name}"
+
+                    # Create person_or_org structure with required fields for personal type
+                    person_or_org = PersonOrOrg(
+                        name=full_name,
+                        type="personal",
+                        given_name=first_name,
+                        family_name=last_name,
+                        identifiers=identifiers,
+                    )
+
+                    # Create affiliations list if affiliation exists
+                    affiliations = None
+                    affiliation_data = creator_data.get("affiliation")
+                    if affiliation_data:
+                        logger.debug(
+                            f"[Invenio] Processing affiliation data: {affiliation_data} "
+                            f"(type: {type(affiliation_data)})"
+                        )
+                        affiliations_list = []
+
+                        if isinstance(affiliation_data, str):
+                            # Simple string affiliation
+                            affiliations_list.append(Affiliation(name=affiliation_data))
+                        elif isinstance(affiliation_data, dict) and "ror_id" in affiliation_data:
+                            # ROR API format: transform to structured Affiliation
+                            ror_identifier = affiliation_data["ror_id"].replace("https://ror.org/", "")
+                            affiliations_list.append(
+                                Affiliation(
+                                    name=affiliation_data.get("title", ""),
+                                    affiliationIdentifier=ror_identifier,
+                                    affiliationIdentifierScheme="ROR",
+                                    schemeUri="https://ror.org/",
+                                )
+                            )
+                        elif isinstance(affiliation_data, dict) and "identifier" in affiliation_data:
+                            # ORCID-sourced format: structured affiliation with identifier
+                            scheme = affiliation_data.get("scheme", "").upper()
+                            identifier = affiliation_data.get("identifier", "")
+                            scheme_uri = "https://ror.org/" if scheme == "ROR" else None
+
+                            affiliations_list.append(
+                                Affiliation(
+                                    name=affiliation_data.get("name", ""),
+                                    affiliationIdentifier=identifier,
+                                    affiliationIdentifierScheme=scheme,
+                                    schemeUri=scheme_uri,
+                                )
+                            )
+                        else:
+                            # Fallback: use as name
+                            name = str(affiliation_data)
+                            if isinstance(affiliation_data, dict):
+                                name = affiliation_data.get("name") or affiliation_data.get("title", name)
+                            affiliations_list.append(Affiliation(name=name))
+
+                        affiliations = affiliations_list
+
+                    creator = Creator(person_or_org=person_or_org, affiliations=affiliations)
+                    logger.debug(f"[Invenio] Created Creator object: {creator}")
+                    creators_list.append(creator)
+
+            if creators_list:
+                target_metadata["creators"] = creators_list
+                logger.debug(f"[Invenio] Applied {len(creators_list)} creators from form data")
+                logger.debug(f"[Invenio] creators_list contents: {creators_list}")
+            else:
+                logger.warning("[Invenio] creators_input was not empty but no valid creators were created")
+            # If creators_input exists but results in empty list, keep existing creators
+        else:
+            logger.debug("[Invenio] No valid creators_input provided, keeping existing creators")
+        # If no creators_input provided, keep existing creators (don't modify target_metadata)
         funding_input: Any = extra.get("funding")
         funding_entries: list[Funding] = []
         if isinstance(funding_input, list):
@@ -413,23 +509,41 @@ class InvenioService:
 
         return target_metadata
 
-    def _build_creators(self, user_full_name: str, user_first_name: str, user_family_name: str) -> list[Creator]:
+    def _build_creators(
+        self,
+        user_full_name: str,
+        user_first_name: str,
+        user_family_name: str,
+        user_orcid: str = "",
+        user_affiliation: str = "",
+    ) -> list[Creator]:
         """Build the creators list with user information."""
-        user_person = PersonOrOrg(
-            name=user_full_name, type="personal", given_name=user_first_name, family_name=user_family_name
+
+        # Create identifiers list for ORCID if provided
+        identifiers = None
+        if user_orcid:
+            identifiers = [Identifier(scheme="orcid", identifier=user_orcid)]
+
+        # InvenioRDM requires family_name and given_name for personal type
+        # Ensure they are never None/empty
+        final_given_name = user_first_name if user_first_name else "No First Name Given"
+        final_family_name = user_family_name if user_family_name else "No Family Name Given"
+
+        person_or_org = PersonOrOrg(
+            name=user_full_name,
+            type="personal",
+            given_name=final_given_name,
+            family_name=final_family_name,
+            identifiers=identifiers,
         )
 
-        user_role = Role(id="relatedperson")
+        affiliations = None
+        if user_affiliation:
+            affiliations = [Affiliation(name=user_affiliation)]
 
-        return [Creator(person_or_org=user_person, role=user_role)]
+        creator = Creator(person_or_org=person_or_org, affiliations=affiliations)
 
-    def _build_contributors(self) -> list[Contributor]:
-        """Build the contributors list with SciLifeLab Data Centre."""
-        org_person = PersonOrOrg(name="SciLifeLab Data Centre", type="organizational")
-
-        org_role = Role(id="hostinginstitution")
-
-        return [Contributor(person_or_org=org_person, role=org_role)]
+        return [creator]
 
     def _build_identifiers(self, app_id: str) -> list[Identifier]:
         """Build the identifiers list with application ID."""
@@ -518,7 +632,7 @@ class InvenioService:
 
         return dates
 
-    def generate_invenio_metadata(
+    def generate_invenio_record(
         self, app_instance: Any, additional_metadata: Optional[AdditionalMetadata] = None
     ) -> InvenioRecord:
         """
@@ -544,16 +658,38 @@ class InvenioService:
         # Convert models to dictionaries
         user_data: Dict[str, Any] = model_to_dict(user_instance, exclude=["_state", "password"])
 
+        # Get user profile data for ORCID and affiliation
+        user_orcid = ""
+        user_affiliation = ""
+        try:
+            user_profile = user_instance.userprofile
+            user_orcid = user_profile.orcid_id or ""
+            user_affiliation = user_profile.get_organization_name() if user_profile.get_affiliations() else ""
+        except Exception:
+            # UserProfile doesn't exist or other error - use defaults
+            pass
+
         # Get user full name
         user_full_name: str = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip()
         user_first_name: str = user_data.get("first_name", "")
         user_family_name: str = user_data.get("last_name", "")
         user_email: str = user_data.get("email", "")
 
+        # Handle missing names - InvenioRDM requires family_name for personal type
         if not user_full_name:
             user_full_name = user_email.split("@")[0] if user_email else "Unknown"
             user_first_name = "No First Name Given"
             user_family_name = "No Family Name Given"
+        else:
+            # Ensure we always have a family_name for personal type creators
+            if not user_family_name:
+                if user_first_name:
+                    # If we have first name but no last name, use email or fallback
+                    user_family_name = user_email.split("@")[0] if user_email else "No Family Name Given"
+                else:
+                    user_family_name = "No Family Name Given"
+            if not user_first_name:
+                user_first_name = "No First Name Given"
 
         dates = self._build_dates(app_instance)
         publication_date = next(
@@ -562,8 +698,7 @@ class InvenioService:
         )
 
         # Build components using helper methods
-        creators = self._build_creators(user_full_name, user_first_name, user_family_name)
-        contributors = self._build_contributors()
+        creators = self._build_creators(user_full_name, user_first_name, user_family_name, user_orcid, user_affiliation)
         identifiers = self._build_identifiers(str(app_data.id))
         related_identifiers = self._build_related_identifiers(app_data)
 
@@ -582,7 +717,6 @@ class InvenioService:
             publisher="SciLifeLab Serve",
             resource_type=ResourceType(id="software", title={"en": "Software"}),
             creators=creators,
-            contributors=contributors,
             identifiers=identifiers,
             related_identifiers=related_identifiers,
         )
@@ -590,14 +724,47 @@ class InvenioService:
         # Apply additional metadata if provided
         if additional_metadata:
             metadata_dict = metadata.model_dump()
+            logger.debug(
+                "[Invenio] metadata_dict before apply_additional: creators = %s",
+                metadata_dict.get("creators", "NOT_FOUND"),
+            )
             self._apply_additional_invenio_metadata(metadata_dict, additional_metadata)
+            logger.debug(
+                "[Invenio] metadata_dict after apply_additional: creators = %s",
+                metadata_dict.get("creators", "NOT_FOUND"),
+            )
+
             # Debug: log subject type and value before constructing InvenioMetadata
             subj_val = metadata_dict.get("subjects", None)
-            logger.debug(f"[Invenio] Subjects field before model: type={type(subj_val)}, value={subj_val}")
+            logger.debug("[Invenio] Subjects field before model: type=%s, value=%s", type(subj_val), subj_val)
             # If subjects is an empty list, keep it as an empty list (not None)
             if "subjects" in metadata_dict and metadata_dict["subjects"] is None:
                 metadata_dict["subjects"] = []
+
+            # Convert Creator objects back to dicts for Pydantic model creation
+            creators_val = metadata_dict.get("creators")
+            logger.debug(f"[Invenio] creators_val before conversion: type={type(creators_val)}, value={creators_val}")
+            if creators_val and isinstance(creators_val, list):
+                creators_dicts = []
+                for creator in creators_val:
+                    if hasattr(creator, "model_dump"):  # Creator object
+                        creator_dict = creator.model_dump()
+                        logger.debug(f"[Invenio] Converting Creator object to dict: {creator_dict}")
+                        creators_dicts.append(creator_dict)
+                    else:  # Already a dict
+                        logger.debug(f"[Invenio] Creator already a dict: {creator}")
+                        creators_dicts.append(creator)
+                metadata_dict["creators"] = creators_dicts
+                logger.debug(f"[Invenio] Final creators_dicts: {creators_dicts}")
+            else:
+                logger.warning("[Invenio] No creators found in metadata_dict or creators_val is not a list")
+
+            logger.debug(
+                "[Invenio] metadata_dict before InvenioMetadata construction: creators = %s",
+                metadata_dict.get("creators", "NOT_FOUND"),
+            )
             metadata = InvenioMetadata(**metadata_dict)
+            logger.debug(f"[Invenio] Final InvenioMetadata creators: {metadata.creators}")
 
         # Build complete record
         invenio_record = InvenioRecord(
@@ -682,7 +849,7 @@ class InvenioService:
 
         try:
             # Generate Invenio metadata
-            invenio_record: InvenioRecord = self.generate_invenio_metadata(
+            invenio_record: InvenioRecord = self.generate_invenio_record(
                 app_instance, additional_metadata=additional_metadata
             )
 

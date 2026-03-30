@@ -19,10 +19,7 @@ if $INIT; then
     python manage.py migrate
 
     python manage.py migrate waffle
-    python manage.py waffle_flag enable_depictio --create --everyone
     python manage.py waffle_switch docker_image_architecture_validator off --create
-    python manage.py waffle_switch doi_minting_using_invenio off --create
-    python manage.py waffle_switch background_tasks on --create
     python manage.py waffle_switch background_tasks_nonblocking_deploy on --create
     python manage.py waffle_switch christmas_theme off --create
 
