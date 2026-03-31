@@ -519,11 +519,12 @@ def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_
 
     app_instance = model_class.objects.get(pk=app_id)
 
-    called_serialized_instance, called_app_slug, task_kwargs_by_task_name = mock_bg.call_args.args
+    called_serialized_instance, called_app_slug, task_kwargs_by_task_name, called_run_id = mock_bg.call_args.args
     assert called_serialized_instance["pk"] == app_instance.id
     assert called_app_slug == app_instance.app.slug
     assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
     assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
+    assert called_run_id
 
 
 @pytest.mark.django_db
@@ -563,11 +564,12 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
 
     app_instance = model_class.objects.get(pk=app_id)
 
-    called_serialized_instance, called_app_slug, task_kwargs_by_task_name = mock_bg.call_args.args
+    called_serialized_instance, called_app_slug, task_kwargs_by_task_name, called_run_id = mock_bg.call_args.args
     assert called_serialized_instance["pk"] == app_instance.id
     assert called_app_slug == app_instance.app.slug
     assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
     assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
+    assert called_run_id
 
 
 @pytest.mark.django_db

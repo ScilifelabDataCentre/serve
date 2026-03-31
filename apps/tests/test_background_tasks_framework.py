@@ -1,4 +1,5 @@
 import types
+import uuid
 from unittest.mock import patch
 
 import pytest
@@ -380,6 +381,48 @@ def test_execute_single_background_task_validation_error_marks_failed_no_retry(c
 
 
 @pytest.mark.django_db
+def test_execute_single_background_task_persists_structured_ui_error(clean_task_registry, app_instance):
+    class UnitUIError(ValueError):
+        def __init__(self, message):
+            super().__init__(message)
+            self.ui_error = {
+                "code": "image_not_public",
+                "summary": "We could not find this container image.",
+                "image_reference": "ghcr.io/example/app:bad",
+                "note": "Make sure the image is publicly available.",
+            }
+
+    @TASK_REGISTRY.register(name="unit_ui_fail", is_critical=True, execution_order=0, app_types=["customapp"])
+    class UnitUIFailTask(BaseBackgroundTask):
+        max_retries = 0
+
+        def execute(self, app_instance, **kwargs):
+            raise UnitUIError("raw backend failure")
+
+    record = BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="unit_ui_fail",
+        task_type="validation",
+        status="pending",
+        is_critical=True,
+        execution_order=0,
+        max_retries=0,
+    )
+
+    result = execute_single_background_task(record.id)
+    assert result["success"] is False
+
+    record.refresh_from_db()
+    assert record.status == "failed"
+    assert record.result_data["ui_error"] == {
+        "code": "image_not_public",
+        "summary": "We could not find this container image.",
+        "image_reference": "ghcr.io/example/app:bad",
+        "note": "Make sure the image is publicly available.",
+    }
+
+
+@pytest.mark.django_db
 def test_execute_single_background_task_resolves_concrete_app_instance(clean_task_registry, db):
     user = User.objects.create_user("concrete", "concrete@test.com", "pw")
     project = Project.objects.create_project(name="concrete-project", owner=user, description="")
@@ -425,6 +468,7 @@ def test_execute_single_background_task_resolves_concrete_app_instance(clean_tas
 
 @pytest.mark.django_db
 def test_check_tasks_and_deploy_deploys_when_no_failed_critical(immediate_on_commit, app_instance):
+    run_id = uuid.uuid4()
     BackgroundTask.objects.create(
         app_instance=app_instance,
         task_name="t1",
@@ -433,6 +477,7 @@ def test_check_tasks_and_deploy_deploys_when_no_failed_critical(immediate_on_com
         is_critical=True,
         execution_order=0,
         max_retries=0,
+        run_id=run_id,
     )
 
     with patch.object(deploy_resource, "delay") as mock_deploy:
@@ -440,6 +485,7 @@ def test_check_tasks_and_deploy_deploys_when_no_failed_critical(immediate_on_com
             previous_results=None,
             app_instance_id=app_instance.id,
             serialized_instance=app_instance.serialize(),
+            run_id=str(run_id),
         )
 
     assert result["success"] is True
@@ -449,6 +495,7 @@ def test_check_tasks_and_deploy_deploys_when_no_failed_critical(immediate_on_com
 
 @pytest.mark.django_db
 def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit, app_instance):
+    run_id = uuid.uuid4()
     BackgroundTask.objects.create(
         app_instance=app_instance,
         task_name="t1",
@@ -458,6 +505,7 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
         execution_order=0,
         max_retries=0,
         error_message="boom",
+        run_id=run_id,
     )
 
     with patch.object(deploy_resource, "delay") as mock_deploy:
@@ -465,6 +513,7 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
             previous_results=None,
             app_instance_id=app_instance.id,
             serialized_instance=app_instance.serialize(),
+            run_id=str(run_id),
         )
 
     assert result["success"] is False
@@ -477,6 +526,7 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
 
 @pytest.mark.django_db
 def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_commit, app_instance):
+    run_id = uuid.uuid4()
     BackgroundTask.objects.create(
         app_instance=app_instance,
         task_name="t1",
@@ -486,6 +536,7 @@ def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_
         execution_order=0,
         max_retries=0,
         error_message="boom",
+        run_id=run_id,
     )
 
     with patch(
@@ -496,6 +547,7 @@ def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_
             previous_results=None,
             app_instance_id=app_instance.id,
             serialized_instance=app_instance.serialize(),
+            run_id=str(run_id),
         )
 
     assert result["deployed"] is True
@@ -504,6 +556,45 @@ def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_
 
     app_instance.refresh_from_db()
     assert app_instance.latest_user_action != "Failed"
+
+
+@pytest.mark.django_db
+def test_check_tasks_and_deploy_ignores_failed_tasks_from_other_runs(immediate_on_commit, app_instance):
+    failed_run_id = uuid.uuid4()
+    current_run_id = uuid.uuid4()
+    BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="t1",
+        task_type="validation",
+        status="failed",
+        is_critical=True,
+        execution_order=0,
+        max_retries=0,
+        error_message="boom",
+        run_id=failed_run_id,
+    )
+    BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="t1",
+        task_type="validation",
+        status="success",
+        is_critical=True,
+        execution_order=0,
+        max_retries=0,
+        run_id=current_run_id,
+    )
+
+    with patch.object(deploy_resource, "delay") as mock_deploy:
+        result = check_tasks_and_deploy(
+            previous_results=None,
+            app_instance_id=app_instance.id,
+            serialized_instance=app_instance.serialize(),
+            run_id=str(current_run_id),
+        )
+
+    assert result["success"] is True
+    assert result["deployed"] is True
+    mock_deploy.assert_called_once()
 
 
 @pytest.mark.django_db
@@ -567,6 +658,7 @@ def test_run_background_tasks_no_tasks_proceeds_to_deploy(immediate_on_commit, c
 
     assert result["success"] is True
     assert "No tasks" in result["message"]
+    assert result["run_id"]
     mock_deploy.assert_called_once()
 
 
@@ -607,6 +699,8 @@ def test_run_background_tasks_creates_db_rows_and_schedules_workflow(
     assert rows.count() == 2
     assert [r.task_name for r in rows] == ["unit_one", "unit_two"]
     assert all(r.status == "pending" for r in rows)
+    assert rows.first().run_id is not None
+    assert len({row.run_id for row in rows}) == 1
     assert called["apply_async"] == 1
 
     # First two steps are execute_single_background_task signatures and must be immutable

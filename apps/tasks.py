@@ -1,5 +1,6 @@
 import re
 import subprocess
+import uuid
 from typing import Any
 
 import yaml
@@ -41,6 +42,42 @@ class MissingSerializedInstanceError(ValueError):
         super().__init__(
             f"No instance found for model {model} with pk {pk} (base_instance_exists={base_instance_exists})"
         )
+
+
+def _build_background_task_error_result(
+    error: Exception,
+    *,
+    stage: str,
+    traceback_text: str | None = None,
+    retry_count: int | None = None,
+    max_retries: int | None = None,
+    should_retry: bool | None = None,
+) -> dict[str, Any]:
+    result = {
+        "success": False,
+        "error": {
+            "type": type(error).__name__,
+            "module": type(error).__module__,
+            "message": str(error),
+            "stage": stage,
+        },
+    }
+
+    if traceback_text:
+        result["error"]["traceback"] = traceback_text
+    if retry_count is not None:
+        result["error"]["retry_count"] = retry_count
+    if max_retries is not None:
+        result["error"]["max_retries"] = max_retries
+    if should_retry is not None:
+        result["error"]["should_retry"] = should_retry
+
+    ui_error = getattr(error, "ui_error", None)
+    if ui_error:
+        result["ui_error"] = ui_error
+        result["error"]["ui_error"] = ui_error
+
+    return result
 
 
 def _retry_countdown(current_retries: int) -> int:
@@ -221,7 +258,7 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
 
 @shared_task(bind=True, max_retries=DEPLOY_RESOURCE_MAX_RETRIES)
 @transaction.atomic
-def deploy_resource(self, serialized_instance):
+def deploy_resource(self, serialized_instance, run_id: str | None = None):
     model = serialized_instance.get("model") if isinstance(serialized_instance, dict) else None
     pk = serialized_instance.get("pk") if isinstance(serialized_instance, dict) else None
     task_id = getattr(self.request, "id", None)
@@ -389,7 +426,7 @@ def deploy_resource(self, serialized_instance):
         release,
     )
 
-    helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
+    helm_info = {"success": success, "info": {"stdout": output, "stderr": error}, "run_id": run_id}
 
     instance.info = dict(helm=helm_info)
     # instance.app_status.status = "Created" if success else "Failed"
@@ -754,6 +791,7 @@ def execute_single_background_task(
     task_kwargs = {}
     if isinstance(task_kwargs_by_task_name, dict):
         task_kwargs = task_kwargs_by_task_name.get(task_record.task_name) or {}
+    task_kwargs = {**task_kwargs, "_task_run_id": str(task_record.run_id) if task_record.run_id else None}
 
     # Validate inputs
     try:
@@ -768,16 +806,11 @@ def execute_single_background_task(
         logger.error(error_msg)
         task_record.mark_as_failed(
             error_msg,
-            result_data={
-                "success": False,
-                "error": {
-                    "type": type(e).__name__,
-                    "module": type(e).__module__,
-                    "message": str(e),
-                    "traceback": traceback.format_exc()[-10000:],
-                    "stage": "validate_inputs",
-                },
-            },
+            result_data=_build_background_task_error_result(
+                e,
+                stage="validate_inputs",
+                traceback_text=traceback.format_exc()[-10000:],
+            ),
         )
         return {"success": False, "error": error_msg}
 
@@ -838,19 +871,14 @@ def execute_single_background_task(
         else:
             task_record.mark_as_failed(
                 error_msg,
-                result_data={
-                    "success": False,
-                    "error": {
-                        "type": type(e).__name__,
-                        "module": type(e).__module__,
-                        "message": str(e),
-                        "traceback": traceback.format_exc()[-10000:],
-                        "stage": "execute",
-                        "retry_count": task_record.retry_count,
-                        "max_retries": task_record.max_retries,
-                        "should_retry": bool(should_retry),
-                    },
-                },
+                result_data=_build_background_task_error_result(
+                    e,
+                    stage="execute",
+                    traceback_text=traceback.format_exc()[-10000:],
+                    retry_count=task_record.retry_count,
+                    max_retries=task_record.max_retries,
+                    should_retry=bool(should_retry),
+                ),
             )
             try:
                 task_instance.on_failure(app_instance, e)
@@ -872,6 +900,7 @@ def run_background_tasks(
     serialized_instance,
     app_slug,
     task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
+    run_id: str | None = None,
 ):
     """
     Orchestrates background tasks before deployment.
@@ -884,6 +913,7 @@ def run_background_tasks(
         app_slug: App type slug
         task_kwargs_by_task_name: Optional mapping of task_name -> kwargs dict passed to
             validate_inputs/execute for that specific task.
+        run_id: Stable identifier for this logical deployment/background-task run.
 
     Returns:
         Dict with success status and task results
@@ -897,6 +927,7 @@ def run_background_tasks(
     logger.info(f"Running background tasks for app {instance.id} ({app_slug})")
 
     task_kwargs_by_task_name = task_kwargs_by_task_name or {}
+    run_uuid = uuid.UUID(run_id) if run_id else uuid.uuid4()
 
     # Get tasks grouped by execution order
     tasks_by_order = TASK_REGISTRY.get_tasks_by_order(app_slug)
@@ -904,8 +935,8 @@ def run_background_tasks(
     if not tasks_by_order:
         logger.info(f"No background tasks registered for app type {app_slug}")
         # Proceed directly to deployment, but only after this transaction commits.
-        transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
-        return {"success": True, "message": "No tasks to run, proceeding to deployment"}
+        transaction.on_commit(lambda: deploy_resource.delay(serialized_instance, str(run_uuid)))
+        return {"success": True, "message": "No tasks to run, proceeding to deployment", "run_id": str(run_uuid)}
 
     # Create BackgroundTask records for all tasks
     task_records = []
@@ -920,6 +951,7 @@ def run_background_tasks(
                 execution_order=order,
                 max_retries=task_class.max_retries,
                 status="pending",
+                run_id=run_uuid,
             )
             task_records.append(task_record)
             timeout = getattr(task_class, "timeout_seconds", 300) or 300
@@ -964,7 +996,7 @@ def run_background_tasks(
             task_chain.append(parallel_tasks)
 
     # Add deployment as the final step in the chain
-    task_chain.append(check_tasks_and_deploy.s(instance.id, serialized_instance))
+    task_chain.append(check_tasks_and_deploy.s(instance.id, serialized_instance, str(run_uuid)))
 
     # Execute the chain
     workflow = chain(*task_chain)
@@ -972,12 +1004,12 @@ def run_background_tasks(
     transaction.on_commit(lambda: workflow.apply_async())
 
     logger.info(f"Started background task workflow for app {instance.id}")
-    return {"success": True, "message": f"Started {len(task_records)} background tasks"}
+    return {"success": True, "message": f"Started {len(task_records)} background tasks", "run_id": str(run_uuid)}
 
 
 @shared_task
 @transaction.atomic
-def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instance):
+def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instance, run_id: str | None = None):
     """
     Check if all critical tasks succeeded, then deploy if appropriate.
 
@@ -993,9 +1025,10 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
     logger.info(f"Checking background tasks before deployment for app {app_instance_id}")
 
     # Get all tasks for this app instance
-    tasks = select_latest_task_records(
-        list(BackgroundTask.objects.filter(app_instance_id=app_instance_id).order_by("execution_order", "created_at"))
-    )
+    task_qs = BackgroundTask.objects.filter(app_instance_id=app_instance_id).order_by("execution_order", "created_at")
+    if run_id:
+        task_qs = task_qs.filter(run_id=run_id)
+    tasks = select_latest_task_records(list(task_qs))
 
     # Check if any critical tasks failed in the latest logical run.
     failed_critical_tasks = [task for task in tasks if task.is_critical and task.status == "failed"]
@@ -1012,7 +1045,7 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
                 f"{', '.join(failed_names)}. Deployment NOT blocked (waffle switch enabled)."
             )
             logger.warning(warning_msg)
-            transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
+            transaction.on_commit(lambda: deploy_resource.delay(serialized_instance, run_id))
             return {
                 "success": False,
                 "deployed": True,
@@ -1039,7 +1072,7 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
 
     # All critical tasks passed - proceed with deployment
     logger.info(f"All critical tasks passed for app {app_instance_id}. Proceeding with deployment.")
-    transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
+    transaction.on_commit(lambda: deploy_resource.delay(serialized_instance, run_id))
 
     return {
         "success": True,

@@ -95,12 +95,14 @@ class DOIProvisioningTask(BaseBackgroundTask):
     task_type = "external_api"
     timeout_seconds = 300
 
-    def _has_failed_required_checks(self, app_instance) -> bool:
+    def _has_failed_required_checks(self, app_instance, run_id: str | None = None) -> bool:
         earlier_required_tasks = BackgroundTask.objects.filter(
             app_instance_id=app_instance.id,
             is_critical=True,
             execution_order__lt=self.execution_order,
         )
+        if run_id:
+            earlier_required_tasks = earlier_required_tasks.filter(run_id=run_id)
 
         latest_earlier_required_tasks = select_latest_task_records(earlier_required_tasks)
         return any(task.status == "failed" for task in latest_earlier_required_tasks)
@@ -115,7 +117,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
             )
             return {"skipped": True, "reason": "no image"}
 
-        if self._has_failed_required_checks(app_instance):
+        if self._has_failed_required_checks(app_instance, kwargs.get("_task_run_id")):
             logger.info(
                 "DOI provisioning skipped for app %s: a required deployment check failed earlier",
                 app_instance.id,

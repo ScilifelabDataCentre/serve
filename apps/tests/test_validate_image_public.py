@@ -121,8 +121,15 @@ def test_validate_image_public_failure(monkeypatch):
         lambda self, repository, reference: PublicImageAccessResult(PublicImageAccessOutcome.PRIVATE),
     )
 
-    with pytest.raises(ValueError, match="not publicly pullable"):
+    with pytest.raises(ValueError, match="not publicly pullable") as excinfo:
         ImagePublicValidator().execute(app_instance)
+
+    assert excinfo.value.ui_error == {
+        "code": "image_not_public",
+        "summary": "We could not find this container image.",
+        "image_reference": "ghcr.io/example/team-app:stable",
+        "note": "Make sure the image is publicly available.",
+    }
 
 
 def test_validate_image_public_registry_unavailable(monkeypatch):
@@ -137,8 +144,16 @@ def test_validate_image_public_registry_unavailable(monkeypatch):
         ),
     )
 
-    with pytest.raises(ValueError, match="unreachable or returned a server error"):
+    with pytest.raises(ValueError, match="unreachable or returned a server error") as excinfo:
         ImagePublicValidator().execute(app_instance)
+
+    assert excinfo.value.retryable is True
+    assert excinfo.value.ui_error == {
+        "code": "image_not_public",
+        "summary": "We could not find this container image.",
+        "image_reference": "ghcr.io/example/team-app:stable",
+        "note": "Make sure the image is publicly available.",
+    }
 
 
 def test_oci_registry_public_checker_slow_retries_on_http_500(monkeypatch):

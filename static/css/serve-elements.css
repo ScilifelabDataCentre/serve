@@ -600,9 +600,6 @@ cubic-bezier(.4, 0, .2, 1);
     position: absolute;
     inset: 2rem 1rem auto;
     height: 18rem;
-    background:
-        radial-gradient(circle at top left, rgba(13, 110, 253, 0.12), transparent 48%),
-        radial-gradient(circle at top right, rgba(25, 135, 84, 0.1), transparent 42%);
     filter: blur(18px);
     pointer-events: none;
     z-index: 0;
@@ -625,7 +622,6 @@ cubic-bezier(.4, 0, .2, 1);
 }
 
 .deployment-progress-title {
-    font-size: clamp(2rem, 3vw, 2.75rem);
     line-height: 1.05;
     letter-spacing: -0.03em;
 }

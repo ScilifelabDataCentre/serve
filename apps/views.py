@@ -2,6 +2,8 @@ import base64
 import json
 import subprocess
 from datetime import datetime
+from urllib.parse import urlencode
+from uuid import UUID
 
 import dateutil.parser
 import requests
@@ -75,9 +77,11 @@ def _serialize_background_task(task):
     duration = task.get_duration()
     result_data = task.result_data if isinstance(task.result_data, dict) else {}
     was_skipped = bool(result_data.get("skipped"))
+    error_detail = result_data.get("ui_error") or result_data.get("error", {}).get("ui_error")
     display_fields = _build_task_display_fields(task.status, was_skipped=was_skipped)
     return {
         "id": task.id,
+        "run_id": str(task.run_id) if task.run_id else None,
         "task_name": task.task_name,
         "display_name": _format_task_name_for_display(task.task_name),
         "task_type": task.task_type,
@@ -94,6 +98,7 @@ def _serialize_background_task(task):
         "can_retry": task.status == "failed",
         "was_skipped": was_skipped,
         "skip_reason": result_data.get("reason", "") if was_skipped else "",
+        "error_detail": error_detail if isinstance(error_detail, dict) else None,
         **display_fields,
     }
 
@@ -143,20 +148,70 @@ def _get_progress_mode_from_request(request):
     return None
 
 
+def _get_progress_run_id_from_request(request):
+    raw_run_id = request.GET.get("run_id")
+    if not raw_run_id:
+        return None
+
+    try:
+        return UUID(raw_run_id)
+    except (TypeError, ValueError):
+        return None
+
+
 def _app_has_registered_background_tasks(app_slug: str) -> bool:
     from apps.background_tasks.registry import TASK_REGISTRY
 
     return bool(TASK_REGISTRY.get_tasks_by_order(app_slug))
 
 
-def _get_progress_tasks(instance, run_after=None):
+def _filter_visible_background_tasks(app_slug: str, tasks):
+    from apps.background_tasks.registry import TASK_REGISTRY
+
+    visible_task_names = {task.task_name for task in TASK_REGISTRY.get_tasks_for_app(app_slug)}
+    visible_task_names.add("checking_docker_image_availability")
+    return [task for task in tasks if task.task_name in visible_task_names]
+
+
+def _get_latest_visible_run_id(app_slug: str, task_records):
+    visible_task_records = _filter_visible_background_tasks(app_slug, task_records)
+    latest_task_in_run = max(
+        (task for task in visible_task_records if task.run_id),
+        key=lambda task: (task.created_at, task.pk),
+        default=None,
+    )
+    return latest_task_in_run.run_id if latest_task_in_run else None
+
+
+def _get_progress_tasks(instance, run_id=None):
     from apps.models import BackgroundTask
 
-    tasks_qs = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
-    if run_after is not None:
-        tasks_qs = tasks_qs.filter(created_at__gte=run_after)
+    task_records = list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
+    visible_task_records = _filter_visible_background_tasks(instance.app.slug, task_records)
 
-    return select_latest_task_records(list(tasks_qs))
+    selected_run_id = run_id
+    if selected_run_id is None:
+        selected_run_id = _get_latest_visible_run_id(instance.app.slug, task_records)
+
+    if selected_run_id:
+        visible_task_records = [task for task in visible_task_records if task.run_id == selected_run_id]
+
+    return select_latest_task_records(visible_task_records)
+
+
+def _should_wait_for_current_run(instance, tasks_data, *, run_id=None):
+    if run_id is not None:
+        return False
+
+    deployment_inputs = _get_deployment_inputs(instance)
+    if deployment_inputs["latest_user_action"] not in {"Changing", "Redeploying"}:
+        return False
+
+    if not _app_has_registered_background_tasks(instance.app.slug):
+        return False
+
+    workflow = _build_workflow_state(tasks_data)
+    return workflow["has_failed_critical"] and not workflow["has_in_progress"]
 
 
 def _build_completed_steps_text(stats):
@@ -322,7 +377,7 @@ def _build_metadata_only_task():
     }
 
 
-def _get_helm_deploy_success(instance):
+def _get_helm_deploy_success(instance, run_id=None):
     info = getattr(instance, "info", None) or {}
     if not isinstance(info, dict):
         return None
@@ -331,16 +386,21 @@ def _get_helm_deploy_success(instance):
     if not isinstance(helm_info, dict):
         return None
 
+    if run_id is not None:
+        helm_run_id = helm_info.get("run_id")
+        if helm_run_id is not None and str(helm_run_id) != str(run_id):
+            return None
+
     success = helm_info.get("success")
     if isinstance(success, bool):
         return success
     return None
 
 
-def _get_deployment_inputs(instance):
+def _get_deployment_inputs(instance, run_id=None):
     app_status = instance.get_app_status()
     latest_user_action = instance.latest_user_action
-    helm_deploy_success = _get_helm_deploy_success(instance)
+    helm_deploy_success = _get_helm_deploy_success(instance, run_id=run_id)
     return {
         "app_status": app_status,
         "latest_user_action": latest_user_action,
@@ -349,8 +409,8 @@ def _get_deployment_inputs(instance):
     }
 
 
-def _build_deployment_state(instance, workflow, tasks_data, expecting_fresh_tasks=False):
-    inputs = _get_deployment_inputs(instance)
+def _build_deployment_state(instance, workflow, tasks_data, expecting_fresh_tasks=False, run_id=None):
+    inputs = _get_deployment_inputs(instance, run_id=run_id)
     app_status = inputs["app_status"]
     latest_user_action = inputs["latest_user_action"]
     helm_deploy_success = inputs["helm_deploy_success"]
@@ -464,6 +524,7 @@ def _build_progress_payload(
     metadata_only=False,
     deployment_tasks_data=None,
     expecting_fresh_tasks=False,
+    run_id=None,
 ):
     deployment_tasks = deployment_tasks_data if deployment_tasks_data is not None else tasks_data
     workflow = _build_workflow_state(deployment_tasks)
@@ -472,6 +533,7 @@ def _build_progress_payload(
         workflow,
         deployment_tasks,
         expecting_fresh_tasks=expecting_fresh_tasks and not metadata_only,
+        run_id=run_id,
     )
 
     if metadata_only:
@@ -489,10 +551,8 @@ def _build_progress_payload(
     }
 
 
-def _build_progress_state(instance, progress_mode=None):
+def _build_progress_state(instance, progress_mode=None, run_id=None):
     metadata_only = progress_mode == "metadata_only"
-    expects_background_tasks = _app_has_registered_background_tasks(instance.app.slug)
-    run_after = instance.updated_on if progress_mode == "deploy" and expects_background_tasks else None
     if progress_mode == "details":
         tasks = _get_progress_tasks(instance)
         tasks_data = [_serialize_background_task(task) for task in tasks]
@@ -507,20 +567,34 @@ def _build_progress_state(instance, progress_mode=None):
             deployment_tasks_data=historical_tasks_data,
         )
     else:
-        tasks = _get_progress_tasks(instance, run_after=run_after)
+        has_registered_tasks = _app_has_registered_background_tasks(instance.app.slug)
+        deployment_inputs = _get_deployment_inputs(instance)
+        tasks = _get_progress_tasks(instance, run_id=run_id)
         tasks_data = [_serialize_background_task(task) for task in tasks]
-        progress_state = _build_progress_payload(instance, tasks_data, expecting_fresh_tasks=run_after is not None)
+        if _should_wait_for_current_run(instance, tasks_data, run_id=run_id):
+            tasks_data = []
+        progress_state = _build_progress_payload(
+            instance,
+            tasks_data,
+            expecting_fresh_tasks=has_registered_tasks and (run_id is not None or deployment_inputs["is_transitioning"]),
+            run_id=run_id,
+        )
 
     return progress_state
 
 
-def _build_progress_status_api_url(project_slug, app_slug, app_id, progress_mode=None):
+def _build_progress_status_api_url(project_slug, app_slug, app_id, progress_mode=None, run_id=None):
     url = reverse(
         "apps:background_tasks_status",
         kwargs={"project": project_slug, "app_slug": app_slug, "app_id": app_id},
     )
+    query_params = {}
     if progress_mode in {"metadata_only", "details"}:
-        return f"{url}?mode={progress_mode}"
+        query_params["mode"] = progress_mode
+    if run_id is not None:
+        query_params["run_id"] = str(run_id)
+    if query_params:
+        return f"{url}?{urlencode(query_params)}"
     return url
 
 
@@ -807,10 +881,19 @@ class CreateApp(View):
         should_deploy = should_trigger_deployment_from_form(form, app_id=app_id)
 
         # Otherwise we can create the instance
-        instance_id = create_instance_from_form(form, project, app_slug, app_id, should_deploy=should_deploy)
+        instance_id, progress_run_id = create_instance_from_form(
+            form,
+            project,
+            app_slug,
+            app_id,
+            should_deploy=should_deploy,
+            return_run_id=True,
+        )
         progress_url = _build_project_app_path(str(project_slug), f"progress/{app_slug}/{instance_id}")
         if not should_deploy:
             progress_url = f"{progress_url}?mode=metadata_only"
+        elif progress_run_id:
+            progress_url = f"{progress_url}?{urlencode({'run_id': progress_run_id})}"
         return HttpResponseRedirect(progress_url)
 
     def get_form(self, request, project, app_slug, app_id):
@@ -862,7 +945,8 @@ class DeploymentProgressView(View):
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
         progress_mode = _get_progress_mode_from_request(request) or "deploy"
-        progress_state = _build_progress_state(instance, progress_mode=progress_mode)
+        progress_run_id = _get_progress_run_id_from_request(request)
+        progress_state = _build_progress_state(instance, progress_mode=progress_mode, run_id=progress_run_id)
 
         context = {
             "instance": instance,
@@ -875,7 +959,11 @@ class DeploymentProgressView(View):
             "metadata_only": progress_state["metadata_only"],
             "initial_tasks_json": json.dumps(progress_state["tasks"]),
             "status_api_url": _build_progress_status_api_url(
-                project_obj.slug, app_slug, instance.pk, progress_mode=progress_mode
+                project_obj.slug,
+                app_slug,
+                instance.pk,
+                progress_mode=progress_mode,
+                run_id=progress_run_id,
             ),
             "detail_url": _build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
             "form_url": _build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}"),
@@ -1091,7 +1179,8 @@ class BackgroundTaskStatusAPI(View):
             return JsonResponse({"error": "App instance not found"}, status=404)
 
         progress_mode = _get_progress_mode_from_request(request) or "deploy"
-        progress_state = _build_progress_state(instance, progress_mode=progress_mode)
+        progress_run_id = _get_progress_run_id_from_request(request)
+        progress_state = _build_progress_state(instance, progress_mode=progress_mode, run_id=progress_run_id)
 
         return JsonResponse(
             {

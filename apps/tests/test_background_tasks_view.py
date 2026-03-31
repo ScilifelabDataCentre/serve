@@ -1,6 +1,10 @@
+import uuid
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+
+from apps.background_tasks.registry import TASK_REGISTRY
 
 from projects.models import Project, ProjectTemplate
 
@@ -193,6 +197,49 @@ class BackgroundTasksViewTestCase(TestCase):
         )
         self.assertEqual(payload["summary"]["total"], 2)
 
+    def test_background_task_status_api_filters_to_requested_run_id(self):
+        requested_run_id = uuid.uuid4()
+        other_run_id = uuid.uuid4()
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(run_id=other_run_id)
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_docker_image",
+            task_type="validation",
+            status="success",
+            is_critical=True,
+            execution_order=1,
+            run_id=requested_run_id,
+        )
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="doi_provisioning",
+            task_type="external_api",
+            status="success",
+            is_critical=False,
+            execution_order=2,
+            run_id=requested_run_id,
+        )
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+            + f"?run_id={requested_run_id}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            [task["task_name"] for task in payload["tasks"]],
+            ["validate_docker_image", "doi_provisioning"],
+        )
+        self.assertTrue(all(task["run_id"] == str(requested_run_id) for task in payload["tasks"]))
+
     def test_background_task_status_api_keeps_deploy_pending_while_checks_are_running(self):
         self.app_instance.k8s_user_app_status.status = "Running"
         self.app_instance.k8s_user_app_status.save(update_fields=["status"])
@@ -265,6 +312,37 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(payload["deployment"]["status"], "pending")
         self.assertEqual(payload["deployment"]["label"], "Pending")
         self.assertEqual(payload["deployment"]["message"], "Waiting for deployment checks to start.")
+
+    def test_background_task_status_api_does_not_wait_for_checks_when_app_has_no_registered_tasks(self):
+        original_tasks = TASK_REGISTRY.get_all_tasks()
+        try:
+            TASK_REGISTRY._tasks.clear()
+            BackgroundTask.objects.filter(app_instance=self.app_instance).delete()
+            self.app_instance.k8s_user_app_status.status = "Running"
+            self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+            self.app_instance.latest_user_action = "Changing"
+            self.app_instance.save(update_fields=["latest_user_action"])
+            requested_run_id = uuid.uuid4()
+
+            response = self.client.get(
+                reverse(
+                    "apps:background_tasks_status",
+                    kwargs={
+                        "project": self.project.slug,
+                        "app_slug": self.app.slug,
+                        "app_id": self.app_instance.pk,
+                    },
+                )
+                + f"?run_id={requested_run_id}",
+            )
+        finally:
+            TASK_REGISTRY._tasks = original_tasks
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["tasks"], [])
+        self.assertEqual(payload["deployment"]["status"], "success")
+        self.assertEqual(payload["deployment"]["label"], "Done")
 
     def test_background_task_status_api_keeps_deploy_running_until_helm_records_success(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="success")
@@ -359,6 +437,57 @@ class BackgroundTasksViewTestCase(TestCase):
         payload = response.json()
         self.assertEqual(payload["deployment"]["status"], "failed")
         self.assertEqual(payload["deployment"]["label"], "Failed")
+
+    def test_background_task_status_api_ignores_helm_failure_from_other_run(self):
+        current_run_id = uuid.uuid4()
+        previous_run_id = uuid.uuid4()
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(run_id=previous_run_id, status="success")
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_docker_image",
+            task_type="validation",
+            status="success",
+            is_critical=True,
+            execution_order=1,
+            run_id=current_run_id,
+        )
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="doi_provisioning",
+            task_type="external_api",
+            status="success",
+            is_critical=False,
+            execution_order=2,
+            run_id=current_run_id,
+        )
+        self.app_instance.k8s_user_app_status.status = "Running"
+        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
+        self.app_instance.latest_user_action = "Changing"
+        self.app_instance.info = {
+            "helm": {
+                "success": False,
+                "run_id": str(previous_run_id),
+                "info": {"stderr": "chart upgrade failed"},
+            }
+        }
+        self.app_instance.save()
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+            + f"?run_id={current_run_id}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["deployment"]["status"], "running")
+        self.assertEqual(payload["deployment"]["label"], "Deploying")
 
     def test_background_task_status_api_returns_metadata_only_progress_state(self):
         BackgroundTask.objects.create(
@@ -474,6 +603,93 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(doi_task["skip_reason"], "doi_minting_using_invenio switch is off")
         self.assertEqual(payload["summary"]["success"], 0)
         self.assertEqual(payload["summary"]["skipped"], 1)
+
+    def test_background_task_status_api_exposes_structured_error_detail(self):
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(
+            status="failed",
+            error_message="raw backend failure",
+            result_data={
+                "ui_error": {
+                    "code": "image_not_public",
+                    "summary": "We could not find this container image.",
+                    "image_reference": "ghcr.io/example/app:bad",
+                    "note": "Make sure the image is publicly available.",
+                }
+            },
+        )
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            payload["tasks"][0]["error_detail"],
+            {
+                "code": "image_not_public",
+                "summary": "We could not find this container image.",
+                "image_reference": "ghcr.io/example/app:bad",
+                "note": "Make sure the image is publicly available.",
+            },
+        )
+
+    def test_legacy_unregistered_tasks_are_hidden_from_progress_pages(self):
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="mock_frontend_check",
+            task_type="validation",
+            status="success",
+            is_critical=False,
+            execution_order=99,
+        )
+
+        details_response = self.client.get(
+            reverse(
+                "apps:details",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+        self.assertEqual(details_response.status_code, 200)
+        self.assertNotContains(details_response, "Mock Frontend Check")
+
+        checks_response = self.client.get(
+            reverse(
+                "apps:background_tasks",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+        self.assertEqual(checks_response.status_code, 200)
+        self.assertNotContains(checks_response, "Mock Frontend Check")
+
+        status_response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+        self.assertEqual(status_response.status_code, 200)
+        payload = status_response.json()
+        self.assertNotIn("mock_frontend_check", [task["task_name"] for task in payload["tasks"]])
 
     def test_background_task_status_api_details_mode_returns_recent_history(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")

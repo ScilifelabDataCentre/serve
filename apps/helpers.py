@@ -1,4 +1,5 @@
 import json
+import uuid
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any, Dict, Optional, Type
@@ -413,8 +414,14 @@ def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool 
 
 
 def create_instance_from_form(
-    form, project, app_slug, app_id=None, force_redeploy: bool = False, should_deploy: bool | None = None
-) -> int:
+    form,
+    project,
+    app_slug,
+    app_id=None,
+    force_redeploy: bool = False,
+    should_deploy: bool | None = None,
+    return_run_id: bool = False,
+) -> int | tuple[int, str | None]:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
     and the updating of existing ones based on the presence of an app_id.
@@ -537,6 +544,8 @@ def create_instance_from_form(
         do_deploy,
     )
 
+    background_task_run_id: str | None = None
+
     if do_deploy:
         serialized_instance = instance.serialize()
         logger.info(
@@ -548,9 +557,17 @@ def create_instance_from_form(
         )
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
 
-        _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public)
+        background_task_run_id = _deploy_with_background_tasks_and_doi(
+            instance,
+            form,
+            app_slug,
+            access_changed_to_public,
+        )
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
+
+    if return_run_id:
+        return instance_id, background_task_run_id
 
     return instance_id
 
@@ -567,6 +584,7 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
     )
 
     serialized_instance = instance.serialize()
+    background_task_run_id = str(uuid.uuid4())
 
     # Include DOI task if app is public or if access just changed to public
     should_mint_doi = (hasattr(instance, "access") and instance.access == "public") or access_changed_to_public
@@ -601,7 +619,15 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
         task_kwargs_by_task_name = {}
         logger.debug("Skipping DOI provisioning for non-public app '%s' (id=%s).", app_slug, instance.id)
 
-    transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
+    transaction.on_commit(
+        lambda: run_background_tasks.delay(
+            serialized_instance,
+            app_slug,
+            task_kwargs_by_task_name,
+            background_task_run_id,
+        )
+    )
+    return background_task_run_id
 
 
 def get_subdomain_name(form):

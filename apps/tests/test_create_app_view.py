@@ -307,14 +307,15 @@ class CreateAppViewTestCase(TestCase):
 
         with patch("apps.views.CreateApp.get_form", return_value=fake_form), patch(
             "apps.views.create_instance_from_form",
-            return_value=321,
-        ):
+            return_value=(321, "test-run-id"),
+        ) as mock_create:
             response = c.post(
                 f"/projects/{project.slug}/apps/create/jupyter-lab",
             )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/321")
+        self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/321?run_id=test-run-id")
+        self.assertEqual(mock_create.call_args.kwargs["return_run_id"], True)
 
     @override_settings(APPS_PER_PROJECT_LIMIT={"jupyter-lab": 1})
     def test_submit_redirects_to_progress_page_with_metadata_only_flag_when_save_does_not_trigger_deploy(self):
@@ -330,11 +331,12 @@ class CreateAppViewTestCase(TestCase):
             return_value=False,
         ), patch(
             "apps.views.create_instance_from_form",
-            return_value=654,
-        ):
+            return_value=(654, None),
+        ) as mock_create:
             response = c.post(
                 f"/projects/{project.slug}/apps/create/jupyter-lab",
             )
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/654?mode=metadata_only")
+        self.assertEqual(mock_create.call_args.kwargs["return_run_id"], True)
