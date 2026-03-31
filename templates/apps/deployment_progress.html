@@ -60,6 +60,7 @@ const statusApiUrl = "{{ status_api_url|escapejs }}";
 const detailUrl = "{{ detail_url }}";
 const STEP_SUCCESS_REVEAL_DELAY_MS = 1500;
 const SUCCESS_REDIRECT_DELAY_MS = 5000;
+const DEPLOYMENT_FAILURE_RECHECKS = 2;
 
 let refreshInterval = null;
 let successRedirectTimer = null;
@@ -103,6 +104,7 @@ let activeTaskRevealTimer = null;
 let activeTaskRevealItem = null;
 let displayedDeploymentStatus = "pending";
 let deploymentRevealTimer = null;
+let consecutiveDeploymentFailurePolls = 0;
 
 function startAutoRefresh() {
   stopAutoRefresh();
@@ -146,7 +148,7 @@ function normalizeDeploymentStatus(status) {
   if (status === "blocked") {
     return "failed";
   }
-  if (status === "success" || status === "failed" || status === "running") {
+  if (status === "success" || status === "failed" || status === "running" || status === "retrying") {
     return status;
   }
   return "pending";
@@ -213,6 +215,30 @@ function scheduleDeploymentReveal(nextStatus) {
     deploymentRevealTimer = null;
     rerenderFromLatestData();
   }, STEP_SUCCESS_REVEAL_DELAY_MS);
+}
+
+function stabilizeDeploymentFailure(data) {
+  const deploymentStatus = data.deployment?.status || "pending";
+
+  if (deploymentStatus !== "failed") {
+    consecutiveDeploymentFailurePolls = 0;
+    return data;
+  }
+
+  consecutiveDeploymentFailurePolls += 1;
+  if (consecutiveDeploymentFailurePolls <= DEPLOYMENT_FAILURE_RECHECKS) {
+    return {
+      ...data,
+      deployment: {
+        ...(data.deployment || {}),
+        status: "retrying",
+        label: "Retrying",
+        message: "Rechecking app status before marking deployment as failed."
+      }
+    };
+  }
+
+  return data;
 }
 
 function getDisplayData(data) {
@@ -636,13 +662,14 @@ function refreshProgress() {
       return response.json();
     })
     .then(data => {
-      latestServerData = data;
-      const displayData = getDisplayData(data);
+      const stabilizedData = stabilizeDeploymentFailure(data);
+      latestServerData = stabilizedData;
+      const displayData = getDisplayData(stabilizedData);
       renderProgress(displayData);
       maybeRedirectToDetails(displayData);
 
-      const rawDone = ["success", "failed", "blocked"].includes(data.deployment?.status);
-      if (rawDone && !data.workflow?.has_in_progress) {
+      const rawDone = ["success", "failed", "blocked"].includes(stabilizedData.deployment?.status);
+      if (rawDone && !stabilizedData.workflow?.has_in_progress) {
         stopAutoRefresh();
       }
     })
@@ -678,6 +705,7 @@ function escapeHtml(value) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  latestServerData = stabilizeDeploymentFailure(latestServerData);
   renderProgress(latestServerData);
   refreshProgress();
   startAutoRefresh();
