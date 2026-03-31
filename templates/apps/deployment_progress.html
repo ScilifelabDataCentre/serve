@@ -318,9 +318,13 @@ function getStepItems(data) {
 
   const deployStatus = data.deployment?.status || "pending";
   let deployDetail = "Waiting for the earlier checks to finish.";
+  let deployVisualStatus = deployStatus;
 
   if (data.workflow?.blocked) {
     deployDetail = data.deployment?.message || "Deployment cannot continue until the failed required check is resolved.";
+  } else if (deployStatus === "pending" && !data.workflow?.has_in_progress) {
+    deployDetail = data.deployment?.message || "Waiting for app status.";
+    deployVisualStatus = "running";
   } else if (deployStatus !== "pending") {
     deployDetail = data.deployment?.message || "Waiting to start deployment.";
   }
@@ -330,6 +334,7 @@ function getStepItems(data) {
     title: "Deploy app",
     subtitle: "Final step",
     status: deployStatus,
+    visualStatus: deployVisualStatus,
     statusLabel: getStatusLabel(deployStatus),
     detail: deployDetail
   });
@@ -465,10 +470,11 @@ function renderSteps(steps) {
 
   stepList.innerHTML = steps
     .map(step => {
+      const visualStatus = step.visualStatus || step.status;
       return `
-        <div class="step-row ${getStepRowClass(step.status)}">
+        <div class="step-row ${getStepRowClass(visualStatus)}">
           <div class="step-icon-wrap">
-            ${getStepIconMarkup(step.status)}
+            ${getStepIconMarkup(visualStatus)}
           </div>
           <div class="flex-grow-1">
             <div class="fw-semibold">${escapeHtml(step.title)}</div>

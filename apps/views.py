@@ -431,26 +431,22 @@ def _build_deployment_state(instance, workflow, tasks_data, expecting_fresh_task
         status = "pending"
         label = "Pending"
         message = "Waiting for deployment checks to start."
-    elif is_transitioning and app_status in {"NotFound", "Error (NotFound)"} and helm_deploy_success is not False:
-        status = "running"
-        label = "Deploying"
-        message = "Deployment is in progress."
-    elif latest_user_action == "Failed" or app_status in {"Error", "Error (NotFound)"} or helm_deploy_success is False:
-        status = "failed"
-        label = "Failed"
-        message = "Deployment hit an error after the checks completed."
-    elif is_transitioning and (tasks_data or helm_deploy_success is not None) and helm_deploy_success is not True:
-        status = "running"
-        label = "Deploying"
-        message = "Deployment is in progress."
     elif app_status == "Running":
         status = "success"
         label = "Done"
         message = "The app is running."
+    elif latest_user_action == "Failed" or app_status == "Error" or helm_deploy_success is False:
+        status = "failed"
+        label = "Failed"
+        message = "Deployment hit an error after the checks completed."
+    elif is_transitioning and (tasks_data or helm_deploy_success is not None or workflow["ready_for_deploy"]):
+        status = "pending"
+        label = "Pending"
+        message = "Waiting for app status."
     elif workflow["ready_for_deploy"]:
-        status = "running"
-        label = "Deploying"
-        message = "Deployment is in progress."
+        status = "pending"
+        label = "Pending"
+        message = "Waiting for app status."
     elif tasks_data:
         status = "pending"
         label = "Pending"

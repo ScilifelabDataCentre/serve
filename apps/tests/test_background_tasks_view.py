@@ -372,8 +372,8 @@ class BackgroundTasksViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertEqual(payload["deployment"]["status"], "running")
-        self.assertEqual(payload["deployment"]["label"], "Deploying")
+        self.assertEqual(payload["deployment"]["status"], "success")
+        self.assertEqual(payload["deployment"]["label"], "Done")
 
     def test_background_task_status_api_keeps_deploy_running_during_transient_notfound_state(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="success")
@@ -403,8 +403,8 @@ class BackgroundTasksViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertEqual(payload["deployment"]["status"], "running")
-        self.assertEqual(payload["deployment"]["label"], "Deploying")
+        self.assertEqual(payload["deployment"]["status"], "pending")
+        self.assertEqual(payload["deployment"]["label"], "Pending")
 
     def test_background_task_status_api_surfaces_helm_failure_after_checks_complete(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="success")
@@ -486,8 +486,8 @@ class BackgroundTasksViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertEqual(payload["deployment"]["status"], "running")
-        self.assertEqual(payload["deployment"]["label"], "Deploying")
+        self.assertEqual(payload["deployment"]["status"], "success")
+        self.assertEqual(payload["deployment"]["label"], "Done")
 
     def test_background_task_status_api_returns_metadata_only_progress_state(self):
         BackgroundTask.objects.create(

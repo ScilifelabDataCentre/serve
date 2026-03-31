@@ -61,6 +61,13 @@ def test_validate_docker_image_is_not_registered_for_non_image_apps():
 
 
 @pytest.mark.django_db
+def test_doi_provisioning_is_not_registered_for_non_image_apps():
+    for app_slug in ("tissuumaps", "depictio"):
+        tasks = TASK_REGISTRY.get_tasks_for_app(app_slug)
+        assert "doi_provisioning" not in [task.task_name for task in tasks]
+
+
+@pytest.mark.django_db
 def test_doi_provisioning_task_includes_funding_metadata(app_instance):
     funding_payload = [
         {

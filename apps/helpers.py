@@ -536,6 +536,8 @@ def create_instance_from_form(
 
     setup_instance(instance, subdomain, app, project, user_action)
     instance_id = save_instance_and_related_data(instance, form)
+    if do_deploy:
+        reset_k8s_user_app_status_for_deployment(instance)
     logger.info(
         "create_instance_from_form.instance_saved app_id=%s instance_id=%s user_action=%s do_deploy=%s",
         app_id,
@@ -718,6 +720,20 @@ def setup_instance(instance, subdomain, app, project, user_action=None, is_creat
         project.pk if project else None,
         user_action,
     )
+
+
+def reset_k8s_user_app_status_for_deployment(instance: BaseAppInstance) -> None:
+    status_object = getattr(instance, "k8s_user_app_status", None)
+    if status_object is None:
+        return
+
+    if status_object.status is None and status_object.info in (None, {}):
+        return
+
+    status_object.status = None
+    status_object.info = None
+    status_object.save(update_fields=["status", "info"])
+    logger.info("reset_k8s_user_app_status_for_deployment instance_id=%s", instance.pk)
 
 
 def save_instance_and_related_data(instance: Any, form: Any) -> int:
