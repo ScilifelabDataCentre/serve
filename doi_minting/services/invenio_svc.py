@@ -16,7 +16,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 
-from apps.background_tasks.utils import resolve_app_image
+from apps.background_tasks.utils import resolve_app_access, resolve_app_image
 from doi_minting.clients.invenio_client import InvenioClient
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
 from studio.utils import get_logger
@@ -47,20 +47,6 @@ from .schemas import (
 )
 
 logger = get_logger(__name__)
-
-
-def _resolve_app_access(app_instance: Any) -> str | None:
-    access = getattr(app_instance, "access", None)
-    if isinstance(access, str) and access:
-        return access
-
-    k8s_values = getattr(app_instance, "k8s_values", None) or {}
-    if isinstance(k8s_values, dict):
-        permission = k8s_values.get("permission")
-        if isinstance(permission, str) and permission:
-            return permission
-
-    return None
 
 
 class InvenioService:
@@ -145,7 +131,7 @@ class InvenioService:
         Returns:
             Tuple of (is_eligible, reason)
         """
-        access = _resolve_app_access(app_instance)
+        access = resolve_app_access(app_instance)
 
         # Check if app is public
         if access != "public":

@@ -59,3 +59,23 @@ def resolve_app_image(app_instance) -> str | None:
                 return k8s_image
 
     return None
+
+
+def resolve_app_access(app_instance) -> str | None:
+    """
+    Resolve the effective access level from an app instance.
+
+    Some app types store access directly on the model, while others may only
+    have the effective permission reflected in `k8s_values`.
+    """
+    access = getattr(app_instance, "access", None)
+    if isinstance(access, str) and access:
+        return access
+
+    k8s_values = getattr(app_instance, "k8s_values", None) or {}
+    if isinstance(k8s_values, dict):
+        permission = k8s_values.get("permission")
+        if isinstance(permission, str) and permission:
+            return permission
+
+    return None

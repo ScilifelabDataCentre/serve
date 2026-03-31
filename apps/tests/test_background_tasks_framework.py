@@ -515,7 +515,10 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
         run_id=run_id,
     )
 
-    with patch.object(deploy_resource, "delay") as mock_deploy:
+    with patch(
+        "apps.background_tasks.feature_flags.background_tasks_nonblocking_deploy",
+        return_value=False,
+    ), patch.object(deploy_resource, "delay") as mock_deploy:
         result = check_tasks_and_deploy(
             previous_results=None,
             app_instance_id=app_instance.id,
