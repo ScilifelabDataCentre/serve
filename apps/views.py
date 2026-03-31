@@ -572,7 +572,8 @@ def _build_progress_state(instance, progress_mode=None, run_id=None):
         progress_state = _build_progress_payload(
             instance,
             tasks_data,
-            expecting_fresh_tasks=has_registered_tasks and (run_id is not None or deployment_inputs["is_transitioning"]),
+            expecting_fresh_tasks=has_registered_tasks
+            and (run_id is not None or deployment_inputs["is_transitioning"]),
             run_id=run_id,
         )
 

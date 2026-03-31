@@ -5,7 +5,6 @@ from django.test import TestCase
 from django.urls import reverse
 
 from apps.background_tasks.registry import TASK_REGISTRY
-
 from projects.models import Project, ProjectTemplate
 
 from ..models import (
