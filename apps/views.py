@@ -525,6 +525,7 @@ class BackgroundTaskStatusAPI(View):
                     "task_type": task.task_type,
                     "status": task.status,
                     "is_critical": task.is_critical,
+                    "has_validation_warning": task.has_validation_warning(),
                     "execution_order": task.execution_order,
                     "error_message": task.error_message,
                     "retry_count": task.retry_count,
