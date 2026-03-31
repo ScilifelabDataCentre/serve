@@ -102,7 +102,7 @@ class DockerImageValidator(BaseBackgroundTask):
         if not ctx.has_image:
             return _validation_result_no_image(app_instance)
         if not ctx.is_supported_registry:
-            logger.warning(
+            logger.info(
                 "Skipping Docker image validation for unsupported registry '%s' (image=%s)",
                 ctx.registry_host_str,
                 ctx.image,
@@ -281,7 +281,7 @@ class SourceCodeUrlValidator(BaseBackgroundTask):
                     headers={"User-Agent": "ScilifelabServe-SourceCodeUrlValidator/1.0"},
                 )
             except requests.RequestException as e:
-                logger.warning("Source code URL HEAD failed for %s: %s", url, e)
+                logger.info("Source code URL HEAD failed for %s: %s", url, e)
                 return fail(f"Source code URL unreachable: {e!s}", status_code=None)
 
             # Some servers respond with 405 Method Not Allowed for HEAD; try GET
@@ -299,7 +299,7 @@ class SourceCodeUrlValidator(BaseBackgroundTask):
                     # Consume a minimal amount to avoid reading full body
                     response.close()
                 except requests.RequestException as e:
-                    logger.warning("Source code URL GET failed for %s: %s", url, e)
+                    logger.info("Source code URL GET failed for %s: %s", url, e)
                     return fail(f"Source code URL unreachable: {e!s}", status_code=None)
 
             if not (200 <= response.status_code < 300):
