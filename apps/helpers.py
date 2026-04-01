@@ -357,6 +357,8 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         # Update an existing app
         user_action = "Changing"
 
+        invenio_metadata_fields = ["name", "description", "language", "funding_sources_json", "creators", "tags"]
+
         if not do_deploy:
             # Only re-deploy existing apps if one of the following fields was changed:
             redeployment_fields = [
@@ -373,12 +375,21 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
 
             # Because not all forms contain all fields, we check if the supposedly changed field
             # is actually contained in the form
+            run_background_tasks_only = False
             for field in form.changed_data:
+                logger.debug(f"Checking if changed field {field} is a redeployment field.")
                 if field.lower() in redeployment_fields and (
                     field.lower() in form.Meta.fields or field.lower() == "subdomain"
                 ):
                     # subdomain is a special field not contained in meta fields
+                    logger.debug("create_instance_from_form.redeploy_field_changed app_id=%s field=%s", app_id, field)
                     do_deploy = True
+                    break
+
+            for field in form.changed_data:
+                if field.lower() in invenio_metadata_fields:
+                    logger.debug("create_instance_from_form.invenio_metadata_changed app_id=%s field=%s", app_id, field)
+                    run_background_tasks_only = True
                     break
 
     # For existing apps, detect if access is changing from non-public to public
@@ -476,12 +487,38 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             serialized_instance.get("pk"),
         )
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
-
         _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public)
+    elif run_background_tasks_only:
+        # Only run background tasks, do not deploy
+        _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_to_public)
+        logger.info("create_instance_from_form.background_tasks_only app_id=%s instance_id=%s", app_id, instance_id)
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
-    return instance_id
+
+def _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_to_public=False, skip_deploy=True):
+    """Run background tasks (including DOI minting) for an instance, without deployment."""
+    from .tasks import run_background_tasks
+
+    logger.info(
+        "run_background_tasks_and_doi_only start for app_slug=%s instance_id=%s access_changed=%s skip_deploy=%s",
+        app_slug,
+        instance.id,
+        access_changed_to_public,
+        skip_deploy,
+    )
+
+    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(
+        instance, form, app_slug, access_changed_to_public
+    )
+
+    transaction.on_commit(
+        lambda: run_background_tasks.delay(
+            serialized_instance, app_slug, task_kwargs_by_task_name, skip_deploy=skip_deploy
+        )
+    )
+
+    return instance.id
 
 
 def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public=False):
@@ -495,6 +532,18 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
         access_changed_to_public,
     )
 
+    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(
+        instance, form, app_slug, access_changed_to_public
+    )
+
+    transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
+
+
+def _prepare_doi_task_kwargs(instance, form, app_slug, access_changed_to_public=False):
+    """
+    Prepare the serialized instance and DOI provisioning task kwargs for background tasks.
+    Returns (serialized_instance, task_kwargs_by_task_name)
+    """
     serialized_instance = instance.serialize()
 
     # Include DOI task if app is public or if access just changed to public
@@ -512,9 +561,7 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
         tags_data = form.cleaned_data.get("tags") if hasattr(form, "cleaned_data") else None
         logger.debug(f"Background task: tags_data from form: {tags_data}")
 
-        # The orchestrator will handle deployment if tasks succeed.
         task_kwargs_by_task_name = {
-            # Form-only field (not persisted on the model) needed for Invenio metadata.
             "doi_provisioning": {
                 "language": form.cleaned_data.get("language"),
                 "funding": funding_list,
@@ -526,11 +573,10 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
             "DOI provisioning will be handled by background task for public app '%s' (id=%s).", app_slug, instance.id
         )
     else:
-        # No DOI provisioning for non-public apps
         task_kwargs_by_task_name = {}
         logger.debug("Skipping DOI provisioning for non-public app '%s' (id=%s).", app_slug, instance.id)
 
-    transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
+    return serialized_instance, task_kwargs_by_task_name
 
 
 def get_subdomain_name(form):

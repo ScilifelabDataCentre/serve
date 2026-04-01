@@ -119,14 +119,22 @@ class StorageMixin:
         cleaned = super().clean()  # keep parent validations, if any
         mount_path_data: PersistentVolumeMountPath = cleaned.get("mount_path")
 
+        # Only set 'volume' and 'path' if the user actually changed mount_path or path
+        path_changed = False
+        if hasattr(self, "changed_data"):
+            path_changed = "mount_path" in self.changed_data or "path" in self.changed_data
+
         if mount_path_data is not None:
-            cleaned["volume"] = mount_path_data.volume
-            cleaned["path"] = mount_path_data.mount_path
+            if path_changed or cleaned.get("volume") != getattr(mount_path_data, "volume", None):
+                cleaned["volume"] = mount_path_data.volume
+            if path_changed or cleaned.get("path") != getattr(mount_path_data, "mount_path", None):
+                cleaned["path"] = mount_path_data.mount_path
         else:
-            # User selected "None": remove storage linkage
-            cleaned["mount_path"] = None
-            cleaned["volume"] = None
-            cleaned["path"] = ""  # or None, depending on your model
+            # Only clear fields if the user actually changed mount_path or path
+            if path_changed:
+                cleaned["mount_path"] = None
+                cleaned["volume"] = None
+                cleaned["path"] = ""  # or None, depending on your model
         return cleaned
 
 

@@ -142,11 +142,47 @@ class InvenioService:
 
         return True, "App is eligible for DOI minting"
 
+    def has_app_metadata_changed(self, app_instance: Any, new_metadata: InvenioMetadata) -> tuple[bool, str]:
+        """
+        Check if the new metadata for an app differ from the current metadata in its Invenio record.
+
+        Args:
+            app_instance: The application instance to check
+            new_metadata: The new metadata Pydantic model to compare
+
+        Returns:
+            Tuple of (changed: bool, reason: str)
+        """
+        if not app_instance.invenio_record_id:
+            logger.debug("App instance has no Invenio record ID.")
+            return False, "App does not have an Invenio record."
+
+        try:
+            current_record = self.client.get_record(app_instance.invenio_record_id)
+            current_metadata = current_record.get("metadata", {})
+        except Exception as e:
+            logger.error(f"Failed to fetch current Invenio record: {e}")
+            return False, f"Failed to fetch current Invenio record: {e}"
+
+        # Compare new_metadata to current_metadata (shallow comparison)
+        changed_fields = []
+        new_metadata_dict = new_metadata.model_dump(mode="json")
+        for key, value in new_metadata_dict.items():
+            if current_metadata.get(key) != value:
+                changed_fields.append(key)
+
+        if changed_fields:
+            logger.info(f"Metadata has changed: {', '.join(changed_fields)}")
+            return True, f"Metadata fields changed: {', '.join(changed_fields)}"
+        else:
+            logger.info("No metadata changes detected.")
+            return False, "No metadata changes detected."
+
     def create_new_record(
         self,
         app_instance: Any,
         invenio_record: InvenioRecord,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a new Invenio record for the application.
 
@@ -179,7 +215,7 @@ class InvenioService:
             raise TypeError("publish_draft did not return a dict")
         return published_record
 
-    def create_new_version(self, app_instance: Any, metadata: InvenioMetadata) -> Dict[str, Any]:
+    def create_new_version(self, app_instance: Any, metadata: InvenioMetadata) -> dict[str, Any]:
         """
         Create a new version of an existing Invenio record.
 
@@ -229,6 +265,58 @@ class InvenioService:
         if not isinstance(published_version, dict):
             raise TypeError("publish_draft did not return a dict")
         return published_version
+
+    def edit_and_publish_record(
+        self,
+        record_id: str,
+        metadata: dict[str, Any],
+        access: Optional[dict[str, Any]] = None,
+        files: Optional[dict[str, Any]] = None,
+        custom_fields: Optional[dict[str, Any]] = None,
+        pids: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        """
+        Edit a published record: create a draft, update it with new metadata, and publish it.
+
+        Args:
+            record_id: The identifier of the published record to edit.
+            metadata: The new metadata dict to update the draft with.
+            access: (Optional) Updated access options.
+            files: (Optional) Updated files options.
+            custom_fields: (Optional) Updated custom fields.
+            pids: (Optional) Updated persistent identifiers.
+
+        Returns:
+            The published record data after update.
+        """
+        logger.info(f"Editing and publishing Invenio record with ID: {record_id}")
+        # Step 1: Create a draft from the published record
+        draft_record = self.client.edit_published_record(record_id)
+        draft_id = draft_record.get("id")
+        logger.debug(f"Draft created from published record: {draft_id}")
+
+        # Step 2: Update the draft with new metadata
+        updated_draft = self.client.update_draft(
+            record_id=draft_id,
+            metadata=metadata,
+            access=access,
+            files=files,
+            custom_fields=custom_fields,
+            pids=pids,
+        )
+        logger.debug(f"Draft updated with new metadata: {updated_draft}")
+
+        # Step 3: Publish the draft
+        published_record = self.client.publish_draft(draft_id)
+        record_id_val = None
+        if hasattr(published_record, "id"):
+            record_id_val = getattr(published_record, "id", None)
+        elif isinstance(published_record, dict):
+            record_id_val = published_record.get("id", None)
+        logger.info(f"Published updated record: {record_id_val}")
+        if not isinstance(published_record, dict):
+            raise TypeError("publish_draft did not return a dict")
+        return published_record
 
     def update_app_instance(self, app_instance: Any, record_id: str, doi: str) -> None:
         """
@@ -838,13 +926,16 @@ class InvenioService:
 
         logger.info(f"Processing app '{app_data.name}' with image '{app_data.image}'")
 
+        # Always define metadata_change before use
+        metadata_change = False
         # Check eligibility for DOI minting
         is_eligible, reason = self.is_app_eligible_for_doi(app_instance)
-        if not is_eligible:
+        metadata_change, reason = self.has_app_metadata_changed(app_instance, app_data_dict)
+        if not (is_eligible or metadata_change):
             logger.info(f"Skipping DOI minting: {reason}")
             return
 
-        logger.debug("App is eligible for DOI minting, proceeding...")
+        logger.debug("App is eligible for DOI minting or updating, proceeding...")
 
         try:
             # Generate Invenio metadata
@@ -852,12 +943,17 @@ class InvenioService:
                 app_instance, additional_metadata=additional_metadata
             )
 
-            # Create or update record
-            logger.info(f"About to create or update Invenio record for app '{app_data.name}'")
-            logger.info(json.dumps(invenio_record.model_dump(mode="json", by_alias=True), indent=2))
-            if not app_instance.invenio_record_id or app_instance.invenio_record_id == "":
+            if metadata_change:
+                logger.info("Metadata has changed since last DOI minting. The Invenio record will be updated.")
+                published_record = self.edit_and_publish_record(
+                    record_id=app_instance.invenio_record_id,
+                    metadata=invenio_record.metadata.model_dump(mode="json", by_alias=True),
+                )
+            elif not app_instance.invenio_record_id or app_instance.invenio_record_id == "":
+                logger.info(f"Creating a new Invenio record for app '{app_data.name}'")
                 published_record = self.create_new_record(app_instance, invenio_record)
             else:
+                logger.info(f"Creating a new version of Invenio record for app '{app_data.name}'")
                 published_record = self.create_new_version(app_instance, invenio_record.metadata)
 
             # Extract DOI and update app instance
