@@ -57,16 +57,12 @@ class BaseForm(forms.ModelForm):
     def _normalize_unchanged_fields(self):
         """Set initial values from instance or field,
         and normalize bound data so unchanged fields are not marked as changed."""
-        import logging
-
-        logger = logging.getLogger("apps.forms.base")
         # If bound, patch self.data so missing/empty fields get their initial value
         if self.is_bound:
             self.data = self.data.copy()
             for field_name, field in self.fields.items():
                 bound_val = self.data.get(field_name)
-                logger.debug(f"BaseForm._normalize_unchanged_fields: bound data for {field_name}={bound_val!r}")
-                # Only set if initial is not None and not empty string, to avoid Tagulous/iterable issues
+                # Only set if initial is not None and not empty string
                 if (bound_val is None or bound_val == "") and field.initial is not None and field.initial != "":
                     self.data[field_name] = field.initial
 
