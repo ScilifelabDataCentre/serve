@@ -139,8 +139,15 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
 
     def clean(self):
         cleaned_data = super().clean()
-        keyword_tags_data = self.clean_keyword_tags()
-        cleaned_data["tags"] = keyword_tags_data
+        # Only update cleaned_data for fields that were actually changed by the user
+        for field in list(cleaned_data.keys()):
+            if field not in self.changed_data:
+                # Remove fields that were not changed by the user.
+                # Some fields thus far always appear changed like creators.
+                continue
+            # Fields that require special cleaning logic
+            if field == "invenio_tags":
+                cleaned_data["tags"] = self.clean_keyword_tags()
         return cleaned_data
 
     class Meta:
