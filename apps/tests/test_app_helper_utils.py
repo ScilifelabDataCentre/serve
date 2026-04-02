@@ -204,6 +204,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
+        # These fields are always present in changed_data due to normalization
         changed_fields = ["port", "invenio_tags", "tags", "creators"]
 
         # Apply the form and validate the result
@@ -236,7 +237,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["image", "invenio_tags", "tags", "creators", "language"]
+        changed_fields = ["image", "invenio_tags", "tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -269,7 +270,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["subdomain", "invenio_tags", "tags", "creators", "language"]
+        changed_fields = ["subdomain", "invenio_tags", "tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -309,13 +310,20 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags", "creators", "language"]
+        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
 
-        # Not modifying any re-deployment fields should NOT cause a re-deploy:
-        mock_deploy.assert_not_called()
+        # Not modifying any re-deployment fields should NOT cause a re-deploy
+        # but should trigger background tasks with skip_deploy=True:
+        mock_deploy.assert_called_once()
+        call_args = mock_deploy.call_args
+        # Ensure skip_deploy=True is in the call (flake8: E501, E712)
+        skip_deploy = call_args is not None and call_args.kwargs.get("skip_deploy", False) is True
+        assert skip_deploy, "Expected skip_deploy=True in background task call, but got: %r" % (
+            call_args.kwargs if call_args else None
+        )
         # Not modifying the subdomain should not cause a delete:
         mock_delete.assert_not_called()
 

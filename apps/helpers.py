@@ -495,6 +495,8 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
+    return instance_id
+
 
 def _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_to_public=False, skip_deploy=True):
     """Run background tasks (including DOI minting) for an instance, without deployment."""

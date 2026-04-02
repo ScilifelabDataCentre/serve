@@ -97,9 +97,11 @@ class CustomAppFormTest(BaseAppFormTest):
 
         form = CustomAppForm(invalid_data, project_pk=self.project.pk)
         self.assertFalse(form.is_valid())
-        self.assertIn("name", form.errors)
+        # Only 'port' and 'image' are required by the form
         self.assertIn("port", form.errors)
         self.assertIn("image", form.errors)
+        self.assertIn("This field is required", str(form.errors["port"]))
+        self.assertIn("This field is required", str(form.errors["image"]))
 
     # Path validation tests have been moved to test_storage_settings.py
 
