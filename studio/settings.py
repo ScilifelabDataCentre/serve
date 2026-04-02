@@ -402,6 +402,11 @@ GITHUB_API = "https://api.github.com"
 GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
 GITHUB_API_USERNAME = os.getenv("GITHUB_API_USERNAME")
 
+# Source code URL validation (background task)
+# Failure mode: "warning" = report in result but do not fail; "error" = raise and fail task
+SOURCE_CODE_URL_VALIDATION_FAILURE_MODE = os.getenv("SOURCE_CODE_URL_VALIDATION_FAILURE_MODE", "warning").lower()
+SOURCE_CODE_URL_VALIDATION_TIMEOUT_SECONDS = int(os.getenv("SOURCE_CODE_URL_VALIDATION_TIMEOUT_SECONDS", "10"))
+
 # Invenio API
 
 INVENIO_URL = os.getenv("INVENIO_URL")
