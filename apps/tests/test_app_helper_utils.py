@@ -923,9 +923,10 @@ def test_generate_invenio_record_validation():
 
     assert pydantic_caught_error, "Pydantic should reject invalid title type"
 
-    # Test that Pydantic catches missing required fields
+    # Test that Pydantic catches missing required fields - since all metadata fields are optional,
+    # let's test a required field from the record structure itself
     incomplete_metadata = invenio_metadata.copy()
-    del incomplete_metadata["metadata"]["title"]
+    del incomplete_metadata["access"]  # Access is required at the record level
 
     from pydantic import ValidationError
 

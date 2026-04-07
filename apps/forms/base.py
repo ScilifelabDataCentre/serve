@@ -164,6 +164,14 @@ class BaseForm(forms.ModelForm):
         instance = getattr(self, "instance", None)
         if not instance or not getattr(instance, "pk", None):
             return
+
+        # Only proceed if instance has Invenio-related attributes (skip for VolumeInstance, etc.)
+        if not hasattr(instance, "access") or not hasattr(instance, "invenio_record_id"):
+            logger.debug(
+                f"Skipping metadata fetch - instance {type(instance).__name__} doesn't have required Invenio attributes"
+            )
+            return
+
         # Fetch metadata for public app from Invenio
         if not instance.access == "public" or not instance.invenio_record_id:
             logger.info("Skipping metadata fetch from Invenio for non-public app or app without Invenio record ID.")
