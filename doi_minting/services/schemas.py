@@ -47,10 +47,12 @@ class AppData(BaseModel):
 
 
 class PersonOrOrg(BaseModel):
-    """Person or organization in Invenio metadata."""
+    """Person or organization in Invenio metadata. All fields optional, extra allowed."""
 
-    name: str
-    type: str  # 'personal' or 'organizational'
+    model_config = ConfigDict(extra="allow")
+
+    name: str | None = None
+    type: str | None = None  # 'personal' or 'organizational'
     given_name: str | None = None
     family_name: str | None = None
     identifiers: list[Identifier] | None = None
@@ -73,9 +75,11 @@ class Affiliation(BaseModel):
 
 
 class Creator(BaseModel):
-    """Creator with InvenioRDM-compatible person_or_org structure."""
+    """Creator with InvenioRDM-compatible person_or_org structure. All fields optional, extra allowed."""
 
-    person_or_org: PersonOrOrg
+    model_config = ConfigDict(extra="allow")
+
+    person_or_org: PersonOrOrg | None = None
     affiliations: list[Affiliation] | None = None
 
 
@@ -211,26 +215,23 @@ class TermMetadata(BaseModel):
 
 
 class InvenioMetadata(BaseModel):
-    """Core Invenio metadata structure with all required and optional fields."""
+    """Core Invenio metadata structure with all fields optional and extra fields allowed."""
 
-    # Required core metadata
-    title: str
-    description: str
-    publication_date: str
-    dates: list[Date]
-    publisher: str
-    resource_type: ResourceType
+    model_config = ConfigDict(extra="allow")
 
-    # People and organizations
-    creators: List[Creator]
+    # All fields are now optional
+    title: str | None = None
+    description: str | None = None
+    publication_date: str | None = None
+    dates: list[Date] | None = None
+    publisher: str | None = None
+    resource_type: ResourceType | None = None
 
-    # Identifiers and relationships
-    identifiers: List[Identifier]
+    creators: List[Creator] | None = None
+    identifiers: List[Identifier] | None = None
     related_identifiers: List[RelatedIdentifierItem] | None = None
-
-    # Optional metadata
     languages: List[Language] | None = None
-    subjects: list[Subject] | None = None  # List of subject terms for the record
+    subjects: list[Subject] | None = None
     funding: list[Funding] | None = None
 
 

@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404
 from apps.forms.field.widget import SubdomainInputGroup
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
-from doi_minting.clients.invenio_client import InvenioClient
+from doi_minting.services.invenio_svc import InvenioService
 from projects.models import Flavor, Project
 
 logger = logging.getLogger(__name__)
@@ -86,12 +86,57 @@ class BaseForm(forms.ModelForm):
 
         # Handle name
         self.fields["name"].initial = ""
-        # Initialize the tags field to existing tags or empty list
-        if self.instance and self.instance.pk and hasattr(self.instance, "tags"):
-            self.instance.refresh_from_db()
-            self._original_tags = list(self.instance.tags.all())
+        # Initialize the tags field to existing tags from database if instance exists
+        if self.instance and self.instance.pk:
+            try:
+                # Check if instance has tags attribute and get existing tags
+                if hasattr(self.instance, "tags"):
+                    self._original_tags = list(self.instance.tags.all())
+
+                # Set initial value for tags field to display existing tags
+                if "invenio_tags" in self.fields:
+                    if self._original_tags:
+                        # Convert tag objects to pipe-separated format for invenio_tags template
+                        existing_tags = [str(tag) for tag in self._original_tags]
+                        tag_string = " | ".join(existing_tags)  # Use pipe separator for template
+                        self.fields["invenio_tags"].initial = tag_string
+                        logger.info(f"Set invenio_tags field initial value from database: '{tag_string}'")
+                    else:
+                        # No existing tags found
+                        self.fields["invenio_tags"].initial = ""
+                        logger.info("No existing database tags found, initialized invenio_tags field to empty string")
+                elif "tags" in self.fields:
+                    if self._original_tags:
+                        # Convert tag objects to pipe-separated format for template display
+                        existing_tags = [str(tag) for tag in self._original_tags]
+                        tag_string = " | ".join(existing_tags)  # Use pipe separator for template
+                        self.fields["tags"].initial = tag_string
+                        logger.info(f"Set tags field initial value from database: '{tag_string}'")
+                    else:
+                        # No existing tags found
+                        self.fields["tags"].initial = ""
+                        logger.info("No existing database tags found, initialized tags field to empty string")
+                else:
+                    logger.warning(
+                        "Instance has tags attribute, but neither 'tags' nor 'invenio_tags' field found in form"
+                    )
+
+            except Exception as e:
+                logger.error(f"Error loading database tags: {e}")
+                if "tags" in self.fields:
+                    self.fields["tags"].initial = ""
+                if "invenio_tags" in self.fields:
+                    self.fields["invenio_tags"].initial = ""
+
         else:
-            self._original_tags = []
+            # New instance or no primary key yet
+            if "tags" in self.fields:
+                self.fields["tags"].initial = ""
+                logger.info("New instance - initialized tags field to empty string")
+            if "invenio_tags" in self.fields:
+                self.fields["invenio_tags"].initial = ""
+                logger.info("New instance - initialized invenio_tags field to empty string")
+
         self._restore_model_help_text()
 
     def _setup_form_helper(self):
@@ -119,33 +164,78 @@ class BaseForm(forms.ModelForm):
         instance = getattr(self, "instance", None)
         if not instance or not getattr(instance, "pk", None):
             return
-        has_language_field = "language" in self.fields
-        has_funding_field = "funding_sources_json" in self.fields
-        # Fetch from Invenio only if there is at least one metadata field to prefill.
-        if not has_language_field and not has_funding_field:
+        # Fetch metadata for public app from Invenio
+        if not instance.access == "public" or not instance.invenio_record_id:
+            logger.info("Skipping metadata fetch from Invenio for non-public app or app without Invenio record ID.")
             return
         try:
-            client = InvenioClient(
-                base_url=settings.INVENIO_URL,
-                token=settings.INVENIO_API_TOKEN,
-            )
-
-            record = None
-
             record_id = getattr(instance, "invenio_record_id", None)
-            if record_id:
-                record = client.get_record(record_id)
+            if not record_id:
+                return
 
-            if record:
-                if has_language_field:
-                    invenio_lang_id = client.extract_language_id(record)
-                    self.fields["language"].initial = invenio_lang_id
-                if has_funding_field:
-                    funding_entries = client.extract_funding(record)
-                    self.fields["funding_sources_json"].initial = json.dumps(funding_entries)
+            logger.info(f"Fetching metadata from Invenio for record ID {record_id} to populate form initial values.")
+            invenio_svc = InvenioService()
+            app_metadata = invenio_svc.get_app_metadata(record_id)
+
+            if "language" in self.fields:
+                extracted_language = invenio_svc.extract_language_id(app_metadata)
+                logger.info(
+                    f"Raw extracted language from Invenio: {extracted_language} (type: {type(extracted_language)})"
+                )
+
+                # Handle if extracted_language is a dict with title key
+                if isinstance(extracted_language, dict):
+                    language_code = extracted_language.get("id", extracted_language.get("title", ""))
+                    logger.info(f"Extracted language dict: {extracted_language}, using code: {language_code}")
+                else:
+                    language_code = extracted_language or ""
+                    logger.info(f"Extracted language string: '{language_code}'")
+
+                # Map Invenio language codes to form choice values
+                language_mapping = {
+                    "sv": "swe",
+                    "swe": "swe",
+                    "en": "eng",
+                    "eng": "eng",
+                    "other": "",
+                }
+                mapped_language = language_mapping.get(language_code, language_code)
+                self.fields["language"].initial = mapped_language
+                logger.info(f"Final language mapping: '{language_code}' -> '{mapped_language}')")
+
+            funding = invenio_svc.extract_funding(app_metadata)
+            if "funding_sources_json" in self.fields:
+                self.fields["funding_sources_json"].initial = json.dumps(funding if funding is not None else [])
+
+            # Extract creators from Invenio metadata
+            creators = invenio_svc.extract_creators(app_metadata)
+            logger.info(f"Extracted creators from Invenio: {creators} (type: {type(creators)})")
+            logger.info(f"'creators' field exists in form: {'creators' in self.fields}")
+
+            # Store creators data for CreatorsMixin to use
+            if creators:
+                self._invenio_creators = creators
+                logger.info(f"Stored {len(creators)} creators for CreatorsMixin to use")
+            else:
+                self._invenio_creators = []
+                logger.info("No creators found in Invenio metadata")
+
+            if "creators" in self.fields:
+                if creators:
+                    self.fields["creators"].initial = json.dumps(creators if creators is not None else [])
+                    logger.info(f"Set creators field initial value with {len(creators)} creators")
+                else:
+                    logger.info("No creators found in Invenio metadata")
+            else:
+                logger.info("No creators field in form - creators handled by CreatorsMixin")
 
         except Exception:
             logger.exception("Failed to fetch metadata from Invenio; leaving default initial values.")
+
+        # Re-initialize creators after metadata extraction if CreatorsMixin is being used
+        if hasattr(self, "_initialize_creators"):
+            self._initialize_creators()
+            logger.info("Re-initialized creators after Invenio metadata extraction")
 
     def clean_subdomain(self):
         cleaned_data = super().clean()

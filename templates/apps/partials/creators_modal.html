@@ -78,16 +78,55 @@ function addCreator(shouldCloseModal = true) {
   if (orcid) creatorInfo += `ORCID: ${orcid}`;
   creatorInfo += '</small>';
 
-  const newItem = `
-    <li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;"
-        data-creator='${JSON.stringify({name, lastName, affiliation, orcid})}'>
-      <div>${creatorInfo}</div>
-      <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCreator(this)">
-        <i class="fas fa-times"></i>
-      </button>
-    </li>`;
+  // Check if we're in editing mode
+  const modal = document.getElementById('creatorsModal');
+  const isEditing = modal.dataset.editingMode === 'true';
+  const editingItem = modal.editingItem;
 
-  document.getElementById('creatorsSortableList').insertAdjacentHTML('beforeend', newItem);
+  if (isEditing && editingItem) {
+    // Update existing item - rebuild the action buttons to match the original format
+    const actionButtons = `
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-info me-2">Updated</span>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-edit-creator="updated" title="Edit creator">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCreator(this)" title="Remove creator">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `;
+
+    editingItem.innerHTML = `
+      <div>${creatorInfo}</div>
+      ${actionButtons}
+    `;
+    editingItem.setAttribute('data-creator', JSON.stringify({name, lastName, affiliation, orcid}));
+
+    // Reset editing mode
+    modal.dataset.editingMode = 'false';
+    modal.editingItem = null;
+    document.getElementById('creatorsModalLabel').textContent = 'Add Creator';
+    document.getElementById('saveCreatorBtn').textContent = '✓ Save';
+  } else {
+    // Add new item
+    const newItem = `
+      <li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;"
+          data-creator='${JSON.stringify({name, lastName, affiliation, orcid})}'>
+        <div>${creatorInfo}</div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-secondary me-2">Added</span>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-edit-creator="new" title="Edit creator">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCreator(this)" title="Remove creator">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </li>`;
+
+    document.getElementById('creatorsSortableList').insertAdjacentHTML('beforeend', newItem);
+  }
 
   // Clear form fields
   clearCreatorForm();

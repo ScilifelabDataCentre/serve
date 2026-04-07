@@ -46,18 +46,50 @@ class MockInvenioClient:
                 "id": record_id,
                 "metadata": {
                     "title": "Mock App Title",
-                    "language": "en",
+                    "languages": [{"id": "swe"}],
                     "creators": [
                         {
-                            "name": "Mock Creator",
-                            "lastName": "User",
-                            "affiliation": "Mock University",
-                            "orcid": "0000-0000-0000-0000",
+                            "person_or_org": {
+                                "name": "admin@serve.scilifelab.se User",
+                                "type": "personal",
+                                "given_name": "admin@serve.scilifelab.se",
+                                "family_name": "User",
+                                "identifiers": None,
+                            },
+                            "affiliations": None,
+                        },
+                        {
+                            "person_or_org": {
+                                "name": "Jane Doe",
+                                "type": "personal",
+                                "given_name": "Jane",
+                                "family_name": "Doe",
+                                "identifiers": [
+                                    {"identifier": "https://orcid.org/0000-0002-1584-4316", "scheme": "orcid"}
+                                ],
+                            },
+                            "affiliations": [
+                                {
+                                    "name": "Example Research Institute",
+                                    "affiliationIdentifier": None,
+                                    "affiliationIdentifierScheme": None,
+                                    "schemeUri": None,
+                                }
+                            ],
+                        },
+                    ],
+                    "subjects": [{"id": None, "subject": "Genes, pX"}, {"id": None, "subject": "Antigens"}],
+                    "funding": [
+                        {
+                            "funder": {"id": "029chgv08", "name": "Wellcome Trust"},
+                            "award": {
+                                "number": "12",
+                                "title": {"en": "award 1"},
+                                "identifiers": [{"scheme": "url", "identifier": "https://url.com"}],
+                                "url": None,
+                            },
                         }
                     ],
-                    "tags": ["mock", "test"],
-                    "funding_sources_json": [{"funder_name": "Mock Funder", "award_number": "1234"}],
                 },
-                "pids": {"doi": {"identifier": "10.1234/mockdoi"}},
             }
         return {}

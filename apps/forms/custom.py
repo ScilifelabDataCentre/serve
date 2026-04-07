@@ -44,6 +44,14 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
             widget=forms.TextInput(attrs={"class": "form-control"}),
         )
 
+        # Copy database tags from tags field to invenio_tags field (for template display)
+        if "tags" in self.fields and self.fields["tags"].initial:
+            self.fields["invenio_tags"].initial = self.fields["tags"].initial
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.info(f"Copied database tags from 'tags' to 'invenio_tags': '{self.fields['tags'].initial}'")
+
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
@@ -72,7 +80,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         general_fields = [
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
-            SRVCommonDivField("invenio_tags"),
+            SRVCommonDivField("invenio_tags", template="apps/invenio_tags_field.html"),
             self.get_creators_field_layout(),
             SRVCommonDivField("access"),
             SRVCommonDivField(

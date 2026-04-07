@@ -9,7 +9,7 @@ import logging
 import time
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Optional, Type, TypedDict
+from typing import Any, Dict, List, Optional, Type, TypedDict
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -163,6 +163,12 @@ class InvenioService:
         except Exception as e:
             logger.error(f"Failed to fetch current Invenio record: {e}")
             return False, f"Failed to fetch current Invenio record: {e}"
+
+        # Ensure new_metadata is a Pydantic model before calling model_dump
+        if isinstance(new_metadata, dict):
+            from .schemas import InvenioMetadata
+
+            new_metadata = InvenioMetadata(**new_metadata)
 
         # Compare new_metadata to current_metadata (shallow comparison)
         changed_fields = []
@@ -332,6 +338,224 @@ class InvenioService:
         app_instance.save()
 
         logger.debug(f"Updated app instance - Record ID: {record_id}, DOI: {doi}")
+
+    def get_app_metadata(self, record_id: str) -> Optional["InvenioMetadata"]:
+        """
+        Retrieve metadata for a given Invenio record ID as an InvenioMetadata Pydantic model.
+
+        Args:
+            record_id: The Invenio record ID to retrieve metadata for
+        Returns:
+            InvenioMetadata instance or None if not found/invalid
+        """
+        try:
+            record = self.client.get_record(record_id)
+            metadata = record.get("metadata", {})
+            if not isinstance(metadata, dict):
+                logger.error(f"Metadata for record ID {record_id} is not a dict.")
+                return None
+            from .schemas import InvenioMetadata
+
+            try:
+                return InvenioMetadata(**metadata)
+            except Exception as validation_error:
+                logger.error(f"Validation error for InvenioMetadata (record {record_id}): {validation_error}")
+                return None
+        except Exception as e:
+            logger.error(f"Error retrieving record {record_id}: {e}")
+            return None
+
+    def extract_language_id(self, metadata: InvenioMetadata) -> Optional[str]:
+        """
+        Extract the language ID from Invenio record metadata.
+
+        Args:
+            metadata: The InvenioMetadata instance to extract language from
+        """
+
+        metadata_dict = metadata.model_dump(mode="json")
+        logger.info(f"Extracting language from metadata dict: {metadata_dict}")
+
+        if not isinstance(metadata_dict, dict):
+            logger.warning("Metadata dict is not a dict")
+            return None
+
+        languages = metadata_dict.get("languages")
+        logger.info(f"Found languages: {languages} (type: {type(languages)})")
+
+        if not isinstance(languages, list) or not languages:
+            logger.warning("Languages is not a list or is empty")
+            return None
+
+        language_entry = languages[0]
+        logger.info(f"First language entry: {language_entry} (type: {type(language_entry)})")
+
+        if not isinstance(language_entry, dict):
+            logger.warning("Language entry is not a dict")
+            return None
+
+        language_id = language_entry.get("id")
+        logger.info(f"Extracted language ID: '{language_id}' (type: {type(language_id)})")
+
+        if not isinstance(language_id, str):
+            logger.warning("Language ID is not a string")
+            return None
+
+        return language_id
+
+    def extract_funding(self, metadata: InvenioMetadata) -> Optional[list[dict[str, Any]]]:
+        """
+        Extract funding information from Invenio record metadata.
+
+        Args:
+            metadata: The InvenioMetadata instance to extract funding from
+        """
+        metadata_dict = metadata.model_dump(mode="json")
+        if not isinstance(metadata_dict, dict):
+            return None
+
+        funding = metadata.model_dump(mode="json").get("funding", None)
+        if not isinstance(funding, list):
+            return []
+
+        items: list[dict[str, Any]] = []
+        for entry in funding:
+            if not isinstance(entry, dict):
+                continue
+
+            funder = entry.get("funder")
+            if not isinstance(funder, dict):
+                continue
+
+            funder_id = funder.get("id")
+            if not isinstance(funder_id, str) or not funder_id:
+                continue
+
+            funder_name = funder.get("name")
+            if not isinstance(funder_name, str) or not funder_name:
+                funder_name = funder_id
+
+            item: Dict[str, str] = {
+                "funder_id": funder_id,
+                "funder_name": funder_name,
+            }
+
+            award = entry.get("award")
+            if isinstance(award, dict):
+                award_number = award.get("number")
+                if isinstance(award_number, str) and award_number:
+                    item["number"] = award_number
+
+                award_title = award.get("title")
+                if isinstance(award_title, str) and award_title:
+                    item["title"] = award_title
+                elif isinstance(award_title, dict) and award_title:
+                    title_en = award_title.get("en")
+                    if isinstance(title_en, str) and title_en:
+                        item["title"] = title_en
+                    else:
+                        for localized_title in award_title.values():
+                            if isinstance(localized_title, str) and localized_title:
+                                item["title"] = localized_title
+                                break
+
+                award_url = award.get("url")
+                if not (isinstance(award_url, str) and award_url):
+                    identifiers = award.get("identifiers")
+                    if isinstance(identifiers, list):
+                        for identifier_entry in identifiers:
+                            if not isinstance(identifier_entry, dict):
+                                continue
+                            if identifier_entry.get("scheme") != "url":
+                                continue
+                            identifier_value = identifier_entry.get("identifier")
+                            if isinstance(identifier_value, str) and identifier_value:
+                                award_url = identifier_value
+                                break
+                if isinstance(award_url, str) and award_url:
+                    item["url"] = award_url
+
+            items.append(item)
+
+        return items
+
+    def extract_creators(self, metadata: InvenioMetadata) -> Optional[list[dict[str, Any]]]:
+        creators = metadata.model_dump(mode="json").get("creators", None)
+        logger.info(f"Extracting creators from metadata: {creators} (type: {type(creators)})")
+
+        if not creators or not isinstance(creators, list):
+            logger.warning("No creators found or creators is not a list")
+            return []
+
+        items: list[dict[str, str]] = []
+        for i, entry in enumerate(creators):
+            logger.info(f"Processing creator {i}: {entry}")
+
+            if not isinstance(entry, dict):
+                logger.warning(f"Creator {i} is not a dict, skipping")
+                continue
+
+            # Handle new nested person_or_org structure
+            person_or_org = entry.get("person_or_org")
+            logger.info(f"Creator {i} person_or_org: {person_or_org}")
+
+            if not isinstance(person_or_org, dict):
+                logger.warning(f"Creator {i} person_or_org is not a dict, skipping")
+                continue
+
+            creator_name = person_or_org.get("name")
+            if not isinstance(creator_name, str) or not creator_name:
+                # Fall back to constructing name from given_name and family_name
+                given_name = person_or_org.get("given_name", "")
+                family_name = person_or_org.get("family_name", "")
+                logger.info(f"Creator {i} constructing name from given: '{given_name}', family: '{family_name}'")
+
+                if given_name and family_name:
+                    creator_name = f"{given_name} {family_name}"
+                elif given_name or family_name:
+                    creator_name = given_name or family_name
+                else:
+                    logger.warning(f"Creator {i} has no name information, skipping")
+                    continue  # Skip if no name available
+
+            # Extract affiliation information
+            affiliation = ""
+            affiliations = entry.get("affiliations")
+            logger.info(f"Creator {i} affiliations: {affiliations}")
+
+            if isinstance(affiliations, list) and affiliations:
+                # Get the first affiliation's name
+                first_affiliation = affiliations[0]
+                if isinstance(first_affiliation, dict):
+                    affiliation = first_affiliation.get("name", "")
+                    logger.info(f"Creator {i} extracted affiliation: '{affiliation}'")
+
+            # Extract ORCID from identifiers
+            orcid = ""
+            identifiers = person_or_org.get("identifiers")
+            logger.info(f"Creator {i} identifiers: {identifiers}")
+
+            if isinstance(identifiers, list):
+                for identifier in identifiers:
+                    if isinstance(identifier, dict) and identifier.get("scheme") == "orcid":
+                        orcid = identifier.get("identifier", "")
+                        logger.info(f"Creator {i} found ORCID: '{orcid}'")
+                        break
+
+            # Use ORCID as creator_id if available, otherwise use name
+            creator_id = orcid or creator_name
+
+            item: dict[str, str] = {
+                "creator_id": creator_id,
+                "creator_name": creator_name,
+                "affiliation": affiliation,
+            }
+            logger.info(f"Creator {i} final item: {item}")
+
+            items.append(item)
+
+        logger.info(f"Extracted {len(items)} creators total: {items}")
+        return items
 
     def _apply_additional_invenio_metadata(
         self, target_metadata: dict[str, Any], extra: AdditionalMetadata
@@ -861,6 +1085,7 @@ class InvenioService:
 
         # Log the generated metadata
         logger.info(f"Generated Invenio metadata for app '{app_data.name}'")
+        logger.info(json.dumps(invenio_record.model_dump(mode="json", by_alias=True), indent=2))
 
         return invenio_record
 
@@ -930,7 +1155,10 @@ class InvenioService:
         metadata_change = False
         # Check eligibility for DOI minting
         is_eligible, reason = self.is_app_eligible_for_doi(app_instance)
-        metadata_change, reason = self.has_app_metadata_changed(app_instance, app_data_dict)
+
+        # Generate Invenio metadata for comparison
+        invenio_record = self.generate_invenio_record(app_instance, additional_metadata=additional_metadata)
+        metadata_change, reason = self.has_app_metadata_changed(app_instance, invenio_record.metadata)
         if not (is_eligible or metadata_change):
             logger.info(f"Skipping DOI minting: {reason}")
             return
@@ -939,7 +1167,7 @@ class InvenioService:
 
         try:
             # Generate Invenio metadata
-            invenio_record: InvenioRecord = self.generate_invenio_record(
+            updated_invenio_record: InvenioRecord = self.generate_invenio_record(
                 app_instance, additional_metadata=additional_metadata
             )
 
@@ -947,14 +1175,14 @@ class InvenioService:
                 logger.info("Metadata has changed since last DOI minting. The Invenio record will be updated.")
                 published_record = self.edit_and_publish_record(
                     record_id=app_instance.invenio_record_id,
-                    metadata=invenio_record.metadata.model_dump(mode="json", by_alias=True),
+                    metadata=updated_invenio_record.metadata.model_dump(mode="json", by_alias=True),
                 )
             elif not app_instance.invenio_record_id or app_instance.invenio_record_id == "":
                 logger.info(f"Creating a new Invenio record for app '{app_data.name}'")
-                published_record = self.create_new_record(app_instance, invenio_record)
+                published_record = self.create_new_record(app_instance, updated_invenio_record)
             else:
                 logger.info(f"Creating a new version of Invenio record for app '{app_data.name}'")
-                published_record = self.create_new_version(app_instance, invenio_record.metadata)
+                published_record = self.create_new_version(app_instance, updated_invenio_record.metadata)
 
             # Extract DOI and update app instance
             published_doi = published_record.get("pids", {}).get("doi", {}).get("identifier", "")
