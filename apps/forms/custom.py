@@ -44,13 +44,20 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
             widget=forms.TextInput(attrs={"class": "form-control"}),
         )
 
-        # Copy database tags from tags field to invenio_tags field (for template display)
-        if "tags" in self.fields and self.fields["tags"].initial:
-            self.fields["invenio_tags"].initial = self.fields["tags"].initial
-            import logging
+        # Load existing tags into the invenio_tags field after creating it
+        self._load_existing_tags_to_invenio_field()
 
-            logger = logging.getLogger(__name__)
-            logger.info(f"Copied database tags from 'tags' to 'invenio_tags': '{self.fields['tags'].initial}'")
+    def _load_existing_tags_to_invenio_field(self):
+        """Load existing database tags into the invenio_tags field"""
+        if self.instance and self.instance.pk and hasattr(self.instance, "tags"):
+            existing_tags = list(self.instance.tags.all())
+            if existing_tags:
+                # Convert tag objects to pipe-separated format for template
+                tag_names = [str(tag) for tag in existing_tags]
+                tag_string = " | ".join(tag_names)
+                self.fields["invenio_tags"].initial = tag_string
+            else:
+                self.fields["invenio_tags"].initial = ""
 
     def _setup_form_fields(self):
         # Handle Volume field
@@ -147,15 +154,20 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
 
     def clean(self):
         cleaned_data = super().clean()
-        # Only update cleaned_data for fields that were actually changed by the user
-        for field in list(cleaned_data.keys()):
-            if field not in self.changed_data:
-                # Remove fields that were not changed by the user.
-                # Some fields thus far always appear changed like creators.
-                continue
-            # Fields that require special cleaning logic
-            if field == "invenio_tags":
+        # Always handle tags field - preserve existing tags even if not changed
+        if "invenio_tags" in self.fields:
+            # Get the current value from the invenio_tags field
+            invenio_tags_value = cleaned_data.get("invenio_tags", "") or self.fields["invenio_tags"].initial or ""
+
+            if invenio_tags_value:
+                # Process the tags using the existing cleaning logic
                 cleaned_data["tags"] = self.clean_keyword_tags()
+            elif self.instance and self.instance.pk and hasattr(self.instance, "tags"):
+                # If no tags in form but instance has existing tags, preserve them
+                existing_tags = list(self.instance.tags.all())
+                if existing_tags:
+                    # Keep existing tags as they are
+                    cleaned_data["tags"] = existing_tags
         return cleaned_data
 
     class Meta:

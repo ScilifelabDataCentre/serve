@@ -23,10 +23,10 @@
     var tagsList = document.getElementById("tagsList");
 
     if (field && tagsList) {
-      console.log('Field value raw:', field.value);
-      console.log('Field value type:', typeof field.value);
-
-      var tags = field.value.split("|").map(function(tag) { return tag.trim(); }).filter(Boolean);
+      var fieldValue = field.value || "";
+      if (fieldValue.trim()) {
+        var tags = fieldValue.split("|").map(function(tag) { return tag.trim(); }).filter(Boolean);
+      }
     }
   });
   </script>
