@@ -206,15 +206,6 @@ class BaseForm(forms.ModelForm):
                 self._invenio_creators = []
                 logger.info("No creators found in Invenio metadata")
 
-            if "creators" in self.fields:
-                if creators:
-                    self.fields["creators"].initial = json.dumps(creators if creators is not None else [])
-                    logger.info(f"Set creators field initial value with {len(creators)} creators")
-                else:
-                    logger.info("No creators found in Invenio metadata")
-            else:
-                logger.info("No creators field in form - creators handled by CreatorsMixin")
-
         except Exception:
             logger.exception("Failed to fetch metadata from Invenio; leaving default initial values.")
 
