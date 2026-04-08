@@ -73,56 +73,12 @@ class BaseForm(forms.ModelForm):
 
         # Handle name
         self.fields["name"].initial = ""
-        # Initialize the tags field to existing tags from database if instance exists
-        if self.instance and self.instance.pk:
-            try:
-                # Check if instance has tags attribute and get existing tags
-                if hasattr(self.instance, "tags"):
-                    self._original_tags = list(self.instance.tags.all())
-
-                # Set initial value for tags field to display existing tags
-                if "invenio_tags" in self.fields:
-                    if self._original_tags:
-                        # Convert tag objects to pipe-separated format for invenio_tags template
-                        existing_tags = [str(tag) for tag in self._original_tags]
-                        tag_string = " | ".join(existing_tags)  # Use pipe separator for template
-                        self.fields["invenio_tags"].initial = tag_string
-                        logger.info(f"Set invenio_tags field initial value from database: '{tag_string}'")
-                    else:
-                        # No existing tags found
-                        self.fields["invenio_tags"].initial = ""
-                        logger.info("No existing database tags found, initialized invenio_tags field to empty string")
-                elif "tags" in self.fields:
-                    if self._original_tags:
-                        # Convert tag objects to pipe-separated format for template display
-                        existing_tags = [str(tag) for tag in self._original_tags]
-                        tag_string = " | ".join(existing_tags)  # Use pipe separator for template
-                        self.fields["tags"].initial = tag_string
-                        logger.info(f"Set tags field initial value from database: '{tag_string}'")
-                    else:
-                        # No existing tags found
-                        self.fields["tags"].initial = ""
-                        logger.info("No existing database tags found, initialized tags field to empty string")
-                else:
-                    logger.warning(
-                        "Instance has tags attribute, but neither 'tags' nor 'invenio_tags' field found in form"
-                    )
-
-            except Exception as e:
-                logger.error(f"Error loading database tags: {e}")
-                if "tags" in self.fields:
-                    self.fields["tags"].initial = ""
-                if "invenio_tags" in self.fields:
-                    self.fields["invenio_tags"].initial = ""
-
+        # Initialize the tags field to existing tags or empty list
+        if self.instance and self.instance.pk and hasattr(self.instance, "tags"):
+            self.instance.refresh_from_db()
+            self._original_tags = list(self.instance.tags.all())
         else:
-            # New instance or no primary key yet
-            if "tags" in self.fields:
-                self.fields["tags"].initial = ""
-                logger.info("New instance - initialized tags field to empty string")
-            if "invenio_tags" in self.fields:
-                self.fields["invenio_tags"].initial = ""
-                logger.info("New instance - initialized invenio_tags field to empty string")
+            self._original_tags = []
 
         self._restore_model_help_text()
 
