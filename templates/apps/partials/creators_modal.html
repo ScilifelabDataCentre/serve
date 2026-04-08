@@ -174,8 +174,12 @@ function syncCreatorButtons() {
 }
 
 function removeCreator(button) {
-  button.parentElement.remove();
-  updateCreatorsField();
+  // Find the list item that contains this button
+  const listItem = button.closest('li[data-creator]');
+  if (listItem) {
+    listItem.remove();
+    updateCreatorsField();
+  }
 }
 
 function updateCreatorsField() {

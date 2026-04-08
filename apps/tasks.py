@@ -998,20 +998,20 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
         }
 
     # All critical tasks passed - proceed with deployment unless skip_deploy is True
-    if not skip_deploy:
+    if skip_deploy:
+        logger.info(f"All critical tasks passed for app {app_instance_id}. Skipping deployment (skip_deploy=True).")
+        return {
+            "success": True,
+            "deployed": False,
+            "message": "All tasks completed, deployment skipped (skip_deploy=True)",
+        }
+    else:
         logger.info(f"All critical tasks passed for app {app_instance_id}. Proceeding with deployment.")
         transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
         return {
             "success": True,
             "deployed": True,
             "message": "All tasks completed, deployment started",
-        }
-    else:
-        logger.info(f"All critical tasks passed for app {app_instance_id}. Skipping deployment (skip_deploy=True).")
-        return {
-            "success": True,
-            "deployed": False,
-            "message": "All tasks completed, deployment skipped (skip_deploy=True)",
         }
 
 

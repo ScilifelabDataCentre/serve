@@ -337,12 +337,108 @@ class BaseForm(forms.ModelForm):
 
     @property
     def changed_data(self):
-        # Override the default changed_data to handle the tags field
-        changed_data = super().changed_data
-        if "tags" in changed_data and hasattr(self.instance, "tags"):
-            new_tags = self.cleaned_data.get("tags", [])
-            if list(new_tags) == self._original_tags:
-                changed_data.remove("tags")
+        """Override changed_data to handle fields that are falsely flagged as changed."""
+        changed_data = super().changed_data.copy() if hasattr(super(), "changed_data") else []
+
+        # Handle creators field - compare JSON data to avoid false positives
+        if "creators" in changed_data and self.instance and self.instance.pk:
+            try:
+                import json
+
+                current_creators = self.data.get("creators", "") or "[]"
+                initial_creators = self.fields["creators"].initial or "[]"
+
+                # Parse both JSON strings and compare the data structures
+                current_data = json.loads(current_creators) if current_creators else []
+                initial_data = json.loads(initial_creators) if initial_creators else []
+
+                # If the data is the same, remove from changed_data
+                if current_data == initial_data:
+                    changed_data.remove("creators")
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # If there's an error parsing, keep the field in changed_data to be safe
+                pass
+
+        # Handle path field - compare current value with initial form value
+        if "path" in changed_data and self.instance and self.instance.pk:
+            try:
+                current_path = self.data.get("path", "") or ""
+                initial_path = self.fields["path"].initial or ""
+
+                # If the paths are the same, remove from changed_data
+                if current_path == initial_path:
+                    changed_data.remove("path")
+            except (AttributeError, KeyError):
+                # If there's an error, keep the field in changed_data to be safe
+                pass
+
+        # Handle tags field - compare current input with initial tags
+        if "tags" in changed_data and self.instance and self.instance.pk:
+            try:
+                # Try invenio_tags field first, then tags field
+                current_tags_input = self.data.get("invenio_tags", "") or self.data.get("tags", "") or ""
+                initial_tags_input = None
+
+                if "invenio_tags" in self.fields:
+                    initial_tags_input = self.fields["invenio_tags"].initial or ""
+                elif hasattr(self, "_original_tags") and self._original_tags:
+                    # Fallback to database tags formatted as pipe-separated
+                    initial_tags_input = " | ".join(str(tag) for tag in self._original_tags)
+                else:
+                    initial_tags_input = ""
+
+                # If the tag input is the same, remove from changed_data
+                if current_tags_input == initial_tags_input:
+                    changed_data.remove("tags")
+            except (AttributeError, KeyError):
+                # If there's an error, keep the field in changed_data to be safe
+                pass
+
+        # Handle language field - compare current value with initial form value
+        if "language" in changed_data and self.instance and self.instance.pk:
+            try:
+                current_language = self.data.get("language", "") or ""
+                initial_language = self.fields["language"].initial or ""
+
+                # If the languages are the same, remove from changed_data
+                if current_language == initial_language:
+                    changed_data.remove("language")
+            except (AttributeError, KeyError):
+                # If there's an error, keep the field in changed_data to be safe
+                pass
+
+        # Handle funding_sources_json field - compare JSON data
+        if "funding_sources_json" in changed_data and self.instance and self.instance.pk:
+            try:
+                import json
+
+                current_funding = self.data.get("funding_sources_json", "") or "[]"
+                initial_funding = self.fields["funding_sources_json"].initial or "[]"
+
+                # Parse both JSON strings and compare the data structures
+                current_data = json.loads(current_funding) if current_funding else []
+                initial_data = json.loads(initial_funding) if initial_funding else []
+
+                # If the data is the same, remove from changed_data
+                if current_data == initial_data:
+                    changed_data.remove("funding_sources_json")
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # If there's an error parsing, keep the field in changed_data to be safe
+                pass
+
+        # Handle volume field - compare current value with initial form value
+        if "volume" in changed_data and self.instance and self.instance.pk:
+            try:
+                current_volume = self.data.get("volume", "") or ""
+                initial_volume = str(self.fields["volume"].initial or "")
+
+                # If the volumes are the same, remove from changed_data
+                if current_volume == initial_volume:
+                    changed_data.remove("volume")
+            except (AttributeError, KeyError):
+                # If there's an error, keep the field in changed_data to be safe
+                pass
+
         return changed_data
 
     class Meta:
