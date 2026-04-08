@@ -44,7 +44,6 @@ class BaseForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
 
-        self._normalize_unchanged_fields()
         self._setup_form_fields()
         self.add_metadata()
         self._setup_form_helper()
@@ -53,18 +52,6 @@ class BaseForm(forms.ModelForm):
                 field.widget.attrs["class"] = "form-select"
             else:
                 field.widget.attrs["class"] = "form-control"
-
-    def _normalize_unchanged_fields(self):
-        """Set initial values from instance or field,
-        and normalize bound data so unchanged fields are not marked as changed."""
-        # If bound, patch self.data so missing/empty fields get their initial value
-        if self.is_bound:
-            self.data = self.data.copy()
-            for field_name, field in self.fields.items():
-                bound_val = self.data.get(field_name)
-                # Only set if initial is not None and not empty string
-                if (bound_val is None or bound_val == "") and field.initial is not None and field.initial != "":
-                    self.data[field_name] = field.initial
 
     # restore helptext for model in case it is rest in form
     def _restore_model_help_text(self):
@@ -199,17 +186,8 @@ class BaseForm(forms.ModelForm):
                     language_code = extracted_language or ""
                     logger.info(f"Extracted language string: '{language_code}'")
 
-                # Map Invenio language codes to form choice values
-                language_mapping = {
-                    "sv": "swe",
-                    "swe": "swe",
-                    "en": "eng",
-                    "eng": "eng",
-                    "other": "",
-                }
-                mapped_language = language_mapping.get(language_code, language_code)
-                self.fields["language"].initial = mapped_language
-                logger.info(f"Final language mapping: '{language_code}' -> '{mapped_language}')")
+                self.fields["language"].initial = language_code
+                logger.info(f"Final language mapping: {language_code}")
 
             funding = invenio_svc.extract_funding(app_metadata)
             if "funding_sources_json" in self.fields:
