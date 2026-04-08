@@ -157,12 +157,11 @@ class InvenioService:
             logger.debug("App instance has no Invenio record ID.")
             return False, "App does not have an Invenio record."
 
-        try:
-            current_record = self.client.get_record(app_instance.invenio_record_id)
-            current_metadata = current_record.get("metadata", {})
-        except Exception as e:
-            logger.error(f"Failed to fetch current Invenio record: {e}")
-            return False, f"Failed to fetch current Invenio record: {e}"
+        # Use get_app_metadata to fetch current metadata
+        current_metadata_obj = self.get_app_metadata(app_instance.invenio_record_id)
+        if current_metadata_obj is None:
+            logger.error("Failed to fetch current Invenio record metadata.")
+            return False, "Failed to fetch current Invenio record metadata."
 
         # Ensure new_metadata is a Pydantic model before calling model_dump
         if isinstance(new_metadata, dict):
@@ -173,8 +172,10 @@ class InvenioService:
         # Compare new_metadata to current_metadata (shallow comparison)
         changed_fields = []
         new_metadata_dict = new_metadata.model_dump(mode="json")
+        current_metadata_dict = current_metadata_obj.model_dump(mode="json")
+
         for key, value in new_metadata_dict.items():
-            if current_metadata.get(key) != value:
+            if current_metadata_dict.get(key) != value:
                 changed_fields.append(key)
 
         if changed_fields:
@@ -1176,6 +1177,7 @@ class InvenioService:
                 published_record = self.edit_and_publish_record(
                     record_id=app_instance.invenio_record_id,
                     metadata=updated_invenio_record.metadata.model_dump(mode="json", by_alias=True),
+                    files={"enabled": False},
                 )
             elif not app_instance.invenio_record_id or app_instance.invenio_record_id == "":
                 logger.info(f"Creating a new Invenio record for app '{app_data.name}'")
