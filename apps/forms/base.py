@@ -325,8 +325,13 @@ class BaseForm(forms.ModelForm):
                 current_language = self.data.get("language", "") or ""
                 initial_language = self.fields["language"].initial or ""
 
-                # If the languages are the same, remove from changed_data
-                if current_language == initial_language:
+                # For form-only fields (not stored in model), if form data is missing but field has initial,
+                # treat missing as initial value (not changed)
+                if not hasattr(self.instance, "language") and current_language == "" and initial_language:
+                    # Missing form data should be treated as initial value
+                    changed_data.remove("language")
+                elif current_language == initial_language:
+                    # Values are the same, so no change
                     changed_data.remove("language")
             except (AttributeError, KeyError):
                 # If there's an error, keep the field in changed_data to be safe
