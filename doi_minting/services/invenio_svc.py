@@ -9,7 +9,7 @@ import logging
 import time
 import traceback
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, TypedDict
+from typing import Any, List, Optional, Type, TypedDict
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -484,7 +484,7 @@ class InvenioService:
             if not isinstance(funder_name, str) or not funder_name:
                 funder_name = funder_id
 
-            item: Dict[str, str] = {
+            item: dict[str, str] = {
                 "funder_id": funder_id,
                 "funder_name": funder_name,
             }
@@ -1017,7 +1017,7 @@ class InvenioService:
             raise ValueError(f"User with id {app_instance.owner_id} does not exist") from error
 
         # Convert models to dictionaries
-        user_data: Dict[str, Any] = model_to_dict(user_instance, exclude=["_state", "password"])
+        user_data: dict[str, Any] = model_to_dict(user_instance, exclude=["_state", "password"])
 
         # Get user profile data for ORCID and affiliation
         user_orcid = ""
@@ -1229,28 +1229,23 @@ class InvenioService:
         logger.debug("App is eligible for DOI minting or updating, proceeding...")
 
         try:
-            # Generate Invenio metadata
-            updated_invenio_record: InvenioRecord = self.generate_invenio_record(
-                app_instance, additional_metadata=additional_metadata
-            )
-
             # Prioritize image change (new version) over metadata change (edit record)
             if image_change:
                 logger.info(f"App image has changed: {image_reason}. Creating new version.")
-                published_record = self.create_new_version(app_instance, updated_invenio_record.metadata)
+                published_record = self.create_new_version(app_instance, invenio_record.metadata)
             elif metadata_change:
                 logger.info(f"Metadata has changed: {metadata_reason}. Updating existing record.")
                 published_record = self.edit_and_publish_record(
                     record_id=app_instance.invenio_record_id,
-                    metadata=updated_invenio_record.metadata.model_dump(mode="json", by_alias=True),
+                    metadata=invenio_record.metadata.model_dump(mode="json", by_alias=True),
                     files={"enabled": False},
                 )
             elif not app_instance.invenio_record_id or app_instance.invenio_record_id == "":
                 logger.info(f"Creating a new Invenio record for app '{app_data.name}'")
-                published_record = self.create_new_record(app_instance, updated_invenio_record)
+                published_record = self.create_new_record(app_instance, invenio_record)
             else:
                 logger.info(f"Creating a new version of Invenio record for app '{app_data.name}'")
-                published_record = self.create_new_version(app_instance, updated_invenio_record.metadata)
+                published_record = self.create_new_version(app_instance, invenio_record.metadata)
 
             # Extract DOI and update app instance
             published_doi = published_record.get("pids", {}).get("doi", {}).get("identifier", "")
