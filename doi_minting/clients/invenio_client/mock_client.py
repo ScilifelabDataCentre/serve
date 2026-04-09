@@ -46,7 +46,17 @@ class MockInvenioClient:
                 "id": record_id,
                 "metadata": {
                     "title": "Mock App Title",
+                    "description": "Mock description of the app.",
+                    "publication_date": "2024-01-01",
+                    "publisher": "Mock Publisher",
+                    "resource_type": {"id": "software", "title": {"en": "Software"}},
                     "languages": [{"id": "swe"}],
+                    "dates": [
+                        {"date": "2024-01-01T10:00:00+00:00", "type": {"id": "submitted"}},
+                        {"date": "2024-01-02T12:00:00+00:00", "type": {"id": "updated"}},
+                        {"date": "2024-01-03T14:00:00+00:00", "type": {"id": "available"}},
+                    ],
+                    "identifiers": [{"identifier": "SERVE:mock-app-id", "scheme": "other"}],
                     "creators": [
                         {
                             "person_or_org": {
@@ -83,19 +93,19 @@ class MockInvenioClient:
                         {
                             "identifier": "https://ghcr.io/scilifelabdatacentre/example-dash:240314-1126",
                             "scheme": "url",
-                            "relation_type": {"id": "hasversion"},
-                            "resource_type": {"id": "software"},
+                            "relation_type": {"id": "hasversion", "title": {"en": "Has version"}},
+                            "resource_type": {"id": "software", "title": {"en": "Software"}},
                         },
                         {
                             "identifier": "https://r72a47ca4.studio.127.0.0.1.nip.io",
                             "scheme": "url",
-                            "relation_type": {"id": "issourceof"},
-                            "resource_type": {"id": "software"},
+                            "relation_type": {"id": "issourceof", "title": {"en": "Is source of"}},
+                            "resource_type": {"id": "software", "title": {"en": "Software"}},
                         },
                     ],
                     "funding": [
                         {
-                            "funder": {"id": "029chgv08", "name": "Wellcome Trust"},
+                            "funder": {"id": "039qvmf95", "name": "Wallenberg Wood Science Center"},
                             "award": {
                                 "number": "12",
                                 "title": {"en": "award 1"},

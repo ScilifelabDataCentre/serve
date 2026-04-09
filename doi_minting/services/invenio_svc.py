@@ -421,6 +421,9 @@ class InvenioService:
         Args:
             metadata: The InvenioMetadata instance to extract language from
         """
+        if metadata is None:
+            logger.warning("Metadata is None, cannot extract language")
+            return None
 
         metadata_dict = metadata.model_dump(mode="json")
         logger.info(f"Extracting language from metadata dict: {metadata_dict}")
@@ -459,6 +462,10 @@ class InvenioService:
         Args:
             metadata: The InvenioMetadata instance to extract funding from
         """
+        if metadata is None:
+            logger.warning("Metadata is None, cannot extract funding")
+            return None
+
         metadata_dict = metadata.model_dump(mode="json")
         if not isinstance(metadata_dict, dict):
             return None
@@ -529,6 +536,10 @@ class InvenioService:
         return items
 
     def extract_creators(self, metadata: InvenioMetadata) -> Optional[list[dict[str, Any]]]:
+        if metadata is None:
+            logger.warning("Metadata is None, cannot extract creators")
+            return None
+
         creators = metadata.model_dump(mode="json").get("creators", None)
         logger.info(f"Extracting creators from metadata: {creators} (type: {type(creators)})")
 

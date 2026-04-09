@@ -215,21 +215,24 @@ class TermMetadata(BaseModel):
 
 
 class InvenioMetadata(BaseModel):
-    """Core Invenio metadata structure with all fields optional and extra fields allowed."""
+    """Core Invenio metadata structure with all required and optional fields."""
 
     model_config = ConfigDict(extra="allow")
 
-    # All fields are now optional
-    title: str | None = None
-    description: str | None = None
-    publication_date: str | None = None
-    dates: list[Date] | None = None
-    publisher: str | None = None
-    resource_type: ResourceType | None = None
+    # All fields are now required
+    title: str
+    description: str
+    publication_date: str
+    dates: list[Date]
+    publisher: str
+    resource_type: ResourceType
+    creators: List[Creator]
 
-    creators: List[Creator] | None = None
+    # Identifiers and relationships
     identifiers: List[Identifier] | None = None
     related_identifiers: List[RelatedIdentifierItem] | None = None
+
+    # Optional metadata fields
     languages: List[Language] | None = None
     subjects: list[Subject] | None = None
     funding: list[Funding] | None = None
