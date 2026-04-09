@@ -881,8 +881,8 @@ class InvenioService:
         if app_data.image:
             related_ids.append(
                 RelatedIdentifierItem(
-                    identifier=app_data.image,
-                    scheme="other",
+                    identifier=f"https://{app_data.image}",
+                    scheme="url",
                     relation_type=RelationType(id="hasversion", title={"en": "Has image version"}),
                     resource_type=ResourceType(id="software"),
                 )
