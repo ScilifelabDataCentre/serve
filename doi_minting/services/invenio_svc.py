@@ -142,13 +142,16 @@ class InvenioService:
 
         return True, "App is eligible for DOI minting"
 
-    def has_app_metadata_changed(self, app_instance: Any, new_metadata: InvenioMetadata) -> tuple[bool, str]:
+    def has_app_metadata_changed(
+        self, app_instance: Any, new_metadata: InvenioMetadata, current_metadata_obj: Optional["InvenioMetadata"] = None
+    ) -> tuple[bool, str]:
         """
         Check if the new metadata for an app differ from the current metadata in its Invenio record.
 
         Args:
             app_instance: The application instance to check
             new_metadata: The new metadata Pydantic model to compare
+            current_metadata_obj: Optional current metadata to avoid fetching it again
 
         Returns:
             Tuple of (changed: bool, reason: str)
@@ -157,11 +160,8 @@ class InvenioService:
             logger.debug("App instance has no Invenio record ID.")
             return False, "App does not have an Invenio record."
 
-        # Use get_app_metadata to fetch current metadata
-        current_metadata_obj = self.get_app_metadata(app_instance.invenio_record_id)
         if current_metadata_obj is None:
-            logger.error("Failed to fetch current Invenio record metadata.")
-            return False, "Failed to fetch current Invenio record metadata."
+            return False, "Current metadata not provided for metadata check."
 
         # Ensure new_metadata is a Pydantic model before calling model_dump
         if isinstance(new_metadata, dict):
@@ -184,6 +184,54 @@ class InvenioService:
         else:
             logger.info("No metadata changes detected.")
             return False, "No metadata changes detected."
+
+    def has_app_image_changed(
+        self, app_instance: Any, new_image: str, current_metadata_obj: Optional["InvenioMetadata"] = None
+    ) -> tuple[bool, str]:
+        """Check if the app image has changed compared to the current Invenio record."""
+        if not app_instance.invenio_record_id:
+            return False, "No Invenio record exists"
+
+        try:
+            # Use provided metadata or fetch it
+            if current_metadata_obj is None:
+                return False, "Current metadata not provided for image check."
+            else:
+                current_metadata_dict = current_metadata_obj.model_dump(mode="json")
+                related_ids = current_metadata_dict.get("related_identifiers") or []
+                logger.debug(f"Using provided metadata for image check: {current_metadata_dict}")
+
+            # Ensure related_ids is a list (handle None case)
+            if related_ids is None:
+                related_ids = []
+
+            logger.debug(f"Related identifiers for image check: {related_ids}")
+
+            # Find current image URL (relation_type with "hasversion")
+            current_image_url = None
+            for rel_id in related_ids:
+                logger.debug(f"Checking related identifier: {rel_id}")
+                relation_type_id = rel_id.get("relation_type", {}).get("id", "").lower()
+                logger.debug(f"Relation type ID: {relation_type_id}")
+                if relation_type_id == "hasversion":
+                    current_image_url = rel_id.get("identifier", "")
+                    logger.debug(f"Found current image URL: {current_image_url}")
+                    break
+
+            # Convert new image to URL format
+            new_image_url = f"https://{new_image}" if not new_image.startswith(("http://", "https://")) else new_image
+            logger.debug(f"New image URL: {new_image_url}")
+            logger.debug(f"Current image URL: {current_image_url}")
+
+            if current_image_url != new_image_url:
+                logger.info(f"Image changed: {current_image_url} -> {new_image_url}")
+                return True, f"Image changed: {current_image_url} -> {new_image_url}"
+            logger.info("Image unchanged")
+            return False, "Image unchanged"
+
+        except Exception as e:
+            logger.error(f"Error checking image: {e}")
+            return False, f"Error checking image: {e}"
 
     def create_new_record(
         self,
@@ -1152,15 +1200,29 @@ class InvenioService:
 
         logger.info(f"Processing app '{app_data.name}' with image '{app_data.image}'")
 
-        # Always define metadata_change before use
-        metadata_change = False
         # Check eligibility for DOI minting
         is_eligible, reason = self.is_app_eligible_for_doi(app_instance)
 
-        # Generate Invenio metadata for comparison
+        # Generate new metadata for comparison
         invenio_record = self.generate_invenio_record(app_instance, additional_metadata=additional_metadata)
-        metadata_change, reason = self.has_app_metadata_changed(app_instance, invenio_record.metadata)
-        if not (is_eligible or metadata_change):
+
+        # Get current metadata once (if record exists)
+        current_metadata_obj = None
+        if app_instance.invenio_record_id:
+            current_metadata_obj = self.get_app_metadata(app_instance.invenio_record_id)
+
+        # Check for changes using the fetched metadata
+        metadata_change, metadata_reason = self.has_app_metadata_changed(
+            app_instance, invenio_record.metadata, current_metadata_obj
+        )
+        image_change, image_reason = self.has_app_image_changed(app_instance, app_data.image, current_metadata_obj)
+
+        logger.info(
+            f"Change detection results - Image change: {image_change} ({image_reason}), "
+            f"Metadata change: {metadata_change} ({metadata_reason})"
+        )
+
+        if not (is_eligible or metadata_change or image_change):
             logger.info(f"Skipping DOI minting: {reason}")
             return
 
@@ -1172,8 +1234,12 @@ class InvenioService:
                 app_instance, additional_metadata=additional_metadata
             )
 
-            if metadata_change:
-                logger.info("Metadata has changed since last DOI minting. The Invenio record will be updated.")
+            # Prioritize image change (new version) over metadata change (edit record)
+            if image_change:
+                logger.info(f"App image has changed: {image_reason}. Creating new version.")
+                published_record = self.create_new_version(app_instance, updated_invenio_record.metadata)
+            elif metadata_change:
+                logger.info(f"Metadata has changed: {metadata_reason}. Updating existing record.")
                 published_record = self.edit_and_publish_record(
                     record_id=app_instance.invenio_record_id,
                     metadata=updated_invenio_record.metadata.model_dump(mode="json", by_alias=True),

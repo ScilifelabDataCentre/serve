@@ -903,7 +903,7 @@ def test_generate_invenio_record_validation():
     assert len(invenio_metadata["metadata"]["related_identifiers"]) == 3
     assert invenio_metadata["metadata"]["related_identifiers"][0]["scheme"] == "url"
     assert invenio_metadata["metadata"]["related_identifiers"][0]["relation_type"]["id"] == "issourceof"
-    assert invenio_metadata["metadata"]["related_identifiers"][1]["scheme"] == "other"
+    assert invenio_metadata["metadata"]["related_identifiers"][1]["scheme"] == "url"
     assert invenio_metadata["metadata"]["related_identifiers"][1]["relation_type"]["id"] == "hasversion"
     assert invenio_metadata["metadata"]["related_identifiers"][2]["relation_type"]["id"] == "isdocumentedby"
     assert (

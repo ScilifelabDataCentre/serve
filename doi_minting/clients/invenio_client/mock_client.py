@@ -79,6 +79,20 @@ class MockInvenioClient:
                         },
                     ],
                     "subjects": [{"id": None, "subject": "Genes, pX"}, {"id": None, "subject": "Antigens"}],
+                    "related_identifiers": [
+                        {
+                            "identifier": "https://ghcr.io/scilifelabdatacentre/example-dash:240314-1126",
+                            "scheme": "url",
+                            "relation_type": {"id": "hasversion"},
+                            "resource_type": {"id": "software"},
+                        },
+                        {
+                            "identifier": "https://r72a47ca4.studio.127.0.0.1.nip.io",
+                            "scheme": "url",
+                            "relation_type": {"id": "issourceof"},
+                            "resource_type": {"id": "software"},
+                        },
+                    ],
                     "funding": [
                         {
                             "funder": {"id": "029chgv08", "name": "Wellcome Trust"},
