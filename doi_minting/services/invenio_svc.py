@@ -602,11 +602,8 @@ class InvenioService:
                         logger.info(f"Creator {i} found ORCID: '{orcid}'")
                         break
 
-            # Use ORCID as creator_id if available, otherwise use name
-            creator_id = orcid or creator_name
-
             item: dict[str, str] = {
-                "creator_id": creator_id,
+                "creator_id": orcid,
                 "creator_name": creator_name,
                 "affiliation": affiliation,
             }
