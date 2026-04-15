@@ -82,44 +82,7 @@ class InvenioService:
                 verify=self.verify,
             )
 
-    def check_image_version_exists(self, app_instance: Any, image_value: str) -> bool:
-        """
-        Check if the given image version already exists in Invenio records.
-
-        Args:
-            app_instance: The application instance
-            image_value: The image identifier to check
-
-        Returns:
-            True if image version already exists, False otherwise
-        """
-        if not app_instance.invenio_record_id:
-            logger.debug(f"No existing Invenio record ID for app, image '{image_value}' is new.")
-            return False
-
-        try:
-            all_versions = self.client.get_all_versions(app_instance.invenio_record_id)
-
-            if "hits" in all_versions and "hits" in all_versions["hits"]:
-                existing_images = []
-                for hit in all_versions["hits"]["hits"]:
-                    related_ids = hit["metadata"].get("related_identifiers", [])
-                    if len(related_ids) > 1:
-                        existing_images.append(related_ids[1]["identifier"])
-
-                logger.debug(f"All previous image versions: {existing_images}")
-
-                if image_value in existing_images:
-                    logger.info(f"Image '{image_value}' already exists in previous versions.")
-                    return True
-
-        except Exception as e:
-            logger.error(f"Error checking existing versions: {e}")
-            # Assume it's new if we can't check
-
-        return False
-
-    def is_app_eligible_for_doi(self, app_instance: Any) -> tuple[bool, str]:
+    def is_app_access_public(self, app_instance: Any) -> tuple[bool, str]:
         """
         Check if the application is eligible for DOI minting.
 
@@ -135,12 +98,20 @@ class InvenioService:
         if app_data.get("access") != "public":
             return False, f"App access is '{app_data.get('access')}', not 'public'"
 
-        # Check if it's a new image version
-        image_value = app_data["image"]
-        if self.check_image_version_exists(app_instance, image_value):
-            return False, f"Image '{image_value}' already exists in previous versions"
-
         return True, "App is eligible for DOI minting"
+
+    def _are_subjects_different(self, current_subjects: Any, new_subjects: Any) -> bool:
+        """Compare subjects lists with case-insensitive and order-independent comparison."""
+        if current_subjects is None or new_subjects is None:
+            return bool(current_subjects != new_subjects)
+
+        def extract_subject_text(subject: Any) -> str:
+            return str(subject.get("subject", "")) if isinstance(subject, dict) else str(subject)
+
+        current_texts = sorted([extract_subject_text(s).lower().strip() for s in current_subjects])
+        new_texts = sorted([extract_subject_text(s).lower().strip() for s in new_subjects])
+
+        return current_texts != new_texts
 
     def has_app_metadata_changed(
         self, app_instance: Any, new_metadata: InvenioMetadata, current_metadata_obj: Optional["InvenioMetadata"] = None
@@ -175,7 +146,13 @@ class InvenioService:
         current_metadata_dict = current_metadata_obj.model_dump(mode="json")
 
         for key, value in new_metadata_dict.items():
-            if current_metadata_dict.get(key) != value:
+            current_value = current_metadata_dict.get(key)
+            if key == "subjects":
+                # Special handling for subjects: case-insensitive and order-independent comparison
+                subjects_changed = self._are_subjects_different(current_value, value)
+                if subjects_changed:
+                    changed_fields.append(key)
+            elif current_value != value:
                 changed_fields.append(key)
 
         if changed_fields:
@@ -1047,18 +1024,6 @@ class InvenioService:
         # Handle missing names - InvenioRDM requires family_name for personal type
         if not user_full_name:
             user_full_name = user_email.split("@")[0] if user_email else "Unknown"
-            user_first_name = "No First Name Given"
-            user_family_name = "No Family Name Given"
-        else:
-            # Ensure we always have a family_name for personal type creators
-            if not user_family_name:
-                if user_first_name:
-                    # If we have first name but no last name, use email or fallback
-                    user_family_name = user_email.split("@")[0] if user_email else "No Family Name Given"
-                else:
-                    user_family_name = "No Family Name Given"
-            if not user_first_name:
-                user_first_name = "No First Name Given"
 
         dates = self._build_dates(app_instance)
         publication_date = next(
@@ -1074,8 +1039,6 @@ class InvenioService:
         # Add documentation link if applicable
         # Modifies the list in place by reference
         self._add_documentation_link(related_identifiers, app_data)
-
-        next(d.date.strftime("%Y-%m-%d") for d in dates if d.type.id == "available")
 
         # Build metadata using Pydantic models
         metadata = InvenioMetadata(
@@ -1098,42 +1061,7 @@ class InvenioService:
                 metadata_dict.get("creators", "NOT_FOUND"),
             )
             self._apply_additional_invenio_metadata(metadata_dict, additional_metadata)
-            logger.debug(
-                "[Invenio] metadata_dict after apply_additional: creators = %s",
-                metadata_dict.get("creators", "NOT_FOUND"),
-            )
-
-            # Debug: log subject type and value before constructing InvenioMetadata
-            subj_val = metadata_dict.get("subjects", None)
-            logger.debug("[Invenio] Subjects field before model: type=%s, value=%s", type(subj_val), subj_val)
-            # If subjects is an empty list, keep it as an empty list (not None)
-            if "subjects" in metadata_dict and metadata_dict["subjects"] is None:
-                metadata_dict["subjects"] = []
-
-            # Convert Creator objects back to dicts for Pydantic model creation
-            creators_val = metadata_dict.get("creators")
-            logger.debug(f"[Invenio] creators_val before conversion: type={type(creators_val)}, value={creators_val}")
-            if creators_val and isinstance(creators_val, list):
-                creators_dicts = []
-                for creator in creators_val:
-                    if hasattr(creator, "model_dump"):  # Creator object
-                        creator_dict = creator.model_dump()
-                        logger.debug(f"[Invenio] Converting Creator object to dict: {creator_dict}")
-                        creators_dicts.append(creator_dict)
-                    else:  # Already a dict
-                        logger.debug(f"[Invenio] Creator already a dict: {creator}")
-                        creators_dicts.append(creator)
-                metadata_dict["creators"] = creators_dicts
-                logger.debug(f"[Invenio] Final creators_dicts: {creators_dicts}")
-            else:
-                logger.warning("[Invenio] No creators found in metadata_dict or creators_val is not a list")
-
-            logger.debug(
-                "[Invenio] metadata_dict before InvenioMetadata construction: creators = %s",
-                metadata_dict.get("creators", "NOT_FOUND"),
-            )
             metadata = InvenioMetadata(**metadata_dict)
-            logger.debug(f"[Invenio] Final InvenioMetadata creators: {metadata.creators}")
 
         # Build complete record
         invenio_record = InvenioRecord(
@@ -1208,8 +1136,8 @@ class InvenioService:
 
         logger.info(f"Processing app '{app_data.name}' with image '{app_data.image}'")
 
-        # Check eligibility for DOI minting
-        is_eligible, reason = self.is_app_eligible_for_doi(app_instance)
+        # Check if the app is publicly accessible
+        is_public, reason = self.is_app_access_public(app_instance)
 
         # Generate new metadata for comparison
         invenio_record = self.generate_invenio_record(app_instance, additional_metadata=additional_metadata)
@@ -1230,7 +1158,7 @@ class InvenioService:
             f"Metadata change: {metadata_change} ({metadata_reason})"
         )
 
-        if not (is_eligible or metadata_change or image_change):
+        if not (is_public or metadata_change or image_change):
             logger.info(f"Skipping DOI minting: {reason}")
             return
 
