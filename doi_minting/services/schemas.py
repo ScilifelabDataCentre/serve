@@ -99,6 +99,7 @@ class Language(BaseModel):
     """Language specification using ISO codes."""
 
     id: str  # ISO 639-2 language code like "eng", "swe"
+    title: dict[str, Any] | None = None  # {"en": "English"}
 
 
 class Funder(BaseModel):

@@ -44,38 +44,52 @@ class MockInvenioClient:
         ):
             return {
                 "id": record_id,
+                "pids": {"doi": {"identifier": "10.83812/SCILIFELAB.mmmmm-mmmmm"}},
                 "metadata": {
                     "title": "Mock App Title",
                     "description": "Mock description of the app.",
                     "publication_date": "2024-01-01",
                     "publisher": "Mock Publisher",
                     "resource_type": {"id": "software", "title": {"en": "Software"}},
-                    "languages": [{"id": "swe"}],
+                    "languages": [{"id": "eng", "title": {"en": "English"}}],
                     "dates": [
                         {"date": "2024-01-01T10:00:00+00:00", "type": {"id": "submitted"}},
                         {"date": "2024-01-02T12:00:00+00:00", "type": {"id": "updated"}},
                         {"date": "2024-01-03T14:00:00+00:00", "type": {"id": "available"}},
                     ],
-                    "identifiers": [{"identifier": "SERVE:mock-app-id", "scheme": "other"}],
+                    "identifiers": [{"identifier": "scilifelab-serve:1", "scheme": "other"}],
                     "creators": [
-                        {
-                            "person_or_org": {
-                                "name": "admin@serve.scilifelab.se User",
-                                "type": "personal",
-                                "given_name": "admin@serve.scilifelab.se",
-                                "family_name": "User",
-                                "identifiers": None,
-                            },
-                            "affiliations": None,
-                        },
                         {
                             "person_or_org": {
                                 "name": "Jane Doe",
                                 "type": "personal",
                                 "given_name": "Jane",
                                 "family_name": "Doe",
+                                "identifiers": None,
+                            },
+                            "affiliations": [
+                                {
+                                    "name": "Example Research Institute",
+                                    "affiliationIdentifier": None,
+                                    "affiliationIdentifierScheme": None,
+                                    "schemeUri": None,
+                                },
+                                {
+                                    "name": "Another Research Institute",
+                                    "affiliationIdentifier": None,
+                                    "affiliationIdentifierScheme": None,
+                                    "schemeUri": None,
+                                },
+                            ],
+                        },
+                        {
+                            "person_or_org": {
+                                "name": "John Doe",
+                                "type": "personal",
+                                "given_name": "John",
+                                "family_name": "Doe",
                                 "identifiers": [
-                                    {"identifier": "https://orcid.org/0000-0002-1584-4316", "scheme": "orcid"}
+                                    {"identifier": "https://orcid.org/0000-0001-5393-1421", "scheme": "orcid"}
                                 ],
                             },
                             "affiliations": [
@@ -105,7 +119,7 @@ class MockInvenioClient:
                     ],
                     "funding": [
                         {
-                            "funder": {"id": "039qvmf95", "name": "Wallenberg Wood Science Center"},
+                            "funder": {"id": "004hzzk67", "name": "Knut and Alice Wallenberg Foundation"},
                             "award": {
                                 "number": "12",
                                 "title": {"en": "award 1"},

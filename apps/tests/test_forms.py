@@ -157,11 +157,11 @@ class CustomAppFormTest(BaseAppFormTest):
 
         funding = [
             {
-                "funder_id": "039qvmf95",
-                "funder_name": "Wallenberg Wood Science Center",
-                "number": "12",
-                "title": "award 1",
-                "url": "https://url.com",
+                "funder_id": "004hzzk67",
+                "funder_name": "Knut and Alice Wallenberg Foundation",
+                "number": "1111",
+                "title": "award title",
+                "url": "https://example.com",
             }
         ]
 
