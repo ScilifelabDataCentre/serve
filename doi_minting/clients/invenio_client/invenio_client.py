@@ -271,6 +271,20 @@ class InvenioClient:
         response = get(self.session, url, timeout=self.timeout)
         return self._handle_response(response)
 
+    def get_record_versions(self, record_id: str) -> Dict[str, Any]:
+        """
+        Get all published versions of a record.
+
+        Args:
+            record_id: Identifier of the record
+
+        Returns:
+            Versions payload data
+        """
+        url = self._build_url(f"/api/records/{record_id}/versions")
+        response = get(self.session, url, timeout=self.timeout)
+        return self._handle_response(response)
+
     def search_records(
         self,
         query: Optional[str] = None,
