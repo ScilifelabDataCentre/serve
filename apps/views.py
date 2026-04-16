@@ -338,7 +338,7 @@ class CreateApp(View):
             if app_id and instance and hasattr(instance, "access") and instance.access == "public":
                 if hasattr(form, "fields") and "access" in form.fields:
                     form.fields["access"].disabled = True
-                    form.fields["access"].help_text = "Cannot change access mode for public apps."
+                    form.fields["access"].help_text = "The apps that have already been made public cannot be hidden."
 
             return form
             # Maybe this makes typing hard.
