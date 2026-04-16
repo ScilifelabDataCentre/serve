@@ -44,7 +44,11 @@ class MockInvenioClient:
         ):
             return {
                 "id": record_id,
-                "pids": {"doi": {"identifier": "10.83812/SCILIFELAB.mmmmm-mmmmm"}},
+                "pids": {"doi": {"identifier": "10.83812/SCILIFELAB.rrrrr-rrrrr"}},
+                "parent": {
+                    "id": "mock-record-parent-id",
+                    "pids": {"doi": {"identifier": "10.83812/SCILIFELAB.ppppp-ppppp"}},
+                },
                 "metadata": {
                     "title": "Mock App Title",
                     "description": "Mock description of the app.",

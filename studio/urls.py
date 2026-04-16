@@ -23,7 +23,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 from django_altcha import AltchaChallengeView
 
-from apps.views import app_metadata
+from apps.views import record_lookup
 
 from . import views
 
@@ -59,7 +59,7 @@ urlpatterns = (
         path("projects/<project>/apps/", include("apps.urls", namespace="apps")),
         path("doi_minting/", include("doi_minting.urls")),
         path("altcha/challenge/", AltchaChallengeView.as_view(), name="altcha_challenge"),
-        path("records/<app_id>", app_metadata, name="app-metadata"),
+        path("records/<record_id>/", record_lookup, name="app-details"),
     ]
     + staticfiles_urlpatterns()
     + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

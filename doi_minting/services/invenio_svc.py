@@ -8,6 +8,7 @@ import json
 import logging
 import time
 import traceback
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, List, Optional, Type, TypedDict
 
@@ -388,14 +389,19 @@ class InvenioService:
 
         logger.debug(f"Updated app instance - Record ID: {record_id}, DOI: {doi}")
 
-    def get_app_metadata(self, record_id: str) -> Optional["InvenioMetadata"]:
-        """
-        Retrieve metadata for a given Invenio record ID as an InvenioMetadata Pydantic model.
+    # def get_record()
 
-        Args:
-            record_id: The Invenio record ID to retrieve metadata for
-        Returns:
-            InvenioMetadata instance or None if not found/invalid
+    @dataclass
+    class InvenioRecordData:
+        metadata: "InvenioMetadata"
+        pids: dict[str, Any]
+        parent: dict[str, Any]
+
+    # def extract_metadata()
+    def get_app_metadata(self, record_id: str) -> Optional["InvenioRecordData"]:
+        """
+        Retrieve metadata for a given Invenio record ID as an InvenioMetadata
+        Pydantic model + pids + parent.
         """
         try:
             record = self.client.get_record(record_id)
@@ -406,12 +412,57 @@ class InvenioService:
             from .schemas import InvenioMetadata
 
             try:
-                return InvenioMetadata(**metadata)
+                validated_metadata = InvenioMetadata(**metadata)
+                return self.InvenioRecordData(
+                    metadata=validated_metadata,
+                    pids=record.get("pids", {}),
+                    parent=record.get("parent", {}),
+                )
             except Exception as validation_error:
                 logger.error(f"Validation error for InvenioMetadata (record {record_id}): {validation_error}")
                 return None
+
         except Exception as e:
             logger.error(f"Error retrieving record {record_id}: {e}")
+            return None
+
+    def get_app_versions(self, record_id: str) -> Optional[list[dict[str, object]]]:
+        """
+        Retrieve version index and DOI for all versions of a given Invenio record.
+
+        Args:
+            record_id: The Invenio record ID to retrieve versions for
+
+        Returns:
+            List of dicts like {"index": 4, "doi": "..."} or None if not found/invalid
+        """
+        try:
+            versions_payload = self.client.get_all_versions(record_id)
+
+            hits = versions_payload.get("hits", {}).get("hits", [])
+            if not isinstance(hits, list):
+                logger.error(f"Version hits for record ID {record_id} is not a list.")
+                return None
+
+            versions = []
+            for record in hits:
+                if not isinstance(record, dict):
+                    continue
+
+                doi = record.get("pids", {}).get("doi", {}).get("identifier")
+                index = record.get("versions", {}).get("index")
+                if doi:
+                    versions.append(
+                        {
+                            "index": index,
+                            "doi": doi,
+                        }
+                    )
+
+            return versions
+
+        except Exception as e:
+            logger.error(f"Error retrieving versions for record {record_id}: {e}")
             return None
 
     def extract_language_id(self, metadata: InvenioMetadata) -> Optional[str]:
@@ -919,7 +970,7 @@ class InvenioService:
 
     def _build_identifiers(self, app_id: str) -> list[Identifier]:
         """Build the identifiers list with application ID."""
-        return [Identifier(identifier=f"SERVE:{app_id}", scheme="other")]
+        return [Identifier(identifier=f"scilifelab-serve:{app_id}", scheme="other")]
 
     def _build_related_identifiers(self, app_data: AppData) -> list[RelatedIdentifierItem]:
         """Build the related identifiers list with app URL and image."""
