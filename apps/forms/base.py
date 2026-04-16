@@ -33,7 +33,7 @@ class BaseForm(forms.ModelForm):
     LANGUAGE_CHOICES = [
         ("eng", "English"),
         ("swe", "Swedish"),
-        ("", "Other"),
+        ("und", "Other"),
     ]
 
     def __init__(self, *args, **kwargs):
