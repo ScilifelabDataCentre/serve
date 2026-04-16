@@ -6,6 +6,7 @@ from datetime import datetime
 import dateutil.parser
 import requests
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
@@ -249,7 +250,16 @@ class CreateApp(View):
         if request.user.is_superuser and project.status == "deleted":
             return HttpResponse("This project has been deleted by the user.")
 
-        form = self.get_form(request, project, app_slug, app_id)
+        try:
+            form = self.get_form(request, project, app_slug, app_id)
+        except PermissionDenied as e:
+            # Check if this is a metadata fetch error by examining the message
+            if "system error while fetching metadata" in str(e):
+                messages.error(request, str(e))
+                return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_slug}))
+            else:
+                # Re-raise if it's a different permission error
+                raise
 
         if form is None or not getattr(form, "is_valid", False):
             raise PermissionDenied()
