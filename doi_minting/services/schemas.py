@@ -69,9 +69,7 @@ class Affiliation(BaseModel):
     """Affiliation with identifier and scheme information."""
 
     name: str
-    affiliationIdentifier: str | None = None
-    affiliationIdentifierScheme: str | None = None
-    schemeUri: str | None = None
+    id: str | None = None
 
 
 class Creator(BaseModel):

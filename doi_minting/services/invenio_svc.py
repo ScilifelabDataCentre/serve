@@ -719,31 +719,28 @@ class InvenioService:
                         affiliations_list = []
 
                         if isinstance(affiliation_data, str):
-                            # Simple string affiliation
-                            affiliations_list.append(Affiliation(name=affiliation_data))
+                            # Simple string affiliation - try ROR lookup
+                            from apps.helpers import fetch_ror_id_for_org
+
+                            ror_id = fetch_ror_id_for_org(affiliation_data)
+                            affiliations_list.append(Affiliation(name=affiliation_data, id=ror_id))
                         elif isinstance(affiliation_data, dict) and "ror_id" in affiliation_data:
                             # ROR API format: transform to structured Affiliation
                             ror_identifier = affiliation_data["ror_id"].replace("https://ror.org/", "")
                             affiliations_list.append(
                                 Affiliation(
                                     name=affiliation_data.get("title", ""),
-                                    affiliationIdentifier=ror_identifier,
-                                    affiliationIdentifierScheme="ROR",
-                                    schemeUri="https://ror.org/",
+                                    id=ror_identifier,
                                 )
                             )
                         elif isinstance(affiliation_data, dict) and "identifier" in affiliation_data:
                             # ORCID-sourced format: structured affiliation with identifier
-                            scheme = affiliation_data.get("scheme", "").upper()
                             identifier = affiliation_data.get("identifier", "")
-                            scheme_uri = "https://ror.org/" if scheme == "ROR" else None
 
                             affiliations_list.append(
                                 Affiliation(
                                     name=affiliation_data.get("name", ""),
-                                    affiliationIdentifier=identifier,
-                                    affiliationIdentifierScheme=scheme,
-                                    schemeUri=scheme_uri,
+                                    id=identifier,
                                 )
                             )
                         else:
