@@ -1310,8 +1310,9 @@ class InvenioService:
 
         # Get current metadata once (if record exists)
         current_metadata_obj = None
-        if app_instance.invenio_record_id:
-            current_metadata_obj = self.get_app_metadata(app_instance.invenio_record_id)
+        record = self.get_record_data(app_instance.invenio_record_id)
+        if record:
+            current_metadata_obj = self.extract_app_metadata(record)
 
         # Check for changes using the fetched metadata
         metadata_change, metadata_reason = self.has_app_metadata_changed(

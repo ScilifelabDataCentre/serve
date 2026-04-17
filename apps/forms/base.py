@@ -126,7 +126,8 @@ class BaseForm(forms.ModelForm):
 
             logger.info(f"Fetching metadata from Invenio for record ID {record_id} to populate form initial values.")
             invenio_svc = InvenioService()
-            app_metadata = invenio_svc.get_app_metadata(record_id)
+            record = invenio_svc.get_record_data(record_id)
+            app_metadata = invenio_svc.extract_app_metadata(record)
 
             if "language" in self.fields:
                 extracted_language = invenio_svc.extract_language_id(app_metadata)

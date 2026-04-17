@@ -168,7 +168,7 @@ class CustomAppFormTest(BaseAppFormTest):
         # Mock the service instance and its methods
         mock_service_instance = mock_invenio_service.return_value
         mock_app_metadata = {"metadata": {"languages": [{"id": "swe"}], "funding": []}}
-        mock_service_instance.get_app_metadata.return_value = mock_app_metadata
+        mock_service_instance.extract_app_metadata.return_value = mock_app_metadata
         mock_service_instance.extract_language_id.return_value = "swe"
         mock_service_instance.extract_funding.return_value = funding
         mock_service_instance.extract_creators.return_value = []
