@@ -13,14 +13,14 @@
 <div class="container-fluid py-3">
 
   <h2 class="mb-0">{{ app_metadata.title }}</h2>
-  <p class="small">
-      Version {{ extracted_metadata.current_version }}
-      {% if extracted_metadata.latest_version_doi != app_metadata.pids.doi.identifier %}
-          (<a href="{% url 'app-details' extracted_metadata.latest_version_doi|cut:'10.83812/SCILIFELAB.' %}">see latest version</a>)
-      {% else %}
-          (latest version)
-      {% endif %}
-  </p>
+    <p class="small">
+        Version {{ app_otherdata.current_version }}
+        {% if app_otherdata.latest_version_doi != app_otherdata.current_version_doi %}
+            (<a href="{% url 'app-details' app_otherdata.latest_version_doi|cut:'10.83812/SCILIFELAB.' %}">see latest version</a>)
+        {% else %}
+            (latest version)
+        {% endif %}
+    </p>
 
   <div class="row g-4">
 
@@ -61,8 +61,8 @@
 
                             <dt class="col-sm-4">URL</dt>
                             <dd class="col-sm-8">
-                                    <a href="{{ extracted_metadata.app_url }}" target="_blank">
-                                        {{ extracted_metadata.app_url }}
+                                    <a href="{{ app_otherdata.app_url }}" target="_blank">
+                                        {{ app_otherdata.app_url }}
                                         <i class="bi bi-box-arrow-up-right mx-1"></i>
                                     </a>
                             </dd>
@@ -75,7 +75,7 @@
                             </dd>
 
                         <dt class="col-sm-4">Docker image</dt>
-                            <dd class="col-sm-8">{{ extracted_metadata.docker_image }}</dd>
+                            <dd class="col-sm-8">{{ app_otherdata.docker_image }}</dd>
 
                         {% for d in app_metadata.dates %}
                             {% if d.type.id == "submitted" %}
@@ -173,11 +173,11 @@
         </div>
         <div class="card-body small">
           <div class="row g-2">
-              {% for version in extracted_metadata.versions %}
-                  <div class="{% if version.index == extracted_metadata.current_version %}fw-bold{% endif %}">
+              {% for version in app_otherdata.versions %}
+                  <div class="{% if version.index == app_otherdata.current_version %}fw-bold{% endif %}">
                       Version {{ version.index }}:<br>
 
-                      {% if version.index == extracted_metadata.current_version %}
+                      {% if version.index == app_otherdata.current_version %}
                           <span>
                               {{ version.doi|lower }}
                           </span>
@@ -193,7 +193,7 @@
               {% endfor %}
           </div>
           <div><hr>To cite all versions, use the following DOI:<br>
-            <a href="https://doi.org/{{ extracted_metadata.parent_doi|lower }}">https://doi.org/{{ extracted_metadata.parent_doi|lower }}</a>
+            <a href="https://doi.org/{{ app_otherdata.parent_doi|lower }}">https://doi.org/{{ app_otherdata.parent_doi|lower }}</a>
           </div>
 
         </div>

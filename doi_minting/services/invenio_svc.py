@@ -389,22 +389,31 @@ class InvenioService:
 
         logger.debug(f"Updated app instance - Record ID: {record_id}, DOI: {doi}")
 
-    # def get_record()
-
-    @dataclass
-    class InvenioRecordData:
-        metadata: "InvenioMetadata"
-        pids: dict[str, Any]
-        parent: dict[str, Any]
-
-    # def extract_metadata()
-    def get_app_metadata(self, record_id: str) -> Optional["InvenioRecordData"]:
+    def get_record_data(self, record_id: str) -> Optional[dict[str, Any]]:
         """
-        Retrieve metadata for a given Invenio record ID as an InvenioMetadata
-        Pydantic model + pids + parent.
+        Retrieve record for a given Invenio record ID as a dictionary.
+        Args:
+            record_id: The Invenio record ID.
+        Returns:
+            Dictionary of the record data, or None if not found/invalid.
         """
         try:
             record = self.client.get_record(record_id)
+            return record
+        except Exception as e:
+            logger.error(f"Error retrieving record {record_id}: {e}")
+            return None
+
+    def extract_app_metadata(self, record: dict[str, Any]) -> Optional["InvenioMetadata"]:
+        """
+        Retrieve metadata for a given Invenio record as an InvenioMetadata Pydantic model.
+        Args:
+            record: The Invenio record.
+        Returns:
+            InvenioMetadata instance or None if not found/invalid.
+        """
+        record_id = record.get("id", "<unknown>")
+        try:
             metadata = record.get("metadata", {})
             if not isinstance(metadata, dict):
                 logger.error(f"Metadata for record ID {record_id} is not a dict.")
@@ -412,24 +421,55 @@ class InvenioService:
             from .schemas import InvenioMetadata
 
             try:
-                validated_metadata = InvenioMetadata(**metadata)
-                return self.InvenioRecordData(
-                    metadata=validated_metadata,
-                    pids=record.get("pids", {}),
-                    parent=record.get("parent", {}),
-                )
+                return InvenioMetadata(**metadata)
             except Exception as validation_error:
                 logger.error(f"Validation error for InvenioMetadata (record {record_id}): {validation_error}")
                 return None
-
         except Exception as e:
-            logger.error(f"Error retrieving record {record_id}: {e}")
+            logger.error(f"Error retrieving metadata from record {record_id}: {e}")
+            return None
+
+    def extract_app_pids(self, record: dict[str, Any]) -> Optional[dict[str, Any]]:
+        """
+        Retrieve pids for a given Invenio record as a dictionary.
+        Args:
+            record: The Invenio record.
+        Returns:
+            PIDs as a dictionary, or None if invalid.
+        """
+        record_id = record.get("id", "<unknown>")
+        try:
+            pids = record.get("pids", {})
+            if not isinstance(pids, dict):
+                logger.error(f"pids for record ID {record_id} is not a dict.")
+                return None
+            return pids
+        except Exception as e:
+            logger.error(f"Error retrieving pids from record {record_id}: {e}")
+            return None
+
+    def extract_app_parent(self, record: dict[str, Any]) -> Optional[dict[str, Any]]:
+        """
+        Retrieve parent for a given Invenio record as a dictionary.
+        Args:
+            record: The Invenio record.
+        Returns:
+            Parent as a dictionary, or None if invalid.
+        """
+        record_id = record.get("id", "<unknown>")
+        try:
+            parent = record.get("parent", {})
+            if not isinstance(parent, dict):
+                logger.error(f"parent for record ID {record_id} is not a dict.")
+                return None
+            return parent
+        except Exception as e:
+            logger.error(f"Error retrieving parent from record {record_id}: {e}")
             return None
 
     def get_app_versions(self, record_id: str) -> Optional[list[dict[str, object]]]:
         """
         Retrieve version index and DOI for all versions of a given Invenio record.
-
         Args:
             record_id: The Invenio record ID to retrieve versions for
 

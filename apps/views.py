@@ -443,48 +443,58 @@ def record_lookup(request, record_id):
 
 
 def app_details(request, invenio_record_id):
-    # Get metadata from the invenio record
     invenio_svc = InvenioService()
 
-    app_record = invenio_svc.get_app_metadata(invenio_record_id)
-    if app_record is None:
+    # Get raw record data
+    record = invenio_svc.get_record_data(invenio_record_id)
+    if record is None:
         logger.warning(f"Record not found for requested invenio_record_id={invenio_record_id}")
         raise Http404("Record not found")
-    # TO-DO: check how we deal with the case when the record is not found, is in Draft or Registered state
-    app_metadata = app_record.metadata
+    # TO-DO: check how we deal with the case when the record is in Draft or Registered state
+
+    # Extract app metadata
+    app_metadata = invenio_svc.extract_app_metadata(record)
+    if app_metadata is None:
+        logger.warning(f"Metadata could not be extracted for requested invenio_record_id={invenio_record_id}")
+        raise Http404("Record metadata not found")
+
+    # Variable for some extracted and other data about the app
+    app_otherdata = {}
 
     # Extract some more complicated things from the Invenio metadata into separate variables
-    extracted_metadata = {}
-    extracted_metadata["app_url"] = next(
-        (i.identifier for i in app_metadata.related_identifiers if i.relation_type.id == "issourceof"),
+    related_identifiers = app_metadata.related_identifiers or []
+    app_otherdata["app_url"] = next(
+        (i.identifier for i in related_identifiers if i.relation_type.id == "issourceof"),
         None,
     )
-    extracted_metadata["docker_image"] = next(
-        (
-            i.identifier.replace("https://", "")
-            for i in app_metadata.related_identifiers
-            if i.relation_type.id == "hasversion"
-        ),
+    app_otherdata["docker_image"] = next(
+        (i.identifier.replace("https://", "") for i in related_identifiers if i.relation_type.id == "hasversion"),
         None,
     )
 
     # Get version info
-    extracted_metadata["versions"] = invenio_svc.get_app_versions(invenio_record_id)
-    if extracted_metadata["versions"]:
-        current_version_doi = app_record.pids.get("doi", {}).get("identifier")
-        extracted_metadata["current_version"] = next(
-            (v["index"] for v in extracted_metadata["versions"] if v["doi"] == current_version_doi),
+    app_pids = invenio_svc.extract_app_pids(record) or {}
+    app_otherdata["versions"] = invenio_svc.get_app_versions(invenio_record_id) or []
+    app_otherdata["current_version_doi"] = app_pids.get("doi", {}).get("identifier")
+    app_otherdata["current_version"] = None
+    app_otherdata["latest_version_doi"] = None
+
+    if app_otherdata["versions"]:
+        current_version_doi = app_otherdata["current_version_doi"]
+        app_otherdata["current_version"] = next(
+            (v["index"] for v in app_otherdata["versions"] if v["doi"] == current_version_doi),
             None,
         )
         latest_version = max(
-            extracted_metadata["versions"],
+            app_otherdata["versions"],
             key=lambda v: v["index"],
             default=None,
         )
-        extracted_metadata["latest_version_doi"] = latest_version["doi"] if latest_version else None
+        app_otherdata["latest_version_doi"] = latest_version["doi"] if latest_version else None
 
     # Get parent info
-    extracted_metadata["parent_doi"] = app_record.parent.get("pids", {}).get("doi", {}).get("identifier")
+    app_parent = invenio_svc.extract_app_parent(record) or {}
+    app_otherdata["parent_doi"] = app_parent.get("pids", {}).get("doi", {}).get("identifier")
 
     # TO-DO: below is a temporary solution because not all data is in the invenio entry yet.
     # Later we do not want to need to fetch info from the Serve db entry for this view at all.
@@ -520,7 +530,7 @@ def app_details(request, invenio_record_id):
     context = {
         "app": app,  # TO-DO: This can be removed once all public apps have invenio record IDs and we change URLs
         "app_metadata": app_metadata,
-        "extracted_metadata": extracted_metadata,
+        "app_otherdata": app_otherdata,
         "schema_dict": schema_dict,
     }
 
