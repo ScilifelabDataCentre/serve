@@ -33,7 +33,55 @@ class MockInvenioClient:
         return {"id": "mock-draft-id"}
 
     def get_all_versions(self, record_id: str) -> dict[str, Any]:
-        return {"hits": {"hits": []}}
+        # Return a mock of record versions for a known id, else empty dict
+        if (
+            record_id == "mock-record-id"
+            or record_id.startswith("mock-draft-for-")
+            or record_id.startswith("mock-version-for-")
+        ):
+            return {
+                "hits": {
+                    "hits": [
+                    {
+                        "id": "mock-record-id",
+                        "parent": {
+                        "id": "mock-record-parent-id",
+                        "pids": {
+                            "doi": {
+                            "identifier": "10.83812/SCILIFELAB.ppppp-ppppp",
+                            }
+                        },
+                        },
+                        "pids": {
+                        "doi": {
+                            "identifier": "10.83812/SCILIFELAB.rrrrr-rrrrr",
+                        },
+                        },
+                        "versions": {"index": 2},
+                    },
+                    {
+                        "id": "mock-record-previous-id",
+                        "parent": {
+                        "id": "mock-record-parent-id",
+                        "pids": {
+                            "doi": {
+                            "identifier": "10.83812/SCILIFELAB.ppppp-ppppp",
+                            }
+                        },
+                        },
+                        "pids": {
+                        "doi": {
+                            "identifier": "10.83812/SCILIFELAB.rrrr2-rrrr2",
+                        },
+                        },
+                        "versions": {"index": 1},
+                    }
+                    ],
+                    "total": 2
+                },
+                "sortBy": "version",
+                }
+        return {}
 
     def get_record(self, record_id: str) -> dict[str, Any]:
         # Return a mock record for a known id, else empty dict
