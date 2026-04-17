@@ -524,7 +524,6 @@ def app_details(request, invenio_record_id):
     # generate and parse schema
     identifier = next((i.identifier for i in app_metadata.identifiers if i.scheme == "other"), None)
     app_id = identifier.split(":", 1)[1] if identifier and ":" in identifier else None
-    app_id = 3
     app_baseinstance = get_object_or_404(BaseAppInstance, pk=app_id)
     # Get app model instance in the serve database
     app_slug = app_baseinstance.app.slug
