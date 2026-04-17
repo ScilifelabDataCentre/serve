@@ -331,9 +331,6 @@ class InvenioService:
         draft_id = draft_record.get("id")
         logger.debug(f"Draft created from published record: {draft_id}")
 
-        if not isinstance(draft_id, str):
-            raise ValueError(f"Invalid draft ID returned: {draft_id}")
-
         # Step 2: Update the draft with new metadata
         updated_draft = self.client.update_draft(
             record_id=draft_id,
@@ -1266,10 +1263,6 @@ class InvenioService:
             f"Change detection results - Image change: {image_change} ({image_reason}), "
             f"Metadata change: {metadata_change} ({metadata_reason})"
         )
-
-        #        if not (metadata_change or image_change):
-        #            logger.info(f"Skipping DOI minting: {reason}")
-        #            return
 
         logger.debug("App is eligible for DOI minting or updating, proceeding...")
 
