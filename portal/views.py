@@ -226,6 +226,7 @@ def add_additional_context_to_public_apps(published_apps):
                 "status_group": app.status_group,
                 "updated_on": app.updated_on,
                 "url": app.url,
+                "invenio_record_id": app.invenio_record_id,
             }
         )
 
