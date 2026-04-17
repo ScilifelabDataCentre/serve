@@ -119,14 +119,22 @@ class StorageMixin:
         cleaned = super().clean()  # keep parent validations, if any
         mount_path_data: PersistentVolumeMountPath = cleaned.get("mount_path")
 
+        # Only set 'volume' and 'path' if the user actually changed mount_path or path
+        path_changed = False
+        if hasattr(self, "changed_data"):
+            path_changed = "mount_path" in self.changed_data or "path" in self.changed_data
+
         if mount_path_data is not None:
-            cleaned["volume"] = mount_path_data.volume
-            cleaned["path"] = mount_path_data.mount_path
+            if path_changed or cleaned.get("volume") != getattr(mount_path_data, "volume", None):
+                cleaned["volume"] = mount_path_data.volume
+            if path_changed or cleaned.get("path") != getattr(mount_path_data, "mount_path", None):
+                cleaned["path"] = mount_path_data.mount_path
         else:
-            # User selected "None": remove storage linkage
-            cleaned["mount_path"] = None
-            cleaned["volume"] = None
-            cleaned["path"] = ""  # or None, depending on your model
+            # Only clear fields if the user actually changed mount_path or path
+            if path_changed:
+                cleaned["mount_path"] = None
+                cleaned["volume"] = None
+                cleaned["path"] = ""  # or None, depending on your model
         return cleaned
 
 
@@ -161,15 +169,45 @@ class CreatorsMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Add hidden creators field
         self.fields["creators"] = forms.CharField(required=False, widget=forms.HiddenInput(), initial="[]")
-
         self._initialize_creators()
 
     def _initialize_creators(self):
-        """Initialize the creators field with the current user."""
+        """Initialize the creators field with Invenio data or current user."""
         import json
 
+        # Check if creators field exists before trying to initialize it
+        if "creators" not in self.fields:
+            return
+
+        # First check if we have Invenio creators data stored by add_metadata()
+        if hasattr(self, "_invenio_creators") and self._invenio_creators:
+            try:
+                # Convert Invenio creators format to our format
+                creators_data = []
+                for creator in self._invenio_creators:
+                    # Handle the Invenio creator format
+                    creator_name = creator.get("creator_name", "")
+                    name_parts = creator_name.split() if creator_name else ["", ""]
+                    first_name = name_parts[0] if name_parts else ""
+                    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+
+                    creator_obj = {
+                        "name": first_name,
+                        "lastName": last_name,
+                        "orcid": creator.get("creator_id", ""),
+                        "affiliation": creator.get("affiliation", ""),
+                    }
+                    creators_data.append(creator_obj)
+
+                self.fields["creators"].initial = json.dumps(creators_data)
+                return
+
+            except Exception:
+                # Fall through to default user initialization
+                pass
+
+        # Default initialization with current user (for new instances or when Invenio fails)
         if hasattr(self, "request") and self.request and self.request.user.is_authenticated:
             user = self.request.user
 
@@ -190,7 +228,7 @@ class CreatorsMixin:
 
             # Ensure affiliation is never empty - provide default if needed
             if not user_affiliation:
-                user_affiliation = "Independent Researcher"
+                user_affiliation = ""
 
             creators_data = [
                 {
@@ -229,6 +267,8 @@ class CreatorsMixin:
 
     def get_creators_field_layout(self):
         """Get the complete crispy forms layout for the creators field."""
+        import json
+
         from crispy_forms.layout import HTML, Div
 
         if not (hasattr(self, "request") and self.request and self.request.user.is_authenticated):
@@ -250,27 +290,112 @@ class CreatorsMixin:
             # UserProfile doesn't exist - use defaults
             pass
 
-        # Prepare user data as JSON for the data-creator attribute with actual profile data
-        import json
+        # Check if we have Invenio creators data to display instead of default user
+        creators_to_display = []
+        if hasattr(self, "_invenio_creators") and self._invenio_creators:
+            for creator in self._invenio_creators:
+                creator_name = creator.get("creator_name", "")
+                name_parts = creator_name.split() if creator_name else ["", ""]
+                first_name = name_parts[0] if name_parts else ""
+                last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+                creator_orcid = creator.get("creator_id", "")
 
-        user_creator_data = json.dumps(
-            {"name": user_first_name, "lastName": user_last_name, "affiliation": user_affiliation, "orcid": user_orcid}
-        ).replace(
-            '"', "&quot;"
-        )  # Escape quotes for HTML attribute
+                # Check if this creator is the current user
+                is_current_user = any(
+                    [
+                        creator_orcid and user_orcid and creator_orcid == user_orcid,
+                        creator_name == user_full_name,
+                        creator_name and creator_name.replace("@serve.scilifelab.se", "") == user.username,
+                        creator_name == f"{user.first_name} {user.last_name}".strip(),
+                    ]
+                )
 
-        # Build creator info display similar to new creators added via modal
-        creator_info = f"<strong>{user_full_name}</strong>"
-        if user_orcid or user_affiliation:
-            creator_info += "<br><small class='text-muted'>"
-            if user_affiliation:
-                creator_info += f"Affiliation: {user_affiliation}<br>"
-            if user_orcid:
-                creator_info += f"ORCID: {user_orcid}"
-            creator_info += "</small>"
+                creators_to_display.append(
+                    {
+                        "name": first_name,
+                        "lastName": last_name,
+                        "fullName": creator_name,
+                        "orcid": creator_orcid,
+                        "affiliation": creator.get("affiliation", ""),
+                        "isCurrentUser": is_current_user,
+                    }
+                )
+        else:
+            # Use default user creator
+            creators_to_display.append(
+                {
+                    "name": user_first_name,
+                    "lastName": user_last_name,
+                    "fullName": user_full_name,
+                    "orcid": user_orcid,
+                    "affiliation": user_affiliation,
+                    "isCurrentUser": True,
+                }
+            )
+
+        # Generate HTML for each creator
+        creators_html = ""
+        for i, creator in enumerate(creators_to_display):
+            # Prepare creator data as JSON for data-creator attribute
+            creator_data = json.dumps(
+                {
+                    "name": creator["name"],
+                    "lastName": creator["lastName"],
+                    "affiliation": creator["affiliation"],
+                    "orcid": creator["orcid"],
+                }
+            ).replace('"', "&quot;")
+
+            # Build creator info display
+            creator_info = f"<strong>{creator['fullName']}</strong>"
+            if creator["orcid"] or creator["affiliation"]:
+                creator_info += "<br><small class='text-muted'>"
+                if creator["affiliation"]:
+                    creator_info += f"Affiliation: {creator['affiliation']}<br>"
+                if creator["orcid"]:
+                    creator_info += f"ORCID: {creator['orcid']}"
+                creator_info += "</small>"
+
+            # Add badge and action buttons
+            badge_html = ""
+            if creator.get("isCurrentUser"):
+                badge_html = '<span class="badge bg-secondary me-2">You</span>'
+
+            # Add edit and remove buttons (conditionally)
+            action_buttons = ""
+            if not creator.get("isCurrentUser"):
+                # Only show edit/remove buttons if this is not the current user
+                action_buttons = f"""
+                    <div class="d-flex align-items-center gap-2">
+                        {badge_html}
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                data-edit-creator="{i}" title="Edit creator">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm"
+                                onclick="removeCreator(this)" title="Remove creator">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                """
+            else:
+                # For current user, only show the badge without edit/remove buttons
+                action_buttons = f"""
+                    <div class="d-flex align-items-center gap-2">
+                        {badge_html}
+                    </div>
+                """
+
+            creators_html += f"""
+                <li class="list-group-item d-flex justify-content-between align-items-center"
+                    style="cursor: move;" data-creator="{creator_data}">
+                    <div>{creator_info}</div>
+                    {action_buttons}
+                </li>
+            """
 
         return Div(
-            "creators",  # Hidden field
+            "creators",
             HTML(
                 f"""
                 <label class="form-label">Creators
@@ -285,17 +410,13 @@ class CreatorsMixin:
                 </div>
 
                 <ul id="creatorsSortableList" class="list-group mb-3">
-                    <li class="list-group-item d-flex justify-content-between align-items-center"
-                        style="cursor: move;" data-creator="{user_creator_data}">
-                        <div>{creator_info}</div>
-                        <span class="badge bg-secondary">You</span>
-                    </li>
+                    {creators_html}
                 </ul>
 
                 <div class="mt-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm"
                             data-bs-toggle="modal" data-bs-target="#creatorsModal">
-                        <span class="fas fa-plus text-muted"></span> Add Creator
+                        <span class="fas fa-plus text-muted"></span> Add creator
                     </button>
                 </div>
 
@@ -305,6 +426,120 @@ class CreatorsMixin:
                         $("#creatorsSortableList").sortable({{
                             placeholder: "list-group-item bg-light",
                             cursor: "move"
+                        }});
+
+                        // Handle edit creator button clicks
+                        $(document).on('click', '[data-edit-creator]', function() {{
+
+                            const index = $(this).data('edit-creator');
+                            const listItem = $(this).closest('li[data-creator]');
+
+                            try {{
+                                const creatorData = JSON.parse(listItem.attr('data-creator'));
+
+                                // Populate the creator modal with existing data
+                                $('#newCreatorName').val(creatorData.name || '');
+                                $('#newCreatorLastName').val(creatorData.lastName || '');
+                                $('#newCreatorOrcid').val(creatorData.orcid || '');
+
+                                // Handle affiliation - could be string or object
+                                const affiliationData = creatorData.affiliation || '';
+
+                                if (typeof affiliationData === 'string') {{
+                                    $('#newCreatorAffiliation').val(affiliationData);
+                                    $('#newCreatorRorData').val('');
+                                    $('#newCreatorOrcidAffiliationData').val('');
+                                }} else if (typeof affiliationData === 'object' &&
+                                          affiliationData !== null) {{
+                                    // It's structured data (ROR or ORCID)
+                                    const affiliationName = affiliationData.title ||
+                                                           affiliationData.name || affiliationData;
+                                    $('#newCreatorAffiliation').val(affiliationName);
+
+                                    // Preserve the structured data
+                                    if (affiliationData.ror_id || affiliationData.id) {{
+                                        $('#newCreatorRorData').val(JSON.stringify(affiliationData));
+                                        $('#newCreatorOrcidAffiliationData').val('');
+                                    }} else {{
+                                        $('#newCreatorOrcidAffiliationData').val(JSON.stringify(affiliationData));
+                                        $('#newCreatorRorData').val('');
+                                    }}
+                                }} else {{
+                                    $('#newCreatorAffiliation').val('');
+                                    $('#newCreatorRorData').val('');
+                                    $('#newCreatorOrcidAffiliationData').val('');
+                                }}
+
+                                // Store the list item being edited and mark as editing mode
+                                const modal = document.getElementById('creatorsModal');
+                                modal.dataset.editingMode = 'true';
+                                modal.editingItem = listItem[0]; // Store the actual DOM element
+                                $('#creatorsModalLabel').text('Edit Creator');
+
+                                // Update save button text
+                                $('#saveCreatorBtn').text('Update');
+
+                                // Show the modal first
+                                const modalInstance = new bootstrap.Modal(modal);
+                                modalInstance.show();
+
+                                // Wait for modal to be fully shown before populating fields
+                                $(modal).on('shown.bs.modal.editData', function() {{
+
+                                    // Populate the creator modal with existing data
+                                    $('#newCreatorName').val(creatorData.name || '');
+                                    $('#newCreatorLastName').val(creatorData.lastName || '');
+                                    $('#newCreatorOrcid').val(creatorData.orcid || '');
+
+                                    // Handle affiliation
+                                    if (typeof affiliationData === 'string') {{
+                                        $('#newCreatorAffiliation').val(affiliationData);
+                                        $('#newCreatorRorData').val('');
+                                        $('#newCreatorOrcidAffiliationData').val('');
+                                    }} else if (typeof affiliationData === 'object' &&
+                                              affiliationData !== null) {{
+                                        const affiliationName = affiliationData.title ||
+                                                               affiliationData.name || affiliationData;
+                                        $('#newCreatorAffiliation').val(affiliationName);
+                                        if (affiliationData.ror_id || affiliationData.id) {{
+                                            $('#newCreatorRorData').val(JSON.stringify(affiliationData));
+                                            $('#newCreatorOrcidAffiliationData').val('');
+                                        }} else {{
+                                            $('#newCreatorOrcidAffiliationData').val(JSON.stringify(affiliationData));
+                                            $('#newCreatorRorData').val('');
+                                        }}
+                                    }} else {{
+                                        $('#newCreatorAffiliation').val('');
+                                        $('#newCreatorRorData').val('');
+                                        $('#newCreatorOrcidAffiliationData').val('');
+                                    }}
+
+                                    // Verify fields are populated
+                                    setTimeout(function() {{
+
+                                        // Trigger validation
+                                        $('#newCreatorName').trigger('input');
+                                        $('#newCreatorLastName').trigger('input');
+                                        $('#newCreatorAffiliation').trigger('input');
+                                        $('#newCreatorOrcid').trigger('input');
+                                    }}, 200);
+
+                                    // Remove this specific event handler so it doesn't fire again
+                                    $(this).off('shown.bs.modal.editData');
+                                }});
+
+                            }} catch(error) {{
+                                console.error('DEBUG: Error parsing creator data:', error);
+                            }}
+                        }});
+
+                        // Reset modal state when closed
+                        $('#creatorsModal').on('hidden.bs.modal', function() {{
+                            const modal = this;
+                            modal.dataset.editingMode = 'false';
+                            modal.editingItem = null;
+                            $('#creatorsModalLabel').text('Add Creator');
+                            $('#saveCreatorBtn').text('✓ Save');
                         }});
                     }});
                 </script>

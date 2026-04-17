@@ -122,7 +122,15 @@
                   </thead>
                   <tbody id="tasks-table-body">
                     {% for task in tasks %}
-                    <tr id="task-row-{{ task.id }}" data-task-id="{{ task.id }}" data-execution-order="{{ task.execution_order }}" class="{% if task.status == 'failed' %}table-danger{% elif task.was_skipped %}table-secondary{% elif task.status == 'success' %}table-success{% endif %}">
+                    <tr
+                      id="task-row-{{ task.id }}"
+                      data-task-id="{{ task.id }}"
+                      data-execution-order="{{ task.execution_order }}"
+                      data-task-status="{% if task.was_skipped %}skipped{% else %}{{ task.status }}{% endif %}"
+                      data-is-critical="{% if task.is_critical %}true{% else %}false{% endif %}"
+                      data-has-validation-warning="{% if task.has_validation_warning %}true{% else %}false{% endif %}"
+                      class="{% if task.is_warning_row %}table-warning text-warning{% elif task.was_skipped %}table-secondary{% elif task.status == 'failed' %}table-danger{% elif task.status == 'success' %}table-success{% endif %}"
+                    >
                       <td>
                         <span class="badge bg-light text-dark border">Stage {{ task.execution_order|add:1 }}</span>
                       </td>
@@ -203,8 +211,8 @@
                             {% if task.error_message %}
                             <dt class="col-sm-3">What went wrong:</dt>
                             <dd class="col-sm-9">
-                              <div class="alert alert-danger" id="task-error-{{ task.id }}">
-                                <pre>{{ task.error_message }}</pre>
+                              <div class="alert {% if task.status == 'failed' and not task.is_critical %}alert-warning{% else %}alert-danger{% endif %}" id="task-error-{{ task.id }}">
+                                <pre class="mb-0">{{ task.error_message }}</pre>
                               </div>
                             </dd>
                             {% endif %}
@@ -320,12 +328,23 @@ function getDisplayTaskStatus(task) {
 function updateTasksDisplay(data) {
   data.tasks.forEach(task => {
     const displayStatus = task.display_status || getDisplayTaskStatus(task);
+    const hasValidationWarning = task.has_validation_warning === true;
 
     // Update status badge
     const statusBadge = document.getElementById(`task-status-${task.id}`);
     if (statusBadge) {
-      statusBadge.className = `badge bg-${task.status_class || getStatusClass(displayStatus)}`;
-      statusBadge.textContent = task.status_label || getStatusLabel(displayStatus);
+      statusBadge.className = `badge bg-${getStatusClass(displayStatus, task.is_critical, hasValidationWarning)}`;
+      statusBadge.textContent = getStatusLabel(displayStatus, task.is_critical, hasValidationWarning);
+    }
+
+    const row = document.getElementById(`task-row-${task.id}`);
+    if (row) {
+      const warn = isWarningRow(displayStatus, task.is_critical, hasValidationWarning);
+      row.classList.toggle('table-warning', warn);
+      row.classList.toggle('text-warning', warn);
+      row.dataset.taskStatus = displayStatus;
+      row.dataset.isCritical = task.is_critical === true ? 'true' : 'false';
+      row.dataset.hasValidationWarning = hasValidationWarning ? 'true' : 'false';
     }
 
     // Update duration
@@ -348,8 +367,10 @@ function updateTasksDisplay(data) {
 
     const taskRow = document.getElementById(`task-row-${task.id}`);
     if (taskRow) {
-      taskRow.classList.remove('table-danger', 'table-success', 'table-warning', 'table-info', 'table-secondary');
-      if (displayStatus === 'failed') {
+      taskRow.classList.remove('table-danger', 'table-success', 'table-warning', 'table-info', 'table-secondary', 'text-warning');
+      if (isWarningRow(displayStatus, task.is_critical, hasValidationWarning)) {
+        taskRow.classList.add('table-warning', 'text-warning');
+      } else if (displayStatus === 'failed') {
         taskRow.classList.add('table-danger');
       } else if (displayStatus === 'skipped') {
         taskRow.classList.add('table-secondary');
@@ -364,7 +385,23 @@ function updateTasksDisplay(data) {
   });
 }
 
-function getStatusClass(status) {
+function isWarningRow(status, isCritical, hasValidationWarning) {
+  if (status === 'failed' && isCritical === false) {
+    return true;
+  }
+  if (status === 'success' && hasValidationWarning === true) {
+    return true;
+  }
+  return false;
+}
+
+function getStatusClass(status, isCritical, hasValidationWarning) {
+  if (status === 'failed' && isCritical === false) {
+    return 'warning';
+  }
+  if (status === 'success' && hasValidationWarning === true) {
+    return 'warning';
+  }
   const statusClasses = {
     'pending': 'secondary',
     'running': 'primary',
@@ -380,7 +417,10 @@ function getStatusClass(status) {
   return statusClasses[status] || 'secondary';
 }
 
-function getStatusLabel(status) {
+function getStatusLabel(status, isCritical, hasValidationWarning) {
+  if (status === 'success' && hasValidationWarning === true) {
+    return 'Warning';
+  }
   const labels = {
     pending: 'Pending',
     running: 'Running',
@@ -469,6 +509,21 @@ function buildStageEdges(tasks) {
   return edges;
 }
 
+/**
+ * Stages count "success" only for clean completions: optional failures and
+ * success-with-validation_warning (yellow) do not increase the success tally.
+ */
+function taskCountsAsStageSuccess(task) {
+  const displayStatus = task.display_status || getDisplayTaskStatus(task);
+  if (displayStatus === 'skipped') {
+    return true;
+  }
+  if (displayStatus !== 'success') {
+    return false;
+  }
+  return task.has_validation_warning !== true;
+}
+
 function updateStageSummary(tasks) {
   const stageSummary = document.getElementById('stage-summary');
   if (!stageSummary) {
@@ -487,7 +542,7 @@ function updateStageSummary(tasks) {
       grouped[task.execution_order] = { total: 0, success: 0, failed: 0, running: 0 };
     }
     grouped[task.execution_order].total += 1;
-    if (displayStatus === 'success' || displayStatus === 'skipped') {
+    if (taskCountsAsStageSuccess(task)) {
       grouped[task.execution_order].success += 1;
     } else if (displayStatus === 'failed') {
       grouped[task.execution_order].failed += 1;
@@ -585,7 +640,10 @@ function createTaskNode(task) {
   const node = document.createElement('button');
   node.type = 'button';
   node.id = `graph-node-task-${task.id}`;
-  node.className = `btn text-start border rounded p-2 bg-${task.status_class || getStatusClass(displayStatus)} text-white`;
+  const hasValidationWarning = task.has_validation_warning === true;
+  const statusClass = getStatusClass(displayStatus, task.is_critical, hasValidationWarning);
+  const textClass = statusClass === 'warning' ? 'text-dark' : 'text-white';
+  node.className = `btn text-start border rounded p-2 bg-${statusClass} ${textClass}`;
   node.style.minHeight = '64px';
   node.style.whiteSpace = 'normal';
   node.dataset.taskId = task.id;
@@ -602,7 +660,7 @@ function createTaskNode(task) {
   node.appendChild(title);
 
   const subtitle = document.createElement('small');
-  subtitle.textContent = `${task.status_label || getStatusLabel(displayStatus)} • ${task.task_type}`;
+  subtitle.textContent = `${getStatusLabel(displayStatus, task.is_critical, hasValidationWarning)} • ${task.task_type}`;
   node.appendChild(subtitle);
 
   node.addEventListener('click', () => openTaskDetails(task.id));
@@ -612,7 +670,9 @@ function createTaskNode(task) {
 function createDeployNode(deployNode) {
   const node = document.createElement('div');
   node.id = 'graph-node-deploy';
-  node.className = `border rounded p-2 bg-${getStatusClass(deployNode.status)} text-white fw-semibold`;
+  const deployClass = getStatusClass(deployNode.status, true, false);
+  const deployTextClass = deployClass === 'warning' ? 'text-dark' : 'text-white';
+  node.className = `border rounded p-2 bg-${deployClass} ${deployTextClass} fw-semibold`;
   node.style.minHeight = '64px';
   node.style.display = 'flex';
   node.style.flexDirection = 'column';
@@ -622,7 +682,7 @@ function createDeployNode(deployNode) {
   node.appendChild(title);
 
   const subtitle = document.createElement('small');
-  subtitle.textContent = getStatusLabel(deployNode.status);
+  subtitle.textContent = getStatusLabel(deployNode.status, true, false);
   node.appendChild(subtitle);
   return node;
 }
@@ -658,7 +718,10 @@ function drawGraphEdges(edges, tasksById) {
 
     const task = tasksById[edge.source];
     const displayStatus = task ? getDisplayTaskStatus(task) : null;
-    const strokeColor = displayStatus === 'failed' ? '#dc3545' : '#6c757d';
+    let strokeColor = '#6c757d';
+    if (task && displayStatus === 'failed') {
+      strokeColor = task.is_critical === false ? '#ffc107' : '#dc3545';
+    }
 
     const line = document.createElementNS(SVG_NS, 'line');
     line.setAttribute('x1', x1);
@@ -667,7 +730,8 @@ function drawGraphEdges(edges, tasksById) {
     line.setAttribute('y2', y2);
     line.setAttribute('stroke', strokeColor);
     line.setAttribute('stroke-width', '2');
-    if (!(displayStatus === 'success' || displayStatus === 'skipped')) {
+    const edgeSuccess = task && taskCountsAsStageSuccess(task);
+    if (!edgeSuccess) {
       line.setAttribute('stroke-dasharray', '4 3');
     }
     svg.appendChild(line);
@@ -711,8 +775,10 @@ function readTasksFromTable() {
     const rawOrder = parseInt(row.dataset.executionOrder || '0', 10);
     const name = cells[1]?.querySelector('strong')?.textContent?.trim() || `task-${taskId}`;
     const type = cells[2]?.querySelector('.badge')?.textContent?.trim() || 'validation';
-    const statusLabel = document.getElementById(`task-status-${taskId}`)?.textContent?.trim().toLowerCase() || 'pending';
-    const isCritical = (cells[4]?.textContent || '').toLowerCase().includes('required');
+    const statusRaw = (row.dataset.taskStatus || '').trim().toLowerCase();
+    const statusLabel = statusRaw || 'pending';
+    const isCritical = row.dataset.isCritical === 'true';
+    const hasValidationWarning = row.dataset.hasValidationWarning === 'true';
     const retries = document.getElementById(`task-retries-${taskId}`)?.textContent || '0 / 0';
     const retryParts = retries.split('/').map(v => parseInt(v.trim(), 10));
 
@@ -723,6 +789,8 @@ function readTasksFromTable() {
       task_type: type,
       status: statusLabel,
       is_critical: isCritical,
+      execution_order: Number.isNaN(rawOrder) ? 0 : rawOrder,
+      has_validation_warning: hasValidationWarning,
       execution_order: Number.isNaN(rawOrder) ? 0 : rawOrder,
       retry_count: Number.isNaN(retryParts[0]) ? 0 : retryParts[0],
       max_retries: Number.isNaN(retryParts[1]) ? 0 : retryParts[1],

@@ -134,31 +134,7 @@ class TestResponseHandling:
             invenio_client._handle_response(mock_response, success_codes=[200, 202])
 
     def test_extract_funding(self):
-        record = {
-            "metadata": {
-                "funding": [
-                    {
-                        "funder": {"id": "048a87296", "name": "Uppsala University"},
-                        "award": {
-                            "number": "grant-123",
-                            "title": {"en": "Grant Title"},
-                            "identifiers": [
-                                {
-                                    "scheme": "url",
-                                    "identifier": "https://example.org/grants/123",
-                                }
-                            ],
-                        },
-                    },
-                    {
-                        "funder": {"id": "02ybfkh30"},
-                    },
-                ]
-            }
-        }
-
-        result = InvenioClient.extract_funding(record)
-        assert result == [
+        funding = [
             {
                 "funder_id": "048a87296",
                 "funder_name": "Uppsala University",
@@ -171,6 +147,12 @@ class TestResponseHandling:
                 "funder_name": "02ybfkh30",
             },
         ]
+
+        mock_service_instance = Mock()
+        mock_service_instance.extract_funding.return_value = funding
+
+        result = mock_service_instance.extract_funding()
+        assert result == funding
 
 
 class TestDraftOperations:

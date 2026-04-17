@@ -97,9 +97,11 @@ class CustomAppFormTest(BaseAppFormTest):
 
         form = CustomAppForm(invalid_data, project_pk=self.project.pk)
         self.assertFalse(form.is_valid())
-        self.assertIn("name", form.errors)
+        # Only 'port' and 'image' are required by the form
         self.assertIn("port", form.errors)
         self.assertIn("image", form.errors)
+        self.assertIn("This field is required", str(form.errors["port"]))
+        self.assertIn("This field is required", str(form.errors["image"]))
 
     # Path validation tests have been moved to test_storage_settings.py
 
@@ -134,9 +136,9 @@ class CustomAppFormTest(BaseAppFormTest):
         form = CustomAppForm(valid_data, project_pk=self.project.pk)
         self.assertTrue(form.is_valid())
 
-    @patch("apps.forms.base.InvenioClient")
+    @patch("doi_minting.services.invenio_svc.InvenioService")
     @patch("apps.forms.base.waffle.switch_is_active", return_value=True)
-    def test_edit_form_prefills_language_and_funding_from_invenio(self, _mock_switch, mock_invenio_client):
+    def test_edit_form_prefills_language_and_funding_from_invenio(self, _mock_switch, mock_invenio_service):
         instance = CustomAppInstance.objects.create(
             app=self.app,
             chart="custom-app",
@@ -155,17 +157,21 @@ class CustomAppFormTest(BaseAppFormTest):
 
         funding = [
             {
-                "funder_id": "048a87296",
-                "funder_name": "Uppsala University",
-                "number": "grant-123",
-                "title": "Grant title",
-                "url": "https://example.org/grants/123",
+                "funder_id": "039qvmf95",
+                "funder_name": "Wallenberg Wood Science Center",
+                "number": "12",
+                "title": "award 1",
+                "url": "https://url.com",
             }
         ]
-        mock_client = mock_invenio_client.return_value
-        mock_client.get_record.return_value = {"metadata": {"languages": [{"id": "swe"}], "funding": []}}
-        mock_client.extract_language_id.return_value = "swe"
-        mock_client.extract_funding.return_value = funding
+
+        # Mock the service instance and its methods
+        mock_service_instance = mock_invenio_service.return_value
+        mock_app_metadata = {"metadata": {"languages": [{"id": "swe"}], "funding": []}}
+        mock_service_instance.get_app_metadata.return_value = mock_app_metadata
+        mock_service_instance.extract_language_id.return_value = "swe"
+        mock_service_instance.extract_funding.return_value = funding
+        mock_service_instance.extract_creators.return_value = []
 
         form = CustomAppForm(project_pk=self.project.pk, instance=instance)
 

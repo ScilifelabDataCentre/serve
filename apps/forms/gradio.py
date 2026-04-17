@@ -42,6 +42,21 @@ class GradioForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, 
             widget=forms.TextInput(attrs={"class": "form-control"}),
         )
 
+        # Load existing tags into the invenio_tags field after creating it
+        self._load_existing_tags_to_invenio_field()
+
+    def _load_existing_tags_to_invenio_field(self):
+        """Load existing database tags into the invenio_tags field"""
+        if self.instance and self.instance.pk and hasattr(self.instance, "tags"):
+            existing_tags = list(self.instance.tags.all())
+            if existing_tags:
+                # Convert tag objects to pipe-separated format for template
+                tag_names = [str(tag) for tag in existing_tags]
+                tag_string = " | ".join(tag_names)
+                self.fields["invenio_tags"].initial = tag_string
+            else:
+                self.fields["invenio_tags"].initial = ""
+
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
@@ -57,7 +72,7 @@ class GradioForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, 
         general_fields = [
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
-            SRVCommonDivField("invenio_tags"),
+            SRVCommonDivField("invenio_tags", template="apps/invenio_tags_field.html"),
             self.get_creators_field_layout(),
             SRVCommonDivField("access"),
             SRVCommonDivField(
@@ -112,8 +127,20 @@ class GradioForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, 
 
     def clean(self):
         cleaned_data = super().clean()
-        # Validate invenio_tags and store valid tags
-        cleaned_data["tags"] = self.clean_keyword_tags()
+        # Always handle tags field - preserve existing tags even if not changed
+        if "invenio_tags" in self.fields:
+            # Get the current value from the invenio_tags field
+            invenio_tags_value = cleaned_data.get("invenio_tags", "") or self.fields["invenio_tags"].initial or ""
+
+            if invenio_tags_value:
+                # Process the tags using the existing cleaning logic
+                cleaned_data["tags"] = self.clean_keyword_tags()
+            elif self.instance and self.instance.pk and hasattr(self.instance, "tags"):
+                # If no tags in form but instance has existing tags, preserve them
+                existing_tags = list(self.instance.tags.all())
+                if existing_tags:
+                    # Keep existing tags as they are
+                    cleaned_data["tags"] = existing_tags
         return cleaned_data
 
     class Meta:

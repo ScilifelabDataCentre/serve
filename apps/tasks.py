@@ -901,6 +901,7 @@ def run_background_tasks(
     app_slug,
     task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
     run_id: str | None = None,
+    skip_deploy: bool = False,
 ):
     """
     Orchestrates background tasks before deployment.
@@ -914,6 +915,7 @@ def run_background_tasks(
         task_kwargs_by_task_name: Optional mapping of task_name -> kwargs dict passed to
             validate_inputs/execute for that specific task.
         run_id: Stable identifier for this logical deployment/background-task run.
+        skip_deploy: When True, run the background-task workflow but do not enqueue Helm deployment.
 
     Returns:
         Dict with success status and task results
@@ -934,6 +936,12 @@ def run_background_tasks(
 
     if not tasks_by_order:
         logger.info(f"No background tasks registered for app type {app_slug}")
+        if skip_deploy:
+            return {
+                "success": True,
+                "message": "No tasks to run, deployment skipped",
+                "run_id": str(run_uuid),
+            }
         # Proceed directly to deployment, but only after this transaction commits.
         transaction.on_commit(lambda: deploy_resource.delay(serialized_instance, str(run_uuid)))
         return {"success": True, "message": "No tasks to run, proceeding to deployment", "run_id": str(run_uuid)}
@@ -995,8 +1003,8 @@ def run_background_tasks(
             )
             task_chain.append(parallel_tasks)
 
-    # Add deployment as the final step in the chain
-    task_chain.append(check_tasks_and_deploy.s(instance.id, serialized_instance, str(run_uuid)))
+    # Add deployment as the final step in the chain, unless skip_deploy is True
+    task_chain.append(check_tasks_and_deploy.s(instance.id, serialized_instance, str(run_uuid), skip_deploy))
 
     # Execute the chain
     workflow = chain(*task_chain)
@@ -1006,10 +1014,15 @@ def run_background_tasks(
     logger.info(f"Started background task workflow for app {instance.id}")
     return {"success": True, "message": f"Started {len(task_records)} background tasks", "run_id": str(run_uuid)}
 
-
 @shared_task
 @transaction.atomic
-def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instance, run_id: str | None = None):
+def check_tasks_and_deploy(
+    previous_results,
+    app_instance_id,
+    serialized_instance,
+    run_id: str | None = None,
+    skip_deploy=False,
+):
     """
     Check if all critical tasks succeeded, then deploy if appropriate.
 
@@ -1045,10 +1058,11 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
                 f"{', '.join(failed_names)}. Deployment NOT blocked (waffle switch enabled)."
             )
             logger.warning(warning_msg)
-            transaction.on_commit(lambda: deploy_resource.delay(serialized_instance, run_id))
+            if not skip_deploy:
+                transaction.on_commit(lambda: deploy_resource.delay(serialized_instance, run_id))
             return {
                 "success": False,
-                "deployed": True,
+                "deployed": not skip_deploy,
                 "warning": warning_msg,
                 "failed_tasks": failed_names,
                 "blocked": False,
@@ -1070,15 +1084,22 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
             "blocked": True,
         }
 
-    # All critical tasks passed - proceed with deployment
-    logger.info(f"All critical tasks passed for app {app_instance_id}. Proceeding with deployment.")
-    transaction.on_commit(lambda: deploy_resource.delay(serialized_instance, run_id))
-
-    return {
-        "success": True,
-        "deployed": True,
-        "message": "All tasks completed, deployment started",
-    }
+    # All critical tasks passed - proceed with deployment unless skip_deploy is True
+    if skip_deploy:
+        logger.info(f"All critical tasks passed for app {app_instance_id}. Skipping deployment (skip_deploy=True).")
+        return {
+            "success": True,
+            "deployed": False,
+            "message": "All tasks completed, deployment skipped (skip_deploy=True)",
+        }
+    else:
+        logger.info(f"All critical tasks passed for app {app_instance_id}. Proceeding with deployment.")
+        transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
+        return {
+            "success": True,
+            "deployed": True,
+            "message": "All tasks completed, deployment started",
+        }
 
 
 @shared_task

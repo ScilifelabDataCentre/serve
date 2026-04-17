@@ -1,0 +1,33 @@
+<div id="div_{{ field.id_for_label }}" class="{% if wrapper_class %}{{ wrapper_class }}{% endif %}">
+  {% include "apps/partials/div_label_with_help_toggle.html" %}
+
+  <div class="clearfix">
+    {{ field }} {# hidden JSON or text field #}
+
+    <div id="tagsList" class="mb-2"></div>
+
+    {% if field.help_text %}
+      <small id="{{ field.id_for_label }}_helptext" class="form-text text-muted d-block">
+        {{ field.help_text }}
+      </small>
+    {% endif %}
+
+    {% for error in field.errors %}
+      <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>
+    {% endfor %}
+  </div>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var field = document.getElementById("{{ field.id_for_label }}");
+    var tagsList = document.getElementById("tagsList");
+
+    if (field && tagsList) {
+      var fieldValue = field.value || "";
+      if (fieldValue.trim()) {
+        var tags = fieldValue.split("|").map(function(tag) { return tag.trim(); }).filter(Boolean);
+      }
+    }
+  });
+  </script>
+</div>

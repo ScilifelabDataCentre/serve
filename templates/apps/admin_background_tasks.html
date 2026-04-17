@@ -85,7 +85,7 @@
               </thead>
               <tbody>
                 {% for task in page_obj %}
-                <tr>
+                <tr class="{% if task.is_warning_row %}table-warning text-warning{% endif %}">
                   <td>{{ task.id }}</td>
                   <td>
                     <strong>{{ task.task_name }}</strong>
@@ -107,7 +107,7 @@
                   </td>
                   <td>
                     <span class="badge bg-{{ task.get_status_display_class }}">
-                      {{ task.get_status_display }}
+                      {{ task.get_status_badge_label }}
                     </span>
                   </td>
                   <td>
@@ -163,7 +163,7 @@
                         {% if task.error_message %}
                         <dt class="col-sm-2">Error:</dt>
                         <dd class="col-sm-10">
-                          <div class="alert alert-danger mb-0">
+                          <div class="alert {% if task.status == 'failed' and not task.is_critical %}alert-warning{% else %}alert-danger{% endif %} mb-0">
                             <pre class="mb-0">{{ task.error_message }}</pre>
                           </div>
                         </dd>

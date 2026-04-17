@@ -9,6 +9,7 @@ import dateutil.parser
 import requests
 import waffle
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
@@ -77,8 +78,14 @@ def _serialize_background_task(task):
     duration = task.get_duration()
     result_data = task.result_data if isinstance(task.result_data, dict) else {}
     was_skipped = bool(result_data.get("skipped"))
+    has_validation_warning = task.has_validation_warning()
     error_detail = result_data.get("ui_error") or result_data.get("error", {}).get("ui_error")
     display_fields = _build_task_display_fields(task.status, was_skipped=was_skipped)
+    if not was_skipped and task.status == "failed" and not task.is_critical:
+        display_fields["status_class"] = "warning"
+    if not was_skipped and has_validation_warning:
+        display_fields["status_label"] = "Warning"
+        display_fields["status_class"] = "warning"
     return {
         "id": task.id,
         "run_id": str(task.run_id) if task.run_id else None,
@@ -96,6 +103,7 @@ def _serialize_background_task(task):
         "completed_at": task.completed_at.isoformat() if task.completed_at else None,
         "duration_seconds": duration,
         "can_retry": task.status == "failed",
+        "has_validation_warning": has_validation_warning,
         "was_skipped": was_skipped,
         "skip_reason": result_data.get("reason", "") if was_skipped else "",
         "error_detail": error_detail if isinstance(error_detail, dict) else None,
@@ -826,7 +834,16 @@ class CreateApp(View):
         if request.user.is_superuser and project.status == "deleted":
             return HttpResponse("This project has been deleted by the user.")
 
-        form = self.get_form(request, project, app_slug, app_id)
+        try:
+            form = self.get_form(request, project, app_slug, app_id)
+        except PermissionDenied as e:
+            # Check if this is a metadata fetch error by examining the message
+            if "system error while fetching metadata" in str(e):
+                messages.error(request, str(e))
+                return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_slug}))
+            else:
+                # Re-raise if it's a different permission error
+                raise
 
         if form is None or not getattr(form, "is_valid", False):
             raise PermissionDenied()
@@ -924,7 +941,7 @@ class CreateApp(View):
             if app_id and instance and hasattr(instance, "access") and instance.access == "public":
                 if hasattr(form, "fields") and "access" in form.fields:
                     form.fields["access"].disabled = True
-                    form.fields["access"].help_text = "Cannot change access mode for public apps."
+                    form.fields["access"].help_text = "The apps that have already been made public cannot be hidden."
 
             return form
             # Maybe this makes typing hard.
@@ -1145,6 +1162,7 @@ class BackgroundTasksView(View):
             task.display_status = task_data.get("display_status", task.status)
             task.status_label = task_data.get("status_label", task.status)
             task.status_class = task_data.get("status_class", "secondary")
+            task.has_validation_warning_value = task_data.get("has_validation_warning", False)
         summary = _build_task_summary(serialized_tasks)
 
         context = {
@@ -1174,7 +1192,6 @@ class BackgroundTaskStatusAPI(View):
             _, instance = _get_project_app_instance(project, app_slug, app_id)
         except (Http404, PermissionDenied):
             return JsonResponse({"error": "App instance not found"}, status=404)
-
         progress_mode = _get_progress_mode_from_request(request) or "deploy"
         progress_run_id = _get_progress_run_id_from_request(request)
         progress_state = _build_progress_state(instance, progress_mode=progress_mode, run_id=progress_run_id)

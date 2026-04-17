@@ -6,6 +6,9 @@ These tasks validate various aspects of app instances before deployment.
 
 from typing import Any, Dict
 
+import requests
+
+from apps.app_registry import APP_REGISTRY
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
 from apps.validators.container_images import (
@@ -15,6 +18,34 @@ from apps.validators.container_images import (
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
+
+# App types that have SocialMixin (and thus source_code_url)
+SOURCE_CODE_URL_APP_TYPES = [
+    "customapp",
+    "dashapp",
+    "depictio",
+    "gradio",
+    "shinyapp",
+    "shinyproxyapp",
+    "streamlit",
+    "tissuumaps",
+]
+
+
+def _concrete_app_instance_for_social_fields(app_instance):
+    """
+    BackgroundTask.app_instance points at BaseAppInstance; subclass fields (e.g.
+    source_code_url from SocialMixin) live on the child table. Re-fetch by concrete
+    model so those attributes are loaded.
+    """
+    slug = getattr(app_instance.app, "slug", None) or ""
+    model = APP_REGISTRY.get_orm_model(slug)
+    if model is None:
+        return app_instance
+    try:
+        return model.objects.get(pk=app_instance.pk)
+    except model.DoesNotExist:
+        return app_instance
 
 
 IMAGE_COMPATIBILITY_APP_TYPES = [
@@ -117,7 +148,7 @@ class DockerImageValidator(BaseBackgroundTask):
     task_type = "validation"
     timeout_seconds = 180
 
-    def execute(self, app_instance, **kwargs) -> Dict[str, Any]:
+    def execute(self, app_instance, **kwargs) -> dict[str, Any]:
         """Validate Docker image architecture."""
         from apps.validators.container_images import (
             get_container_image_context,
@@ -129,7 +160,7 @@ class DockerImageValidator(BaseBackgroundTask):
         if not ctx.has_image:
             return _validation_result_no_image(app_instance)
         if not ctx.is_supported_registry:
-            logger.warning(
+            logger.info(
                 "Skipping Docker image validation for unsupported registry '%s' (image=%s)",
                 ctx.registry_host_str,
                 ctx.image,
@@ -258,6 +289,123 @@ class ImagePublicValidator(BaseBackgroundTask):
         return super().should_retry(error, retry_count)
 
 
+@TASK_REGISTRY.register(
+    name="validate_source_code_url",
+    is_critical=False,
+    execution_order=2,
+    app_types=[
+        "customapp",
+        # "dashapp",
+        # "depictio",
+        # "gradio",
+        # "shinyapp",
+        # "shinyproxyapp",
+        # "streamlit",
+        # "tissuumaps",
+    ],
+)
+class SourceCodeUrlValidator(BaseBackgroundTask):
+    """
+    Validates that the app's source_code_url (from SocialMixin) is reachable.
+
+    Performs HTTP HEAD first; falls back to GET if HEAD is not supported.
+    Non-2xx responses or timeouts are treated as warning or error depending on
+    SOURCE_CODE_URL_VALIDATION_FAILURE_MODE ("warning" or "error").
+    """
+
+    max_retries = 1
+    task_type = "validation"
+    # Allow HTTP timeout + buffer for Celery soft limit
+    timeout_seconds = 30
+
+    def execute(self, app_instance, **kwargs) -> dict[str, Any]:
+        from django.conf import settings
+
+        concrete = _concrete_app_instance_for_social_fields(app_instance)
+        url = getattr(concrete, "source_code_url", None)
+        if not url or not str(url).strip():
+            return {
+                "valid": True,
+                "message": "No source_code_url provided; skip validation",
+            }
+
+        timeout = getattr(
+            settings,
+            "SOURCE_CODE_URL_VALIDATION_TIMEOUT_SECONDS",
+            10,
+        )
+        failure_mode = getattr(
+            settings,
+            "SOURCE_CODE_URL_VALIDATION_FAILURE_MODE",
+            "warning",
+        ).lower()
+        if failure_mode not in ("warning", "error"):
+            failure_mode = "warning"
+        treat_as_error = failure_mode == "error"
+
+        def fail(message: str, status_code: int | None = None) -> dict[str, Any]:
+            if treat_as_error:
+                detail = message
+                if status_code is not None:
+                    detail = f"{message} (HTTP {status_code})"
+                raise ValueError(detail)
+            return {
+                "valid": True,
+                "validation_warning": message,
+                "status_code": status_code,
+                "url": url,
+            }
+
+        try:
+            # Prefer HEAD to avoid downloading body; allow_redirects to follow 3xx
+            try:
+                response = requests.head(
+                    url,
+                    timeout=timeout,
+                    allow_redirects=True,
+                    headers={"User-Agent": "ScilifelabServe-SourceCodeUrlValidator/1.0"},
+                )
+            except requests.RequestException as e:
+                logger.info("Source code URL HEAD failed for %s: %s", url, e)
+                return fail(f"Source code URL unreachable: {e!s}", status_code=None)
+
+            # Some servers respond with 405 Method Not Allowed for HEAD; try GET
+            if response.status_code == 405:
+                try:
+                    response = requests.get(
+                        url,
+                        timeout=timeout,
+                        allow_redirects=True,
+                        headers={
+                            "User-Agent": "ScilifelabServe-SourceCodeUrlValidator/1.0",
+                        },
+                        stream=True,
+                    )
+                    # Consume a minimal amount to avoid reading full body
+                    response.close()
+                except requests.RequestException as e:
+                    logger.info("Source code URL GET failed for %s: %s", url, e)
+                    return fail(f"Source code URL unreachable: {e!s}", status_code=None)
+
+            if not (200 <= response.status_code < 300):
+                return fail(
+                    f"Source code URL returned non-2xx: {response.status_code}",
+                    status_code=response.status_code,
+                )
+
+            return {
+                "valid": True,
+                "url": url,
+                "status_code": response.status_code,
+            }
+
+        except requests.Timeout:
+            return fail(f"Source code URL request timed out after {timeout}s", status_code=None)
+
+        except requests.RequestException as e:
+            return fail(f"Source code URL request failed: {e!s}", status_code=None)
+
+
 # Example task - not registered by default
 # @TASK_REGISTRY.register(
 #     name='validate_subdomain',
@@ -272,7 +420,7 @@ class SubdomainValidator(BaseBackgroundTask):
     max_retries = 1
     task_type = "validation"
 
-    def execute(self, app_instance, **kwargs) -> Dict[str, Any]:
+    def execute(self, app_instance, **kwargs) -> dict[str, Any]:
         """Validate subdomain."""
         from apps.types_.subdomain import SubdomainCandidateName
 

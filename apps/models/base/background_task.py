@@ -188,8 +188,34 @@ class BackgroundTask(models.Model):
             return (self.completed_at - self.started_at).total_seconds()
         return None
 
-    def get_status_display_class(self):
-        """Return CSS class for status display."""
+    def has_validation_warning(self) -> bool:
+        """True when the task succeeded but reported a validation_warning (e.g. unreachable source code URL)."""
+        data = self.result_data
+        if not isinstance(data, dict):
+            return False
+        return bool(data.get("validation_warning"))
+
+    @property
+    def is_warning_row(self) -> bool:
+        """Highlight row in warning colors: optional task failed, or success with a soft validation warning."""
+        if self.status == "failed" and not self.is_critical:
+            return True
+        if self.status == "success" and self.has_validation_warning():
+            return True
+        return False
+
+    def get_status_badge_label(self) -> str:
+        """Label for status badge (differs from DB status when showing soft validation warnings)."""
+        if self.has_validation_warning():
+            return "Warning"
+        return str(self.get_status_display())
+
+    def get_status_display_class(self) -> str:
+        """Return Bootstrap color name for status badge (warning = yellow for optional failures / soft warnings)."""
+        if self.status == "failed" and not self.is_critical:
+            return "warning"
+        if self.status == "success" and self.has_validation_warning():
+            return "warning"
         status_classes = {
             "pending": "secondary",
             "running": "primary",

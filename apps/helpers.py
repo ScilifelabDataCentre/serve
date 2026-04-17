@@ -462,11 +462,45 @@ def create_instance_from_form(
     )
     if new_app:
         user_action = "Creating"
+        run_background_tasks_only = False
     else:
         # Treat every update as a user-initiated change, while the redirect logic
         # decides whether the user should see deployment progress or details.
         user_action = "Changing"
+        invenio_metadata_fields = ["name", "description", "language", "funding_sources_json", "creators", "tags"]
 
+        if not do_deploy:
+            # Only re-deploy existing apps if one of the following fields was changed:
+            redeployment_fields = [
+                "subdomain",
+                "volume",
+                "path",
+                "flavor",
+                "port",
+                "image",
+                "access",
+                "shiny_site_dir",
+            ]
+            logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
+
+            # Because not all forms contain all fields, we check if the supposedly changed field
+            # is actually contained in the form
+            run_background_tasks_only = False
+            for field in form.changed_data:
+                logger.debug(f"Checking if changed field {field} is a redeployment field.")
+                if field.lower() in redeployment_fields and (
+                    field.lower() in form.Meta.fields or field.lower() == "subdomain"
+                ):
+                    # subdomain is a special field not contained in meta fields
+                    logger.debug("create_instance_from_form.redeploy_field_changed app_id=%s field=%s", app_id, field)
+                    do_deploy = True
+                    break
+
+            for field in form.changed_data:
+                if field.lower() in invenio_metadata_fields:
+                    logger.debug("create_instance_from_form.invenio_metadata_changed app_id=%s field=%s", app_id, field)
+                    run_background_tasks_only = True
+                    break
     # For existing apps, detect if access is changing from non-public to public
     access_changed_to_public = False
     if not new_app:
@@ -565,6 +599,15 @@ def create_instance_from_form(
             app_slug,
             access_changed_to_public,
         )
+    elif run_background_tasks_only:
+        # Only run background tasks, do not deploy
+        background_task_run_id = _run_background_tasks_and_doi_only(
+            instance,
+            form,
+            app_slug,
+            access_changed_to_public,
+        )
+        logger.info("create_instance_from_form.background_tasks_only app_id=%s instance_id=%s", app_id, instance_id)
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
@@ -572,6 +615,35 @@ def create_instance_from_form(
         return instance_id, background_task_run_id
 
     return instance_id
+
+
+def _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_to_public=False, skip_deploy=True):
+    """Run background tasks (including DOI minting) for an instance, without deployment."""
+    from .tasks import run_background_tasks
+
+    logger.info(
+        "run_background_tasks_and_doi_only start for app_slug=%s instance_id=%s access_changed=%s skip_deploy=%s",
+        app_slug,
+        instance.id,
+        access_changed_to_public,
+        skip_deploy,
+    )
+
+    serialized_instance, task_kwargs_by_task_name, background_task_run_id = _prepare_doi_task_kwargs(
+        instance, form, app_slug, access_changed_to_public
+    )
+
+    transaction.on_commit(
+        lambda: run_background_tasks.delay(
+            serialized_instance,
+            app_slug,
+            task_kwargs_by_task_name,
+            background_task_run_id,
+            skip_deploy=skip_deploy,
+        )
+    )
+
+    return background_task_run_id
 
 
 def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public=False):
@@ -585,6 +657,26 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
         access_changed_to_public,
     )
 
+    serialized_instance, task_kwargs_by_task_name, background_task_run_id = _prepare_doi_task_kwargs(
+        instance, form, app_slug, access_changed_to_public
+    )
+
+    transaction.on_commit(
+        lambda: run_background_tasks.delay(
+            serialized_instance,
+            app_slug,
+            task_kwargs_by_task_name,
+            background_task_run_id,
+        )
+    )
+    return background_task_run_id
+
+
+def _prepare_doi_task_kwargs(instance, form, app_slug, access_changed_to_public=False):
+    """
+    Prepare the serialized instance and DOI provisioning task kwargs for background tasks.
+    Returns (serialized_instance, task_kwargs_by_task_name, background_task_run_id)
+    """
     serialized_instance = instance.serialize()
     background_task_run_id = str(uuid.uuid4())
 
@@ -603,9 +695,7 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
         tags_data = form.cleaned_data.get("tags") if hasattr(form, "cleaned_data") else None
         logger.debug(f"Background task: tags_data from form: {tags_data}")
 
-        # The orchestrator will handle deployment if tasks succeed.
         task_kwargs_by_task_name = {
-            # Form-only field (not persisted on the model) needed for Invenio metadata.
             "doi_provisioning": {
                 "language": form.cleaned_data.get("language"),
                 "funding": funding_list,
@@ -617,19 +707,10 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
             "DOI provisioning will be handled by background task for public app '%s' (id=%s).", app_slug, instance.id
         )
     else:
-        # No DOI provisioning for non-public apps
         task_kwargs_by_task_name = {}
         logger.debug("Skipping DOI provisioning for non-public app '%s' (id=%s).", app_slug, instance.id)
 
-    transaction.on_commit(
-        lambda: run_background_tasks.delay(
-            serialized_instance,
-            app_slug,
-            task_kwargs_by_task_name,
-            background_task_run_id,
-        )
-    )
-    return background_task_run_id
+    return serialized_instance, task_kwargs_by_task_name, background_task_run_id
 
 
 def get_subdomain_name(form):
@@ -905,6 +986,50 @@ def validate_docker_image(image: str):
                 f"Docker image '{image}' is not built for the right CPU architecture. "
                 "Please use docker build --platform linux/amd64 to build your image"
             )
+
+
+def fetch_ror_id_for_org(org_name: str) -> str | None:
+    """
+    Fetch ROR ID for organization name using existing ROR API logic.
+    Returns ROR ID (without URL prefix) or None if not found.
+    """
+    if not org_name or not org_name.strip():
+        return None
+
+    try:
+        # Use same logic as RORAutocompleteView
+        response = requests.get("https://api.ror.org/organizations", params={"query": org_name.strip()}, timeout=2)
+        response.raise_for_status()
+        data = response.json()
+
+        # Look for exact organization name match (case-insensitive)
+        for item in data.get("items", []):
+            ror_id = item.get("id", "")
+
+            # Extract organization title from names array (same logic as RORAutocompleteView)
+            title = ""
+            for name in item.get("names", []):
+                if "ror_display" in name.get("types", []):
+                    title = name.get("value", "")
+                    break
+
+            # If no ror_display found, use first name
+            if not title and item.get("names"):
+                title = item["names"][0].get("value", "")
+
+            # Check for exact match
+            if title and title.lower() == org_name.lower():
+                # Clean ROR ID (remove URL prefixes)
+                ror_id = ror_id.replace("https://ror.org/", "").replace("https://api.ror.org/organizations/", "")
+                logger.debug(f"Found ROR ID for '{org_name}': {ror_id}")
+                return ror_id
+
+        logger.debug(f"No exact ROR match found for '{org_name}'")
+        return None
+
+    except Exception as e:
+        logger.debug(f"ROR API error for '{org_name}': {e}")
+        return None
 
 
 def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) -> str:

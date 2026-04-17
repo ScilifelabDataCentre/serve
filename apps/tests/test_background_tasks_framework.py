@@ -28,6 +28,7 @@ def test_known_tasks_are_registered_after_django_startup():
     # Registration should happen deterministically via AppsConfig.ready().
     assert TASK_REGISTRY.is_registered("validate_docker_image") is True
     assert TASK_REGISTRY.is_registered("validate_image_public") is True
+    assert TASK_REGISTRY.is_registered("validate_source_code_url") is True
     assert TASK_REGISTRY.is_registered("doi_provisioning") is True
 
 
