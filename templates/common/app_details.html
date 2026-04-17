@@ -9,18 +9,45 @@
 
 {% block content %}
 
+<div class="container-fluid pb-3">
 
-<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
 
-  <h2 class="mb-0">{{ app_metadata.title }}</h2>
-    <p class="small">
+    <div>
+        <h2 class="mb-0">{{ app_metadata.title }}</h2>
+
+        <p class="small mb-0 mt-1">
         Version {{ app_otherdata.current_version }}
         {% if app_otherdata.latest_version_doi != app_otherdata.current_version_doi %}
             (<a href="{% url 'app-details' app_otherdata.latest_version_doi|cut:'10.83812/SCILIFELAB.' %}">see latest version</a>)
         {% else %}
             (latest version)
         {% endif %}
-    </p>
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        {% if app.volume == None %}
+        <a title="Instructions for running the app locally"
+        href="#"
+        class="btn btn-outline-serve"
+        data-bs-toggle="modal"
+        data-bs-target="#dockerInfoModal"
+        data-app-name="{{ app_metadata.title }}"
+        data-app-image="{{ app.image }}"
+        data-app-port="{{ app.port }}">
+        <i class="bi bi-download"></i> Run Locally
+        </a>
+        {% endif %}
+
+        <a title="Launch the app"
+        rel="Link to launch the app"
+        href="{{ app_otherdata.app_url }}"
+        target="_blank"
+        class="btn btn-primary">Launch (new tab)</a>
+    </div>
+
+    </div>
 
   <div class="row g-4">
 
@@ -246,5 +273,8 @@ document.addEventListener("DOMContentLoaded", function () {
     })
 })
 </script>
+
+{# Including code for modals displaying Docker info #}
+{% include 'common/app_card_docker_info.html' %}
 
 {% endblock %}
