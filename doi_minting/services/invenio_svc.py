@@ -747,7 +747,6 @@ class InvenioService:
                                 )
                             )
                         else:
-                            # Fallback: use as name
                             name = str(affiliation_data)
                             if isinstance(affiliation_data, dict):
                                 name = affiliation_data.get("name") or affiliation_data.get("title", name)
@@ -1139,6 +1138,13 @@ class InvenioService:
         # Check if the app is publicly accessible
         is_public, reason = self.is_app_access_public(app_instance)
 
+        # Early exit for non-public apps
+        if not is_public:
+            logger.info(f"Skipping DOI minting: {reason}")
+            return
+
+        logger.debug("App is eligible for DOI minting or updating, proceeding...")
+
         # Generate new metadata for comparison
         invenio_record = self.generate_invenio_record(app_instance, additional_metadata=additional_metadata)
 
@@ -1158,7 +1164,7 @@ class InvenioService:
             f"Metadata change: {metadata_change} ({metadata_reason})"
         )
 
-        if not (is_public or metadata_change or image_change):
+        if not (metadata_change or image_change):
             logger.info(f"Skipping DOI minting: {reason}")
             return
 
