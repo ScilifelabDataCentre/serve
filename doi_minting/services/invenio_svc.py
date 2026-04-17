@@ -1163,10 +1163,6 @@ class InvenioService:
             f"Metadata change: {metadata_change} ({metadata_reason})"
         )
 
-        #        if not (metadata_change or image_change):
-        #            logger.info(f"Skipping DOI minting: {reason}")
-        #            return
-
         logger.debug("App is eligible for DOI minting or updating, proceeding...")
 
         try:
