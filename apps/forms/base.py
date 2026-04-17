@@ -7,13 +7,14 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Submit
 from django import forms
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.forms import Select, SelectMultiple
 from django.shortcuts import get_object_or_404
 
 from apps.forms.field.widget import SubdomainInputGroup
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
-from doi_minting.clients.invenio_client import InvenioClient
+from doi_minting.services.invenio_svc import InvenioService
 from projects.models import Flavor, Project
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ class BaseForm(forms.ModelForm):
     LANGUAGE_CHOICES = [
         ("eng", "English"),
         ("swe", "Swedish"),
-        ("", "Other"),
+        ("und", "Other"),
     ]
 
     def __init__(self, *args, **kwargs):
@@ -41,11 +42,20 @@ class BaseForm(forms.ModelForm):
         self.request = kwargs.pop("request", None)  # Store request for mixins
         self.project = get_object_or_404(Project, pk=self.project_pk) if self.project_pk else None
         self.model_name = self._meta.model._meta.verbose_name.replace("Instance", "")
+        self._metadata_fetch_failed = False
 
         super().__init__(*args, **kwargs)
 
         self._setup_form_fields()
         self.add_metadata()
+
+        # Prevent form from opening if metadata fetch failed
+        if self._metadata_fetch_failed:
+            raise PermissionDenied(
+                "This app cannot be edited due to a system error while fetching metadata. "
+                "Please contact support for assistance."
+            )
+
         self._setup_form_helper()
         for field in self.fields.values():
             if isinstance(field.widget, (Select, SelectMultiple)):
@@ -79,6 +89,7 @@ class BaseForm(forms.ModelForm):
             self._original_tags = list(self.instance.tags.all())
         else:
             self._original_tags = []
+
         self._restore_model_help_text()
 
     def _setup_form_helper(self):
@@ -106,33 +117,70 @@ class BaseForm(forms.ModelForm):
         instance = getattr(self, "instance", None)
         if not instance or not getattr(instance, "pk", None):
             return
-        has_language_field = "language" in self.fields
-        has_funding_field = "funding_sources_json" in self.fields
-        # Fetch from Invenio only if there is at least one metadata field to prefill.
-        if not has_language_field and not has_funding_field:
-            return
-        try:
-            client = InvenioClient(
-                base_url=settings.INVENIO_URL,
-                token=settings.INVENIO_API_TOKEN,
+
+        # Only proceed if instance has Invenio-related attributes (skip for VolumeInstance, etc.)
+        if not hasattr(instance, "access") or not hasattr(instance, "invenio_record_id"):
+            logger.debug(
+                f"Skipping metadata fetch - instance {type(instance).__name__} doesn't have required Invenio attributes"
             )
+            return
 
-            record = None
+        # Fetch metadata for public app from Invenio
+        if not instance.access == "public" or not instance.invenio_record_id:
+            logger.info("Skipping metadata fetch from Invenio for non-public app or app without Invenio record ID.")
+            return
 
-            record_id = getattr(instance, "invenio_record_id", None)
-            if record_id:
-                record = client.get_record(record_id)
+        record_id = getattr(instance, "invenio_record_id", None)
+        if not record_id:
+            return
 
-            if record:
-                if has_language_field:
-                    invenio_lang_id = client.extract_language_id(record)
-                    self.fields["language"].initial = invenio_lang_id
-                if has_funding_field:
-                    funding_entries = client.extract_funding(record)
-                    self.fields["funding_sources_json"].initial = json.dumps(funding_entries)
+        try:
+            logger.info(f"Fetching metadata from Invenio for record ID {record_id} to populate form initial values.")
+            invenio_svc = InvenioService()
+            app_metadata = invenio_svc.get_app_metadata(record_id)
+
+            if "language" in self.fields:
+                extracted_language = invenio_svc.extract_language_id(app_metadata)
+                logger.info(
+                    f"Raw extracted language from Invenio: {extracted_language} (type: {type(extracted_language)})"
+                )
+
+                # Handle if extracted_language is a dict with title key
+                if isinstance(extracted_language, dict):
+                    language_code = extracted_language.get("id", extracted_language.get("title", ""))
+                    logger.info(f"Extracted language dict: {extracted_language}, using code: {language_code}")
+                else:
+                    language_code = extracted_language or ""
+                    logger.info(f"Extracted language string: '{language_code}'")
+
+                self.fields["language"].initial = language_code
+                logger.info(f"Final language mapping: {language_code}")
+
+            funding = invenio_svc.extract_funding(app_metadata)
+            if "funding_sources_json" in self.fields:
+                self.fields["funding_sources_json"].initial = json.dumps(funding if funding is not None else [])
+
+            # Extract creators from Invenio metadata
+            creators = invenio_svc.extract_creators(app_metadata)
+            logger.info(f"Extracted creators from Invenio: {creators} (type: {type(creators)})")
+            logger.info(f"'creators' field exists in form: {'creators' in self.fields}")
+
+            # Store creators data for CreatorsMixin to use
+            if creators:
+                self._invenio_creators = creators
+                logger.info(f"Stored {len(creators)} creators for CreatorsMixin to use")
+            else:
+                self._invenio_creators = []
+                logger.info("No creators found in Invenio metadata")
 
         except Exception:
             logger.exception("Failed to fetch metadata from Invenio; leaving default initial values.")
+            self._metadata_fetch_failed = True
+
+        # Re-initialize creators after metadata extraction if CreatorsMixin is being used
+        if hasattr(self, "_initialize_creators"):
+            self._initialize_creators()
+            logger.info("Re-initialized creators after Invenio metadata extraction")
 
     def clean_subdomain(self):
         cleaned_data = super().clean()
@@ -226,12 +274,113 @@ class BaseForm(forms.ModelForm):
 
     @property
     def changed_data(self):
-        # Override the default changed_data to handle the tags field
-        changed_data = super().changed_data
-        if "tags" in changed_data and hasattr(self.instance, "tags"):
-            new_tags = self.cleaned_data.get("tags", [])
-            if list(new_tags) == self._original_tags:
-                changed_data.remove("tags")
+        """Override changed_data to handle fields that are falsely flagged as changed."""
+        changed_data = super().changed_data.copy() if hasattr(super(), "changed_data") else []
+
+        # Handle creators field - compare JSON data to avoid false positives
+        if "creators" in changed_data and self.instance and self.instance.pk:
+            try:
+                import json
+
+                current_creators = self.data.get("creators", "") or "[]"
+                initial_creators = self.fields["creators"].initial or "[]"
+
+                # Parse both JSON strings and compare the data structures
+                current_data = json.loads(current_creators) if current_creators else []
+                initial_data = json.loads(initial_creators) if initial_creators else []
+
+                # If the data is the same, remove from changed_data
+                if current_data == initial_data:
+                    changed_data.remove("creators")
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # If there's an error parsing, keep the field in changed_data to be safe
+                pass
+
+        # Handle path field - compare current value with initial form value
+        if "path" in changed_data and self.instance and self.instance.pk:
+            try:
+                current_path = self.data.get("path", "") or ""
+                initial_path = self.fields["path"].initial or ""
+
+                # If the paths are the same, remove from changed_data
+                if current_path == initial_path:
+                    changed_data.remove("path")
+            except (AttributeError, KeyError):
+                # If there's an error, keep the field in changed_data to be safe
+                pass
+
+        # Handle tags field - compare current input with initial tags
+        if "tags" in changed_data and self.instance and self.instance.pk:
+            try:
+                # Try invenio_tags field first, then tags field
+                current_tags_input = self.data.get("invenio_tags", "") or self.data.get("tags", "") or ""
+                initial_tags_input = None
+
+                if "invenio_tags" in self.fields:
+                    initial_tags_input = self.fields["invenio_tags"].initial or ""
+                elif hasattr(self, "_original_tags") and self._original_tags:
+                    # Fallback to database tags formatted as pipe-separated
+                    initial_tags_input = " | ".join(str(tag) for tag in self._original_tags)
+                else:
+                    initial_tags_input = ""
+
+                # If the tag input is the same, remove from changed_data
+                if current_tags_input == initial_tags_input:
+                    changed_data.remove("tags")
+            except (AttributeError, KeyError):
+                # If there's an error, keep the field in changed_data to be safe
+                pass
+
+        # Handle language field - compare current value with initial form value
+        if "language" in changed_data and self.instance and self.instance.pk:
+            try:
+                current_language = self.data.get("language", "") or ""
+                initial_language = self.fields["language"].initial or ""
+
+                # For form-only fields (not stored in model), if form data is missing but field has initial,
+                # treat missing as initial value (not changed)
+                if not hasattr(self.instance, "language") and current_language == "" and initial_language:
+                    # Missing form data should be treated as initial value
+                    changed_data.remove("language")
+                elif current_language == initial_language:
+                    # Values are the same, so no change
+                    changed_data.remove("language")
+            except (AttributeError, KeyError):
+                # If there's an error, keep the field in changed_data to be safe
+                pass
+
+        # Handle funding_sources_json field - compare JSON data
+        if "funding_sources_json" in changed_data and self.instance and self.instance.pk:
+            try:
+                import json
+
+                current_funding = self.data.get("funding_sources_json", "") or "[]"
+                initial_funding = self.fields["funding_sources_json"].initial or "[]"
+
+                # Parse both JSON strings and compare the data structures
+                current_data = json.loads(current_funding) if current_funding else []
+                initial_data = json.loads(initial_funding) if initial_funding else []
+
+                # If the data is the same, remove from changed_data
+                if current_data == initial_data:
+                    changed_data.remove("funding_sources_json")
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # If there's an error parsing, keep the field in changed_data to be safe
+                pass
+
+        # Handle volume field - compare current value with initial form value
+        if "volume" in changed_data and self.instance and self.instance.pk:
+            try:
+                current_volume = self.data.get("volume", "") or ""
+                initial_volume = str(self.fields["volume"].initial or "")
+
+                # If the volumes are the same, remove from changed_data
+                if current_volume == initial_volume:
+                    changed_data.remove("volume")
+            except (AttributeError, KeyError):
+                # If there's an error, keep the field in changed_data to be safe
+                pass
+
         return changed_data
 
     class Meta:

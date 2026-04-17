@@ -47,10 +47,12 @@ class AppData(BaseModel):
 
 
 class PersonOrOrg(BaseModel):
-    """Person or organization in Invenio metadata."""
+    """Person or organization in Invenio metadata. All fields optional, extra allowed."""
 
-    name: str
-    type: str  # 'personal' or 'organizational'
+    model_config = ConfigDict(extra="allow")
+
+    name: str | None = None
+    type: str | None = None  # 'personal' or 'organizational'
     given_name: str | None = None
     family_name: str | None = None
     identifiers: list[Identifier] | None = None
@@ -67,15 +69,15 @@ class Affiliation(BaseModel):
     """Affiliation with identifier and scheme information."""
 
     name: str
-    affiliationIdentifier: str | None = None
-    affiliationIdentifierScheme: str | None = None
-    schemeUri: str | None = None
+    id: str | None = None
 
 
 class Creator(BaseModel):
-    """Creator with InvenioRDM-compatible person_or_org structure."""
+    """Creator with InvenioRDM-compatible person_or_org structure. All fields optional, extra allowed."""
 
-    person_or_org: PersonOrOrg
+    model_config = ConfigDict(extra="allow")
+
+    person_or_org: PersonOrOrg | None = None
     affiliations: list[Affiliation] | None = None
 
 
@@ -213,24 +215,24 @@ class TermMetadata(BaseModel):
 class InvenioMetadata(BaseModel):
     """Core Invenio metadata structure with all required and optional fields."""
 
-    # Required core metadata
+    model_config = ConfigDict(extra="allow")
+
+    # All fields are now required
     title: str
     description: str
     publication_date: str
     dates: list[Date]
     publisher: str
     resource_type: ResourceType
-
-    # People and organizations
     creators: List[Creator]
 
     # Identifiers and relationships
-    identifiers: List[Identifier]
+    identifiers: List[Identifier] | None = None
     related_identifiers: List[RelatedIdentifierItem] | None = None
 
-    # Optional metadata
+    # Optional metadata fields
     languages: List[Language] | None = None
-    subjects: list[Subject] | None = None  # List of subject terms for the record
+    subjects: list[Subject] | None = None
     funding: list[Funding] | None = None
 
 

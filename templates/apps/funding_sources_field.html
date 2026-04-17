@@ -7,7 +7,7 @@
     <div id="fundersList" class="mb-2"></div>
 
     <button type="button" class="btn btn-outline-secondary btn-sm mb-2" id="addFunderBtn">
-      + Add funder
+      <span class="fas fa-plus text-muted"></span> Add funder
     </button>
 
     {% if field.help_text %}
@@ -241,8 +241,8 @@
             <div class="small text-muted">${id}</div>
           </div>
           <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-edit="${i}">Edit</button>
-            <button type="button" class="btn btn-outline-danger btn-sm" data-remove="${i}">Remove</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-edit="${i}"><i class="fas fa-edit"></i></button>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-remove="${i}"><i class="fas fa-times"></i></button>
           </div>
         </div>
       `;

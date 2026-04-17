@@ -1,0 +1,25 @@
+<div id="div_{{ field.id_for_label }}" class="{% if wrapper_class %}{{ wrapper_class }}{% endif %}">
+  {% include "apps/partials/div_label_with_help_toggle.html" %}
+
+  <div class="clearfix">
+    {{ field }} {# hidden JSON #}
+
+    <div id="creatorsList" class="mb-2"></div>
+
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-2" id="addCreatorBtn">
+      + Add creator
+    </button>
+
+    {% if field.help_text %}
+      <small id="{{ field.id_for_label }}_helptext" class="form-text text-muted d-block">
+        {{ field.help_text }}
+      </small>
+    {% endif %}
+
+    {% for error in field.errors %}
+      <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>
+    {% endfor %}
+  </div>
+</div>
+
+{% include "apps/partials/creators_modal.html" %}
