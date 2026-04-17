@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 
 class MockInvenioClient:
-    def create_draft(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+    def create_draft(self, record_data: dict[str, Any]) -> dict[str, Any]:
         return {"id": "mock-draft-id"}
 
     def reserve_doi(self, draft_id: str) -> dict[str, Any]:
@@ -24,11 +24,11 @@ class MockInvenioClient:
     def update_draft(
         self,
         record_id: str,
-        metadata: dict[str, Any],
-        access: dict[str, Any],
-        files: dict[str, Any],
-        custom_fields: Optional[dict[str, Any]],
-        pids: dict[str, Any],
+        metadata: Optional[dict[str, Any]] = None,
+        access: Optional[dict[str, Any]] = None,
+        files: Optional[dict[str, Any]] = None,
+        custom_fields: Optional[dict[str, Any]] = None,
+        pids: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         return {"id": "mock-draft-id"}
 
@@ -147,9 +147,7 @@ class MockInvenioClient:
                             "affiliations": [
                                 {
                                     "name": "Example Research Institute",
-                                    "affiliationIdentifier": None,
-                                    "affiliationIdentifierScheme": None,
-                                    "schemeUri": None,
+                                    "id": None,
                                 }
                             ],
                         },

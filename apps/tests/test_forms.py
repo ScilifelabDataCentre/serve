@@ -136,7 +136,7 @@ class CustomAppFormTest(BaseAppFormTest):
         form = CustomAppForm(valid_data, project_pk=self.project.pk)
         self.assertTrue(form.is_valid())
 
-    @patch("doi_minting.services.invenio_svc.InvenioService")
+    @patch("apps.forms.base.InvenioService")
     @patch("apps.forms.base.waffle.switch_is_active", return_value=True)
     def test_edit_form_prefills_language_and_funding_from_invenio(self, _mock_switch, mock_invenio_service):
         instance = CustomAppInstance.objects.create(

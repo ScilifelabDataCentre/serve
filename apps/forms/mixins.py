@@ -182,16 +182,10 @@ class CreatorsMixin:
 
         # First check if we have Invenio creators data stored by add_metadata()
         if hasattr(self, "_invenio_creators") and self._invenio_creators:
-            import logging
-
-            logger = logging.getLogger(__name__)
-            logger.info(f"Found Invenio creators data: {self._invenio_creators}")
-
             try:
                 # Convert Invenio creators format to our format
                 creators_data = []
                 for creator in self._invenio_creators:
-                    logger.info(f"Processing Invenio creator: {creator}")
                     # Handle the Invenio creator format
                     creator_name = creator.get("creator_name", "")
                     name_parts = creator_name.split() if creator_name else ["", ""]
@@ -204,15 +198,12 @@ class CreatorsMixin:
                         "orcid": creator.get("creator_id", ""),
                         "affiliation": creator.get("affiliation", ""),
                     }
-                    logger.info(f"Converted to form format: {creator_obj}")
                     creators_data.append(creator_obj)
 
                 self.fields["creators"].initial = json.dumps(creators_data)
-                logger.info(f"Set creators field with {len(creators_data)} creators")
                 return
 
-            except Exception as e:
-                logger.error(f"Failed to process Invenio creators: {e}")
+            except Exception:
                 # Fall through to default user initialization
                 pass
 
@@ -237,7 +228,7 @@ class CreatorsMixin:
 
             # Ensure affiliation is never empty - provide default if needed
             if not user_affiliation:
-                user_affiliation = "Independent Researcher"
+                user_affiliation = ""
 
             creators_data = [
                 {
@@ -310,19 +301,14 @@ class CreatorsMixin:
                 creator_orcid = creator.get("creator_id", "")
 
                 # Check if this creator is the current user
-                is_current_user = False
-                if creator_orcid and user_orcid and creator_orcid == user_orcid:
-                    # Match by ORCID if both have it
-                    is_current_user = True
-                elif creator_name == user_full_name:
-                    # Match by full name if no ORCID match
-                    is_current_user = True
-                elif creator_name and (
-                    creator_name.replace("@serve.scilifelab.se", "") == user.username
-                    or creator_name == f"{user.first_name} {user.last_name}".strip()
-                ):
-                    # Handle cases like "admin@serve.scilifelab.se User" matching username
-                    is_current_user = True
+                is_current_user = any(
+                    [
+                        creator_orcid and user_orcid and creator_orcid == user_orcid,
+                        creator_name == user_full_name,
+                        creator_name and creator_name.replace("@serve.scilifelab.se", "") == user.username,
+                        creator_name == f"{user.first_name} {user.last_name}".strip(),
+                    ]
+                )
 
                 creators_to_display.append(
                     {

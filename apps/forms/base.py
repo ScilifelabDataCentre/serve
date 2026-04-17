@@ -7,6 +7,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Submit
 from django import forms
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.forms import Select, SelectMultiple
 from django.shortcuts import get_object_or_404
 
@@ -33,7 +34,7 @@ class BaseForm(forms.ModelForm):
     LANGUAGE_CHOICES = [
         ("eng", "English"),
         ("swe", "Swedish"),
-        ("", "Other"),
+        ("und", "Other"),
     ]
 
     def __init__(self, *args, **kwargs):
@@ -41,11 +42,20 @@ class BaseForm(forms.ModelForm):
         self.request = kwargs.pop("request", None)  # Store request for mixins
         self.project = get_object_or_404(Project, pk=self.project_pk) if self.project_pk else None
         self.model_name = self._meta.model._meta.verbose_name.replace("Instance", "")
+        self._metadata_fetch_failed = False
 
         super().__init__(*args, **kwargs)
 
         self._setup_form_fields()
         self.add_metadata()
+
+        # Prevent form from opening if metadata fetch failed
+        if self._metadata_fetch_failed:
+            raise PermissionDenied(
+                "This app cannot be edited due to a system error while fetching metadata. "
+                "Please contact support for assistance."
+            )
+
         self._setup_form_helper()
         for field in self.fields.values():
             if isinstance(field.widget, (Select, SelectMultiple)):
@@ -119,11 +129,12 @@ class BaseForm(forms.ModelForm):
         if not instance.access == "public" or not instance.invenio_record_id:
             logger.info("Skipping metadata fetch from Invenio for non-public app or app without Invenio record ID.")
             return
-        try:
-            record_id = getattr(instance, "invenio_record_id", None)
-            if not record_id:
-                return
 
+        record_id = getattr(instance, "invenio_record_id", None)
+        if not record_id:
+            return
+
+        try:
             logger.info(f"Fetching metadata from Invenio for record ID {record_id} to populate form initial values.")
             invenio_svc = InvenioService()
             record = invenio_svc.get_record_data(record_id)
@@ -165,6 +176,7 @@ class BaseForm(forms.ModelForm):
 
         except Exception:
             logger.exception("Failed to fetch metadata from Invenio; leaving default initial values.")
+            self._metadata_fetch_failed = True
 
         # Re-initialize creators after metadata extraction if CreatorsMixin is being used
         if hasattr(self, "_initialize_creators"):

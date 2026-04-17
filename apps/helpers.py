@@ -842,6 +842,50 @@ def validate_docker_image(image: str):
             )
 
 
+def fetch_ror_id_for_org(org_name: str) -> str | None:
+    """
+    Fetch ROR ID for organization name using existing ROR API logic.
+    Returns ROR ID (without URL prefix) or None if not found.
+    """
+    if not org_name or not org_name.strip():
+        return None
+
+    try:
+        # Use same logic as RORAutocompleteView
+        response = requests.get("https://api.ror.org/organizations", params={"query": org_name.strip()}, timeout=2)
+        response.raise_for_status()
+        data = response.json()
+
+        # Look for exact organization name match (case-insensitive)
+        for item in data.get("items", []):
+            ror_id = item.get("id", "")
+
+            # Extract organization title from names array (same logic as RORAutocompleteView)
+            title = ""
+            for name in item.get("names", []):
+                if "ror_display" in name.get("types", []):
+                    title = name.get("value", "")
+                    break
+
+            # If no ror_display found, use first name
+            if not title and item.get("names"):
+                title = item["names"][0].get("value", "")
+
+            # Check for exact match
+            if title and title.lower() == org_name.lower():
+                # Clean ROR ID (remove URL prefixes)
+                ror_id = ror_id.replace("https://ror.org/", "").replace("https://api.ror.org/organizations/", "")
+                logger.debug(f"Found ROR ID for '{org_name}': {ror_id}")
+                return ror_id
+
+        logger.debug(f"No exact ROR match found for '{org_name}'")
+        return None
+
+    except Exception as e:
+        logger.debug(f"ROR API error for '{org_name}': {e}")
+        return None
+
+
 def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) -> str:
     """Generate schema.org structured data for App, User, and Project models."""
 
