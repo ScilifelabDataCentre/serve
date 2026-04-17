@@ -42,45 +42,45 @@ class MockInvenioClient:
             return {
                 "hits": {
                     "hits": [
-                    {
-                        "id": "mock-record-id",
-                        "parent": {
-                        "id": "mock-record-parent-id",
-                        "pids": {
-                            "doi": {
-                            "identifier": "10.83812/SCILIFELAB.ppppp-ppppp",
-                            }
+                        {
+                            "id": "mock-record-id",
+                            "parent": {
+                                "id": "mock-record-parent-id",
+                                "pids": {
+                                    "doi": {
+                                        "identifier": "10.83812/SCILIFELAB.ppppp-ppppp",
+                                    }
+                                },
+                            },
+                            "pids": {
+                                "doi": {
+                                    "identifier": "10.83812/SCILIFELAB.rrrrr-rrrrr",
+                                },
+                            },
+                            "versions": {"index": 2},
                         },
+                        {
+                            "id": "mock-record-previous-id",
+                            "parent": {
+                                "id": "mock-record-parent-id",
+                                "pids": {
+                                    "doi": {
+                                        "identifier": "10.83812/SCILIFELAB.ppppp-ppppp",
+                                    }
+                                },
+                            },
+                            "pids": {
+                                "doi": {
+                                    "identifier": "10.83812/SCILIFELAB.rrrr2-rrrr2",
+                                },
+                            },
+                            "versions": {"index": 1},
                         },
-                        "pids": {
-                        "doi": {
-                            "identifier": "10.83812/SCILIFELAB.rrrrr-rrrrr",
-                        },
-                        },
-                        "versions": {"index": 2},
-                    },
-                    {
-                        "id": "mock-record-previous-id",
-                        "parent": {
-                        "id": "mock-record-parent-id",
-                        "pids": {
-                            "doi": {
-                            "identifier": "10.83812/SCILIFELAB.ppppp-ppppp",
-                            }
-                        },
-                        },
-                        "pids": {
-                        "doi": {
-                            "identifier": "10.83812/SCILIFELAB.rrrr2-rrrr2",
-                        },
-                        },
-                        "versions": {"index": 1},
-                    }
                     ],
-                    "total": 2
+                    "total": 2,
                 },
                 "sortBy": "version",
-                }
+            }
         return {}
 
     def get_record(self, record_id: str) -> dict[str, Any]:
