@@ -25,7 +25,11 @@ from rest_framework.exceptions import NotFound
 
 from apps.constants import AppActionOrigin
 from apps.types_.subdomain import SubdomainCandidateName
-from doi_minting.services.invenio_svc import InvenioService
+from doi_minting.services.invenio_svc import (
+    InvenioClientError,
+    InvenioRecordNotFoundError,
+    InvenioService,
+)
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -446,10 +450,15 @@ def app_details(request, invenio_record_id):
     invenio_svc = InvenioService()
 
     # Get raw record data
-    record = invenio_svc.get_record_data(invenio_record_id)
-    if record is None:
+    try:
+        record = invenio_svc.get_record_data(invenio_record_id)
+    except InvenioRecordNotFoundError:
         logger.warning(f"Record not found for requested invenio_record_id={invenio_record_id}")
         raise Http404("Record not found")
+    except InvenioClientError as e:
+        logger.error(f"Something went wrong when retrieving invenio record with id {invenio_record_id}: {e}")
+        raise
+
     # TO-DO: check how we deal with the case when the record is in Draft or Registered state
 
     # Extract app metadata

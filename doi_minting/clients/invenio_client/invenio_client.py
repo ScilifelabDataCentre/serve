@@ -22,6 +22,12 @@ class InvenioClientError(Exception):
     pass
 
 
+class InvenioRecordNotFoundError(InvenioClientError):
+    """Raised when a requested record does not exist"""
+
+    pass
+
+
 class InvenioClient:
     """
     Client for interacting with InvenioRDM API
@@ -121,6 +127,9 @@ class InvenioClient:
                     error_msg = f"{error_msg}\nErrors: {json.dumps(error_data['errors'], indent=2)}"
             except (json.JSONDecodeError, ValueError):
                 error_msg = f"{error_msg}: {response.text}"
+
+            if response.status_code == 404:
+                raise InvenioRecordNotFoundError(error_msg)
 
             raise InvenioClientError(error_msg)
 

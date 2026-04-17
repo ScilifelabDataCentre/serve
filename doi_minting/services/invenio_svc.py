@@ -16,7 +16,11 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 
-from doi_minting.clients.invenio_client import InvenioClient
+from doi_minting.clients.invenio_client import (
+    InvenioClient,
+    InvenioClientError,
+    InvenioRecordNotFoundError,
+)
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
 from studio.utils import get_logger
 
@@ -388,20 +392,26 @@ class InvenioService:
 
         logger.debug(f"Updated app instance - Record ID: {record_id}, DOI: {doi}")
 
-    def get_record_data(self, record_id: str) -> Optional[dict[str, Any]]:
+    def get_record_data(self, record_id: str) -> dict[str, Any]:
         """
         Retrieve record for a given Invenio record ID as a dictionary.
         Args:
             record_id: The Invenio record ID.
         Returns:
-            Dictionary of the record data, or None if not found/invalid.
+            Dictionary of the record data.
+        Raises:
+            InvenioRecordNotFoundError: If the record does not exist.
+            InvenioClientError: For any other error.
         """
         try:
             record = self.client.get_record(record_id)
             return record
-        except Exception as e:
+        except InvenioRecordNotFoundError:
+            logger.warning(f"Record not found for requested record_id={record_id}")
+            raise
+        except InvenioClientError as e:
             logger.error(f"Error retrieving record {record_id}: {e}")
-            return None
+            raise
 
     def extract_app_metadata(self, record: dict[str, Any]) -> Optional["InvenioMetadata"]:
         """
