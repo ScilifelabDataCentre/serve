@@ -10,7 +10,7 @@ import time
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List, Optional, Type, TypedDict
+from typing import Any, List, Optional, Type, TypedDict, Union
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -54,7 +54,7 @@ class InvenioService:
     Manages Invenio record creation, versioning, and DOI minting for application instances.
     """
 
-    client: Any
+    client: Union[InvenioClient, MockInvenioClient]
 
     def __init__(
         self, base_url: Optional[str] = None, token: Optional[str] = None, verify: bool = True, mock_mode: bool = False
@@ -278,7 +278,7 @@ class InvenioService:
             access=current_draft.get("access"),
             files={"enabled": False},
             custom_fields=current_draft.get("custom_fields"),
-            pids=current_draft.get("pids", {}),
+            pids=current_draft.get("pids"),
         )
         logger.debug(f"Updated new version draft ID: {updated_version['id']}")
 
@@ -327,6 +327,9 @@ class InvenioService:
         draft_record = self.client.edit_published_record(record_id)
         draft_id = draft_record.get("id")
         logger.debug(f"Draft created from published record: {draft_id}")
+
+        if not isinstance(draft_id, str):
+            raise ValueError(f"Invalid draft ID returned: {draft_id}")
 
         # Step 2: Update the draft with new metadata
         updated_draft = self.client.update_draft(
