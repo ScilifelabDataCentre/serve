@@ -99,9 +99,7 @@ class MockInvenioClient:
                             "affiliations": [
                                 {
                                     "name": "Example Research Institute",
-                                    "affiliationIdentifier": None,
-                                    "affiliationIdentifierScheme": None,
-                                    "schemeUri": None,
+                                    "id": None,
                                 }
                             ],
                         },
