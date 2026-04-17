@@ -816,15 +816,17 @@ class InvenioService:
                             # Simple string affiliation - try ROR lookup
                             from apps.helpers import fetch_ror_id_for_org
 
-                            ror_id = fetch_ror_id_for_org(affiliation_data)
+                            # TODO: Use ror_id=fetch_ror_id_for_org(affiliation_data) when ROR
+                            # vocabulary is loaded into the Invenio instance
+                            ror_id = None
                             affiliations_list.append(Affiliation(name=affiliation_data, id=ror_id))
                         elif isinstance(affiliation_data, dict) and "ror_id" in affiliation_data:
                             # ROR API format: transform to structured Affiliation
-                            ror_identifier = affiliation_data["ror_id"].replace("https://ror.org/", "")
+                            # Temporarily set id to None until ROR vocabulary is loaded into Invenio
                             affiliations_list.append(
                                 Affiliation(
                                     name=affiliation_data.get("title", ""),
-                                    id=ror_identifier,
+                                    id=None,
                                 )
                             )
                         elif isinstance(affiliation_data, dict) and "identifier" in affiliation_data:
@@ -1256,9 +1258,9 @@ class InvenioService:
             f"Metadata change: {metadata_change} ({metadata_reason})"
         )
 
-        if not (metadata_change or image_change):
-            logger.info(f"Skipping DOI minting: {reason}")
-            return
+        #        if not (metadata_change or image_change):
+        #            logger.info(f"Skipping DOI minting: {reason}")
+        #            return
 
         logger.debug("App is eligible for DOI minting or updating, proceeding...")
 
