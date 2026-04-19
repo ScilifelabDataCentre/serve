@@ -3,7 +3,6 @@ import json
 import subprocess
 from datetime import datetime
 from urllib.parse import urlencode
-from uuid import UUID
 
 import dateutil.parser
 import requests
@@ -88,7 +87,6 @@ def _serialize_background_task(task):
         display_fields["status_class"] = "warning"
     return {
         "id": task.id,
-        "run_id": str(task.run_id) if task.run_id else None,
         "task_name": task.task_name,
         "display_name": _format_task_name_for_display(task.task_name),
         "task_type": task.task_type,
@@ -156,15 +154,20 @@ def _get_progress_mode_from_request(request):
     return None
 
 
-def _get_progress_run_id_from_request(request):
-    raw_run_id = request.GET.get("run_id")
-    if not raw_run_id:
+def _get_progress_started_at_from_request(request):
+    raw_started_at = request.GET.get("started_at")
+    if not raw_started_at:
         return None
 
     try:
-        return UUID(raw_run_id)
+        started_at = dateutil.parser.isoparse(raw_started_at)
     except (TypeError, ValueError):
         return None
+
+    if timezone.is_naive(started_at):
+        return timezone.make_aware(started_at, timezone.get_current_timezone())
+
+    return started_at
 
 
 def _app_has_registered_background_tasks(app_slug: str) -> bool:
@@ -181,45 +184,15 @@ def _filter_visible_background_tasks(app_slug: str, tasks):
     return [task for task in tasks if task.task_name in visible_task_names]
 
 
-def _get_latest_visible_run_id(app_slug: str, task_records):
-    visible_task_records = _filter_visible_background_tasks(app_slug, task_records)
-    latest_task_in_run = max(
-        (task for task in visible_task_records if task.run_id),
-        key=lambda task: (task.created_at, task.pk),
-        default=None,
-    )
-    return latest_task_in_run.run_id if latest_task_in_run else None
-
-
-def _get_progress_tasks(instance, run_id=None):
+def _get_progress_tasks(instance, created_after=None):
     from apps.models import BackgroundTask
 
     task_records = list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
     visible_task_records = _filter_visible_background_tasks(instance.app.slug, task_records)
-
-    selected_run_id = run_id
-    if selected_run_id is None:
-        selected_run_id = _get_latest_visible_run_id(instance.app.slug, task_records)
-
-    if selected_run_id:
-        visible_task_records = [task for task in visible_task_records if task.run_id == selected_run_id]
+    if created_after is not None:
+        visible_task_records = [task for task in visible_task_records if task.created_at >= created_after]
 
     return select_latest_task_records(visible_task_records)
-
-
-def _should_wait_for_current_run(instance, tasks_data, *, run_id=None):
-    if run_id is not None:
-        return False
-
-    deployment_inputs = _get_deployment_inputs(instance)
-    if deployment_inputs["latest_user_action"] not in {"Changing", "Redeploying"}:
-        return False
-
-    if not _app_has_registered_background_tasks(instance.app.slug):
-        return False
-
-    workflow = _build_workflow_state(tasks_data)
-    return workflow["has_failed_critical"] and not workflow["has_in_progress"]
 
 
 def _build_completed_steps_text(stats):
@@ -385,7 +358,7 @@ def _build_metadata_only_task():
     }
 
 
-def _get_helm_deploy_success(instance, run_id=None):
+def _get_helm_deploy_success(instance):
     info = getattr(instance, "info", None) or {}
     if not isinstance(info, dict):
         return None
@@ -394,21 +367,16 @@ def _get_helm_deploy_success(instance, run_id=None):
     if not isinstance(helm_info, dict):
         return None
 
-    if run_id is not None:
-        helm_run_id = helm_info.get("run_id")
-        if helm_run_id is not None and str(helm_run_id) != str(run_id):
-            return None
-
     success = helm_info.get("success")
     if isinstance(success, bool):
         return success
     return None
 
 
-def _get_deployment_inputs(instance, run_id=None):
+def _get_deployment_inputs(instance):
     app_status = instance.get_app_status()
     latest_user_action = instance.latest_user_action
-    helm_deploy_success = _get_helm_deploy_success(instance, run_id=run_id)
+    helm_deploy_success = _get_helm_deploy_success(instance)
     return {
         "app_status": app_status,
         "latest_user_action": latest_user_action,
@@ -417,8 +385,8 @@ def _get_deployment_inputs(instance, run_id=None):
     }
 
 
-def _build_deployment_state(instance, workflow, tasks_data, expecting_fresh_tasks=False, run_id=None):
-    inputs = _get_deployment_inputs(instance, run_id=run_id)
+def _build_deployment_state(instance, workflow, tasks_data, expecting_fresh_tasks=False):
+    inputs = _get_deployment_inputs(instance)
     app_status = inputs["app_status"]
     latest_user_action = inputs["latest_user_action"]
     helm_deploy_success = inputs["helm_deploy_success"]
@@ -528,7 +496,6 @@ def _build_progress_payload(
     metadata_only=False,
     deployment_tasks_data=None,
     expecting_fresh_tasks=False,
-    run_id=None,
 ):
     deployment_tasks = deployment_tasks_data if deployment_tasks_data is not None else tasks_data
     workflow = _build_workflow_state(deployment_tasks)
@@ -537,7 +504,6 @@ def _build_progress_payload(
         workflow,
         deployment_tasks,
         expecting_fresh_tasks=expecting_fresh_tasks and not metadata_only,
-        run_id=run_id,
     )
 
     if metadata_only:
@@ -555,7 +521,7 @@ def _build_progress_payload(
     }
 
 
-def _build_progress_state(instance, progress_mode=None, run_id=None):
+def _build_progress_state(instance, progress_mode=None, progress_started_at=None):
     metadata_only = progress_mode == "metadata_only"
     if progress_mode == "details":
         tasks = _get_progress_tasks(instance)
@@ -573,22 +539,19 @@ def _build_progress_state(instance, progress_mode=None, run_id=None):
     else:
         has_registered_tasks = _app_has_registered_background_tasks(instance.app.slug)
         deployment_inputs = _get_deployment_inputs(instance)
-        tasks = _get_progress_tasks(instance, run_id=run_id)
+        tasks = _get_progress_tasks(instance, created_after=progress_started_at)
         tasks_data = [_serialize_background_task(task) for task in tasks]
-        if _should_wait_for_current_run(instance, tasks_data, run_id=run_id):
-            tasks_data = []
         progress_state = _build_progress_payload(
             instance,
             tasks_data,
             expecting_fresh_tasks=has_registered_tasks
-            and (run_id is not None or deployment_inputs["is_transitioning"]),
-            run_id=run_id,
+            and (progress_started_at is not None or deployment_inputs["is_transitioning"]),
         )
 
     return progress_state
 
 
-def _build_progress_status_api_url(project_slug, app_slug, app_id, progress_mode=None, run_id=None):
+def _build_progress_status_api_url(project_slug, app_slug, app_id, progress_mode=None, progress_started_at=None):
     url = reverse(
         "apps:background_tasks_status",
         kwargs={"project": project_slug, "app_slug": app_slug, "app_id": app_id},
@@ -596,8 +559,8 @@ def _build_progress_status_api_url(project_slug, app_slug, app_id, progress_mode
     query_params = {}
     if progress_mode in {"metadata_only", "details"}:
         query_params["mode"] = progress_mode
-    if run_id is not None:
-        query_params["run_id"] = str(run_id)
+    if progress_started_at is not None:
+        query_params["started_at"] = progress_started_at.isoformat()
     if query_params:
         return f"{url}?{urlencode(query_params)}"
     return url
@@ -895,19 +858,19 @@ class CreateApp(View):
         should_deploy = should_trigger_deployment_from_form(form, app_id=app_id)
 
         # Otherwise we can create the instance
-        instance_id, progress_run_id = create_instance_from_form(
+        instance_id, progress_started_at = create_instance_from_form(
             form,
             project,
             app_slug,
             app_id,
             should_deploy=should_deploy,
-            return_run_id=True,
+            return_progress_started_at=True,
         )
         progress_url = _build_project_app_path(str(project_slug), f"progress/{app_slug}/{instance_id}")
         if not should_deploy:
             progress_url = f"{progress_url}?mode=metadata_only"
-        elif progress_run_id:
-            progress_url = f"{progress_url}?{urlencode({'run_id': progress_run_id})}"
+        elif progress_started_at:
+            progress_url = f"{progress_url}?{urlencode({'started_at': progress_started_at})}"
         return HttpResponseRedirect(progress_url)
 
     def get_form(self, request, project, app_slug, app_id):
@@ -959,8 +922,12 @@ class DeploymentProgressView(View):
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
         progress_mode = _get_progress_mode_from_request(request) or "deploy"
-        progress_run_id = _get_progress_run_id_from_request(request)
-        progress_state = _build_progress_state(instance, progress_mode=progress_mode, run_id=progress_run_id)
+        progress_started_at = _get_progress_started_at_from_request(request)
+        progress_state = _build_progress_state(
+            instance,
+            progress_mode=progress_mode,
+            progress_started_at=progress_started_at,
+        )
 
         context = {
             "instance": instance,
@@ -977,7 +944,7 @@ class DeploymentProgressView(View):
                 app_slug,
                 instance.pk,
                 progress_mode=progress_mode,
-                run_id=progress_run_id,
+                progress_started_at=progress_started_at,
             ),
             "detail_url": _build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
             "form_url": _build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}"),
@@ -1193,8 +1160,12 @@ class BackgroundTaskStatusAPI(View):
         except (Http404, PermissionDenied):
             return JsonResponse({"error": "App instance not found"}, status=404)
         progress_mode = _get_progress_mode_from_request(request) or "deploy"
-        progress_run_id = _get_progress_run_id_from_request(request)
-        progress_state = _build_progress_state(instance, progress_mode=progress_mode, run_id=progress_run_id)
+        progress_started_at = _get_progress_started_at_from_request(request)
+        progress_state = _build_progress_state(
+            instance,
+            progress_mode=progress_mode,
+            progress_started_at=progress_started_at,
+        )
 
         return JsonResponse(
             {

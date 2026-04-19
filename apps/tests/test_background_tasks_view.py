@@ -1,8 +1,10 @@
-import uuid
+from datetime import timedelta
+from urllib.parse import urlencode
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.background_tasks.registry import TASK_REGISTRY
 from projects.models import Project, ProjectTemplate
@@ -196,10 +198,7 @@ class BackgroundTasksViewTestCase(TestCase):
         )
         self.assertEqual(payload["summary"]["total"], 2)
 
-    def test_background_task_status_api_filters_to_requested_run_id(self):
-        requested_run_id = uuid.uuid4()
-        other_run_id = uuid.uuid4()
-        BackgroundTask.objects.filter(app_instance=self.app_instance).update(run_id=other_run_id)
+    def test_background_task_status_api_filters_to_requested_started_at(self):
         BackgroundTask.objects.create(
             app_instance=self.app_instance,
             task_name="validate_docker_image",
@@ -207,8 +206,13 @@ class BackgroundTasksViewTestCase(TestCase):
             status="success",
             is_critical=True,
             execution_order=1,
-            run_id=requested_run_id,
         )
+        BackgroundTask.objects.filter(app_instance=self.app_instance, task_name="validate_docker_image").update(
+            created_at=timezone.now() - timedelta(minutes=10)
+        )
+
+        progress_started_at = timezone.now()
+
         BackgroundTask.objects.create(
             app_instance=self.app_instance,
             task_name="doi_provisioning",
@@ -216,7 +220,14 @@ class BackgroundTasksViewTestCase(TestCase):
             status="success",
             is_critical=False,
             execution_order=2,
-            run_id=requested_run_id,
+        )
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_docker_image",
+            task_type="validation",
+            status="success",
+            is_critical=True,
+            execution_order=1,
         )
 
         response = self.client.get(
@@ -228,7 +239,7 @@ class BackgroundTasksViewTestCase(TestCase):
                     "app_id": self.app_instance.pk,
                 },
             )
-            + f"?run_id={requested_run_id}",
+            + f"?{urlencode({'started_at': progress_started_at.isoformat()})}",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -237,7 +248,6 @@ class BackgroundTasksViewTestCase(TestCase):
             [task["task_name"] for task in payload["tasks"]],
             ["validate_docker_image", "doi_provisioning"],
         )
-        self.assertTrue(all(task["run_id"] == str(requested_run_id) for task in payload["tasks"]))
 
     def test_background_task_status_api_keeps_deploy_pending_while_checks_are_running(self):
         self.app_instance.k8s_user_app_status.status = "Running"
@@ -263,10 +273,13 @@ class BackgroundTasksViewTestCase(TestCase):
 
     def test_background_task_status_api_ignores_stale_failed_checks_before_new_run_records_exist(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(created_at=timezone.now() - timedelta(minutes=10))
         self.app_instance.k8s_user_app_status.status = "Running"
         self.app_instance.k8s_user_app_status.save(update_fields=["status"])
         self.app_instance.latest_user_action = "Changing"
         self.app_instance.save()
+
+        progress_started_at = timezone.now()
 
         response = self.client.get(
             reverse(
@@ -276,7 +289,8 @@ class BackgroundTasksViewTestCase(TestCase):
                     "app_slug": self.app.slug,
                     "app_id": self.app_instance.pk,
                 },
-            ),
+            )
+            + f"?{urlencode({'started_at': progress_started_at.isoformat()})}",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -288,11 +302,14 @@ class BackgroundTasksViewTestCase(TestCase):
 
     def test_background_task_status_api_keeps_waiting_when_helm_succeeds_before_current_tasks_appear(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(created_at=timezone.now() - timedelta(minutes=10))
         self.app_instance.k8s_user_app_status.status = "Running"
         self.app_instance.k8s_user_app_status.save(update_fields=["status"])
         self.app_instance.latest_user_action = "Changing"
         self.app_instance.info = {"helm": {"success": True, "info": {"stdout": "ok", "stderr": ""}}}
         self.app_instance.save()
+
+        progress_started_at = timezone.now()
 
         response = self.client.get(
             reverse(
@@ -302,7 +319,8 @@ class BackgroundTasksViewTestCase(TestCase):
                     "app_slug": self.app.slug,
                     "app_id": self.app_instance.pk,
                 },
-            ),
+            )
+            + f"?{urlencode({'started_at': progress_started_at.isoformat()})}",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -321,7 +339,7 @@ class BackgroundTasksViewTestCase(TestCase):
             self.app_instance.k8s_user_app_status.save(update_fields=["status"])
             self.app_instance.latest_user_action = "Changing"
             self.app_instance.save(update_fields=["latest_user_action"])
-            requested_run_id = uuid.uuid4()
+            progress_started_at = timezone.now()
 
             response = self.client.get(
                 reverse(
@@ -332,7 +350,7 @@ class BackgroundTasksViewTestCase(TestCase):
                         "app_id": self.app_instance.pk,
                     },
                 )
-                + f"?run_id={requested_run_id}",
+                + f"?{urlencode({'started_at': progress_started_at.isoformat()})}",
             )
         finally:
             TASK_REGISTRY._tasks = original_tasks
@@ -436,57 +454,6 @@ class BackgroundTasksViewTestCase(TestCase):
         payload = response.json()
         self.assertEqual(payload["deployment"]["status"], "failed")
         self.assertEqual(payload["deployment"]["label"], "Failed")
-
-    def test_background_task_status_api_ignores_helm_failure_from_other_run(self):
-        current_run_id = uuid.uuid4()
-        previous_run_id = uuid.uuid4()
-        BackgroundTask.objects.filter(app_instance=self.app_instance).update(run_id=previous_run_id, status="success")
-        BackgroundTask.objects.create(
-            app_instance=self.app_instance,
-            task_name="validate_docker_image",
-            task_type="validation",
-            status="success",
-            is_critical=True,
-            execution_order=1,
-            run_id=current_run_id,
-        )
-        BackgroundTask.objects.create(
-            app_instance=self.app_instance,
-            task_name="doi_provisioning",
-            task_type="external_api",
-            status="success",
-            is_critical=False,
-            execution_order=2,
-            run_id=current_run_id,
-        )
-        self.app_instance.k8s_user_app_status.status = "Running"
-        self.app_instance.k8s_user_app_status.save(update_fields=["status"])
-        self.app_instance.latest_user_action = "Changing"
-        self.app_instance.info = {
-            "helm": {
-                "success": False,
-                "run_id": str(previous_run_id),
-                "info": {"stderr": "chart upgrade failed"},
-            }
-        }
-        self.app_instance.save()
-
-        response = self.client.get(
-            reverse(
-                "apps:background_tasks_status",
-                kwargs={
-                    "project": self.project.slug,
-                    "app_slug": self.app.slug,
-                    "app_id": self.app_instance.pk,
-                },
-            )
-            + f"?run_id={current_run_id}",
-        )
-
-        self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        self.assertEqual(payload["deployment"]["status"], "success")
-        self.assertEqual(payload["deployment"]["label"], "Done")
 
     def test_background_task_status_api_returns_metadata_only_progress_state(self):
         BackgroundTask.objects.create(

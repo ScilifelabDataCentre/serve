@@ -1,11 +1,12 @@
 import types
-import uuid
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY, BackgroundTaskRegistry
@@ -476,7 +477,6 @@ def test_execute_single_background_task_resolves_concrete_app_instance(clean_tas
 
 @pytest.mark.django_db
 def test_check_tasks_and_deploy_deploys_when_no_failed_critical(immediate_on_commit, app_instance):
-    run_id = uuid.uuid4()
     BackgroundTask.objects.create(
         app_instance=app_instance,
         task_name="t1",
@@ -485,7 +485,6 @@ def test_check_tasks_and_deploy_deploys_when_no_failed_critical(immediate_on_com
         is_critical=True,
         execution_order=0,
         max_retries=0,
-        run_id=run_id,
     )
 
     with patch.object(deploy_resource, "delay") as mock_deploy:
@@ -493,7 +492,6 @@ def test_check_tasks_and_deploy_deploys_when_no_failed_critical(immediate_on_com
             previous_results=None,
             app_instance_id=app_instance.id,
             serialized_instance=app_instance.serialize(),
-            run_id=str(run_id),
         )
 
     assert result["success"] is True
@@ -503,7 +501,6 @@ def test_check_tasks_and_deploy_deploys_when_no_failed_critical(immediate_on_com
 
 @pytest.mark.django_db
 def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit, app_instance):
-    run_id = uuid.uuid4()
     BackgroundTask.objects.create(
         app_instance=app_instance,
         task_name="t1",
@@ -513,7 +510,6 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
         execution_order=0,
         max_retries=0,
         error_message="boom",
-        run_id=run_id,
     )
 
     with patch(
@@ -524,7 +520,6 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
             previous_results=None,
             app_instance_id=app_instance.id,
             serialized_instance=app_instance.serialize(),
-            run_id=str(run_id),
         )
 
     assert result["success"] is False
@@ -537,7 +532,6 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
 
 @pytest.mark.django_db
 def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_commit, app_instance):
-    run_id = uuid.uuid4()
     BackgroundTask.objects.create(
         app_instance=app_instance,
         task_name="t1",
@@ -547,7 +541,6 @@ def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_
         execution_order=0,
         max_retries=0,
         error_message="boom",
-        run_id=run_id,
     )
 
     with patch(
@@ -558,7 +551,6 @@ def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_
             previous_results=None,
             app_instance_id=app_instance.id,
             serialized_instance=app_instance.serialize(),
-            run_id=str(run_id),
         )
 
     assert result["deployed"] is True
@@ -570,10 +562,8 @@ def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_
 
 
 @pytest.mark.django_db
-def test_check_tasks_and_deploy_ignores_failed_tasks_from_other_runs(immediate_on_commit, app_instance):
-    failed_run_id = uuid.uuid4()
-    current_run_id = uuid.uuid4()
-    BackgroundTask.objects.create(
+def test_check_tasks_and_deploy_ignores_failed_tasks_from_before_started_at(immediate_on_commit, app_instance):
+    old_task = BackgroundTask.objects.create(
         app_instance=app_instance,
         task_name="t1",
         task_type="validation",
@@ -582,8 +572,12 @@ def test_check_tasks_and_deploy_ignores_failed_tasks_from_other_runs(immediate_o
         execution_order=0,
         max_retries=0,
         error_message="boom",
-        run_id=failed_run_id,
     )
+    old_task.created_at = timezone.now() - timedelta(minutes=5)
+    old_task.save(update_fields=["created_at"])
+
+    progress_started_at = timezone.now().isoformat()
+
     BackgroundTask.objects.create(
         app_instance=app_instance,
         task_name="t1",
@@ -592,7 +586,6 @@ def test_check_tasks_and_deploy_ignores_failed_tasks_from_other_runs(immediate_o
         is_critical=True,
         execution_order=0,
         max_retries=0,
-        run_id=current_run_id,
     )
 
     with patch.object(deploy_resource, "delay") as mock_deploy:
@@ -600,7 +593,7 @@ def test_check_tasks_and_deploy_ignores_failed_tasks_from_other_runs(immediate_o
             previous_results=None,
             app_instance_id=app_instance.id,
             serialized_instance=app_instance.serialize(),
-            run_id=str(current_run_id),
+            progress_started_at=progress_started_at,
         )
 
     assert result["success"] is True
@@ -669,7 +662,6 @@ def test_run_background_tasks_no_tasks_proceeds_to_deploy(immediate_on_commit, c
 
     assert result["success"] is True
     assert "No tasks" in result["message"]
-    assert result["run_id"]
     mock_deploy.assert_called_once()
 
 
@@ -710,8 +702,6 @@ def test_run_background_tasks_creates_db_rows_and_schedules_workflow(
     assert rows.count() == 2
     assert [r.task_name for r in rows] == ["unit_one", "unit_two"]
     assert all(r.status == "pending" for r in rows)
-    assert rows.first().run_id is not None
-    assert len({row.run_id for row in rows}) == 1
     assert called["apply_async"] == 1
 
     # First two steps are execute_single_background_task signatures and must be immutable

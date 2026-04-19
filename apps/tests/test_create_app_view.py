@@ -1,6 +1,8 @@
 from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
+from urllib.parse import urlencode
+
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.test import Client, TestCase, override_settings
@@ -307,15 +309,18 @@ class CreateAppViewTestCase(TestCase):
 
         with patch("apps.views.CreateApp.get_form", return_value=fake_form), patch(
             "apps.views.create_instance_from_form",
-            return_value=(321, "test-run-id"),
+            return_value=(321, "2026-04-17T10:11:12+00:00"),
         ) as mock_create:
             response = c.post(
                 f"/projects/{project.slug}/apps/create/jupyter-lab",
             )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/321?run_id=test-run-id")
-        self.assertEqual(mock_create.call_args.kwargs["return_run_id"], True)
+        self.assertEqual(
+            response.url,
+            f"/projects/{project.slug}/apps/progress/jupyter-lab/321?{urlencode({'started_at': '2026-04-17T10:11:12+00:00'})}",
+        )
+        self.assertEqual(mock_create.call_args.kwargs["return_progress_started_at"], True)
 
     @override_settings(APPS_PER_PROJECT_LIMIT={"jupyter-lab": 1})
     def test_submit_redirects_to_progress_page_with_metadata_only_flag_when_save_does_not_trigger_deploy(self):
@@ -339,4 +344,4 @@ class CreateAppViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/654?mode=metadata_only")
-        self.assertEqual(mock_create.call_args.kwargs["return_run_id"], True)
+        self.assertEqual(mock_create.call_args.kwargs["return_progress_started_at"], True)

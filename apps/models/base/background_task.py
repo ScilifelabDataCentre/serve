@@ -69,12 +69,6 @@ class BackgroundTask(models.Model):
         help_text="Order in which task should run. Lower numbers run first. Tasks with same order run in parallel.",
     )
 
-    run_id = models.UUIDField(
-        null=True,
-        blank=True,
-        help_text="Identifier shared by all background tasks created for the same deployment run.",
-    )
-
     # Results and errors
     result_data = models.JSONField(
         null=True,
@@ -130,7 +124,6 @@ class BackgroundTask(models.Model):
         ordering = ["execution_order", "created_at"]
         indexes = [
             models.Index(fields=["app_instance", "status"]),
-            models.Index(fields=["app_instance", "run_id"]),
             models.Index(fields=["task_name", "status"]),
             models.Index(fields=["created_at"]),
         ]

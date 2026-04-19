@@ -1,5 +1,4 @@
 import json
-import uuid
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any, Dict, Optional, Type
@@ -420,7 +419,7 @@ def create_instance_from_form(
     app_id=None,
     force_redeploy: bool = False,
     should_deploy: bool | None = None,
-    return_run_id: bool = False,
+    return_progress_started_at: bool = False,
 ) -> int | tuple[int, str | None]:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
@@ -580,7 +579,7 @@ def create_instance_from_form(
         do_deploy,
     )
 
-    background_task_run_id: str | None = None
+    progress_started_at: str | None = None
 
     if do_deploy:
         serialized_instance = instance.serialize()
@@ -593,31 +592,44 @@ def create_instance_from_form(
         )
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
 
-        background_task_run_id = _deploy_with_background_tasks_and_doi(
+        progress_started_at = timezone.now().isoformat()
+
+        _deploy_with_background_tasks_and_doi(
             instance,
             form,
             app_slug,
             access_changed_to_public,
+            progress_started_at=progress_started_at,
         )
     elif run_background_tasks_only:
         # Only run background tasks, do not deploy
-        background_task_run_id = _run_background_tasks_and_doi_only(
+        progress_started_at = timezone.now().isoformat()
+
+        _run_background_tasks_and_doi_only(
             instance,
             form,
             app_slug,
             access_changed_to_public,
+            progress_started_at=progress_started_at,
         )
         logger.info("create_instance_from_form.background_tasks_only app_id=%s instance_id=%s", app_id, instance_id)
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
-    if return_run_id:
-        return instance_id, background_task_run_id
+    if return_progress_started_at:
+        return instance_id, progress_started_at
 
     return instance_id
 
 
-def _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_to_public=False, skip_deploy=True):
+def _run_background_tasks_and_doi_only(
+    instance,
+    form,
+    app_slug,
+    access_changed_to_public=False,
+    skip_deploy=True,
+    progress_started_at: str | None = None,
+):
     """Run background tasks (including DOI minting) for an instance, without deployment."""
     from .tasks import run_background_tasks
 
@@ -629,7 +641,7 @@ def _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_
         skip_deploy,
     )
 
-    serialized_instance, task_kwargs_by_task_name, background_task_run_id = _prepare_doi_task_kwargs(
+    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(
         instance, form, app_slug, access_changed_to_public
     )
 
@@ -638,15 +650,19 @@ def _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_
             serialized_instance,
             app_slug,
             task_kwargs_by_task_name,
-            background_task_run_id,
+            progress_started_at,
             skip_deploy=skip_deploy,
         )
     )
 
-    return background_task_run_id
 
-
-def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public=False):
+def _deploy_with_background_tasks_and_doi(
+    instance,
+    form,
+    app_slug,
+    access_changed_to_public=False,
+    progress_started_at: str | None = None,
+):
     """Deploy using background tasks with DOI minting for public apps."""
     from .tasks import run_background_tasks
 
@@ -657,7 +673,7 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
         access_changed_to_public,
     )
 
-    serialized_instance, task_kwargs_by_task_name, background_task_run_id = _prepare_doi_task_kwargs(
+    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(
         instance, form, app_slug, access_changed_to_public
     )
 
@@ -666,19 +682,17 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
             serialized_instance,
             app_slug,
             task_kwargs_by_task_name,
-            background_task_run_id,
+            progress_started_at,
         )
     )
-    return background_task_run_id
 
 
 def _prepare_doi_task_kwargs(instance, form, app_slug, access_changed_to_public=False):
     """
     Prepare the serialized instance and DOI provisioning task kwargs for background tasks.
-    Returns (serialized_instance, task_kwargs_by_task_name, background_task_run_id)
+    Returns (serialized_instance, task_kwargs_by_task_name)
     """
     serialized_instance = instance.serialize()
-    background_task_run_id = str(uuid.uuid4())
 
     # Include DOI task if app is public or if access just changed to public
     should_mint_doi = (hasattr(instance, "access") and instance.access == "public") or access_changed_to_public
@@ -710,7 +724,7 @@ def _prepare_doi_task_kwargs(instance, form, app_slug, access_changed_to_public=
         task_kwargs_by_task_name = {}
         logger.debug("Skipping DOI provisioning for non-public app '%s' (id=%s).", app_slug, instance.id)
 
-    return serialized_instance, task_kwargs_by_task_name, background_task_run_id
+    return serialized_instance, task_kwargs_by_task_name
 
 
 def get_subdomain_name(form):
@@ -805,10 +819,23 @@ def setup_instance(instance, subdomain, app, project, user_action=None, is_creat
 
 def reset_k8s_user_app_status_for_deployment(instance: BaseAppInstance) -> None:
     status_object = getattr(instance, "k8s_user_app_status", None)
+    info = getattr(instance, "info", None)
+    info_changed = False
+
+    if isinstance(info, dict) and "helm" in info:
+        updated_info = dict(info)
+        updated_info.pop("helm", None)
+        instance.info = updated_info
+        instance.save(update_fields=["info"])
+        info_changed = True
+        logger.info("reset_k8s_user_app_status_for_deployment.cleared_helm_info instance_id=%s", instance.pk)
+
     if status_object is None:
         return
 
     if status_object.status is None and status_object.info in (None, {}):
+        if not info_changed:
+            logger.info("reset_k8s_user_app_status_for_deployment.noop instance_id=%s", instance.pk)
         return
 
     status_object.status = None

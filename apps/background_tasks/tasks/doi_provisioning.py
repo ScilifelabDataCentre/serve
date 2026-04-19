@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from django.utils.dateparse import parse_datetime
+
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
 from apps.background_tasks.utils import resolve_app_image, select_latest_task_records
@@ -95,14 +97,16 @@ class DOIProvisioningTask(BaseBackgroundTask):
     task_type = "external_api"
     timeout_seconds = 300
 
-    def _has_failed_required_checks(self, app_instance, run_id: str | None = None) -> bool:
+    def _has_failed_required_checks(self, app_instance, started_at: str | None = None) -> bool:
         earlier_required_tasks = BackgroundTask.objects.filter(
             app_instance_id=app_instance.id,
             is_critical=True,
             execution_order__lt=self.execution_order,
         )
-        if run_id:
-            earlier_required_tasks = earlier_required_tasks.filter(run_id=run_id)
+        if started_at:
+            parsed_started_at = parse_datetime(started_at)
+            if parsed_started_at is not None:
+                earlier_required_tasks = earlier_required_tasks.filter(created_at__gte=parsed_started_at)
 
         latest_earlier_required_tasks = select_latest_task_records(earlier_required_tasks)
         return any(task.status == "failed" for task in latest_earlier_required_tasks)
@@ -117,7 +121,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
             )
             return {"skipped": True, "reason": "no image"}
 
-        if self._has_failed_required_checks(app_instance, kwargs.get("_task_run_id")):
+        if self._has_failed_required_checks(app_instance, kwargs.get("_task_started_at")):
             logger.info(
                 "DOI provisioning skipped for app %s: a required deployment check failed earlier",
                 app_instance.id,
