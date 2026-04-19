@@ -10,8 +10,8 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.template.loader import render_to_string
-from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
@@ -981,8 +981,7 @@ def run_background_tasks(
             timeout = task_timeout_by_id.get(tr.id, 300)
             task_chain.append(
                 execute_single_background_task.si(
-                    progress_started_at,
-                    task_db_id=tr.id, task_kwargs_by_task_name=task_kwargs_by_task_name
+                    progress_started_at, task_db_id=tr.id, task_kwargs_by_task_name=task_kwargs_by_task_name
                 ).set(
                     soft_time_limit=timeout,
                     time_limit=timeout + 30,
@@ -1015,6 +1014,7 @@ def run_background_tasks(
 
     logger.info(f"Started background task workflow for app {instance.id}")
     return {"success": True, "message": f"Started {len(task_records)} background tasks"}
+
 
 @shared_task
 @transaction.atomic

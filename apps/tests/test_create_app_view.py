@@ -1,8 +1,7 @@
 from unittest.mock import Mock, patch
-
-from django.contrib.auth import get_user_model
 from urllib.parse import urlencode
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.test import Client, TestCase, override_settings
@@ -318,7 +317,9 @@ class CreateAppViewTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
             response.url,
-            f"/projects/{project.slug}/apps/progress/jupyter-lab/321?{urlencode({'started_at': '2026-04-17T10:11:12+00:00'})}",
+            "/projects/"
+            f"{project.slug}/apps/progress/jupyter-lab/321?"
+            f"{urlencode({'started_at': '2026-04-17T10:11:12+00:00'})}",
         )
         self.assertEqual(mock_create.call_args.kwargs["return_progress_started_at"], True)
 

@@ -273,7 +273,9 @@ class BackgroundTasksViewTestCase(TestCase):
 
     def test_background_task_status_api_ignores_stale_failed_checks_before_new_run_records_exist(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")
-        BackgroundTask.objects.filter(app_instance=self.app_instance).update(created_at=timezone.now() - timedelta(minutes=10))
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(
+            created_at=timezone.now() - timedelta(minutes=10)
+        )
         self.app_instance.k8s_user_app_status.status = "Running"
         self.app_instance.k8s_user_app_status.save(update_fields=["status"])
         self.app_instance.latest_user_action = "Changing"
@@ -302,7 +304,9 @@ class BackgroundTasksViewTestCase(TestCase):
 
     def test_background_task_status_api_keeps_waiting_when_helm_succeeds_before_current_tasks_appear(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")
-        BackgroundTask.objects.filter(app_instance=self.app_instance).update(created_at=timezone.now() - timedelta(minutes=10))
+        BackgroundTask.objects.filter(app_instance=self.app_instance).update(
+            created_at=timezone.now() - timedelta(minutes=10)
+        )
         self.app_instance.k8s_user_app_status.status = "Running"
         self.app_instance.k8s_user_app_status.save(update_fields=["status"])
         self.app_instance.latest_user_action = "Changing"
