@@ -58,53 +58,47 @@
 <script>
 const statusApiUrl = "{{ status_api_url|escapejs }}";
 const detailUrl = "{{ detail_url }}";
-const STEP_SUCCESS_REVEAL_DELAY_MS = 1500;
 const SUCCESS_REDIRECT_DELAY_MS = 5000;
-const DEPLOYMENT_FAILURE_RECHECKS = 2;
+const STEP_REVEAL_DELAY_MS = 700;
+const TERMINAL_STEP_STATUSES = new Set(["success", "warning", "failed", "skipped"]);
+const STEP_ROW_CLASS_BY_STATUS = {
+  failed: "is-failed",
+  skipped: "is-skipped",
+  retrying: "is-retrying",
+  warning: "is-warning",
+  success: "is-success",
+  running: "is-running"
+};
+const STEP_ICON_URLS = {
+  pending: "{% static 'images/progress/step-pending.svg' %}",
+  retrying: "{% static 'images/progress/step-retrying.svg' %}",
+  warning: "{% static 'images/progress/step-warning.svg' %}",
+  success: "{% static 'images/progress/step-success.svg' %}",
+  skipped: "{% static 'images/progress/step-skipped.svg' %}",
+  failed: "{% static 'images/progress/step-failed.svg' %}"
+};
+const STATUS_LABELS = {
+  pending: "Waiting",
+  running: "Running",
+  retrying: "Retrying",
+  warning: "Warning",
+  success: "Done",
+  skipped: "Skipped",
+  failed: "Failed"
+};
 
 let refreshInterval = null;
 let successRedirectTimer = null;
+let stepRevealTimer = null;
 let latestServerData = {
-  summary: {
-    total: {{ summary.total|default:0 }},
-    pending: {{ summary.pending|default:0 }},
-    running: {{ summary.running|default:0 }},
-    success: {{ summary.success|default:0 }},
-    skipped: {{ summary.skipped|default:0 }},
-    failed: {{ summary.failed|default:0 }},
-    retrying: {{ summary.retrying|default:0 }}
-  },
-  workflow: {
-    blocked: {{ workflow.blocked|yesno:"true,false" }},
-    ready_for_deploy: {{ workflow.ready_for_deploy|yesno:"true,false" }},
-    has_failed_critical: {{ workflow.has_failed_critical|yesno:"true,false" }},
-    has_in_progress: {{ workflow.has_in_progress|yesno:"true,false" }}
-  },
   deployment: {
     status: "{{ deployment.status|default:'pending'|escapejs }}",
-    label: "{{ deployment.label|default:'Pending'|escapejs }}",
-    message: "{{ deployment.message|default:'Waiting to start deployment.'|escapejs }}"
+    message: "{{ deployment.message|default:'Waiting to start deployment.'|escapejs }}",
+    tasks_in_progress: {{ deployment.tasks_in_progress|yesno:"true,false" }}
   },
-  header: {
-    pill_class: "{{ header.pill_class|default:'text-bg-secondary'|escapejs }}",
-    pill_text: "{{ header.pill_text|default:'Waiting'|escapejs }}",
-    title: "{{ header.title|default:'Waiting for deployment checks'|escapejs }}",
-    message: "{{ header.message|default:'We have not recorded any deployment work yet.'|escapejs }}",
-    inline_text: "{{ header.inline_text|default:'0 of 1 steps completed'|escapejs }}",
-    next_step_text: "{{ header.next_step_text|default:'Keep this page open while the deployment starts.'|escapejs }}"
-  },
-  metadata_only: {{ metadata_only|yesno:"true,false" }},
-  tasks: JSON.parse("{{ initial_tasks_json|escapejs }}")
+  steps: JSON.parse("{{ initial_steps_json|escapejs }}")
 };
-
-const displayedTaskStatuses = new Map();
-const queuedTaskRevealStatuses = new Map();
-const queuedTaskRevealOrder = [];
-let activeTaskRevealTimer = null;
-let activeTaskRevealItem = null;
-let displayedDeploymentStatus = "pending";
-let deploymentRevealTimer = null;
-let consecutiveDeploymentFailurePolls = 0;
+let displayedProgressData = copyProgressData(latestServerData);
 
 function startAutoRefresh() {
   stopAutoRefresh();
@@ -125,267 +119,22 @@ function stopSuccessRedirect() {
   }
 }
 
-function getTaskSubtitle(task) {
-  if (task.task_name === "metadata_only_update") {
-    return "No redeployment was needed";
-  }
-  if (task.task_name === "validate_image_public" || task.task_name === "validate_docker_image" || task.task_name === "checking_docker_image_availability") {
-    return task.is_critical ? "Required image check" : "Optional image check";
-  }
-
-  return task.is_critical ? "Required check" : "Optional check";
-}
-
-function getVisibleTaskStatus(task) {
-  return task.display_status || (task.was_skipped ? "skipped" : task.status);
-}
-
-function isTerminalTaskStatus(status) {
-  return status === "success" || status === "failed" || status === "skipped";
-}
-
-function normalizeDeploymentStatus(status) {
-  if (status === "blocked") {
-    return "failed";
-  }
-  if (status === "success" || status === "failed" || status === "running" || status === "retrying") {
-    return status;
-  }
-  return "pending";
-}
-
-function isTerminalDeploymentStatus(status) {
-  return status === "success" || status === "failed" || status === "blocked";
-}
-
-function hasPendingTaskReveals() {
-  return queuedTaskRevealOrder.length > 0 || activeTaskRevealTimer !== null;
-}
-
-function removeQueuedTaskReveal(taskId) {
-  queuedTaskRevealStatuses.delete(taskId);
-  const queueIndex = queuedTaskRevealOrder.findIndex(item => item.taskId === taskId);
-  if (queueIndex !== -1) {
-    queuedTaskRevealOrder.splice(queueIndex, 1);
+function stopStepReveal() {
+  if (stepRevealTimer) {
+    window.clearTimeout(stepRevealTimer);
+    stepRevealTimer = null;
   }
 }
 
-function processTaskRevealQueue() {
-  if (activeTaskRevealTimer || queuedTaskRevealOrder.length === 0) {
-    return;
-  }
-
-  activeTaskRevealItem = queuedTaskRevealOrder.shift();
-  if (!activeTaskRevealItem) {
-    return;
-  }
-
-  queuedTaskRevealStatuses.delete(activeTaskRevealItem.taskId);
-  activeTaskRevealTimer = window.setTimeout(() => {
-    displayedTaskStatuses.set(activeTaskRevealItem.taskId, activeTaskRevealItem.nextStatus);
-    activeTaskRevealTimer = null;
-    activeTaskRevealItem = null;
-    rerenderFromLatestData();
-    processTaskRevealQueue();
-  }, STEP_SUCCESS_REVEAL_DELAY_MS);
-}
-
-function scheduleTaskReveal(taskId, nextStatus) {
-  if (queuedTaskRevealStatuses.get(taskId) === nextStatus) {
-    return;
-  }
-
-  if (activeTaskRevealItem && activeTaskRevealItem.taskId === taskId) {
-    return;
-  }
-
-  removeQueuedTaskReveal(taskId);
-  queuedTaskRevealStatuses.set(taskId, nextStatus);
-  queuedTaskRevealOrder.push({ taskId, nextStatus });
-  processTaskRevealQueue();
-}
-
-function scheduleDeploymentReveal(nextStatus) {
-  if (deploymentRevealTimer) {
-    return;
-  }
-
-  deploymentRevealTimer = window.setTimeout(() => {
-    displayedDeploymentStatus = nextStatus;
-    deploymentRevealTimer = null;
-    rerenderFromLatestData();
-  }, STEP_SUCCESS_REVEAL_DELAY_MS);
-}
-
-function stabilizeDeploymentFailure(data) {
-  const deploymentStatus = data.deployment?.status || "pending";
-
-  if (deploymentStatus !== "failed") {
-    consecutiveDeploymentFailurePolls = 0;
-    return data;
-  }
-
-  consecutiveDeploymentFailurePolls += 1;
-  if (consecutiveDeploymentFailurePolls <= DEPLOYMENT_FAILURE_RECHECKS) {
-    return {
-      ...data,
-      deployment: {
-        ...(data.deployment || {}),
-        status: "retrying",
-        label: "Retrying",
-        message: "Rechecking app status before marking deployment as failed."
-      }
-    };
-  }
-
-  return data;
-}
-
-function getDisplayData(data) {
-  const rawTasks = data.tasks || [];
-
-  const displayTasks = rawTasks.map(task => {
-    const visibleTaskStatus = getVisibleTaskStatus(task);
-    const currentStatus = displayedTaskStatuses.get(task.id);
-
-    if (!isTerminalTaskStatus(visibleTaskStatus)) {
-      if (activeTaskRevealItem && activeTaskRevealItem.taskId === task.id && activeTaskRevealTimer) {
-        window.clearTimeout(activeTaskRevealTimer);
-        activeTaskRevealTimer = null;
-        activeTaskRevealItem = null;
-        processTaskRevealQueue();
-      }
-      if (queuedTaskRevealStatuses.has(task.id)) {
-        removeQueuedTaskReveal(task.id);
-      }
-      displayedTaskStatuses.set(task.id, visibleTaskStatus);
-      return { ...task, status: visibleTaskStatus };
-    }
-
-    if (!displayedTaskStatuses.has(task.id)) {
-      displayedTaskStatuses.set(task.id, "running");
-      scheduleTaskReveal(task.id, visibleTaskStatus);
-      return { ...task, status: "running" };
-    }
-
-    if (
-      currentStatus !== visibleTaskStatus &&
-      queuedTaskRevealStatuses.get(task.id) !== visibleTaskStatus &&
-      !(activeTaskRevealItem && activeTaskRevealItem.taskId === task.id)
-    ) {
-      scheduleTaskReveal(task.id, visibleTaskStatus);
-    }
-
-    return { ...task, status: displayedTaskStatuses.get(task.id) || visibleTaskStatus };
-  });
-
-  const displayWorkflow = data.workflow || {};
-  const rawDeploymentStatus = data.deployment?.status || "pending";
-  const normalizedDeploymentStatus = normalizeDeploymentStatus(rawDeploymentStatus);
-  let deploymentStatus = displayedDeploymentStatus;
-
-  if (!isTerminalDeploymentStatus(rawDeploymentStatus)) {
-    if (deploymentRevealTimer) {
-      window.clearTimeout(deploymentRevealTimer);
-      deploymentRevealTimer = null;
-    }
-    deploymentStatus = normalizedDeploymentStatus;
-    displayedDeploymentStatus = normalizedDeploymentStatus;
-  } else if (displayWorkflow.has_in_progress || hasPendingTaskReveals()) {
-    if (deploymentRevealTimer) {
-      window.clearTimeout(deploymentRevealTimer);
-      deploymentRevealTimer = null;
-    }
-    deploymentStatus = "pending";
-    displayedDeploymentStatus = "pending";
-  } else if (!displayedDeploymentStatus || displayedDeploymentStatus === "pending") {
-    deploymentStatus = "running";
-    displayedDeploymentStatus = "running";
-    scheduleDeploymentReveal(normalizedDeploymentStatus);
-  } else if (displayedDeploymentStatus !== normalizedDeploymentStatus && !deploymentRevealTimer) {
-    scheduleDeploymentReveal(normalizedDeploymentStatus);
-    deploymentStatus = displayedDeploymentStatus;
-  } else {
-    deploymentStatus = displayedDeploymentStatus;
-  }
-
-  const deployment = {
-    ...(data.deployment || {}),
-    status: deploymentStatus
-  };
-
+function copyProgressData(data = {}) {
   return {
-    ...data,
-    tasks: displayTasks,
-    deployment
+    deployment: {...(data.deployment || {})},
+    steps: (data.steps || []).map(step => ({...step}))
   };
 }
 
-function getTaskStep(task) {
-  const visibleStatus = getVisibleTaskStatus(task);
-
-  return {
-    key: `task-${task.id}`,
-    title: task.display_name || "Deployment step",
-    subtitle: getTaskSubtitle(task),
-    status: task.status,
-    statusLabel: task.status === visibleStatus ? task.status_label : getStatusLabel(task.status),
-    detail: getTaskDetail(task),
-    errorDetail: task.error_detail || null
-  };
-}
-
-function getStepItems(data) {
-  const taskSteps = (data.tasks || []).map(getTaskStep);
-
-  if (data.metadata_only) {
-    return taskSteps;
-  }
-
-  const deployStatus = data.deployment?.status || "pending";
-  let deployDetail = "Waiting for the earlier checks to finish.";
-  let deployVisualStatus = deployStatus;
-
-  if (data.workflow?.blocked) {
-    deployDetail = data.deployment?.message || "Deployment cannot continue until the failed required check is resolved.";
-  } else if (deployStatus === "pending" && !data.workflow?.has_in_progress) {
-    deployDetail = data.deployment?.message || "Waiting for app status.";
-    deployVisualStatus = "running";
-  } else if (deployStatus !== "pending") {
-    deployDetail = data.deployment?.message || "Waiting to start deployment.";
-  }
-
-  return taskSteps.concat({
-    key: "deploy",
-    title: "Deploy app",
-    subtitle: "Final step",
-    status: deployStatus,
-    visualStatus: deployVisualStatus,
-    statusLabel: getStatusLabel(deployStatus),
-    detail: deployDetail
-  });
-}
-
-function getTaskDetail(task) {
-  if (task.status === "failed" && (task.task_name === "doi_provisioning" || task.task_name === "mint_doi")) {
-    return "Could not mint DOI for app.";
-  }
-  if (task.status === "failed" && task.error_message) {
-    return task.error_message;
-  }
-  if (task.status === "skipped") {
-    return task.skip_reason ? `Skipped: ${task.skip_reason}.` : "Skipped for this app.";
-  }
-  if (task.status === "success") {
-    return "Completed successfully.";
-  }
-  if (task.status === "retrying") {
-    return "Check did not succeed, retrying now...";
-  }
-  if (task.status === "running") {
-    return "Currently running.";
-  }
-  return "Waiting for this step to start.";
+function getStatusLabel(status) {
+  return STATUS_LABELS[status] || STATUS_LABELS.pending;
 }
 
 function getTaskDetailMarkup(step) {
@@ -396,7 +145,6 @@ function getTaskDetailMarkup(step) {
       note: step.errorDetail.note || ""
     });
   }
-
   return `<div class="step-detail"><p class="step-detail-copy">${escapeHtml(step.detail)}</p></div>`;
 }
 
@@ -410,82 +158,16 @@ function buildImageErrorMarkup({summary, imageReference, note = ""}) {
   `;
 }
 
-function getStatusLabel(status) {
-  const labels = {
-    pending: "Waiting",
-    running: "Running",
-    retrying: "Retrying",
-    success: "Done",
-    skipped: "Skipped",
-    failed: "Failed"
-  };
-
-  return labels[status] || "Waiting";
+function buildStepIconImage(status) {
+  const iconUrl = STEP_ICON_URLS[status] || STEP_ICON_URLS.pending;
+  return `<img class="step-symbol-image" src="${iconUrl}" alt="" aria-hidden="true">`;
 }
 
 function getStepIconMarkup(status) {
-  if (status === "success") {
-    return `
-      <span class="step-icon step-icon-success" aria-hidden="true">
-        <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
-          <path d="M3.5 8.2L6.6 11.3L12.5 4.9" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
-      </span>
-    `;
-  }
-  if (status === "skipped") {
-    return `
-      <span class="step-icon step-icon-skipped" aria-hidden="true">
-        <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
-          <line x1="4" y1="8" x2="12" y2="8" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"></line>
-        </svg>
-      </span>
-    `;
-  }
-  if (status === "failed") {
-    return `
-      <span class="step-icon step-icon-failed" aria-hidden="true">
-        <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
-          <line x1="8" y1="4" x2="8" y2="8.4" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"></line>
-          <circle cx="8" cy="11.4" r="1.1" fill="currentColor"></circle>
-        </svg>
-      </span>
-    `;
-  }
-  if (status === "retrying") {
-    return `
-      <span class="step-icon step-icon-retrying" aria-hidden="true">
-        <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
-          <path d="M11.8 5.7A4.8 4.8 0 0 0 4.5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
-          <path d="M4.4 2.9v2.4h2.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-          <path d="M4.2 10.3A4.8 4.8 0 0 0 11.5 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
-          <path d="M11.6 13.1v-2.4H9.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
-      </span>
-    `;
-  }
   if (status === "running") {
     return '<span class="step-icon step-icon-running"><span class="step-spinner"></span></span>';
   }
-  return `
-    <span class="step-icon step-icon-pending" aria-hidden="true">
-      <svg class="step-symbol" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="2" fill="currentColor"></circle>
-      </svg>
-    </span>
-  `;
-}
-
-function getStepRowClass(status) {
-  const rowClasses = {
-    failed: "is-failed",
-    skipped: "is-skipped",
-    retrying: "is-retrying",
-    success: "is-success",
-    running: "is-running"
-  };
-
-  return rowClasses[status] || "";
+  return `<span class="step-icon step-icon-${status || "pending"}" aria-hidden="true">${buildStepIconImage(status)}</span>`;
 }
 
 function renderSteps(steps) {
@@ -494,39 +176,37 @@ function renderSteps(steps) {
     return;
   }
 
-  stepList.innerHTML = steps
-    .map(step => {
-      const visualStatus = step.visualStatus || step.status;
-      return `
-        <div class="step-row ${getStepRowClass(visualStatus)}">
-          <div class="step-icon-wrap">
-            ${getStepIconMarkup(visualStatus)}
-          </div>
-          <div class="flex-grow-1">
-            <div class="fw-semibold">${escapeHtml(step.title)}</div>
-            <div class="small text-muted">${escapeHtml(step.subtitle)}</div>
-            ${getTaskDetailMarkup(step)}
-          </div>
-          <div class="small text-muted text-nowrap">${escapeHtml(step.statusLabel || getStatusLabel(step.status))}</div>
+  stepList.innerHTML = steps.map(step => {
+    const visualStatus = step.visualStatus || step.status || "pending";
+    const rowClass = STEP_ROW_CLASS_BY_STATUS[visualStatus] || "";
+    const statusLabel = step.statusLabel || getStatusLabel(step.status);
+    return `
+      <div class="step-row ${rowClass}">
+        <div class="step-icon-wrap">${getStepIconMarkup(visualStatus)}</div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold">${escapeHtml(step.title || "Deployment step")}</div>
+          <div class="small text-muted">${escapeHtml(step.subtitle || "Optional check")}</div>
+          ${getTaskDetailMarkup(step)}
         </div>
-      `;
-    })
-    .join("");
+        <div class="small text-muted text-nowrap">${escapeHtml(statusLabel)}</div>
+      </div>
+    `;
+  }).join("");
 }
 
 function getStepStats(steps) {
   return {
-    completed: steps.filter(step => isTerminalTaskStatus(step.status)).length,
+    completed: steps.filter(step => TERMINAL_STEP_STATUSES.has(step.status)).length,
     total: steps.length || 1,
     failed: steps.filter(step => step.status === "failed").length
   };
 }
 
-function updateSummary(steps, data) {
+function updateSummary(steps, deployment) {
   const stats = getStepStats(steps);
   const progressPercent = Math.round((stats.completed / stats.total) * 100);
-  const deploymentStatus = data.deployment?.status || "pending";
-  const hasFailedOutcome = deploymentStatus === "failed" || steps.some(step => step.status === "failed");
+  const deploymentStatus = deployment?.status || "pending";
+  const hasFailedOutcome = deploymentStatus === "failed" || deploymentStatus === "blocked" || steps.some(step => step.status === "failed");
   const hasSuccessOutcome = deploymentStatus === "success";
 
   const progressLabel = document.getElementById("progress-label");
@@ -547,15 +227,15 @@ function updateSummary(steps, data) {
   }
 }
 
-function getVisibleHeaderContent(data, steps) {
-  if (data.metadata_only) {
-    return data.header || {};
-  }
+function areAllStepsCompleteOrNonBlocking(steps) {
+  return steps.length > 0 && steps.every(step => step.status === "success" || step.status === "warning" || step.status === "skipped");
+}
 
+function getVisibleHeaderContent(deployment, steps) {
   const stats = getStepStats(steps);
   const inlineText = `${stats.completed} of ${stats.total} steps completed`;
-  const allStepsVisibleAsSuccess = steps.length > 0 && steps.every(step => step.status === "success" || step.status === "skipped");
-  const deploymentStatus = data.deployment?.status || "pending";
+  const allStepsVisibleAsSuccess = areAllStepsCompleteOrNonBlocking(steps);
+  const deploymentStatus = deployment?.status || "pending";
 
   if (deploymentStatus === "success" && allStepsVisibleAsSuccess) {
     return {
@@ -568,12 +248,12 @@ function getVisibleHeaderContent(data, steps) {
     };
   }
 
-  if (deploymentStatus === "failed") {
+  if (deploymentStatus === "failed" || deploymentStatus === "blocked") {
     return {
       pill_class: "text-bg-danger",
       pill_text: "Attention needed",
       title: "We could not finish preparing your app",
-      message: data.deployment?.message || "We could not finish preparing your app.",
+      message: deployment?.message || "We could not finish preparing your app.",
       inline_text: stats.failed === 1 ? "1 step needs attention" : `${stats.failed} steps need attention`,
       next_step_text: "Open deployment summary or go back to form."
     };
@@ -600,48 +280,35 @@ function getVisibleHeaderContent(data, steps) {
   };
 }
 
-function updateHeader(data, steps) {
+function updateHeader(deployment, steps) {
   const pill = document.getElementById("progress-pill");
   const inline = document.getElementById("progress-inline");
   const title = document.getElementById("progress-title");
   const message = document.getElementById("progress-message");
   const nextStep = document.getElementById("progress-next-step");
-  const header = getVisibleHeaderContent(data, steps);
-  const pillClass = header.pill_class || "text-bg-secondary";
-  const pillText = header.pill_text || "Waiting";
-  const titleText = header.title || "Waiting for deployment checks";
-  const messageText = header.message || "We have not recorded any deployment work yet.";
-  const inlineText = header.inline_text || "0 of 1 steps completed";
-  const nextStepText = header.next_step_text || "Keep this page open while the deployment starts.";
+  const header = getVisibleHeaderContent(deployment, steps);
 
   if (pill) {
-    pill.className = `badge ${pillClass}`;
-    pill.textContent = pillText;
+    pill.className = `badge ${header.pill_class || "text-bg-secondary"}`;
+    pill.textContent = header.pill_text || "Waiting";
   }
   if (inline) {
-    inline.textContent = inlineText;
+    inline.textContent = header.inline_text || "0 of 1 steps completed";
   }
   if (title) {
-    title.textContent = titleText;
+    title.textContent = header.title || "Waiting for deployment checks";
   }
   if (message) {
-    message.textContent = messageText;
+    message.textContent = header.message || "We have not recorded any deployment work yet.";
   }
   if (nextStep) {
-    nextStep.textContent = nextStepText;
+    nextStep.textContent = header.next_step_text || "Keep this page open while the deployment starts.";
   }
 }
 
 function maybeRedirectToDetails(data) {
-  const steps = getStepItems(data);
-  const allStepsVisibleAsSuccess = steps.length > 0 && steps.every(step => step.status === "success" || step.status === "skipped");
-
-  if (
-    data.deployment?.status === "success" &&
-    allStepsVisibleAsSuccess &&
-    !hasPendingTaskReveals() &&
-    !deploymentRevealTimer
-  ) {
+  const steps = data.steps || [];
+  if (data.deployment?.status === "success" && areAllStepsCompleteOrNonBlocking(steps)) {
     if (!successRedirectTimer) {
       successRedirectTimer = window.setTimeout(() => {
         window.location.assign(detailUrl);
@@ -649,8 +316,111 @@ function maybeRedirectToDetails(data) {
     }
     return;
   }
-
   stopSuccessRedirect();
+}
+
+function renderProgress(data) {
+  const steps = data.steps || [];
+  renderSteps(steps);
+  updateSummary(steps, data.deployment);
+  updateHeader(data.deployment, steps);
+}
+
+function areSameStep(left, right) {
+  return JSON.stringify(left || null) === JSON.stringify(right || null);
+}
+
+function haveSameSteps(currentSteps, targetSteps) {
+  const maxLength = Math.max(currentSteps.length, targetSteps.length);
+  for (let index = 0; index < maxLength; index += 1) {
+    if (!areSameStep(currentSteps[index], targetSteps[index])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function getNextChangedStepIndex(currentSteps, targetSteps) {
+  const maxLength = Math.max(currentSteps.length, targetSteps.length);
+  for (let index = 0; index < maxLength; index += 1) {
+    if (!areSameStep(currentSteps[index], targetSteps[index])) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function buildRunningPreviewStep(targetStep) {
+  return {
+    ...targetStep,
+    status: "running",
+    visualStatus: "running",
+    statusLabel: getStatusLabel("running"),
+    detail: "Currently running.",
+    errorDetail: null
+  };
+}
+
+function getDisplayedStep(currentStep, targetStep) {
+  const shouldPreviewRunning = Boolean(
+    targetStep &&
+    targetStep.key !== "deploy" &&
+    (!currentStep || currentStep.status === "pending") &&
+    TERMINAL_STEP_STATUSES.has(targetStep.status) &&
+    targetStep.status !== "skipped"
+  );
+
+  if (shouldPreviewRunning) {
+    return buildRunningPreviewStep(targetStep);
+  }
+
+  return targetStep || null;
+}
+
+function syncDisplayedProgress() {
+  stopStepReveal();
+
+  const currentSteps = displayedProgressData.steps || [];
+  const targetSteps = latestServerData.steps || [];
+  const changedIndex = getNextChangedStepIndex(currentSteps, targetSteps);
+
+  if (changedIndex === -1) {
+    displayedProgressData = {
+      ...displayedProgressData,
+      deployment: {...latestServerData.deployment}
+    };
+    renderProgress(displayedProgressData);
+    maybeRedirectToDetails(displayedProgressData);
+    return;
+  }
+
+  const currentStep = currentSteps[changedIndex] || null;
+  const targetStep = targetSteps[changedIndex] || null;
+  const nextSteps = currentSteps.slice();
+  const displayedStep = getDisplayedStep(currentStep, targetStep);
+
+  if (displayedStep) {
+    nextSteps[changedIndex] = displayedStep;
+  } else {
+    nextSteps.splice(changedIndex, 1);
+  }
+
+  displayedProgressData = {
+    ...displayedProgressData,
+    steps: nextSteps
+  };
+
+  if (haveSameSteps(displayedProgressData.steps, targetSteps)) {
+    displayedProgressData = {
+      ...displayedProgressData,
+      deployment: {...latestServerData.deployment}
+    };
+  }
+
+  renderProgress(displayedProgressData);
+  maybeRedirectToDetails(displayedProgressData);
+
+  stepRevealTimer = window.setTimeout(syncDisplayedProgress, STEP_REVEAL_DELAY_MS);
 }
 
 function refreshProgress() {
@@ -662,14 +432,11 @@ function refreshProgress() {
       return response.json();
     })
     .then(data => {
-      const stabilizedData = stabilizeDeploymentFailure(data);
-      latestServerData = stabilizedData;
-      const displayData = getDisplayData(stabilizedData);
-      renderProgress(displayData);
-      maybeRedirectToDetails(displayData);
+      latestServerData = copyProgressData(data);
+      syncDisplayedProgress();
 
-      const rawDone = ["success", "failed", "blocked"].includes(stabilizedData.deployment?.status);
-      if (rawDone && !stabilizedData.workflow?.has_in_progress) {
+      const rawDone = ["success", "failed", "blocked"].includes(data.deployment?.status);
+      if (rawDone && !data.deployment?.tasks_in_progress && haveSameSteps(displayedProgressData.steps, latestServerData.steps)) {
         stopAutoRefresh();
       }
     })
@@ -682,19 +449,6 @@ function refreshProgress() {
     });
 }
 
-function rerenderFromLatestData() {
-  const displayData = getDisplayData(latestServerData);
-  renderProgress(displayData);
-  maybeRedirectToDetails(displayData);
-}
-
-function renderProgress(data) {
-  const steps = getStepItems(data);
-  renderSteps(steps);
-  updateSummary(steps, data);
-  updateHeader(data, steps);
-}
-
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -705,8 +459,9 @@ function escapeHtml(value) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  latestServerData = stabilizeDeploymentFailure(latestServerData);
-  renderProgress(latestServerData);
+  displayedProgressData = copyProgressData(latestServerData);
+  renderProgress(displayedProgressData);
+  maybeRedirectToDetails(displayedProgressData);
   refreshProgress();
   startAutoRefresh();
 });

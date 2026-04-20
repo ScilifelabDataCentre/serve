@@ -308,7 +308,7 @@ class CreateAppViewTestCase(TestCase):
 
         with patch("apps.views.CreateApp.get_form", return_value=fake_form), patch(
             "apps.views.create_instance_from_form",
-            return_value=(321, "2026-04-17T10:11:12+00:00"),
+            return_value=(321, "2026-04-17T10:11:12+00:00", False),
         ) as mock_create:
             response = c.post(
                 f"/projects/{project.slug}/apps/create/jupyter-lab",
@@ -324,7 +324,7 @@ class CreateAppViewTestCase(TestCase):
         self.assertEqual(mock_create.call_args.kwargs["return_progress_started_at"], True)
 
     @override_settings(APPS_PER_PROJECT_LIMIT={"jupyter-lab": 1})
-    def test_submit_redirects_to_progress_page_with_metadata_only_flag_when_save_does_not_trigger_deploy(self):
+    def test_submit_redirects_to_progress_page_when_save_does_not_trigger_deploy(self):
         c = Client()
         project = self.get_data()
         c.force_login(self.user)
@@ -333,16 +333,13 @@ class CreateAppViewTestCase(TestCase):
         fake_form.is_valid.return_value = True
 
         with patch("apps.views.CreateApp.get_form", return_value=fake_form), patch(
-            "apps.views.should_trigger_deployment_from_form",
-            return_value=False,
-        ), patch(
             "apps.views.create_instance_from_form",
-            return_value=(654, None),
+            return_value=(654, None, True),
         ) as mock_create:
             response = c.post(
                 f"/projects/{project.slug}/apps/create/jupyter-lab",
             )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/654?mode=metadata_only")
+        self.assertEqual(response.url, f"/projects/{project.slug}/apps/progress/jupyter-lab/654")
         self.assertEqual(mock_create.call_args.kwargs["return_progress_started_at"], True)

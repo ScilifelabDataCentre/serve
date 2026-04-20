@@ -127,8 +127,8 @@ class BackgroundTasksViewTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Deployment Summary")
-        self.assertContains(response, "Recent Checks")
+        self.assertContains(response, "Deployment summary")
+        self.assertContains(response, "Recent checks")
         self.assertContains(response, "Back to project")
         self.assertNotContains(response, ">Logs<", html=False)
         self.assertContains(
@@ -197,6 +197,73 @@ class BackgroundTasksViewTestCase(TestCase):
             [task["task_name"] for task in payload["tasks"]], ["validate_docker_image", "doi_provisioning"]
         )
         self.assertEqual(payload["summary"]["total"], 2)
+
+    def test_background_task_status_api_shows_only_one_active_check_step_at_a_time(self):
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_image_public",
+            task_type="validation",
+            status="running",
+            is_critical=True,
+            execution_order=2,
+        )
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        task_steps = [step for step in payload["steps"] if step["key"] != "deploy"]
+        active_steps = [step for step in task_steps if step["visualStatus"] in {"running", "retrying"}]
+
+        self.assertEqual(len(active_steps), 1)
+        self.assertEqual(active_steps[0]["title"], "Check Image Compatibility")
+        self.assertEqual(task_steps[1]["title"], "Check Image Access")
+        self.assertEqual(task_steps[1]["visualStatus"], "pending")
+        self.assertEqual(task_steps[1]["statusLabel"], "Waiting")
+
+    def test_background_task_status_api_keeps_later_checks_waiting_until_their_turn(self):
+        BackgroundTask.objects.filter(
+            app_instance=self.app_instance,
+            task_name="validate_docker_image",
+        ).update(status="running", execution_order=1)
+        BackgroundTask.objects.create(
+            app_instance=self.app_instance,
+            task_name="validate_image_public",
+            task_type="validation",
+            status="success",
+            is_critical=True,
+            execution_order=2,
+        )
+
+        response = self.client.get(
+            reverse(
+                "apps:background_tasks_status",
+                kwargs={
+                    "project": self.project.slug,
+                    "app_slug": self.app.slug,
+                    "app_id": self.app_instance.pk,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        task_steps = [step for step in payload["steps"] if step["key"] != "deploy"]
+        self.assertEqual(task_steps[0]["title"], "Check Image Compatibility")
+        self.assertEqual(task_steps[0]["status"], "running")
+        self.assertEqual(task_steps[1]["title"], "Check Image Access")
+        self.assertEqual(task_steps[1]["status"], "pending")
+        self.assertEqual(task_steps[1]["visualStatus"], "pending")
+        self.assertEqual(task_steps[1]["statusLabel"], "Waiting")
 
     def test_background_task_status_api_filters_to_requested_started_at(self):
         BackgroundTask.objects.create(
@@ -459,7 +526,7 @@ class BackgroundTasksViewTestCase(TestCase):
         self.assertEqual(payload["deployment"]["status"], "failed")
         self.assertEqual(payload["deployment"]["label"], "Failed")
 
-    def test_background_task_status_api_returns_metadata_only_progress_state(self):
+    def test_background_task_status_api_uses_shared_flow_for_metadata_only_mode_query_param(self):
         BackgroundTask.objects.create(
             app_instance=self.app_instance,
             task_name="validate_image_public",
@@ -490,27 +557,21 @@ class BackgroundTasksViewTestCase(TestCase):
                     "app_slug": self.app.slug,
                     "app_id": self.app_instance.pk,
                 },
-            )
-            + "?mode=metadata_only",
+            ),
         )
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertTrue(payload["metadata_only"])
-        self.assertEqual(payload["summary"]["total"], 1)
-        self.assertEqual(payload["summary"]["skipped"], 1)
+        self.assertEqual(payload["summary"]["total"], 3)
+        self.assertEqual(payload["summary"]["success"], 3)
         self.assertEqual(payload["deployment"]["status"], "success")
-        self.assertEqual(payload["deployment"]["label"], "Up to date")
-        self.assertEqual(payload["deployment"]["step_status"], "skipped")
-        self.assertEqual([task["task_name"] for task in payload["tasks"]], ["metadata_only_update"])
-        self.assertEqual(payload["tasks"][0]["display_name"], "Metadata Change")
-        self.assertTrue(payload["tasks"][0]["was_skipped"])
+        self.assertEqual(payload["deployment"]["label"], "Done")
         self.assertEqual(
-            payload["tasks"][0]["skip_reason"],
-            "because app only gets redeployed on changes to image, subdomain, permissions and volumes",
+            [task["task_name"] for task in payload["tasks"]],
+            ["validate_docker_image", "validate_image_public", "doi_provisioning"],
         )
 
-    def test_metadata_only_progress_keeps_previous_failed_deploy_step_failed(self):
+    def test_progress_keeps_previous_failed_deploy_step_failed_even_with_metadata_only_mode_query_param(self):
         BackgroundTask.objects.filter(app_instance=self.app_instance).update(status="failed")
         self.app_instance.k8s_user_app_status.status = "Running"
         self.app_instance.k8s_user_app_status.save(update_fields=["status"])
@@ -525,23 +586,20 @@ class BackgroundTasksViewTestCase(TestCase):
                     "app_slug": self.app.slug,
                     "app_id": self.app_instance.pk,
                 },
-            )
-            + "?mode=metadata_only",
+            ),
         )
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertTrue(payload["metadata_only"])
         self.assertEqual(payload["deployment"]["status"], "blocked")
         self.assertEqual(payload["deployment"]["label"], "Blocked")
-        self.assertEqual(payload["deployment"]["step_status"], "failed")
         self.assertEqual(
             [task["task_name"] for task in payload["tasks"]],
-            ["metadata_only_update"],
+            ["validate_docker_image"],
         )
         self.assertEqual(
             payload["deployment"]["message"],
-            "Your changes were saved, but deployment is blocked by a failed check.",
+            "Deployment cannot continue until the failed required check is resolved.",
         )
 
     def test_background_task_status_api_marks_skipped_tasks(self):
@@ -682,7 +740,6 @@ class BackgroundTasksViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertFalse(payload["metadata_only"])
         self.assertEqual(len(payload["tasks"]), 1)
         self.assertEqual(payload["tasks"][0]["task_name"], "validate_docker_image")
         self.assertEqual(payload["summary"]["total"], 1)

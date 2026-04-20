@@ -244,6 +244,7 @@ const statusApiUrl = "{{ status_api_url|escapejs }}";
 const retryUrl = "{% url 'apps:retry_background_task' project.slug app_slug instance.pk 0 %}".replace('/0/', '/{task_id}/');
 const csrftoken = getCookieValue('csrftoken');
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const WAITING_FOR_APP_STATUS_MESSAGE = "Waiting for app status. Note that this may take up to five minutes or longer because the app is currently being deployed.";
 
 // Poll for task status updates every 3 seconds
 let refreshInterval;
@@ -264,7 +265,7 @@ function renderProgress(data) {
   updateSummary(data.summary);
   const tasks = data.tasks || [];
   updateExecutionGraph({ tasks });
-  updateWorkflowStatus(data.workflow, data.deployment);
+  updateWorkflowStatus(data.deployment);
   updateStageSummary(tasks);
 }
 
@@ -275,7 +276,7 @@ function refreshTasks() {
       renderProgress(data);
 
       const deploymentDone = ['success', 'failed', 'blocked'].includes(data.deployment?.status);
-      if (deploymentDone && !data.workflow?.has_in_progress) {
+      if (deploymentDone && !data.deployment?.tasks_in_progress) {
         stopAutoRefresh();
       }
     })
@@ -294,12 +295,7 @@ function refreshTasks() {
             failed: fallbackTasks.filter(task => task.status === 'failed').length,
             retrying: fallbackTasks.filter(task => task.status === 'retrying').length
           },
-          workflow: deriveWorkflowFromTasks(fallbackTasks),
-          deployment: {
-            status: 'pending',
-            label: 'Pending',
-            message: 'Waiting for the latest deployment update.'
-          }
+          deployment: deriveFallbackDeployment(fallbackTasks)
         });
       } else {
         const banner = document.getElementById('workflow-status-banner');
@@ -436,27 +432,31 @@ function getStatusLabel(status, isCritical, hasValidationWarning) {
   return labels[status] || status;
 }
 
-function updateWorkflowStatus(workflow, deployment = {}) {
+function updateWorkflowStatus(deployment = {}) {
   const banner = document.getElementById('workflow-status-banner');
-  if (!banner || !workflow) {
+  if (!banner) {
     return;
   }
 
-  if (workflow.blocked) {
+  if (deployment.blocked) {
     banner.className = 'alert alert-danger mb-3';
     banner.textContent = 'Deployment is blocked because at least one required check failed.';
     return;
   }
 
-  if (workflow.ready_for_deploy) {
-    banner.className = deployment.status === 'success' ? 'alert alert-success mb-3' : 'alert alert-info mb-3';
-    banner.textContent = deployment.status === 'success'
-      ? 'Deployment finished successfully. Redirecting to app details.'
-      : 'All required checks completed successfully. Deployment is now running.';
+  if (deployment.status === 'success') {
+    banner.className = 'alert alert-success mb-3';
+    banner.textContent = 'Deployment finished successfully. Redirecting to app details.';
     return;
   }
 
-  if (workflow.has_in_progress) {
+  if (deployment.ready_for_deploy) {
+    banner.className = 'alert alert-info mb-3';
+    banner.textContent = `All required checks completed successfully. ${WAITING_FOR_APP_STATUS_MESSAGE}`;
+    return;
+  }
+
+  if (deployment.tasks_in_progress) {
     banner.className = 'alert alert-info mb-3';
     banner.textContent = 'Deployment checks are still running.';
     return;
@@ -466,15 +466,28 @@ function updateWorkflowStatus(workflow, deployment = {}) {
   banner.textContent = 'Waiting for deployment checks to start.';
 }
 
-function deriveWorkflowFromTasks(tasks) {
+function deriveFallbackDeployment(tasks) {
   const hasFailedCritical = tasks.some(task => task.is_critical && task.status === 'failed');
   const hasInProgress = tasks.some(task => ['pending', 'running', 'retrying'].includes(task.status));
   const readyForDeploy = tasks.length > 0 && !hasFailedCritical && !hasInProgress;
+  if (hasFailedCritical) {
+    return {
+      status: 'blocked',
+      label: 'Blocked',
+      message: 'Deployment cannot continue until the failed required check is resolved.',
+      blocked: true,
+      ready_for_deploy: false,
+      tasks_in_progress: false
+    };
+  }
+
   return {
-    blocked: hasFailedCritical,
+    status: 'pending',
+    label: 'Pending',
+    message: readyForDeploy ? WAITING_FOR_APP_STATUS_MESSAGE : 'Waiting for the latest deployment update.',
+    blocked: false,
     ready_for_deploy: readyForDeploy,
-    has_failed_critical: hasFailedCritical,
-    has_in_progress: hasInProgress
+    tasks_in_progress: hasInProgress
   };
 }
 
@@ -607,13 +620,13 @@ function updateExecutionGraph(data) {
 
   let deployNode = null;
   if (tasks.length > 0) {
-    const workflow = deriveWorkflowFromTasks(tasks);
+    const deployment = deriveFallbackDeployment(tasks);
     let fallbackStatus = 'idle';
-    if (workflow.blocked) {
+    if (deployment.blocked) {
       fallbackStatus = 'blocked';
-    } else if (workflow.ready_for_deploy) {
+    } else if (deployment.ready_for_deploy) {
       fallbackStatus = 'ready';
-    } else if (workflow.has_in_progress) {
+    } else if (deployment.tasks_in_progress) {
       fallbackStatus = 'waiting';
     }
     deployNode = { id: 'deploy', status: fallbackStatus };
@@ -862,12 +875,7 @@ document.addEventListener('DOMContentLoaded', function() {
         failed: initialTasks.filter(task => task.status === 'failed').length,
         retrying: initialTasks.filter(task => task.status === 'retrying').length
       },
-      workflow: deriveWorkflowFromTasks(initialTasks),
-      deployment: {
-        status: 'pending',
-        label: 'Pending',
-        message: 'Waiting for the latest deployment update.'
-      }
+      deployment: deriveFallbackDeployment(initialTasks)
     });
   }
 

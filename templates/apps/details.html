@@ -21,14 +21,13 @@
       {% if instance.url %}
       <a href="{{ instance.url }}" target="_blank" class="btn btn-primary">Open App</a>
       {% endif %}
-      <a href="{{ project_url }}" class="btn btn-outline-secondary">Back to project</a>
       {% if instance.app.user_can_edit %}
       <a href="{% url 'apps:appsettings' project.slug instance.app.slug instance.pk %}" class="btn btn-outline-secondary">Settings</a>
       {% endif %}
-      <a href="{{ background_tasks_url }}" class="btn btn-outline-secondary">Deployment Checks</a>
       {% if public_details_url %}
       <a href="{{ public_details_url }}" target="_blank" class="btn btn-outline-secondary">Public Details</a>
       {% endif %}
+      <a href="{{ project_url }}" class="btn btn-outline-secondary">Back to project</a>
     </div>
   </div>
 
@@ -36,7 +35,7 @@
     <div class="col-12 col-xl-7">
       <div class="card shadow h-100">
         <div class="card-header">
-          <h2 class="h5 mb-0">App Details</h2>
+          <h2 class="h5 mb-0">App details</h2>
         </div>
         <div class="card-body">
           <div class="row">
@@ -86,7 +85,7 @@
     <div class="col-12 col-xl-5">
       <div class="card shadow mb-4">
         <div class="card-header">
-          <h2 class="h5 mb-0">Deployment Summary</h2>
+          <h2 class="h5 mb-0">Deployment summary</h2>
         </div>
         <div class="card-body">
           <div class="row text-center g-3">
@@ -115,8 +114,10 @@
 
       <div class="card shadow">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h2 class="h5 mb-0">Recent Checks</h2>
+          <h2 class="h5 mb-0">Recent checks</h2>
+          {% if user.is_authenticated and user.is_staff %}
           <a href="{{ background_tasks_url }}" class="small text-decoration-none">View all</a>
+          {% endif %}
         </div>
         <div class="card-body">
           {% if recent_tasks %}

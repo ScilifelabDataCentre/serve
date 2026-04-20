@@ -313,114 +313,14 @@ def get_URI(instance):
     return URI
 
 
-@transaction.atomic
-def _get_original_instance_for_form_update(form, app_id=None):
-    if app_id is None:
-        return None
-
-    instance = getattr(form, "instance", None)
-    if instance is None:
-        return None
-
-    model_class = instance.__class__
-    lookup_pk = getattr(instance, "pk", None) or app_id
-
-    try:
-        return model_class.objects.get(pk=lookup_pk)
-    except model_class.DoesNotExist:
-        return None
-
-
-def _normalize_related_field_value(value):
-    """
-    Normalize FK and M2M form/model values so they can be compared safely.
-
-    """
-    if value is None:
-        return None
-
-    if hasattr(value, "values_list"):
-        return tuple(sorted(value.values_list("pk", flat=True)))
-
-    if hasattr(value, "all") and callable(value.all):
-        return tuple(sorted(value.all().values_list("pk", flat=True)))
-
-    if isinstance(value, (list, tuple, set)):
-        return tuple(sorted(getattr(item, "pk", item) for item in value))
-
-    return getattr(value, "pk", value)
-
-
-@transaction.atomic
-def should_trigger_deployment_from_form(form, app_id=None, force_redeploy: bool = False) -> bool:
-    """
-    Determine whether saving the form should enqueue a deployment run.
-
-    New app creation always deploys. Existing apps only redeploy when one of the
-    infrastructure-affecting fields changes, unless force_redeploy is set.
-    """
-    if app_id is None:
-        return True
-
-    if force_redeploy:
-        return True
-
-    instance = getattr(form, "instance", None)
-    if instance is None or not getattr(instance, "pk", None):
-        return True
-
-    original_instance = _get_original_instance_for_form_update(form, app_id=app_id)
-    if original_instance is None:
-        return True
-
-    logger.debug("Checking whether an existing app save should trigger deployment. changed_data=%s", form.changed_data)
-
-    cleaned_data = getattr(form, "cleaned_data", {}) or {}
-    form_fields = getattr(form, "fields", {})
-
-    if "subdomain" in form_fields:
-        requested_subdomain_value = cleaned_data.get("subdomain")
-        requested_subdomain = getattr(requested_subdomain_value, "subdomain", requested_subdomain_value) or ""
-        current_subdomain = getattr(getattr(original_instance, "subdomain", None), "subdomain", "")
-        if requested_subdomain != current_subdomain:
-            return True
-
-    if "mount_path" in form_fields:
-        requested_mount_path = cleaned_data.get("mount_path")
-        requested_mount_path_pk = getattr(requested_mount_path, "pk", requested_mount_path)
-        current_mount_path_pk = getattr(original_instance, "mount_path_id", None)
-        if requested_mount_path_pk != current_mount_path_pk:
-            return True
-    elif "volume" in form_fields:
-        requested_volume_value = cleaned_data.get("volume")
-        requested_volume = _normalize_related_field_value(requested_volume_value)
-        current_volume = _normalize_related_field_value(getattr(original_instance, "volume", None))
-        if requested_volume != current_volume:
-            return True
-
-    for field in ("flavor", "port", "image", "access", "shiny_site_dir"):
-        if field not in form_fields:
-            continue
-
-        requested_value_raw = cleaned_data.get(field)
-        requested_value = getattr(requested_value_raw, "pk", requested_value_raw)
-        current_value_raw = getattr(original_instance, field, None)
-        current_value = getattr(current_value_raw, "pk", current_value_raw)
-        if requested_value != current_value:
-            return True
-
-    return False
-
-
 def create_instance_from_form(
     form,
     project,
     app_slug,
     app_id=None,
     force_redeploy: bool = False,
-    should_deploy: bool | None = None,
     return_progress_started_at: bool = False,
-) -> int | tuple[int, str | None]:
+) -> int | tuple[int, str | None, bool]:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
     and the updating of existing ones based on the presence of an app_id.
@@ -432,7 +332,6 @@ def create_instance_from_form(
     - app_id: Optional ID of an existing instance to update. If None, a new instance is created.
     - force_redeploy: Forces a re-deploy even if no tracked fields changed. Useful for actions that
       mutate underlying infrastructure without altering standard form fields.
-    - should_deploy: Optional precomputed deployment decision to avoid re-evaluating the same form twice.
 
     Returns:
     - The newly created or updated instance.
@@ -454,15 +353,11 @@ def create_instance_from_form(
         project.pk,
     )
 
-    do_deploy = (
-        should_deploy
-        if should_deploy is not None
-        else should_trigger_deployment_from_form(form, app_id=app_id, force_redeploy=force_redeploy)
-    )
     if new_app:
+        do_deploy = True
         user_action = "Creating"
-        run_background_tasks_only = False
     else:
+        do_deploy = force_redeploy
         # Treat every update as a user-initiated change, while the redirect logic
         # decides whether the user should see deployment progress or details.
         user_action = "Changing"
@@ -486,24 +381,29 @@ def create_instance_from_form(
             # is actually contained in the form
             run_background_tasks_only = False
             for field in form.changed_data:
-                logger.debug(f"Checking if changed field {field} is a redeployment field.")
                 if field.lower() in redeployment_fields and (
                     field.lower() in form.Meta.fields or field.lower() == "subdomain"
                 ):
-                    # subdomain is a special field not contained in meta fields
                     logger.debug("create_instance_from_form.redeploy_field_changed app_id=%s field=%s", app_id, field)
                     do_deploy = True
                     break
 
             for field in form.changed_data:
                 if field.lower() in invenio_metadata_fields:
-                    logger.debug("create_instance_from_form.invenio_metadata_changed app_id=%s field=%s", app_id, field)
+                    logger.debug(
+                        "create_instance_from_form.metadata_only_field_changed app_id=%s field=%s",
+                        app_id,
+                        field,
+                    )
                     run_background_tasks_only = True
                     break
     # For existing apps, detect if access is changing from non-public to public
     access_changed_to_public = False
     if not new_app:
-        original_instance = _get_original_instance_for_form_update(form, app_id=app_id)
+        # Get the original instance to compare access levels
+        from .app_registry import APP_REGISTRY
+
+        original_instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
         original_access = getattr(original_instance, "access", None) if original_instance else None
         new_access = form.cleaned_data.get("access")
 
@@ -617,7 +517,7 @@ def create_instance_from_form(
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
     if return_progress_started_at:
-        return instance_id, progress_started_at
+        return instance_id, progress_started_at, (run_background_tasks_only and not do_deploy)
 
     return instance_id
 

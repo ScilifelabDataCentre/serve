@@ -136,7 +136,7 @@ class InvenioService:
         # Check if app is public
         if access != "public":
             if access:
-                return False, f"DOI minting is only available for public apps. This app is currently '{access}'."
+                return False, f"DOI minting is only available for Public apps. Visibility level: {access}"
             return False, "DOI minting is only available for public apps."
 
         return True, "App is public"

@@ -4,9 +4,7 @@ import subprocess
 from datetime import datetime
 from urllib.parse import urlencode
 
-import dateutil.parser
 import requests
-import waffle
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -27,558 +25,28 @@ from projects.models import Project
 from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
-from .background_tasks.utils import select_latest_task_records
 from .helpers import (
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
     get_minio_usage,
-    should_trigger_deployment_from_form,
 )
 from .models import BaseAppInstance
+from .progress import (
+    build_progress_state,
+    build_progress_status_api_url,
+    build_project_app_path,
+    get_progress_mode_from_request,
+    get_progress_started_at_from_request,
+    get_progress_tasks,
+    get_project_app_instance,
+    serialize_tasks,
+    summarize_tasks,
+)
 from .tasks import delete_resource
 
 logger = get_logger(__name__)
 
 User = get_user_model()
-
-
-def _build_project_app_path(project_slug: str, suffix: str) -> str:
-    return f"/projects/{project_slug}/apps/{suffix}"
-
-
-def _build_task_display_fields(status, was_skipped=False):
-    if was_skipped:
-        return {
-            "display_status": "skipped",
-            "status_label": "Skipped",
-            "status_class": "secondary",
-        }
-
-    status_display = {
-        "pending": ("pending", "Pending", "secondary"),
-        "running": ("running", "Running", "primary"),
-        "retrying": ("retrying", "Retrying", "warning"),
-        "success": ("success", "Success", "success"),
-        "failed": ("failed", "Failed", "danger"),
-    }
-    display_status, status_label, status_class = status_display.get(status, ("pending", "Pending", "secondary"))
-    return {
-        "display_status": display_status,
-        "status_label": status_label,
-        "status_class": status_class,
-    }
-
-
-def _get_task_display_status(task_data):
-    return task_data.get("display_status") or ("skipped" if task_data.get("was_skipped") else task_data["status"])
-
-
-def _serialize_background_task(task):
-    duration = task.get_duration()
-    result_data = task.result_data if isinstance(task.result_data, dict) else {}
-    was_skipped = bool(result_data.get("skipped"))
-    has_validation_warning = task.has_validation_warning()
-    error_detail = result_data.get("ui_error") or result_data.get("error", {}).get("ui_error")
-    display_fields = _build_task_display_fields(task.status, was_skipped=was_skipped)
-    if not was_skipped and task.status == "failed" and not task.is_critical:
-        display_fields["status_class"] = "warning"
-    if not was_skipped and has_validation_warning:
-        display_fields["status_label"] = "Warning"
-        display_fields["status_class"] = "warning"
-    return {
-        "id": task.id,
-        "task_name": task.task_name,
-        "display_name": _format_task_name_for_display(task.task_name),
-        "task_type": task.task_type,
-        "status": task.status,
-        "is_critical": task.is_critical,
-        "execution_order": task.execution_order,
-        "error_message": task.error_message,
-        "retry_count": task.retry_count,
-        "max_retries": task.max_retries,
-        "created_at": task.created_at.isoformat() if task.created_at else None,
-        "started_at": task.started_at.isoformat() if task.started_at else None,
-        "completed_at": task.completed_at.isoformat() if task.completed_at else None,
-        "duration_seconds": duration,
-        "can_retry": task.status == "failed",
-        "has_validation_warning": has_validation_warning,
-        "was_skipped": was_skipped,
-        "skip_reason": result_data.get("reason", "") if was_skipped else "",
-        "error_detail": error_detail if isinstance(error_detail, dict) else None,
-        **display_fields,
-    }
-
-
-def _get_project_app_instance(project_slug: str, app_slug: str, app_id: int):
-    project_obj = Project.objects.get(slug=project_slug)
-    model_class = APP_REGISTRY.get_orm_model(app_slug)
-    if not model_class:
-        raise PermissionDenied("Application model not found")
-
-    try:
-        instance = model_class.objects.get(pk=app_id, project=project_obj)
-    except model_class.DoesNotExist as exc:
-        raise Http404("An app with this id does not exist in this project.") from exc
-
-    return project_obj, instance
-
-
-def _build_task_summary(tasks_data):
-    return {
-        "total": len(tasks_data),
-        "pending": sum(1 for t in tasks_data if _get_task_display_status(t) == "pending"),
-        "running": sum(1 for t in tasks_data if _get_task_display_status(t) == "running"),
-        "success": sum(1 for t in tasks_data if _get_task_display_status(t) == "success"),
-        "skipped": sum(1 for t in tasks_data if _get_task_display_status(t) == "skipped"),
-        "failed": sum(1 for t in tasks_data if _get_task_display_status(t) == "failed"),
-        "retrying": sum(1 for t in tasks_data if _get_task_display_status(t) == "retrying"),
-    }
-
-
-def _build_workflow_state(tasks_data):
-    has_failed_critical = any(t["is_critical"] and _get_task_display_status(t) == "failed" for t in tasks_data)
-    has_in_progress = any(_get_task_display_status(t) in {"pending", "running", "retrying"} for t in tasks_data)
-    ready_for_deploy = bool(tasks_data) and not has_failed_critical and not has_in_progress
-    return {
-        "blocked": has_failed_critical,
-        "ready_for_deploy": ready_for_deploy,
-        "has_failed_critical": has_failed_critical,
-        "has_in_progress": has_in_progress,
-    }
-
-
-def _get_progress_mode_from_request(request):
-    mode = request.GET.get("mode")
-    if mode in {"deploy", "metadata_only", "details"}:
-        return mode
-    return None
-
-
-def _get_progress_started_at_from_request(request):
-    raw_started_at = request.GET.get("started_at")
-    if not raw_started_at:
-        return None
-
-    try:
-        started_at = dateutil.parser.isoparse(raw_started_at)
-    except (TypeError, ValueError):
-        return None
-
-    if timezone.is_naive(started_at):
-        return timezone.make_aware(started_at, timezone.get_current_timezone())
-
-    return started_at
-
-
-def _app_has_registered_background_tasks(app_slug: str) -> bool:
-    from apps.background_tasks.registry import TASK_REGISTRY
-
-    return bool(TASK_REGISTRY.get_tasks_by_order(app_slug))
-
-
-def _filter_visible_background_tasks(app_slug: str, tasks):
-    from apps.background_tasks.registry import TASK_REGISTRY
-
-    visible_task_names = {task.task_name for task in TASK_REGISTRY.get_tasks_for_app(app_slug)}
-    visible_task_names.add("checking_docker_image_availability")
-    return [task for task in tasks if task.task_name in visible_task_names]
-
-
-def _get_progress_tasks(instance, created_after=None):
-    from apps.models import BackgroundTask
-
-    task_records = list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
-    visible_task_records = _filter_visible_background_tasks(instance.app.slug, task_records)
-    if created_after is not None:
-        visible_task_records = [task for task in visible_task_records if task.created_at >= created_after]
-
-    return select_latest_task_records(visible_task_records)
-
-
-def _build_completed_steps_text(stats):
-    return f"{stats['completed']} of {stats['total']} steps completed"
-
-
-def _build_attention_steps_text(stats, prefix="needs attention"):
-    if stats["failed"] == 1:
-        return f"1 step {prefix}"
-    return f"{stats['failed']} steps {prefix}"
-
-
-def _resolve_header_field(value, deployment, stats):
-    return value(deployment, stats) if callable(value) else value
-
-
-PROGRESS_HEADER_DEFAULT = {
-    "pill_class": "text-bg-secondary",
-    "pill_text": "Waiting",
-    "title": "Waiting for deployment checks",
-    "message": "We have not recorded any deployment work yet.",
-    "inline_text": lambda deployment, stats: _build_completed_steps_text(stats),
-    "next_step_text": "Keep this page open while the deployment starts.",
-}
-
-
-PROGRESS_HEADER_VARIANTS = {
-    "metadata_attention": {
-        "pill_class": "text-bg-danger",
-        "pill_text": "Saved",
-        "title": "Your changes were saved, but deployment still needs attention",
-        "message": lambda deployment, stats: deployment["message"],
-        "inline_text": lambda deployment, stats: _build_attention_steps_text(stats, "still needs attention"),
-        "next_step_text": "Open deployment summary or go back to form.",
-    },
-    "metadata_running": {
-        "pill_class": "text-bg-info",
-        "pill_text": "Saved",
-        "title": "Your changes were saved",
-        "message": lambda deployment, stats: deployment["message"],
-        "inline_text": "No redeployment was needed",
-        "next_step_text": "Keep this page open while the existing deployment finishes.",
-    },
-    "metadata_pending": {
-        "pill_class": "text-bg-info",
-        "pill_text": "Saved",
-        "title": "Your changes were saved",
-        "message": lambda deployment, stats: deployment["message"],
-        "inline_text": "No redeployment was needed",
-        "next_step_text": "Open deployment summary if you want more details.",
-    },
-    "metadata_saved": {
-        "pill_class": "text-bg-success",
-        "pill_text": "Saved",
-        "title": "Your changes were saved",
-        "message": "Deployment checks were skipped because only app metadata changed.",
-        "inline_text": "No redeployment was needed",
-        "next_step_text": "Redirecting to the app details page in about 5 seconds.",
-    },
-    "deploy_success": {
-        "pill_class": "text-bg-success",
-        "pill_text": "Ready",
-        "title": "Your app is ready",
-        "message": "All checks passed and the app finished deploying. Opening the app details page in a few seconds.",
-        "inline_text": lambda deployment, stats: _build_completed_steps_text(stats),
-        "next_step_text": "Redirecting to the app details page in about 5 seconds.",
-    },
-    "deploy_attention": {
-        "pill_class": "text-bg-danger",
-        "pill_text": "Attention needed",
-        "title": "We could not finish preparing your app",
-        "message": lambda deployment, stats: deployment["message"],
-        "inline_text": lambda deployment, stats: _build_attention_steps_text(stats),
-        "next_step_text": "Open deployment summary or go back to form.",
-    },
-    "deploy_running": {
-        "pill_class": "text-bg-info",
-        "pill_text": "Checking",
-        "title": "We are preparing your app",
-        "message": "Each deployment check will appear here as it finishes, and then we will deploy the app.",
-        "inline_text": lambda deployment, stats: _build_completed_steps_text(stats),
-        "next_step_text": "You will be redirected automatically once deployment finishes.",
-    },
-}
-
-
-def _build_progress_header_stats(tasks_data, deployment, metadata_only=False):
-    task_statuses = [_get_task_display_status(task) for task in tasks_data]
-    deploy_step_status = deployment.get("step_status") or deployment["status"]
-    all_step_statuses = task_statuses if metadata_only else task_statuses + [deploy_step_status]
-    return {
-        "total": len(all_step_statuses) or 1,
-        "completed": sum(1 for status in all_step_statuses if status in {"success", "failed", "skipped"}),
-        "failed": sum(1 for status in all_step_statuses if status == "failed"),
-    }
-
-
-def _resolve_progress_header_state(deployment, workflow, metadata_only=False):
-    if metadata_only:
-        if deployment["status"] in {"blocked", "failed"}:
-            return "metadata_attention"
-        if deployment["status"] == "running":
-            return "metadata_running"
-        if deployment["status"] == "pending":
-            return "metadata_pending"
-        return "metadata_saved"
-
-    if deployment["status"] == "success":
-        return "deploy_success"
-    if workflow["blocked"] or deployment["status"] == "failed":
-        return "deploy_attention"
-    if deployment["status"] == "running" or workflow["has_in_progress"] or workflow["ready_for_deploy"]:
-        return "deploy_running"
-    return "deploy_waiting"
-
-
-def _build_progress_header(tasks_data, deployment, workflow, metadata_only=False):
-    stats = _build_progress_header_stats(tasks_data, deployment, metadata_only=metadata_only)
-    state = _resolve_progress_header_state(deployment, workflow, metadata_only=metadata_only)
-    variant = PROGRESS_HEADER_VARIANTS.get(state, {})
-
-    return {
-        "pill_class": _resolve_header_field(
-            variant.get("pill_class", PROGRESS_HEADER_DEFAULT["pill_class"]), deployment, stats
-        ),
-        "pill_text": _resolve_header_field(
-            variant.get("pill_text", PROGRESS_HEADER_DEFAULT["pill_text"]), deployment, stats
-        ),
-        "title": _resolve_header_field(variant.get("title", PROGRESS_HEADER_DEFAULT["title"]), deployment, stats),
-        "message": _resolve_header_field(variant.get("message", PROGRESS_HEADER_DEFAULT["message"]), deployment, stats),
-        "inline_text": _resolve_header_field(
-            variant.get("inline_text", PROGRESS_HEADER_DEFAULT["inline_text"]), deployment, stats
-        ),
-        "next_step_text": _resolve_header_field(
-            variant.get("next_step_text", PROGRESS_HEADER_DEFAULT["next_step_text"]), deployment, stats
-        ),
-    }
-
-
-def _build_metadata_only_task():
-    task_data = {
-        "id": "metadata-only",
-        "task_name": "metadata_only_update",
-        "display_name": "Metadata Change",
-        "task_type": "metadata",
-        "status": "success",
-        "is_critical": False,
-        "execution_order": 1,
-        "error_message": "",
-        "retry_count": 0,
-        "max_retries": 0,
-        "created_at": None,
-        "started_at": None,
-        "completed_at": None,
-        "duration_seconds": None,
-        "can_retry": False,
-        "was_skipped": True,
-        "skip_reason": "because app only gets redeployed on changes to image, subdomain, permissions and volumes",
-    }
-    return {
-        **task_data,
-        **_build_task_display_fields(task_data["status"], was_skipped=task_data["was_skipped"]),
-    }
-
-
-def _get_helm_deploy_success(instance):
-    info = getattr(instance, "info", None) or {}
-    if not isinstance(info, dict):
-        return None
-
-    helm_info = info.get("helm")
-    if not isinstance(helm_info, dict):
-        return None
-
-    success = helm_info.get("success")
-    if isinstance(success, bool):
-        return success
-    return None
-
-
-def _get_deployment_inputs(instance):
-    app_status = instance.get_app_status()
-    latest_user_action = instance.latest_user_action
-    helm_deploy_success = _get_helm_deploy_success(instance)
-    return {
-        "app_status": app_status,
-        "latest_user_action": latest_user_action,
-        "helm_deploy_success": helm_deploy_success,
-        "is_transitioning": latest_user_action in {"Creating", "Changing", "Redeploying"},
-    }
-
-
-def _build_deployment_state(instance, workflow, tasks_data, expecting_fresh_tasks=False):
-    inputs = _get_deployment_inputs(instance)
-    app_status = inputs["app_status"]
-    latest_user_action = inputs["latest_user_action"]
-    helm_deploy_success = inputs["helm_deploy_success"]
-    is_transitioning = inputs["is_transitioning"]
-    status = "pending"
-    label = "Pending"
-    message = "Waiting to start deployment."
-
-    if workflow["blocked"]:
-        status = "blocked"
-        label = "Blocked"
-        message = "Deployment cannot continue until the failed required check is resolved."
-    elif workflow["has_in_progress"]:
-        status = "pending"
-        label = "Pending"
-        message = "Deployment will start after the checks pass."
-    elif expecting_fresh_tasks and not tasks_data:
-        status = "pending"
-        label = "Pending"
-        message = "Waiting for deployment checks to start."
-    elif latest_user_action == "Failed" or app_status == "Error" or helm_deploy_success is False:
-        status = "failed"
-        label = "Failed"
-        message = "Deployment hit an error after the checks completed."
-    elif app_status == "Running":
-        status = "success"
-        label = "Done"
-        message = "The app is running."
-    elif is_transitioning and (tasks_data or helm_deploy_success is not None or workflow["ready_for_deploy"]):
-        status = "pending"
-        label = "Pending"
-        message = "Waiting for app status."
-    elif workflow["ready_for_deploy"]:
-        status = "pending"
-        label = "Pending"
-        message = "Waiting for app status."
-    elif tasks_data:
-        status = "pending"
-        label = "Pending"
-        message = "Deployment will start after the checks pass."
-    elif waffle.switch_is_active("background_tasks"):
-        status = "pending"
-        label = "Pending"
-        message = "Waiting for deployment checks to start."
-
-    return {
-        "status": status,
-        "label": label,
-        "message": message,
-        "app_status": app_status,
-        "latest_user_action": latest_user_action,
-    }
-
-
-def _build_standard_deployment_step_status(deployment):
-    if deployment["status"] == "success":
-        return "success"
-    if deployment["status"] in {"failed", "blocked"}:
-        return "failed"
-    if deployment["status"] == "running":
-        return "running"
-    return "pending"
-
-
-def _apply_metadata_only_deployment_overrides(instance, workflow, deployment):
-    if (
-        deployment["status"] == "running"
-        and not workflow["blocked"]
-        and not workflow["has_in_progress"]
-        and instance.get_app_status() == "Running"
-        and _get_helm_deploy_success(instance) is not False
-    ):
-        deployment["status"] = "success"
-        deployment["label"] = "Up to date"
-
-    if deployment["status"] == "success":
-        deployment["label"] = "Up to date"
-        deployment["message"] = "Only app metadata changed, so redeployment was skipped."
-        deployment["step_status"] = "skipped"
-    elif deployment["status"] == "blocked":
-        deployment["message"] = "Your changes were saved, but deployment is blocked by a failed check."
-        deployment["step_status"] = "failed"
-    elif deployment["status"] == "failed":
-        deployment[
-            "message"
-        ] = "Your changes were saved, but the app still has unresolved deployment issues from the last run."
-        deployment["step_status"] = "failed"
-    elif deployment["status"] == "running":
-        deployment[
-            "message"
-        ] = "Your changes were saved. No redeployment was needed, and the existing deployment is still in progress."
-        deployment["step_status"] = "running"
-    else:
-        deployment["message"] = (
-            "Your changes were saved. No redeployment was needed, and the existing "
-            "deployment is still waiting to finish."
-        )
-        deployment["step_status"] = "pending"
-
-    return deployment
-
-
-def _build_progress_payload(
-    instance,
-    tasks_data,
-    *,
-    metadata_only=False,
-    deployment_tasks_data=None,
-    expecting_fresh_tasks=False,
-):
-    deployment_tasks = deployment_tasks_data if deployment_tasks_data is not None else tasks_data
-    workflow = _build_workflow_state(deployment_tasks)
-    deployment = _build_deployment_state(
-        instance,
-        workflow,
-        deployment_tasks,
-        expecting_fresh_tasks=expecting_fresh_tasks and not metadata_only,
-    )
-
-    if metadata_only:
-        deployment = _apply_metadata_only_deployment_overrides(instance, workflow, deployment)
-    else:
-        deployment["step_status"] = _build_standard_deployment_step_status(deployment)
-
-    return {
-        "tasks": tasks_data,
-        "summary": _build_task_summary(tasks_data),
-        "workflow": workflow,
-        "deployment": deployment,
-        "header": _build_progress_header(tasks_data, deployment, workflow, metadata_only=metadata_only),
-        "metadata_only": metadata_only,
-    }
-
-
-def _build_progress_state(instance, progress_mode=None, progress_started_at=None):
-    metadata_only = progress_mode == "metadata_only"
-    if progress_mode == "details":
-        tasks = _get_progress_tasks(instance)
-        tasks_data = [_serialize_background_task(task) for task in tasks]
-        progress_state = _build_progress_payload(instance, tasks_data)
-    elif metadata_only:
-        tasks = _get_progress_tasks(instance)
-        historical_tasks_data = [_serialize_background_task(task) for task in tasks]
-        progress_state = _build_progress_payload(
-            instance,
-            [_build_metadata_only_task()],
-            metadata_only=True,
-            deployment_tasks_data=historical_tasks_data,
-        )
-    else:
-        has_registered_tasks = _app_has_registered_background_tasks(instance.app.slug)
-        deployment_inputs = _get_deployment_inputs(instance)
-        tasks = _get_progress_tasks(instance, created_after=progress_started_at)
-        tasks_data = [_serialize_background_task(task) for task in tasks]
-        progress_state = _build_progress_payload(
-            instance,
-            tasks_data,
-            expecting_fresh_tasks=has_registered_tasks
-            and (progress_started_at is not None or deployment_inputs["is_transitioning"]),
-        )
-
-    return progress_state
-
-
-def _build_progress_status_api_url(project_slug, app_slug, app_id, progress_mode=None, progress_started_at=None):
-    url = reverse(
-        "apps:background_tasks_status",
-        kwargs={"project": project_slug, "app_slug": app_slug, "app_id": app_id},
-    )
-    query_params = {}
-    if progress_mode in {"metadata_only", "details"}:
-        query_params["mode"] = progress_mode
-    if progress_started_at is not None:
-        query_params["started_at"] = progress_started_at.isoformat()
-    if query_params:
-        return f"{url}?{urlencode(query_params)}"
-    return url
-
-
-def _format_task_name_for_display(task_name: str) -> str:
-    explicit_labels = {
-        "validate_image_public": "Check Image Access",
-        "validate_docker_image": "Check Image Compatibility",
-        "checking_docker_image_availability": "Check Image Compatibility",
-        "doi_provisioning": "Mint DOI",
-        "mint_doi": "Mint DOI",
-    }
-
-    if task_name in explicit_labels:
-        return explicit_labels[task_name]
-
-    return " ".join(part.capitalize() for part in task_name.replace("-", "_").split("_") if part) or "Deployment step"
 
 
 @method_decorator(
@@ -855,21 +323,16 @@ class CreateApp(View):
                 },
             )
 
-        should_deploy = should_trigger_deployment_from_form(form, app_id=app_id)
-
         # Otherwise we can create the instance
-        instance_id, progress_started_at = create_instance_from_form(
+        instance_id, progress_started_at, _ = create_instance_from_form(
             form,
             project,
             app_slug,
             app_id,
-            should_deploy=should_deploy,
             return_progress_started_at=True,
         )
-        progress_url = _build_project_app_path(str(project_slug), f"progress/{app_slug}/{instance_id}")
-        if not should_deploy:
-            progress_url = f"{progress_url}?mode=metadata_only"
-        elif progress_started_at:
+        progress_url = build_project_app_path(str(project_slug), f"progress/{app_slug}/{instance_id}")
+        if progress_started_at:
             progress_url = f"{progress_url}?{urlencode({'started_at': progress_started_at})}"
         return HttpResponseRedirect(progress_url)
 
@@ -920,10 +383,10 @@ class DeploymentProgressView(View):
     template = "apps/deployment_progress.html"
 
     def get(self, request, project, app_slug, app_id):
-        project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
-        progress_mode = _get_progress_mode_from_request(request) or "deploy"
-        progress_started_at = _get_progress_started_at_from_request(request)
-        progress_state = _build_progress_state(
+        project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        progress_mode = get_progress_mode_from_request(request) or "deploy"
+        progress_started_at = get_progress_started_at_from_request(request)
+        progress_state = build_progress_state(
             instance,
             progress_mode=progress_mode,
             progress_started_at=progress_started_at,
@@ -931,23 +394,17 @@ class DeploymentProgressView(View):
 
         context = {
             "instance": instance,
-            "project": project_obj,
-            "app_slug": app_slug,
-            "summary": progress_state["summary"],
-            "workflow": progress_state["workflow"],
             "deployment": progress_state["deployment"],
-            "header": progress_state["header"],
-            "metadata_only": progress_state["metadata_only"],
-            "initial_tasks_json": json.dumps(progress_state["tasks"]),
-            "status_api_url": _build_progress_status_api_url(
+            "initial_steps_json": json.dumps(progress_state["steps"]),
+            "status_api_url": build_progress_status_api_url(
                 project_obj.slug,
                 app_slug,
                 instance.pk,
                 progress_mode=progress_mode,
                 progress_started_at=progress_started_at,
             ),
-            "detail_url": _build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
-            "form_url": _build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}"),
+            "detail_url": build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
+            "form_url": build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}"),
         }
 
         return render(request, self.template, context)
@@ -961,10 +418,9 @@ class AppDetailsView(View):
     template = "apps/details.html"
 
     def get(self, request, project, app_slug, app_id):
-        project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
-        tasks = _get_progress_tasks(instance)
-        tasks_data = [_serialize_background_task(task) for task in tasks]
-        progress_state = _build_progress_payload(instance, tasks_data)
+        project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        progress_state = build_progress_state(instance, progress_mode="details")
+        tasks_data = progress_state["tasks"]
 
         description = getattr(instance, "description", "")
         source_code_url = getattr(instance, "source_code_url", "")
@@ -997,7 +453,7 @@ class AppDetailsView(View):
                 "apps:background_tasks",
                 kwargs={"project": project_obj.slug, "app_slug": app_slug, "app_id": instance.pk},
             ),
-            "status_api_url": _build_progress_status_api_url(
+            "status_api_url": build_progress_status_api_url(
                 project_obj.slug, app_slug, instance.pk, progress_mode="details"
             ),
         }
@@ -1088,7 +544,7 @@ def app_metadata(request, app_id):
 
     # Generate and parse schema
     schema_dict = json.loads(generate_schema_org_compliant_app_metadata(app))
-    schema_dict["about"]["additionalProperty"][0]["value"] = dateutil.parser.parse(
+    schema_dict["about"]["additionalProperty"][0]["value"] = datetime.fromisoformat(
         schema_dict["about"]["additionalProperty"][0]["value"]
     )
 
@@ -1118,9 +574,9 @@ class BackgroundTasksView(View):
     template = "apps/background_tasks.html"
 
     def get(self, request, project, app_slug, app_id):
-        project_obj, instance = _get_project_app_instance(project, app_slug, app_id)
-        tasks = _get_progress_tasks(instance)
-        serialized_tasks = [_serialize_background_task(task) for task in tasks]
+        project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        tasks = get_progress_tasks(instance)
+        serialized_tasks = serialize_tasks(tasks)
         serialized_by_id = {task_data["id"]: task_data for task_data in serialized_tasks}
         for task in tasks:
             task_data = serialized_by_id.get(task.id, {})
@@ -1130,7 +586,7 @@ class BackgroundTasksView(View):
             task.status_label = task_data.get("status_label", task.status)
             task.status_class = task_data.get("status_class", "secondary")
             task.has_validation_warning_value = task_data.get("has_validation_warning", False)
-        summary = _build_task_summary(serialized_tasks)
+        summary = summarize_tasks(serialized_tasks)
 
         context = {
             "instance": instance,
@@ -1138,8 +594,8 @@ class BackgroundTasksView(View):
             "tasks": tasks,
             "summary": summary,
             "app_slug": app_slug,
-            "detail_url": _build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
-            "status_api_url": _build_progress_status_api_url(
+            "detail_url": build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
+            "status_api_url": build_progress_status_api_url(
                 project_obj.slug, app_slug, instance.pk, progress_mode="details"
             ),
         }
@@ -1156,12 +612,12 @@ class BackgroundTaskStatusAPI(View):
 
     def get(self, request, project, app_slug, app_id):
         try:
-            _, instance = _get_project_app_instance(project, app_slug, app_id)
+            _, instance = get_project_app_instance(project, app_slug, app_id)
         except (Http404, PermissionDenied):
             return JsonResponse({"error": "App instance not found"}, status=404)
-        progress_mode = _get_progress_mode_from_request(request) or "deploy"
-        progress_started_at = _get_progress_started_at_from_request(request)
-        progress_state = _build_progress_state(
+        progress_mode = get_progress_mode_from_request(request) or "deploy"
+        progress_started_at = get_progress_started_at_from_request(request)
+        progress_state = build_progress_state(
             instance,
             progress_mode=progress_mode,
             progress_started_at=progress_started_at,
@@ -1169,12 +625,10 @@ class BackgroundTaskStatusAPI(View):
 
         return JsonResponse(
             {
+                "steps": progress_state["steps"],
                 "tasks": progress_state["tasks"],
                 "summary": progress_state["summary"],
-                "workflow": progress_state["workflow"],
                 "deployment": progress_state["deployment"],
-                "header": progress_state["header"],
-                "metadata_only": progress_state["metadata_only"],
                 "instance": {
                     "id": instance.pk,
                     "name": instance.name,
