@@ -28,6 +28,14 @@ class InvenioRecordNotFoundError(InvenioClientError):
     pass
 
 
+class RecordDeletedError(InvenioClientError):
+    """Raised when a requested record has been removed and a tombstone is returned"""
+
+    def __init__(self, message: str, tombstone_data: Optional[Dict[str, Any]] = None):
+        super().__init__(message)
+        self.tombstone_data = tombstone_data or {}
+
+
 class InvenioClient:
     """
     Client for interacting with InvenioRDM API
@@ -119,6 +127,7 @@ class InvenioClient:
 
         if response.status_code not in success_codes:
             error_msg = f"API request failed with status {response.status_code}"
+            error_data: Dict[str, Any] = {}
             try:
                 error_data = response.json()
                 if "message" in error_data:
@@ -130,6 +139,9 @@ class InvenioClient:
 
             if response.status_code == 404:
                 raise InvenioRecordNotFoundError(error_msg)
+
+            if response.status_code == 410:
+                raise RecordDeletedError(error_msg, tombstone_data=error_data)
 
             raise InvenioClientError(error_msg)
 

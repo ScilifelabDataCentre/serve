@@ -20,6 +20,7 @@ from doi_minting.clients.invenio_client import (
     InvenioClient,
     InvenioClientError,
     InvenioRecordNotFoundError,
+    RecordDeletedError,
 )
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
 from studio.utils import get_logger
@@ -388,6 +389,9 @@ class InvenioService:
             return record
         except InvenioRecordNotFoundError:
             logger.warning(f"Record not found for requested record_id={record_id}")
+            raise
+        except RecordDeletedError as e:
+            logger.warning(f"Record deleted error returned for requested record_id={record_id}: {e}")
             raise
         except InvenioClientError as e:
             logger.error(f"Error retrieving record {record_id}: {e}")

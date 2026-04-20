@@ -31,6 +31,7 @@ from doi_minting.services.invenio_svc import (
     InvenioClientError,
     InvenioRecordNotFoundError,
     InvenioService,
+    RecordDeletedError,
 )
 from projects.models import Project
 from studio.utils import get_logger
@@ -466,6 +467,9 @@ def app_details(request, invenio_record_id):
     except InvenioRecordNotFoundError:
         logger.warning(f"Record not found for requested invenio_record_id={invenio_record_id}")
         raise Http404("Record not found")
+    except RecordDeletedError as e:
+        logger.info(f"Record deleted error returned for requested invenio_record_id={invenio_record_id}")
+        return app_tombstone(request, e.tombstone_data)
     except InvenioClientError as e:
         logger.error(f"Something went wrong when retrieving invenio record with id {invenio_record_id}: {e}")
         raise
@@ -610,11 +614,8 @@ REMOVAL_REASON_LABELS = {
 }
 
 
-def app_tombstone(request, record):
-    # TO-DO: Here pass JSON response from Invenio
-    data = {}
-
-    tombstone = data.get("tombstone", {})
+def app_tombstone(request, tombstone_data):
+    tombstone = tombstone_data.get("tombstone", {})
 
     removal_date_raw = tombstone.get("removal_date")
     removal_date = None
