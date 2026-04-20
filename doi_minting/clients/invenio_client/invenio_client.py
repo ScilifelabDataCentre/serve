@@ -9,17 +9,16 @@ from urllib.parse import urljoin
 
 import requests
 
+from .exceptions import (
+    InvenioClientError,
+    InvenioClientRequestError,
+    InvenioServerError,
+)
 from .http_client import delete, get, post, put
 from .session import make_session
 from .tls import tls_verify_from_env
 
 logger = logging.getLogger(__name__)
-
-
-class InvenioClientError(Exception):
-    """Base exception for InvenioRDM client errors"""
-
-    pass
 
 
 class InvenioClient:
@@ -122,7 +121,13 @@ class InvenioClient:
             except (json.JSONDecodeError, ValueError):
                 error_msg = f"{error_msg}: {response.text}"
 
-            raise InvenioClientError(error_msg)
+            # Raise exceptions based on status code range
+            if 400 <= response.status_code < 500:
+                raise InvenioClientRequestError(error_msg)
+            elif response.status_code >= 500:
+                raise InvenioServerError(error_msg)
+            else:
+                raise InvenioClientError(error_msg)
 
         # For 204 No Content responses, return empty dict
         if response.status_code == 204:

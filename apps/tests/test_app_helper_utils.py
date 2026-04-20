@@ -885,7 +885,7 @@ def test_generate_invenio_record_validation():
     assert invenio_metadata["metadata"]["title"] == app_instance.name
     assert invenio_metadata["metadata"]["description"] == app_instance.description
     assert invenio_metadata["metadata"]["publisher"] == "SciLifeLab Serve"
-    assert invenio_metadata["metadata"]["identifiers"][0]["identifier"].startswith("SERVE:")
+    assert invenio_metadata["metadata"]["identifiers"][0]["identifier"].startswith("scilifelab-serve:")
 
     # Check creator information
     creator = invenio_metadata["metadata"]["creators"][0]

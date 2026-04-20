@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% extends "base.html" %}
+{% block title %}{{ app_metadata.title }}{% endblock %}
+{% load static %}
+{% block head %}
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid pb-3">
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
+
+    <div>
+        <h2 class="mb-0">{{ app_metadata.title }}</h2>
+
+        <p class="small mb-0 mt-1">
+        Version {{ app_otherdata.current_version }}
+        {% if app_otherdata.latest_version_doi != app_otherdata.current_version_doi %}
+            (<a href="{% url 'app-details' app_otherdata.latest_version_doi|cut:'10.83812/SCILIFELAB.' %}">see latest version</a>)
+        {% else %}
+            (latest version)
+        {% endif %}
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        {% if app.volume == None %}
+        <a title="Instructions for running the app locally"
+        href="#"
+        class="btn btn-outline-serve"
+        data-bs-toggle="modal"
+        data-bs-target="#dockerInfoModal"
+        data-app-name="{{ app_metadata.title }}"
+        data-app-image="{{ app.image }}"
+        data-app-port="{{ app.port }}">
+        <i class="bi bi-download"></i> Run Locally
+        </a>
+        {% endif %}
+
+        <a title="Launch the app"
+        rel="Link to launch the app"
+        href="{{ app_otherdata.app_url }}"
+        target="_blank"
+        class="btn btn-primary">Launch (new tab)</a>
+    </div>
+
+    </div>
+
+  <div class="row g-4">
+
+    <div class="col-12 col-xl-7">
+
+      <div class="card shadow mb-4">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Record description</h2>
+        </div>
+        <div class="card-body">
+                                    <dl class="row">
+                            <dt class="col-sm-4">Title</dt>
+                            <dd class="col-sm-8">{{ app_metadata.title }}</dd>
+
+                            <dt class="col-sm-4">DOI</dt>
+                            <dd class="col-sm-8">
+                                <a href="https://doi.org/{{ app_metadata.pids.doi.identifier }}" target="_blank" rel="noopener">
+                                    https://doi.org/{{ app_metadata.pids.doi.identifier|lower }}
+                                </a>
+                            </dd>
+
+                            <dt class="col-sm-4">Description</dt>
+                            <dd class="col-sm-8">{{ app_metadata.description }}</dd>
+
+                            {% if app_metadata.subjects %}
+                            <dt class="col-sm-4">Subjects and keywords</dt>
+                            <dd class="col-sm-8">
+                                {% for subject in app_metadata.subjects %}
+                                    <a class="tag me-1 mb-1" onclick="searchByTag('{{ subject.subject|title }}','card-keyword',this)">
+                                        <span class="badge text-bg-primary badge-grape badge-ico" style="margin-right: -0.2rem;">
+                                            <div class="fas fa-tag fa-sm me-1"></div>
+                                            <span class="tag-name">{{ subject.subject }}</span>
+                                        </span>
+                                    </a>
+                                {% endfor %}
+                            </dd>
+                            {% endif %}
+
+                            <dt class="col-sm-4">URL</dt>
+                            <dd class="col-sm-8">
+                                    <a href="{{ app_otherdata.app_url }}" target="_blank">
+                                        {{ app_otherdata.app_url }}
+                                        <i class="bi bi-box-arrow-up-right mx-1"></i>
+                                    </a>
+                            </dd>
+
+                        <dt class="col-sm-4">Source code</dt>
+                            <dd class="col-sm-8">
+                                <a href="{{ schema_dict.hasPart.0.hasPart.codeRepository }}" target="_blank">
+                                    {{ schema_dict.hasPart.0.hasPart.codeRepository }}<i class="bi bi-box-arrow-up-right mx-1"></i>
+                                </a>
+                            </dd>
+
+                        <dt class="col-sm-4">Docker image</dt>
+                            <dd class="col-sm-8">{{ app_otherdata.docker_image }}</dd>
+
+                        {% for d in app_metadata.dates %}
+                            {% if d.type.id == "submitted" %}
+                                <dt class="col-sm-4">Date submitted</dt>
+                                <dd class="col-sm-8">{{ d.date|date:"Y-m-d H:i" }}</dd>
+                            {% elif d.type.id == "available" %}
+                                <dt class="col-sm-4">Date available</dt>
+                                <dd class="col-sm-8">{{ d.date|date:"Y-m-d H:i" }}</dd>
+                            {% elif d.type.id == "updated" %}
+                                <dt class="col-sm-4">Date updated</dt>
+                                <dd class="col-sm-8">{{ d.date|date:"Y-m-d H:i" }}</dd>
+                            {% endif %}
+                        {% endfor %}
+
+                            {% if app_metadata.languages %}
+                            <dt class="col-sm-4">Language</dt>
+                            <dd class="col-sm-8">
+                                {% for language in app_metadata.languages %}
+                                    {% for lang_key, lang_name in language.title.items %}
+                                        {% if forloop.first %}{{ lang_name }}{% endif %}
+                                    {% empty %}
+                                        Undefined
+                                    {% endfor %}
+                                    {% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </dd>
+                            {% endif %}
+
+                            {% if app_metadata.funding %}
+                            <dt class="col-sm-4">Funding</dt>
+                            <dd class="col-sm-8">
+                                {% for item in app_metadata.funding %}
+                                    <div>
+                                        <a href="https://ror.org/{{ item.funder.id }}" target="_blank" rel="noopener">
+                                            {{ item.funder.name }}
+                                        </a>
+                                        {% if item.award.title %}
+                                            ({{ item.award.title.en }})
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </dd>
+                            {% endif %}
+
+                             </dl>
+        </div>
+      </div>
+
+    {% comment %}
+    <div class="card shadow mb-4">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Related work</h2>
+        </div>
+        <div class="card-body">
+          <div class="row">
+
+          </div>
+        </div>
+      </div>
+    {% endcomment %}
+
+    </div>
+
+    <div class="col-12 col-xl-5">
+
+      <div class="card shadow mb-4">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Creators</h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            {% for creator in app_metadata.creators %}
+                <div class="col-12">
+                    {% if creator.person_or_org.identifiers %}
+                        <a href="{{ creator.person_or_org.identifiers.0.identifier }}"
+                          target="_blank"
+                          rel="noopener"
+                          class="value-label fw-normal text-dark card-username text-decoration-none"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top"
+                          title="{% if creator.affiliations %}{% for aff in creator.affiliations %}{{ aff.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}No affiliations{% endif %}">
+                            <img src="/static/images/orcid_16x16.png" alt="ORCID" width="16" height="16" class="me-1">
+                            {{ creator.person_or_org.name }}
+                        </a>
+                    {% else %}
+                        <span class="value-label fw-normal text-dark card-username"
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="{% if creator.affiliations %}{% for aff in creator.affiliations %}{{ aff.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}No affiliations{% endif %}">
+                            {{ creator.person_or_org.name }}
+                        </span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+          </div>
+
+        </div>
+      </div>
+        <div class="card shadow mb-4">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Versions</h2>
+        </div>
+        <div class="card-body small">
+          <div class="row g-2">
+              {% for version in app_otherdata.versions %}
+                  <div class="{% if version.index == app_otherdata.current_version %}fw-bold{% endif %}">
+                      Version {{ version.index }}:<br>
+
+                      {% if version.index == app_otherdata.current_version %}
+                          <span>
+                              {{ version.doi|lower }}
+                          </span>
+                          <span class="badge bg-secondary ms-2">current</span>
+                      {% else %}
+                          <a href="{% url 'app-details' version.doi|cut:'10.83812/SCILIFELAB.' %}"
+                            target="_blank"
+                            rel="noopener">
+                              {{ version.doi|lower }}
+                          </a>
+                      {% endif %}
+                  </div>
+              {% endfor %}
+          </div>
+          <div><hr>To cite all versions, use the following DOI:<br>
+            <a href="https://doi.org/{{ app_otherdata.parent_doi|lower }}" target="_blank">https://doi.org/{{ app_otherdata.parent_doi|lower }}</a>
+          </div>
+
+        </div>
+      </div>
+
+      {% comment %}
+    <div class="card shadow mb-4">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Citation</h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+
+          </div>
+
+        </div>
+      </div>
+      {% endcomment %}
+
+        <div class="card shadow mb-4">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Export</h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col">
+                <a href="{% url 'app-details' app.pk %}?format=json"
+                   class="btn btn btn-primary">
+                    <i class="bi bi-download me-2"></i>
+                    Download all metadata (JSON)
+                </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+})
+</script>
+
+{# Including code for modals displaying Docker info #}
+{% include 'common/app_card_docker_info.html' %}
+
+{% endblock %}
