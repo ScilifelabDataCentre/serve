@@ -241,6 +241,24 @@ Then to run the integration tests:
 npx cypress open
 ```
 
+### ERD for Pydantic models
+
+We make use of Pydantic models in Serve's source code. Follow the steps below to generate an entity-relationship diagram.
+
+```Bash
+# Have Graphviz installed on your machine and in relevant paths
+brew install graphviz # Mac
+export CFLAGS=-I$(brew --prefix graphviz)/include
+export LDFLAGS=-L$(brew --prefix graphviz)/lib
+
+# Install Python modules for visualisation
+pip install pygraphviz
+pip install erdantic
+
+# Generate an ERD for the Pydantic models
+erdantic doi_minting.services.schemas.InvenioRecord -o invenio_record.png
+```
+
 
 ## Contact information
 
