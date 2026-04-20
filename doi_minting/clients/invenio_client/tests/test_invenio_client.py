@@ -8,10 +8,7 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 
-from doi_minting.clients.invenio_client.invenio_client import (
-    InvenioClient,
-    InvenioClientError,
-)
+from doi_minting.clients.invenio_client import InvenioClient, InvenioClientError
 
 responses = cast(Any, importlib.import_module("responses"))
 

@@ -734,12 +734,6 @@ label.required::before {
   }
 }
 
-@media (max-width: 499px) {
-    #apps-status-bar {
-        display: none!important;
-    }
-}
-
 .apps-page .apps-layout {
     display: grid;
     grid-template-columns: 420px 1px minmax(0, 1fr);

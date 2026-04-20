@@ -10,8 +10,14 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
-from django.shortcuts import HttpResponseRedirect, render, reverse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.shortcuts import (
+    Http404,
+    HttpResponseRedirect,
+    get_object_or_404,
+    render,
+    reverse,
+)
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import content_disposition_header
@@ -21,6 +27,11 @@ from rest_framework.exceptions import NotFound
 
 from apps.constants import AppActionOrigin
 from apps.types_.subdomain import SubdomainCandidateName
+from doi_minting.services.invenio_svc import (
+    InvenioClientError,
+    InvenioClientRequestError,
+    InvenioService,
+)
 from projects.models import Project
 from studio.utils import get_logger
 
@@ -523,6 +534,141 @@ class SecretsView(View):
         return render(request, self.template, context)
 
 
+def record_lookup(request, record_id):
+    if record_id.isdigit():
+        app_baseinstance = get_object_or_404(BaseAppInstance, pk=record_id)
+        app_slug = app_baseinstance.app.slug
+        model_class = APP_REGISTRY.get_orm_model(app_slug)
+        if not model_class:
+            logger.error(f"Missing model for slug: {app_slug}")
+            raise PermissionDenied("Application model not found")
+        app = model_class.objects.get(pk=record_id)
+        # TO-DO: In the future, we will still show a page to those users who have access rights to the
+        # app but from a different view
+        if app.access != "public":
+            logger.error(f"App with app id '{record_id}' is not 'Public', raising PermissionDenied error")
+            raise PermissionDenied("You don't have permission to view this app's metadata")
+        # TO-DO: Below is a temporary solution while there is no invenio_record_id for some public apps
+        # We will remove the below view and the corresponding template once all public apps have an
+        # invenio record associated with them.
+        if app.invenio_record_id:
+            invenio_record_id = app.invenio_record_id
+        else:
+            return app_metadata(request, app_id=record_id)
+    else:
+        invenio_record_id = record_id
+    return app_details(request, invenio_record_id=invenio_record_id)
+
+
+def app_details(request, invenio_record_id):
+    invenio_svc = InvenioService()
+
+    # Get raw record data
+    try:
+        record = invenio_svc.get_record_data(invenio_record_id)
+    except InvenioClientRequestError as e:
+        # Check if this is likely a 404 based on the error message
+        if "404" in str(e) or "not found" in str(e).lower():
+            logger.warning(f"Record not found for requested invenio_record_id={invenio_record_id}")
+            raise Http404("Record not found")
+        else:
+            logger.error(f"Client error when retrieving invenio record with id {invenio_record_id}: {e}")
+            raise
+    except InvenioClientError as e:
+        logger.error(f"Something went wrong when retrieving invenio record with id {invenio_record_id}: {e}")
+        raise
+
+    # TO-DO: check how we deal with the case when the record is in Draft or Registered state
+
+    # Extract app metadata
+    app_metadata = invenio_svc.extract_app_metadata(record)
+    if app_metadata is None:
+        logger.warning(f"Metadata could not be extracted for requested invenio_record_id={invenio_record_id}")
+        raise Http404("Record metadata not found")
+
+    # Variable for some extracted and other data about the app
+    app_otherdata = {}
+
+    # Extract some more complicated things from the Invenio metadata into separate variables
+    related_identifiers = app_metadata.related_identifiers or []
+    app_otherdata["app_url"] = next(
+        (i.identifier for i in related_identifiers if i.relation_type.id == "issourceof"),
+        None,
+    )
+    app_otherdata["docker_image"] = next(
+        (i.identifier.replace("https://", "") for i in related_identifiers if i.relation_type.id == "hasversion"),
+        None,
+    )
+
+    # Get version info
+    app_pids = invenio_svc.extract_app_pids(record)
+    app_versions_obj = invenio_svc.get_app_versions(invenio_record_id)
+    app_otherdata["versions"] = app_versions_obj.versions if app_versions_obj else []
+    app_otherdata["current_version_doi"] = app_pids.doi.identifier if app_pids and app_pids.doi else None
+    app_otherdata["current_version"] = None
+    app_otherdata["latest_version_doi"] = None
+
+    if app_otherdata["versions"]:
+        current_version_doi = app_otherdata["current_version_doi"]
+        app_otherdata["current_version"] = next(
+            (v.index for v in app_otherdata["versions"] if v.doi == current_version_doi),
+            None,
+        )
+        latest_version = max(
+            app_otherdata["versions"],
+            key=lambda v: v.index,
+            default=None,
+        )
+        app_otherdata["latest_version_doi"] = latest_version.doi if latest_version else None
+
+    # Get parent info
+    app_parent = invenio_svc.extract_app_parent(record)
+    app_otherdata["parent_doi"] = (
+        app_parent.pids.doi.identifier if app_parent and app_parent.pids and app_parent.pids.doi else None
+    )
+
+    # TO-DO: below is a temporary solution because not all data is in the invenio entry yet.
+    # Later we do not want to need to fetch info from the Serve db entry for this view at all.
+
+    # Schema.org compliant JSON output
+
+    # Fetch the current app record from the Serve database
+    # generate and parse schema
+    identifier = next((i.identifier for i in app_metadata.identifiers if i.scheme == "other"), None)
+    app_id = identifier.split(":", 1)[1] if identifier and ":" in identifier else None
+    app_baseinstance = get_object_or_404(BaseAppInstance, pk=app_id)
+    # Get app model instance in the serve database
+    app_slug = app_baseinstance.app.slug
+    model_class = APP_REGISTRY.get_orm_model(app_slug)
+    if not model_class:
+        logger.error(f"Missing model for slug: {app_slug}")
+        raise PermissionDenied("Application model not found")
+    app = model_class.objects.get(pk=app_id)
+    schema_dict = json.loads(generate_schema_org_compliant_app_metadata(app))
+    schema_dict["about"]["additionalProperty"][0]["value"] = dateutil.parser.parse(
+        schema_dict["about"]["additionalProperty"][0]["value"]
+    )
+    # handle JSON export
+    if request.GET.get("format") == "json":
+        response = HttpResponse(
+            generate_schema_org_compliant_app_metadata(app),
+            content_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="SciLifeLab_Serve_App_{app.name}_metadata.json"'},
+        )
+        return response
+
+    context = {
+        "app": app,  # TO-DO: This can be removed once all public apps have invenio record IDs and we change URLs
+        "app_metadata": app_metadata,
+        "app_otherdata": app_otherdata,
+        "schema_dict": schema_dict,
+    }
+
+    return render(request, "common/app_details.html", context)
+
+
+# TO-DO: Below view is a temporary solution for while we still have items that do not have a corresponding
+# invenio record. After we have invenio_record_id for all public apps we will remove this view.
 def app_metadata(request, app_id):
     # First retrieve the app slug by id
     app = BaseAppInstance.objects.filter(pk=app_id).first()
@@ -562,8 +708,6 @@ def app_metadata(request, app_id):
 
 
 # Background Task Views
-
-
 @method_decorator(
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
