@@ -84,6 +84,10 @@ class MockInvenioClient:
         return {}
 
     def get_record(self, record_id: str) -> dict[str, Any]:
+        # Return empty dict if record_id is None or empty
+        if not record_id:
+            return {}
+
         # Return a mock record for a known id, else empty dict
         if (
             record_id == "mock-record-id"

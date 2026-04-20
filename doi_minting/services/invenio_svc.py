@@ -372,26 +372,24 @@ class InvenioService:
 
         logger.debug(f"Updated app instance - Record ID: {record_id}, DOI: {doi}")
 
-    def get_record_data(self, record_id: str) -> dict[str, Any]:
+    def get_record_data(self, record_id: str) -> Optional[dict[str, Any]]:
         """
         Retrieve record for a given Invenio record ID as a dictionary.
         Args:
             record_id: The Invenio record ID.
         Returns:
-            Dictionary of the record data.
-        Raises:
-            InvenioRecordNotFoundError: If the record does not exist.
-            InvenioClientError: For any other error.
+            Dictionary of the record data, or None if not found/invalid.
         """
+        if not record_id:
+            logger.error("Cannot retrieve record: record_id is None or empty")
+            return None
+
         try:
             record = self.client.get_record(record_id)
             return record
-        except InvenioRecordNotFoundError:
-            logger.warning(f"Record not found for requested record_id={record_id}")
-            raise
-        except InvenioClientError as e:
+        except Exception as e:
             logger.error(f"Error retrieving record {record_id}: {e}")
-            raise
+            return None
 
     def extract_app_metadata(self, record: dict[str, Any]) -> Optional["InvenioMetadata"]:
         """

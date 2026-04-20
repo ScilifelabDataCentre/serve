@@ -148,7 +148,13 @@ def add_additional_context_to_public_apps(published_apps):
         department_search = ""
         department_search_extra = ""
         try:
-            affs = app.owner.userprofile.get_affiliations()
+            # Check if user has a userprofile before accessing it
+            if not hasattr(app.owner, "userprofile") or not app.owner.userprofile:
+                logger.debug(f"User {app.owner} has no userprofile, skipping affiliation processing")
+                affs = []
+            else:
+                affs = app.owner.userprofile.get_affiliations()
+
             normalized_affiliations = []
             cleaned_departments = []
 
@@ -186,7 +192,7 @@ def add_additional_context_to_public_apps(published_apps):
                 department_search = ",".join(dict.fromkeys(cleaned_departments))
                 department_search_extra = ",".join(dict.fromkeys(cleaned_departments[1:]))
         except Exception as e:
-            logger.error("Error: " + e.__str__())
+            logger.error(f"Error processing affiliations for app {app.id} (owner: {app.owner}): {e}", exc_info=True)
 
         tag_list = app.tags.get_tag_list()
         tags.update(tag_list)
