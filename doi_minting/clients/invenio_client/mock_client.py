@@ -1,5 +1,7 @@
 from typing import Any, Optional
 
+from doi_minting.clients.invenio_client import RecordDeletedError
+
 
 class MockInvenioClient:
     def create_draft(self, record_data: dict[str, Any]) -> dict[str, Any]:
@@ -180,4 +182,18 @@ class MockInvenioClient:
                     ],
                 },
             }
+        if record_id == "mock-deleted-record-id":
+            tombstone_payload = {
+                "status": 410,
+                "message": "Record deleted",
+                "tombstone": {
+                    "note": "Some reason for removal here",
+                    "removal_date": "2024-01-01T10:00:00+00:00",
+                    "removal_reason": {"id": "personal-data"},
+                    "citation_text": ""
+                    "Surname, N (2024). Some record title. SciLifeLab Serve. 10.83812/SCILIFELAB.ddddd-ddddd",
+                },
+            }
+
+            raise RecordDeletedError("Record deleted", tombstone_data=tombstone_payload)
         return {}
