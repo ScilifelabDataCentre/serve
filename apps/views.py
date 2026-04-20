@@ -492,28 +492,31 @@ def app_details(request, invenio_record_id):
     )
 
     # Get version info
-    app_pids = invenio_svc.extract_app_pids(record) or {}
-    app_otherdata["versions"] = invenio_svc.get_app_versions(invenio_record_id) or []
-    app_otherdata["current_version_doi"] = app_pids.get("doi", {}).get("identifier")
+    app_pids = invenio_svc.extract_app_pids(record)
+    app_versions_obj = invenio_svc.get_app_versions(invenio_record_id)
+    app_otherdata["versions"] = app_versions_obj.versions if app_versions_obj else []
+    app_otherdata["current_version_doi"] = app_pids.doi.identifier if app_pids and app_pids.doi else None
     app_otherdata["current_version"] = None
     app_otherdata["latest_version_doi"] = None
 
     if app_otherdata["versions"]:
         current_version_doi = app_otherdata["current_version_doi"]
         app_otherdata["current_version"] = next(
-            (v["index"] for v in app_otherdata["versions"] if v["doi"] == current_version_doi),
+            (v.index for v in app_otherdata["versions"] if v.doi == current_version_doi),
             None,
         )
         latest_version = max(
             app_otherdata["versions"],
-            key=lambda v: v["index"],
+            key=lambda v: v.index,
             default=None,
         )
-        app_otherdata["latest_version_doi"] = latest_version["doi"] if latest_version else None
+        app_otherdata["latest_version_doi"] = latest_version.doi if latest_version else None
 
     # Get parent info
-    app_parent = invenio_svc.extract_app_parent(record) or {}
-    app_otherdata["parent_doi"] = app_parent.get("pids", {}).get("doi", {}).get("identifier")
+    app_parent = invenio_svc.extract_app_parent(record)
+    app_otherdata["parent_doi"] = (
+        app_parent.pids.doi.identifier if app_parent and app_parent.pids and app_parent.pids.doi else None
+    )
 
     # TO-DO: below is a temporary solution because not all data is in the invenio entry yet.
     # Later we do not want to need to fetch info from the Serve db entry for this view at all.

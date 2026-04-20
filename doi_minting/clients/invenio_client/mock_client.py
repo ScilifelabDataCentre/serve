@@ -96,6 +96,8 @@ class MockInvenioClient:
         ):
             return {
                 "id": record_id,
+                "access": {"record": "public", "files": "public"},
+                "files": {"enabled": False},
                 "pids": {"doi": {"identifier": "10.83812/SCILIFELAB.rrrrr-rrrrr"}},
                 "parent": {
                     "id": "mock-record-parent-id",
