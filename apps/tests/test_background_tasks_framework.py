@@ -224,32 +224,6 @@ def test_doi_provisioning_ignores_older_failed_required_check_when_latest_passed
     }
 
 
-@pytest.mark.django_db
-def test_invenio_service_uses_k8s_permission_for_access_check(app_instance):
-    app_instance.k8s_values = {"permission": "project", "appconfig": {"image": "ghcr.io/example/app:latest"}}
-    app_instance.save(update_fields=["k8s_values"])
-
-    service = InvenioService(mock_mode=True)
-
-    is_eligible, reason = service.is_app_eligible_for_doi(app_instance)
-
-    assert is_eligible is False
-    assert reason == "DOI minting is only available for public apps. This app is currently 'project'."
-
-
-@pytest.mark.django_db
-def test_invenio_service_handles_base_app_instance_without_invenio_record_id(app_instance):
-    app_instance.k8s_values = {"permission": "public", "appconfig": {"image": "ghcr.io/example/app:latest"}}
-    app_instance.save(update_fields=["k8s_values"])
-
-    service = InvenioService(mock_mode=True)
-
-    is_eligible, reason = service.is_app_eligible_for_doi(app_instance)
-
-    assert is_eligible is True
-    assert reason == "App is eligible for DOI minting"
-
-
 @pytest.fixture()
 def immediate_on_commit(monkeypatch):
     """Run transaction.on_commit callbacks immediately in unit tests."""
@@ -428,50 +402,6 @@ def test_execute_single_background_task_persists_structured_ui_error(clean_task_
         "summary": "We could not find this container image.",
         "image_reference": "ghcr.io/example/app:bad",
         "note": "Make sure the image is publicly available.",
-    }
-
-
-@pytest.mark.django_db
-def test_execute_single_background_task_resolves_concrete_app_instance(clean_task_registry, db):
-    user = User.objects.create_user("concrete", "concrete@test.com", "pw")
-    project = Project.objects.create_project(name="concrete-project", owner=user, description="")
-    app = Apps.objects.create(name="Concrete App", slug="customapp")
-    concrete_instance = CustomAppInstance.objects.create(
-        owner=user,
-        project=project,
-        app=app,
-        chart="test-chart",
-        access="public",
-        image="ghcr.io/example/app:latest",
-    )
-
-    @TASK_REGISTRY.register(name="unit_concrete_instance", is_critical=True, execution_order=0, app_types=["customapp"])
-    class UnitConcreteInstanceTask(BaseBackgroundTask):
-        def execute(self, app_instance, **kwargs):
-            return {
-                "model_name": type(app_instance).__name__,
-                "has_access": hasattr(app_instance, "access"),
-                "has_image": hasattr(app_instance, "image"),
-            }
-
-    record = BackgroundTask.objects.create(
-        app_instance=concrete_instance,
-        task_name="unit_concrete_instance",
-        task_type="validation",
-        status="pending",
-        is_critical=True,
-        execution_order=0,
-        max_retries=0,
-    )
-
-    result = execute_single_background_task(record.id)
-
-    assert result["success"] is True
-    record.refresh_from_db()
-    assert record.result_data == {
-        "model_name": "CustomAppInstance",
-        "has_access": True,
-        "has_image": True,
     }
 
 

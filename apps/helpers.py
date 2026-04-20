@@ -313,6 +313,7 @@ def get_URI(instance):
     return URI
 
 
+@transaction.atomic
 def create_instance_from_form(
     form,
     project,

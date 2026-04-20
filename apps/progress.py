@@ -111,7 +111,9 @@ def serialize_tasks(tasks):
         has_validation_warning = task.has_validation_warning()
         display_status = "skipped" if was_skipped else task.status
         status_label, status_class = TASK_STATUS_DISPLAY.get(display_status, ("Pending", "secondary"))
-        validation_warning = result_data.get("validation_warning") if isinstance(result_data.get("validation_warning"), str) else ""
+        validation_warning = (
+            result_data.get("validation_warning") if isinstance(result_data.get("validation_warning"), str) else ""
+        )
 
         if display_status == "failed" and not task.is_critical:
             status_class = "warning"
@@ -268,11 +270,13 @@ def build_progress_steps(tasks_data, deployment):
     deploy_visual_status = deploy_status
 
     if deployment.get("blocked"):
-        deploy_detail = deployment.get("message") or "Deployment cannot continue until the failed required check is resolved."
-    elif deploy_status == "pending" and not deployment.get("tasks_in_progress"):
         deploy_detail = (
-            deployment.get("message")
-            or "Waiting for app status. Note that this may take up to five minutes or longer because the app is currently being deployed."
+            deployment.get("message") or "Deployment cannot continue until the failed required check is resolved."
+        )
+    elif deploy_status == "pending" and not deployment.get("tasks_in_progress"):
+        deploy_detail = deployment.get("message") or (
+            "Waiting for app status. Note that this may take up to five minutes or longer "
+            "because the app is currently being deployed."
         )
         deploy_visual_status = "running"
     elif deploy_status != "pending":
