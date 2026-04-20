@@ -26,7 +26,12 @@ class TissuumapsInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     volume = models.ForeignKey(
         "VolumeInstance", blank=True, null=True, related_name="%(class)s", on_delete=models.SET_NULL
     )
-    access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
+    access = models.CharField(
+        max_length=20,
+        default="project",
+        choices=ACCESS_TYPES,
+        help_text="The chosen Permission level determines who can access the application.",
+    )
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()

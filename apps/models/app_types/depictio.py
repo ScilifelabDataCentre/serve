@@ -10,7 +10,12 @@ class DepictioAppManager(AppInstanceManager):
 class DepictioInstance(BaseAppInstance, SocialMixin):
     objects = DepictioAppManager()
     ACCESS_TYPES = (("public", "Public"), ("project", "Project"), ("link", "Link"), ("private", "Private"))
-    access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
+    access = models.CharField(
+        max_length=20,
+        default="project",
+        choices=ACCESS_TYPES,
+        help_text="The chosen Permission level determines who can access the application.",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
