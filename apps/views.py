@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 import subprocess
 from datetime import datetime
 
@@ -592,6 +593,56 @@ def app_metadata(request, app_id):
         return response
 
     return render(request, "common/app_metadata.html", {"app": app, "schema_dict": schema_dict})
+
+
+REMOVAL_REASON_LABELS = {
+    "duplicate": "Duplicate of another record",
+    "retracted": "Retraction/Withdrawal of a record",
+    "replaced": "Substitution",
+    "spam": "Spam",
+    "copyright": "Copyright infringement",
+    "personal-data": "Personal data issue",
+    "take-down-request": "Take-down request",
+    "disputed-authorship": "Disputed authorship",
+    "misconduct": "Misconduct",
+    "fraud": "Fraud",
+    "out-of-scope": "Content out of scope for repository",
+}
+
+
+def app_tombstone(request, record):
+    # TO-DO: Here pass JSON response from Invenio
+    data = {}
+
+    tombstone = data.get("tombstone", {})
+
+    removal_date_raw = tombstone.get("removal_date")
+    removal_date = None
+    if removal_date_raw:
+        removal_date = datetime.fromisoformat(removal_date_raw).strftime("%Y-%m-%d")
+
+    removal_reason_id = tombstone.get("removal_reason", {}).get("id")
+    removal_reason_label = REMOVAL_REASON_LABELS.get(removal_reason_id, removal_reason_id)
+
+    removal_note = tombstone.get("note")
+
+    citation_text = tombstone.get("citation_text", "")
+    doi_url = None
+
+    match = re.search(r"https://doi\.org/(\S+)", citation_text)
+    if match:
+        doi_url = match.group(0)
+
+    return render(
+        request,
+        "common/app_tombstone.html",
+        {
+            "removal_date": removal_date,
+            "removal_reason_label": removal_reason_label,
+            "removal_note": removal_note,
+            "doi_url": doi_url,
+        },
+    )
 
 
 # Background Task Views
