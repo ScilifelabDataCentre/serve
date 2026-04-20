@@ -186,21 +186,38 @@ class CreatorsMixin:
                 # Convert Invenio creators format to our format
                 creators_data = []
                 for creator in self._invenio_creators:
-                    # Handle the Invenio creator format
-                    creator_name = creator.get("creator_name", "")
-                    name_parts = creator_name.split() if creator_name else ["", ""]
-                    first_name = name_parts[0] if name_parts else ""
-                    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+                    # Handle Pydantic Creator objects
+                    creator_data = creator.model_dump() if hasattr(creator, "model_dump") else creator
+
+                    # Extract person_or_org data
+                    person_org = creator_data.get("person_or_org", {})
+                    given_name = person_org.get("given_name", "")
+                    family_name = person_org.get("family_name", "")
+
+                    # Extract ORCID from identifiers if present
+                    orcid = ""
+                    identifiers = person_org.get("identifiers", [])
+                    if identifiers:
+                        for identifier in identifiers:
+                            if identifier.get("scheme") == "orcid":
+                                orcid = identifier.get("identifier", "")
+                                break
+
+                    # Extract affiliation
+                    affiliation = ""
+                    affiliations = creator_data.get("affiliations", [])
+                    if affiliations:
+                        affiliation = affiliations[0].get("name", "")
 
                     creator_obj = {
-                        "name": first_name,
-                        "lastName": last_name,
-                        "orcid": creator.get("creator_id", ""),
-                        "affiliation": creator.get("affiliation", ""),
+                        "name": given_name,
+                        "lastName": family_name,
+                        "orcid": orcid,
+                        "affiliation": affiliation,
                     }
                     creators_data.append(creator_obj)
 
-                self.fields["creators"].initial = json.dumps(creators_data)
+                self.fields["creators"].initial = json.dumps(creators_data, sort_keys=True)
                 return
 
             except Exception:
