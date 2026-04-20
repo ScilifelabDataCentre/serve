@@ -161,13 +161,13 @@ class BaseForm(forms.ModelForm):
             logger.info(f"Extracted funding from Invenio: {funding} (type: {type(funding)})")
             if "funding_sources_json" in self.fields:
                 logger.info("funding_sources_json field exists in form")
-                # Convert Pydantic Funding objects to flat structure for JavaScript
+                # Convert Pydantic Funding objects to flat structure
                 funding_data = []
                 if funding is not None:
                     for f in funding:
                         fd = f.model_dump()
-                        funder = fd.get("funder", {})
-                        award = fd.get("award", {})
+                        funder = fd.get("funder") or {}
+                        award = fd.get("award") or {}
 
                         # Extract title from award (handle dict or string)
                         title = award.get("title", "")

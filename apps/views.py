@@ -28,7 +28,7 @@ from apps.constants import AppActionOrigin
 from apps.types_.subdomain import SubdomainCandidateName
 from doi_minting.services.invenio_svc import (
     InvenioClientError,
-    InvenioRecordNotFoundError,
+    InvenioClientRequestError,
     InvenioService,
 )
 from projects.models import Project
@@ -462,9 +462,14 @@ def app_details(request, invenio_record_id):
     # Get raw record data
     try:
         record = invenio_svc.get_record_data(invenio_record_id)
-    except InvenioRecordNotFoundError:
-        logger.warning(f"Record not found for requested invenio_record_id={invenio_record_id}")
-        raise Http404("Record not found")
+    except InvenioClientRequestError as e:
+        # Check if this is likely a 404 based on the error message
+        if "404" in str(e) or "not found" in str(e).lower():
+            logger.warning(f"Record not found for requested invenio_record_id={invenio_record_id}")
+            raise Http404("Record not found")
+        else:
+            logger.error(f"Client error when retrieving invenio record with id {invenio_record_id}: {e}")
+            raise
     except InvenioClientError as e:
         logger.error(f"Something went wrong when retrieving invenio record with id {invenio_record_id}: {e}")
         raise

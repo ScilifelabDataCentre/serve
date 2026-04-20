@@ -19,7 +19,7 @@ from django.forms.models import model_to_dict
 from doi_minting.clients.invenio_client import (
     InvenioClient,
     InvenioClientError,
-    InvenioRecordNotFoundError,
+    InvenioClientRequestError,
 )
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
 from studio.utils import get_logger
@@ -1249,9 +1249,12 @@ class InvenioService:
 
         # Get current metadata once (if record exists)
         current_metadata_obj = None
-        record = self.get_record_data(app_instance.invenio_record_id)
-        if record:
-            current_metadata_obj = self.extract_app_metadata(record)
+        if app_instance.invenio_record_id:
+            record = self.get_record_data(app_instance.invenio_record_id)
+            if record:
+                current_metadata_obj = self.extract_app_metadata(record)
+        else:
+            logger.debug("App instance has no Invenio record ID - this is expected for new apps")
 
         # Check for changes using the fetched metadata
         metadata_change, metadata_reason = self.has_app_metadata_changed(
