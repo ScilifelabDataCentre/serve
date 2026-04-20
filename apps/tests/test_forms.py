@@ -22,6 +22,7 @@ from apps.models import (
     VolumeInstance,
 )
 from apps.models.app_types.custom.custom import validate_default_url_subpath
+from doi_minting.services.schemas import Award, Funder, Funding
 from projects.models import Flavor, PersistentVolumeMountPath, Project
 
 User = get_user_model()
@@ -155,7 +156,16 @@ class CustomAppFormTest(BaseAppFormTest):
             invenio_record_id="mock-record-id",
         )
 
+        # Create proper Pydantic funding objects
         funding = [
+            Funding(
+                funder=Funder(id="004hzzk67", name="Knut and Alice Wallenberg Foundation"),
+                award=Award(number="1111", title="award title", url="https://example.com"),
+            )
+        ]
+
+        # Expected flattened output after processing
+        expected_funding = [
             {
                 "funder_id": "004hzzk67",
                 "funder_name": "Knut and Alice Wallenberg Foundation",
@@ -177,7 +187,7 @@ class CustomAppFormTest(BaseAppFormTest):
 
         self.assertEqual(form.fields["language"].initial, "swe")
         self.assertIn("funding_sources_json", form.fields)
-        self.assertEqual(form.fields["funding_sources_json"].initial, json.dumps(funding))
+        self.assertEqual(form.fields["funding_sources_json"].initial, json.dumps(expected_funding))
 
 
 class CustomAppFormRenderingTest(BaseAppFormTest):

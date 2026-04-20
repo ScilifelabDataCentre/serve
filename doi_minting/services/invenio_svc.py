@@ -1191,14 +1191,16 @@ class InvenioService:
             if "hits" in all_versions and "hits" in all_versions["hits"]:
                 logger.debug("Version history:")
                 for i, hit in enumerate(all_versions["hits"]["hits"]):
-                    related_ids = hit["metadata"].get("related_identifiers", [])
+                    # Safely access metadata and related identifiers
+                    metadata = hit.get("metadata", {})
+                    related_ids = metadata.get("related_identifiers", [])
                     app_image = related_ids[1]["identifier"] if len(related_ids) > 1 else "Unknown"
 
                     logger.debug(
                         f"  Version {i+1}: ID={hit.get('id')}, "
                         f"DOI={hit.get('pids', {}).get('doi', {}).get('identifier', '')}, "
                         f"App-Image={app_image}, "
-                        f"Title='{hit.get('metadata', {}).get('title')}', "
+                        f"Title='{metadata.get('title')}', "
                         f"Index={hit.get('versions', {}).get('index')}"
                     )
         except Exception as e:
