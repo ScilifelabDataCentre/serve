@@ -15,6 +15,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
+
 from apps.background_tasks.utils import resolve_app_access, resolve_app_image
 from doi_minting.clients.invenio_client import (
     InvenioClient,

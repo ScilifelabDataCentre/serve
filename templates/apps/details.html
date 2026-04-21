@@ -127,7 +127,7 @@
               <div class="d-flex justify-content-between gap-3">
                 <div>
                   <div class="fw-semibold">{{ task.display_name }}</div>
-                  <div class="small text-muted">Stage {{ task.execution_order }}{% if task.is_critical %} · Required{% endif %}</div>
+                  <div class="small text-muted">Stage {{ task.execution_order|add:1 }}{% if task.is_critical %} · Required{% endif %}</div>
                 </div>
                 <div>
                   <span class="badge bg-{{ task.status_class }}">{{ task.status_label }}</span>
@@ -180,6 +180,12 @@ function getDeploymentBadgeClass(status) {
   return "badge text-bg-secondary";
 }
 
+function getStageLabel(executionOrder) {
+  const order = Number(executionOrder);
+  const stageNumber = Number.isNaN(order) ? 1 : order + 1;
+  return `Stage ${stageNumber}`;
+}
+
 function renderRecentChecks(tasks) {
   if (!recentChecksList) {
     return;
@@ -202,7 +208,7 @@ function renderRecentChecks(tasks) {
       <div class="d-flex justify-content-between gap-3">
         <div>
           <div class="fw-semibold">${escapeHtml(task.display_name || "Deployment step")}</div>
-          <div class="small text-muted">Stage ${escapeHtml(task.execution_order)}${task.is_critical ? " · Required" : ""}</div>
+          <div class="small text-muted">${escapeHtml(getStageLabel(task.execution_order))}${task.is_critical ? " · Required" : ""}</div>
         </div>
         <div>
           <span class="badge bg-${escapeHtml(task.status_class || "secondary")}">${escapeHtml(task.status_label || "Pending")}</span>

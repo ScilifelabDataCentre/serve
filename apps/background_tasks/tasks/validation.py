@@ -326,7 +326,8 @@ class SourceCodeUrlValidator(BaseBackgroundTask):
         if not url or not str(url).strip():
             return {
                 "valid": True,
-                "message": "No source_code_url provided; skip validation",
+                "skipped": True,
+                "reason": "no source code URL",
             }
 
         timeout = getattr(
@@ -389,7 +390,7 @@ class SourceCodeUrlValidator(BaseBackgroundTask):
 
             if not (200 <= response.status_code < 300):
                 return fail(
-                    f"Source code URL returned non-2xx: {response.status_code}",
+                    f"Source code URL returned unreachable. Response code: {response.status_code}",
                     status_code=response.status_code,
                 )
 

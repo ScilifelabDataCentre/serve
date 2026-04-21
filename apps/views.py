@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime
 from urllib.parse import urlencode
 
+import dateutil.parser
 import requests
 from django.conf import settings
 from django.contrib import messages
@@ -459,7 +460,9 @@ class AppDetailsView(View):
             "details_rows": details_rows,
             "tags": tags,
             "project_url": reverse("projects:details", kwargs={"project_slug": project_obj.slug}),
-            "public_details_url": reverse("app-metadata", kwargs={"app_id": instance.pk}) if access == "public" else "",
+            "public_details_url": (
+                reverse("app-details", kwargs={"record_id": instance.pk}) if access == "public" else ""
+            ),
             "background_tasks_url": reverse(
                 "apps:background_tasks",
                 kwargs={"project": project_obj.slug, "app_slug": app_slug, "app_id": instance.pk},
@@ -650,10 +653,11 @@ def app_details(request, invenio_record_id):
     )
     # handle JSON export
     if request.GET.get("format") == "json":
+        filename = f"SciLifeLab_Serve_App_{app.name}_metadata.json"
         response = HttpResponse(
             generate_schema_org_compliant_app_metadata(app),
             content_type="application/json",
-            headers={"Content-Disposition": f'attachment; filename="SciLifeLab_Serve_App_{app.name}_metadata.json"'},
+            headers={"Content-Disposition": content_disposition_header(True, filename)},
         )
         return response
 
@@ -690,7 +694,7 @@ def app_metadata(request, app_id):
 
     # Generate and parse schema
     schema_dict = json.loads(generate_schema_org_compliant_app_metadata(app))
-    schema_dict["about"]["additionalProperty"][0]["value"] = datetime.fromisoformat(
+    schema_dict["about"]["additionalProperty"][0]["value"] = dateutil.parser.parse(
         schema_dict["about"]["additionalProperty"][0]["value"]
     )
 

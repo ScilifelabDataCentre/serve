@@ -345,6 +345,7 @@ def create_instance_from_form(
 
     new_app = app_id is None
     requested_app_slug = app_slug
+    run_background_tasks_only = False
 
     logger.info(
         "create_instance_from_form.start app_id=%s new_app=%s app_slug=%s project_id=%s",
@@ -380,7 +381,6 @@ def create_instance_from_form(
 
             # Because not all forms contain all fields, we check if the supposedly changed field
             # is actually contained in the form
-            run_background_tasks_only = False
             for field in form.changed_data:
                 if field.lower() in redeployment_fields and (
                     field.lower() in form.Meta.fields or field.lower() == "subdomain"

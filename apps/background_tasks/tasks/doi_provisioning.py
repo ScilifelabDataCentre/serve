@@ -82,7 +82,7 @@ def _build_additional_metadata(
 @TASK_REGISTRY.register(
     name="doi_provisioning",
     is_critical=False,
-    execution_order=2,
+    execution_order=3,
     app_types=["customapp", "dashapp", "shinyproxyapp", "shinyapp", "gradio", "streamlit"],
 )
 class DOIProvisioningTask(BaseBackgroundTask):

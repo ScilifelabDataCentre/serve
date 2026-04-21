@@ -86,7 +86,7 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
         task_type="external_api",
         status="pending",
         is_critical=False,
-        execution_order=2,
+        execution_order=3,
         max_retries=0,
     )
 
@@ -112,7 +112,7 @@ def test_doi_provisioning_task_marks_ineligible_apps_as_skipped(app_instance):
         task_type="external_api",
         status="pending",
         is_critical=False,
-        execution_order=2,
+        execution_order=3,
         max_retries=0,
     )
 
@@ -151,7 +151,7 @@ def test_doi_provisioning_skips_when_required_check_failed(app_instance):
         task_type="external_api",
         status="pending",
         is_critical=False,
-        execution_order=2,
+        execution_order=3,
         max_retries=0,
     )
 
@@ -198,7 +198,7 @@ def test_doi_provisioning_ignores_older_failed_required_check_when_latest_passed
         task_type="external_api",
         status="pending",
         is_critical=False,
-        execution_order=2,
+        execution_order=3,
         max_retries=0,
     )
 

@@ -153,15 +153,59 @@ def serialize_tasks(tasks):
     return serialized_tasks
 
 
+def _build_placeholder_task_data(task_class):
+    return {
+        "id": None,
+        "task_name": task_class.task_name,
+        "display_name": _format_task_name(task_class.task_name),
+        "task_type": task_class.task_type,
+        "status": "pending",
+        "display_status": "pending",
+        "status_label": TASK_STATUS_DISPLAY["pending"][0],
+        "status_class": TASK_STATUS_DISPLAY["pending"][1],
+        "is_critical": task_class.is_critical,
+        "execution_order": task_class.execution_order,
+        "error_message": "",
+        "retry_count": 0,
+        "max_retries": task_class.max_retries,
+        "created_at": None,
+        "started_at": None,
+        "completed_at": None,
+        "duration_seconds": None,
+        "can_retry": False,
+        "has_validation_warning": False,
+        "validation_warning": "",
+        "was_skipped": False,
+        "skip_reason": "",
+        "error_detail": None,
+    }
+
+
+def build_progress_tasks_data(instance, started_at=None):
+    from apps.background_tasks.registry import TASK_REGISTRY
+
+    task_classes = TASK_REGISTRY.get_tasks_for_app(instance.app.slug)
+    actual_tasks = serialize_tasks(get_progress_tasks(instance, started_at=started_at))
+    actual_by_name = {task_data["task_name"]: task_data for task_data in actual_tasks}
+
+    return [
+        actual_by_name.get(task_class.task_name, _build_placeholder_task_data(task_class))
+        for task_class in task_classes
+    ]
+
+
 def summarize_tasks(tasks_data):
+    visible_statuses = [_get_task_visible_status(task_data) for task_data in tasks_data]
+
     return {
         "total": len(tasks_data),
-        "pending": sum(1 for t in tasks_data if t["display_status"] == "pending"),
-        "running": sum(1 for t in tasks_data if t["display_status"] == "running"),
-        "success": sum(1 for t in tasks_data if t["display_status"] == "success"),
-        "skipped": sum(1 for t in tasks_data if t["display_status"] == "skipped"),
-        "failed": sum(1 for t in tasks_data if t["display_status"] == "failed"),
-        "retrying": sum(1 for t in tasks_data if t["display_status"] == "retrying"),
+        "pending": sum(1 for status in visible_statuses if status == "pending"),
+        "running": sum(1 for status in visible_statuses if status == "running"),
+        "success": sum(1 for status in visible_statuses if status == "success"),
+        "warning": sum(1 for status in visible_statuses if status == "warning"),
+        "skipped": sum(1 for status in visible_statuses if status == "skipped"),
+        "failed": sum(1 for status in visible_statuses if status == "failed"),
+        "retrying": sum(1 for status in visible_statuses if status == "retrying"),
     }
 
 
@@ -254,7 +298,7 @@ def build_progress_steps(tasks_data, deployment):
 
         steps.append(
             {
-                "key": f"task-{task_data.get('id')}",
+                "key": f"task-{task_data.get('task_name') or task_data.get('id')}",
                 "title": task_data.get("display_name") or "Deployment step",
                 "subtitle": _get_task_subtitle(task_data),
                 "status": step_status,
@@ -423,8 +467,9 @@ def build_progress_state(instance, progress_mode=None, progress_started_at=None)
         expecting_fresh_tasks = False
     else:
         # The progress page is scoped to the current submit via started_at so we do
-        # not mix in task rows from older deployments.
-        tasks_data = serialize_tasks(get_progress_tasks(instance, started_at=progress_started_at))
+        # not mix in task rows from older deployments. We still project the full
+        # expected task list immediately, even before all task rows are created.
+        tasks_data = build_progress_tasks_data(instance, started_at=progress_started_at)
         deployment_inputs = _get_deployment_inputs(instance)
         expecting_fresh_tasks = _app_has_registered_background_tasks(instance.app.slug) and (
             progress_started_at is not None or deployment_inputs["is_transitioning"]
