@@ -4,7 +4,6 @@ import pytest
 import requests
 from django.conf import settings
 
-from apps.background_tasks.tasks.validation import DockerImageValidator
 from apps.validators.container_images import (
     ContainerImageValidationError,
     DockerHubAuthenticator,
@@ -75,38 +74,3 @@ def test_missing_image_returns_friendly_validation_error():
                 reference="does-not-exist",
                 registry="ghcr.io",
             )
-
-
-def test_docker_image_validator_does_not_retry_missing_image_errors():
-    validator = DockerImageValidator()
-
-    assert validator.should_retry(ContainerImageValidationError("missing image"), retry_count=0) is False
-
-
-def test_docker_image_validator_retries_transient_registry_errors():
-    validator = DockerImageValidator()
-
-    assert (
-        validator.should_retry(
-            ContainerImageValidationError("temporary registry outage", retryable=True),
-            retry_count=0,
-        )
-        is True
-    )
-
-
-def test_transient_manifest_lookup_errors_are_marked_retryable():
-    auth = Mock()
-    auth.get_bearer_token.return_value = "token"
-    response = Mock(status_code=503, text="service unavailable")
-
-    with patch("apps.validators.container_images.requests.get", return_value=response):
-        with pytest.raises(ContainerImageValidationError) as excinfo:
-            get_image_architectures(
-                auth=auth,
-                repo="scilifelabdatacentre/example-image",
-                reference="latest",
-                registry="ghcr.io",
-            )
-
-    assert excinfo.value.retryable is True

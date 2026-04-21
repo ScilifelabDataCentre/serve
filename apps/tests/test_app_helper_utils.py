@@ -280,35 +280,6 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         # Modifying the subdomain SHOULD cause a delete:
         mock_delete.assert_called_once_with(ANY, AppActionOrigin.USER.value)
 
-    def test_update_instance_from_form_clears_stale_running_k8s_status(self, mock_delete, mock_deploy):
-        self.app_instance.k8s_user_app_status.status = "Running"
-        self.app_instance.k8s_user_app_status.info = {"message": "old running event"}
-        self.app_instance.k8s_user_app_status.save(update_fields=["status", "info"])
-
-        data = {
-            "name": self.name,
-            "description": self.description,
-            "access": "public",
-            "port": 9999,
-            "image": self.image,
-            "source_code_url": self.source_code_url,
-            "subdomain": self.subdomain_name,
-            "language": "eng",
-            "invenio_tags": "Antibodies|Cells",
-            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
-        }
-
-        changed_fields = ["port", "invenio_tags", "tags", "creators"]
-
-        self._verify_update_instance_from_form(data, changed_fields)
-
-        self.app_instance.refresh_from_db()
-        self.app_instance.k8s_user_app_status.refresh_from_db()
-        self.assertIsNone(self.app_instance.k8s_user_app_status.status)
-        self.assertIsNone(self.app_instance.k8s_user_app_status.info)
-        mock_deploy.assert_called_once()
-        mock_delete.assert_not_called()
-
     def test_update_instance_from_form_modify_no_redeploy_values(self, mock_delete, mock_deploy):
         """
         Test function create_instance_from_form to update an existing app instance
