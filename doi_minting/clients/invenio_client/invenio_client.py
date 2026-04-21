@@ -9,24 +9,16 @@ from urllib.parse import urljoin
 
 import requests
 
+from .exceptions import (
+    InvenioClientError,
+    InvenioClientRequestError,
+    InvenioServerError,
+)
 from .http_client import delete, get, post, put
 from .session import make_session
 from .tls import tls_verify_from_env
 
 logger = logging.getLogger(__name__)
-
-
-class InvenioClientError(Exception):
-    """Base exception for InvenioRDM client errors"""
-
-    pass
-
-
-class InvenioRecordNotFoundError(InvenioClientError):
-    """Raised when a requested record does not exist"""
-
-    pass
-
 
 class RecordDeletedError(InvenioClientError):
     """Raised when a requested record has been removed and a tombstone is returned"""
@@ -34,7 +26,6 @@ class RecordDeletedError(InvenioClientError):
     def __init__(self, message: str, tombstone_data: Optional[Dict[str, Any]] = None):
         super().__init__(message)
         self.tombstone_data = tombstone_data or {}
-
 
 class InvenioClient:
     """
@@ -137,13 +128,16 @@ class InvenioClient:
             except (json.JSONDecodeError, ValueError):
                 error_msg = f"{error_msg}: {response.text}"
 
-            if response.status_code == 404:
-                raise InvenioRecordNotFoundError(error_msg)
-
+            # Deal with 410
             if response.status_code == 410:
                 raise RecordDeletedError(error_msg, tombstone_data=error_data)
-
-            raise InvenioClientError(error_msg)
+            # Raise exceptions based on status code range
+            if 400 <= response.status_code < 500:
+                raise InvenioClientRequestError(error_msg)
+            elif response.status_code >= 500:
+                raise InvenioServerError(error_msg)
+            else:
+                raise InvenioClientError(error_msg)
 
         # For 204 No Content responses, return empty dict
         if response.status_code == 204:

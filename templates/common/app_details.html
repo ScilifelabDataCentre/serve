@@ -121,7 +121,12 @@
                             <dt class="col-sm-4">Language</dt>
                             <dd class="col-sm-8">
                                 {% for language in app_metadata.languages %}
-                                    {{ language.title.en }}{% if not forloop.last %}, {% endif %}
+                                    {% for lang_key, lang_name in language.title.items %}
+                                        {% if forloop.first %}{{ lang_name }}{% endif %}
+                                    {% empty %}
+                                        Undefined
+                                    {% endfor %}
+                                    {% if not forloop.last %}, {% endif %}
                                 {% endfor %}
                             </dd>
                             {% endif %}
@@ -222,7 +227,7 @@
               {% endfor %}
           </div>
           <div><hr>To cite all versions, use the following DOI:<br>
-            <a href="https://doi.org/{{ app_otherdata.parent_doi|lower }}">https://doi.org/{{ app_otherdata.parent_doi|lower }}</a>
+            <a href="https://doi.org/{{ app_otherdata.parent_doi|lower }}" target="_blank">https://doi.org/{{ app_otherdata.parent_doi|lower }}</a>
           </div>
 
         </div>

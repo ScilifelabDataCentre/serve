@@ -158,8 +158,40 @@ class BaseForm(forms.ModelForm):
                 logger.info(f"Final language mapping: {language_code}")
 
             funding = invenio_svc.extract_funding(app_metadata)
+            logger.info(f"Extracted funding from Invenio: {funding} (type: {type(funding)})")
             if "funding_sources_json" in self.fields:
-                self.fields["funding_sources_json"].initial = json.dumps(funding if funding is not None else [])
+                logger.info("funding_sources_json field exists in form")
+                # Convert Pydantic Funding objects to flat structure
+                funding_data = []
+                if funding is not None:
+                    for f in funding:
+                        fd = f.model_dump()
+                        funder = fd.get("funder") or {}
+                        award = fd.get("award") or {}
+
+                        # Extract title from award (handle dict or string)
+                        title = award.get("title", "")
+                        if isinstance(title, dict):
+                            title = title.get("en", title.get("eng", ""))
+
+                        funding_data.append(
+                            {
+                                "funder_id": funder.get("id", ""),
+                                "funder_name": funder.get("name", ""),
+                                "number": award.get("number", ""),
+                                "title": title or "",
+                                "url": award.get("url", ""),
+                            }
+                        )
+
+                    logger.info(f"Converted funding to flattened data: {funding_data}")
+                else:
+                    logger.info("No funding data found")
+                funding_json = json.dumps(funding_data)
+                logger.info(f"Setting funding_sources_json initial value: {funding_json}")
+                self.fields["funding_sources_json"].initial = funding_json
+            else:
+                logger.info("funding_sources_json field NOT found in form")
 
             # Extract creators from Invenio metadata
             creators = invenio_svc.extract_creators(app_metadata)

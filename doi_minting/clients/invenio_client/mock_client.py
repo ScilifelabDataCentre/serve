@@ -86,6 +86,10 @@ class MockInvenioClient:
         return {}
 
     def get_record(self, record_id: str) -> dict[str, Any]:
+        # Return empty dict if record_id is None or empty
+        if not record_id:
+            return {}
+
         # Return a mock record for a known id, else empty dict
         if (
             record_id == "mock-record-id"
@@ -94,6 +98,8 @@ class MockInvenioClient:
         ):
             return {
                 "id": record_id,
+                "access": {"record": "public", "files": "public"},
+                "files": {"enabled": False},
                 "pids": {"doi": {"identifier": "10.83812/SCILIFELAB.rrrrr-rrrrr"}},
                 "parent": {
                     "id": "mock-record-parent-id",

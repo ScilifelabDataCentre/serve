@@ -256,6 +256,50 @@ class FilesConfig(BaseModel):
 
 
 # ============================================================================
+# PIDs and Parent Models
+# ============================================================================
+
+
+class PidInfo(BaseModel):
+    """Individual PID information."""
+
+    identifier: str
+
+
+class Pids(BaseModel):
+    """Persistent identifiers for a record."""
+
+    model_config = ConfigDict(extra="allow")
+
+    doi: PidInfo | None = None
+
+
+class Parent(BaseModel):
+    """Parent record information."""
+
+    id: str
+    pids: Pids | None = None
+
+
+# ============================================================================
+# Version Models
+# ============================================================================
+
+
+class AppVersion(BaseModel):
+    """A single version of an application record."""
+
+    index: int
+    doi: str
+
+
+class AppVersions(BaseModel):
+    """List of application versions."""
+
+    versions: list[AppVersion]
+
+
+# ============================================================================
 # Complete Record Structure
 # ============================================================================
 
@@ -263,6 +307,12 @@ class FilesConfig(BaseModel):
 class InvenioRecord(BaseModel):
     """Complete Invenio record structure ready for API submission."""
 
+    # Optional for API responses, required for record creation
     access: AccessConfig
     files: FilesConfig
     metadata: InvenioMetadata
+
+    # Additional fields from Invenio API responses
+    id: str | None = None
+    pids: Pids | None = None
+    parent: Parent | None = None
