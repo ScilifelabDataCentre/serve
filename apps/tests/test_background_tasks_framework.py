@@ -664,7 +664,12 @@ def test_run_background_tasks_uses_known_tasks_for_streamlit(immediate_on_commit
     assert result["success"] is True
 
     rows = BackgroundTask.objects.filter(app_instance=app_instance).order_by("execution_order", "task_name")
-    assert [r.task_name for r in rows] == ["validate_image_public", "validate_docker_image", "doi_provisioning"]
+    assert [r.task_name for r in rows] == [
+        "validate_image_public",
+        "validate_docker_image",
+        "validate_source_code_url",
+        "doi_provisioning",
+    ]
     assert all(r.status == "pending" for r in rows)
     assert called["apply_async"] == 1
 
