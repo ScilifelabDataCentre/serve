@@ -48,7 +48,8 @@ def test_source_code_url_validator_skips_when_empty():
     result = SourceCodeUrlValidator().execute(instance)
 
     assert result["valid"] is True
-    assert "skip" in result["message"].lower()
+    assert result["skipped"] is True
+    assert result["reason"] == "no source code URL"
 
 
 @pytest.mark.django_db
@@ -58,7 +59,8 @@ def test_source_code_url_validator_skips_when_whitespace_only():
     result = SourceCodeUrlValidator().execute(instance)
 
     assert result["valid"] is True
-    assert "skip" in result["message"].lower()
+    assert result["skipped"] is True
+    assert result["reason"] == "no source code URL"
 
 
 @pytest.mark.django_db
@@ -166,7 +168,7 @@ def test_source_code_url_validator_non_2xx_error_mode(settings, monkeypatch):
         lambda *a, **kw: mock_resp,
     )
 
-    with pytest.raises(ValueError, match="non-2xx"):
+    with pytest.raises(ValueError, match="returned unreachable"):
         SourceCodeUrlValidator().execute(instance)
 
 

@@ -295,12 +295,12 @@ class ImagePublicValidator(BaseBackgroundTask):
     execution_order=2,
     app_types=[
         "customapp",
-        # "dashapp",
+        "dashapp",
         # "depictio",
-        # "gradio",
-        # "shinyapp",
-        # "shinyproxyapp",
-        # "streamlit",
+        "gradio",
+        "shinyapp",
+        "shinyproxyapp",
+        "streamlit",
         # "tissuumaps",
     ],
 )

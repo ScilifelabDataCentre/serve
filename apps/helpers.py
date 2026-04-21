@@ -363,7 +363,17 @@ def create_instance_from_form(
         # Treat every update as a user-initiated change, while the redirect logic
         # decides whether the user should see deployment progress or details.
         user_action = "Changing"
-        invenio_metadata_fields = ["name", "description", "language", "funding_sources_json", "creators", "tags"]
+        invenio_metadata_fields = [
+            "name",
+            "description",
+            "language",
+            "funding_sources_json",
+            "creators",
+            "tags",
+            "invenio_tags",
+            "source_code_url",
+            "note_on_linkonly_privacy",
+        ]
 
         if not do_deploy:
             # Only re-deploy existing apps if one of the following fields was changed:
@@ -376,6 +386,8 @@ def create_instance_from_form(
                 "image",
                 "access",
                 "shiny_site_dir",
+                "mount_path",
+                "default_url_subpath",
             ]
             logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
 
@@ -518,7 +530,8 @@ def create_instance_from_form(
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
     if return_progress_started_at:
-        return instance_id, progress_started_at, (run_background_tasks_only and not do_deploy)
+        workflow_started = do_deploy or run_background_tasks_only
+        return instance_id, progress_started_at, workflow_started
 
     return instance_id
 
