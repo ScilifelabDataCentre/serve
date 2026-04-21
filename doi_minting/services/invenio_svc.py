@@ -19,9 +19,9 @@ from django.forms.models import model_to_dict
 from doi_minting.clients.invenio_client import (
     InvenioClient,
     InvenioClientError,
-    RecordDeletedError,
     InvenioClientRequestError,
 )
+from doi_minting.clients.invenio_client.invenio_client import RecordDeletedError
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
 from studio.utils import get_logger
 
@@ -401,105 +401,13 @@ class InvenioService:
             except Exception as validation_error:
                 logger.error(f"Validation error for InvenioRecord {record_id}: {validation_error}")
                 return None
-              
-    except RecordDeletedError as e:
-        logger.warning(f"Record deleted for record_id={record_id}: {e}")
-        raise
 
-    except Exception as e:
-        logger.error(f"Error retrieving record {record_id}: {e}")
-        return None
-
-    def extract_app_metadata(self, record: InvenioRecord) -> Optional["InvenioMetadata"]:
-        """
-        Retrieve metadata for a given Invenio record as an InvenioMetadata Pydantic model.
-        Args:
-            record: The InvenioRecord Pydantic model.
-        Returns:
-            InvenioMetadata instance or None if not found/invalid.
-        """
-        record_id = getattr(record, "id", "<unknown>")
-        try:
-            # InvenioRecord already has validated metadata field
-            return record.metadata
-        except Exception as e:
-            logger.error(f"Error extracting metadata from InvenioRecord {record_id}: {e}")
-            return None
-          
-    def extract_app_pids(self, record: dict[str, Any]) -> Optional[dict[str, Any]]:
-        """
-        Retrieve pids for a given Invenio record as a dictionary.
-        Args:
-            record: The Invenio record.
-        Returns:
-            PIDs as a dictionary, or None if invalid.
-        """
-        record_id = record.get("id", "<unknown>")
-        try:
-            pids = record.get("pids", {})
-            if not isinstance(pids, dict):
-                logger.error(f"pids for record ID {record_id} is not a dict.")
-                return None
-            return pids
-        except Exception as e:
-            logger.error(f"Error retrieving pids from record {record_id}: {e}")
-            return None
-
-    def extract_app_parent(self, record: dict[str, Any]) -> Optional[dict[str, Any]]:
-        """
-        Retrieve parent for a given Invenio record as a dictionary.
-        Args:
-            record: The Invenio record.
-        Returns:
-            Parent as a dictionary, or None if invalid.
-        """
-        record_id = record.get("id", "<unknown>")
-        try:
-            parent = record.get("parent", {})
-            if not isinstance(parent, dict):
-                logger.error(f"parent for record ID {record_id} is not a dict.")
-                return None
-            return parent
-        except Exception as e:
-            logger.error(f"Error retrieving parent from record {record_id}: {e}")
-            return None
-
-    def get_app_versions(self, record_id: str) -> Optional[list[dict[str, object]]]:
-        """
-        Retrieve version index and DOI for all versions of a given Invenio record.
-        Args:
-            record_id: The Invenio record ID to retrieve versions for
-
-        Returns:
-            List of dicts like {"index": 4, "doi": "..."} or None if not found/invalid
-        """
-        try:
-            versions_payload = self.client.get_all_versions(record_id)
-
-            hits = versions_payload.get("hits", {}).get("hits", [])
-            if not isinstance(hits, list):
-                logger.error(f"Version hits for record ID {record_id} is not a list.")
-                return None
-
-            versions = []
-            for record in hits:
-                if not isinstance(record, dict):
-                    continue
-
-                doi = record.get("pids", {}).get("doi", {}).get("identifier")
-                index = record.get("versions", {}).get("index")
-                if doi:
-                    versions.append(
-                        {
-                            "index": index,
-                            "doi": doi,
-                        }
-                    )
-
-            return versions
+        except RecordDeletedError as e:
+            logger.warning(f"Record deleted for record_id={record_id}: {e}")
+            raise
 
         except Exception as e:
-            logger.error(f"Error retrieving versions for record {record_id}: {e}")
+            logger.error(f"Error retrieving record {record_id}: {e}")
             return None
 
     def extract_app_metadata(self, record: InvenioRecord) -> Optional["InvenioMetadata"]:

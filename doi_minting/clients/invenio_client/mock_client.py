@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from doi_minting.clients.invenio_client import RecordDeletedError
+from doi_minting.clients.invenio_client.invenio_client import RecordDeletedError
 
 
 class MockInvenioClient:
