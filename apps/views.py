@@ -31,7 +31,7 @@ from doi_minting.services.invenio_svc import (
     InvenioClientError,
     InvenioClientRequestError,
     InvenioService,
-    RecordDeletedError
+    RecordDeletedError,
 )
 from projects.models import Project
 from studio.utils import get_logger
