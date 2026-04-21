@@ -76,12 +76,6 @@ def get_progress_started_at_from_request(request):
     return started_at
 
 
-def _app_has_registered_background_tasks(app_slug: str) -> bool:
-    from apps.background_tasks.registry import TASK_REGISTRY
-
-    return bool(TASK_REGISTRY.get_tasks_by_order(app_slug))
-
-
 def get_progress_tasks(instance, started_at=None):
     from apps.background_tasks.registry import TASK_REGISTRY
     from apps.models import BackgroundTask
@@ -375,7 +369,7 @@ def _get_deployment_inputs(instance):
     }
 
 
-def _build_deployment_state(instance, tasks_data, expecting_fresh_tasks=False, deployment_inputs=None):
+def _build_deployment_state(instance, tasks_data, deployment_inputs=None):
     """
     Build the "Deploy app" step shown after the background checks.
 
@@ -401,10 +395,6 @@ def _build_deployment_state(instance, tasks_data, expecting_fresh_tasks=False, d
     tasks_in_progress = any(t["display_status"] in {"pending", "running", "retrying"} for t in tasks_data)
     ready_for_deploy = bool(tasks_data) and not blocked and not tasks_in_progress
 
-    # This handles "no task rows yet" right after submit, before the
-    # current deployment run has created its visible checks.
-    waiting_for_fresh_tasks = expecting_fresh_tasks and not tasks_data
-
     # Once checks are done, the deploy step waits for a fresh app/event status.
     waiting_for_app_status = ready_for_deploy or (
         is_transitioning and (bool(tasks_data) or helm_deploy_success is not None)
@@ -422,10 +412,6 @@ def _build_deployment_state(instance, tasks_data, expecting_fresh_tasks=False, d
         status = "pending"
         label = "Pending"
         message = "Deployment will start after the checks pass."
-    elif waiting_for_fresh_tasks:
-        status = "pending"
-        label = "Pending"
-        message = "Waiting for deployment checks to start."
     else:
         status = "pending"
         label = "Pending"
@@ -435,11 +421,11 @@ def _build_deployment_state(instance, tasks_data, expecting_fresh_tasks=False, d
         status = "failed"
         label = "Failed"
         message = "Deployment hit an error after the checks completed."
-    elif app_status == "Running" and not blocked and not tasks_in_progress and not waiting_for_fresh_tasks:
+    elif app_status == "Running" and not blocked and not tasks_in_progress:
         status = "success"
         label = "Done"
         message = "The app is running."
-    elif waiting_for_app_status and not blocked and not tasks_in_progress and not waiting_for_fresh_tasks:
+    elif waiting_for_app_status and not blocked and not tasks_in_progress:
         status = "pending"
         label = "Pending"
         message = (
@@ -464,21 +450,16 @@ def build_progress_state(instance, progress_mode=None, progress_started_at=None)
     if progress_mode == "details":
         # Details always show the latest visible task history for the app.
         tasks_data = serialize_tasks(get_progress_tasks(instance))
-        expecting_fresh_tasks = False
     else:
         # The progress page is scoped to the current submit via started_at so we do
         # not mix in task rows from older deployments. We still project the full
         # expected task list immediately, even before all task rows are created.
         tasks_data = build_progress_tasks_data(instance, started_at=progress_started_at)
         deployment_inputs = _get_deployment_inputs(instance)
-        expecting_fresh_tasks = _app_has_registered_background_tasks(instance.app.slug) and (
-            progress_started_at is not None or deployment_inputs["is_transitioning"]
-        )
 
     deployment = _build_deployment_state(
         instance,
         tasks_data,
-        expecting_fresh_tasks=expecting_fresh_tasks,
         deployment_inputs=deployment_inputs,
     )
 

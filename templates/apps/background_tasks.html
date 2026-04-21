@@ -264,7 +264,7 @@ function renderProgress(data) {
   updateTasksDisplay(data);
   updateSummary(data.summary);
   const tasks = data.tasks || [];
-  updateExecutionGraph({ tasks });
+  updateExecutionGraph({ tasks, deployment: data.deployment || {} });
   updateWorkflowStatus(data.deployment);
   updateStageSummary(tasks);
 }
@@ -286,16 +286,8 @@ function refreshTasks() {
       if (fallbackTasks.length > 0) {
         renderProgress({
           tasks: fallbackTasks,
-          summary: {
-            total: fallbackTasks.length,
-            pending: fallbackTasks.filter(task => task.status === 'pending').length,
-            running: fallbackTasks.filter(task => task.status === 'running').length,
-            success: fallbackTasks.filter(task => task.status === 'success').length,
-            skipped: fallbackTasks.filter(task => task.status === 'skipped').length,
-            failed: fallbackTasks.filter(task => task.status === 'failed').length,
-            retrying: fallbackTasks.filter(task => task.status === 'retrying').length
-          },
-          deployment: deriveFallbackDeployment(fallbackTasks)
+          summary: buildFallbackSummary(fallbackTasks),
+          deployment: buildFallbackDeployment(fallbackTasks)
         });
       } else {
         const banner = document.getElementById('workflow-status-banner');
@@ -333,16 +325,6 @@ function updateTasksDisplay(data) {
       statusBadge.textContent = getStatusLabel(displayStatus, task.is_critical, hasValidationWarning);
     }
 
-    const row = document.getElementById(`task-row-${task.id}`);
-    if (row) {
-      const warn = isWarningRow(displayStatus, task.is_critical, hasValidationWarning);
-      row.classList.toggle('table-warning', warn);
-      row.classList.toggle('text-warning', warn);
-      row.dataset.taskStatus = displayStatus;
-      row.dataset.isCritical = task.is_critical === true ? 'true' : 'false';
-      row.dataset.hasValidationWarning = hasValidationWarning ? 'true' : 'false';
-    }
-
     // Update duration
     const durationCell = document.getElementById(`task-duration-${task.id}`);
     if (durationCell && task.duration_seconds !== null && task.duration_seconds !== undefined) {
@@ -364,6 +346,9 @@ function updateTasksDisplay(data) {
     const taskRow = document.getElementById(`task-row-${task.id}`);
     if (taskRow) {
       taskRow.classList.remove('table-danger', 'table-success', 'table-warning', 'table-info', 'table-secondary', 'text-warning');
+      taskRow.dataset.taskStatus = displayStatus;
+      taskRow.dataset.isCritical = task.is_critical === true ? 'true' : 'false';
+      taskRow.dataset.hasValidationWarning = hasValidationWarning ? 'true' : 'false';
       if (isWarningRow(displayStatus, task.is_critical, hasValidationWarning)) {
         taskRow.classList.add('table-warning', 'text-warning');
       } else if (displayStatus === 'failed') {
@@ -466,7 +451,19 @@ function updateWorkflowStatus(deployment = {}) {
   banner.textContent = 'Waiting for deployment checks to start.';
 }
 
-function deriveFallbackDeployment(tasks) {
+function buildFallbackSummary(tasks) {
+  return {
+    total: tasks.length,
+    pending: tasks.filter(task => task.status === 'pending').length,
+    running: tasks.filter(task => task.status === 'running').length,
+    success: tasks.filter(task => task.status === 'success').length,
+    skipped: tasks.filter(task => task.status === 'skipped').length,
+    failed: tasks.filter(task => task.status === 'failed').length,
+    retrying: tasks.filter(task => task.status === 'retrying').length
+  };
+}
+
+function buildFallbackDeployment(tasks) {
   const hasFailedCritical = tasks.some(task => task.is_critical && task.status === 'failed');
   const hasInProgress = tasks.some(task => ['pending', 'running', 'retrying'].includes(task.status));
   const readyForDeploy = tasks.length > 0 && !hasFailedCritical && !hasInProgress;
@@ -489,6 +486,22 @@ function deriveFallbackDeployment(tasks) {
     ready_for_deploy: readyForDeploy,
     tasks_in_progress: hasInProgress
   };
+}
+
+function getDeployNodeStatus(deployment = {}) {
+  if (deployment.blocked || deployment.status === 'blocked') {
+    return 'blocked';
+  }
+  if (deployment.status === 'failed') {
+    return 'failed';
+  }
+  if (deployment.status === 'success') {
+    return 'ready';
+  }
+  if (deployment.ready_for_deploy || deployment.tasks_in_progress) {
+    return 'waiting';
+  }
+  return 'idle';
 }
 
 function buildStageEdges(tasks) {
@@ -583,6 +596,7 @@ function updateExecutionGraph(data) {
   }
 
   const tasks = data.tasks || [];
+  const deployment = data.deployment || {};
   const edges = buildStageEdges(tasks);
   const tasksById = {};
   tasks.forEach(task => {
@@ -618,19 +632,7 @@ function updateExecutionGraph(data) {
     graphContainer.appendChild(stageColumn);
   });
 
-  let deployNode = null;
-  if (tasks.length > 0) {
-    const deployment = deriveFallbackDeployment(tasks);
-    let fallbackStatus = 'idle';
-    if (deployment.blocked) {
-      fallbackStatus = 'blocked';
-    } else if (deployment.ready_for_deploy) {
-      fallbackStatus = 'ready';
-    } else if (deployment.tasks_in_progress) {
-      fallbackStatus = 'waiting';
-    }
-    deployNode = { id: 'deploy', status: fallbackStatus };
-  }
+  const deployNode = tasks.length > 0 ? { id: 'deploy', status: getDeployNodeStatus(deployment) } : null;
   if (deployNode) {
     const deployColumn = document.createElement('div');
     deployColumn.className = 'd-flex flex-column gap-2';
@@ -866,16 +868,8 @@ document.addEventListener('DOMContentLoaded', function() {
   if (initialTasks.length > 0) {
     renderProgress({
       tasks: initialTasks,
-      summary: {
-        total: initialTasks.length,
-        pending: initialTasks.filter(task => task.status === 'pending').length,
-        running: initialTasks.filter(task => task.status === 'running').length,
-        success: initialTasks.filter(task => task.status === 'success').length,
-        skipped: initialTasks.filter(task => task.status === 'skipped').length,
-        failed: initialTasks.filter(task => task.status === 'failed').length,
-        retrying: initialTasks.filter(task => task.status === 'retrying').length
-      },
-      deployment: deriveFallbackDeployment(initialTasks)
+      summary: buildFallbackSummary(initialTasks),
+      deployment: buildFallbackDeployment(initialTasks)
     });
   }
 

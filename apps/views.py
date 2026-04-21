@@ -780,13 +780,6 @@ class BackgroundTaskStatusAPI(View):
                 "tasks": progress_state["tasks"],
                 "summary": progress_state["summary"],
                 "deployment": progress_state["deployment"],
-                "instance": {
-                    "id": instance.pk,
-                    "name": instance.name,
-                    "app_status": instance.get_app_status(),
-                    "latest_user_action": instance.latest_user_action,
-                    "url": instance.url,
-                },
             }
         )
 
