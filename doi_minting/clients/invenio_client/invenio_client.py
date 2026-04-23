@@ -13,20 +13,13 @@ from .exceptions import (
     InvenioClientError,
     InvenioClientRequestError,
     InvenioServerError,
+    RecordDeletedError,
 )
 from .http_client import delete, get, post, put
 from .session import make_session
 from .tls import tls_verify_from_env
 
 logger = logging.getLogger(__name__)
-
-
-class RecordDeletedError(InvenioClientError):
-    """Raised when a requested record has been removed and a tombstone is returned"""
-
-    def __init__(self, message: str, tombstone_data: Optional[Dict[str, Any]] = None):
-        super().__init__(message)
-        self.tombstone_data = tombstone_data or {}
 
 
 class InvenioClient:

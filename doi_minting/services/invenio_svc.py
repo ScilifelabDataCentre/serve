@@ -20,8 +20,8 @@ from doi_minting.clients.invenio_client import (
     InvenioClient,
     InvenioClientError,
     InvenioClientRequestError,
+    RecordDeletedError,
 )
-from doi_minting.clients.invenio_client.invenio_client import RecordDeletedError
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
 from studio.utils import get_logger
 

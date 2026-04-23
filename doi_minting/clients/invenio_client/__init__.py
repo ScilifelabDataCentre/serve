@@ -11,6 +11,7 @@ from .exceptions import (
     InvenioClientError,
     InvenioClientRequestError,
     InvenioServerError,
+    RecordDeletedError,
 )
 from .http_client import _request, delete, get, post, put
 from .invenio_client import InvenioClient
@@ -24,6 +25,7 @@ __all__ = [
     "InvenioClientError",
     "InvenioClientRequestError",
     "InvenioServerError",
+    "RecordDeletedError",
     # HTTP utilities
     "make_session",
     "_request",
