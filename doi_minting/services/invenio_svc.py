@@ -9,7 +9,7 @@ import logging
 import time
 import traceback
 from datetime import datetime
-from typing import Any, List, Optional, Type, TypedDict, Union
+from typing import Any, List, Optional, Type, TypedDict, Union, cast
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -55,6 +55,13 @@ from .schemas import (
 )
 
 logger = get_logger(__name__)
+
+
+def _version_index(hit: dict[str, Any]) -> int:
+    versions = hit.get("versions") or {}
+    if not isinstance(versions, dict):
+        return -1
+    return int(versions.get("index", -1))
 
 
 class InvenioService:
@@ -119,16 +126,22 @@ class InvenioService:
 
             if "hits" in all_versions and "hits" in all_versions["hits"]:
                 hits = all_versions["hits"]["hits"]
-                latest_hit = next((hit for hit in hits if hit.get("versions", {}).get("is_latest")), None)
+                dict_hits: list[dict[str, Any]] = [cast(dict[str, Any], hit) for hit in hits if isinstance(hit, dict)]
+                latest_hit = next(
+                    (hit for hit in dict_hits if hit.get("versions", {}).get("is_latest")),
+                    None,
+                )
                 if latest_hit is None:
-                    latest_hit = max(hits, key=lambda hit: hit.get("versions", {}).get("index", -1), default=None)
+                    if not dict_hits:
+                        return False
+                    latest_hit = max(dict_hits, key=_version_index)
 
                 if latest_hit is None:
                     return False
 
-                latest_image = self._extract_image_identifier(
-                    latest_hit.get("metadata", {}).get("related_identifiers", [])
-                )
+                latest_metadata = latest_hit.get("metadata") or {}
+                latest_related_identifiers = latest_metadata.get("related_identifiers", [])
+                latest_image = self._extract_image_identifier(latest_related_identifiers)
                 logger.debug(f"Latest published image version: {latest_image}")
 
                 if latest_image == image_value:
