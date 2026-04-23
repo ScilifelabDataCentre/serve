@@ -80,3 +80,17 @@ UNIVERSITY_NAMES = {
     "umu": "Umeå universitet (Umeå University)",
     "uu": "Uppsala universitet (Uppsala University)",
 }
+
+INVENIO_RECORD_REMOVAL_REASON_LABELS = {
+    "duplicate": "Duplicate of another record",
+    "retracted": "Retraction/Withdrawal of a record",
+    "replaced": "Substitution",
+    "spam": "Spam",
+    "copyright": "Copyright infringement",
+    "personal-data": "Personal data issue",
+    "take-down-request": "Take-down request",
+    "disputed-authorship": "Disputed authorship",
+    "misconduct": "Misconduct",
+    "fraud": "Fraud",
+    "out-of-scope": "Content out of scope for repository",
+}

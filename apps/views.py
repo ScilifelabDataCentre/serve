@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 import subprocess
 from datetime import datetime
 
@@ -24,12 +25,13 @@ from django.views import View
 from guardian.decorators import permission_required_or_403
 from rest_framework.exceptions import NotFound
 
-from apps.constants import AppActionOrigin
+from apps.constants import INVENIO_RECORD_REMOVAL_REASON_LABELS, AppActionOrigin
 from apps.types_.subdomain import SubdomainCandidateName
 from doi_minting.services.invenio_svc import (
     InvenioClientError,
     InvenioClientRequestError,
     InvenioService,
+    RecordDeletedError,
 )
 from projects.models import Project
 from studio.utils import get_logger
@@ -470,6 +472,9 @@ def app_details(request, invenio_record_id):
         else:
             logger.error(f"Client error when retrieving invenio record with id {invenio_record_id}: {e}")
             raise
+    except RecordDeletedError as e:
+        logger.info(f"Record deleted error returned for requested invenio_record_id={invenio_record_id}")
+        return app_tombstone(request, e.tombstone_data)
     except InvenioClientError as e:
         logger.error(f"Something went wrong when retrieving invenio record with id {invenio_record_id}: {e}")
         raise
@@ -600,6 +605,38 @@ def app_metadata(request, app_id):
         return response
 
     return render(request, "common/app_metadata.html", {"app": app, "schema_dict": schema_dict})
+
+
+def app_tombstone(request, tombstone_data):
+    tombstone = tombstone_data.get("tombstone", {})
+
+    removal_date_raw = tombstone.get("removal_date")
+    removal_date = None
+    if removal_date_raw:
+        removal_date = datetime.fromisoformat(removal_date_raw).strftime("%Y-%m-%d")
+
+    removal_reason_id = tombstone.get("removal_reason", {}).get("id")
+    removal_reason_label = INVENIO_RECORD_REMOVAL_REASON_LABELS.get(removal_reason_id, removal_reason_id)
+
+    removal_note = tombstone.get("note")
+
+    citation_text = tombstone.get("citation_text", "")
+    doi_url = None
+
+    match = re.search(r"https://doi\.org/(\S+)", citation_text)
+    if match:
+        doi_url = match.group(0)
+
+    return render(
+        request,
+        "common/app_tombstone.html",
+        {
+            "removal_date": removal_date,
+            "removal_reason_label": removal_reason_label,
+            "removal_note": removal_note,
+            "doi_url": doi_url,
+        },
+    )
 
 
 # Background Task Views
