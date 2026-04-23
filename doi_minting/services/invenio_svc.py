@@ -91,16 +91,23 @@ class InvenioService:
                 verify=self.verify,
             )
 
-    def check_image_version_exists(self, app_instance: Any, image_value: str) -> bool:
+    def _extract_image_identifier(self, related_identifiers: list[dict[str, Any]]) -> Optional[str]:
+        """Return the app image identifier from a version's related identifiers."""
+        for item in related_identifiers:
+            if item.get("relation_type", {}).get("id") == "hasversion":
+                return item.get("identifier")
+        return None
+
+    def matches_latest_version_image(self, app_instance: Any, image_value: str) -> bool:
         """
-        Check if the given image version already exists in Invenio records.
+        Check whether the given image matches the latest published Invenio version.
 
         Args:
             app_instance: The application instance
             image_value: The image identifier to check
 
         Returns:
-            True if image version already exists, False otherwise
+            True if the latest published version already uses this image, False otherwise
         """
         invenio_record_id = getattr(app_instance, "invenio_record_id", None)
         if not invenio_record_id:
@@ -111,16 +118,21 @@ class InvenioService:
             all_versions = self.client.get_all_versions(invenio_record_id)
 
             if "hits" in all_versions and "hits" in all_versions["hits"]:
-                existing_images = []
-                for hit in all_versions["hits"]["hits"]:
-                    related_ids = hit["metadata"].get("related_identifiers", [])
-                    if len(related_ids) > 1:
-                        existing_images.append(related_ids[1]["identifier"])
+                hits = all_versions["hits"]["hits"]
+                latest_hit = next((hit for hit in hits if hit.get("versions", {}).get("is_latest")), None)
+                if latest_hit is None:
+                    latest_hit = max(hits, key=lambda hit: hit.get("versions", {}).get("index", -1), default=None)
 
-                logger.debug(f"All previous image versions: {existing_images}")
+                if latest_hit is None:
+                    return False
 
-                if image_value in existing_images:
-                    logger.info(f"Image '{image_value}' already exists in previous versions.")
+                latest_image = self._extract_image_identifier(
+                    latest_hit.get("metadata", {}).get("related_identifiers", [])
+                )
+                logger.debug(f"Latest published image version: {latest_image}")
+
+                if latest_image == image_value:
+                    logger.info(f"Image '{image_value}' already matches the latest published version.")
                     return True
 
         except Exception as e:
@@ -167,8 +179,8 @@ class InvenioService:
         image_value = resolve_app_image(app_instance)
         if not image_value:
             return False, "DOI minting requires an app image."
-        if self.check_image_version_exists(app_instance, image_value):
-            return False, f"Image '{image_value}' already exists in previous versions"
+        if self.matches_latest_version_image(app_instance, image_value):
+            return False, f"Image '{image_value}' already matches the latest published version"
         return True, "App is eligible for DOI minting"
 
     def _are_subjects_different(self, current_subjects: Any, new_subjects: Any) -> bool:
@@ -1257,7 +1269,7 @@ class InvenioService:
                     # Safely access metadata and related identifiers
                     metadata = hit.get("metadata", {})
                     related_ids = metadata.get("related_identifiers", [])
-                    app_image = related_ids[1]["identifier"] if len(related_ids) > 1 else "Unknown"
+                    app_image = self._extract_image_identifier(related_ids) or "Unknown"
 
                     logger.debug(
                         f"  Version {i+1}: ID={hit.get('id')}, "
