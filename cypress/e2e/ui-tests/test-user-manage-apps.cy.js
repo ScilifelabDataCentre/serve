@@ -147,6 +147,7 @@ if (Cypress.env('create_resources') === true) {
             //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Wait for the app row to appear or log form errors if not
             cy.get('body').then(($body) => {
                 if ($body.find('tr:contains("' + app_name_project + '")').length === 0) {
@@ -179,6 +180,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
 
             // We now verify the correct permission level and user action
             // but not the app status because it is dependent on k8s
@@ -215,6 +217,7 @@ if (Cypress.env('create_resources') === true) {
             //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
@@ -290,6 +293,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
             cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
 
             // We do not verify the app status because it depends on k8s
             // Note: Access level remains 'Public' due to DOI protection
@@ -329,6 +333,7 @@ if (Cypress.env('create_resources') === true) {
             // Make sure that giving invalid input in default_url_subpath field results in an error
             cy.get('#id_default_url_subpath').clear().type(invalid_default_url_subpath) // provide invalid_default_url_subpath
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click() // this should trigger the error
+            cy.completeAppSubmissionFlow()
 
             // check this invalid_default_url_subpath error was matched
             cy.get('.client-validation-feedback.client-validation-invalid')
@@ -384,6 +389,7 @@ if (Cypress.env('create_resources') === true) {
                 .should('be.visible')
                 .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
 
             // Though Shiny Proxy apps can take a long time to start
             // this is OK here because we only verify that it was created
@@ -472,6 +478,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
 
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -544,6 +551,7 @@ if (Cypress.env('create_resources') === true) {
                 .should('be.visible')
                 .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
@@ -613,6 +621,7 @@ if (Cypress.env('create_resources') === true) {
                 .should('be.visible')
                 .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -679,6 +688,7 @@ if (Cypress.env('create_resources') === true) {
                 .should('be.visible')
                 .should('contain', 'Manage storage');
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -742,6 +752,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -772,6 +783,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_name').type("-edited")
             cy.get('#id_description').type(", edited description.")
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -831,6 +843,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -859,6 +872,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear()
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Stay on the Settings page
             cy.url().should("include", "/apps/settings")
 
@@ -870,6 +884,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -933,6 +948,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name)
@@ -961,6 +977,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_subdomain').clear().type(subdomain_change)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
             cy.get('h3').should('have.text', project_name);
@@ -1028,6 +1045,7 @@ if (Cypress.env('create_resources') === true) {
 
             // create the app
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
@@ -1056,6 +1074,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available');
             // create the app
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
             // The initial app status and latest user action:
@@ -1073,6 +1092,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_subdomain').clear().type(subdomain_3)
 
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.completeAppSubmissionFlow()
 
             cy.get('tr:contains("' + app_name + '")').should('be.visible')
 

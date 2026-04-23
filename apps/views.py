@@ -3,6 +3,7 @@ import json
 import re
 import subprocess
 from datetime import datetime
+from urllib.parse import urlencode
 
 import dateutil.parser
 import requests
@@ -21,6 +22,7 @@ from django.shortcuts import (
 )
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.http import content_disposition_header
 from django.utils.safestring import mark_safe
 from django.views import View
 from guardian.decorators import permission_required_or_403
@@ -44,6 +46,17 @@ from .helpers import (
     get_minio_usage,
 )
 from .models import BaseAppInstance
+from .progress import (
+    build_progress_state,
+    build_progress_status_api_url,
+    build_project_app_path,
+    get_progress_mode_from_request,
+    get_progress_started_at_from_request,
+    get_progress_tasks,
+    get_project_app_instance,
+    serialize_tasks,
+    summarize_tasks,
+)
 from .tasks import delete_resource
 
 logger = get_logger(__name__)
@@ -112,7 +125,10 @@ class GetLogs(View):
         try:
             url = settings.LOKI_SVC + "/loki/api/v1/query_range"
             container = "serve" if instance.app.slug == "shinyproxyapp" else container
-            log_query = f'{{release="{instance.subdomain.subdomain}",container="{container}"}}'
+            log_query = '{{release="{release}", container="{container}"}}'.format(
+                release=instance.subdomain.subdomain,
+                container=container,
+            )
             logger.info(f"Log query: {log_query}")
 
             query_params = {
@@ -323,16 +339,16 @@ class CreateApp(View):
             )
 
         # Otherwise we can create the instance
-        create_instance_from_form(form, project, app_slug, app_id)
-
-        return HttpResponseRedirect(
-            reverse(
-                "projects:details",
-                kwargs={
-                    "project_slug": str(project_slug),
-                },
+        result = create_instance_from_form(form, project, app_slug, app_id)
+        if not result.workflow_started:
+            return HttpResponseRedirect(
+                build_project_app_path(str(project_slug), f"details/{app_slug}/{result.instance_id}")
             )
-        )
+
+        progress_url = build_project_app_path(str(project_slug), f"progress/{app_slug}/{result.instance_id}")
+        if result.progress_started_at:
+            progress_url = f"{progress_url}?{urlencode({'started_at': result.progress_started_at})}"
+        return HttpResponseRedirect(progress_url)
 
     def get_form(self, request, project, app_slug, app_id):
         model_class, form_class = APP_REGISTRY.get(app_slug)
@@ -349,11 +365,14 @@ class CreateApp(View):
         if app_id:
             # Updating an existing app instance
             user_can_edit = model_class.objects.user_can_edit(request.user, project, app_slug)
-            instance = model_class.objects.get(pk=app_id)
+            instance = model_class.objects.filter(pk=app_id, project=project).first()
         else:
             # Create a new app instance
             user_can_create = model_class.objects.user_can_create(request.user, project, app_slug)
             instance = None
+
+        if app_id and instance is None:
+            return None
 
         if user_can_edit or user_can_create:
             form = form_class(request.POST or None, project_pk=project.pk, instance=instance, request=request)
@@ -373,6 +392,95 @@ class CreateApp(View):
             # Maybe this makes typing hard.
         else:
             return None
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class DeploymentProgressView(View):
+    template = "apps/deployment_progress.html"
+
+    def get(self, request, project, app_slug, app_id):
+        project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        progress_mode = get_progress_mode_from_request(request) or "deploy"
+        progress_started_at = get_progress_started_at_from_request(request)
+        progress_state = build_progress_state(
+            instance,
+            progress_mode=progress_mode,
+            progress_started_at=progress_started_at,
+        )
+
+        context = {
+            "instance": instance,
+            "deployment": progress_state["deployment"],
+            "initial_steps_json": json.dumps(progress_state["steps"]),
+            "status_api_url": build_progress_status_api_url(
+                project_obj.slug,
+                app_slug,
+                instance.pk,
+                progress_mode=progress_mode,
+                progress_started_at=progress_started_at,
+            ),
+            "detail_url": build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
+            "form_url": build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}"),
+        }
+
+        return render(request, self.template, context)
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project")),
+    name="dispatch",
+)
+class AppDetailsView(View):
+    template = "apps/deployment_details.html"
+
+    def get(self, request, project, app_slug, app_id):
+        project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        progress_state = build_progress_state(instance, progress_mode="details")
+        tasks_data = progress_state["tasks"]
+
+        description = getattr(instance, "description", "")
+        source_code_url = getattr(instance, "source_code_url", "")
+        image = getattr(instance, "image", "")
+        tags = instance.tags.all() if hasattr(instance, "tags") else []
+        access = getattr(instance, "access", "")
+        details_rows = [
+            ("Type", instance.app.name),
+            ("Project", project_obj.name),
+            ("Status", instance.get_app_status()),
+            ("Permissions", access.title() if access else ""),
+            ("Subdomain", instance.subdomain.subdomain if instance.subdomain else ""),
+            ("URL", instance.url or ""),
+            ("Source code", source_code_url),
+            ("Docker image", image),
+        ]
+
+        context = {
+            "instance": instance,
+            "project": project_obj,
+            "recent_tasks": tasks_data,
+            "summary": progress_state["summary"],
+            "deployment": progress_state["deployment"],
+            "description": description,
+            "details_rows": details_rows,
+            "tags": tags,
+            "project_url": reverse("projects:details", kwargs={"project_slug": project_obj.slug}),
+            "public_details_url": (
+                reverse("app-details", kwargs={"record_id": instance.pk})
+                if access == "public" and not settings.INVENIO_MOCK_MODE
+                else ""
+            ),
+            "background_tasks_url": reverse(
+                "apps:background_tasks",
+                kwargs={"project": project_obj.slug, "app_slug": app_slug, "app_id": instance.pk},
+            ),
+            "status_api_url": build_progress_status_api_url(
+                project_obj.slug, app_slug, instance.pk, progress_mode="details"
+            ),
+        }
+        return render(request, self.template, context)
 
 
 @method_decorator(
@@ -557,10 +665,11 @@ def app_details(request, invenio_record_id):
     )
     # handle JSON export
     if request.GET.get("format") == "json":
+        filename = f"SciLifeLab_Serve_App_{app.name}_metadata.json"
         response = HttpResponse(
             generate_schema_org_compliant_app_metadata(app),
             content_type="application/json",
-            headers={"Content-Disposition": f'attachment; filename="SciLifeLab_Serve_App_{app.name}_metadata.json"'},
+            headers={"Content-Disposition": content_disposition_header(True, filename)},
         )
         return response
 
@@ -603,10 +712,11 @@ def app_metadata(request, app_id):
 
     # Handle JSON export
     if request.GET.get("format") == "json":
+        filename = f"SciLifeLab_Serve_App_{app.name}_metadata.json"
         response = HttpResponse(
             generate_schema_org_compliant_app_metadata(app),
             content_type="application/json",
-            headers={"Content-Disposition": f'attachment; filename="SciLifeLab_Serve_App_{app.name}_metadata.json"'},
+            headers={"Content-Disposition": content_disposition_header(True, filename)},
         )
         return response
 
@@ -656,27 +766,19 @@ class BackgroundTasksView(View):
     template = "apps/background_tasks.html"
 
     def get(self, request, project, app_slug, app_id):
-        from apps.models import BackgroundTask
-
-        # Get app instance
-        model_class = APP_REGISTRY.get_orm_model(app_slug)
-        if not model_class:
-            raise PermissionDenied("Application model not found")
-
-        instance = model_class.objects.get(pk=app_id)
-        project_obj = Project.objects.get(slug=project)
-
-        # Get all background tasks for this instance
-        tasks_qs = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
-        tasks = list(tasks_qs)
-        summary = {
-            "total": len(tasks),
-            "pending": sum(1 for t in tasks if t.status == "pending"),
-            "running": sum(1 for t in tasks if t.status == "running"),
-            "success": sum(1 for t in tasks if t.status == "success"),
-            "failed": sum(1 for t in tasks if t.status == "failed"),
-            "retrying": sum(1 for t in tasks if t.status == "retrying"),
-        }
+        project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        tasks = get_progress_tasks(instance)
+        serialized_tasks = serialize_tasks(tasks)
+        serialized_by_id = {task_data["id"]: task_data for task_data in serialized_tasks}
+        for task in tasks:
+            task_data = serialized_by_id.get(task.id, {})
+            task.display_name = task_data.get("display_name", task.task_name)
+            task.was_skipped = task_data.get("was_skipped", False)
+            task.display_status = task_data.get("display_status", task.status)
+            task.status_label = task_data.get("status_label", task.status)
+            task.status_class = task_data.get("status_class", "secondary")
+            task.has_validation_warning_value = task_data.get("has_validation_warning", False)
+        summary = summarize_tasks(serialized_tasks)
 
         context = {
             "instance": instance,
@@ -684,6 +786,10 @@ class BackgroundTasksView(View):
             "tasks": tasks,
             "summary": summary,
             "app_slug": app_slug,
+            "detail_url": build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
+            "status_api_url": build_progress_status_api_url(
+                project_obj.slug, app_slug, instance.pk, progress_mode="details"
+            ),
         }
 
         return render(request, self.template, context)
@@ -697,140 +803,24 @@ class BackgroundTaskStatusAPI(View):
     """API endpoint to get task status for an app instance."""
 
     def get(self, request, project, app_slug, app_id):
-        from apps.models import BackgroundTask
-
-        # Get app instance
-        model_class = APP_REGISTRY.get_orm_model(app_slug)
-        if not model_class:
-            return JsonResponse({"error": "Application model not found"}, status=404)
-
         try:
-            instance = model_class.objects.get(pk=app_id)
-        except model_class.DoesNotExist:
+            _, instance = get_project_app_instance(project, app_slug, app_id)
+        except (Http404, PermissionDenied):
             return JsonResponse({"error": "App instance not found"}, status=404)
-
-        # Get all background tasks for this instance
-        tasks = BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at")
-
-        tasks_data = []
-        for task in tasks:
-            duration = task.get_duration()
-            tasks_data.append(
-                {
-                    "id": task.id,
-                    "task_name": task.task_name,
-                    "task_type": task.task_type,
-                    "status": task.status,
-                    "is_critical": task.is_critical,
-                    "has_validation_warning": task.has_validation_warning(),
-                    "execution_order": task.execution_order,
-                    "error_message": task.error_message,
-                    "retry_count": task.retry_count,
-                    "max_retries": task.max_retries,
-                    "created_at": task.created_at.isoformat() if task.created_at else None,
-                    "started_at": task.started_at.isoformat() if task.started_at else None,
-                    "completed_at": task.completed_at.isoformat() if task.completed_at else None,
-                    "duration_seconds": duration,
-                    "can_retry": task.status == "failed",
-                }
-            )
-
-        # Calculate summary statistics
-        total = len(tasks_data)
-        pending = sum(1 for t in tasks_data if t["status"] == "pending")
-        running = sum(1 for t in tasks_data if t["status"] == "running")
-        success = sum(1 for t in tasks_data if t["status"] == "success")
-        failed = sum(1 for t in tasks_data if t["status"] == "failed")
-        retrying = sum(1 for t in tasks_data if t["status"] == "retrying")
-
-        # Build execution graph data (stage-based DAG from execution_order).
-        order_to_task_ids: dict[int, list[int]] = {}
-        for task in tasks_data:
-            order = task["execution_order"]
-            order_to_task_ids.setdefault(order, []).append(task["id"])
-
-        sorted_orders = sorted(order_to_task_ids.keys())
-        graph_nodes = [
-            {
-                "id": f"task-{task['id']}",
-                "task_id": task["id"],
-                "label": task["task_name"],
-                "status": task["status"],
-                "execution_order": task["execution_order"],
-                "is_critical": task["is_critical"],
-                "task_type": task["task_type"],
-            }
-            for task in tasks_data
-        ]
-        graph_edges: list[dict[str, str]] = []
-
-        for idx in range(len(sorted_orders) - 1):
-            current_order = sorted_orders[idx]
-            next_order = sorted_orders[idx + 1]
-            for source_id in order_to_task_ids[current_order]:
-                for target_id in order_to_task_ids[next_order]:
-                    graph_edges.append(
-                        {
-                            "source": f"task-{source_id}",
-                            "target": f"task-{target_id}",
-                        }
-                    )
-
-        has_failed_critical = any(t["is_critical"] and t["status"] == "failed" for t in tasks_data)
-        has_in_progress = any(t["status"] in {"pending", "running", "retrying"} for t in tasks_data)
-        ready_for_deploy = bool(tasks_data) and not has_failed_critical and not has_in_progress
-        blocked = has_failed_critical
-
-        if sorted_orders:
-            for source_id in order_to_task_ids[sorted_orders[-1]]:
-                graph_edges.append(
-                    {
-                        "source": f"task-{source_id}",
-                        "target": "deploy",
-                    }
-                )
-
-        if blocked:
-            deploy_status = "blocked"
-        elif ready_for_deploy:
-            deploy_status = "ready"
-        elif has_in_progress:
-            deploy_status = "waiting"
-        else:
-            deploy_status = "idle"
-
-        graph_nodes.append(
-            {
-                "id": "deploy",
-                "label": "Deploy",
-                "status": deploy_status,
-                "execution_order": (sorted_orders[-1] + 1) if sorted_orders else 0,
-                "is_critical": True,
-                "task_type": "deploy",
-            }
+        progress_mode = get_progress_mode_from_request(request) or "deploy"
+        progress_started_at = get_progress_started_at_from_request(request)
+        progress_state = build_progress_state(
+            instance,
+            progress_mode=progress_mode,
+            progress_started_at=progress_started_at,
         )
 
         return JsonResponse(
             {
-                "tasks": tasks_data,
-                "summary": {
-                    "total": total,
-                    "pending": pending,
-                    "running": running,
-                    "success": success,
-                    "failed": failed,
-                    "retrying": retrying,
-                },
-                "graph": {
-                    "nodes": graph_nodes,
-                    "edges": graph_edges,
-                },
-                "workflow": {
-                    "blocked": blocked,
-                    "ready_for_deploy": ready_for_deploy,
-                    "has_failed_critical": has_failed_critical,
-                    "has_in_progress": has_in_progress,
-                },
+                "steps": progress_state["steps"],
+                "tasks": progress_state["tasks"],
+                "summary": progress_state["summary"],
+                "deployment": progress_state["deployment"],
             }
         )
 

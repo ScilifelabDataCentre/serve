@@ -588,3 +588,303 @@ cubic-bezier(.4, 0, .2, 1);
     width: 100%!important;
     color: var(--bs-link-color);
 }
+
+/* app deployment feedback */
+
+.deployment-progress-shell {
+    position: relative;
+}
+
+.deployment-progress-shell::before {
+    content: "";
+    position: absolute;
+    inset: 2rem 1rem auto;
+    height: 18rem;
+    filter: blur(18px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.deployment-progress-card {
+    position: relative;
+    z-index: 1;
+    border-radius: 1.4rem;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 1.5rem 4rem rgba(16, 24, 40, 0.08);
+}
+
+.deployment-progress-pill {
+    border-radius: 999px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.01em;
+}
+
+.deployment-progress-title {
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+}
+
+.deployment-progress-message {
+    font-size: 1.08rem;
+    max-width: 42rem;
+}
+
+.deployment-progress-track {
+    height: 0.9rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.deployment-progress-bar {
+    width: 0%;
+    border-radius: 999px;
+    background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 55%, #60a5fa 100%);
+}
+
+.deployment-progress-bar.bg-success {
+    background-image: linear-gradient(90deg, #15803d 0%, #22c55e 60%, #86efac 100%);
+}
+
+.deployment-progress-bar.bg-danger {
+    background-image: linear-gradient(90deg, #b91c1c 0%, #ef4444 60%, #fca5a5 100%);
+}
+
+.deployment-progress-step-list {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1rem;
+    background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(255, 255, 255, 1) 100%),
+        linear-gradient(135deg, rgba(37, 99, 235, 0.03), rgba(34, 197, 94, 0.02));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.step-row:last-child {
+    border-bottom: 0;
+}
+
+.step-row.is-running {
+    background: rgba(37, 99, 235, 0.05);
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.06);
+}
+
+.step-row.is-retrying {
+    background: rgba(245, 158, 11, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.09);
+}
+
+.step-row.is-warning {
+    background: rgba(245, 158, 11, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.09);
+}
+
+.step-row.is-success {
+    background: rgba(22, 163, 74, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.07);
+}
+
+.step-row.is-skipped {
+    background: rgba(108, 117, 125, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(108, 117, 125, 0.07);
+}
+
+.step-row.is-failed {
+    background: rgba(220, 53, 69, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(220, 53, 69, 0.08);
+}
+
+.step-icon-wrap {
+    flex-shrink: 0;
+    padding-top: 0.1rem;
+}
+
+.step-icon {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    background: #fff;
+    color: #6c757d;
+    box-shadow: 0 0.25rem 0.8rem rgba(15, 23, 42, 0.07);
+}
+
+.step-icon-pending {
+    background: #f8fafc;
+    color: #6c757d;
+}
+
+.step-icon-running {
+    border-color: rgba(37, 99, 235, 0.2);
+    background: linear-gradient(180deg, rgba(239, 246, 255, 1) 0%, rgba(219, 234, 254, 0.92) 100%);
+    color: #2563eb;
+}
+
+.step-icon-retrying {
+    border-color: rgba(245, 158, 11, 0.22);
+    background: linear-gradient(180deg, rgba(255, 251, 235, 1) 0%, rgba(254, 243, 199, 0.94) 100%);
+    color: #d97706;
+}
+
+.step-icon-warning {
+    border-color: rgba(245, 158, 11, 0.22);
+    background: linear-gradient(180deg, rgba(255, 251, 235, 1) 0%, rgba(254, 243, 199, 0.94) 100%);
+    color: #d97706;
+}
+
+.step-icon-success {
+    border-color: rgba(22, 163, 74, 0.2);
+    background: linear-gradient(180deg, rgba(240, 253, 244, 1) 0%, rgba(220, 252, 231, 0.96) 100%);
+    color: #15803d;
+}
+
+.step-icon-skipped {
+    border-color: rgba(100, 116, 139, 0.2);
+    background: linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 0.96) 100%);
+    color: #475569;
+}
+
+.step-icon-failed {
+    border-color: rgba(220, 53, 69, 0.2);
+    background: linear-gradient(180deg, rgba(254, 242, 242, 1) 0%, rgba(254, 226, 226, 0.96) 100%);
+    color: #dc2626;
+}
+
+.step-symbol-image {
+    width: 1.05rem;
+    height: 1.05rem;
+    display: inline-block;
+}
+
+.step-detail {
+    margin-top: 0.6rem;
+    color: #475569;
+}
+
+.step-detail-copy {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.step-detail-stack {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.step-detail-meta {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+}
+
+.step-detail-code {
+    display: inline-block;
+    max-width: 100%;
+    padding: 0.32rem 0.55rem;
+    border-radius: 0.55rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(248, 250, 252, 0.95);
+    color: #0f172a;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    word-break: break-word;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.step-row.is-failed .step-detail-code {
+    border-color: rgba(220, 53, 69, 0.12);
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.step-detail-note {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.45;
+}
+
+.step-spinner {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    display: inline-block;
+    animation: deployment-step-spin 0.8s linear infinite;
+}
+
+.deployment-graph-wrapper {
+    min-height: 240px;
+}
+
+.deployment-graph-edges {
+    pointer-events: none;
+}
+
+.tag-remove-button {
+    font-size: 0.7em;
+}
+
+.app-table-head {
+    background-color: #6c757d14;
+}
+
+.app-table-logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.app-table-logo {
+    max-width: 25px;
+    min-width: 20px;
+}
+
+.app-table-tag {
+    margin-right: -0.2rem;
+}
+
+.app-template-status-icon {
+    color: orange;
+    display: none;
+}
+
+.app-template-limit-button {
+    cursor: default;
+}
+
+@keyframes deployment-step-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 576px) {
+    .deployment-progress-title {
+        font-size: 1.85rem;
+    }
+
+    .step-row {
+        gap: 0.85rem;
+        padding: 1rem;
+    }
+
+    .step-icon {
+        width: 1.9rem;
+        height: 1.9rem;
+    }
+}

@@ -1,0 +1,469 @@
+{% extends 'base.html' %}
+
+{% block title %}Preparing {{ instance.name }}{% endblock %}
+{% load static %}
+{% block content %}
+
+<div class="container py-5 deployment-progress-shell">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-7">
+      <div class="card shadow-lg border-0 deployment-progress-card">
+        <div class="card-body p-4 p-lg-5">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <span class="badge text-bg-info deployment-progress-pill" id="progress-pill">Checking</span>
+            <span class="small text-muted" id="progress-inline">This page updates automatically.</span>
+          </div>
+
+          <h1 class="h3 mb-2 deployment-progress-title" id="progress-title">We are preparing {{ instance.name }}</h1>
+          <p class="text-muted mb-4 deployment-progress-message" id="progress-message">
+            We are validating your app, running the background tasks, and then deploying it.
+          </p>
+
+          <div class="mb-4">
+            <div class="d-flex justify-content-between small mb-2">
+              <span>Progress</span>
+              <span id="progress-label">0 of 1 steps completed</span>
+            </div>
+            <div class="progress deployment-progress-track" role="progressbar" aria-label="Deployment progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div class="progress-bar progress-bar-striped progress-bar-animated deployment-progress-bar" id="progress-bar"></div>
+            </div>
+          </div>
+
+          <div class="border rounded overflow-hidden mb-4 deployment-progress-step-list" id="step-list">
+            <div class="step-row">
+              <div class="step-icon-wrap">
+                <span class="step-icon step-icon-running"><span class="step-spinner"></span></span>
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-semibold">Starting deployment checks</div>
+                <div class="small text-muted">We will list each step here as soon as it starts.</div>
+              </div>
+              <div class="small text-muted">Waiting</div>
+            </div>
+          </div>
+
+          <div class="small text-muted mb-4" id="progress-next-step">
+            We will open the app details page automatically when everything is ready.
+          </div>
+
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{{ form_url }}" class="btn btn-outline-secondary">Back to form</a>
+            <a href="{{ detail_url }}" class="btn btn-primary" id="details-link">Deployment summary</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const statusApiUrl = "{{ status_api_url|escapejs }}";
+const detailUrl = "{{ detail_url }}";
+const SUCCESS_REDIRECT_DELAY_MS = 5000;
+const STEP_REVEAL_DELAY_MS = 700;
+const TERMINAL_STEP_STATUSES = new Set(["success", "warning", "failed", "skipped"]);
+const STEP_ROW_CLASS_BY_STATUS = {
+  failed: "is-failed",
+  skipped: "is-skipped",
+  retrying: "is-retrying",
+  warning: "is-warning",
+  success: "is-success",
+  running: "is-running"
+};
+const STEP_ICON_URLS = {
+  pending: "{% static 'images/progress/step-pending.svg' %}",
+  retrying: "{% static 'images/progress/step-retrying.svg' %}",
+  warning: "{% static 'images/progress/step-warning.svg' %}",
+  success: "{% static 'images/progress/step-success.svg' %}",
+  skipped: "{% static 'images/progress/step-skipped.svg' %}",
+  failed: "{% static 'images/progress/step-failed.svg' %}"
+};
+const STATUS_LABELS = {
+  pending: "Waiting",
+  running: "Running",
+  retrying: "Retrying",
+  warning: "Warning",
+  success: "Done",
+  skipped: "Skipped",
+  failed: "Failed"
+};
+
+let refreshInterval = null;
+let successRedirectTimer = null;
+let stepRevealTimer = null;
+let latestServerData = {
+  deployment: {
+    status: "{{ deployment.status|default:'pending'|escapejs }}",
+    message: "{{ deployment.message|default:'Waiting to start deployment.'|escapejs }}",
+    tasks_in_progress: {{ deployment.tasks_in_progress|yesno:"true,false" }}
+  },
+  steps: JSON.parse("{{ initial_steps_json|escapejs }}")
+};
+let displayedProgressData = copyProgressData(latestServerData);
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  refreshInterval = window.setInterval(refreshProgress, 3000);
+}
+
+function stopAutoRefresh() {
+  if (refreshInterval) {
+    window.clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+}
+
+function stopSuccessRedirect() {
+  if (successRedirectTimer) {
+    window.clearTimeout(successRedirectTimer);
+    successRedirectTimer = null;
+  }
+}
+
+function stopStepReveal() {
+  if (stepRevealTimer) {
+    window.clearTimeout(stepRevealTimer);
+    stepRevealTimer = null;
+  }
+}
+
+function copyProgressData(data = {}) {
+  return {
+    deployment: {...(data.deployment || {})},
+    steps: (data.steps || []).map(step => ({...step}))
+  };
+}
+
+function getStatusLabel(status) {
+  return STATUS_LABELS[status] || STATUS_LABELS.pending;
+}
+
+function getTaskDetailMarkup(step) {
+  if (step.status === "failed" && step.errorDetail) {
+    return buildImageErrorMarkup({
+      summary: step.errorDetail.summary || "We could not complete this step.",
+      imageReference: step.errorDetail.image_reference || "",
+      note: step.errorDetail.note || ""
+    });
+  }
+  return `<div class="step-detail"><p class="step-detail-copy">${escapeHtml(step.detail)}</p></div>`;
+}
+
+function buildImageErrorMarkup({summary, imageReference, note = ""}) {
+  return `
+    <div class="step-detail step-detail-stack">
+      <p class="step-detail-copy">${escapeHtml(summary)}</p>
+      ${imageReference ? `<div class="step-detail-meta"><code class="step-detail-code">${escapeHtml(imageReference)}</code></div>` : ""}
+      ${note ? `<p class="step-detail-note">${escapeHtml(note)}</p>` : ""}
+    </div>
+  `;
+}
+
+function buildStepIconImage(status) {
+  const iconUrl = STEP_ICON_URLS[status] || STEP_ICON_URLS.pending;
+  return `<img class="step-symbol-image" src="${iconUrl}" alt="" aria-hidden="true">`;
+}
+
+function getStepIconMarkup(status) {
+  if (status === "running") {
+    return '<span class="step-icon step-icon-running"><span class="step-spinner"></span></span>';
+  }
+  return `<span class="step-icon step-icon-${status || "pending"}" aria-hidden="true">${buildStepIconImage(status)}</span>`;
+}
+
+function renderSteps(steps) {
+  const stepList = document.getElementById("step-list");
+  if (!stepList) {
+    return;
+  }
+
+  stepList.innerHTML = steps.map(step => {
+    const visualStatus = step.visualStatus || step.status || "pending";
+    const rowClass = STEP_ROW_CLASS_BY_STATUS[visualStatus] || "";
+    const statusLabel = step.statusLabel || getStatusLabel(step.status);
+    return `
+      <div class="step-row ${rowClass}">
+        <div class="step-icon-wrap">${getStepIconMarkup(visualStatus)}</div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold">${escapeHtml(step.title || "Deployment step")}</div>
+          <div class="small text-muted">${escapeHtml(step.subtitle || "Optional check")}</div>
+          ${getTaskDetailMarkup(step)}
+        </div>
+        <div class="small text-muted text-nowrap">${escapeHtml(statusLabel)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function getStepStats(steps) {
+  return {
+    completed: steps.filter(step => TERMINAL_STEP_STATUSES.has(step.status)).length,
+    total: steps.length || 1,
+    failed: steps.filter(step => step.status === "failed").length
+  };
+}
+
+function updateSummary(steps, deployment) {
+  const stats = getStepStats(steps);
+  const progressPercent = Math.round((stats.completed / stats.total) * 100);
+  const deploymentStatus = deployment?.status || "pending";
+  const hasFailedOutcome = deploymentStatus === "failed" || deploymentStatus === "blocked" || steps.some(step => step.status === "failed");
+  const hasSuccessOutcome = deploymentStatus === "success";
+
+  const progressLabel = document.getElementById("progress-label");
+  const progressBar = document.getElementById("progress-bar");
+  if (progressLabel) {
+    progressLabel.textContent = `${stats.completed} of ${stats.total} steps completed`;
+  }
+  if (progressBar) {
+    progressBar.style.width = `${progressPercent}%`;
+    progressBar.setAttribute("aria-valuenow", `${progressPercent}`);
+    if (hasFailedOutcome) {
+      progressBar.className = "progress-bar bg-danger";
+    } else if (hasSuccessOutcome || progressPercent === 100) {
+      progressBar.className = "progress-bar bg-success";
+    } else {
+      progressBar.className = "progress-bar progress-bar-striped progress-bar-animated";
+    }
+  }
+}
+
+function areAllStepsCompleteOrNonBlocking(steps) {
+  return steps.length > 0 && steps.every(step => step.status === "success" || step.status === "warning" || step.status === "skipped");
+}
+
+function getVisibleHeaderContent(deployment, steps) {
+  const stats = getStepStats(steps);
+  const inlineText = `${stats.completed} of ${stats.total} steps completed`;
+  const allStepsVisibleAsSuccess = areAllStepsCompleteOrNonBlocking(steps);
+  const deploymentStatus = deployment?.status || "pending";
+
+  if (deploymentStatus === "success" && allStepsVisibleAsSuccess) {
+    return {
+      pill_class: "text-bg-success",
+      pill_text: "Ready",
+      title: "Your app is ready",
+      message: "All checks passed and the app finished deploying. Opening the app details page in a few seconds.",
+      inline_text: inlineText,
+      next_step_text: "Redirecting to the app details page in about 5 seconds."
+    };
+  }
+
+  if (deploymentStatus === "failed" || deploymentStatus === "blocked") {
+    return {
+      pill_class: "text-bg-danger",
+      pill_text: "Attention needed",
+      title: "We could not finish preparing your app",
+      message: deployment?.message || "We could not finish preparing your app.",
+      inline_text: stats.failed === 1 ? "1 step needs attention" : `${stats.failed} steps need attention`,
+      next_step_text: "Open deployment summary or go back to form."
+    };
+  }
+
+  if (deploymentStatus === "running" || steps.some(step => ["pending", "running", "retrying"].includes(step.status))) {
+    return {
+      pill_class: "text-bg-info",
+      pill_text: "Checking",
+      title: "We are preparing your app",
+      message: "Each deployment check will appear here as it finishes, and then we will deploy the app.",
+      inline_text: inlineText,
+      next_step_text: "You will be redirected automatically once deployment finishes."
+    };
+  }
+
+  return {
+    pill_class: "text-bg-secondary",
+    pill_text: "Waiting",
+    title: "Waiting for deployment checks",
+    message: "We have not recorded any deployment work yet.",
+    inline_text: inlineText,
+    next_step_text: "Keep this page open while the deployment starts."
+  };
+}
+
+function updateHeader(deployment, steps) {
+  const pill = document.getElementById("progress-pill");
+  const inline = document.getElementById("progress-inline");
+  const title = document.getElementById("progress-title");
+  const message = document.getElementById("progress-message");
+  const nextStep = document.getElementById("progress-next-step");
+  const header = getVisibleHeaderContent(deployment, steps);
+
+  if (pill) {
+    pill.className = `badge ${header.pill_class || "text-bg-secondary"}`;
+    pill.textContent = header.pill_text || "Waiting";
+  }
+  if (inline) {
+    inline.textContent = header.inline_text || "0 of 1 steps completed";
+  }
+  if (title) {
+    title.textContent = header.title || "Waiting for deployment checks";
+  }
+  if (message) {
+    message.textContent = header.message || "We have not recorded any deployment work yet.";
+  }
+  if (nextStep) {
+    nextStep.textContent = header.next_step_text || "Keep this page open while the deployment starts.";
+  }
+}
+
+function maybeRedirectToDetails(data) {
+  const steps = data.steps || [];
+  if (data.deployment?.status === "success" && areAllStepsCompleteOrNonBlocking(steps)) {
+    if (!successRedirectTimer) {
+      successRedirectTimer = window.setTimeout(() => {
+        window.location.assign(detailUrl);
+      }, SUCCESS_REDIRECT_DELAY_MS);
+    }
+    return;
+  }
+  stopSuccessRedirect();
+}
+
+function renderProgress(data) {
+  const steps = data.steps || [];
+  renderSteps(steps);
+  updateSummary(steps, data.deployment);
+  updateHeader(data.deployment, steps);
+}
+
+function areSameStep(left, right) {
+  return JSON.stringify(left || null) === JSON.stringify(right || null);
+}
+
+function haveSameSteps(currentSteps, targetSteps) {
+  const maxLength = Math.max(currentSteps.length, targetSteps.length);
+  for (let index = 0; index < maxLength; index += 1) {
+    if (!areSameStep(currentSteps[index], targetSteps[index])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function getNextChangedStepIndex(currentSteps, targetSteps) {
+  const maxLength = Math.max(currentSteps.length, targetSteps.length);
+  for (let index = 0; index < maxLength; index += 1) {
+    if (!areSameStep(currentSteps[index], targetSteps[index])) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function buildRunningPreviewStep(targetStep) {
+  return {
+    ...targetStep,
+    status: "running",
+    visualStatus: "running",
+    statusLabel: getStatusLabel("running"),
+    detail: "Currently running.",
+    errorDetail: null
+  };
+}
+
+function getDisplayedStep(currentStep, targetStep) {
+  const shouldPreviewRunning = Boolean(
+    targetStep &&
+    targetStep.key !== "deploy" &&
+    (!currentStep || currentStep.status === "pending") &&
+    TERMINAL_STEP_STATUSES.has(targetStep.status) &&
+    targetStep.status !== "skipped"
+  );
+
+  if (shouldPreviewRunning) {
+    return buildRunningPreviewStep(targetStep);
+  }
+
+  return targetStep || null;
+}
+
+function syncDisplayedProgress() {
+  stopStepReveal();
+
+  const currentSteps = displayedProgressData.steps || [];
+  const targetSteps = latestServerData.steps || [];
+  const changedIndex = getNextChangedStepIndex(currentSteps, targetSteps);
+
+  if (changedIndex === -1) {
+    displayedProgressData = {
+      ...displayedProgressData,
+      deployment: {...latestServerData.deployment}
+    };
+    renderProgress(displayedProgressData);
+    maybeRedirectToDetails(displayedProgressData);
+    return;
+  }
+
+  const currentStep = currentSteps[changedIndex] || null;
+  const targetStep = targetSteps[changedIndex] || null;
+  const nextSteps = currentSteps.slice();
+  const displayedStep = getDisplayedStep(currentStep, targetStep);
+
+  if (displayedStep) {
+    nextSteps[changedIndex] = displayedStep;
+  } else {
+    nextSteps.splice(changedIndex, 1);
+  }
+
+  displayedProgressData = {
+    ...displayedProgressData,
+    steps: nextSteps
+  };
+
+  if (haveSameSteps(displayedProgressData.steps, targetSteps)) {
+    displayedProgressData = {
+      ...displayedProgressData,
+      deployment: {...latestServerData.deployment}
+    };
+  }
+
+  renderProgress(displayedProgressData);
+  maybeRedirectToDetails(displayedProgressData);
+
+  stepRevealTimer = window.setTimeout(syncDisplayedProgress, STEP_REVEAL_DELAY_MS);
+}
+
+function refreshProgress() {
+  fetch(statusApiUrl)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Unexpected status ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      latestServerData = copyProgressData(data);
+      syncDisplayedProgress();
+
+      const rawDone = ["success", "failed", "blocked"].includes(data.deployment?.status);
+      if (rawDone && !data.deployment?.tasks_in_progress && haveSameSteps(displayedProgressData.steps, latestServerData.steps)) {
+        stopAutoRefresh();
+      }
+    })
+    .catch(error => {
+      console.error("Error fetching deployment progress:", error);
+      const inline = document.getElementById("progress-inline");
+      if (inline) {
+        inline.textContent = "Could not load the latest deployment update. Retrying automatically.";
+      }
+    });
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  displayedProgressData = copyProgressData(latestServerData);
+  renderProgress(displayedProgressData);
+  maybeRedirectToDetails(displayedProgressData);
+  refreshProgress();
+  startAutoRefresh();
+});
+</script>
+{% endblock %}

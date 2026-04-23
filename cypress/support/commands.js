@@ -154,6 +154,25 @@ Cypress.Commands.add('getCSRFToken', () => {
 });
 
 
+Cypress.Commands.add('completeAppSubmissionFlow', () => {
+  cy.location('pathname', { timeout: 20000 }).then((path) => {
+    if (path.includes('/apps/progress/')) {
+      cy.get('#details-link', { timeout: 10000 }).click();
+      cy.location('pathname', { timeout: 10000 }).then((detailsPath) => {
+        if (detailsPath.includes('/apps/details/')) {
+          cy.contains('a', 'Back to project', { timeout: 10000 }).click();
+        }
+      });
+      return;
+    }
+
+    if (path.includes('/apps/details/')) {
+      cy.contains('a', 'Back to project', { timeout: 10000 }).click();
+    }
+  });
+});
+
+
 Cypress.Commands.add('manageTestData', (options) => {
   const {
     endpoint,

@@ -149,7 +149,7 @@ class TestDataManager:
 
         if form.is_valid():
             # now create app
-            app_id = create_instance_from_form(form, project, app_slug)
+            app_id = create_instance_from_form(form, project, app_slug).instance_id
         else:
             raise ValueError(f"Form is invalid: {form.errors.as_data()}")
 

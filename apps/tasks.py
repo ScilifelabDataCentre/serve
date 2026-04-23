@@ -11,9 +11,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
+from apps.background_tasks.utils import select_latest_task_records
 from apps.constants import AppActionOrigin
 from apps.helpers import generate_helm_install_command, get_merged_k8s_values
 from common.tasks import send_email_task
@@ -40,6 +42,42 @@ class MissingSerializedInstanceError(ValueError):
         super().__init__(
             f"No instance found for model {model} with pk {pk} (base_instance_exists={base_instance_exists})"
         )
+
+
+def _build_background_task_error_result(
+    error: Exception,
+    *,
+    stage: str,
+    traceback_text: str | None = None,
+    retry_count: int | None = None,
+    max_retries: int | None = None,
+    should_retry: bool | None = None,
+) -> dict[str, Any]:
+    result = {
+        "success": False,
+        "error": {
+            "type": type(error).__name__,
+            "module": type(error).__module__,
+            "message": str(error),
+            "stage": stage,
+        },
+    }
+
+    if traceback_text:
+        result["error"]["traceback"] = traceback_text
+    if retry_count is not None:
+        result["error"]["retry_count"] = retry_count
+    if max_retries is not None:
+        result["error"]["max_retries"] = max_retries
+    if should_retry is not None:
+        result["error"]["should_retry"] = should_retry
+
+    ui_error = getattr(error, "ui_error", None)
+    if ui_error:
+        result["ui_error"] = ui_error
+        result["error"]["ui_error"] = ui_error
+
+    return result
 
 
 def _retry_countdown(current_retries: int) -> int:
@@ -508,6 +546,43 @@ def deserialize(serialized_instance):
         raise MissingSerializedInstanceError(model=model, pk=pk, base_instance_exists=base_instance_exists)
 
 
+def resolve_task_app_instance(task_record):
+    """
+    Resolve the concrete app instance model for a background task when possible.
+
+    BackgroundTask points to BaseAppInstance, but many task implementations expect
+    fields that live on the concrete child model (for example CustomAppInstance).
+    Fall back to the base instance if a concrete model cannot be resolved.
+    """
+    base_instance = task_record.app_instance
+    app = getattr(base_instance, "app", None)
+    app_slug = getattr(app, "slug", None)
+    if not app_slug:
+        return base_instance
+
+    model_class = APP_REGISTRY.get_orm_model(app_slug)
+    if not model_class:
+        return base_instance
+
+    try:
+        concrete_instance = model_class.objects.get(pk=task_record.app_instance_id)
+        logger.debug(
+            "background_task.instance_resolved task=%s app_id=%s concrete_model=%s",
+            task_record.task_name,
+            task_record.app_instance_id,
+            model_class.__name__,
+        )
+        return concrete_instance
+    except ObjectDoesNotExist:
+        logger.debug(
+            "background_task.instance_fallback task=%s app_id=%s base_model=%s",
+            task_record.task_name,
+            task_record.app_instance_id,
+            type(base_instance).__name__,
+        )
+        return base_instance
+
+
 @app.task
 def update_cached_app_ip_counts():
     """Update cached IP counts of every app subdomain."""
@@ -641,6 +716,7 @@ def execute_single_background_task(
     *args,
     task_db_id: int | None = None,
     task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
+    progress_started_at: str | None = None,
 ):
     """
     Execute a single background task.
@@ -654,6 +730,7 @@ def execute_single_background_task(
         task_db_id: ID of the BackgroundTask model instance (optional if passed via args).
         task_kwargs_by_task_name: Optional mapping of task_name -> kwargs dict passed to
             validate_inputs/execute for that specific task.
+        progress_started_at: ISO timestamp forwarded to the task as ``_task_started_at``.
     """
     from apps.background_tasks.registry import TASK_REGISTRY
     from apps.models import BackgroundTask
@@ -711,17 +788,20 @@ def execute_single_background_task(
         return {"success": False, "error": error_msg}
 
     task_instance = task_class()
+    app_instance = resolve_task_app_instance(task_record)
     task_kwargs_by_task_name = task_kwargs_by_task_name or {}
     task_kwargs = {}
     if isinstance(task_kwargs_by_task_name, dict):
         task_kwargs = task_kwargs_by_task_name.get(task_record.task_name) or {}
+    if progress_started_at:
+        task_kwargs = {**task_kwargs, "_task_started_at": progress_started_at}
 
     # Validate inputs
     try:
         if task_kwargs:
-            task_instance.validate_inputs(task_record.app_instance, **task_kwargs)
+            task_instance.validate_inputs(app_instance, **task_kwargs)
         else:
-            task_instance.validate_inputs(task_record.app_instance)
+            task_instance.validate_inputs(app_instance)
     except Exception as e:
         import traceback
 
@@ -729,28 +809,23 @@ def execute_single_background_task(
         logger.error(error_msg)
         task_record.mark_as_failed(
             error_msg,
-            result_data={
-                "success": False,
-                "error": {
-                    "type": type(e).__name__,
-                    "module": type(e).__module__,
-                    "message": str(e),
-                    "traceback": traceback.format_exc()[-10000:],
-                    "stage": "validate_inputs",
-                },
-            },
+            result_data=_build_background_task_error_result(
+                e,
+                stage="validate_inputs",
+                traceback_text=traceback.format_exc()[-10000:],
+            ),
         )
         return {"success": False, "error": error_msg}
 
     # Execute the task
     try:
         if task_kwargs:
-            result = task_instance.execute(task_record.app_instance, **task_kwargs)
+            result = task_instance.execute(app_instance, **task_kwargs)
         else:
-            result = task_instance.execute(task_record.app_instance)
+            result = task_instance.execute(app_instance)
         task_record.mark_as_success(result_data=result)
         try:
-            task_instance.on_success(task_record.app_instance, result)
+            task_instance.on_success(app_instance, result)
         except Exception as hook_err:
             # Hooks should not be able to flip a successful task into a failed one.
             logger.warning(
@@ -783,7 +858,7 @@ def execute_single_background_task(
 
             task_record.mark_as_retrying()
             try:
-                task_instance.on_failure(task_record.app_instance, e)
+                task_instance.on_failure(app_instance, e)
             except Exception as hook_err:
                 # Still retry even if the failure hook itself errors.
                 logger.warning(
@@ -799,22 +874,17 @@ def execute_single_background_task(
         else:
             task_record.mark_as_failed(
                 error_msg,
-                result_data={
-                    "success": False,
-                    "error": {
-                        "type": type(e).__name__,
-                        "module": type(e).__module__,
-                        "message": str(e),
-                        "traceback": traceback.format_exc()[-10000:],
-                        "stage": "execute",
-                        "retry_count": task_record.retry_count,
-                        "max_retries": task_record.max_retries,
-                        "should_retry": bool(should_retry),
-                    },
-                },
+                result_data=_build_background_task_error_result(
+                    e,
+                    stage="execute",
+                    traceback_text=traceback.format_exc()[-10000:],
+                    retry_count=task_record.retry_count,
+                    max_retries=task_record.max_retries,
+                    should_retry=bool(should_retry),
+                ),
             )
             try:
-                task_instance.on_failure(task_record.app_instance, e)
+                task_instance.on_failure(app_instance, e)
             except Exception as hook_err:
                 logger.warning(
                     "Background task %s on_failure hook failed for app %s: %s",
@@ -833,6 +903,7 @@ def run_background_tasks(
     serialized_instance,
     app_slug,
     task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
+    progress_started_at: str | None = None,
     skip_deploy: bool = False,
 ):
     """
@@ -846,6 +917,9 @@ def run_background_tasks(
         app_slug: App type slug
         task_kwargs_by_task_name: Optional mapping of task_name -> kwargs dict passed to
             validate_inputs/execute for that specific task.
+        progress_started_at: ISO timestamp captured when the form was submitted. Used to scope
+            the progress page without persisting a BackgroundTask run id.
+        skip_deploy: When True, run the background-task workflow but do not enqueue Helm deployment.
 
     Returns:
         Dict with success status and task results
@@ -865,6 +939,11 @@ def run_background_tasks(
 
     if not tasks_by_order:
         logger.info(f"No background tasks registered for app type {app_slug}")
+        if skip_deploy:
+            return {
+                "success": True,
+                "message": "No tasks to run, deployment skipped",
+            }
         # Proceed directly to deployment, but only after this transaction commits.
         transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
         return {"success": True, "message": "No tasks to run, proceeding to deployment"}
@@ -903,7 +982,9 @@ def run_background_tasks(
             timeout = task_timeout_by_id.get(tr.id, 300)
             task_chain.append(
                 execute_single_background_task.si(
-                    task_db_id=tr.id, task_kwargs_by_task_name=task_kwargs_by_task_name
+                    task_db_id=tr.id,
+                    task_kwargs_by_task_name=task_kwargs_by_task_name,
+                    progress_started_at=progress_started_at,
                 ).set(
                     soft_time_limit=timeout,
                     time_limit=timeout + 30,
@@ -916,6 +997,7 @@ def run_background_tasks(
                     execute_single_background_task.si(
                         task_db_id=tr.id,
                         task_kwargs_by_task_name=task_kwargs_by_task_name,
+                        progress_started_at=progress_started_at,
                     ).set(
                         soft_time_limit=task_timeout_by_id.get(tr.id, 300),
                         time_limit=task_timeout_by_id.get(tr.id, 300) + 30,
@@ -926,7 +1008,7 @@ def run_background_tasks(
             task_chain.append(parallel_tasks)
 
     # Add deployment as the final step in the chain, unless skip_deploy is True
-    task_chain.append(check_tasks_and_deploy.s(instance.id, serialized_instance, skip_deploy))
+    task_chain.append(check_tasks_and_deploy.s(instance.id, serialized_instance, progress_started_at, skip_deploy))
 
     # Execute the chain
     workflow = chain(*task_chain)
@@ -939,7 +1021,13 @@ def run_background_tasks(
 
 @shared_task
 @transaction.atomic
-def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instance, skip_deploy=False):
+def check_tasks_and_deploy(
+    previous_results,
+    app_instance_id,
+    serialized_instance,
+    progress_started_at: str | None = None,
+    skip_deploy=False,
+):
     """
     Check if all critical tasks succeeded, then deploy if appropriate.
 
@@ -955,13 +1043,18 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
     logger.info(f"Checking background tasks before deployment for app {app_instance_id}")
 
     # Get all tasks for this app instance
-    tasks = BackgroundTask.objects.filter(app_instance_id=app_instance_id).order_by("execution_order")
+    task_qs = BackgroundTask.objects.filter(app_instance_id=app_instance_id).order_by("execution_order", "created_at")
+    if progress_started_at:
+        parsed_started_at = parse_datetime(progress_started_at)
+        if parsed_started_at is not None:
+            task_qs = task_qs.filter(created_at__gte=parsed_started_at)
+    tasks = select_latest_task_records(list(task_qs))
 
-    # Check if any critical tasks failed
-    failed_critical_tasks = tasks.filter(is_critical=True, status="failed")
+    # Check if any critical tasks failed in the latest logical run.
+    failed_critical_tasks = [task for task in tasks if task.is_critical and task.status == "failed"]
 
-    if failed_critical_tasks.exists():
-        failed_names = [t.task_name for t in failed_critical_tasks]
+    if failed_critical_tasks:
+        failed_names = [task.task_name for task in failed_critical_tasks]
         from apps.background_tasks.feature_flags import (
             background_tasks_nonblocking_deploy,
         )
@@ -972,10 +1065,11 @@ def check_tasks_and_deploy(previous_results, app_instance_id, serialized_instanc
                 f"{', '.join(failed_names)}. Deployment NOT blocked (waffle switch enabled)."
             )
             logger.warning(warning_msg)
-            transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
+            if not skip_deploy:
+                transaction.on_commit(lambda: deploy_resource.delay(serialized_instance))
             return {
                 "success": False,
-                "deployed": True,
+                "deployed": not skip_deploy,
                 "warning": warning_msg,
                 "failed_tasks": failed_names,
                 "blocked": False,

@@ -9,13 +9,15 @@ import logging
 import time
 import traceback
 from datetime import datetime
-from typing import Any, List, Optional, Type, TypedDict, Union
+from typing import Any, List, Optional, Type, TypedDict, Union, cast
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 
+from apps.background_tasks.utils import resolve_app_access, resolve_app_image
 from doi_minting.clients.invenio_client import (
     InvenioClient,
     InvenioClientError,
@@ -57,6 +59,19 @@ from .schemas import (
 logger = get_logger(__name__)
 
 
+_LATEST_IMAGE_CACHE_TTL_SECONDS = 60
+
+
+def _version_index(hit: dict[str, Any]) -> int:
+    versions = hit.get("versions") or {}
+    if not isinstance(versions, dict):
+        return -1
+    try:
+        return int(versions.get("index", -1))
+    except (TypeError, ValueError):
+        return -1
+
+
 class InvenioService:
     """
     Manages Invenio record creation, versioning, and DOI minting for application instances.
@@ -91,7 +106,91 @@ class InvenioService:
                 verify=self.verify,
             )
 
+    def _extract_image_identifier(self, related_identifiers: list[dict[str, Any]]) -> Optional[str]:
+        """Return the app image identifier from a version's related identifiers."""
+        for item in related_identifiers:
+            if item.get("relation_type", {}).get("id") == "hasversion":
+                return item.get("identifier")
+        return None
+
+    def _get_latest_published_image(self, invenio_record_id: str) -> Optional[str]:
+        """Fetch the image identifier from the latest published version, cached briefly."""
+        cache_key = f"invenio:latest_image:{self.base_url}:{invenio_record_id}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            # "" = cached negative (distinguishes from cache miss).
+            return cached or None
+
+        try:
+            all_versions = self.client.get_all_versions(invenio_record_id)
+        except Exception as e:
+            logger.error(f"Error checking existing versions: {e}")
+            return None
+
+        hits = (all_versions or {}).get("hits", {}).get("hits") or []
+        dict_hits: list[dict[str, Any]] = [cast(dict[str, Any], hit) for hit in hits if isinstance(hit, dict)]
+        if not dict_hits:
+            return None
+
+        latest_hit = next(
+            (hit for hit in dict_hits if hit.get("versions", {}).get("is_latest")),
+            None,
+        )
+        if latest_hit is None:
+            latest_hit = max(dict_hits, key=_version_index)
+
+        latest_metadata = latest_hit.get("metadata") or {}
+        latest_related_identifiers = latest_metadata.get("related_identifiers", [])
+        latest_image = self._extract_image_identifier(latest_related_identifiers)
+        cache.set(cache_key, latest_image or "", _LATEST_IMAGE_CACHE_TTL_SECONDS)
+        return latest_image
+
+    def matches_latest_version_image(self, app_instance: Any, image_value: str) -> bool:
+        """
+        Check whether the given image matches the latest published Invenio version.
+
+        Args:
+            app_instance: The application instance
+            image_value: The image identifier to check
+
+        Returns:
+            True if the latest published version already uses this image, False otherwise
+        """
+        invenio_record_id = getattr(app_instance, "invenio_record_id", None)
+        if not invenio_record_id:
+            logger.debug(f"No existing Invenio record ID for app, image '{image_value}' is new.")
+            return False
+
+        latest_image = self._get_latest_published_image(invenio_record_id)
+        logger.debug(f"Latest published image version: {latest_image}")
+
+        if latest_image == image_value:
+            logger.info(f"Image '{image_value}' already matches the latest published version.")
+            return True
+
+        return False
+
     def is_app_access_public(self, app_instance: Any) -> tuple[bool, str]:
+        """
+        Check if DOI minting is allowed for the app's current access level.
+
+        Args:
+            app_instance: The application instance to check
+
+        Returns:
+            Tuple of (is_eligible, reason)
+        """
+        access = resolve_app_access(app_instance)
+
+        # Check if app is public
+        if access != "public":
+            if access:
+                return False, f"DOI minting is only available for Public apps. Visibility level: {access}"
+            return False, "DOI minting is only available for public apps."
+
+        return True, "App is public"
+
+    def is_app_eligible_for_doi(self, app_instance: Any) -> tuple[bool, str]:
         """
         Check if the application is eligible for DOI minting.
 
@@ -101,12 +200,16 @@ class InvenioService:
         Returns:
             Tuple of (is_eligible, reason)
         """
-        app_data = model_to_dict(app_instance, exclude=["_state"])
+        is_public, reason = self.is_app_access_public(app_instance)
+        if not is_public:
+            return False, reason
 
-        # Check if app is public
-        if app_data.get("access") != "public":
-            return False, f"App access is '{app_data.get('access')}', not 'public'"
-
+        # Check if it's a new image version
+        image_value = resolve_app_image(app_instance)
+        if not image_value:
+            return False, "DOI minting requires an app image."
+        if self.matches_latest_version_image(app_instance, image_value):
+            return False, f"Image '{image_value}' already matches the latest published version"
         return True, "App is eligible for DOI minting"
 
     def _are_subjects_different(self, current_subjects: Any, new_subjects: Any) -> bool:
@@ -1200,7 +1303,7 @@ class InvenioService:
                     # Safely access metadata and related identifiers
                     metadata = hit.get("metadata", {})
                     related_ids = metadata.get("related_identifiers", [])
-                    app_image = related_ids[1]["identifier"] if len(related_ids) > 1 else "Unknown"
+                    app_image = self._extract_image_identifier(related_ids) or "Unknown"
 
                     logger.debug(
                         f"  Version {i+1}: ID={hit.get('id')}, "

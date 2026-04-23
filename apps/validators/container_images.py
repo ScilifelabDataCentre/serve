@@ -15,6 +15,55 @@ logger = get_logger(__name__)
 
 # Constants
 
+
+class ContainerImageValidationError(ValueError):
+    """User-facing validation error for container image lookup and parsing."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        retryable: bool = False,
+        code: str = "container_image_validation_error",
+        context: dict | None = None,
+    ):
+        super().__init__(message)
+        self.retryable = retryable
+        self.code = code
+        self.context = context or {}
+
+
+def _is_transient_registry_status(status_code: int) -> bool:
+    return status_code == 429 or 500 <= status_code < 600
+
+
+def _format_image_reference(repository: str, reference: str, registry: str) -> str:
+    return f"{registry}/{repository}:{reference}"
+
+
+def _build_manifest_lookup_error(*, repository: str, reference: str, registry: str, status_code: int) -> str:
+    image_reference = _format_image_reference(repository, reference, registry)
+    if status_code == 404:
+        return (
+            f"We could not find the container image '{image_reference}'. "
+            "Check that the image name and tag are correct."
+        )
+    if status_code in (401, 403):
+        return (
+            f"We could not access the container image '{image_reference}'. "
+            "Check that the image exists and that it is available to this deployment."
+        )
+    return f"We could not read metadata for the container image '{image_reference}'. " "Please try again in a moment."
+
+
+def _get_manifest_lookup_error_code(status_code: int) -> str:
+    if status_code == 404:
+        return "image_not_found"
+    if status_code in (401, 403):
+        return "image_access_denied"
+    return "image_metadata_unavailable"
+
+
 ACCEPT_MANIFEST = ", ".join(
     [
         "application/vnd.oci.image.manifest.v1+json",
@@ -681,7 +730,21 @@ def get_manifest_list(
     resp = requests.get(url, headers=headers)
     if resp.status_code != 200:
         logger.error(f"Error fetching manifest: {resp.status_code} {resp.text}")
-        return None
+        image_reference = _format_image_reference(repository, reference, registry)
+        raise ContainerImageValidationError(
+            _build_manifest_lookup_error(
+                repository=repository,
+                reference=reference,
+                registry=registry,
+                status_code=resp.status_code,
+            ),
+            retryable=_is_transient_registry_status(resp.status_code),
+            code=_get_manifest_lookup_error_code(resp.status_code),
+            context={
+                "image_reference": image_reference,
+                "status_code": resp.status_code,
+            },
+        )
 
     return resp.json()
 
@@ -699,6 +762,20 @@ def get_config_blob(*, auth: BaseRegistryAuth, repo: str, digest: str, registry:
     resp = requests.get(url, headers=headers)
     if resp.status_code != 200:
         logger.error(f"Error fetching config blob: {resp.status_code} {resp.text}")
+        if _is_transient_registry_status(resp.status_code):
+            image_reference = _format_image_reference(repo, digest, registry)
+            raise ContainerImageValidationError(
+                (
+                    f"We could not read metadata for the container image '{image_reference}'. "
+                    "Please try again in a moment."
+                ),
+                retryable=True,
+                code="image_metadata_unavailable",
+                context={
+                    "image_reference": image_reference,
+                    "status_code": resp.status_code,
+                },
+            )
         return None
 
     return resp.json()
@@ -751,6 +828,14 @@ def get_image_architectures(
         reference=reference,
         registry_auth=auth,
     )
+    image_reference = _format_image_reference(repo, reference, registry)
+
+    if manifest is None:
+        raise ContainerImageValidationError(
+            f"We could not read metadata for the container image '{image_reference}'. Please try again.",
+            code="image_metadata_unavailable",
+            context={"image_reference": image_reference},
+        )
 
     media_type = manifest.get("mediaType")
     logger.info(f"Manifest mediaType: {media_type}")
@@ -765,9 +850,27 @@ def get_image_architectures(
         logger.info(f"Single-platform image detected. Config digest: {config_digest}")
 
         config = get_config_blob(registry=registry, repo=repo, digest=config_digest, auth=auth)
+        if config is None:
+            raise ContainerImageValidationError(
+                f"We found the container image '{image_reference}', but could not read its platform details.",
+                code="image_platform_unavailable",
+                context={"image_reference": image_reference},
+            )
         architectures = _get_architecture_from_config(config)
 
     else:
         logger.error("Unknown or unsupported manifest format!")
+        raise ContainerImageValidationError(
+            f"We found the container image '{image_reference}', but its manifest format is not supported.",
+            code="image_platform_unavailable",
+            context={"image_reference": image_reference},
+        )
+
+    if not architectures:
+        raise ContainerImageValidationError(
+            f"We found the container image '{image_reference}', but could not determine its supported platforms.",
+            code="image_platform_unavailable",
+            context={"image_reference": image_reference},
+        )
 
     return architectures

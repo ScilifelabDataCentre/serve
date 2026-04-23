@@ -219,6 +219,7 @@ describe("Test project contributor user functionality", () => {
                         cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                         cy.get('#id_name').type("e2e-create-jl")
                         cy.get('#submit-id-submit').contains('Submit').click()
+                        cy.completeAppSubmissionFlow()
                   });
                 // step 2. check that the button to create another one does not work
                 cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('button:contains("Create")').should('not.have.attr', 'href')
@@ -350,6 +351,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('#id_name').type(private_app_name)
         cy.get('#id_access').select('Private')
         cy.get('#submit-id-submit').contains('Submit').click() // create app
+        cy.completeAppSubmissionFlow()
         cy.get('tr:contains("' + private_app_name + '")').find('span').should('contain', 'Private') // check that the app got greated
 
         // Create project app
@@ -358,6 +360,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('#id_name').type(project_app_name)
         cy.get('#id_access').select('Project')
         cy.get('#submit-id-submit').contains('Submit').click() // create app
+        cy.completeAppSubmissionFlow()
         cy.get('tr:contains("' + project_app_name + '")').find('span').should('contain', 'Project') // check that the app got greated
 
         // Give access to this project to a collaborator user
@@ -453,6 +456,7 @@ describe("Test project contributor user functionality", () => {
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('div.card-body:contains("File Manager")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#submit-id-submit').should('be.visible').click()
+        cy.completeAppSubmissionFlow()
 
         cy.get('tr:contains("File Manager")').find('[data-cy="appstatus"]').should('have.attr', 'data-app-action', 'Creating')
     })
