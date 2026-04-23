@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% extends "base.html" %}
+{% block title %}Record deleted{% endblock %}
+{% load static %}
+{% block head %}
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid pb-3">
+
+        <h2 class="mb-2">Record deleted</h2>
+
+
+  <div class="row g-4">
+
+    <div class="col-12">
+
+      <div class="card shadow mb-4">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Record description</h2>
+        </div>
+        <div class="card-body">
+            <p>The record you are trying to access was removed from SciLifeLab Serve. The metadata of the record is kept for archival purposes. </p>
+
+                            <dl class="row">
+                            <dt class="col-sm-4">Date of removal:</dt>
+                            <dd class="col-sm-8">{{ removal_date }}</dd>
+
+                            <dt class="col-sm-4">Reason for removal:</dt>
+                            <dd class="col-sm-8">{{ removal_reason_label }}</dd>
+
+                            {% if removal_note %}
+                            <dt class="col-sm-4">Removal note:</dt>
+                            <dd class="col-sm-8">{{ removal_note }}</dd>
+                            {% endif %}
+
+                            <dt class="col-sm-4">Record DOI:</dt>
+                            <dd class="col-sm-8">{{ doi_url|lower }}</dd>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

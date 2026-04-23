@@ -22,6 +22,7 @@ from apps.models import (
     VolumeInstance,
 )
 from apps.models.app_types.custom.custom import validate_default_url_subpath
+from doi_minting.services.schemas import Award, Funder, Funding
 from projects.models import Flavor, PersistentVolumeMountPath, Project
 
 User = get_user_model()
@@ -136,7 +137,7 @@ class CustomAppFormTest(BaseAppFormTest):
         form = CustomAppForm(valid_data, project_pk=self.project.pk)
         self.assertTrue(form.is_valid())
 
-    @patch("doi_minting.services.invenio_svc.InvenioService")
+    @patch("apps.forms.base.InvenioService")
     @patch("apps.forms.base.waffle.switch_is_active", return_value=True)
     def test_edit_form_prefills_language_and_funding_from_invenio(self, _mock_switch, mock_invenio_service):
         instance = CustomAppInstance.objects.create(
@@ -155,20 +156,29 @@ class CustomAppFormTest(BaseAppFormTest):
             invenio_record_id="mock-record-id",
         )
 
+        # Create proper Pydantic funding objects
         funding = [
+            Funding(
+                funder=Funder(id="004hzzk67", name="Knut and Alice Wallenberg Foundation"),
+                award=Award(number="1111", title="award title", url="https://example.com"),
+            )
+        ]
+
+        # Expected flattened output after processing
+        expected_funding = [
             {
-                "funder_id": "039qvmf95",
-                "funder_name": "Wallenberg Wood Science Center",
-                "number": "12",
-                "title": "award 1",
-                "url": "https://url.com",
+                "funder_id": "004hzzk67",
+                "funder_name": "Knut and Alice Wallenberg Foundation",
+                "number": "1111",
+                "title": "award title",
+                "url": "https://example.com",
             }
         ]
 
         # Mock the service instance and its methods
         mock_service_instance = mock_invenio_service.return_value
         mock_app_metadata = {"metadata": {"languages": [{"id": "swe"}], "funding": []}}
-        mock_service_instance.get_app_metadata.return_value = mock_app_metadata
+        mock_service_instance.extract_app_metadata.return_value = mock_app_metadata
         mock_service_instance.extract_language_id.return_value = "swe"
         mock_service_instance.extract_funding.return_value = funding
         mock_service_instance.extract_creators.return_value = []
@@ -177,7 +187,7 @@ class CustomAppFormTest(BaseAppFormTest):
 
         self.assertEqual(form.fields["language"].initial, "swe")
         self.assertIn("funding_sources_json", form.fields)
-        self.assertEqual(form.fields["funding_sources_json"].initial, json.dumps(funding))
+        self.assertEqual(form.fields["funding_sources_json"].initial, json.dumps(expected_funding))
 
 
 class CustomAppFormRenderingTest(BaseAppFormTest):

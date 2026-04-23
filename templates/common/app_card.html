@@ -94,7 +94,7 @@
                         <div class="clearfix"></div>
                     </div>
                     <div class="col-12">
-                        <a id="app-metadata-{{ app.id }}" target="_blank" title="App description" rel="Link to the description of the app" href="{% url 'app-metadata' app.id %}" class="btn btn-outline-serve-grape btn-sm w-100" style="border-radius:2px;"> <i class="bi bi-info-circle"></i> Details</a>
+                        <a id="app-details-{{ app.id }}" title="App description" rel="Link to the description of the app" href="{% if app.invenio_record_id %}{% url 'app-details' app.invenio_record_id %}{% else %}{% url 'app-details' app.id %}{% endif %}" class="btn btn-outline-serve-grape btn-sm w-100" style="border-radius:2px;"> <i class="bi bi-info-circle"></i> Details</a>
                     </div>
                     <div class="card-footer d-flex text-muted card-footer-text justify-content-between border-top-0">
                         <div>

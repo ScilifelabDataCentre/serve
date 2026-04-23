@@ -9,17 +9,17 @@ from urllib.parse import urljoin
 
 import requests
 
+from .exceptions import (
+    InvenioClientError,
+    InvenioClientRequestError,
+    InvenioServerError,
+    RecordDeletedError,
+)
 from .http_client import delete, get, post, put
 from .session import make_session
 from .tls import tls_verify_from_env
 
 logger = logging.getLogger(__name__)
-
-
-class InvenioClientError(Exception):
-    """Base exception for InvenioRDM client errors"""
-
-    pass
 
 
 class InvenioClient:
@@ -113,6 +113,7 @@ class InvenioClient:
 
         if response.status_code not in success_codes:
             error_msg = f"API request failed with status {response.status_code}"
+            error_data: Dict[str, Any] = {}
             try:
                 error_data = response.json()
                 if "message" in error_data:
@@ -122,7 +123,16 @@ class InvenioClient:
             except (json.JSONDecodeError, ValueError):
                 error_msg = f"{error_msg}: {response.text}"
 
-            raise InvenioClientError(error_msg)
+            # Deal with 410
+            if response.status_code == 410:
+                raise RecordDeletedError(error_msg, tombstone_data=error_data)
+            # Raise exceptions based on status code range
+            if 400 <= response.status_code < 500:
+                raise InvenioClientRequestError(error_msg)
+            elif response.status_code >= 500:
+                raise InvenioServerError(error_msg)
+            else:
+                raise InvenioClientError(error_msg)
 
         # For 204 No Content responses, return empty dict
         if response.status_code == 204:

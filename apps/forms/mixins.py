@@ -186,21 +186,38 @@ class CreatorsMixin:
                 # Convert Invenio creators format to our format
                 creators_data = []
                 for creator in self._invenio_creators:
-                    # Handle the Invenio creator format
-                    creator_name = creator.get("creator_name", "")
-                    name_parts = creator_name.split() if creator_name else ["", ""]
-                    first_name = name_parts[0] if name_parts else ""
-                    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+                    # Handle Pydantic Creator objects
+                    creator_data = creator.model_dump() if hasattr(creator, "model_dump") else creator
+
+                    # Extract person_or_org data
+                    person_org = creator_data.get("person_or_org", {})
+                    given_name = person_org.get("given_name", "")
+                    family_name = person_org.get("family_name", "")
+
+                    # Extract ORCID from identifiers if present
+                    orcid = ""
+                    identifiers = person_org.get("identifiers", [])
+                    if identifiers:
+                        for identifier in identifiers:
+                            if identifier.get("scheme") == "orcid":
+                                orcid = identifier.get("identifier", "")
+                                break
+
+                    # Extract affiliation
+                    affiliation = ""
+                    affiliations = creator_data.get("affiliations", [])
+                    if affiliations:
+                        affiliation = affiliations[0].get("name", "")
 
                     creator_obj = {
-                        "name": first_name,
-                        "lastName": last_name,
-                        "orcid": creator.get("creator_id", ""),
-                        "affiliation": creator.get("affiliation", ""),
+                        "name": given_name,
+                        "lastName": family_name,
+                        "orcid": orcid,
+                        "affiliation": affiliation,
                     }
                     creators_data.append(creator_obj)
 
-                self.fields["creators"].initial = json.dumps(creators_data)
+                self.fields["creators"].initial = json.dumps(creators_data, sort_keys=True)
                 return
 
             except Exception:
@@ -294,11 +311,32 @@ class CreatorsMixin:
         creators_to_display = []
         if hasattr(self, "_invenio_creators") and self._invenio_creators:
             for creator in self._invenio_creators:
-                creator_name = creator.get("creator_name", "")
+                # Convert Pydantic to dict for minimal changes
+                creator_dict = creator.model_dump()
+
+                # Extract data from dict structure (minimal changes to existing logic)
+                creator_name = ""
+                creator_orcid = ""
+                affiliation = ""
+
+                if "person_or_org" in creator_dict and creator_dict["person_or_org"]:
+                    person_org = creator_dict["person_or_org"]
+                    creator_name = person_org.get("name", "")
+
+                    # Extract ORCID from identifiers
+                    if "identifiers" in person_org and person_org["identifiers"]:
+                        for identifier in person_org["identifiers"]:
+                            if identifier.get("scheme") == "orcid":
+                                creator_orcid = identifier.get("identifier", "")
+                                break
+
+                # Extract first affiliation
+                if "affiliations" in creator_dict and creator_dict["affiliations"]:
+                    affiliation = creator_dict["affiliations"][0].get("name", "")
+
                 name_parts = creator_name.split() if creator_name else ["", ""]
                 first_name = name_parts[0] if name_parts else ""
                 last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
-                creator_orcid = creator.get("creator_id", "")
 
                 # Check if this creator is the current user
                 is_current_user = any(
@@ -316,7 +354,7 @@ class CreatorsMixin:
                         "lastName": last_name,
                         "fullName": creator_name,
                         "orcid": creator_orcid,
-                        "affiliation": creator.get("affiliation", ""),
+                        "affiliation": affiliation,
                         "isCurrentUser": is_current_user,
                     }
                 )
