@@ -22,6 +22,7 @@ from doi_minting.clients.invenio_client import (
     InvenioClient,
     InvenioClientError,
     InvenioClientRequestError,
+    RecordDeletedError,
 )
 from doi_minting.clients.invenio_client.mock_client import MockInvenioClient
 from studio.utils import get_logger
@@ -503,6 +504,11 @@ class InvenioService:
             except Exception as validation_error:
                 logger.error(f"Validation error for InvenioRecord {record_id}: {validation_error}")
                 return None
+
+        except RecordDeletedError as e:
+            logger.warning(f"Record deleted for record_id={record_id}: {e}")
+            raise
+
         except Exception as e:
             logger.error(f"Error retrieving record {record_id}: {e}")
             return None

@@ -13,6 +13,7 @@ from .exceptions import (
     InvenioClientError,
     InvenioClientRequestError,
     InvenioServerError,
+    RecordDeletedError,
 )
 from .http_client import delete, get, post, put
 from .session import make_session
@@ -112,6 +113,7 @@ class InvenioClient:
 
         if response.status_code not in success_codes:
             error_msg = f"API request failed with status {response.status_code}"
+            error_data: Dict[str, Any] = {}
             try:
                 error_data = response.json()
                 if "message" in error_data:
@@ -121,6 +123,9 @@ class InvenioClient:
             except (json.JSONDecodeError, ValueError):
                 error_msg = f"{error_msg}: {response.text}"
 
+            # Deal with 410
+            if response.status_code == 410:
+                raise RecordDeletedError(error_msg, tombstone_data=error_data)
             # Raise exceptions based on status code range
             if 400 <= response.status_code < 500:
                 raise InvenioClientRequestError(error_msg)
