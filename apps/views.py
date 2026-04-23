@@ -25,7 +25,7 @@ from django.views import View
 from guardian.decorators import permission_required_or_403
 from rest_framework.exceptions import NotFound
 
-from apps.constants import AppActionOrigin
+from apps.constants import INVENIO_RECORD_REMOVAL_REASON_LABELS, AppActionOrigin
 from apps.types_.subdomain import SubdomainCandidateName
 from doi_minting.services.invenio_svc import (
     InvenioClientError,
@@ -607,21 +607,6 @@ def app_metadata(request, app_id):
     return render(request, "common/app_metadata.html", {"app": app, "schema_dict": schema_dict})
 
 
-REMOVAL_REASON_LABELS = {
-    "duplicate": "Duplicate of another record",
-    "retracted": "Retraction/Withdrawal of a record",
-    "replaced": "Substitution",
-    "spam": "Spam",
-    "copyright": "Copyright infringement",
-    "personal-data": "Personal data issue",
-    "take-down-request": "Take-down request",
-    "disputed-authorship": "Disputed authorship",
-    "misconduct": "Misconduct",
-    "fraud": "Fraud",
-    "out-of-scope": "Content out of scope for repository",
-}
-
-
 def app_tombstone(request, tombstone_data):
     tombstone = tombstone_data.get("tombstone", {})
 
@@ -631,7 +616,7 @@ def app_tombstone(request, tombstone_data):
         removal_date = datetime.fromisoformat(removal_date_raw).strftime("%Y-%m-%d")
 
     removal_reason_id = tombstone.get("removal_reason", {}).get("id")
-    removal_reason_label = REMOVAL_REASON_LABELS.get(removal_reason_id, removal_reason_id)
+    removal_reason_label = INVENIO_RECORD_REMOVAL_REASON_LABELS.get(removal_reason_id, removal_reason_id)
 
     removal_note = tombstone.get("note")
 
