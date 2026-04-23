@@ -336,19 +336,15 @@ class CreateApp(View):
             )
 
         # Otherwise we can create the instance
-        instance_id, progress_started_at, workflow_started = create_instance_from_form(
-            form,
-            project,
-            app_slug,
-            app_id,
-            return_progress_started_at=True,
-        )
-        if not workflow_started:
-            return HttpResponseRedirect(build_project_app_path(str(project_slug), f"details/{app_slug}/{instance_id}"))
+        result = create_instance_from_form(form, project, app_slug, app_id)
+        if not result.workflow_started:
+            return HttpResponseRedirect(
+                build_project_app_path(str(project_slug), f"details/{app_slug}/{result.instance_id}")
+            )
 
-        progress_url = build_project_app_path(str(project_slug), f"progress/{app_slug}/{instance_id}")
-        if progress_started_at:
-            progress_url = f"{progress_url}?{urlencode({'started_at': progress_started_at})}"
+        progress_url = build_project_app_path(str(project_slug), f"progress/{app_slug}/{result.instance_id}")
+        if result.progress_started_at:
+            progress_url = f"{progress_url}?{urlencode({'started_at': result.progress_started_at})}"
         return HttpResponseRedirect(progress_url)
 
     def get_form(self, request, project, app_slug, app_id):

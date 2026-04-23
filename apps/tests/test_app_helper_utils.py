@@ -70,7 +70,7 @@ class CreateAppInstanceTestCase(TestCase):
 
         with patch("apps.tasks.run_background_tasks.delay") as mock_task:
             with self.captureOnCommitCallbacks(execute=True):
-                id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
+                id = create_instance_from_form(form, self.project, self.app_slug, app_id=None).instance_id
 
             self.assertIsNotNone(id)
             self.assertTrue(id > 0)
@@ -111,7 +111,7 @@ class CreateAppInstanceTestCase(TestCase):
 
         with patch("apps.tasks.run_background_tasks.delay") as mock_task:
             with self.captureOnCommitCallbacks(execute=True):
-                id = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
+                id = create_instance_from_form(form, self.project, self.app_slug, app_id=None).instance_id
 
             app_instance = DashInstance.objects.get(pk=id)
             # verify the reminder date is present
@@ -348,7 +348,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertEqual(set(form.changed_data), set(changed_fields))
 
         with self.captureOnCommitCallbacks(execute=True):
-            id = create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+            id = create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id).instance_id
 
         self.assertIsNotNone(id)
         self.assertTrue(id > 0)
@@ -407,7 +407,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
         with patch.object(waffle, "switch_is_active", return_value=False):
             with self.captureOnCommitCallbacks(execute=True):
-                id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id)
+                id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id).instance_id
         # get the updated app instance and verify reminder date field is set
         app_instance = DashInstance.objects.get(pk=id)
         self.assertIsNotNone(app_instance.reminder_date_linkonly_privacy)
@@ -419,7 +419,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
         with patch.object(waffle, "switch_is_active", return_value=False):
             with self.captureOnCommitCallbacks(execute=True):
-                id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id)
+                id = create_instance_from_form(form, self.project, self.app_slug, app_id=app_instance.id).instance_id
         # get updated app instance and verify reminder date field is not set
         app_instance = DashInstance.objects.get(pk=id)
         self.assertIsNone(app_instance.reminder_date_linkonly_privacy)
@@ -523,7 +523,7 @@ def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_
 
     with patch("apps.tasks.run_background_tasks.delay") as mock_bg:
         with django_capture_on_commit_callbacks(execute=True):
-            app_id = create_instance_from_form(form, project, "customapp", app_id=None)
+            app_id = create_instance_from_form(form, project, "customapp", app_id=None).instance_id
 
     app_instance = model_class.objects.get(pk=app_id)
 
@@ -567,7 +567,7 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
 
     with patch("apps.tasks.run_background_tasks.delay") as mock_bg:
         with django_capture_on_commit_callbacks(execute=True):
-            app_id = create_instance_from_form(form, project, "dashapp", app_id=None)
+            app_id = create_instance_from_form(form, project, "dashapp", app_id=None).instance_id
 
     app_instance = model_class.objects.get(pk=app_id)
 

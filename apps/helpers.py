@@ -1,7 +1,7 @@
 import json
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, NamedTuple, Optional, Type
 
 import regex as re
 import requests
@@ -313,6 +313,12 @@ def get_URI(instance):
     return URI
 
 
+class CreateInstanceResult(NamedTuple):
+    instance_id: int
+    progress_started_at: str | None
+    workflow_started: bool
+
+
 @transaction.atomic
 def create_instance_from_form(
     form,
@@ -320,8 +326,7 @@ def create_instance_from_form(
     app_slug,
     app_id=None,
     force_redeploy: bool = False,
-    return_progress_started_at: bool = False,
-) -> int | tuple[int, str | None, bool]:
+) -> CreateInstanceResult:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
     and the updating of existing ones based on the presence of an app_id.
@@ -335,7 +340,7 @@ def create_instance_from_form(
       mutate underlying infrastructure without altering standard form fields.
 
     Returns:
-    - The newly created or updated instance.
+    - CreateInstanceResult: instance_id plus progress_started_at/workflow_started metadata.
 
     Raises:
     - ValueError: If the form does not have a 'subdomain' or if the specified app cannot be found.
@@ -529,11 +534,11 @@ def create_instance_from_form(
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
-    if return_progress_started_at:
-        workflow_started = do_deploy or run_background_tasks_only
-        return instance_id, progress_started_at, workflow_started
-
-    return instance_id
+    return CreateInstanceResult(
+        instance_id=instance_id,
+        progress_started_at=progress_started_at,
+        workflow_started=do_deploy or run_background_tasks_only,
+    )
 
 
 def _run_background_tasks_and_doi_only(

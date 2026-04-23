@@ -13,6 +13,7 @@ from typing import Any, List, Optional, Type, TypedDict, Union, cast
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 
@@ -57,11 +58,17 @@ from .schemas import (
 logger = get_logger(__name__)
 
 
+_LATEST_IMAGE_CACHE_TTL_SECONDS = 60
+
+
 def _version_index(hit: dict[str, Any]) -> int:
     versions = hit.get("versions") or {}
     if not isinstance(versions, dict):
         return -1
-    return int(versions.get("index", -1))
+    try:
+        return int(versions.get("index", -1))
+    except (TypeError, ValueError):
+        return -1
 
 
 class InvenioService:
@@ -105,6 +112,38 @@ class InvenioService:
                 return item.get("identifier")
         return None
 
+    def _get_latest_published_image(self, invenio_record_id: str) -> Optional[str]:
+        """Fetch the image identifier from the latest published version, cached briefly."""
+        cache_key = f"invenio:latest_image:{self.base_url}:{invenio_record_id}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            # "" = cached negative (distinguishes from cache miss).
+            return cached or None
+
+        try:
+            all_versions = self.client.get_all_versions(invenio_record_id)
+        except Exception as e:
+            logger.error(f"Error checking existing versions: {e}")
+            return None
+
+        hits = (all_versions or {}).get("hits", {}).get("hits") or []
+        dict_hits: list[dict[str, Any]] = [cast(dict[str, Any], hit) for hit in hits if isinstance(hit, dict)]
+        if not dict_hits:
+            return None
+
+        latest_hit = next(
+            (hit for hit in dict_hits if hit.get("versions", {}).get("is_latest")),
+            None,
+        )
+        if latest_hit is None:
+            latest_hit = max(dict_hits, key=_version_index)
+
+        latest_metadata = latest_hit.get("metadata") or {}
+        latest_related_identifiers = latest_metadata.get("related_identifiers", [])
+        latest_image = self._extract_image_identifier(latest_related_identifiers)
+        cache.set(cache_key, latest_image or "", _LATEST_IMAGE_CACHE_TTL_SECONDS)
+        return latest_image
+
     def matches_latest_version_image(self, app_instance: Any, image_value: str) -> bool:
         """
         Check whether the given image matches the latest published Invenio version.
@@ -121,36 +160,12 @@ class InvenioService:
             logger.debug(f"No existing Invenio record ID for app, image '{image_value}' is new.")
             return False
 
-        try:
-            all_versions = self.client.get_all_versions(invenio_record_id)
+        latest_image = self._get_latest_published_image(invenio_record_id)
+        logger.debug(f"Latest published image version: {latest_image}")
 
-            if "hits" in all_versions and "hits" in all_versions["hits"]:
-                hits = all_versions["hits"]["hits"]
-                dict_hits: list[dict[str, Any]] = [cast(dict[str, Any], hit) for hit in hits if isinstance(hit, dict)]
-                latest_hit = next(
-                    (hit for hit in dict_hits if hit.get("versions", {}).get("is_latest")),
-                    None,
-                )
-                if latest_hit is None:
-                    if not dict_hits:
-                        return False
-                    latest_hit = max(dict_hits, key=_version_index)
-
-                if latest_hit is None:
-                    return False
-
-                latest_metadata = latest_hit.get("metadata") or {}
-                latest_related_identifiers = latest_metadata.get("related_identifiers", [])
-                latest_image = self._extract_image_identifier(latest_related_identifiers)
-                logger.debug(f"Latest published image version: {latest_image}")
-
-                if latest_image == image_value:
-                    logger.info(f"Image '{image_value}' already matches the latest published version.")
-                    return True
-
-        except Exception as e:
-            logger.error(f"Error checking existing versions: {e}")
-            # Assume it's new if we can't check
+        if latest_image == image_value:
+            logger.info(f"Image '{image_value}' already matches the latest published version.")
+            return True
 
         return False
 

@@ -8,6 +8,7 @@ from django.test import Client, TestCase, override_settings
 
 from projects.models import Project
 
+from ..helpers import CreateInstanceResult
 from ..models import Apps, JupyterInstance, K8sUserAppStatus, Subdomain
 
 User = get_user_model()
@@ -308,8 +309,12 @@ class CreateAppViewTestCase(TestCase):
 
         with patch("apps.views.CreateApp.get_form", return_value=fake_form), patch(
             "apps.views.create_instance_from_form",
-            return_value=(321, "2026-04-17T10:11:12+00:00", True),
-        ) as mock_create:
+            return_value=CreateInstanceResult(
+                instance_id=321,
+                progress_started_at="2026-04-17T10:11:12+00:00",
+                workflow_started=True,
+            ),
+        ):
             response = c.post(
                 f"/projects/{project.slug}/apps/create/jupyter-lab",
             )
@@ -321,4 +326,3 @@ class CreateAppViewTestCase(TestCase):
             f"{project.slug}/apps/progress/jupyter-lab/321?"
             f"{urlencode({'started_at': '2026-04-17T10:11:12+00:00'})}",
         )
-        self.assertEqual(mock_create.call_args.kwargs["return_progress_started_at"], True)

@@ -716,6 +716,7 @@ def execute_single_background_task(
     *args,
     task_db_id: int | None = None,
     task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
+    progress_started_at: str | None = None,
 ):
     """
     Execute a single background task.
@@ -729,6 +730,7 @@ def execute_single_background_task(
         task_db_id: ID of the BackgroundTask model instance (optional if passed via args).
         task_kwargs_by_task_name: Optional mapping of task_name -> kwargs dict passed to
             validate_inputs/execute for that specific task.
+        progress_started_at: ISO timestamp forwarded to the task as ``_task_started_at``.
     """
     from apps.background_tasks.registry import TASK_REGISTRY
     from apps.models import BackgroundTask
@@ -791,7 +793,6 @@ def execute_single_background_task(
     task_kwargs = {}
     if isinstance(task_kwargs_by_task_name, dict):
         task_kwargs = task_kwargs_by_task_name.get(task_record.task_name) or {}
-    progress_started_at = next((arg for arg in args if isinstance(arg, str)), None)
     if progress_started_at:
         task_kwargs = {**task_kwargs, "_task_started_at": progress_started_at}
 
@@ -981,7 +982,9 @@ def run_background_tasks(
             timeout = task_timeout_by_id.get(tr.id, 300)
             task_chain.append(
                 execute_single_background_task.si(
-                    progress_started_at, task_db_id=tr.id, task_kwargs_by_task_name=task_kwargs_by_task_name
+                    task_db_id=tr.id,
+                    task_kwargs_by_task_name=task_kwargs_by_task_name,
+                    progress_started_at=progress_started_at,
                 ).set(
                     soft_time_limit=timeout,
                     time_limit=timeout + 30,
@@ -992,9 +995,9 @@ def run_background_tasks(
             parallel_tasks = group(
                 [
                     execute_single_background_task.si(
-                        progress_started_at,
                         task_db_id=tr.id,
                         task_kwargs_by_task_name=task_kwargs_by_task_name,
+                        progress_started_at=progress_started_at,
                     ).set(
                         soft_time_limit=task_timeout_by_id.get(tr.id, 300),
                         time_limit=task_timeout_by_id.get(tr.id, 300) + 30,

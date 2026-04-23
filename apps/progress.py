@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import dateutil.parser
@@ -10,6 +11,9 @@ from projects.models import Project
 
 from .app_registry import APP_REGISTRY
 from .background_tasks.utils import select_latest_task_records
+
+# Tolerance for clock skew between web and status-updater processes.
+FRESH_STATUS_SKEW_TOLERANCE = timedelta(seconds=30)
 
 TASK_STATUS_DISPLAY = {
     "pending": ("Pending", "secondary"),
@@ -371,6 +375,19 @@ def _get_deployment_inputs(instance):
     }
 
 
+def _is_status_fresh(status_updated_at, progress_started_at):
+    """True if the k8s status reflects the workflow started at progress_started_at."""
+    if progress_started_at is None:
+        return True
+    if status_updated_at is None:
+        return False
+    if not isinstance(status_updated_at, datetime) or not isinstance(progress_started_at, datetime):
+        return False
+    if timezone.is_naive(status_updated_at) or timezone.is_naive(progress_started_at):
+        return False
+    return status_updated_at + FRESH_STATUS_SKEW_TOLERANCE >= progress_started_at
+
+
 def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progress_started_at=None):
     """
     Build the "Deploy app" step shown after the background checks.
@@ -420,9 +437,7 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progre
         label = "Pending"
         message = "Waiting to start deployment."
 
-    has_fresh_running_status = app_status == "Running" and (
-        progress_started_at is None or (status_updated_at is not None and status_updated_at >= progress_started_at)
-    )
+    has_fresh_running_status = app_status == "Running" and _is_status_fresh(status_updated_at, progress_started_at)
 
     if deployment_failed and not blocked and not tasks_in_progress:
         status = "failed"
