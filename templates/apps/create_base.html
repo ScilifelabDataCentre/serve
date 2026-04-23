@@ -215,7 +215,23 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
     }
+    function toggleAccessHelpText() {
+        const accessSelect = document.getElementById('id_access');
+        const accessHelpText = document.getElementById('id_access_helptext');
 
+        if (!accessSelect || !accessHelpText) return;
+
+        if (!accessHelpText.dataset.defaultText) {
+            accessHelpText.dataset.defaultText = accessHelpText.textContent;
+        }
+
+        const publicText = "Note that information about Public apps is permanently stored in Digital Object Identifier (DOI) records databases. See our <a target='_blank' href='/docs/doi/'>User guide for more info on DOIs</a>.";
+
+        accessHelpText.innerHTML =
+            accessSelect.value === 'public'
+                ? publicText
+                : accessHelpText.dataset.defaultText;
+    }
     // SS-1176 Users are able to set a custom default start URL for their apps
     const subdomainInput = document.getElementById("id_subdomain");
     const customDefaultUrlFormModifiedUrlText = document.getElementById("id_custom_default_url_prepend");
@@ -280,11 +296,15 @@ document.addEventListener("DOMContentLoaded", function() {
         var accessSelect = document.getElementById('id_access');
 
         toggleVisibility()
+        toggleAccessHelpText()
 
         // Check if the select element exists
         if (accessSelect) {
             // Add event listener for changes if element exists
-            accessSelect.addEventListener('change', toggleVisibility);
+            accessSelect.addEventListener('change', function() {
+                toggleVisibility();
+                toggleAccessHelpText();
+            });
         }
 
         runScript();
@@ -292,6 +312,8 @@ document.addEventListener("DOMContentLoaded", function() {
     htmx.onLoad(function(content) {
         runScript();
         updateUrlWithSubdomain();
+        toggleVisibility();
+        toggleAccessHelpText();
     })
 
     // Invenio Tags with Bootstrap Badges (only if field exists)

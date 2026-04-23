@@ -34,7 +34,12 @@ class AbstractCustomAppInstance(SocialMixin, LogsEnabledMixin):
     mount_path = models.ForeignKey(
         "projects.PersistentVolumeMountPath", blank=True, null=True, on_delete=models.SET_NULL
     )
-    access = models.CharField(max_length=20, default="project", choices=ACCESS_TYPES)
+    access = models.CharField(
+        max_length=20,
+        default="project",
+        choices=ACCESS_TYPES,
+        help_text="The chosen Permission level determines who can access the application.",
+    )
     port = models.IntegerField(
         default=8000,
         help_text="Port that the Docker container exposes and the application runs on. This should be an integer between 3000-9999.",
