@@ -361,15 +361,17 @@ def _get_deployment_inputs(instance):
     app_status = instance.get_app_status()
     latest_user_action = instance.latest_user_action
     helm_deploy_success = _get_helm_deploy_success(instance)
+    status_object = getattr(instance, "k8s_user_app_status", None)
     return {
         "app_status": app_status,
         "latest_user_action": latest_user_action,
         "helm_deploy_success": helm_deploy_success,
+        "status_updated_at": getattr(status_object, "time", None),
         "is_transitioning": latest_user_action in {"Creating", "Changing", "Redeploying"},
     }
 
 
-def _build_deployment_state(instance, tasks_data, deployment_inputs=None):
+def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progress_started_at=None):
     """
     Build the "Deploy app" step shown after the background checks.
 
@@ -387,6 +389,7 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None):
     app_status = inputs["app_status"]
     latest_user_action = inputs["latest_user_action"]
     helm_deploy_success = inputs["helm_deploy_success"]
+    status_updated_at = inputs["status_updated_at"]
     is_transitioning = inputs["is_transitioning"]
 
     # Task flags. These tell us whether checks are blocking deploy,
@@ -417,11 +420,15 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None):
         label = "Pending"
         message = "Waiting to start deployment."
 
+    has_fresh_running_status = app_status == "Running" and (
+        progress_started_at is None or (status_updated_at is not None and status_updated_at >= progress_started_at)
+    )
+
     if deployment_failed and not blocked and not tasks_in_progress:
         status = "failed"
         label = "Failed"
         message = "Deployment hit an error after the checks completed."
-    elif app_status == "Running" and not blocked and not tasks_in_progress:
+    elif has_fresh_running_status and not blocked and not tasks_in_progress:
         status = "success"
         label = "Done"
         message = "The app is running."
@@ -461,6 +468,7 @@ def build_progress_state(instance, progress_mode=None, progress_started_at=None)
         instance,
         tasks_data,
         deployment_inputs=deployment_inputs,
+        progress_started_at=progress_started_at,
     )
 
     return {

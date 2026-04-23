@@ -430,7 +430,7 @@ class DeploymentProgressView(View):
     name="dispatch",
 )
 class AppDetailsView(View):
-    template = "apps/details.html"
+    template = "apps/deployment_details.html"
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
@@ -464,7 +464,9 @@ class AppDetailsView(View):
             "tags": tags,
             "project_url": reverse("projects:details", kwargs={"project_slug": project_obj.slug}),
             "public_details_url": (
-                reverse("app-details", kwargs={"record_id": instance.pk}) if access == "public" else ""
+                reverse("app-details", kwargs={"record_id": instance.pk})
+                if access == "public" and not settings.INVENIO_MOCK_MODE
+                else ""
             ),
             "background_tasks_url": reverse(
                 "apps:background_tasks",

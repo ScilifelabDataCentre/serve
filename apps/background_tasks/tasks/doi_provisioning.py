@@ -83,7 +83,7 @@ def _build_additional_metadata(
     name="doi_provisioning",
     is_critical=False,
     execution_order=3,
-    app_types=["customapp", "dashapp", "shinyproxyapp", "shinyapp", "gradio", "streamlit"],
+    app_types=["customapp", "dashapp", "shinyproxyapp", "shinyapp", "gradio", "streamlit", "depictio"],
 )
 class DOIProvisioningTask(BaseBackgroundTask):
     """

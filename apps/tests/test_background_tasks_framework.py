@@ -37,6 +37,7 @@ def test_known_tasks_are_registered_after_django_startup():
 def test_known_tasks_apply_to_non_custom_app_types():
     streamlit_tasks = TASK_REGISTRY.get_tasks_for_app("streamlit")
     dash_tasks = TASK_REGISTRY.get_tasks_for_app("dashapp")
+    depictio_tasks = TASK_REGISTRY.get_tasks_for_app("depictio")
 
     assert "validate_docker_image" in [task.task_name for task in streamlit_tasks]
     assert "validate_image_public" in [task.task_name for task in streamlit_tasks]
@@ -44,15 +45,7 @@ def test_known_tasks_apply_to_non_custom_app_types():
     assert "validate_docker_image" in [task.task_name for task in dash_tasks]
     assert "validate_image_public" in [task.task_name for task in dash_tasks]
     assert "doi_provisioning" in [task.task_name for task in dash_tasks]
-
-
-@pytest.mark.django_db
-def test_doi_provisioning_is_not_registered_for_jupyter_lab():
-    jupyter_tasks = TASK_REGISTRY.get_tasks_for_app("jupyter-lab")
-
-    assert "validate_docker_image" in [task.task_name for task in jupyter_tasks]
-    assert "validate_image_public" in [task.task_name for task in jupyter_tasks]
-    assert "doi_provisioning" not in [task.task_name for task in jupyter_tasks]
+    assert "doi_provisioning" in [task.task_name for task in depictio_tasks]
 
 
 @pytest.mark.django_db
@@ -64,7 +57,7 @@ def test_validate_docker_image_is_not_registered_for_non_image_apps():
 
 @pytest.mark.django_db
 def test_doi_provisioning_is_not_registered_for_non_image_apps():
-    for app_slug in ("tissuumaps", "depictio"):
+    for app_slug in ("tissuumaps",):
         tasks = TASK_REGISTRY.get_tasks_for_app(app_slug)
         assert "doi_provisioning" not in [task.task_name for task in tasks]
 
@@ -508,33 +501,5 @@ def test_run_background_tasks_uses_known_tasks_for_streamlit(immediate_on_commit
         "validate_source_code_url",
         "doi_provisioning",
     ]
-    assert all(r.status == "pending" for r in rows)
-    assert called["apply_async"] == 1
-
-
-@pytest.mark.django_db
-def test_run_background_tasks_uses_only_validation_for_jupyter_lab(immediate_on_commit, monkeypatch):
-    user = User.objects.create_user("u_jupyter_run", "u_jupyter_run@test.com", "pw")
-    project = Project.objects.create_project(name="p_jupyter_run", owner=user, description="")
-    app = Apps.objects.create(name="JupyterLab", slug="jupyter-lab")
-    app_instance = BaseAppInstance.objects.create(owner=user, project=project, app=app, chart="test-chart")
-
-    called = {"apply_async": 0}
-
-    class FakeWorkflow:
-        def apply_async(self):
-            called["apply_async"] += 1
-
-    import celery  # type: ignore
-
-    monkeypatch.setattr(celery, "chain", lambda *steps: FakeWorkflow())
-    monkeypatch.setattr(celery, "group", lambda steps: types.SimpleNamespace(steps=steps))
-
-    result = run_background_tasks(serialized_instance=app_instance.serialize(), app_slug="jupyter-lab")
-
-    assert result["success"] is True
-
-    rows = BackgroundTask.objects.filter(app_instance=app_instance).order_by("execution_order", "task_name")
-    assert [r.task_name for r in rows] == ["validate_image_public", "validate_docker_image"]
     assert all(r.status == "pending" for r in rows)
     assert called["apply_async"] == 1

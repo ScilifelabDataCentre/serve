@@ -791,7 +791,7 @@ def execute_single_background_task(
     task_kwargs = {}
     if isinstance(task_kwargs_by_task_name, dict):
         task_kwargs = task_kwargs_by_task_name.get(task_record.task_name) or {}
-    progress_started_at = args[0] if len(args) >= 2 and isinstance(args[0], str) else None
+    progress_started_at = next((arg for arg in args if isinstance(arg, str)), None)
     if progress_started_at:
         task_kwargs = {**task_kwargs, "_task_started_at": progress_started_at}
 

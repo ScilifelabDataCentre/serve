@@ -51,8 +51,6 @@ def _concrete_app_instance_for_social_fields(app_instance):
 IMAGE_COMPATIBILITY_APP_TYPES = [
     "customapp",
     "dashapp",
-    "jupyter-lab",
-    "rstudio",
     "shinyproxyapp",
     "shinyapp",
     "gradio",
