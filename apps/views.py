@@ -23,6 +23,7 @@ from django.shortcuts import (
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import content_disposition_header
+from django.utils.safestring import mark_safe
 from django.views import View
 from guardian.decorators import permission_required_or_403
 from rest_framework.exceptions import NotFound
@@ -380,7 +381,12 @@ class CreateApp(View):
             if app_id and instance and hasattr(instance, "access") and instance.access == "public":
                 if hasattr(form, "fields") and "access" in form.fields:
                     form.fields["access"].disabled = True
-                    form.fields["access"].help_text = "The apps that have already been made public cannot be hidden."
+                    form.fields["access"].help_text = mark_safe(
+                        "The permission level for Public apps cannot be changed. "
+                        "That is because a Digital Object Identifier (DOI) has been "
+                        "registered with the information about this app. "
+                        "See our <a target='_blank' href='/docs/doi/'>User guide for more info on DOIs</a>."
+                    )
 
             return form
             # Maybe this makes typing hard.
