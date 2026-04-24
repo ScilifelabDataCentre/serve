@@ -36,6 +36,7 @@ from .schemas import (
     AppVersions,
     Award,
     AwardIdentifier,
+    Contributor,
     Creator,
     Date,
     DateType,
@@ -94,7 +95,7 @@ class InvenioService:
         self.base_url = base_url or settings.INVENIO_URL
         self.token = token or settings.INVENIO_API_TOKEN
         self.verify = verify
-        self.mock_mode = mock_mode or settings.INVENIO_MOCK_MODE
+        self.mock_mode = False
 
         if self.mock_mode:
             self.client = MockInvenioClient()
@@ -1183,6 +1184,25 @@ class InvenioService:
 
         return dates
 
+    def _build_contributors(self) -> list[Contributor]:
+        return [
+            Contributor(
+                person_or_org=PersonOrOrg(
+                    name="SciLifeLab",
+                    type="organizational",
+                    identifiers=[
+                        Identifier(
+                            scheme="ror",
+                            identifier="04ev03g22",
+                        )
+                    ],
+                ),
+                role=Role(
+                    id="hostinginstitution",
+                ),
+            )
+        ]
+
     def generate_invenio_record(
         self, app_instance: Any, additional_metadata: Optional[AdditionalMetadata] = None
     ) -> InvenioRecord:
@@ -1240,6 +1260,7 @@ class InvenioService:
         creators = self._build_creators(user_full_name, user_first_name, user_family_name, user_orcid, user_affiliation)
         identifiers = self._build_identifiers(str(app_data.id))
         related_identifiers = self._build_related_identifiers(app_data)
+        contributors = self._build_contributors()
 
         # Add documentation link if applicable
         # Modifies the list in place by reference
@@ -1254,6 +1275,7 @@ class InvenioService:
             publisher="SciLifeLab Serve",
             resource_type=ResourceType(id="software", title={"en": "Software"}),
             creators=creators,
+            contributors=contributors,
             identifiers=identifiers,
             related_identifiers=related_identifiers,
         )

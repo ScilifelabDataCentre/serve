@@ -81,6 +81,15 @@ class Creator(BaseModel):
     affiliations: list[Affiliation] | None = None
 
 
+class Contributor(BaseModel):
+    """Contributor with InvenioRDM-compatible person_or_org and role structure. All fields optional, extra allowed."""
+
+    model_config = ConfigDict(extra="allow")
+
+    person_or_org: PersonOrOrg | None = None
+    role: Role | None = None
+
+
 # ============================================================================
 # Resource and Content Type Models
 # ============================================================================
@@ -224,6 +233,7 @@ class InvenioMetadata(BaseModel):
     publication_date: str
     dates: list[Date]
     publisher: str
+    contributors: list[Contributor]
     resource_type: ResourceType
     creators: List[Creator]
 
