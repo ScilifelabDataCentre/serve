@@ -1106,18 +1106,7 @@ class InvenioService:
         """Build the related identifiers list with app URL and image."""
         related_ids = []
 
-        # 1. Application link (running application)
-        if app_data.url:
-            related_ids.append(
-                RelatedIdentifierItem(
-                    identifier=app_data.url,
-                    scheme="url",
-                    relation_type=RelationType(id="issourceof"),
-                    resource_type=ResourceType(id="software"),
-                )
-            )
-
-        # 2. App Image, need for versioning
+        # App Image, need for versioning
         if app_data.image:
             related_ids.append(
                 RelatedIdentifierItem(
@@ -1214,11 +1203,12 @@ class InvenioService:
 
         return AdditionalDescription(
             description=(
+                f"URL of latest version deployment: {app_data.url}; "
                 f"Docker image: {app_data.image}; "
                 f"Docker image port: {port}; "
                 f"Mounted volume: {has_volume}; "
                 f"Volume mount path: {path}; "
-                f"App source code URL: {source_code_url}."
+                f"App source code URL: {source_code_url}; "
             ),
             type={"id": "technical-info"},
         )

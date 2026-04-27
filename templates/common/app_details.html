@@ -27,15 +27,15 @@
     </div>
 
     <div class="d-flex gap-2">
-        {% if app.volume == None %}
+        {% if not app_otherdata.mounted_volume %}
         <a title="Instructions for running the app locally"
         href="#"
         class="btn btn-outline-serve"
         data-bs-toggle="modal"
         data-bs-target="#dockerInfoModal"
         data-app-name="{{ app_metadata.title }}"
-        data-app-image="{{ app.image }}"
-        data-app-port="{{ app.port }}">
+        data-app-image="{{ app_otherdata.docker_image }}"
+        data-app-port="{{ app_otherdata.docker_port }}">
         <i class="bi bi-download"></i> Run Locally
         </a>
         {% endif %}
@@ -96,8 +96,8 @@
 
                         <dt class="col-sm-4">Source code</dt>
                             <dd class="col-sm-8">
-                                <a href="{{ schema_dict.hasPart.0.hasPart.codeRepository }}" target="_blank">
-                                    {{ schema_dict.hasPart.0.hasPart.codeRepository }}<i class="bi bi-box-arrow-up-right mx-1"></i>
+                                <a href="{{ app_otherdata.source_code_url }}" target="_blank">
+                                    {{ app_otherdata.source_code_url }}<i class="bi bi-box-arrow-up-right mx-1"></i>
                                 </a>
                             </dd>
 

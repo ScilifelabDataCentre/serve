@@ -110,6 +110,18 @@ class MockInvenioClient:
                     "description": "Mock description of the app.",
                     "publication_date": "2024-01-01",
                     "publisher": "Mock Publisher",
+                    "contributors": [
+                        {
+                            "person_or_org": {
+                                "name": "SciLifeLab",
+                                "type": "organizational",
+                                "identifiers": [{"identifier": "04ev03g22", "scheme": "ror"}],
+                            },
+                            "role": {
+                                "id": "hostinginstitution",
+                            },
+                        }
+                    ],
                     "resource_type": {"id": "software", "title": {"en": "Software"}},
                     "languages": [{"id": "eng", "title": {"en": "English"}}],
                     "dates": [
@@ -168,12 +180,6 @@ class MockInvenioClient:
                             "relation_type": {"id": "hasversion", "title": {"en": "Has version"}},
                             "resource_type": {"id": "software", "title": {"en": "Software"}},
                         },
-                        {
-                            "identifier": "https://r72a47ca4.studio.127.0.0.1.nip.io",
-                            "scheme": "url",
-                            "relation_type": {"id": "issourceof", "title": {"en": "Is source of"}},
-                            "resource_type": {"id": "software", "title": {"en": "Software"}},
-                        },
                     ],
                     "funding": [
                         {
@@ -184,6 +190,17 @@ class MockInvenioClient:
                                 "identifiers": [{"scheme": "url", "identifier": "https://url.com"}],
                                 "url": None,
                             },
+                        }
+                    ],
+                    "additional_descriptions": [
+                        {
+                            "description": "URL of latest version deployment: https://mock-app.serve.scilifelab.se; "
+                            "Docker image: ghcr.io/some/image:20240101-100000; "
+                            "Docker image port: 1234; "
+                            "Mounted volume: False; "
+                            "Volume mount path: None; "
+                            "App source code URL: https://github.com/some/repo;",
+                            "type": {"id": "technical-info"},
                         }
                     ],
                 },
