@@ -121,7 +121,7 @@ class MockInvenioClient:
                     "creators": [
                         {
                             "person_or_org": {
-                                "name": "Jane Doe",
+                                "name": "Doe, Jane",
                                 "type": "personal",
                                 "given_name": "Jane",
                                 "family_name": "Doe",
@@ -144,7 +144,7 @@ class MockInvenioClient:
                         },
                         {
                             "person_or_org": {
-                                "name": "John Doe",
+                                "name": "Doe, John",
                                 "type": "personal",
                                 "given_name": "John",
                                 "family_name": "Doe",

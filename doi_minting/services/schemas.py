@@ -40,6 +40,11 @@ class AppData(BaseModel):
     access: str
     k8s_values: dict[str, Any] | None = None
 
+    port: int | None = None
+    path: str | None = None
+    volume: Any | None = None
+    source_code_url: str | None = None
+
 
 # ============================================================================
 # Person and Organization Models
@@ -191,6 +196,19 @@ class RelatedIdentifierItem(BaseModel):
 
 
 # ============================================================================
+# Description Models
+# ============================================================================
+
+
+class AdditionalDescription(BaseModel):
+    """Additional descriptions in Invenio metadata (main Description is abstract)."""
+
+    description: str
+    type: dict[Literal["id"], Literal["technical-info", "other"]]
+    lang: Language | None = None
+
+
+# ============================================================================
 # Core Metadata Structure
 # ============================================================================
 
@@ -245,6 +263,9 @@ class InvenioMetadata(BaseModel):
     languages: List[Language] | None = None
     subjects: list[Subject] | None = None
     funding: list[Funding] | None = None
+
+    # Additional descriptions
+    additional_descriptions: list[AdditionalDescription] | None = None
 
 
 # ============================================================================

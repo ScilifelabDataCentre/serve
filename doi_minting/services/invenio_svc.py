@@ -29,6 +29,7 @@ from studio.utils import get_logger
 
 from .schemas import (
     AccessConfig,
+    AdditionalDescription,
     AdditionalMetadata,
     Affiliation,
     AppData,
@@ -95,7 +96,7 @@ class InvenioService:
         self.base_url = base_url or settings.INVENIO_URL
         self.token = token or settings.INVENIO_API_TOKEN
         self.verify = verify
-        self.mock_mode = False
+        self.mock_mode = mock_mode or settings.INVENIO_MOCK_MODE
 
         if self.mock_mode:
             self.client = MockInvenioClient()
@@ -905,7 +906,7 @@ class InvenioService:
                     # Create person name from first and last name
                     first_name = filtered_data["name"] or "Unknown"
                     last_name = filtered_data["lastName"] or "Creator"
-                    full_name = f"{first_name} {last_name}"
+                    full_name = f"{last_name}, {first_name}"
 
                     # Create person_or_org structure with required fields for personal type
                     person_or_org = PersonOrOrg(
@@ -1203,6 +1204,25 @@ class InvenioService:
             )
         ]
 
+    def _build_technical_description(self, app_data: AppData) -> AdditionalDescription:
+        """Build default technical description metadata."""
+
+        port = app_data.port or "None"
+        path = app_data.path if app_data.volume is not None else "None"
+        source_code_url = app_data.source_code_url or "None"
+        has_volume = app_data.volume is not None
+
+        return AdditionalDescription(
+            description=(
+                f"Docker image: {app_data.image}; "
+                f"Docker image port: {port}; "
+                f"Mounted volume: {has_volume}; "
+                f"Volume mount path: {path}; "
+                f"App source code URL: {source_code_url}."
+            ),
+            type={"id": "technical-info"},
+        )
+
     def generate_invenio_record(
         self, app_instance: Any, additional_metadata: Optional[AdditionalMetadata] = None
     ) -> InvenioRecord:
@@ -1241,7 +1261,7 @@ class InvenioService:
             pass
 
         # Get user full name
-        user_full_name: str = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip()
+        user_full_name: str = f"{user_data.get('last_name', '')}, {user_data.get('first_name', '')}".strip()
         user_first_name: str = user_data.get("first_name", "")
         user_family_name: str = user_data.get("last_name", "")
         user_email: str = user_data.get("email", "")
@@ -1261,6 +1281,7 @@ class InvenioService:
         identifiers = self._build_identifiers(str(app_data.id))
         related_identifiers = self._build_related_identifiers(app_data)
         contributors = self._build_contributors()
+        technical_description = self._build_technical_description(app_data)
 
         # Add documentation link if applicable
         # Modifies the list in place by reference
@@ -1278,6 +1299,7 @@ class InvenioService:
             contributors=contributors,
             identifiers=identifiers,
             related_identifiers=related_identifiers,
+            additional_descriptions=[technical_description],
         )
 
         # Apply additional metadata if provided
