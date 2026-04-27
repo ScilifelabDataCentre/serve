@@ -11,9 +11,10 @@ import requests
 from apps.app_registry import APP_REGISTRY
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY
-from apps.background_tasks.utils import resolve_app_image
-from apps.models.base import SocialMixin
-from apps.validators.container_images import ContainerImageContext
+from apps.validators.container_images import (
+    ContainerImageContext,
+    ContainerImageValidationError,
+)
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
@@ -47,6 +48,24 @@ def _concrete_app_instance_for_social_fields(app_instance):
         return app_instance
 
 
+IMAGE_COMPATIBILITY_APP_TYPES = [
+    "customapp",
+    "dashapp",
+    "shinyproxyapp",
+    "shinyapp",
+    "gradio",
+    "streamlit",
+]
+
+
+class TaskUIError(ContainerImageValidationError):
+    """Validation error with a stable UI payload for the progress page."""
+
+    def __init__(self, message: str, *, ui_error: Dict[str, str], retryable: bool = False):
+        super().__init__(message, retryable=retryable)
+        self.ui_error = ui_error
+
+
 def _validation_result_no_image(app_instance) -> Dict[str, Any]:
     """Shared 'no image to validate' result for container image validators."""
     return {
@@ -73,11 +92,48 @@ def _validation_result_skipped_unsupported_registry(ctx: ContainerImageContext) 
     }
 
 
+def _build_ui_error(*, code: str, summary: str, image_reference: str = "", note: str = "") -> Dict[str, str]:
+    return {
+        "code": code,
+        "summary": summary,
+        "image_reference": image_reference,
+        "note": note,
+    }
+
+
+def _build_public_image_ui_error(image_reference: str) -> Dict[str, str]:
+    return _build_ui_error(
+        code="image_not_public",
+        summary="We could not find this container image.",
+        image_reference=image_reference,
+        note="Make sure the image is publicly available.",
+    )
+
+
+def _build_docker_image_ui_error(error: Exception, image_reference: str) -> Dict[str, str]:
+    resolved_image_reference = getattr(error, "context", {}).get("image_reference") or image_reference
+
+    if getattr(error, "code", "") == "image_unsupported_architecture":
+        return _build_ui_error(
+            code="image_unsupported_architecture",
+            summary="This container image does not support amd64.",
+            image_reference=resolved_image_reference,
+            note="Make sure the image is built for amd64.",
+        )
+
+    return _build_ui_error(
+        code=getattr(error, "code", "image_validation_failed"),
+        summary="We could not find this container image.",
+        image_reference=resolved_image_reference,
+        note="Make sure the image exists and is built for amd64.",
+    )
+
+
 @TASK_REGISTRY.register(
     name="validate_docker_image",
     is_critical=True,
     execution_order=1,
-    app_types=["customapp", "dashapp", "jupyter-lab", "rstudio", "shinyproxyapp", "shinyapp", "gradio", "streamlit"],
+    app_types=IMAGE_COMPATIBILITY_APP_TYPES,
 )
 class DockerImageValidator(BaseBackgroundTask):
     """
@@ -122,9 +178,15 @@ class DockerImageValidator(BaseBackgroundTask):
             amd64_found = any(arch.arch == "amd64" for arch in architectures)
 
             if not amd64_found:
-                raise ValueError(
+                raise TaskUIError(
                     f"Docker image {ctx.image} does not support amd64 architecture. "
-                    f"Found: {[arch.arch for arch in architectures]}"
+                    f"Found: {[arch.arch for arch in architectures]}",
+                    ui_error=_build_ui_error(
+                        code="image_unsupported_architecture",
+                        summary="This container image does not support amd64.",
+                        image_reference=ctx.image,
+                        note="Make sure the image is built for amd64.",
+                    ),
                 )
 
             return {
@@ -136,16 +198,29 @@ class DockerImageValidator(BaseBackgroundTask):
                 "reference": ctx.reference,
             }
 
+        except ContainerImageValidationError as exc:
+            if isinstance(exc, TaskUIError):
+                raise
+            raise TaskUIError(
+                str(exc),
+                retryable=bool(getattr(exc, "retryable", False)),
+                ui_error=_build_docker_image_ui_error(exc, ctx.image),
+            ) from exc
         except Exception as e:
             logger.error("Failed to validate Docker image %s: %s", ctx.image, e)
             raise
+
+    def should_retry(self, error: Exception, retry_count: int) -> bool:
+        if isinstance(error, ContainerImageValidationError):
+            return bool(getattr(error, "retryable", False))
+        return super().should_retry(error, retry_count)
 
 
 @TASK_REGISTRY.register(
     name="validate_image_public",
     is_critical=True,
     execution_order=0,
-    app_types=["customapp", "jupyter", "rstudio"],
+    app_types=IMAGE_COMPATIBILITY_APP_TYPES,
 )
 class ImagePublicValidator(BaseBackgroundTask):
     """
@@ -179,19 +254,22 @@ class ImagePublicValidator(BaseBackgroundTask):
                 ctx.registry_host_str,
                 access.detail,
             )
-            raise ValueError(
+            raise TaskUIError(
                 f"Could not verify that container image '{ctx.image}' is publicly pullable: "
                 f"registry '{ctx.registry_host_str}' is unreachable or returned a server error "
-                f"({access.detail}). Please retry later."
+                f"({access.detail}). Please retry later.",
+                retryable=True,
+                ui_error=_build_public_image_ui_error(ctx.image),
             )
 
         if access.outcome != PublicImageAccessOutcome.PUBLIC:
             reason = access.detail or "Registry did not allow anonymous manifest access"
             status_hint = f" [HTTP {access.status_code}]" if access.status_code is not None else ""
-            raise ValueError(
+            raise TaskUIError(
                 f"Container image '{ctx.image}' is not publicly pullable from registry '{ctx.registry_host_str}'"
                 f"{status_hint}. {reason} "
-                "Use a public image or ensure the image is published for anonymous pulls before deployment."
+                "Use a public image or ensure the image is published for anonymous pulls before deployment.",
+                ui_error=_build_public_image_ui_error(ctx.image),
             )
 
         return {
@@ -203,6 +281,11 @@ class ImagePublicValidator(BaseBackgroundTask):
             "public": True,
         }
 
+    def should_retry(self, error: Exception, retry_count: int) -> bool:
+        if isinstance(error, ContainerImageValidationError):
+            return bool(getattr(error, "retryable", False))
+        return super().should_retry(error, retry_count)
+
 
 @TASK_REGISTRY.register(
     name="validate_source_code_url",
@@ -210,12 +293,12 @@ class ImagePublicValidator(BaseBackgroundTask):
     execution_order=2,
     app_types=[
         "customapp",
-        # "dashapp",
+        "dashapp",
         # "depictio",
-        # "gradio",
-        # "shinyapp",
-        # "shinyproxyapp",
-        # "streamlit",
+        "gradio",
+        "shinyapp",
+        "shinyproxyapp",
+        "streamlit",
         # "tissuumaps",
     ],
 )
@@ -241,7 +324,8 @@ class SourceCodeUrlValidator(BaseBackgroundTask):
         if not url or not str(url).strip():
             return {
                 "valid": True,
-                "message": "No source_code_url provided; skip validation",
+                "skipped": True,
+                "reason": "no source code URL",
             }
 
         timeout = getattr(
@@ -304,7 +388,7 @@ class SourceCodeUrlValidator(BaseBackgroundTask):
 
             if not (200 <= response.status_code < 300):
                 return fail(
-                    f"Source code URL returned non-2xx: {response.status_code}",
+                    f"Source code URL returned unreachable. Response code: {response.status_code}",
                     status_code=response.status_code,
                 )
 

@@ -72,9 +72,7 @@
     </div>
 </div>
 
-
 <script>
-
 // Fetch docker image suggestions and populate the datalist
 document.addEventListener("DOMContentLoaded", function() {
     const imageInput = $("#id_image");
@@ -399,7 +397,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 badge.className = 'badge bg-primary d-flex align-items-center gap-1';
                 badge.innerHTML = `
                     <span>${tagText}</span>
-                    <button type="button" class="btn-close btn-close-white" style="font-size: 0.7em;" aria-label="Remove tag"></button>
+                    <button type="button" class="btn-close btn-close-white tag-remove-button" aria-label="Remove tag"></button>
                 `;
 
                 const removeBtn = badge.querySelector('.btn-close');

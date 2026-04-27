@@ -1,14 +1,16 @@
 import types
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from apps.background_tasks.base import BaseBackgroundTask
 from apps.background_tasks.registry import TASK_REGISTRY, BackgroundTaskRegistry
-from apps.models import Apps, BackgroundTask, BaseAppInstance
+from apps.models import Apps, BackgroundTask, BaseAppInstance, CustomAppInstance
 from apps.tasks import (
     check_tasks_and_deploy,
     deploy_resource,
@@ -16,6 +18,7 @@ from apps.tasks import (
     retry_background_task,
     run_background_tasks,
 )
+from doi_minting.services.invenio_svc import InvenioService
 from projects.models import Project
 
 User = get_user_model()
@@ -34,19 +37,15 @@ def test_known_tasks_are_registered_after_django_startup():
 def test_known_tasks_apply_to_non_custom_app_types():
     streamlit_tasks = TASK_REGISTRY.get_tasks_for_app("streamlit")
     dash_tasks = TASK_REGISTRY.get_tasks_for_app("dashapp")
+    depictio_tasks = TASK_REGISTRY.get_tasks_for_app("depictio")
 
     assert "validate_docker_image" in [task.task_name for task in streamlit_tasks]
+    assert "validate_image_public" in [task.task_name for task in streamlit_tasks]
     assert "doi_provisioning" in [task.task_name for task in streamlit_tasks]
     assert "validate_docker_image" in [task.task_name for task in dash_tasks]
+    assert "validate_image_public" in [task.task_name for task in dash_tasks]
     assert "doi_provisioning" in [task.task_name for task in dash_tasks]
-
-
-@pytest.mark.django_db
-def test_doi_provisioning_is_not_registered_for_jupyter_lab():
-    jupyter_tasks = TASK_REGISTRY.get_tasks_for_app("jupyter-lab")
-
-    assert "validate_docker_image" in [task.task_name for task in jupyter_tasks]
-    assert "doi_provisioning" not in [task.task_name for task in jupyter_tasks]
+    assert "doi_provisioning" in [task.task_name for task in depictio_tasks]
 
 
 @pytest.mark.django_db
@@ -54,6 +53,13 @@ def test_validate_docker_image_is_not_registered_for_non_image_apps():
     tissuumaps_tasks = TASK_REGISTRY.get_tasks_for_app("tissuumaps")
 
     assert "validate_docker_image" not in [task.task_name for task in tissuumaps_tasks]
+
+
+@pytest.mark.django_db
+def test_doi_provisioning_is_not_registered_for_non_image_apps():
+    for app_slug in ("tissuumaps",):
+        tasks = TASK_REGISTRY.get_tasks_for_app(app_slug)
+        assert "doi_provisioning" not in [task.task_name for task in tasks]
 
 
 @pytest.mark.django_db
@@ -73,13 +79,13 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
         task_type="external_api",
         status="pending",
         is_critical=False,
-        execution_order=2,
+        execution_order=3,
         max_retries=0,
     )
 
     with patch("apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"), patch(
-        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
-    ) as mock_mint:
+        "doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi", return_value=(True, "")
+    ), patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint:
         result = execute_single_background_task(
             task_db_id=task_record.id,
             task_kwargs_by_task_name={"doi_provisioning": {"language": "eng", "funding": funding_payload}},
@@ -267,7 +273,10 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
         error_message="boom",
     )
 
-    with patch.object(deploy_resource, "delay") as mock_deploy:
+    with patch(
+        "apps.background_tasks.feature_flags.background_tasks_nonblocking_deploy",
+        return_value=False,
+    ), patch.object(deploy_resource, "delay") as mock_deploy:
         result = check_tasks_and_deploy(
             previous_results=None,
             app_instance_id=app_instance.id,
@@ -311,6 +320,46 @@ def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_
 
     app_instance.refresh_from_db()
     assert app_instance.latest_user_action != "Failed"
+
+
+@pytest.mark.django_db
+def test_check_tasks_and_deploy_ignores_failed_tasks_from_before_started_at(immediate_on_commit, app_instance):
+    old_task = BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="t1",
+        task_type="validation",
+        status="failed",
+        is_critical=True,
+        execution_order=0,
+        max_retries=0,
+        error_message="boom",
+    )
+    old_task.created_at = timezone.now() - timedelta(minutes=5)
+    old_task.save(update_fields=["created_at"])
+
+    progress_started_at = timezone.now().isoformat()
+
+    BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="t1",
+        task_type="validation",
+        status="success",
+        is_critical=True,
+        execution_order=0,
+        max_retries=0,
+    )
+
+    with patch.object(deploy_resource, "delay") as mock_deploy:
+        result = check_tasks_and_deploy(
+            previous_results=None,
+            app_instance_id=app_instance.id,
+            serialized_instance=app_instance.serialize(),
+            progress_started_at=progress_started_at,
+        )
+
+    assert result["success"] is True
+    assert result["deployed"] is True
+    mock_deploy.assert_called_once()
 
 
 @pytest.mark.django_db
@@ -446,34 +495,11 @@ def test_run_background_tasks_uses_known_tasks_for_streamlit(immediate_on_commit
     assert result["success"] is True
 
     rows = BackgroundTask.objects.filter(app_instance=app_instance).order_by("execution_order", "task_name")
-    assert [r.task_name for r in rows] == ["validate_docker_image", "doi_provisioning"]
-    assert all(r.status == "pending" for r in rows)
-    assert called["apply_async"] == 1
-
-
-@pytest.mark.django_db
-def test_run_background_tasks_uses_only_validation_for_jupyter_lab(immediate_on_commit, monkeypatch):
-    user = User.objects.create_user("u_jupyter_run", "u_jupyter_run@test.com", "pw")
-    project = Project.objects.create_project(name="p_jupyter_run", owner=user, description="")
-    app = Apps.objects.create(name="JupyterLab", slug="jupyter-lab")
-    app_instance = BaseAppInstance.objects.create(owner=user, project=project, app=app, chart="test-chart")
-
-    called = {"apply_async": 0}
-
-    class FakeWorkflow:
-        def apply_async(self):
-            called["apply_async"] += 1
-
-    import celery  # type: ignore
-
-    monkeypatch.setattr(celery, "chain", lambda *steps: FakeWorkflow())
-    monkeypatch.setattr(celery, "group", lambda steps: types.SimpleNamespace(steps=steps))
-
-    result = run_background_tasks(serialized_instance=app_instance.serialize(), app_slug="jupyter-lab")
-
-    assert result["success"] is True
-
-    rows = BackgroundTask.objects.filter(app_instance=app_instance).order_by("execution_order", "task_name")
-    assert [r.task_name for r in rows] == ["validate_docker_image"]
+    assert [r.task_name for r in rows] == [
+        "validate_image_public",
+        "validate_docker_image",
+        "validate_source_code_url",
+        "doi_provisioning",
+    ]
     assert all(r.status == "pending" for r in rows)
     assert called["apply_async"] == 1

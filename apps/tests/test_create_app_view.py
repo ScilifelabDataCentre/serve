@@ -1,3 +1,6 @@
+from unittest.mock import Mock, patch
+from urllib.parse import urlencode
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -5,6 +8,7 @@ from django.test import Client, TestCase, override_settings
 
 from projects.models import Project
 
+from ..helpers import CreateInstanceResult
 from ..models import Apps, JupyterInstance, K8sUserAppStatus, Subdomain
 
 User = get_user_model()
@@ -293,3 +297,32 @@ class CreateAppViewTestCase(TestCase):
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
+
+    @override_settings(APPS_PER_PROJECT_LIMIT={"jupyter-lab": 1})
+    def test_submit_redirects_to_deployment_progress_page(self):
+        c = Client()
+        project = self.get_data()
+        c.force_login(self.user)
+
+        fake_form = Mock()
+        fake_form.is_valid.return_value = True
+
+        with patch("apps.views.CreateApp.get_form", return_value=fake_form), patch(
+            "apps.views.create_instance_from_form",
+            return_value=CreateInstanceResult(
+                instance_id=321,
+                progress_started_at="2026-04-17T10:11:12+00:00",
+                workflow_started=True,
+            ),
+        ):
+            response = c.post(
+                f"/projects/{project.slug}/apps/create/jupyter-lab",
+            )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            "/projects/"
+            f"{project.slug}/apps/progress/jupyter-lab/321?"
+            f"{urlencode({'started_at': '2026-04-17T10:11:12+00:00'})}",
+        )

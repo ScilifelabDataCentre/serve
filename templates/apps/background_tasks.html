@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Background Tasks - {{ instance.name }}{% endblock %}
+{% block title %}{{ instance.name }} - Deployment Checks{% endblock %}
 {% load static %}
 {% block content %}
 
@@ -8,35 +8,30 @@
   <div class="row">
     <div class="col-md-12">
       <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h3>{{ instance.name }} - Background Tasks</h3>
-        <div>
+        <h3>{{ instance.name }} - Deployment Checks</h3>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ detail_url }}" class="btn btn-outline-secondary">App Details</a>
           <a href="{% url 'projects:details' project.slug %}" class="btn btn-secondary">Back to Project</a>
         </div>
       </div>
 
-      <div class="alert alert-info">
-        <strong>About Background Tasks:</strong> These tasks run automatically when your app is created or updated.
-        Tasks include validation checks, external API calls, and other operations that need to complete before deployment.
+      <div class="alert alert-info mb-4">
+        <strong>About Deployment Checks:</strong> These checks run automatically when your app is created or updated.
+        Checks include validation steps, external API calls, and other operations that need to complete before deployment.
       </div>
-
-      {% if not tasks %}
-      <div class="alert alert-warning">
-        No background tasks found for this app instance.
-      </div>
-      {% else %}
 
       <!-- Task Summary -->
       <div class="row mb-4">
         <div class="col-md-12">
           <div class="card shadow">
             <div class="card-header">
-              <h5>Task Summary</h5>
+              <h5 class="mb-0">Check Summary</h5>
             </div>
             <div class="card-body">
               <div class="row text-center">
                 <div class="col">
                   <h4 id="summary-total">{{ summary.total }}</h4>
-                  <small class="text-muted">Total</small>
+                  <small class="text-muted">Total checks</small>
                 </div>
                 <div class="col">
                   <h4 id="summary-pending" class="text-secondary">{{ summary.pending }}</h4>
@@ -49,6 +44,10 @@
                 <div class="col">
                   <h4 id="summary-success" class="text-success">{{ summary.success }}</h4>
                   <small class="text-muted">Success</small>
+                </div>
+                <div class="col">
+                  <h4 id="summary-skipped" class="text-secondary">{{ summary.skipped }}</h4>
+                  <small class="text-muted">Skipped</small>
                 </div>
                 <div class="col">
                   <h4 id="summary-failed" class="text-danger">{{ summary.failed }}</h4>
@@ -69,19 +68,19 @@
         <div class="col-md-12">
           <div class="card shadow">
             <div class="card-header">
-              <h5>Execution Graph</h5>
+              <h5 class="mb-0">Deployment Flow</h5>
             </div>
             <div class="card-body">
               <div id="workflow-status-banner" class="alert alert-secondary mb-3">
                 Waiting for task status updates...
               </div>
               <div id="stage-summary" class="d-flex flex-wrap gap-2 mb-3"></div>
-              <div id="execution-graph-wrapper" class="position-relative border rounded p-3 bg-light overflow-auto" style="min-height: 240px;">
-                <svg id="execution-graph-edges" class="position-absolute top-0 start-0" aria-hidden="true" style="pointer-events:none;"></svg>
+              <div id="execution-graph-wrapper" class="position-relative border rounded p-3 bg-light overflow-auto deployment-graph-wrapper">
+                <svg id="execution-graph-edges" class="position-absolute top-0 start-0 deployment-graph-edges" aria-hidden="true"></svg>
                 <div id="execution-graph" class="d-flex align-items-start gap-4 position-relative"></div>
               </div>
               <small class="text-muted d-block mt-2">
-                Click a task node to jump to its details. Critical tasks are marked with a red border.
+                Click a check to jump to its details. Required checks are marked with a red border.
               </small>
             </div>
           </div>
@@ -93,21 +92,29 @@
         <div class="col-md-12">
           <div class="card shadow">
             <div class="card-header d-flex justify-content-between">
-              <h5>Tasks</h5>
+              <div>
+                <h5 class="mb-0">Check Details</h5>
+                <small class="text-muted">Use this section when you need the detailed result of each background step.</small>
+              </div>
               <button class="btn btn-sm btn-primary" onclick="refreshTasks()">
                 <i class="bi bi-arrow-clockwise"></i> Refresh
               </button>
             </div>
             <div class="card-body">
+              {% if not tasks %}
+              <div class="alert alert-secondary mb-3">
+                No background checks have been recorded yet. Deployment status will appear here as soon as the workflow starts.
+              </div>
+              {% endif %}
               <div class="table-responsive">
                 <table class="table table-hover">
                   <thead>
                     <tr>
-                      <th>Order</th>
-                      <th>Task Name</th>
+                      <th>Stage</th>
+                      <th>Check</th>
                       <th>Type</th>
                       <th>Status</th>
-                      <th>Critical</th>
+                      <th>Required</th>
                       <th>Duration</th>
                       <th>Retries</th>
                       <th>Actions</th>
@@ -118,30 +125,37 @@
                     <tr
                       id="task-row-{{ task.id }}"
                       data-task-id="{{ task.id }}"
-                      data-task-status="{{ task.status }}"
+                      data-execution-order="{{ task.execution_order }}"
+                      data-task-status="{% if task.was_skipped %}skipped{% else %}{{ task.status }}{% endif %}"
                       data-is-critical="{% if task.is_critical %}true{% else %}false{% endif %}"
                       data-has-validation-warning="{% if task.has_validation_warning %}true{% else %}false{% endif %}"
-                      class="{% if task.is_warning_row %}table-warning text-warning{% endif %}"
+                      class="{% if task.is_warning_row %}table-warning text-warning{% elif task.was_skipped %}table-secondary{% elif task.status == 'failed' %}table-danger{% elif task.status == 'success' %}table-success{% endif %}"
                     >
-                      <td>{{ task.execution_order }}</td>
                       <td>
-                        <strong>{{ task.task_name }}</strong>
+                        <span class="badge bg-light text-dark border">Stage {{ task.execution_order|add:1 }}</span>
+                      </td>
+                      <td>
+                        <strong>{{ task.display_name }}</strong>
                         <br>
                         <small class="text-muted">
+                          {% if task.started_at %}
+                          Started: {{ task.started_at|date:"Y-m-d H:i:s" }}
+                          {% else %}
                           Created: {{ task.created_at|date:"Y-m-d H:i:s" }}
+                          {% endif %}
                         </small>
                       </td>
                       <td>
                         <span class="badge bg-secondary">{{ task.task_type }}</span>
                       </td>
                       <td>
-                        <span class="badge bg-{{ task.get_status_display_class }}" id="task-status-{{ task.id }}">
-                          {{ task.get_status_badge_label }}
+                        <span class="badge bg-{{ task.status_class }}" id="task-status-{{ task.id }}">
+                          {{ task.status_label }}
                         </span>
                       </td>
                       <td>
                         {% if task.is_critical %}
-                        <span class="badge bg-danger">Critical</span>
+                        <span class="badge bg-danger">Required</span>
                         {% else %}
                         <span class="badge bg-secondary">Optional</span>
                         {% endif %}
@@ -177,7 +191,7 @@
                     <tr class="collapse" id="task-details-{{ task.id }}">
                       <td colspan="8">
                         <div class="card card-body">
-                          <h6>Task Details</h6>
+                          <h6>Check Details</h6>
                           <dl class="row">
                             <dt class="col-sm-3">Started At:</dt>
                             <dd class="col-sm-9" id="task-started-{{ task.id }}">
@@ -195,7 +209,7 @@
                             </dd>
 
                             {% if task.error_message %}
-                            <dt class="col-sm-3">Error Message:</dt>
+                            <dt class="col-sm-3">What went wrong:</dt>
                             <dd class="col-sm-9">
                               <div class="alert {% if task.status == 'failed' and not task.is_critical %}alert-warning{% else %}alert-danger{% endif %}" id="task-error-{{ task.id }}">
                                 <pre class="mb-0">{{ task.error_message }}</pre>
@@ -204,7 +218,7 @@
                             {% endif %}
 
                             {% if task.result_data %}
-                            <dt class="col-sm-3">Result Data:</dt>
+                            <dt class="col-sm-3">Result:</dt>
                             <dd class="col-sm-9">
                               <pre class="bg-light p-2" id="task-result-{{ task.id }}">{{ task.result_data|pprint }}</pre>
                             </dd>
@@ -221,16 +235,16 @@
           </div>
         </div>
       </div>
-      {% endif %}
     </div>
   </div>
 </div>
 
 <script>
-const statusApiUrl = "{% url 'apps:background_tasks_status' project.slug app_slug instance.pk %}";
+const statusApiUrl = "{{ status_api_url|escapejs }}";
 const retryUrl = "{% url 'apps:retry_background_task' project.slug app_slug instance.pk 0 %}".replace('/0/', '/{task_id}/');
 const csrftoken = getCookieValue('csrftoken');
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const WAITING_FOR_APP_STATUS_MESSAGE = "Waiting for app status. Note that this may take up to five minutes or longer because the app is currently being deployed.";
 
 // Poll for task status updates every 3 seconds
 let refreshInterval;
@@ -246,20 +260,23 @@ function stopAutoRefresh() {
   }
 }
 
+function renderProgress(data) {
+  updateTasksDisplay(data);
+  updateSummary(data.summary);
+  const tasks = data.tasks || [];
+  updateExecutionGraph({ tasks, deployment: data.deployment || {} });
+  updateWorkflowStatus(data.deployment);
+  updateStageSummary(tasks);
+}
+
 function refreshTasks() {
   fetch(statusApiUrl)
     .then(response => response.json())
     .then(data => {
-      updateTasksDisplay(data);
-      updateSummary(data.summary);
-      const latestRunTasks = getLatestRunTasks(data.tasks || []);
-      updateExecutionGraph({ tasks: latestRunTasks });
-      updateWorkflowStatus(deriveWorkflowFromTasks(latestRunTasks));
-      updateStageSummary(latestRunTasks);
+      renderProgress(data);
 
-      // Stop auto-refresh if all tasks are completed
-      const allCompleted = data.summary.running === 0 && data.summary.pending === 0 && data.summary.retrying === 0;
-      if (allCompleted) {
+      const deploymentDone = ['success', 'failed', 'blocked'].includes(data.deployment?.status);
+      if (deploymentDone && !data.deployment?.tasks_in_progress) {
         stopAutoRefresh();
       }
     })
@@ -267,10 +284,11 @@ function refreshTasks() {
       console.error('Error fetching task status:', error);
       const fallbackTasks = readTasksFromTable();
       if (fallbackTasks.length > 0) {
-        const latestRunTasks = getLatestRunTasks(fallbackTasks);
-        updateExecutionGraph({ tasks: latestRunTasks, graph: { nodes: [], edges: [] } });
-        updateStageSummary(latestRunTasks);
-        updateWorkflowStatus(deriveWorkflowFromTasks(latestRunTasks));
+        renderProgress({
+          tasks: fallbackTasks,
+          summary: buildFallbackSummary(fallbackTasks),
+          deployment: buildFallbackDeployment(fallbackTasks)
+        });
       } else {
         const banner = document.getElementById('workflow-status-banner');
         if (banner) {
@@ -286,29 +304,25 @@ function updateSummary(summary) {
   document.getElementById('summary-pending').textContent = summary.pending;
   document.getElementById('summary-running').textContent = summary.running;
   document.getElementById('summary-success').textContent = summary.success;
+  document.getElementById('summary-skipped').textContent = summary.skipped;
   document.getElementById('summary-failed').textContent = summary.failed;
   document.getElementById('summary-retrying').textContent = summary.retrying;
 }
 
+function getDisplayTaskStatus(task) {
+  return task.was_skipped ? 'skipped' : task.status;
+}
+
 function updateTasksDisplay(data) {
   data.tasks.forEach(task => {
+    const displayStatus = task.display_status || getDisplayTaskStatus(task);
     const hasValidationWarning = task.has_validation_warning === true;
 
     // Update status badge
     const statusBadge = document.getElementById(`task-status-${task.id}`);
     if (statusBadge) {
-      statusBadge.className = `badge bg-${getStatusClass(task.status, task.is_critical, hasValidationWarning)}`;
-      statusBadge.textContent = getStatusLabel(task.status, task.is_critical, hasValidationWarning);
-    }
-
-    const row = document.getElementById(`task-row-${task.id}`);
-    if (row) {
-      const warn = isWarningRow(task.status, task.is_critical, hasValidationWarning);
-      row.classList.toggle('table-warning', warn);
-      row.classList.toggle('text-warning', warn);
-      row.dataset.taskStatus = task.status;
-      row.dataset.isCritical = task.is_critical === true ? 'true' : 'false';
-      row.dataset.hasValidationWarning = hasValidationWarning ? 'true' : 'false';
+      statusBadge.className = `badge bg-${getStatusClass(displayStatus, task.is_critical, hasValidationWarning)}`;
+      statusBadge.textContent = getStatusLabel(displayStatus, task.is_critical, hasValidationWarning);
     }
 
     // Update duration
@@ -327,6 +341,27 @@ function updateTasksDisplay(data) {
     const retryBtn = document.getElementById(`retry-btn-${task.id}`);
     if (retryBtn) {
       retryBtn.disabled = !task.can_retry;
+    }
+
+    const taskRow = document.getElementById(`task-row-${task.id}`);
+    if (taskRow) {
+      taskRow.classList.remove('table-danger', 'table-success', 'table-warning', 'table-info', 'table-secondary', 'text-warning');
+      taskRow.dataset.taskStatus = displayStatus;
+      taskRow.dataset.isCritical = task.is_critical === true ? 'true' : 'false';
+      taskRow.dataset.hasValidationWarning = hasValidationWarning ? 'true' : 'false';
+      if (isWarningRow(displayStatus, task.is_critical, hasValidationWarning)) {
+        taskRow.classList.add('table-warning', 'text-warning');
+      } else if (displayStatus === 'failed') {
+        taskRow.classList.add('table-danger');
+      } else if (displayStatus === 'skipped') {
+        taskRow.classList.add('table-secondary');
+      } else if (displayStatus === 'success') {
+        taskRow.classList.add('table-success');
+      } else if (displayStatus === 'running' || displayStatus === 'retrying') {
+        taskRow.classList.add('table-info');
+      } else if (displayStatus === 'pending') {
+        taskRow.classList.add('table-warning');
+      }
     }
   });
 }
@@ -352,6 +387,7 @@ function getStatusClass(status, isCritical, hasValidationWarning) {
     'pending': 'secondary',
     'running': 'primary',
     'success': 'success',
+    'skipped': 'secondary',
     'failed': 'danger',
     'retrying': 'warning',
     'blocked': 'danger',
@@ -370,6 +406,7 @@ function getStatusLabel(status, isCritical, hasValidationWarning) {
     pending: 'Pending',
     running: 'Running',
     success: 'Success',
+    skipped: 'Skipped',
     failed: 'Failed',
     retrying: 'Retrying',
     blocked: 'Blocked',
@@ -380,77 +417,91 @@ function getStatusLabel(status, isCritical, hasValidationWarning) {
   return labels[status] || status;
 }
 
-function updateWorkflowStatus(workflow) {
+function updateWorkflowStatus(deployment = {}) {
   const banner = document.getElementById('workflow-status-banner');
-  if (!banner || !workflow) {
+  if (!banner) {
     return;
   }
 
-  if (workflow.blocked) {
+  if (deployment.blocked) {
     banner.className = 'alert alert-danger mb-3';
-    banner.textContent = 'Deployment blocked: one or more critical tasks failed.';
+    banner.textContent = 'Deployment is blocked because at least one required check failed.';
     return;
   }
 
-  if (workflow.ready_for_deploy) {
+  if (deployment.status === 'success') {
     banner.className = 'alert alert-success mb-3';
-    banner.textContent = 'All critical tasks completed successfully. Deployment can proceed.';
+    banner.textContent = 'Deployment finished successfully. Redirecting to app details.';
     return;
   }
 
-  if (workflow.has_in_progress) {
+  if (deployment.ready_for_deploy) {
     banner.className = 'alert alert-info mb-3';
-    banner.textContent = 'Background task workflow is still in progress.';
+    banner.textContent = `All required checks completed successfully. ${WAITING_FOR_APP_STATUS_MESSAGE}`;
+    return;
+  }
+
+  if (deployment.tasks_in_progress) {
+    banner.className = 'alert alert-info mb-3';
+    banner.textContent = 'Deployment checks are still running.';
     return;
   }
 
   banner.className = 'alert alert-secondary mb-3';
-  banner.textContent = 'Waiting for task execution to start.';
+  banner.textContent = 'Waiting for deployment checks to start.';
 }
 
-function deriveWorkflowFromTasks(tasks) {
-  const hasFailedCritical = tasks.some(task => task.is_critical && task.status === 'failed');
-  const hasInProgress = tasks.some(task => ['pending', 'running', 'retrying'].includes(task.status));
-  const readyForDeploy = tasks.length > 0 && !hasFailedCritical && !hasInProgress;
+function buildFallbackSummary(tasks) {
   return {
-    blocked: hasFailedCritical,
-    ready_for_deploy: readyForDeploy,
-    has_failed_critical: hasFailedCritical,
-    has_in_progress: hasInProgress
+    total: tasks.length,
+    pending: tasks.filter(task => task.status === 'pending').length,
+    running: tasks.filter(task => task.status === 'running').length,
+    success: tasks.filter(task => task.status === 'success').length,
+    skipped: tasks.filter(task => task.status === 'skipped').length,
+    failed: tasks.filter(task => task.status === 'failed').length,
+    retrying: tasks.filter(task => task.status === 'retrying').length
   };
 }
 
-function getLatestRunTasks(tasks) {
-  if (!tasks || tasks.length === 0) {
-    return [];
+function buildFallbackDeployment(tasks) {
+  const hasFailedCritical = tasks.some(task => task.is_critical && task.status === 'failed');
+  const hasInProgress = tasks.some(task => ['pending', 'running', 'retrying'].includes(task.status));
+  const readyForDeploy = tasks.length > 0 && !hasFailedCritical && !hasInProgress;
+  if (hasFailedCritical) {
+    return {
+      status: 'blocked',
+      label: 'Blocked',
+      message: 'Deployment cannot continue until the failed required check is resolved.',
+      blocked: true,
+      ready_for_deploy: false,
+      tasks_in_progress: false
+    };
   }
 
-  // We currently don't persist a run-id, so approximate "last run" by taking
-  // the latest row per task signature (order + name).
-  const latestBySignature = new Map();
-  tasks.forEach(task => {
-    const signature = `${task.execution_order}::${task.task_name}`;
-    const current = latestBySignature.get(signature);
-    if (!current) {
-      latestBySignature.set(signature, task);
-      return;
-    }
+  return {
+    status: 'pending',
+    label: 'Pending',
+    message: readyForDeploy ? WAITING_FOR_APP_STATUS_MESSAGE : 'Waiting for the latest deployment update.',
+    blocked: false,
+    ready_for_deploy: readyForDeploy,
+    tasks_in_progress: hasInProgress
+  };
+}
 
-    const currentTs = Date.parse(current.created_at || '') || 0;
-    const candidateTs = Date.parse(task.created_at || '') || 0;
-    if (candidateTs >= currentTs) {
-      latestBySignature.set(signature, task);
-    }
-  });
-
-  return Array.from(latestBySignature.values()).sort((a, b) => {
-    if (a.execution_order !== b.execution_order) {
-      return a.execution_order - b.execution_order;
-    }
-    const aName = a.task_name || '';
-    const bName = b.task_name || '';
-    return aName.localeCompare(bName);
-  });
+function getDeployNodeStatus(deployment = {}) {
+  if (deployment.blocked || deployment.status === 'blocked') {
+    return 'blocked';
+  }
+  if (deployment.status === 'failed') {
+    return 'failed';
+  }
+  if (deployment.status === 'success') {
+    return 'ready';
+  }
+  if (deployment.ready_for_deploy || deployment.tasks_in_progress) {
+    return 'waiting';
+  }
+  return 'idle';
 }
 
 function buildStageEdges(tasks) {
@@ -489,7 +540,11 @@ function buildStageEdges(tasks) {
  * success-with-validation_warning (yellow) do not increase the success tally.
  */
 function taskCountsAsStageSuccess(task) {
-  if (task.status !== 'success') {
+  const displayStatus = task.display_status || getDisplayTaskStatus(task);
+  if (displayStatus === 'skipped') {
+    return true;
+  }
+  if (displayStatus !== 'success') {
     return false;
   }
   return task.has_validation_warning !== true;
@@ -508,15 +563,16 @@ function updateStageSummary(tasks) {
 
   const grouped = {};
   tasks.forEach(task => {
+    const displayStatus = getDisplayTaskStatus(task);
     if (!grouped[task.execution_order]) {
       grouped[task.execution_order] = { total: 0, success: 0, failed: 0, running: 0 };
     }
     grouped[task.execution_order].total += 1;
     if (taskCountsAsStageSuccess(task)) {
       grouped[task.execution_order].success += 1;
-    } else if (task.status === 'failed') {
+    } else if (displayStatus === 'failed') {
       grouped[task.execution_order].failed += 1;
-    } else if (task.status === 'running' || task.status === 'retrying') {
+    } else if (displayStatus === 'running' || displayStatus === 'retrying') {
       grouped[task.execution_order].running += 1;
     }
   });
@@ -528,7 +584,7 @@ function updateStageSummary(tasks) {
       const stats = grouped[order];
       const chip = document.createElement('span');
       chip.className = 'badge bg-light text-dark border';
-      chip.textContent = `Stage ${order}: ${stats.success}/${stats.total} success`;
+      chip.textContent = `Stage ${order + 1}: ${stats.success}/${stats.total} complete`;
       stageSummary.appendChild(chip);
     });
 }
@@ -540,6 +596,7 @@ function updateExecutionGraph(data) {
   }
 
   const tasks = data.tasks || [];
+  const deployment = data.deployment || {};
   const edges = buildStageEdges(tasks);
   const tasksById = {};
   tasks.forEach(task => {
@@ -563,7 +620,7 @@ function updateExecutionGraph(data) {
 
     const title = document.createElement('div');
     title.className = 'fw-semibold text-muted';
-    title.textContent = `Stage ${order}`;
+    title.textContent = `Stage ${order + 1}`;
     stageColumn.appendChild(title);
 
     stages[order]
@@ -575,19 +632,7 @@ function updateExecutionGraph(data) {
     graphContainer.appendChild(stageColumn);
   });
 
-  let deployNode = null;
-  if (tasks.length > 0) {
-    const workflow = deriveWorkflowFromTasks(tasks);
-    let fallbackStatus = 'idle';
-    if (workflow.blocked) {
-      fallbackStatus = 'blocked';
-    } else if (workflow.ready_for_deploy) {
-      fallbackStatus = 'ready';
-    } else if (workflow.has_in_progress) {
-      fallbackStatus = 'waiting';
-    }
-    deployNode = { id: 'deploy', status: fallbackStatus };
-  }
+  const deployNode = tasks.length > 0 ? { id: 'deploy', status: getDeployNodeStatus(deployment) } : null;
   if (deployNode) {
     const deployColumn = document.createElement('div');
     deployColumn.className = 'd-flex flex-column gap-2';
@@ -606,11 +651,12 @@ function updateExecutionGraph(data) {
 }
 
 function createTaskNode(task) {
+  const displayStatus = task.display_status || getDisplayTaskStatus(task);
   const node = document.createElement('button');
   node.type = 'button';
   node.id = `graph-node-task-${task.id}`;
   const hasValidationWarning = task.has_validation_warning === true;
-  const statusClass = getStatusClass(task.status, task.is_critical, hasValidationWarning);
+  const statusClass = getStatusClass(displayStatus, task.is_critical, hasValidationWarning);
   const textClass = statusClass === 'warning' ? 'text-dark' : 'text-white';
   node.className = `btn text-start border rounded p-2 bg-${statusClass} ${textClass}`;
   node.style.minHeight = '64px';
@@ -625,11 +671,11 @@ function createTaskNode(task) {
 
   const title = document.createElement('div');
   title.className = 'fw-semibold';
-  title.textContent = task.task_name;
+  title.textContent = task.display_name || task.task_name;
   node.appendChild(title);
 
   const subtitle = document.createElement('small');
-  subtitle.textContent = `${getStatusLabel(task.status, task.is_critical, hasValidationWarning)} • ${task.task_type}`;
+  subtitle.textContent = `${getStatusLabel(displayStatus, task.is_critical, hasValidationWarning)} • ${task.task_type}`;
   node.appendChild(subtitle);
 
   node.addEventListener('click', () => openTaskDetails(task.id));
@@ -686,8 +732,9 @@ function drawGraphEdges(edges, tasksById) {
     const y2 = targetRect.top - wrapperRect.top + wrapper.scrollTop + (targetRect.height / 2);
 
     const task = tasksById[edge.source];
+    const displayStatus = task ? getDisplayTaskStatus(task) : null;
     let strokeColor = '#6c757d';
-    if (task && task.status === 'failed') {
+    if (task && displayStatus === 'failed') {
       strokeColor = task.is_critical === false ? '#ffc107' : '#dc3545';
     }
 
@@ -698,7 +745,7 @@ function drawGraphEdges(edges, tasksById) {
     line.setAttribute('y2', y2);
     line.setAttribute('stroke', strokeColor);
     line.setAttribute('stroke-width', '2');
-    const edgeSuccess = task && task.status === 'success' && task.has_validation_warning !== true;
+    const edgeSuccess = task && taskCountsAsStageSuccess(task);
     if (!edgeSuccess) {
       line.setAttribute('stroke-dasharray', '4 3');
     }
@@ -740,7 +787,7 @@ function readTasksFromTable() {
     }
 
     const cells = row.querySelectorAll('td');
-    const order = parseInt(cells[0]?.textContent?.trim() || '0', 10);
+    const rawOrder = parseInt(row.dataset.executionOrder || '0', 10);
     const name = cells[1]?.querySelector('strong')?.textContent?.trim() || `task-${taskId}`;
     const type = cells[2]?.querySelector('.badge')?.textContent?.trim() || 'validation';
     const statusRaw = (row.dataset.taskStatus || '').trim().toLowerCase();
@@ -753,11 +800,13 @@ function readTasksFromTable() {
     tasks.push({
       id: taskId,
       task_name: name,
+      display_name: name,
       task_type: type,
       status: statusLabel,
       is_critical: isCritical,
+      execution_order: Number.isNaN(rawOrder) ? 0 : rawOrder,
       has_validation_warning: hasValidationWarning,
-      execution_order: Number.isNaN(order) ? 0 : order,
+      execution_order: Number.isNaN(rawOrder) ? 0 : rawOrder,
       retry_count: Number.isNaN(retryParts[0]) ? 0 : retryParts[0],
       max_retries: Number.isNaN(retryParts[1]) ? 0 : retryParts[1],
       can_retry: statusLabel === 'failed',
@@ -817,10 +866,11 @@ function getCookieValue(name) {
 document.addEventListener('DOMContentLoaded', function() {
   const initialTasks = readTasksFromTable();
   if (initialTasks.length > 0) {
-    const latestRunTasks = getLatestRunTasks(initialTasks);
-    updateExecutionGraph({ tasks: latestRunTasks, graph: { nodes: [], edges: [] } });
-    updateStageSummary(latestRunTasks);
-    updateWorkflowStatus(deriveWorkflowFromTasks(latestRunTasks));
+    renderProgress({
+      tasks: initialTasks,
+      summary: buildFallbackSummary(initialTasks),
+      deployment: buildFallbackDeployment(initialTasks)
+    });
   }
 
   refreshTasks();

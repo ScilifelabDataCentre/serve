@@ -1,7 +1,7 @@
 import json
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, NamedTuple, Optional, Type
 
 import regex as re
 import requests
@@ -313,8 +313,20 @@ def get_URI(instance):
     return URI
 
 
+class CreateInstanceResult(NamedTuple):
+    instance_id: int
+    progress_started_at: str | None
+    workflow_started: bool
+
+
 @transaction.atomic
-def create_instance_from_form(form, project, app_slug, app_id=None, force_redeploy: bool = False) -> int:
+def create_instance_from_form(
+    form,
+    project,
+    app_slug,
+    app_id=None,
+    force_redeploy: bool = False,
+) -> CreateInstanceResult:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
     and the updating of existing ones based on the presence of an app_id.
@@ -328,18 +340,17 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
       mutate underlying infrastructure without altering standard form fields.
 
     Returns:
-    - The newly created or updated instance.
+    - CreateInstanceResult: instance_id plus progress_started_at/workflow_started metadata.
 
     Raises:
     - ValueError: If the form does not have a 'subdomain' or if the specified app cannot be found.
     """
-    from .tasks import run_background_tasks
-
     assert form is not None, "This function requires a form object"
     assert project is not None, "This function requires a project object"
 
     new_app = app_id is None
     requested_app_slug = app_slug
+    run_background_tasks_only = False
 
     logger.info(
         "create_instance_from_form.start app_id=%s new_app=%s app_slug=%s project_id=%s",
@@ -354,10 +365,20 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         user_action = "Creating"
     else:
         do_deploy = force_redeploy
-        # Update an existing app
+        # Treat every update as a user-initiated change, while the redirect logic
+        # decides whether the user should see deployment progress or details.
         user_action = "Changing"
-
-        invenio_metadata_fields = ["name", "description", "language", "funding_sources_json", "creators", "tags"]
+        invenio_metadata_fields = [
+            "name",
+            "description",
+            "language",
+            "funding_sources_json",
+            "creators",
+            "tags",
+            "invenio_tags",
+            "source_code_url",
+            "note_on_linkonly_privacy",
+        ]
 
         if not do_deploy:
             # Only re-deploy existing apps if one of the following fields was changed:
@@ -370,37 +391,38 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
                 "image",
                 "access",
                 "shiny_site_dir",
+                "mount_path",
+                "default_url_subpath",
             ]
             logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
 
             # Because not all forms contain all fields, we check if the supposedly changed field
             # is actually contained in the form
-            run_background_tasks_only = False
             for field in form.changed_data:
-                logger.debug(f"Checking if changed field {field} is a redeployment field.")
                 if field.lower() in redeployment_fields and (
                     field.lower() in form.Meta.fields or field.lower() == "subdomain"
                 ):
-                    # subdomain is a special field not contained in meta fields
                     logger.debug("create_instance_from_form.redeploy_field_changed app_id=%s field=%s", app_id, field)
                     do_deploy = True
                     break
 
             for field in form.changed_data:
                 if field.lower() in invenio_metadata_fields:
-                    logger.debug("create_instance_from_form.invenio_metadata_changed app_id=%s field=%s", app_id, field)
+                    logger.debug(
+                        "create_instance_from_form.metadata_only_field_changed app_id=%s field=%s",
+                        app_id,
+                        field,
+                    )
                     run_background_tasks_only = True
                     break
-
     # For existing apps, detect if access is changing from non-public to public
     access_changed_to_public = False
     if not new_app:
         # Get the original instance to compare access levels
         from .app_registry import APP_REGISTRY
 
-        app_model = APP_REGISTRY.get_orm_model(app_slug)
-        original_instance = app_model.objects.get(pk=app_id)
-        original_access = getattr(original_instance, "access", None)
+        original_instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
+        original_access = getattr(original_instance, "access", None) if original_instance else None
         new_access = form.cleaned_data.get("access")
 
         # Check if access changed from non-public to public
@@ -427,10 +449,6 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
     subdomain, created = Subdomain.objects.get_or_create(
         subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user
     )
-    assert subdomain is not None
-    assert subdomain.subdomain == subdomain_name
-
-    subdomain = Subdomain.objects.get(subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user)
     assert subdomain is not None
     assert subdomain.subdomain == subdomain_name
     logger.info(
@@ -469,6 +487,8 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
 
     setup_instance(instance, subdomain, app, project, user_action)
     instance_id = save_instance_and_related_data(instance, form)
+    if do_deploy:
+        reset_k8s_user_app_status_for_deployment(instance)
     logger.info(
         "create_instance_from_form.instance_saved app_id=%s instance_id=%s user_action=%s do_deploy=%s",
         app_id,
@@ -476,6 +496,8 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
         user_action,
         do_deploy,
     )
+
+    progress_started_at: str | None = None
 
     if do_deploy:
         serialized_instance = instance.serialize()
@@ -487,18 +509,46 @@ def create_instance_from_form(form, project, app_slug, app_id=None, force_redepl
             serialized_instance.get("pk"),
         )
         logger.debug(f"Now deploying resource app with app_id = {app_id}")
-        _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public)
+
+        progress_started_at = timezone.now().isoformat()
+
+        _deploy_with_background_tasks_and_doi(
+            instance,
+            form,
+            app_slug,
+            access_changed_to_public,
+            progress_started_at=progress_started_at,
+        )
     elif run_background_tasks_only:
         # Only run background tasks, do not deploy
-        _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_to_public)
+        progress_started_at = timezone.now().isoformat()
+
+        _run_background_tasks_and_doi_only(
+            instance,
+            form,
+            app_slug,
+            access_changed_to_public,
+            progress_started_at=progress_started_at,
+        )
         logger.info("create_instance_from_form.background_tasks_only app_id=%s instance_id=%s", app_id, instance_id)
     else:
         logger.info("create_instance_from_form.deploy_skipped app_id=%s instance_id=%s", app_id, instance_id)
 
-    return instance_id
+    return CreateInstanceResult(
+        instance_id=instance_id,
+        progress_started_at=progress_started_at,
+        workflow_started=do_deploy or run_background_tasks_only,
+    )
 
 
-def _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_to_public=False, skip_deploy=True):
+def _run_background_tasks_and_doi_only(
+    instance,
+    form,
+    app_slug,
+    access_changed_to_public=False,
+    skip_deploy=True,
+    progress_started_at: str | None = None,
+):
     """Run background tasks (including DOI minting) for an instance, without deployment."""
     from .tasks import run_background_tasks
 
@@ -516,14 +566,22 @@ def _run_background_tasks_and_doi_only(instance, form, app_slug, access_changed_
 
     transaction.on_commit(
         lambda: run_background_tasks.delay(
-            serialized_instance, app_slug, task_kwargs_by_task_name, skip_deploy=skip_deploy
+            serialized_instance,
+            app_slug,
+            task_kwargs_by_task_name,
+            progress_started_at,
+            skip_deploy=skip_deploy,
         )
     )
 
-    return instance.id
 
-
-def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_changed_to_public=False):
+def _deploy_with_background_tasks_and_doi(
+    instance,
+    form,
+    app_slug,
+    access_changed_to_public=False,
+    progress_started_at: str | None = None,
+):
     """Deploy using background tasks with DOI minting for public apps."""
     from .tasks import run_background_tasks
 
@@ -538,7 +596,14 @@ def _deploy_with_background_tasks_and_doi(instance, form, app_slug, access_chang
         instance, form, app_slug, access_changed_to_public
     )
 
-    transaction.on_commit(lambda: run_background_tasks.delay(serialized_instance, app_slug, task_kwargs_by_task_name))
+    transaction.on_commit(
+        lambda: run_background_tasks.delay(
+            serialized_instance,
+            app_slug,
+            task_kwargs_by_task_name,
+            progress_started_at,
+        )
+    )
 
 
 def _prepare_doi_task_kwargs(instance, form, app_slug, access_changed_to_public=False):
@@ -669,6 +734,33 @@ def setup_instance(instance, subdomain, app, project, user_action=None, is_creat
         project.pk if project else None,
         user_action,
     )
+
+
+def reset_k8s_user_app_status_for_deployment(instance: BaseAppInstance) -> None:
+    status_object = getattr(instance, "k8s_user_app_status", None)
+    info = getattr(instance, "info", None)
+    info_changed = False
+
+    if isinstance(info, dict) and "helm" in info:
+        updated_info = dict(info)
+        updated_info.pop("helm", None)
+        instance.info = updated_info
+        instance.save(update_fields=["info"])
+        info_changed = True
+        logger.info("reset_k8s_user_app_status_for_deployment.cleared_helm_info instance_id=%s", instance.pk)
+
+    if status_object is None:
+        return
+
+    if status_object.status is None and status_object.info in (None, {}):
+        if not info_changed:
+            logger.info("reset_k8s_user_app_status_for_deployment.noop instance_id=%s", instance.pk)
+        return
+
+    status_object.status = None
+    status_object.info = None
+    status_object.save(update_fields=["status", "info"])
+    logger.info("reset_k8s_user_app_status_for_deployment instance_id=%s", instance.pk)
 
 
 def save_instance_and_related_data(instance: Any, form: Any) -> int:

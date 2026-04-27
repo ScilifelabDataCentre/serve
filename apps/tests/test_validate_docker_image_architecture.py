@@ -1,8 +1,11 @@
+from unittest.mock import Mock, patch
+
 import pytest
 import requests
 from django.conf import settings
 
 from apps.validators.container_images import (
+    ContainerImageValidationError,
     DockerHubAuthenticator,
     GHCRAuthenticator,
     ImageArchitectureTuple,
@@ -56,3 +59,18 @@ def test_get_docker_hub_architecture_is_valid():
         ImageArchitectureTuple(os="linux", arch="386"),
         ImageArchitectureTuple(os="unknown", arch="unknown"),
     ]
+
+
+def test_missing_image_returns_friendly_validation_error():
+    auth = Mock()
+    auth.get_bearer_token.return_value = "token"
+    response = Mock(status_code=404, text='{"errors":[{"code":"MANIFEST_UNKNOWN"}]}')
+
+    with patch("apps.validators.container_images.requests.get", return_value=response):
+        with pytest.raises(ContainerImageValidationError, match="could not find the container image"):
+            get_image_architectures(
+                auth=auth,
+                repo="scilifelabdatacentre/missing-image",
+                reference="does-not-exist",
+                registry="ghcr.io",
+            )

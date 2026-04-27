@@ -1,9 +1,10 @@
+from django.conf import settings
 from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 from guardian.shortcuts import assign_perm, remove_perm
 
 from apps.app_registry import APP_REGISTRY
-from apps.models import AppStatus, BaseAppInstance, MLFlowInstance
+from apps.models import BaseAppInstance, MLFlowInstance
 from studio.utils import get_logger
 
 from .tasks import helm_delete
@@ -21,9 +22,12 @@ def pre_delete_helm_uninstall(sender, instance, **kwargs):
     """
     logger.info("PRE DELETING RESOURCES")
 
-    values = instance.k8s_values
-    if values:
-        helm_delete.delay(values["subdomain"], values["namespace"])
+    values = instance.k8s_values or {}
+    release_name = values.get("subdomain") or getattr(getattr(instance, "subdomain", None), "subdomain", None)
+    namespace = values.get("namespace") or settings.NAMESPACE
+
+    if release_name and namespace:
+        helm_delete.delay(release_name, namespace)
     else:
         logger.error(f"Could not find helm release for {instance}")
 
@@ -34,16 +38,6 @@ def post_delete_subdomain_remove(sender, instance, using, **kwargs):
     if instance.latest_user_action in ["Deleting", "SystemDeleting"] and instance.subdomain is not None:
         instance.subdomain = None
         instance.save(update_fields=["subdomain"])
-
-
-@receiver(post_save, sender=AppStatus)
-def post_delete_subdomain_remove_old(sender, instance, using, **kwargs):
-    raise RuntimeError("Deprecated. An app delete should instead trigger signal post_delete_subdomain_remove")
-
-    if instance.status == "Deleted":
-        baseapp_instance = BaseAppInstance.objects.get(app_status=instance)
-        baseapp_instance.subdomain = None
-        baseapp_instance.save()
 
 
 @receiver(post_save, sender=MLFlowInstance)
