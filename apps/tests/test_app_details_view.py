@@ -74,7 +74,9 @@ class AppDetailsViewTestCase(TestCase):
             )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Depictio credentials")
+        self.assertContains(response, "Depictio details")
+        self.assertContains(response, "API details")
+        self.assertContains(response, "MinIO details")
         self.assertContains(response, "minio-user")
         self.assertContains(response, "minio-password")
         self.assertContains(response, "depictio-release-api.serve.example.test")
@@ -122,5 +124,5 @@ class AppDetailsViewTestCase(TestCase):
             )
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "Depictio credentials")
+        self.assertNotContains(response, "Depictio details")
         mock_run.assert_not_called()
