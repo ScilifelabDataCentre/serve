@@ -64,7 +64,9 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
         if self.access in ("private", "project"):
             k8s_values["backend"].update({"env": {"DEPICTIO_AUTH_SINGLE_USER_MODE": "true"}})
         else:
-            k8s_values["backend"].update({"env": {"DEPICTIO_AUTH_PUBLIC_MODE": "true", "DEPICTIO_AUTH_SINGLE_USER_MODE": "false"}})
+            k8s_values["backend"].update(
+                {"env": {"DEPICTIO_AUTH_PUBLIC_MODE": "true", "DEPICTIO_AUTH_SINGLE_USER_MODE": "false"}}
+            )
 
         return k8s_values
 

@@ -33,7 +33,7 @@
 
   <div class="row g-4">
     <div class="col-12 col-xl-7">
-      <div class="card shadow h-100">
+      <div class="card shadow mb-4">
         <div class="card-header">
           <h2 class="h5 mb-0">App details</h2>
         </div>
@@ -80,6 +80,47 @@
           {% endif %}
         </div>
       </div>
+
+      {% if depictio_details %}
+      <div class="card shadow">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Depictio details</h2>
+        </div>
+        <div class="card-body">
+          <div class="mb-4">
+            <h3 class="h6 mb-3">API details</h3>
+            <div class="row">
+              <div class="col-12 col-md-6 mb-3">
+                <div class="text-muted small">API URL</div>
+                <div><a href="{{ depictio_details.api_href }}" target="_blank">{{ depictio_details.api_url }}</a></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="h6 mb-3">MinIO details</h3>
+            <div class="row">
+              <div class="col-12 col-md-6 mb-3">
+                <div class="text-muted small">MinIO URL</div>
+                <div><a href="{{ depictio_details.minio_href }}" target="_blank">{{ depictio_details.minio_url }}</a></div>
+              </div>
+              {% if depictio_details.minio_root_user %}
+              <div class="col-12 col-md-6 mb-3">
+                <div class="text-muted small">MinIO root user</div>
+                <div>{{ depictio_details.minio_root_user }}</div>
+              </div>
+              {% endif %}
+              {% if depictio_details.minio_root_password %}
+              <div class="col-12 col-md-6 mb-3">
+                <div class="text-muted small">MinIO root password</div>
+                <div>{{ depictio_details.minio_root_password }}</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     <div class="col-12 col-xl-5">

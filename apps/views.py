@@ -1,4 +1,5 @@
 import base64
+import binascii
 import json
 import re
 import subprocess
@@ -62,6 +63,42 @@ from .tasks import delete_resource
 logger = get_logger(__name__)
 
 User = get_user_model()
+
+
+def get_kubernetes_secret_data(secret_name: str, keys: tuple[str, ...]) -> dict[str, str]:
+    try:
+        result = subprocess.run(
+            [
+                "kubectl",
+                "get",
+                "secret",
+                "--namespace",
+                settings.NAMESPACE,
+                secret_name,
+                "-o",
+                "json",
+            ],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        secret_payload = json.loads(result.stdout)
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+        logger.warning("Failed to fetch kubernetes secret '%s': %s", secret_name, exc)
+        return {}
+
+    decoded_values = {}
+    for key in keys:
+        encoded_value = secret_payload.get("data", {}).get(key)
+        if not encoded_value:
+            continue
+
+        try:
+            decoded_values[key] = base64.b64decode(encoded_value).decode()
+        except (binascii.Error, ValueError, UnicodeDecodeError) as exc:
+            logger.warning("Failed to decode kubernetes secret '%s' key '%s': %s", secret_name, key, exc)
+
+    return decoded_values
 
 
 @method_decorator(
@@ -436,6 +473,28 @@ class DeploymentProgressView(View):
 class AppDetailsView(View):
     template = "apps/deployment_details.html"
 
+    def _get_depictio_details(self, instance):
+        if instance.app.slug != "depictio" or not instance.subdomain:
+            return None
+
+        release_name = instance.subdomain.subdomain
+        secret_name = f"{release_name}-depictio-secrets"
+        secret_data = get_kubernetes_secret_data(
+            secret_name,
+            ("MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD"),
+        )
+        api_host = f"{release_name}-api.{settings.DOMAIN}"
+        minio_host = f"{release_name}-minio.{settings.DOMAIN}"
+
+        return {
+            "minio_root_user": secret_data.get("MINIO_ROOT_USER", ""),
+            "minio_root_password": secret_data.get("MINIO_ROOT_PASSWORD", ""),
+            "api_url": api_host,
+            "api_href": f"https://{api_host}",
+            "minio_url": minio_host,
+            "minio_href": f"https://{minio_host}",
+        }
+
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
         progress_state = build_progress_state(instance, progress_mode="details")
@@ -456,6 +515,7 @@ class AppDetailsView(View):
             ("Source code", source_code_url),
             ("Docker image", image),
         ]
+        depictio_details = self._get_depictio_details(instance)
 
         context = {
             "instance": instance,
@@ -465,6 +525,7 @@ class AppDetailsView(View):
             "deployment": progress_state["deployment"],
             "description": description,
             "details_rows": details_rows,
+            "depictio_details": depictio_details,
             "tags": tags,
             "project_url": reverse("projects:details", kwargs={"project_slug": project_obj.slug}),
             "public_details_url": (
