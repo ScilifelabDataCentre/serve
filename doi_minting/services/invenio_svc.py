@@ -111,7 +111,7 @@ class InvenioService:
     def _extract_image_identifier(self, related_identifiers: list[dict[str, Any]]) -> Optional[str]:
         """Return the app image identifier from a version's related identifiers."""
         for item in related_identifiers:
-            if item.get("relation_type", {}).get("id") == "hasversion":
+            if item.get("relation_type", {}).get("id") == "isvariantformof":
                 return item.get("identifier")
         return None
 
@@ -298,13 +298,13 @@ class InvenioService:
 
             logger.debug(f"Related identifiers for image check: {related_ids}")
 
-            # Find current image URL (relation_type with "hasversion")
+            # Find current image URL (relation_type with "isvariantformof")
             current_image_url = None
             for rel_id in related_ids:
                 logger.debug(f"Checking related identifier: {rel_id}")
                 relation_type_id = rel_id.get("relation_type", {}).get("id", "").lower()
                 logger.debug(f"Relation type ID: {relation_type_id}")
-                if relation_type_id == "hasversion":
+                if relation_type_id == "isvariantformof":
                     current_image_url = rel_id.get("identifier", "")
                     logger.debug(f"Found current image URL: {current_image_url}")
                     break
@@ -1112,29 +1112,12 @@ class InvenioService:
                 RelatedIdentifierItem(
                     identifier=f"https://{app_data.image}",
                     scheme="url",
-                    relation_type=RelationType(id="hasversion", title={"en": "Has image version"}),
+                    relation_type=RelationType(id="isvariantformof", title={"en": "Docker image"}),
                     resource_type=ResourceType(id="software"),
                 )
             )
 
         return related_ids
-
-    def _add_documentation_link(self, related_ids: list[RelatedIdentifierItem], app_data: AppData) -> None:
-        """Add documentation link if public app with domain."""
-        if app_data.access != "public":
-            return
-
-        k8s_values = app_data.k8s_values or {}
-        domain = k8s_values.get("global", {}).get("domain")
-
-        if domain:
-            doc_link = RelatedIdentifierItem(
-                identifier="https://{}/apps/{}".format(domain, app_data.id),
-                scheme="url",
-                relation_type=RelationType(id="isdocumentedby"),
-                resource_type=ResourceType(id="publication-softwaredocumentation"),
-            )
-            related_ids.append(doc_link)
 
     def _build_dates(self, app_instance: Any) -> list[Date]:
         """Build the dates list with app information."""
@@ -1272,10 +1255,6 @@ class InvenioService:
         related_identifiers = self._build_related_identifiers(app_data)
         contributors = self._build_contributors()
         technical_description = self._build_technical_description(app_data)
-
-        # Add documentation link if applicable
-        # Modifies the list in place by reference
-        self._add_documentation_link(related_identifiers, app_data)
 
         # Build metadata using Pydantic models
         metadata = InvenioMetadata(

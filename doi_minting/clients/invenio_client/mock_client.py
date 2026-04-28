@@ -177,7 +177,7 @@ class MockInvenioClient:
                         {
                             "identifier": "https://ghcr.io/scilifelabdatacentre/example-dash:240314-1126",
                             "scheme": "url",
-                            "relation_type": {"id": "hasversion", "title": {"en": "Has version"}},
+                            "relation_type": {"id": "isvariantformof", "title": {"en": "Docker image"}},
                             "resource_type": {"id": "software", "title": {"en": "Software"}},
                         },
                     ],

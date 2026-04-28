@@ -900,14 +900,9 @@ def test_generate_invenio_record_validation():
     assert dates_by_type["available"] == test_madepublic_date.replace(microsecond=0)
 
     # Check related identifiers - should have 3 for public access
-    assert len(invenio_metadata["metadata"]["related_identifiers"]) == 2
+    assert len(invenio_metadata["metadata"]["related_identifiers"]) == 1
     assert invenio_metadata["metadata"]["related_identifiers"][0]["scheme"] == "url"
-    assert invenio_metadata["metadata"]["related_identifiers"][0]["relation_type"]["id"] == "hasversion"
-    assert invenio_metadata["metadata"]["related_identifiers"][1]["relation_type"]["id"] == "isdocumentedby"
-    assert (
-        invenio_metadata["metadata"]["related_identifiers"][1]["resource_type"]["id"]
-        == "publication-softwaredocumentation"
-    )
+    assert invenio_metadata["metadata"]["related_identifiers"][0]["relation_type"]["id"] == "isvariantformof"
 
     # Check technical description
     additional_descriptions = invenio_metadata["metadata"]["additional_descriptions"]

@@ -182,8 +182,8 @@ class Identifier(BaseModel):
 class RelationType(BaseModel):
     """Relationship type between resources."""
 
-    id: str  # e.g., "issourceof", "hasversion", "isdocumentedby"
-    title: dict[str, Any] | None = None  # {"en": "Has image version"}
+    id: str  # controlled vocabulary from DataCite, e.g., "issourceof", "isvariantformof", "isdocumentedby"
+    title: dict[str, Any] | None = None  # {"en": "Docker image"}
 
 
 class RelatedIdentifierItem(BaseModel):
