@@ -195,7 +195,7 @@ class MockInvenioClient:
                     "additional_descriptions": [
                         {
                             "description": "URL of latest version deployment: https://mock-app.serve.scilifelab.se; "
-                            "Docker image: ghcr.io/some/image:20240101-100000; "
+                            "Docker image: ghcr.io/scilifelabdatacentre/example-dash:240314-1126; "
                             "Docker image port: 1234; "
                             "Mounted volume: False; "
                             "Volume mount path: None; "
