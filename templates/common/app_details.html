@@ -64,8 +64,8 @@
 
                             <dt class="col-sm-4">DOI</dt>
                             <dd class="col-sm-8">
-                                <a href="https://doi.org/{{ app_metadata.pids.doi.identifier }}" target="_blank" rel="noopener">
-                                    https://doi.org/{{ app_metadata.pids.doi.identifier|lower }}
+                                <a href="https://doi.org/{{ app_otherdata.current_version_doi|lower }}" target="_blank" rel="noopener">
+                                    https://doi.org/{{ app_otherdata.current_version_doi|lower }}
                                 </a>
                             </dd>
 
@@ -213,14 +213,14 @@
 
                       {% if version.index == app_otherdata.current_version %}
                           <span>
-                              {{ version.doi|lower }}
+                              https://doi.org/{{ version.doi|lower }}
                           </span>
                           <span class="badge bg-secondary ms-2">current</span>
                       {% else %}
                           <a href="{% url 'app-details' version.doi|cut:'10.83812/SCILIFELAB.' %}"
                             target="_blank"
                             rel="noopener">
-                              {{ version.doi|lower }}
+                              https://doi.org/{{ version.doi|lower }}
                           </a>
                       {% endif %}
                   </div>
