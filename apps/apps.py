@@ -6,15 +6,7 @@ class AppsConfig(AppConfig):
     name = "apps"
 
     def ready(self):
-        import logging
-
         import apps.signals
-        from doi_minting.services.keywords_service import VocabularyMemoryService
-
-        logger = logging.getLogger(__name__)
-        logger.info("Initializing Invenio keywords service...")
-        VocabularyMemoryService()
-        logger.info("Invenio keywords service ready")
         from apps.background_tasks.load import register_tasks
 
         register_tasks()
