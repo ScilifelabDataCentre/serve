@@ -125,6 +125,12 @@ if (Cypress.env('create_resources') === true) {
             const default_url_subpath = "default/url/subpath/"
             const changed_default_url_subpath = "changed/subpath/"
             const invalid_default_url_subpath = "€% / ()"
+            const keyword = "Microscopy"
+            const creator_firstname = "Somefirstname"
+            const creator_lastname = "Somelastname"
+            const creator_affiliation = "Uppsala University"
+            const funder_number = "0000-1234"
+            const funder_org = "Swedish Research Council"
 
             const mount_path = "/home/data"
 
@@ -179,6 +185,43 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
+            cy.get('#div_id_invenio_tags').should('be.visible')
+                .within(() => {
+                    cy.get('input[placeholder*="Start typing"]').should('be.visible').type(keyword)
+                    cy.get('.dropdown-menu .dropdown-item', { timeout: 10000 }).should('be.visible').first().should('have.text', keyword).click()
+                })
+            // make sure that the extra fields for public apps are visible and work
+            cy.get('#id_language').should('be.visible').within(() => {
+                cy.get('option').eq(0).should('have.value', 'eng').and('contain', 'English')
+                cy.get('option').eq(1).should('have.value', 'swe').and('contain', 'Swedish')
+                cy.get('option').eq(2).should('have.value', 'und').and('contain', 'Other')
+            })
+            cy.contains('button', 'Add creator').should('be.visible').click()
+            cy.contains('.modal-content', 'Add creator')
+                .should('be.visible')
+                .within(() => {
+                    cy.get('#newCreatorName').type(creator_firstname)
+                    cy.get('#newCreatorLastName').type(creator_lastname)
+                    cy.get('#newCreatorAffiliation').should('be.visible').type(creator_affiliation)
+                    cy.get('#affiliationSuggestions', { timeout: 10000 }).should('be.visible').contains(creator_affiliation)
+                    cy.get('#affiliationSuggestions .list-group-item').first().click()
+                    cy.get('#saveCreatorBtn').should('not.be.disabled').click()
+                })
+            cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(1)
+                .should('contain', creator_firstname).and('contain', creator_lastname).and('contain', creator_affiliation)
+
+            cy.get('#addFunderBtn').should('be.visible').click()
+            cy.contains('.modal-content', 'Add funder')
+                .should('be.visible')
+                .within(() => {
+                    cy.get('#awardNumberInput').should('be.visible').type(funder_number)
+                    cy.get('#funderNameInput').should('be.visible').type(funder_org)
+                    cy.get('#funderResults .list-group-item', { timeout: 10000 }).should('be.visible').contains(funder_org)
+                    cy.get('#funderResults .list-group-item').first().click()
+                    cy.get('#saveFunderBtn').should('not.be.disabled').click()
+                })
+            cy.get('#fundersList').should('be.visible').and('contain', funder_org).and('contain', funder_number)
+
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             cy.completeAppSubmissionFlow()
 
@@ -194,8 +237,8 @@ if (Cypress.env('create_resources') === true) {
                 })
             }
 
-            // Verify that the public project app cannot be deleted (due to DOI protection)
-            cy.logf("Verifying that the public project app cannot be deleted by regular users", Cypress.currentTest)
+            // Verify that the public app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public app cannot be deleted by regular users", Cypress.currentTest)
 
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
