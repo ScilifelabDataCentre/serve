@@ -193,6 +193,8 @@ class CreatorsMixin:
                     person_org = creator_data.get("person_or_org", {})
                     given_name = person_org.get("given_name", "")
                     family_name = person_org.get("family_name", "")
+                    # Invenio 'name' is often "Family, Given" or "First Last"
+                    invenio_full_name = person_org.get("name", "")
 
                     # Extract ORCID from identifiers if present
                     orcid = ""
@@ -209,9 +211,28 @@ class CreatorsMixin:
                     if affiliations:
                         affiliation = affiliations[0].get("name", "")
 
+                    # If explicit given/family names are missing, parse the invenio_full_name
+                    if not given_name and not family_name and invenio_full_name:
+                        p_raw = [p.strip() for p in invenio_full_name.split(",") if p.strip()]
+                        if len(p_raw) > 1:
+                            family_name = p_raw[0]
+                            given_name = " ".join(p_raw[1:])
+                        else:
+                            parts = invenio_full_name.split()
+                            if len(parts) > 1:
+                                given_name = " ".join(parts[:-1])
+                                family_name = parts[-1]
+                            else:
+                                given_name = parts[0] if parts else ""
+                                family_name = ""
+
+                    # Final cleanup of artifacts
+                    final_given = given_name.strip().strip(",")
+                    final_family = family_name.strip().strip(",")
+
                     creator_obj = {
-                        "name": given_name,
-                        "lastName": family_name,
+                        "name": final_given,
+                        "lastName": final_family,
                         "orcid": orcid,
                         "affiliation": affiliation,
                     }
@@ -346,9 +367,23 @@ class CreatorsMixin:
                 if "affiliations" in creator_dict and creator_dict["affiliations"]:
                     affiliation = creator_dict["affiliations"][0].get("name", "")
 
-                name_parts = creator_name.split() if creator_name else ["", ""]
-                first_name = name_parts[0] if name_parts else ""
-                last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+                # Split name strictly: "Last, First" or "First Middle Last"
+                p_raw = [p.strip() for p in creator_name.split(",") if p.strip()] if creator_name else []
+                if len(p_raw) > 1:
+                    last_name = p_raw[0]
+                    first_name = " ".join(p_raw[1:])
+                else:
+                    parts = creator_name.split() if creator_name else []
+                    if len(parts) > 1:
+                        first_name = " ".join(parts[:-1])
+                        last_name = parts[-1]
+                    else:
+                        first_name = parts[0] if parts else ""
+                        last_name = ""
+
+                # Final cleaning
+                first_name = first_name.strip().strip(",")
+                last_name = last_name.strip().strip(",")
 
                 # Check if this creator is the app owner
                 is_app_owner = any(
@@ -397,7 +432,7 @@ class CreatorsMixin:
             ).replace('"', "&quot;")
 
             # Build creator info display
-            creator_info = f"<strong>{creator['fullName']}</strong>"
+            creator_info = f"<strong>{creator['name']} {creator['lastName']}</strong>"
             if creator["orcid"] or creator["affiliation"]:
                 creator_info += "<br><small class='text-muted'>"
                 if creator["affiliation"]:

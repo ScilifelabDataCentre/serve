@@ -936,7 +936,7 @@ class InvenioService:
                             affiliations_list.append(
                                 Affiliation(
                                     name=affiliation_data.get("title", ""),
-                                    id=ror_id,
+                                    id=affiliation_data.get("ror_id"),
                                 )
                             )
                         elif isinstance(affiliation_data, dict) and "identifier" in affiliation_data:
