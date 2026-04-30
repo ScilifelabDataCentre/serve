@@ -191,6 +191,15 @@ describe("Test deploying app", () => {
         const default_url_subpath = "default/url/subpath/"
         const changed_default_url_subpath = "changed/subpath/"
         const invalid_default_url_subpath = "€% / ()"
+        const keyword = "Microscopy"
+        const keyword_two = "COVID-19"
+        const creator_firstname = "Somefirstname"
+        const creator_lastname = "Somelastname"
+        const creator_affiliation = "Uppsala University"
+        const funder_number = "0000-1234"
+        const funder_org = "Swedish Research Council"
+        const funder_number_two = "9999991"
+        const funder_org_two = "Dutch Research Council"
 
         if (createResources === true) {
             cy.visit("/projects/")
@@ -237,24 +246,26 @@ describe("Test deploying app", () => {
             // cy.get('.tag-list').should('be.empty');
             cy.contains('h4.card-title', app_name_project).should('not.exist')
 
-            // make this app public as an update and check that it works
-            cy.logf("Now making the project app public", Cypress.currentTest)
+            // make this app Link as an update and check that it works
+            cy.logf("Now making the project app Link", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_project + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
-            cy.get('#id_access').select('Public')
-            cy.get('#id_source_code_url').type(app_source_code_public)
+            // checking that a) permissions can be changed to 'Link'; b) that the corresponding text field is shown and mandatory
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').should('be.visible')
+            cy.get('#id_note_on_linkonly_privacy').clear().type(link_privacy_type_note)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             cy.completeAppSubmissionFlow()
-            verifyAppStatus(app_name_project, "Running", "Changing", "Running", "Public")
+            verifyAppStatus(app_name_project, "Running", "Changing", "Running", "Link")
 
             // wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-                verifyAppStatus(app_name_project,  "Running", "Changing", "Running", "Public")
+                verifyAppStatus(app_name_project,  "Running", "Changing", "Running", "Link")
             })
 
-            cy.logf("Now deleting the project app (by now public)", Cypress.currentTest)
+            cy.logf("Now deleting the project app (by now Link)", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_project + '")').find('i.ellipsis.vertical.icon').click()
@@ -271,7 +282,6 @@ describe("Test deploying app", () => {
             // create a public app and verify that it is displayed on the public apps page
             cy.logf("Now creating a public app", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
-
             cy.get('#id_name').type(app_name_public)
             cy.get('#id_description').type(app_description)
             cy.get('#id_access').select('Public')
@@ -279,6 +289,59 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_mount_path').select(mount_path)
+            cy.get('#div_id_invenio_tags').should('be.visible')
+                .within(() => {
+                    cy.get('input[placeholder*="Start typing"]').should('be.visible').type(keyword)
+                    cy.get('.dropdown-menu .dropdown-item', { timeout: 10000 }).should('be.visible').first().should('have.text', keyword).click()
+                })
+            // make sure that the extra fields for public apps are visible and work
+            cy.get('#id_language').should('be.visible').within(() => {
+                cy.get('option').eq(0).should('have.value', 'eng').and('contain', 'English')
+                cy.get('option').eq(1).should('have.value', 'swe').and('contain', 'Swedish')
+                cy.get('option').eq(2).should('have.value', 'und').and('contain', 'Other')
+            })
+            cy.get('#id_language').select('swe')
+            // add a creator manually
+            cy.contains('button', 'Add creator').should('be.visible').click()
+            cy.contains('.modal-content', 'Add creator')
+                .should('be.visible')
+                .within(() => {
+                    cy.get('#newCreatorName').type(creator_firstname)
+                    cy.get('#newCreatorLastName').type(creator_lastname)
+                    cy.get('#newCreatorAffiliation').should('be.visible').type(creator_affiliation)
+                    cy.get('#affiliationSuggestions', { timeout: 10000 }).should('be.visible').contains(creator_affiliation)
+                    cy.get('#affiliationSuggestions .list-group-item').first().click()
+                    cy.get('#saveCreatorBtn').should('not.be.disabled').click()
+                })
+            cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(1)
+                .should('contain', creator_firstname).and('contain', creator_lastname).and('contain', creator_affiliation)
+            // add a creator using autopopulation from ORCID feature
+            cy.contains('button', 'Add creator').should('be.visible').click()
+            cy.contains('.modal-content', 'Add creator')
+                .should('be.visible')
+                .within(() => {
+                    cy.get('#newCreatorOrcid').should('be.visible').type('Jane Doe')
+                    cy.get('#orcidSuggestions .list-group-item', { timeout: 10000 }).should('be.visible').first().should('contain', 'Jane Doe').click()
+                    cy.get('#newCreatorOrcid').should('have.value', 'https://orcid.org/0000-0002-1584-4316')
+                    cy.get('#newCreatorAffiliation').should('have.value', 'Example Research Institute')
+                    cy.get('#newCreatorName').should('have.value', 'Jane')
+                    cy.get('#newCreatorLastName').should('have.value', 'Doe')
+                    cy.get('#saveCreatorBtn').should('not.be.disabled').click()
+                    })
+            cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(2)
+                .should('contain', "Jane").and('contain', "Doe").and('contain', "Example Research Institute".and('contain', "https://orcid.org/0000-0002-1584-4316"))
+            // add funding info
+            cy.get('#addFunderBtn').should('be.visible').click()
+            cy.contains('.modal-content', 'Add funder')
+                .should('be.visible')
+                .within(() => {
+                    cy.get('#awardNumberInput').should('be.visible').type(funder_number)
+                    cy.get('#funderNameInput').should('be.visible').type(funder_org)
+                    cy.get('#funderResults .list-group-item', { timeout: 10000 }).should('be.visible').contains(funder_org)
+                    cy.get('#funderResults .list-group-item').first().click()
+                    cy.get('#saveFunderBtn').should('not.be.disabled').click()
+                })
+            cy.get('#fundersList').should('be.visible').and('contain', funder_org).and('contain', funder_number)
             // Advanced settings section is always open, so we can directly access the field
             // Scroll to the field to ensure it's in view
             cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
@@ -301,6 +364,8 @@ describe("Test deploying app", () => {
             cy.visit("/apps")
             cy.get('h4.card-title').should('contain', app_name_public)
             cy.get('.card-text').find('p').should('contain', app_description)
+
+            ///// HERE CHECK THE CONTENT OF THE APP DETAILS PAGE
 
             // check that the public app is displayed on the homepage
             cy.logf("Now checking if the public app is displayed when not logged in.", Cypress.currentTest)
@@ -341,11 +406,37 @@ describe("Test deploying app", () => {
             cy.get('#id_description').should('have.value', app_description) // description should be same as set before
             cy.get('#id_description').clear().type(app_description_2) // now change description
             cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_language').find(':selected').should('contain', 'swe')
+            cy.get('#id_language').select('eng')
+            // keywords
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword)
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword).closest('.badge').find('.tag-remove-button').click()
+            cy.get('#div_id_invenio_tags').should('be.visible')
+                .within(() => {
+                    cy.get('input[placeholder*="Start typing"]').should('be.visible').type(keyword_two)
+                    cy.get('.dropdown-menu .dropdown-item', { timeout: 10000 }).should('be.visible').first().should('have.text', keyword_two).click()
+                })
+            // check the previous creators input
+            cy.get('#creatorsSortableList').should('be.visible').children('li').should('have.length', 3)
+            cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(1)
+                .should('contain', creator_firstname).and('contain', creator_lastname).and('contain', creator_affiliation)
+            cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(2)
+                .should('contain', "Jane").and('contain', "Doe").and('contain', "Example Research Institute".and('contain', "https://orcid.org/0000-0002-1584-4316"))
+            cy.get('#creatorsSortableList').children('li').last().find('button[title="Remove creator"]').click()
+            // check the previous funder input
+            cy.get('#fundersList').should('be.visible').children().should('have.length', 1)
+            cy.get('#fundersList').should('be.visible').and('contain', funder_org).and('contain', funder_number)
+            cy.get('#addFunderBtn').should('be.visible').click()
+            cy.contains('.modal-content', 'Add funder')
+                .should('be.visible')
+                .within(() => {
+                    cy.get('#awardNumberInput').should('be.visible').type(funder_number_two)
+                    cy.get('#funderNameInput').should('be.visible').type(funder_org_two)
+                    cy.get('#funderResults .list-group-item', { timeout: 10000 }).should('be.visible').contains(funder_org_two)
+                    cy.get('#funderResults .list-group-item').first().click()
+                    cy.get('#saveFunderBtn').should('not.be.disabled').click()
+                })
 
-            // checking that a) permissions can be changed to 'Link'; b) that the corresponding text field is shown and mandatory
-            cy.get('#id_access').select('Link')
-            cy.get('#id_note_on_linkonly_privacy').should('be.visible')
-            cy.get('#id_note_on_linkonly_privacy').clear().type(link_privacy_type_note)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path)
             cy.get('#id_port').should('have.value', image_port)
             cy.get('#id_port').clear().type(image_port_2)
@@ -385,6 +476,11 @@ describe("Test deploying app", () => {
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path_2)
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword_two)
+            cy.get('#id_language').find(':selected').should('contain', 'eng')
+            cy.get('#creatorsSortableList').should('be.visible').children('li').should('have.length', 2)
+            cy.get('#fundersList').should('be.visible').children().should('have.length', 2)
+            cy.get('#fundersList').children().eq(1).find('.fw-semibold').should('have.text', funder_org_two).and('have.text', funder_number_two)
             // Advanced settings section is always open, so we can directly access the field
             // Scroll to the field to ensure it's in view
             cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
@@ -399,28 +495,6 @@ describe("Test deploying app", () => {
             cy.get('.client-validation-feedback.client-validation-invalid')
                 .should('exist')
                 .and('include.text', 'Your custom URL subpath is not valid, please correct it')
-
-            // delete the created public app and verify that it is deleted from public apps page
-            cy.logf("Now deleting the public app", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').find('a.confirm-delete').click()
-            cy.get('button').should('be.visible').contains('Delete').click()
-
-            // verify deletion
-            // give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name_public_2 + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
-            cy.visit("/apps")
-            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            // Verify heading with correct text and encoding
-            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name_public_2).should('not.exist')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
@@ -511,26 +585,6 @@ describe("Test deploying app", () => {
                         // Click the Details link
                         cy.get('a[id^="source-code-url"]').should('have.attr', 'href', source_code_url)
                     })
-            cy.visit("/projects/")
-            cy.logf("Deleting the shiny app", Cypress.currentTest)
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').contains('Delete').should('be.visible').click()
-
-            // verify deletion
-            // give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
-            cy.visit("/apps")
-            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
-
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
       }
@@ -587,27 +641,6 @@ describe("Test deploying app", () => {
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
-            // delete the Dash app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').should('be.visible').contains('Delete').click()
-
-            // verify deletion
-            // give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
-            cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
-
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
       }
@@ -663,26 +696,6 @@ describe("Test deploying app", () => {
             cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
 
-            cy.logf("Deleting the tissuumaps app", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').should('be.visible').contains('Delete').click()
-
-            // verify deletion
-            // give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
-            cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
-
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
       }
@@ -733,7 +746,7 @@ describe("Test deploying app", () => {
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
 
             // verify Gradio app values
-            cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
+            cy.logf("Checking that all gradio app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
@@ -743,27 +756,6 @@ describe("Test deploying app", () => {
             cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
-
-            // delete the Gradio app
-            cy.logf("Deleting the gradio app", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').should('be.visible').contains('Delete').click()
-
-            // verify deletion
-            // give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
-            cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
@@ -814,7 +806,7 @@ describe("Test deploying app", () => {
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
 
             // verify Streamlit app values
-            cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
+            cy.logf("Checking that all streamlit app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
@@ -824,27 +816,6 @@ describe("Test deploying app", () => {
             cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
-
-            // delete the Streamlit app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').should('be.visible').contains('Delete').click()
-
-            // verify deletion
-            // give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
-            cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
@@ -928,30 +899,6 @@ describe("Test deploying app", () => {
             cy.wait(20000).then(() => {
               verifyAppStatus(app_name_edited, "Running", "Changing", "Running", "Public")
             })
-
-            // delete the Dash app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_edited + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name_edited + '")').find('a.confirm-delete').click()
-            cy.get('button').should('be.visible').contains('Delete').click()
-
-            // verify deletion
-            // give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name_edited + '")').should('not.exist')
-            })
-
-            // the app name is not visible anymore, so not possible to catch it in verifyAppStatus()
-            // verifyAppStatus(app_name_edited, "Deleted", "")
-
-            // check that the app is not visible under public apps
-            cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name_edited).should('not.exist')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
@@ -1080,27 +1027,6 @@ describe("Test deploying app", () => {
               verifyAppStatus(app_name, "Running", "Changing", "Running", "Project", shinyAppCmdTimeoutMs)
             })
 
-            // delete the Shiny app
-            cy.logf("Deleting the shiny app", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').should('be.visible').contains('Delete').click()
-
-            // verify deletion
-            // give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
-            cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
-
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
       }
@@ -1178,27 +1104,6 @@ describe("Test deploying app", () => {
             cy.wait(5000).then(() => {
                 verifyAppStatus(app_name, "Running", "Changing", "Running", "Public")
               })
-
-            // delete the Dash app
-            cy.logf("Deleting the dash app", Cypress.currentTest)
-            cy.visit("/projects/")
-            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name + '")').find('a.confirm-delete').click()
-            cy.get('button').should('be.visible').contains('Delete').click()
-
-            // verify deletion
-            // give the action some time after the click event
-            cy.wait(2000).then(() => {
-                // verify that the app is not visible in the project overview
-                 cy.get('tr:contains("' + app_name + '")').should('not.exist')
-            })
-
-            // check that the app is not visible under public apps
-            cy.visit('/apps/')
-            cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
-            cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('not.exist')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
