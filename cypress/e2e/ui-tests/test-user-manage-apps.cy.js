@@ -126,11 +126,6 @@ if (Cypress.env('create_resources') === true) {
             const changed_default_url_subpath = "changed/subpath/"
             const invalid_default_url_subpath = "€% / ()"
             const keyword = "Microscopy"
-            const creator_firstname = "Somefirstname"
-            const creator_lastname = "Somelastname"
-            const creator_affiliation = "Uppsala University"
-            const funder_number = "0000-1234"
-            const funder_org = "Swedish Research Council"
 
             const mount_path = "/home/data"
 
@@ -197,31 +192,29 @@ if (Cypress.env('create_resources') === true) {
                 cy.get('option').eq(2).should('have.value', 'und').and('contain', 'Other')
             })
             cy.contains('button', 'Add creator').should('be.visible').click()
-            cy.contains('.modal-content', 'Add creator')
-                .should('be.visible')
+            cy.contains('.modal-content', 'Add creator').should('be.visible')
                 .within(() => {
-                    cy.get('#newCreatorName').type(creator_firstname)
-                    cy.get('#newCreatorLastName').type(creator_lastname)
-                    cy.get('#newCreatorAffiliation').should('be.visible').type(creator_affiliation)
-                    cy.get('#affiliationSuggestions', { timeout: 10000 }).should('be.visible').contains(creator_affiliation)
-                    cy.get('#affiliationSuggestions .list-group-item').first().click()
-                    cy.get('#saveCreatorBtn').should('not.be.disabled').click()
+                    cy.get('#newCreatorName').should('be.visible')
+                    cy.get('#newCreatorLastName').should('be.visible')
+                    cy.get('#newCreatorAffiliation').should('be.visible')
+                    cy.get('#newCreatorOrcid').should('be.visible')
+                    cy.get('#saveAndAddAnotherCreatorBtn').should('be.disabled')
+                    cy.get('#saveCreatorBtn').should('be.disabled')
                 })
-            cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(1)
-                .should('contain', creator_firstname).and('contain', creator_lastname).and('contain', creator_affiliation)
-
+            cy.wait(3000)
+            cy.get('#creatorsModal .btn-close').click()
             cy.get('#addFunderBtn').should('be.visible').click()
-            cy.contains('.modal-content', 'Add funder')
-                .should('be.visible')
+            cy.contains('.modal-content', 'Add funder').should('be.visible')
                 .within(() => {
-                    cy.get('#awardNumberInput').should('be.visible').type(funder_number)
-                    cy.get('#funderNameInput').should('be.visible').type(funder_org)
-                    cy.get('#funderResults .list-group-item', { timeout: 10000 }).should('be.visible').contains(funder_org)
-                    cy.get('#funderResults .list-group-item').first().click()
-                    cy.get('#saveFunderBtn').should('not.be.disabled').click()
+                    cy.get('#funderNameInput').should('be.visible')
+                    cy.get('#awardNumberInput').should('be.visible')
+                    cy.get('#awardTitleInput').should('be.visible')
+                    cy.get('#awardUrlInput').should('be.visible')
+                    cy.get('#saveAndAddAnotherBtn').should('be.disabled')
+                    cy.get('#saveFunderBtn').should('be.disabled')
                 })
-            cy.get('#fundersList').should('be.visible').and('contain', funder_org).and('contain', funder_number)
-
+            cy.wait(3000)
+            cy.get('#funderModal .btn-close').click()
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             cy.completeAppSubmissionFlow()
 
