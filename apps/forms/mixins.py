@@ -224,35 +224,39 @@ class CreatorsMixin:
                 # Fall through to default user initialization
                 pass
 
-        # Default initialization with current user (for new instances or when Invenio fails)
-        if hasattr(self, "request") and self.request and self.request.user.is_authenticated:
-            user = self.request.user
+        # Default initialization with app owner (for new instances or when Invenio fails)
+        owner = None
+        if self.instance and hasattr(self.instance, "owner") and self.instance.owner:
+            owner = self.instance.owner
+        elif hasattr(self, "project") and self.project and self.project.owner:
+            owner = self.project.owner
 
-            # Get user profile data for ROR/affiliation information
-            user_orcid = ""
-            user_affiliation = ""
+        if owner:
+            # Get owner profile data for ROR/affiliation information
+            owner_orcid = ""
+            owner_affiliation = ""
             try:
-                user_profile = user.userprofile
-                user_orcid = user_profile.orcid_id or ""
-                user_affiliation = user_profile.get_organization_name() or ""
+                owner_profile = owner.userprofile
+                owner_orcid = owner_profile.orcid_id or ""
+                owner_affiliation = owner_profile.get_organization_name() or ""
             except Exception:
                 # UserProfile doesn't exist or other error - use defaults
                 pass
 
-            # Get user's first and last name
-            user_first_name = user.first_name or user.username
-            user_last_name = user.last_name or "User"
+            # Get owner's first and last name
+            owner_first_name = owner.first_name or owner.username
+            owner_last_name = owner.last_name or "Owner"
 
             # Ensure affiliation is never empty - provide default if needed
-            if not user_affiliation:
-                user_affiliation = ""
+            if not owner_affiliation:
+                owner_affiliation = ""
 
             creators_data = [
                 {
-                    "name": user_first_name,
-                    "lastName": user_last_name,
-                    "orcid": user_orcid,
-                    "affiliation": user_affiliation,
+                    "name": owner_first_name,
+                    "lastName": owner_last_name,
+                    "orcid": owner_orcid,
+                    "affiliation": owner_affiliation,
                 }
             ]
             self.fields["creators"].initial = json.dumps(creators_data)
@@ -291,18 +295,26 @@ class CreatorsMixin:
         if not (hasattr(self, "request") and self.request and self.request.user.is_authenticated):
             return Div()  # Return empty div if no user
 
-        user = self.request.user
-        user_first_name = user.first_name or user.username
-        user_last_name = user.last_name or "User"
-        user_full_name = f"{user_first_name} {user_last_name}"
+        # Use app owner for the fixed creator if available, otherwise project owner or current user
+        owner = None
+        if self.instance and hasattr(self.instance, "owner") and self.instance.owner:
+            owner = self.instance.owner
+        elif hasattr(self, "project") and self.project and self.project.owner:
+            owner = self.project.owner
+        else:
+            owner = self.request.user
 
-        # Get user profile data for the display
-        user_orcid = ""
-        user_affiliation = ""
+        owner_first_name = owner.first_name or owner.username
+        owner_last_name = (owner.last_name or "Owner") if owner != self.request.user else (owner.last_name or "User")
+        owner_full_name = f"{owner_first_name} {owner_last_name}"
+
+        # Get owner profile data for the display
+        owner_orcid = ""
+        owner_affiliation = ""
         try:
-            user_profile = user.userprofile
-            user_orcid = user_profile.orcid_id or ""
-            user_affiliation = user_profile.get_organization_name() or ""
+            owner_profile = owner.userprofile
+            owner_orcid = owner_profile.orcid_id or ""
+            owner_affiliation = owner_profile.get_organization_name() or ""
         except Exception:
             # UserProfile doesn't exist - use defaults
             pass
@@ -338,13 +350,13 @@ class CreatorsMixin:
                 first_name = name_parts[0] if name_parts else ""
                 last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
 
-                # Check if this creator is the current user
-                is_current_user = any(
+                # Check if this creator is the app owner
+                is_app_owner = any(
                     [
-                        creator_orcid and user_orcid and creator_orcid == user_orcid,
-                        creator_name == user_full_name,
-                        creator_name and creator_name.replace("@serve.scilifelab.se", "") == user.username,
-                        creator_name == f"{user.first_name} {user.last_name}".strip(),
+                        creator_orcid and owner_orcid and creator_orcid == owner_orcid,
+                        creator_name == owner_full_name,
+                        creator_name and creator_name.replace("@serve.scilifelab.se", "") == owner.username,
+                        creator_name == f"{owner.first_name} {owner.last_name}".strip(),
                     ]
                 )
 
@@ -355,19 +367,19 @@ class CreatorsMixin:
                         "fullName": creator_name,
                         "orcid": creator_orcid,
                         "affiliation": affiliation,
-                        "isCurrentUser": is_current_user,
+                        "isAppOwner": is_app_owner,
                     }
                 )
         else:
-            # Use default user creator
+            # Use default app owner creator
             creators_to_display.append(
                 {
-                    "name": user_first_name,
-                    "lastName": user_last_name,
-                    "fullName": user_full_name,
-                    "orcid": user_orcid,
-                    "affiliation": user_affiliation,
-                    "isCurrentUser": True,
+                    "name": owner_first_name,
+                    "lastName": owner_last_name,
+                    "fullName": owner_full_name,
+                    "orcid": owner_orcid,
+                    "affiliation": owner_affiliation,
+                    "isAppOwner": True,
                 }
             )
 
@@ -396,13 +408,13 @@ class CreatorsMixin:
 
             # Add badge and action buttons
             badge_html = ""
-            if creator.get("isCurrentUser"):
-                badge_html = '<span class="badge bg-secondary me-2">You</span>'
+            if creator.get("isAppOwner"):
+                badge_html = '<span class="badge bg-secondary me-2">Owner</span>'
 
             # Add edit and remove buttons (conditionally)
             action_buttons = ""
-            if not creator.get("isCurrentUser"):
-                # Only show edit/remove buttons if this is not the current user
+            if not creator.get("isAppOwner"):
+                # Only show edit/remove buttons if this is not the app owner
                 action_buttons = f"""
                     <div class="d-flex align-items-center gap-2">
                         {badge_html}
@@ -417,7 +429,7 @@ class CreatorsMixin:
                     </div>
                 """
             else:
-                # For current user, only show the badge without edit/remove buttons
+                # For app owner, only show the badge without edit/remove buttons
                 action_buttons = f"""
                     <div class="d-flex align-items-center gap-2">
                         {badge_html}

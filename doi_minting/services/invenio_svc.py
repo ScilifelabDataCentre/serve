@@ -929,17 +929,14 @@ class InvenioService:
                             # Simple string affiliation - try ROR lookup
                             from apps.helpers import fetch_ror_id_for_org
 
-                            # TODO: Use ror_id=fetch_ror_id_for_org(affiliation_data) when ROR
-                            # vocabulary is loaded into the Invenio instance
-                            ror_id = None
+                            ror_id = fetch_ror_id_for_org(affiliation_data)
                             affiliations_list.append(Affiliation(name=affiliation_data, id=ror_id))
                         elif isinstance(affiliation_data, dict) and "ror_id" in affiliation_data:
                             # ROR API format: transform to structured Affiliation
-                            # Temporarily set id to None until ROR vocabulary is loaded into Invenio
                             affiliations_list.append(
                                 Affiliation(
                                     name=affiliation_data.get("title", ""),
-                                    id=None,
+                                    id=ror_id,
                                 )
                             )
                         elif isinstance(affiliation_data, dict) and "identifier" in affiliation_data:
