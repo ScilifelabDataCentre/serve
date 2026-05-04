@@ -69,40 +69,46 @@ describe("Test deploying app", () => {
     // one more time that the previous app is deleted.
     const deleteAppIfExists = (app_name, project_name) => {
 
-        cy.visit("/projects/");
+        cy.fixture('users.json').then(function (data) {
+            cy.loginViaApi(data.superuser.email, data.superuser.password)
 
-        cy.contains('.card-title', project_name)
+            cy.visit("/projects/");
+
+            cy.contains('.card-title', project_name)
                 .parents('.card-body')
                 .siblings('.card-footer')
                 .find('a:contains("Open")')
                 .first()
                 .click();
 
-        // check if app exists
-        cy.get('body').then(($body) => {
-        if ($body.find(`tr:contains("${app_name}")`).length) {
-            cy.log(`Deleting existing app: ${app_name}`);
+            // check if app exists
+            cy.get('body').then(($body) => {
+                if ($body.find(`tr:contains("${app_name}")`).length) {
+                    cy.log(`Deleting existing app as superuser: ${app_name}`);
 
-            // delete workflow
-            cy.get(`tr:contains("${app_name}")`)
-                .should('be.visible')
-                .find('i.ellipsis.vertical.icon')
-                .click();
+                    // delete workflow
+                    cy.get(`tr:contains("${app_name}")`)
+                        .should('be.visible')
+                        .find('i.ellipsis.vertical.icon')
+                        .click();
 
-            cy.get(`tr:contains("${app_name}")`)
-                .should('be.visible')
-                .find('a.confirm-delete')
-                .click();
+                    cy.get(`tr:contains("${app_name}")`)
+                        .should('be.visible')
+                        .find('a.confirm-delete')
+                        .click();
 
-            cy.get('button').should('be.visible').contains('Delete').click();
+                    cy.get('button').should('be.visible').contains('Delete').click();
 
-            // verify deletion
-            cy.contains(`tr:contains("${app_name}")`).should('not.exist');
-            cy.log(`Successfully deleted app: ${app_name}`);
-        }
-        else {
-            cy.log(`No app named "${app_name}" found - skipping deletion`);
-        }
+                    // verify deletion
+                    cy.contains(`tr:contains("${app_name}")`).should('not.exist');
+                    cy.log(`Successfully deleted app: ${app_name}`);
+                }
+                else {
+                    cy.log(`No app named "${app_name}" found - skipping deletion`);
+                }
+            });
+
+            cy.loginViaApi(data.deploy_app_user.email, data.deploy_app_user.password)
         });
     };
 
@@ -110,6 +116,7 @@ describe("Test deploying app", () => {
     // user: e2e_tests_deploy_app_user
     let users
     let TEST_USER_DATA
+    let TEST_SUPERUSER_DATA
     const TEST_PROJECT_DATA = {
         project_name: "e2e-deploy-app-test",
         project_description: "e2e-deploy-app-test-desc",
@@ -123,7 +130,9 @@ describe("Test deploying app", () => {
                 cy.log("Populating test data via Django endpoint");
                 cy.fixture('users.json').then(function (data) {
                     TEST_USER_DATA = data.deploy_app_user
+                    TEST_SUPERUSER_DATA = data.superuser
                     cy.populateTestUser(TEST_USER_DATA)
+                    cy.populateTestSuperUser(TEST_SUPERUSER_DATA)
                     cy.populateTestProject(TEST_USER_DATA, TEST_PROJECT_DATA)
                 })
             }
@@ -331,7 +340,10 @@ describe("Test deploying app", () => {
                     cy.get('#saveCreatorBtn').should('not.be.disabled').click()
                     })
             cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(2)
-                .should('contain', "Jane").and('contain', "Doe").and('contain', "Example Research Institute".and('contain', "https://orcid.org/0000-0002-1584-4316"))
+                .should('contain', "Jane")
+                .and('contain', "Doe")
+                .and('contain', "Example Research Institute")
+                .and('contain', "https://orcid.org/0000-0002-1584-4316")
             // add funding info
             cy.get('#addFunderBtn').should('be.visible').click()
             cy.contains('.modal-content', 'Add funder')
@@ -468,7 +480,10 @@ describe("Test deploying app", () => {
             cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(1)
                 .should('contain', creator_firstname).and('contain', creator_lastname).and('contain', creator_affiliation)
             cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(2)
-                .should('contain', "Jane").and('contain', "Doe").and('contain', "Example Research Institute".and('contain', "https://orcid.org/0000-0002-1584-4316"))
+                .should('contain', "Jane")
+                .and('contain', "Doe")
+                .and('contain', "Example Research Institute")
+                .and('contain', "https://orcid.org/0000-0002-1584-4316")
             cy.get('#creatorsSortableList').children('li').last().find('button[title="Remove creator"]').click()
             // check the previous funder input
             cy.get('#fundersList').should('be.visible').children().should('have.length', 1)
@@ -1404,6 +1419,7 @@ describe("Test deploying app", () => {
                 cy.log("Cleaning up test data via Django endpoint")
                 cy.cleanupTestProject(TEST_USER_DATA, TEST_PROJECT_DATA)
                 cy.cleanupTestUser(TEST_USER_DATA)
+                cy.cleanupTestUser(TEST_SUPERUSER_DATA)
             }
 
             cy.logf("End after() hook", Cypress.currentTest)
