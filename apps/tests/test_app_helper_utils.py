@@ -900,16 +900,23 @@ def test_generate_invenio_record_validation():
     assert dates_by_type["available"] == test_madepublic_date.replace(microsecond=0)
 
     # Check related identifiers - should have 3 for public access
-    assert len(invenio_metadata["metadata"]["related_identifiers"]) == 3
+    assert len(invenio_metadata["metadata"]["related_identifiers"]) == 1
     assert invenio_metadata["metadata"]["related_identifiers"][0]["scheme"] == "url"
-    assert invenio_metadata["metadata"]["related_identifiers"][0]["relation_type"]["id"] == "issourceof"
-    assert invenio_metadata["metadata"]["related_identifiers"][1]["scheme"] == "url"
-    assert invenio_metadata["metadata"]["related_identifiers"][1]["relation_type"]["id"] == "hasversion"
-    assert invenio_metadata["metadata"]["related_identifiers"][2]["relation_type"]["id"] == "isdocumentedby"
-    assert (
-        invenio_metadata["metadata"]["related_identifiers"][2]["resource_type"]["id"]
-        == "publication-softwaredocumentation"
+    assert invenio_metadata["metadata"]["related_identifiers"][0]["relation_type"]["id"] == "isvariantformof"
+
+    # Check technical description
+    additional_descriptions = invenio_metadata["metadata"]["additional_descriptions"]
+    technical_description = next(
+        (entry["description"] for entry in additional_descriptions if entry["type"]["id"] == "technical-info"),
+        None,
     )
+    assert technical_description is not None
+    assert f"URL of latest version deployment: {app_instance.url}" in technical_description
+    assert f"Docker image: {app_instance.image}" in technical_description
+    assert f"Docker image port: {app_instance.port}" in technical_description
+    assert "Mounted volume: False" in technical_description
+    assert "Volume mount path: None" in technical_description
+    assert f"App source code URL: {app_instance.source_code_url}" in technical_description
 
     # Test invalid structure - Pydantic should catch type errors
     invalid_metadata = invenio_metadata.copy()
