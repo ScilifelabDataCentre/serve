@@ -22,7 +22,12 @@
           <!-- Affiliation - Required -->
           <div class="col-md-6 position-relative">
             <label for="newCreatorAffiliation" class="form-label fw-bold">Affiliation <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation" required>
+            <div class="input-group">
+              <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation" required>
+              <span class="input-group-text" id="affiliationSearchLoading" style="display: none;">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              </span>
+            </div>
             <input type="hidden" id="newCreatorRorData" value="">
             <input type="hidden" id="newCreatorOrcidAffiliationData" value="">
             <div id="affiliationSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
@@ -247,9 +252,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       debounceTimer = setTimeout(() => {
+        const loadingSpinner = document.getElementById('affiliationSearchLoading');
+        if (loadingSpinner) loadingSpinner.style.display = 'flex';
+
         fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(query)}`)
           .then(r => r.json())
           .then(data => {
+            if (loadingSpinner) loadingSpinner.style.display = 'none';
             suggestions.innerHTML = '';
             if (data.results && data.results.length > 0) {
               data.results.forEach(org => {
