@@ -294,7 +294,7 @@ class CreatorsMixin:
         user = self.request.user
         user_first_name = user.first_name or user.username
         user_last_name = user.last_name or "User"
-        user_full_name = f"{user_first_name} {user_last_name}"
+        user_full_name = f"{user_last_name}, {user_first_name}"
 
         # Get user profile data for the display
         user_orcid = ""

@@ -110,6 +110,18 @@ class MockInvenioClient:
                     "description": "Mock description of the app.",
                     "publication_date": "2024-01-01",
                     "publisher": "Mock Publisher",
+                    "contributors": [
+                        {
+                            "person_or_org": {
+                                "name": "SciLifeLab",
+                                "type": "organizational",
+                                "identifiers": [{"identifier": "04ev03g22", "scheme": "ror"}],
+                            },
+                            "role": {
+                                "id": "hostinginstitution",
+                            },
+                        }
+                    ],
                     "resource_type": {"id": "software", "title": {"en": "Software"}},
                     "languages": [{"id": "eng", "title": {"en": "English"}}],
                     "dates": [
@@ -121,7 +133,7 @@ class MockInvenioClient:
                     "creators": [
                         {
                             "person_or_org": {
-                                "name": "Jane Doe",
+                                "name": "Doe, Jane",
                                 "type": "personal",
                                 "given_name": "Jane",
                                 "family_name": "Doe",
@@ -144,7 +156,7 @@ class MockInvenioClient:
                         },
                         {
                             "person_or_org": {
-                                "name": "John Doe",
+                                "name": "Doe, John",
                                 "type": "personal",
                                 "given_name": "John",
                                 "family_name": "Doe",
@@ -165,13 +177,7 @@ class MockInvenioClient:
                         {
                             "identifier": "https://ghcr.io/scilifelabdatacentre/example-dash:240314-1126",
                             "scheme": "url",
-                            "relation_type": {"id": "hasversion", "title": {"en": "Has version"}},
-                            "resource_type": {"id": "software", "title": {"en": "Software"}},
-                        },
-                        {
-                            "identifier": "https://r72a47ca4.studio.127.0.0.1.nip.io",
-                            "scheme": "url",
-                            "relation_type": {"id": "issourceof", "title": {"en": "Is source of"}},
+                            "relation_type": {"id": "isvariantformof", "title": {"en": "Docker image"}},
                             "resource_type": {"id": "software", "title": {"en": "Software"}},
                         },
                     ],
@@ -184,6 +190,17 @@ class MockInvenioClient:
                                 "identifiers": [{"scheme": "url", "identifier": "https://url.com"}],
                                 "url": None,
                             },
+                        }
+                    ],
+                    "additional_descriptions": [
+                        {
+                            "description": "URL of latest version deployment: https://mock-app.serve.scilifelab.se; "
+                            "Docker image: ghcr.io/scilifelabdatacentre/example-dash:240314-1126; "
+                            "Docker image port: 1234; "
+                            "Mounted volume: False; "
+                            "Volume mount path: None; "
+                            "App source code URL: https://github.com/some/repo;",
+                            "type": {"id": "technical-info"},
                         }
                     ],
                 },
