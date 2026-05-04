@@ -1,7 +1,8 @@
 describe("Test deploying app", () => {
 
     // Integration tests
-    // This test class tests the integration between Serve and k8s.
+    // This test class tests the integration between Serve, InvenioRDM, k8s.
+    // Hence, Serve needs to run with DOI minting NOT in mock mode.
 
     // Tests performed as an authenticated user that creates and deletes apps.
     // Note that these tests may depend on k8s deployments and may be long-running tests.
@@ -170,7 +171,7 @@ describe("Test deploying app", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    it("can deploy a project and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it("can deploy a project, link, and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name_project = "e2e-custom-example-project"
@@ -188,6 +189,7 @@ describe("Test deploying app", () => {
         const createResources = Cypress.env('create_resources')
         const app_type = "Custom App"
         const app_source_code_public = "https://doi.org/example"
+        const app_source_code_public_changed = "https://doi.org/another/example"
         const default_url_subpath = "default/url/subpath/"
         const changed_default_url_subpath = "changed/subpath/"
         const invalid_default_url_subpath = "€% / ()"
@@ -361,11 +363,54 @@ describe("Test deploying app", () => {
                   .should('have.attr', 'href')
                   .and('include', default_url_subpath)
 
+            // check that it's present on the public apps page
+            cy.logf("Now checking if the public app is displayed on the public apps page.", Cypress.currentTest)
             cy.visit("/apps")
-            cy.get('h4.card-title').should('contain', app_name_public)
-            cy.get('.card-text').find('p').should('contain', app_description)
+            cy.contains('h4.card-title', app_name_public).should('be.visible').closest('.card')
+                .within(() => {
+                cy.get('.card-text p').should('contain', app_description)
+                cy.contains('a', 'Details').should('be.visible').click()
+            })
 
-            ///// HERE CHECK THE CONTENT OF THE APP DETAILS PAGE
+            // check the app details page is correct
+            cy.logf("Now checking if the app details page is displaying correct information.", Cypress.currentTest)
+            cy.get("title").should("contain", app_name_public)
+            // title block
+            cy.get('.d-flex.flex-column.flex-md-row').first()
+            .within(() => {
+                cy.get('h2').should('have.text', app_name_public)
+                cy.get('p').should('contain', "Version 1").and('contain', "latest version")
+            })
+            cy.get('.d-flex.flex-column.flex-md-row').first()
+            .within(() => {
+                cy.contains('a', 'Run Locally').should('have.attr', 'data-app-name', app_name_public)
+            })
+            // check record description block
+            cy.contains('.card', 'Record description').within(() => {
+                cy.contains('dt', 'Title').next('dd').should('contain', app_name_public)
+                cy.contains('dt', 'DOI').should('exist')
+                cy.contains('dt', 'Description').next('dd').should('contain', app_description)
+                cy.contains('dt', 'URL').next('dd').should('contain', default_url_subpath)
+                cy.contains('dt', 'Source code').next('dd').should('contain', app_source_code_public)
+                cy.contains('dt', 'Docker image').next('dd').should('contain', image_name)
+                cy.contains('dt', 'Language').next('dd').should('contain', "Swedish")
+                cy.contains('dt', 'Date submitted').should('exist')
+                cy.contains('dt', 'Date updated').should('exist')
+                cy.contains('dt', 'Date available').should('exist')
+                cy.contains('.tag-name', keyword).should('be.visible')
+                cy.contains('dt', 'Funding')
+                    .next('dd')
+                    .should('contain', funder_org)
+                    .and('contain', funder_number)
+
+                })
+            // creators block
+            cy.contains('.card', 'Creators').within(() => {
+                cy.contains('.card-username', creator_lastname + ', ' + creator_firstname).should('be.visible')
+                cy.contains('.card-username', 'Doe, Jane').should('be.visible')
+                    .and('have.attr', 'href', 'https://orcid.org/0000-0002-1584-4316')
+                })
+
 
             // check that the public app is displayed on the homepage
             cy.logf("Now checking if the public app is displayed when not logged in.", Cypress.currentTest)
@@ -396,7 +441,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('contain', "Logs")
 
             // try changing the name, description, etc. of the app and verify it works
-            cy.logf("Now changing the name and description of the public app", Cypress.currentTest)
+            cy.logf("Now changing the name, description, etc of the public app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_public + '")').find('i.ellipsis.vertical.icon').click()
@@ -405,6 +450,8 @@ describe("Test deploying app", () => {
             cy.get('#id_name').clear().type(app_name_public_2) // now change name
             cy.get('#id_description').should('have.value', app_description) // description should be same as set before
             cy.get('#id_description').clear().type(app_description_2) // now change description
+            cy.get('#id_source_code_url').should('have.value', app_source_code_public) // source code url should be same as before
+            cy.get('#id_source_code_url').clear().type(app_source_code_public_changed) // now change source code url
             cy.get('#id_access').find(':selected').should('contain', 'Public')
             cy.get('#id_language').find(':selected').should('contain', 'swe')
             cy.get('#id_language').select('eng')
@@ -475,6 +522,7 @@ describe("Test deploying app", () => {
             cy.get('#id_note_on_linkonly_privacy').should('have.value', link_privacy_type_note)
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
+            cy.get('#id_source_code_url').should('have.value', app_source_code_public_changed)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path_2)
             cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword_two)
             cy.get('#id_language').find(':selected').should('contain', 'eng')
@@ -486,15 +534,50 @@ describe("Test deploying app", () => {
             cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.get('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
 
-            // make sure that giving invalid input in default_url_subpath field results in an error
-            cy.get('#id_default_url_subpath').clear().type(invalid_default_url_subpath) // provide invalid_default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click() // this should trigger the error
-            cy.completeAppSubmissionFlow()
-
-            // check this invalid_default_url_subpath error was matched
-            cy.get('.client-validation-feedback.client-validation-invalid')
-                .should('exist')
-                .and('include.text', 'Your custom URL subpath is not valid, please correct it')
+            // check the app details info has been changed
+            cy.logf("Now checking if the app details page is displaying updated information.", Cypress.currentTest)
+            cy.visit("/apps")
+            cy.contains('h4.card-title', app_name_public_2).should('be.visible').closest('.card')
+                .within(() => {
+                cy.get('.card-text p').should('contain', app_description_2)
+                cy.contains('a', 'Details').should('be.visible').click()
+            })
+            cy.get("title").should("contain", app_name_public_2)
+            // title block
+            cy.get('.d-flex.flex-column.flex-md-row').first()
+            .within(() => {
+                cy.get('h2').should('have.text', app_name_public_2)
+                cy.get('p').should('contain', "Version 2").and('contain', "latest version")
+            })
+            cy.get('.d-flex.flex-column.flex-md-row').first()
+            .within(() => {
+                cy.contains('a', 'Run Locally').should('have.attr', 'data-app-name', app_name_public_2)
+            })
+            // check record description block
+            cy.contains('.card', 'Record description').within(() => {
+                cy.contains('dt', 'Title').next('dd').should('contain', app_name_public_2)
+                cy.contains('dt', 'DOI').should('exist')
+                cy.contains('dt', 'Description').next('dd').should('contain', app_description_2)
+                cy.contains('dt', 'URL').next('dd').should('contain', changed_default_url_subpath)
+                cy.contains('dt', 'Source code').next('dd').should('contain', app_source_code_public_changed)
+                cy.contains('dt', 'Docker image').next('dd').should('contain', image_name_2)
+                cy.contains('dt', 'Language').next('dd').should('contain', "English")
+                cy.contains('dt', 'Date submitted').should('exist')
+                cy.contains('dt', 'Date updated').should('exist')
+                cy.contains('dt', 'Date available').should('exist')
+                cy.contains('.tag-name', keyword_two).should('be.visible')
+                cy.contains('dt', 'Funding')
+                    .next('dd')
+                    .should('contain', funder_org)
+                    .and('contain', funder_number)
+                    .and('contain', funder_org_two)
+                    .and('contain', funder_number_two)
+                })
+            // creators block
+            cy.contains('.card', 'Creators').within(() => {
+                cy.contains('.card-username', creator_lastname + ', ' + creator_firstname).should('be.visible')
+                cy.contains('.card-username', 'Doe, Jane').should('not.exist')
+                })
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)

@@ -21,19 +21,14 @@ describe("Tests of the app details pages (mock records)", () => {
         // check title block
         cy.get('.d-flex.flex-column.flex-md-row').first()
         .within(() => {
-            cy.get('h2')
-            .should('have.text', title)
-            cy.get('p')
-            .should('contain', "Version 2")
-            .and('contain', "latest version")
+            cy.get('h2').should('have.text', title)
+            cy.get('p').should('contain', "Version 2").and('contain', "latest version")
         })
         cy.get('.d-flex.flex-column.flex-md-row').first()
         .within(() => {
-            cy.contains('a', 'Run Locally')
-            .should('have.attr', 'data-app-name', title)
+            cy.contains('a', 'Run Locally').should('have.attr', 'data-app-name', title)
 
-            cy.contains('a', 'Launch (new tab)')
-            .should('have.attr', 'href', 'https://mock-app.serve.scilifelab.se')
+            cy.contains('a', 'Launch (new tab)').should('have.attr', 'href', 'https://mock-app.serve.scilifelab.se')
         })
 
         // check record description block
@@ -59,11 +54,11 @@ describe("Tests of the app details pages (mock records)", () => {
 
         // creators block
         cy.contains('.card', 'Creators').within(() => {
-        cy.contains('.card-username', 'Doe, Jane').should('be.visible')
-        cy.contains('.card-username', 'Doe, John')
-            .should('be.visible')
-            .and('have.attr', 'href', 'https://orcid.org/0000-0001-5393-1421')
-        })
+            cy.contains('.card-username', 'Doe, Jane').should('be.visible')
+            cy.contains('.card-username', 'Doe, John')
+                .should('be.visible')
+                .and('have.attr', 'href', 'https://orcid.org/0000-0001-5393-1421')
+            })
 
         // versions block
         cy.contains('.card', 'Versions').within(() => {
