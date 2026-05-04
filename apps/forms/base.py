@@ -315,15 +315,45 @@ class BaseForm(forms.ModelForm):
             try:
                 import json
 
-                current_creators = self.data.get("creators", "") or "[]"
-                initial_creators = self.fields["creators"].initial or "[]"
+                # Get submitted data (from POST or default)
+                current_creators = self.data.get("creators", "[]")
+                # If creators is a list in data (e.g. from some client), use it directly
+                current_data = current_creators if isinstance(current_creators, list) else json.loads(current_creators)
 
-                # Parse both JSON strings and compare the data structures
-                current_data = json.loads(current_creators) if current_creators else []
-                initial_data = json.loads(initial_creators) if initial_creators else []
+                # Get initial data from the field
+                initial_creators = self.fields["creators"].initial or "[]"
+                initial_data = initial_creators if isinstance(initial_creators, list) else json.loads(initial_creators)
+
+                # Normalize data structures for comparison
+                def normalize(data):
+                    norm = []
+                    for creator in data:
+                        if not isinstance(creator, dict):
+                            norm.append(creator)
+                            continue
+
+                        # Extract affiliation - handle both string and structured ROR/ORCID data
+                        aff = creator.get("affiliation", "")
+                        if isinstance(aff, dict):
+                            aff_name = (aff.get("name") or aff.get("title") or "").strip()
+                        else:
+                            aff_name = str(aff).strip()
+
+                        norm.append(
+                            {
+                                "name": (creator.get("name") or "").strip(),
+                                "lastName": (creator.get("lastName") or "").strip(),
+                                "orcid": (creator.get("orcid") or "").strip(),
+                                "affiliation": aff_name,
+                            }
+                        )
+                    return norm
+
+                current_norm = normalize(current_data)
+                initial_norm = normalize(initial_data)
 
                 # If the data is the same, remove from changed_data
-                if current_data == initial_data:
+                if current_norm == initial_norm:
                     changed_data.remove("creators")
             except (json.JSONDecodeError, KeyError, ValueError):
                 # If there's an error parsing, keep the field in changed_data to be safe

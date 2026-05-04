@@ -10,14 +10,24 @@
           <!-- ORCID Search - Optional but auto-populates fields -->
           <div class="col-md-6 position-relative">
             <label for="newCreatorOrcid" class="form-label fw-bold">ORCID ID <small class="text-muted">(optional)</small></label>
-            <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Name or ORCID ID">
+            <div class="input-group">
+              <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Name or ORCID ID">
+              <span class="input-group-text" id="orcidSearchLoading" style="display: none;">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              </span>
+            </div>
             <div id="orcidSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
             <small class="form-text text-muted">Search by name or ORCID ID</small>
           </div>
           <!-- Affiliation - Required -->
           <div class="col-md-6 position-relative">
             <label for="newCreatorAffiliation" class="form-label fw-bold">Affiliation <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation" required>
+            <div class="input-group">
+              <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation" required>
+              <span class="input-group-text" id="affiliationSearchLoading" style="display: none;">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              </span>
+            </div>
             <input type="hidden" id="newCreatorRorData" value="">
             <input type="hidden" id="newCreatorOrcidAffiliationData" value="">
             <div id="affiliationSuggestions" class="list-group position-absolute w-100" style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.375rem; margin-top: 1px;"></div>
@@ -70,7 +80,11 @@ function addCreator(shouldCloseModal = true) {
     return;
   }
 
-  let creatorInfo = `<strong>${name} ${lastName}</strong><br><small class="text-muted">`;
+  // Sanitize names to remove any accidental duplicate formatting (e.g. from ORCID search or form re-entry)
+  const cleanName = name.split(',')[0].trim();
+  const cleanLastName = lastName.split(',')[0].trim();
+
+  let creatorInfo = `<strong>${cleanName} ${cleanLastName}</strong><br><small class="text-muted">`;
   if (affiliation) {
     const affiliationName = typeof affiliation === 'string' ? affiliation : (affiliation.title || affiliation.name);
     creatorInfo += `Affiliation: ${affiliationName}<br>`;
@@ -100,7 +114,7 @@ function addCreator(shouldCloseModal = true) {
       <div>${creatorInfo}</div>
       ${actionButtons}
     `;
-    editingItem.setAttribute('data-creator', JSON.stringify({name, lastName, affiliation, orcid}));
+    editingItem.setAttribute('data-creator', JSON.stringify({name: cleanName, lastName: cleanLastName, affiliation, orcid}));
 
     // Reset editing mode
     modal.dataset.editingMode = 'false';
@@ -111,7 +125,7 @@ function addCreator(shouldCloseModal = true) {
     // Add new item
     const newItem = `
       <li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;"
-          data-creator='${JSON.stringify({name, lastName, affiliation, orcid})}'>
+          data-creator='${JSON.stringify({name: cleanName, lastName: cleanLastName, affiliation, orcid})}'>
         <div>${creatorInfo}</div>
         <div class="d-flex align-items-center gap-2">
           <button type="button" class="btn btn-outline-secondary btn-sm" data-edit-creator="new" title="Edit creator">
@@ -238,9 +252,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       debounceTimer = setTimeout(() => {
+        const loadingSpinner = document.getElementById('affiliationSearchLoading');
+        if (loadingSpinner) loadingSpinner.style.display = 'flex';
+
         fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(query)}`)
           .then(r => r.json())
           .then(data => {
+            if (loadingSpinner) loadingSpinner.style.display = 'none';
             suggestions.innerHTML = '';
             if (data.results && data.results.length > 0) {
               data.results.forEach(org => {
@@ -289,9 +307,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       orcidDebounceTimer = setTimeout(() => {
+        const loadingSpinner = document.getElementById('orcidSearchLoading');
+        if (loadingSpinner) loadingSpinner.style.display = 'flex';
+
         fetch(`/api/orcid-search/?query=${encodeURIComponent(query)}`)
           .then(r => r.json())
           .then(data => {
+            if (loadingSpinner) loadingSpinner.style.display = 'none';
             orcidSuggestions.innerHTML = '';
             if (data.results && data.results.length > 0) {
               data.results.forEach(person => {
@@ -343,8 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
               orcidSuggestions.style.display = 'none';
             }
           })
-          .catch(err => {
-            console.error('ORCID autocomplete error:', err);
+          .catch(err => {            if (loadingSpinner) loadingSpinner.style.display = 'none';            console.error('ORCID autocomplete error:', err);
             orcidSuggestions.style.display = 'none';
           });
       }, 300);
@@ -358,9 +379,14 @@ document.addEventListener('DOMContentLoaded', function() {
   // Clear form when modal opens
   const creatorsModal = document.getElementById('creatorsModal');
   if (creatorsModal) {
-    creatorsModal.addEventListener('show.bs.modal', function() {
-      clearCreatorForm();
-      syncCreatorButtons();
+    creatorsModal.addEventListener('show.bs.modal', function(event) {
+      // Only clear form if NOT in editing mode (invoked by the "Add creator" button)
+      // Check if the modal was triggered by a button with data-bs-toggle="modal"
+      const trigger = event.relatedTarget;
+      if (trigger && !trigger.hasAttribute('data-edit-creator')) {
+        clearCreatorForm();
+        syncCreatorButtons();
+      }
     });
   }
 

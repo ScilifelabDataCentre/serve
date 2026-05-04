@@ -40,6 +40,9 @@
                    id="funderNameInput"
                    placeholder="Search for a funder by name"
                    autocomplete="off">
+            <span class="input-group-text" id="funderSearchLoading" style="display: none;">
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            </span>
             <button class="btn btn-outline-secondary" type="button" id="clearFunderBtn" aria-label="Clear">
               &times;
             </button>
@@ -299,9 +302,14 @@
       }
 
       try {
+        const loadingSpinner = document.getElementById('funderSearchLoading');
+        if (loadingSpinner) loadingSpinner.style.display = 'flex';
         const data = await fetchFunders(q);
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
         showResults(Array.isArray(data?.items) ? data.items : []);
       } catch (err) {
+        const loadingSpinner = document.getElementById('funderSearchLoading');
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
         const message = (err && typeof err.message === "string" && err.message) ? err.message : "Funders search failed";
         resultsEl.innerHTML = `<div class="list-group-item text-danger">${escapeHtml(message)}</div>`;
         resultsEl.style.display = "block";
