@@ -60,6 +60,15 @@ class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
         body.always_open = True
         self.helper.layout = Layout(body, self.footer)
 
+    def clean_subdomain(self):
+        # Depictio does not render the subdomain field, so edit POSTs omit it entirely.
+        # Without this override, BaseForm.clean_subdomain() would treat that omission as
+        # an empty value and generate a new random subdomain on every edit.
+        if self.instance and self.instance.pk and "subdomain" not in self.data and self.instance.subdomain:
+            return self.validate_subdomain(self.instance.subdomain.subdomain)
+
+        return super().clean_subdomain()
+
     def clean(self):
         cleaned_data = super().clean()
         # Always handle tags field - preserve existing tags even if not changed
@@ -78,6 +87,17 @@ class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
                     cleaned_data["tags"] = existing_tags
 
         return cleaned_data
+
+    @property
+    def changed_data(self):
+        changed_data = super().changed_data
+
+        # Keep helpers.create_instance_from_form() from treating an omitted, non-rendered
+        # subdomain field as a user-initiated subdomain change that forces redeploy/delete.
+        if self.instance and self.instance.pk and "subdomain" not in self.data and "subdomain" in changed_data:
+            changed_data.remove("subdomain")
+
+        return changed_data
 
     class Meta:
         model = DepictioInstance

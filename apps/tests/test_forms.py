@@ -10,6 +10,7 @@ from sympy.physics.units import volume
 
 from apps.forms import CustomAppForm
 from apps.forms.dash import DashForm
+from apps.forms.depictio import DepictioForm
 from apps.forms.gradio import GradioForm
 from apps.forms.shiny import ShinyForm
 from apps.forms.streamlit import StreamlitForm
@@ -17,6 +18,7 @@ from apps.helpers import validate_path_k8s_label_compatible
 from apps.models import (
     Apps,
     CustomAppInstance,
+    DepictioInstance,
     K8sUserAppStatus,
     Subdomain,
     VolumeInstance,
@@ -245,6 +247,49 @@ class FundingFieldPresenceTest(BaseAppFormTest):
         for form_class in self.funding_forms:
             form = form_class(project_pk=self.project.pk)
             self.assertIn("funding_sources_json", form.fields, f"Missing funding field in {form_class.__name__}")
+
+
+class DepictioFormTest(BaseAppFormTest):
+    def setUp(self):
+        super().setUp()
+        self.instance = DepictioInstance.objects.create(
+            app=self.app,
+            chart="depictio",
+            owner=self.user,
+            project=self.project,
+            subdomain=Subdomain.objects.create(
+                subdomain="existing-depictio-subdomain",
+                project=self.project,
+                is_created_by_user=True,
+            ),
+            k8s_user_app_status=K8sUserAppStatus.objects.create(),
+            name="Existing Depictio",
+            description="Existing description",
+            access="public",
+        )
+        self.valid_data = {
+            "name": "Existing Depictio",
+            "description": "Updated description",
+            "access": "public",
+            "invenio_tags": "",
+            "creators": "[]",
+        }
+
+    def test_edit_form_reuses_existing_subdomain_when_not_posted(self):
+        form = DepictioForm(self.valid_data, project_pk=self.project.pk, instance=self.instance)
+
+        self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
+        self.assertEqual(form.cleaned_data["subdomain"].subdomain, self.instance.subdomain.subdomain)
+        self.assertNotIn("subdomain", form.changed_data)
+
+    def test_form_rendering_does_not_include_subdomain_input(self):
+        form = DepictioForm(self.valid_data, project_pk=self.project.pk, instance=self.instance)
+
+        template = Template("{% load crispy_forms_tags %}{% crispy form %}")
+        context = Context({"form": form})
+        rendered_form = template.render(context)
+
+        self.assertNotIn('name="subdomain"', rendered_form)
 
 
 invalid_default_url_subpath_list = [
