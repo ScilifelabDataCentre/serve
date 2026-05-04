@@ -214,7 +214,8 @@ class MockInvenioClient:
                     "removal_date": "2024-01-01T10:00:00+00:00",
                     "removal_reason": {"id": "personal-data"},
                     "citation_text": ""
-                    "Surname, N (2024). Some record title. SciLifeLab Serve. 10.83812/SCILIFELAB.ddddd-ddddd",
+                    "Surname, N (2024). Some record title. "
+                    "SciLifeLab Serve. https://doi.org/10.83812/SCILIFELAB.ddddd-ddddd",
                 },
             }
 
