@@ -118,8 +118,6 @@ describe("Test superuser access", () => {
         cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").should('be.visible').contains('Create project').click()
 
-        cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
-
         const pollStatus = () => {
           cy.location('pathname').then((path) => {
               const slug = path.split('/').filter(Boolean).pop();
@@ -132,6 +130,9 @@ describe("Test superuser access", () => {
           });
         };
         pollStatus();
+
+        cy.reload();
+        cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
 
         cy.get('.card-text').should('contain', project_description)
 
@@ -160,8 +161,6 @@ describe("Test superuser access", () => {
         cy.get('textarea[name=description]').type(project_description_duplicate) // this will be used to ensure to delete it
         cy.get("input[name=save]").should('be.visible').contains('Create project').click()
 
-        cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
-
         const pollStatus2 = () => {
           cy.location('pathname').then((path) => {
               const slug = path.split('/').filter(Boolean).pop();
@@ -174,6 +173,9 @@ describe("Test superuser access", () => {
           });
         };
         pollStatus2();
+
+        cy.reload();
+        cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
 
         cy.get('.card-text').should('contain', project_description_duplicate) // checking that project creation succeeded
         // deleting the project with the duplicate name

@@ -8,6 +8,18 @@ describe("Test project contributor user functionality", () => {
     // The longer timeout is often used when waiting for k8s operations to complete
     const longCmdTimeoutMs = 180000
 
+    const pollStatus = () => {
+      cy.location('pathname').then((path) => {
+        const slug = path.split('/').filter(Boolean).pop();
+        cy.request(`/projects/${slug}/project/status/`).then((response) => {
+          if (response.body.status !== 'active') {
+            cy.wait(1000);
+            pollStatus();
+          }
+        });
+      });
+    };
+
     // user: e2e_tests_contributor_tester
     let users
 
@@ -103,20 +115,11 @@ describe("Test project contributor user functionality", () => {
         cy.get("input[name=save]").contains('Create project').click()
 
         // Wait for project status to become active
-        cy.get('h3', { timeout: 30000 }).should('contain', project_name)
 
-        const pollStatus = () => {
-          cy.location('pathname').then((path) => {
-              const slug = path.split('/').filter(Boolean).pop();
-              cy.request(`/projects/${slug}/project/status/`).then((response) => {
-                  if (response.body.status !== 'active') {
-                      cy.wait(1000);
-                      pollStatus();
-                  }
-              });
-          });
-        };
         pollStatus();
+
+        cy.reload();
+        cy.get('h3', { timeout: 30000 }).should('contain', project_name)
 
         cy.visit("/projects/")
         cy.contains('h4.card-title', project_name, { timeout: 30000 }).should('be.visible')
@@ -231,6 +234,9 @@ describe("Test project contributor user functionality", () => {
         cy.get("input[name=save]").contains('Create project').click()
 
         // Wait for project status to become active
+        pollStatus();
+
+        // Wait for project status to become active
         cy.visit("/projects/")
         cy.contains('h4.card-title', project_name, { timeout: 30000 }).should('be.visible')
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
@@ -280,7 +286,10 @@ describe("Test project contributor user functionality", () => {
             cy.get('input[name=name]').type(current_name);
             cy.get("input[name=save]").contains('Create project').click()
 
-            // Wait for project status to become active to ensure it counts towards the limit
+            // Wait for project status to become active
+            pollStatus();
+
+            // Wait for project status to become active
             cy.visit("/projects/")
             cy.contains('h4.card-title', current_name, { timeout: 30000 }).should('be.visible')
         });
@@ -370,7 +379,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('input[name=name]').type(project_name_access)
         cy.get('textarea[name=description]').type("A test project created by an e2e test.")
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(5000) // sometimes it takes a while to create a project
+        pollStatus()
 
         // Create private app
         cy.logf("Now creating a private app", Cypress.currentTest)

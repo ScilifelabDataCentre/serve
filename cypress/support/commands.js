@@ -116,8 +116,6 @@ Cypress.Commands.add('createBlankProject', (project_name) => {
   cy.get("input[name=save]").contains('Create project').click()
 
   // Wait for project status to become active
-  cy.get('h3', { timeout: 30000 }).should('contain', project_name)
-
   const pollStatus = () => {
     cy.location('pathname').then((path) => {
         const slug = path.split('/').filter(Boolean).pop();
@@ -130,6 +128,9 @@ Cypress.Commands.add('createBlankProject', (project_name) => {
     });
   };
   pollStatus();
+
+  cy.reload();
+  cy.get('h3', { timeout: 30000 }).should('contain', project_name)
 })
 
 Cypress.Commands.add('deleteBlankProject', (project_name) => {
