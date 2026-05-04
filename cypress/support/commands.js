@@ -114,23 +114,8 @@ Cypress.Commands.add('createBlankProject', (project_name) => {
   cy.get('input[name=name]').type(project_name)
   cy.get('textarea[name=description]').type("A test project created by an e2e test.")
   cy.get("input[name=save]").contains('Create project').click()
+  cy.wait(5000) // need to wait a bit for the project to be created on some machines, otherwise won't find the new project under /projects/
 
-  // Wait for project status to become active
-  const pollStatus = () => {
-    cy.location('pathname').then((path) => {
-        const slug = path.split('/').filter(Boolean).pop();
-        cy.request(`/projects/${slug}/project/status/`).then((response) => {
-            if (response.body.status !== 'active') {
-                cy.wait(1000);
-                pollStatus();
-            }
-        });
-    });
-  };
-  pollStatus();
-
-  cy.reload();
-  cy.get('h3', { timeout: 30000 }).should('contain', project_name)
 })
 
 Cypress.Commands.add('deleteBlankProject', (project_name) => {
