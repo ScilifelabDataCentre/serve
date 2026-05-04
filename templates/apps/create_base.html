@@ -381,6 +381,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
         tagsContainer.appendChild(tagsInput);
 
+        const tagsSpinner = document.createElement('div');
+        tagsSpinner.className = 'spinner-border spinner-border-sm text-primary';
+        tagsSpinner.style.display = 'none';
+        tagsSpinner.setAttribute('role', 'status');
+        tagsSpinner.innerHTML = '<span class="visually-hidden">Loading...</span>';
+        tagsContainer.appendChild(tagsSpinner);
+
         let currentTags = [];
         let debounceTimer;
         let validSuggestions = [];
@@ -474,8 +481,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
 
+            tagsSpinner.style.display = 'block';
+
             fetch('/doi_minting/keyword_search/?q=' + encodeURIComponent(query))
                 .then(response => {
+                    tagsSpinner.style.display = 'none';
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
@@ -487,6 +497,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 })
                 .catch(error => {
+                    tagsSpinner.style.display = 'none';
                     console.error('[ERROR] Failed to fetch suggestions:', error);
                     hideDropdown();
                 });
