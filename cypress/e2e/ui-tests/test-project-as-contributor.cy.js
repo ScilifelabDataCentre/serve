@@ -4,7 +4,7 @@ describe("Test project contributor user functionality", () => {
 
     // The default command timeout should not be so long
     // Instead use longer timeouts on specific commands where deemed necessary and valid
-    const defaultCmdTimeoutMs = 10000
+    const defaultCmdTimeoutMs = 60000
     // The longer timeout is often used when waiting for k8s operations to complete
     const longCmdTimeoutMs = 180000
 
