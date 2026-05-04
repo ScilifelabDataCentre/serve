@@ -101,7 +101,11 @@ describe("Test project contributor user functionality", () => {
         cy.get('input[name=name]').type(project_name)
         cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(5000) // sometimes it takes a while to create a project
+
+        // Wait for project status to become active
+        cy.visit("/projects/")
+        cy.contains('h4.card-title', project_name, { timeout: 30000 }).should('be.visible')
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
 
         cy.get("title").should("have.text", project_title_name)
         cy.get('h3').should('contain', project_name)
@@ -210,8 +214,13 @@ describe("Test project contributor user functionality", () => {
         cy.get("a").contains('Create').first().click()
         cy.get('input[name=name]').type(project_name)
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(10000) // sometimes it takes a while to create a project
-            .then((href) => {
+
+        // Wait for project status to become active
+        cy.visit("/projects/")
+        cy.contains('h4.card-title', project_name, { timeout: 30000 }).should('be.visible')
+        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
+
+        cy.then((href) => {
                 cy.logf(href, Cypress.currentTest)
                 // Check that the app limits work using Jupyter Lab as example
                 // step 1. create 3 jupyter lab instances (current limit)
@@ -249,14 +258,17 @@ describe("Test project contributor user functionality", () => {
 
         // Create 10 projects (current limit)
         Cypress._.times(10, (i) => {
+            const current_name = `${project_name}-${i + 1}`;
             cy.visit("/projects/")
             cy.contains("a,button", "New project").first().click()
             cy.get("a").contains('Create').first().click()
-            cy.get('input[name=name]').type(`${project_name}-${i + 1}`);
+            cy.get('input[name=name]').type(current_name);
             cy.get("input[name=save]").contains('Create project').click()
-            cy.wait(5000)
+
+            // Wait for project status to become active to ensure it counts towards the limit
+            cy.visit("/projects/")
+            cy.contains('h4.card-title', current_name, { timeout: 30000 }).should('be.visible')
         });
-        cy.wait(15000) // sometimes it takes a while to create a project but just waiting once at the end should be enough
 
         // Now check that it is not possible to create another project
         // not possible to click the button to create a new project
