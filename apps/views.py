@@ -612,7 +612,7 @@ def app_details(request, invenio_record_id):
         (
             d.description
             for d in (app_metadata.additional_descriptions or [])
-            if d.type and d.type.get("id") == "technical-info"
+            if d.type and d.type.id == "technical-info"
         ),
         "",
     )
