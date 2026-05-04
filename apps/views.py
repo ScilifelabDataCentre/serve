@@ -614,6 +614,8 @@ def app_details(request, invenio_record_id):
         (i.identifier.replace("https://", "") for i in related_identifiers if i.relation_type.id == "hasversion"),
         None,
     )
+    serve_pk = next((i.identifier for i in app_metadata.identifiers if i.scheme == "other"), None)
+    app_otherdata["app_pk"] = serve_pk.split(":", 1)[1] if serve_pk and ":" in serve_pk else None
 
     # Get version info
     app_pids = invenio_svc.extract_app_pids(record)
@@ -642,42 +644,9 @@ def app_details(request, invenio_record_id):
         app_parent.pids.doi.identifier if app_parent and app_parent.pids and app_parent.pids.doi else None
     )
 
-    # TO-DO: below is a temporary solution because not all data is in the invenio entry yet.
-    # Later we do not want to need to fetch info from the Serve db entry for this view at all.
-
-    # Schema.org compliant JSON output
-
-    # Fetch the current app record from the Serve database
-    # generate and parse schema
-    identifier = next((i.identifier for i in app_metadata.identifiers if i.scheme == "other"), None)
-    app_id = identifier.split(":", 1)[1] if identifier and ":" in identifier else None
-    app_baseinstance = get_object_or_404(BaseAppInstance, pk=app_id)
-    # Get app model instance in the serve database
-    app_slug = app_baseinstance.app.slug
-    model_class = APP_REGISTRY.get_orm_model(app_slug)
-    if not model_class:
-        logger.error(f"Missing model for slug: {app_slug}")
-        raise PermissionDenied("Application model not found")
-    app = model_class.objects.get(pk=app_id)
-    schema_dict = json.loads(generate_schema_org_compliant_app_metadata(app))
-    schema_dict["about"]["additionalProperty"][0]["value"] = dateutil.parser.parse(
-        schema_dict["about"]["additionalProperty"][0]["value"]
-    )
-    # handle JSON export
-    if request.GET.get("format") == "json":
-        filename = f"SciLifeLab_Serve_App_{app.name}_metadata.json"
-        response = HttpResponse(
-            generate_schema_org_compliant_app_metadata(app),
-            content_type="application/json",
-            headers={"Content-Disposition": content_disposition_header(True, filename)},
-        )
-        return response
-
     context = {
-        "app": app,  # TO-DO: This can be removed once all public apps have invenio record IDs and we change URLs
         "app_metadata": app_metadata,
         "app_otherdata": app_otherdata,
-        "schema_dict": schema_dict,
     }
 
     return render(request, "common/app_details.html", context)
