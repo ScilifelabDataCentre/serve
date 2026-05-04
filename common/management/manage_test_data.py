@@ -101,11 +101,12 @@ class TestDataManager:
 
         user = User.objects.get(email__exact=self.user_data["email"])
         projects = Project.objects.filter(owner=user, name=self.project_data["project_name"])
+        count = projects.count()
         for project in projects:
             delete_project_apps(project)
+            project.delete()
 
-        deleted_count, _ = projects.delete()
-        return deleted_count
+        return count
 
     def delete_all_projects(self):
         """Delete all user's projects. Returns deletion count."""
@@ -113,11 +114,12 @@ class TestDataManager:
             raise ValueError("Missing email for user selection")
         user = User.objects.get(email__exact=self.user_data["email"])
         projects = Project.objects.filter(owner=user)
+        count = projects.count()
         for project in projects:
             delete_project_apps(project)
+            project.delete()
 
-        deleted_count, _ = projects.delete()
-        return deleted_count
+        return count
 
     def create_app(self):
         """Create an application instance with validation."""

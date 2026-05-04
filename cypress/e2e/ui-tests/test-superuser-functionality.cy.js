@@ -119,6 +119,20 @@ describe("Test superuser access", () => {
         cy.get("input[name=save]").should('be.visible').contains('Create project').click()
 
         cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
+
+        const pollStatus = () => {
+          cy.location('pathname').then((path) => {
+              const slug = path.split('/').filter(Boolean).pop();
+              cy.request(`/projects/${slug}/project/status/`).then((response) => {
+                  if (response.body.status !== 'active') {
+                      cy.wait(1000);
+                      pollStatus();
+                  }
+              });
+          });
+        };
+        pollStatus();
+
         cy.get('.card-text').should('contain', project_description)
 
         cy.logf("Checking that project settings are available", Cypress.currentTest)
@@ -145,7 +159,22 @@ describe("Test superuser access", () => {
         cy.get('input[name=name]').type(project_name) // this name already exists
         cy.get('textarea[name=description]').type(project_description_duplicate) // this will be used to ensure to delete it
         cy.get("input[name=save]").should('be.visible').contains('Create project').click()
+
         cy.get('h3', {timeout: longCmdTimeoutMs}).should('contain', project_name)
+
+        const pollStatus2 = () => {
+          cy.location('pathname').then((path) => {
+              const slug = path.split('/').filter(Boolean).pop();
+              cy.request(`/projects/${slug}/project/status/`).then((response) => {
+                  if (response.body.status !== 'active') {
+                      cy.wait(1000);
+                      pollStatus2();
+                  }
+              });
+          });
+        };
+        pollStatus2();
+
         cy.get('.card-text').should('contain', project_description_duplicate) // checking that project creation succeeded
         // deleting the project with the duplicate name
         cy.get('[data-cy="settings"]').should('be.visible').click()
@@ -530,18 +559,24 @@ describe("Test superuser access", () => {
             .then(() => {
                 cy.logf("Create 3 jupyter lab instances (current limit)", Cypress.currentTest)
                 Cypress._.times(3, () => {
+                        cy.visit("/projects/")
+                        cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
                         cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                         cy.get('#id_name').type(app_name)
                         cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
                         cy.completeAppSubmissionFlow()
                 });
                 cy.logf("Check that the button to create another one still works", Cypress.currentTest)
+                cy.visit("/projects/")
+                cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
                 cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').should('have.attr', 'href')
                 cy.logf("Check that it is possible to create another one and therefore bypass the limit", Cypress.currentTest)
                 cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                 cy.get('#id_name').type(app_name)
                 cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
                 cy.completeAppSubmissionFlow()
+                cy.visit("/projects/")
+                cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
                 cy.get('tr:contains("' + app_name + '")').its('length').should('eq', 4) // we now have an extra app
                 })
 

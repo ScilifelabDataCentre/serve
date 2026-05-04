@@ -103,6 +103,21 @@ describe("Test project contributor user functionality", () => {
         cy.get("input[name=save]").contains('Create project').click()
 
         // Wait for project status to become active
+        cy.get('h3', { timeout: 30000 }).should('contain', project_name)
+
+        const pollStatus = () => {
+          cy.location('pathname').then((path) => {
+              const slug = path.split('/').filter(Boolean).pop();
+              cy.request(`/projects/${slug}/project/status/`).then((response) => {
+                  if (response.body.status !== 'active') {
+                      cy.wait(1000);
+                      pollStatus();
+                  }
+              });
+          });
+        };
+        pollStatus();
+
         cy.visit("/projects/")
         cy.contains('h4.card-title', project_name, { timeout: 30000 }).should('be.visible')
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a.btn').contains('Open').click()
