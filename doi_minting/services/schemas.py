@@ -40,6 +40,11 @@ class AppData(BaseModel):
     access: str
     k8s_values: dict[str, Any] | None = None
 
+    port: int | None = None
+    path: str | None = None
+    volume: Any | None = None
+    source_code_url: str | None = None
+
 
 # ============================================================================
 # Person and Organization Models
@@ -79,6 +84,15 @@ class Creator(BaseModel):
 
     person_or_org: PersonOrOrg | None = None
     affiliations: list[Affiliation] | None = None
+
+
+class Contributor(BaseModel):
+    """Contributor with InvenioRDM-compatible person_or_org and role structure. All fields optional, extra allowed."""
+
+    model_config = ConfigDict(extra="allow")
+
+    person_or_org: PersonOrOrg | None = None
+    role: Role | None = None
 
 
 # ============================================================================
@@ -168,8 +182,8 @@ class Identifier(BaseModel):
 class RelationType(BaseModel):
     """Relationship type between resources."""
 
-    id: str  # e.g., "issourceof", "hasversion", "isdocumentedby"
-    title: dict[str, Any] | None = None  # {"en": "Has image version"}
+    id: str  # controlled vocabulary from DataCite, e.g., "issourceof", "isvariantformof", "isdocumentedby"
+    title: dict[str, Any] | None = None  # {"en": "Docker image"}
 
 
 class RelatedIdentifierItem(BaseModel):
@@ -179,6 +193,19 @@ class RelatedIdentifierItem(BaseModel):
     scheme: str  # e.g., "url", "other", "doi"
     relation_type: RelationType
     resource_type: ResourceType | None = None
+
+
+# ============================================================================
+# Description Models
+# ============================================================================
+
+
+class AdditionalDescription(BaseModel):
+    """Additional descriptions in Invenio metadata (main Description is abstract)."""
+
+    description: str
+    type: dict[Literal["id"], Literal["technical-info", "other"]]
+    lang: Language | None = None
 
 
 # ============================================================================
@@ -224,6 +251,7 @@ class InvenioMetadata(BaseModel):
     publication_date: str
     dates: list[Date]
     publisher: str
+    contributors: list[Contributor]
     resource_type: ResourceType
     creators: List[Creator]
 
@@ -235,6 +263,9 @@ class InvenioMetadata(BaseModel):
     languages: List[Language] | None = None
     subjects: list[Subject] | None = None
     funding: list[Funding] | None = None
+
+    # Additional descriptions
+    additional_descriptions: list[AdditionalDescription] | None = None
 
 
 # ============================================================================

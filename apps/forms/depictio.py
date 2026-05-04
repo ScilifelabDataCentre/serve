@@ -44,8 +44,8 @@ class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags", template="apps/invenio_tags_field.html"),
-            self.get_creators_field_layout(),
             SRVCommonDivField("access"),
+            self.get_creators_field_layout(),
             active=True,
         )
 
