@@ -603,7 +603,7 @@ def app_details(request, invenio_record_id):
 
     # Variable for some extracted and other data about the app
     app_otherdata = {}
-    
+
     serve_pk = next((i.identifier for i in app_metadata.identifiers if i.scheme == "other"), None)
     app_otherdata["app_pk"] = serve_pk.split(":", 1)[1] if serve_pk and ":" in serve_pk else None
 
@@ -616,7 +616,7 @@ def app_details(request, invenio_record_id):
         ),
         "",
     )
-    
+
     technical_parts = {}
     if technical_description:
         technical_parts = {
