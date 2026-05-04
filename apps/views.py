@@ -603,19 +603,36 @@ def app_details(request, invenio_record_id):
 
     # Variable for some extracted and other data about the app
     app_otherdata = {}
-
-    # Extract some more complicated things from the Invenio metadata into separate variables
-    related_identifiers = app_metadata.related_identifiers or []
-    app_otherdata["app_url"] = next(
-        (i.identifier for i in related_identifiers if i.relation_type.id == "issourceof"),
-        None,
-    )
-    app_otherdata["docker_image"] = next(
-        (i.identifier.replace("https://", "") for i in related_identifiers if i.relation_type.id == "hasversion"),
-        None,
-    )
+    
     serve_pk = next((i.identifier for i in app_metadata.identifiers if i.scheme == "other"), None)
     app_otherdata["app_pk"] = serve_pk.split(":", 1)[1] if serve_pk and ":" in serve_pk else None
+
+    # Extract deployment + technical info from technical info description in the metadata
+    technical_description = next(
+        (
+            d.description
+            for d in (app_metadata.additional_descriptions or [])
+            if d.type and d.type.get("id") == "technical-info"
+        ),
+        "",
+    )
+    
+    technical_parts = {}
+    if technical_description:
+        technical_parts = {
+            key.strip(): value.strip()
+            for part in technical_description.strip().strip(";").split(";")
+            if ":" in part
+            for key, value in [part.split(":", 1)]
+        }
+
+    app_otherdata["app_url"] = technical_parts.get("URL of latest version deployment")
+    app_otherdata["docker_image"] = technical_parts.get("Docker image")
+    app_otherdata["docker_port"] = technical_parts.get("Docker image port")
+    mounted_volume = technical_parts.get("Mounted volume")
+    app_otherdata["mounted_volume"] = mounted_volume.lower() == "true" if mounted_volume else None
+    app_otherdata["volume_mount_path"] = technical_parts.get("Volume mount path")
+    app_otherdata["source_code_url"] = technical_parts.get("App source code URL")
 
     # Get version info
     app_pids = invenio_svc.extract_app_pids(record)
