@@ -515,7 +515,7 @@ class InvenioService:
             logger.error(f"Error retrieving record {record_id}: {e}")
             return None
 
-    def extract_app_metadata(self, record: InvenioRecord) -> Optional["InvenioMetadata"]:
+    def extract_app_metadata(self, record: Optional[InvenioRecord]) -> Optional["InvenioMetadata"]:
         """
         Retrieve metadata for a given Invenio record as an InvenioMetadata Pydantic model.
         Args:
@@ -523,6 +523,8 @@ class InvenioService:
         Returns:
             InvenioMetadata instance or None if not found/invalid.
         """
+        if record is None:
+            return None
         record_id = getattr(record, "id", "<unknown>")
         try:
             # InvenioRecord already has validated metadata field
@@ -531,7 +533,7 @@ class InvenioService:
             logger.error(f"Error extracting metadata from InvenioRecord {record_id}: {e}")
             return None
 
-    def extract_app_pids(self, record: InvenioRecord) -> Optional[Pids]:
+    def extract_app_pids(self, record: Optional[InvenioRecord]) -> Optional[Pids]:
         """
         Retrieve pids for a given Invenio record as a Pids Pydantic model.
         Args:
@@ -539,6 +541,8 @@ class InvenioService:
         Returns:
             Pids instance or None if invalid.
         """
+        if record is None:
+            return None
         record_id = getattr(record, "id", "<unknown>")
         try:
             # InvenioRecord already has validated pids field
@@ -547,7 +551,7 @@ class InvenioService:
             logger.error(f"Error retrieving pids from InvenioRecord {record_id}: {e}")
             return None
 
-    def extract_app_parent(self, record: InvenioRecord) -> Optional[Parent]:
+    def extract_app_parent(self, record: Optional[InvenioRecord]) -> Optional[Parent]:
         """
         Retrieve parent for a given Invenio record as a Parent Pydantic model.
         Args:
@@ -555,6 +559,8 @@ class InvenioService:
         Returns:
             Parent instance or None if invalid.
         """
+        if record is None:
+            return None
         record_id = getattr(record, "id", "<unknown>")
         try:
             # InvenioRecord already has validated parent field
@@ -935,15 +941,26 @@ class InvenioService:
                             affiliations_list.append(Affiliation(name=affiliation_data, id=ror_id))
                         elif isinstance(affiliation_data, dict) and "ror_id" in affiliation_data:
                             # ROR API format: transform to structured Affiliation
+                            # Ensure ROR ID is cleaned (no URL prefix) as Invenio handles the scheme
+                            ror_id = affiliation_data.get("ror_id")
+                            if ror_id:
+                                ror_id = ror_id.replace("https://ror.org/", "").replace(
+                                    "https://api.ror.org/organizations/", ""
+                                )
+
                             affiliations_list.append(
                                 Affiliation(
                                     name=affiliation_data.get("title", ""),
-                                    id=affiliation_data.get("ror_id"),
+                                    id=ror_id,
                                 )
                             )
                         elif isinstance(affiliation_data, dict) and "identifier" in affiliation_data:
                             # ORCID-sourced format: structured affiliation with identifier
                             identifier = affiliation_data.get("identifier", "")
+                            if identifier:
+                                identifier = identifier.replace("https://ror.org/", "").replace(
+                                    "https://api.ror.org/organizations/", ""
+                                )
 
                             affiliations_list.append(
                                 Affiliation(

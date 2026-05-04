@@ -204,7 +204,7 @@ class AdditionalDescription(BaseModel):
     """Additional descriptions in Invenio metadata (main Description is abstract)."""
 
     description: str
-    type: dict[Literal["id"], Literal["technical-info", "other"]]
+    type: dict[str, Any]
     lang: Language | None = None
 
 
