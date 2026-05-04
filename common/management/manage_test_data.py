@@ -10,7 +10,7 @@ from projects.models import (
     Project,
     ProjectTemplate,
 )
-from projects.tasks import create_resources_from_template, delete_project_apps
+from projects.tasks import create_resources_from_template
 
 
 class TestDataManager:
@@ -100,26 +100,18 @@ class TestDataManager:
             raise ValueError("Missing email for user selection")
 
         user = User.objects.get(email__exact=self.user_data["email"])
-        projects = Project.objects.filter(owner=user, name=self.project_data["project_name"])
-        count = projects.count()
-        for project in projects:
-            delete_project_apps(project)
-            project.delete()
-
-        return count
+        project_to_delete = Project.objects.filter(owner=user, name=self.project_data["project_name"])
+        deleted_count, _ = project_to_delete.delete()
+        return deleted_count
 
     def delete_all_projects(self):
         """Delete all user's projects. Returns deletion count."""
         if "email" not in self.user_data:
             raise ValueError("Missing email for user selection")
         user = User.objects.get(email__exact=self.user_data["email"])
-        projects = Project.objects.filter(owner=user)
-        count = projects.count()
-        for project in projects:
-            delete_project_apps(project)
-            project.delete()
-
-        return count
+        projects_to_delete = Project.objects.filter(owner=user)
+        deleted_count, _ = projects_to_delete.delete()
+        return deleted_count
 
     def create_app(self):
         """Create an application instance with validation."""
