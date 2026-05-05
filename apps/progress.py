@@ -80,6 +80,10 @@ def get_progress_started_at_from_request(request):
     return started_at
 
 
+def get_skip_deploy_from_request(request):
+    return request.GET.get("skip_deploy", "").lower() == "true"
+
+
 def get_progress_tasks(instance, started_at=None):
     from apps.background_tasks.registry import TASK_REGISTRY
     from apps.models import BackgroundTask
@@ -388,7 +392,9 @@ def _is_status_fresh(status_updated_at, progress_started_at):
     return status_updated_at + FRESH_STATUS_SKEW_TOLERANCE >= progress_started_at
 
 
-def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progress_started_at=None):
+def _build_deployment_state(
+    instance, tasks_data, deployment_inputs=None, progress_started_at=None, skip_deploy=False
+):
     """
     Build the "Deploy app" step shown after the background checks.
 
@@ -439,7 +445,19 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progre
 
     has_fresh_running_status = app_status == "Running" and _is_status_fresh(status_updated_at, progress_started_at)
 
-    if deployment_failed and not blocked and not tasks_in_progress:
+    # Metadata-only updates run the background-task workflow without redeploying helm
+    # (skip_deploy=True). In that case there is no helm run to wait on, so once the
+    # checks are done the synthetic "Deploy app" tile is finished by definition.
+    deploy_skipped_complete = skip_deploy and not blocked and not tasks_in_progress
+
+    if deploy_skipped_complete:
+        # No helm run is happening, so prior deploy state (success/failure) is not
+        # what this submission is reporting on. Treat the synthetic tile as done
+        # as soon as the checks finish.
+        status = "success"
+        label = "Done"
+        message = "Metadata updated. No redeploy was needed."
+    elif deployment_failed and not blocked and not tasks_in_progress:
         status = "failed"
         label = "Failed"
         message = "Deployment hit an error after the checks completed."
@@ -467,7 +485,7 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progre
     }
 
 
-def build_progress_state(instance, progress_mode=None, progress_started_at=None):
+def build_progress_state(instance, progress_mode=None, progress_started_at=None, skip_deploy=False):
     deployment_inputs = None
     if progress_mode == "details":
         # Details always show the latest visible task history for the app.
@@ -484,6 +502,7 @@ def build_progress_state(instance, progress_mode=None, progress_started_at=None)
         tasks_data,
         deployment_inputs=deployment_inputs,
         progress_started_at=progress_started_at,
+        skip_deploy=skip_deploy,
     )
 
     return {
@@ -494,7 +513,9 @@ def build_progress_state(instance, progress_mode=None, progress_started_at=None)
     }
 
 
-def build_progress_status_api_url(project_slug, app_slug, app_id, progress_mode=None, progress_started_at=None):
+def build_progress_status_api_url(
+    project_slug, app_slug, app_id, progress_mode=None, progress_started_at=None, skip_deploy=False
+):
     url = reverse(
         "apps:background_tasks_status",
         kwargs={"project": project_slug, "app_slug": app_slug, "app_id": app_id},
@@ -504,6 +525,8 @@ def build_progress_status_api_url(project_slug, app_slug, app_id, progress_mode=
         query_params["mode"] = progress_mode
     if progress_started_at is not None:
         query_params["started_at"] = progress_started_at.isoformat()
+    if skip_deploy:
+        query_params["skip_deploy"] = "true"
     if query_params:
         return f"{url}?{urlencode(query_params)}"
     return url
