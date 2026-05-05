@@ -45,7 +45,7 @@ def test_known_tasks_apply_to_non_custom_app_types():
     assert "validate_docker_image" in [task.task_name for task in dash_tasks]
     assert "validate_image_public" in [task.task_name for task in dash_tasks]
     assert "doi_provisioning" in [task.task_name for task in dash_tasks]
-    assert "doi_provisioning" in [task.task_name for task in depictio_tasks]
+    assert "doi_provisioning" not in [task.task_name for task in depictio_tasks]
 
 
 @pytest.mark.django_db
