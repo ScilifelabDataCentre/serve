@@ -125,6 +125,7 @@ if (Cypress.env('create_resources') === true) {
             const default_url_subpath = "default/url/subpath/"
             const changed_default_url_subpath = "changed/subpath/"
             const invalid_default_url_subpath = "€% / ()"
+            const keyword = "Microscopy"
 
             const mount_path = "/home/data"
 
@@ -179,6 +180,41 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
             cy.get('#id_access').select('Public')
             cy.get('#id_source_code_url').type(app_source_code_public)
+            cy.get('#div_id_invenio_tags').should('be.visible')
+                .within(() => {
+                    cy.get('input[placeholder*="Start typing"]').should('be.visible').type(keyword)
+                    cy.get('.dropdown-menu .dropdown-item', { timeout: 10000 }).should('be.visible').first().should('have.text', keyword).click()
+                })
+            // make sure that the extra fields for public apps are visible and work
+            cy.get('#id_language').should('be.visible').within(() => {
+                cy.get('option').eq(0).should('have.value', 'eng').and('contain', 'English')
+                cy.get('option').eq(1).should('have.value', 'swe').and('contain', 'Swedish')
+                cy.get('option').eq(2).should('have.value', 'und').and('contain', 'Other')
+            })
+            cy.contains('button', 'Add creator').should('be.visible').click()
+            cy.contains('.modal-content', 'Add creator').should('be.visible')
+                .within(() => {
+                    cy.get('#newCreatorName').should('be.visible')
+                    cy.get('#newCreatorLastName').should('be.visible')
+                    cy.get('#newCreatorAffiliation').should('be.visible')
+                    cy.get('#newCreatorOrcid').should('be.visible')
+                    cy.get('#saveAndAddAnotherCreatorBtn').should('be.disabled')
+                    cy.get('#saveCreatorBtn').should('be.disabled')
+                })
+            cy.wait(3000)
+            cy.get('#creatorsModal .btn-close').click()
+            cy.get('#addFunderBtn').should('be.visible').click()
+            cy.contains('.modal-content', 'Add funder').should('be.visible')
+                .within(() => {
+                    cy.get('#funderNameInput').should('be.visible')
+                    cy.get('#awardNumberInput').should('be.visible')
+                    cy.get('#awardTitleInput').should('be.visible')
+                    cy.get('#awardUrlInput').should('be.visible')
+                    cy.get('#saveAndAddAnotherBtn').should('be.disabled')
+                    cy.get('#saveFunderBtn').should('be.disabled')
+                })
+            cy.wait(3000)
+            cy.get('#funderModal .btn-close').click()
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             cy.completeAppSubmissionFlow()
 
@@ -194,8 +230,8 @@ if (Cypress.env('create_resources') === true) {
                 })
             }
 
-            // Verify that the public project app cannot be deleted (due to DOI protection)
-            cy.logf("Verifying that the public project app cannot be deleted by regular users", Cypress.currentTest)
+            // Verify that the public app cannot be deleted (due to DOI protection)
+            cy.logf("Verifying that the public app cannot be deleted by regular users", Cypress.currentTest)
 
             // Verify that the delete button is not available for public apps
             cy.get('tr:contains("' + app_name_project + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()

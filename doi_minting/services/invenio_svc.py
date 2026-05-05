@@ -30,6 +30,7 @@ from studio.utils import get_logger
 from .schemas import (
     AccessConfig,
     AdditionalDescription,
+    AdditionalDescriptionType,
     AdditionalMetadata,
     Affiliation,
     AppData,
@@ -1207,7 +1208,7 @@ class InvenioService:
                 f"Volume mount path: {path}; "
                 f"App source code URL: {source_code_url}; "
             ),
-            type={"id": "technical-info"},
+            type=AdditionalDescriptionType(id="technical-info"),
         )
 
     def generate_invenio_record(

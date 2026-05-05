@@ -150,7 +150,10 @@ class Funding(BaseModel):
 
 
 class DateType(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     id: Literal["submitted", "accepted", "available", "updated"]
+    title: dict[str, Any] | None = None
 
 
 class Date(BaseModel):
@@ -200,11 +203,20 @@ class RelatedIdentifierItem(BaseModel):
 # ============================================================================
 
 
+class AdditionalDescriptionType(BaseModel):
+    """Additional description type returned by Invenio."""
+
+    model_config = ConfigDict(extra="allow")
+
+    id: Literal["technical-info", "other"]
+    title: dict[str, Any] | None = None
+
+
 class AdditionalDescription(BaseModel):
     """Additional descriptions in Invenio metadata (main Description is abstract)."""
 
     description: str
-    type: dict[str, Any]
+    type: AdditionalDescriptionType
     lang: Language | None = None
 
 

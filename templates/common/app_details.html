@@ -168,7 +168,7 @@
 
     <div class="col-12 col-xl-5">
 
-      <div class="card shadow mb-4">
+    <div class="card shadow mb-4">
         <div class="card-header">
           <h2 class="h5 mb-0">Creators</h2>
         </div>
@@ -231,39 +231,70 @@
           </div>
 
         </div>
-      </div>
+    </div>
 
-      {% comment %}
     <div class="card shadow mb-4">
         <div class="card-header">
           <h2 class="h5 mb-0">Citation</h2>
         </div>
         <div class="card-body">
           <div class="row g-3">
-
+            <div class="col-12">
+                <a href="https://api.datacite.org/application/vnd.citationstyles.csl+json/{{ app_otherdata.current_version_doi|lower }}"
+                   class="btn btn btn-outline-dark">
+                    <i class="bi bi-download me-2"></i>
+                    Citeproc JSON
+                </a>
+            </div>
+            <div class="col-12">
+                <a href="https://api.datacite.org/application/x-bibtex/{{ app_otherdata.current_version_doi|lower }}"
+                   class="btn btn btn-outline-dark">
+                    <i class="bi bi-download me-2"></i>
+                    BibTeX
+                </a>
+            </div>
+            <div class="col-12">
+                <a href="https://api.datacite.org/application/x-research-info-systems/{{ app_otherdata.current_version_doi|lower }}"
+                   class="btn btn btn-outline-dark">
+                    <i class="bi bi-download me-2"></i>
+                    RIS
+                </a>
+            </div>
           </div>
-
         </div>
-      </div>
-      {% endcomment %}
+    </div>
 
-        <div class="card shadow mb-4">
+    <div class="card shadow mb-4">
         <div class="card-header">
-          <h2 class="h5 mb-0">Export</h2>
+          <h2 class="h5 mb-0">Metadata export</h2>
         </div>
         <div class="card-body">
           <div class="row g-3">
-            <div class="col">
-                <a href="{% url 'app-details' app.pk %}?format=json"
-                   class="btn btn btn-primary">
+            <div class="col-12">
+                <a href="https://api.datacite.org/application/vnd.datacite.datacite+xml/{{ app_otherdata.current_version_doi|lower }}"
+                   class="btn btn btn-secondary">
                     <i class="bi bi-download me-2"></i>
-                    Download all metadata (JSON)
+                    XML format
+                </a>
+            </div>
+            <div class="col-12">
+                <a href="https://api.datacite.org/application/vnd.datacite.datacite+json/{{ app_otherdata.current_version_doi|lower }}"
+                   class="btn btn btn-secondary">
+                    <i class="bi bi-download me-2"></i>
+                    JSON format
+                </a>
+            </div>
+            <div class="col-12">
+                <a href="https://api.datacite.org/application/vnd.schemaorg.ld+json/{{ app_otherdata.current_version_doi|lower }}"
+                   class="btn btn btn-secondary">
+                    <i class="bi bi-download me-2"></i>
+                    Schema.org JSON-LD
                 </a>
             </div>
           </div>
 
         </div>
-      </div>
+    </div>
 
 
     </div>
