@@ -543,7 +543,9 @@ describe("Test deploying app", () => {
             cy.get('#id_language').find(':selected').should('contain', 'eng')
             cy.get('#creatorsSortableList').should('be.visible').children('li').should('have.length', 2)
             cy.get('#fundersList').should('be.visible').children().should('have.length', 2)
-            cy.get('#fundersList').children().eq(1).find('.fw-semibold').should('have.text', funder_org_two).and('have.text', funder_number_two)
+            cy.get('#fundersList').children().eq(1).find('.fw-semibold')
+                .should('contain', funder_org_two)
+                .and('contain', funder_number_two)
             // Advanced settings section is always open, so we can directly access the field
             // Scroll to the field to ensure it's in view
             cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
