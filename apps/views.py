@@ -54,6 +54,7 @@ from .progress import (
     get_progress_started_at_from_request,
     get_progress_tasks,
     get_project_app_instance,
+    get_skip_deploy_from_request,
     serialize_tasks,
     summarize_tasks,
 )
@@ -346,8 +347,13 @@ class CreateApp(View):
             )
 
         progress_url = build_project_app_path(str(project_slug), f"progress/{app_slug}/{result.instance_id}")
+        progress_query = {}
         if result.progress_started_at:
-            progress_url = f"{progress_url}?{urlencode({'started_at': result.progress_started_at})}"
+            progress_query["started_at"] = result.progress_started_at
+        if result.skip_deploy:
+            progress_query["skip_deploy"] = "true"
+        if progress_query:
+            progress_url = f"{progress_url}?{urlencode(progress_query)}"
         return HttpResponseRedirect(progress_url)
 
     def get_form(self, request, project, app_slug, app_id):
@@ -405,10 +411,12 @@ class DeploymentProgressView(View):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
         progress_mode = get_progress_mode_from_request(request) or "deploy"
         progress_started_at = get_progress_started_at_from_request(request)
+        skip_deploy = get_skip_deploy_from_request(request)
         progress_state = build_progress_state(
             instance,
             progress_mode=progress_mode,
             progress_started_at=progress_started_at,
+            skip_deploy=skip_deploy,
         )
 
         context = {
@@ -421,6 +429,7 @@ class DeploymentProgressView(View):
                 instance.pk,
                 progress_mode=progress_mode,
                 progress_started_at=progress_started_at,
+                skip_deploy=skip_deploy,
             ),
             "detail_url": build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
             "form_url": build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}"),
@@ -795,10 +804,12 @@ class BackgroundTaskStatusAPI(View):
             return JsonResponse({"error": "App instance not found"}, status=404)
         progress_mode = get_progress_mode_from_request(request) or "deploy"
         progress_started_at = get_progress_started_at_from_request(request)
+        skip_deploy = get_skip_deploy_from_request(request)
         progress_state = build_progress_state(
             instance,
             progress_mode=progress_mode,
             progress_started_at=progress_started_at,
+            skip_deploy=skip_deploy,
         )
 
         return JsonResponse(

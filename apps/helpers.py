@@ -317,6 +317,7 @@ class CreateInstanceResult(NamedTuple):
     instance_id: int
     progress_started_at: str | None
     workflow_started: bool
+    skip_deploy: bool = False
 
 
 @transaction.atomic
@@ -538,6 +539,7 @@ def create_instance_from_form(
         instance_id=instance_id,
         progress_started_at=progress_started_at,
         workflow_started=do_deploy or run_background_tasks_only,
+        skip_deploy=run_background_tasks_only and not do_deploy,
     )
 
 
