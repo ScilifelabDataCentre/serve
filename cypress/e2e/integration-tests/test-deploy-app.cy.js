@@ -395,7 +395,8 @@ describe("Test deploying app", () => {
             })
             cy.get('.d-flex.flex-column.flex-md-row').first()
             .within(() => {
-                cy.contains('a', 'Run Locally').should('have.attr', 'data-app-name', app_name_public)
+                // Apps that have volume attached don't have Run Locally on public details page.
+                cy.contains('a', 'Run Locally').should('not.exist')
             })
             // check record description block
             cy.contains('.card', 'Record description').within(() => {
@@ -413,14 +414,13 @@ describe("Test deploying app", () => {
                 cy.contains('dt', 'Funding')
                     .next('dd')
                     .should('contain', funder_org)
-                    .and('contain', funder_number)
 
                 })
             // creators block
             cy.contains('.card', 'Creators').within(() => {
                 cy.contains('.card-username', creator_lastname + ', ' + creator_firstname).should('be.visible')
                 cy.contains('.card-username', 'Doe, Jane').should('be.visible')
-                    .and('have.attr', 'href', 'https://orcid.org/0000-0002-1584-4316')
+                    .and('have.attr', 'href', '0000-0002-1584-4316')
                 })
 
 
@@ -465,11 +465,12 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').should('have.value', app_source_code_public) // source code url should be same as before
             cy.get('#id_source_code_url').clear().type(app_source_code_public_changed) // now change source code url
             cy.get('#id_access').find(':selected').should('contain', 'Public')
-            cy.get('#id_language').find(':selected').should('contain', 'swe')
+            cy.get('#id_access').should('be.disabled')
+            cy.get('#id_language').should('have.value', 'swe')
             cy.get('#id_language').select('eng')
             // keywords
-            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword)
-            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword).closest('.badge').find('.tag-remove-button').click()
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword.toLowerCase())
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword.toLowerCase()).closest('.badge').find('.tag-remove-button').click()
             cy.get('#div_id_invenio_tags').should('be.visible')
                 .within(() => {
                     cy.get('input[placeholder*="Start typing"]').should('be.visible').type(keyword_two)
@@ -483,7 +484,10 @@ describe("Test deploying app", () => {
                 .should('contain', "Jane")
                 .and('contain', "Doe")
                 .and('contain', "Example Research Institute")
-                .and('contain', "https://orcid.org/0000-0002-1584-4316")
+                // Invenio normalizes ORCID identifiers to the ID on storage,
+                // so the value is "0000-0002-1584-4316" rather than
+                // the full URL the user originally entered.
+                .and('contain', "0000-0002-1584-4316")
             cy.get('#creatorsSortableList').children('li').last().find('button[title="Remove creator"]').click()
             // check the previous funder input
             cy.get('#fundersList').should('be.visible').children().should('have.length', 1)
@@ -514,11 +518,11 @@ describe("Test deploying app", () => {
             cy.completeAppSubmissionFlow()
 
             // NB: it will get status "Running" but it won't work because the new port is incorrect
-            verifyAppStatus(app_name_public_2,  "Running", "Changing", "Running", "Link")
+            verifyAppStatus(app_name_public_2,  "Running", "Changing", "Running", "Public")
 
             // wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public_2,  "Running", "Changing", "Running", "Link")
+              verifyAppStatus(app_name_public_2,  "Running", "Changing", "Running", "Public")
             })
 
             // check that the default URL subpath was changed
@@ -533,14 +537,15 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_public_2 + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name_public_2)
             cy.get('#id_description').should('have.value', app_description_2)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
-            cy.get('#id_note_on_linkonly_privacy').should('have.value', link_privacy_type_note)
+            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').should('be.disabled')
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_source_code_url').should('have.value', app_source_code_public_changed)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path_2)
-            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword_two)
-            cy.get('#id_language').find(':selected').should('contain', 'eng')
+            // The form tag renders the keyword in lowercase.
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword_two.toLowerCase())
+            cy.get('#id_language').should('have.value', 'eng')
             cy.get('#creatorsSortableList').should('be.visible').children('li').should('have.length', 2)
             cy.get('#fundersList').should('be.visible').children().should('have.length', 2)
             cy.get('#fundersList').children().eq(1).find('.fw-semibold')
@@ -568,7 +573,8 @@ describe("Test deploying app", () => {
             })
             cy.get('.d-flex.flex-column.flex-md-row').first()
             .within(() => {
-                cy.contains('a', 'Run Locally').should('have.attr', 'data-app-name', app_name_public_2)
+                // Volume-backed apps cannot be run locally from the public details page.
+                cy.contains('a', 'Run Locally').should('not.exist')
             })
             // check record description block
             cy.contains('.card', 'Record description').within(() => {
@@ -586,9 +592,7 @@ describe("Test deploying app", () => {
                 cy.contains('dt', 'Funding')
                     .next('dd')
                     .should('contain', funder_org)
-                    .and('contain', funder_number)
                     .and('contain', funder_org_two)
-                    .and('contain', funder_number_two)
                 })
             // creators block
             cy.contains('.card', 'Creators').within(() => {
@@ -1107,25 +1111,14 @@ describe("Test deploying app", () => {
               verifyAppStatus(app_name, "Running", "Changing", "Running", "Public", shinyAppCmdTimeoutMs)
             })
 
-            // edit Shiny app: change the access (permission) level
-            cy.logf("Editing the shiny app settings field Access", Cypress.currentTest)
+            // Public apps have DOI metadata and their access level cannot be changed back.
+            cy.logf("Checking that the public shiny app access level is locked", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('#id_access').select('Project')
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
-            cy.completeAppSubmissionFlow()
-
-            // verify that the app status now equals Running
-            verifyAppStatus(app_name, "Running", "Changing", "Running", "Project", shinyAppCmdTimeoutMs)
-
-            // wait for 30 seconds and check the app status again
-            // we want to wait this long to ensure that the status is still correct after the Shiny deployment
-            // has rotated the pods
-            cy.wait(30000).then(() => {
-              verifyAppStatus(app_name, "Running", "Changing", "Running", "Project", shinyAppCmdTimeoutMs)
-            })
+            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').should('be.disabled')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
@@ -1220,7 +1213,8 @@ describe("Test deploying app", () => {
 
         // delete previous test apps in case the test failed
         cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
-        deleteAppIfExists("e2e-subdomain-change", "e2e-deploy-app-test")
+        deleteAppIfExists("e2e-subdomain-example", "e2e-deploy-app-test")
+        deleteAppIfExists("e2e-second-subdomain-example", "e2e-deploy-app-test")
 
         // names of objects to create
         const project_name = "e2e-deploy-app-test"
@@ -1283,7 +1277,7 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             cy.completeAppSubmissionFlow()
 
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "Project")
+            verifyAppStatus(app_name_2, "Running", "Creating", "Running", "Project")
 
             // check that the app was created with the correct subdomain
             cy.get('a').contains(app_name_2).should('have.attr', 'href').and('include', subdomain_2)

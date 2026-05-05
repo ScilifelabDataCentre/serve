@@ -392,9 +392,7 @@ def _is_status_fresh(status_updated_at, progress_started_at):
     return status_updated_at + FRESH_STATUS_SKEW_TOLERANCE >= progress_started_at
 
 
-def _build_deployment_state(
-    instance, tasks_data, deployment_inputs=None, progress_started_at=None, skip_deploy=False
-):
+def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progress_started_at=None, skip_deploy=False):
     """
     Build the "Deploy app" step shown after the background checks.
 
