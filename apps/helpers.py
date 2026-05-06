@@ -1313,9 +1313,8 @@ def generate_helm_install_command(
                 chart = match.group("chart")
                 parsed_version = match.group("version")
 
-    # Base command (same logic as helm_install in tasks.py)
-    if "volumek8s" in chart:
-        # Force reinstall doesn't work with volumek8s chart
+    no_force_charts = ("volumek8s", "depictio")
+    if any(name in chart for name in no_force_charts):
         command = f"helm upgrade --install {release_name} {chart} --namespace {namespace}"
     else:
         command = f"helm upgrade --force --install {release_name} {chart} --namespace {namespace}"

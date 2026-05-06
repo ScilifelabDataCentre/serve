@@ -223,7 +223,11 @@ document.addEventListener("DOMContentLoaded", function() {
             accessHelpText.dataset.defaultText = accessHelpText.textContent;
         }
 
+        {% if app_slug in 'depictio,tissuumaps' %}
+        const publicText = "Note that Public apps cannot be changed back to other permission types once made Public.";
+        {% else %}
         const publicText = "Note that information about Public apps is permanently stored in Digital Object Identifier (DOI) records databases. See our <a target='_blank' href='/docs/doi/'>User guide for more info on DOIs</a>.";
+        {% endif %}
 
         accessHelpText.innerHTML =
             accessSelect.value === 'public'
