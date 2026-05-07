@@ -320,6 +320,20 @@ class CreateInstanceResult(NamedTuple):
     skip_deploy: bool = False
 
 
+_DEPICTIO_ACCESS_GROUPS = {
+    "private": "auth",
+    "project": "auth",
+    "public": "open",
+    "link": "open",
+}
+
+
+def _is_depictio_access_chart_noop(old_access, new_access):
+    if not old_access or not new_access:
+        return False
+    return _DEPICTIO_ACCESS_GROUPS.get(old_access) == _DEPICTIO_ACCESS_GROUPS.get(new_access)
+
+
 @transaction.atomic
 def create_instance_from_form(
     form,
@@ -487,6 +501,47 @@ def create_instance_from_form(
         instance.made_public_on = None
 
     setup_instance(instance, subdomain, app, project, user_action)
+
+    # Depictio public <-> link and private <-> project produce identical
+    # rendered manifests, so handle this case.
+    if (
+        not new_app
+        and do_deploy
+        and app_slug == "depictio"
+        and original_instance is not None
+        and _is_depictio_access_chart_noop(
+            getattr(original_instance, "access", None), getattr(instance, "access", None)
+        )
+    ):
+        logger.info(
+            "create_instance_from_form.depictio_access_chart_noop app_id=%s — treating as metadata-only",
+            app_id,
+        )
+        do_deploy = False
+        run_background_tasks_only = True
+
+    # For depictio metadata-only flows: refresh k8s_user_app_status to "Running"
+    # if the prior helm run succeeded — nothing in the cluster has changed.
+    if (
+        not new_app
+        and not do_deploy
+        and run_background_tasks_only
+        and app_slug == "depictio"
+        and original_instance is not None
+    ):
+        prior_helm = (original_instance.info or {}).get("helm") if isinstance(original_instance.info, dict) else None
+        if isinstance(prior_helm, dict) and prior_helm.get("success") is True:
+            status_object = instance.k8s_user_app_status
+            if status_object is None:
+                from apps.models import K8sUserAppStatus
+
+                status_object = K8sUserAppStatus.objects.create(status="Running")
+                instance.k8s_user_app_status = status_object
+            else:
+                status_object.status = "Running"
+                status_object.time = timezone.now()
+                status_object.save(update_fields=["status", "time"])
+
     instance_id = save_instance_and_related_data(instance, form)
     if do_deploy:
         reset_k8s_user_app_status_for_deployment(instance)
