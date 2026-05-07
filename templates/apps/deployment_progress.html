@@ -60,6 +60,14 @@ const statusApiUrl = "{{ status_api_url|escapejs }}";
 const detailUrl = "{{ detail_url }}";
 const SUCCESS_REDIRECT_DELAY_MS = 5000;
 const STEP_REVEAL_DELAY_MS = 700;
+const APP_SLUG = "{{ app_slug|escapejs }}";
+// Per-app overrides needed by multi-pod charts (e.g. depictio)
+const REQUIRED_SUCCESS_POLLS_BY_APP = {
+  depictio: 15
+};
+const DEFAULT_REQUIRED_SUCCESS_POLLS = 2;
+const REQUIRED_SUCCESS_POLLS =
+  REQUIRED_SUCCESS_POLLS_BY_APP[APP_SLUG] || DEFAULT_REQUIRED_SUCCESS_POLLS;
 const TERMINAL_STEP_STATUSES = new Set(["success", "warning", "failed", "skipped"]);
 const STEP_ROW_CLASS_BY_STATUS = {
   failed: "is-failed",
@@ -89,6 +97,7 @@ const STATUS_LABELS = {
 
 let refreshInterval = null;
 let successRedirectTimer = null;
+let consecutiveSuccessPolls = 0;
 let stepRevealTimer = null;
 let latestServerData = {
   deployment: {
@@ -117,6 +126,7 @@ function stopSuccessRedirect() {
     window.clearTimeout(successRedirectTimer);
     successRedirectTimer = null;
   }
+  consecutiveSuccessPolls = 0;
 }
 
 function stopStepReveal() {
@@ -238,13 +248,24 @@ function getVisibleHeaderContent(deployment, steps) {
   const deploymentStatus = deployment?.status || "pending";
 
   if (deploymentStatus === "success" && allStepsVisibleAsSuccess) {
+    // Show "Ready / redirecting" only after the deploy is stable.
+    if (consecutiveSuccessPolls >= REQUIRED_SUCCESS_POLLS || deployment?.skip_deploy) {
+      return {
+        pill_class: "text-bg-success",
+        pill_text: "Ready",
+        title: "Your app is ready",
+        message: "All checks passed and the app finished deploying. Opening the app details page in a few seconds.",
+        inline_text: inlineText,
+        next_step_text: "Redirecting to the app details page in about 5 seconds."
+      };
+    }
     return {
-      pill_class: "text-bg-success",
-      pill_text: "Ready",
-      title: "Your app is ready",
-      message: "All checks passed and the app finished deploying. Opening the app details page in a few seconds.",
+      pill_class: "text-bg-info",
+      pill_text: "Finishing",
+      title: "Almost ready",
+      message: "The app is reporting Running. Confirming the status is stable before opening the details page.",
       inline_text: inlineText,
-      next_step_text: "Redirecting to the app details page in about 5 seconds."
+      next_step_text: "You will be redirected automatically once the status is confirmed."
     };
   }
 
@@ -306,17 +327,57 @@ function updateHeader(deployment, steps) {
   }
 }
 
-function maybeRedirectToDetails(data) {
+function isProgressSuccessful(data) {
+  return data.deployment?.status === "success" && areAllStepsCompleteOrNonBlocking(data.steps || []);
+}
+
+// Text shown while the deploy is being checked.
+const DEPLOY_STEP_STABILIZING_DETAIL = "Deployment is in progress. Confirming the app is stable before completing.";
+
+function stabilizeDeployStep(data) {
+  if (data.deployment?.skip_deploy) {
+    return data;
+  }
+  if (consecutiveSuccessPolls >= REQUIRED_SUCCESS_POLLS) {
+    return data;
+  }
   const steps = data.steps || [];
-  if (data.deployment?.status === "success" && areAllStepsCompleteOrNonBlocking(steps)) {
-    if (!successRedirectTimer) {
-      successRedirectTimer = window.setTimeout(() => {
-        window.location.assign(detailUrl);
-      }, SUCCESS_REDIRECT_DELAY_MS);
-    }
+  const deployIndex = steps.findIndex(step => step?.key === "deploy");
+  if (deployIndex === -1) {
+    return data;
+  }
+  const incoming = steps[deployIndex];
+  const shouldStabilizeDetail = consecutiveSuccessPolls > 0;
+  const isPrematureSuccess = incoming?.status === "success";
+  if (!isPrematureSuccess && !shouldStabilizeDetail) {
+    return data;
+  }
+  const patchedSteps = steps.slice();
+  patchedSteps[deployIndex] = {
+    ...incoming,
+    ...(isPrematureSuccess && {
+      status: "running",
+      visualStatus: "running",
+      statusLabel: STATUS_LABELS.running || incoming.statusLabel
+    }),
+    ...(shouldStabilizeDetail && {detail: DEPLOY_STEP_STABILIZING_DETAIL})
+  };
+  return {...data, steps: patchedSteps};
+}
+
+function maybeRedirectToDetails(data) {
+  if (!isProgressSuccessful(data)) {
     return;
   }
-  stopSuccessRedirect();
+  // For Skip-deploy flows redirect on first success.
+  if (!data.deployment?.skip_deploy && consecutiveSuccessPolls < REQUIRED_SUCCESS_POLLS) {
+    return;
+  }
+  if (!successRedirectTimer) {
+    successRedirectTimer = window.setTimeout(() => {
+      window.location.assign(detailUrl);
+    }, SUCCESS_REDIRECT_DELAY_MS);
+  }
 }
 
 function renderProgress(data) {
@@ -432,11 +493,26 @@ function refreshProgress() {
       return response.json();
     })
     .then(data => {
-      latestServerData = copyProgressData(data);
+      const fresh = copyProgressData(data);
+
+      if (isProgressSuccessful(fresh)) {
+        consecutiveSuccessPolls += 1;
+      } else {
+        stopSuccessRedirect();
+      }
+
+      latestServerData = stabilizeDeployStep(fresh);
+
       syncDisplayedProgress();
 
       const rawDone = ["success", "failed", "blocked"].includes(data.deployment?.status);
-      if (rawDone && !data.deployment?.tasks_in_progress && haveSameSteps(displayedProgressData.steps, latestServerData.steps)) {
+      const stepsSettled = haveSameSteps(displayedProgressData.steps, latestServerData.steps);
+      const tasksIdle = !data.deployment?.tasks_in_progress;
+      const successConfirmed =
+        data.deployment?.status === "success" && successRedirectTimer !== null;
+      const terminalNonSuccess =
+        data.deployment?.status === "failed" || data.deployment?.status === "blocked";
+      if (rawDone && tasksIdle && stepsSettled && (successConfirmed || terminalNonSuccess)) {
         stopAutoRefresh();
       }
     })

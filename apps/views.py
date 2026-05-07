@@ -424,6 +424,7 @@ class DeploymentProgressView(View):
 
         context = {
             "instance": instance,
+            "app_slug": app_slug,
             "deployment": progress_state["deployment"],
             "initial_steps_json": json.dumps(progress_state["steps"]),
             "status_api_url": build_progress_status_api_url(

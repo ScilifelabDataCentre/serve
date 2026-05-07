@@ -510,6 +510,7 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progre
         "blocked": blocked,
         "ready_for_deploy": ready_for_deploy,
         "tasks_in_progress": tasks_in_progress,
+        "skip_deploy": skip_deploy,
     }
 
 
