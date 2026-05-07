@@ -2,7 +2,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Add creator</h5>
+        <h5 class="modal-title" id="creatorsModalLabel">Add creator</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -56,364 +56,351 @@
 </div>
 
 <script>
-function addCreator(shouldCloseModal = true) {
-  const name = document.getElementById('newCreatorName').value.trim();
-  const lastName = document.getElementById('newCreatorLastName').value.trim();
-  const orcid = document.getElementById('newCreatorOrcid').value.trim();
+(() => {
+  // ---- DOM refs ----
+  const hiddenField          = document.querySelector('input[name="creators"]');
+  const creatorsListEl       = document.getElementById('creatorsSortableList');
+  const addBtn               = document.getElementById('addCreatorBtn');
+  const modalEl              = document.getElementById('creatorsModal');
+  const bsModal              = new bootstrap.Modal(modalEl);
 
-  // Get affiliation data - prefer structured ROR data, then ORCID data, then text input
-  const rorDataJson = document.getElementById('newCreatorRorData').value;
-  const orcidAffDataJson = document.getElementById('newCreatorOrcidAffiliationData').value;
-  const affiliationText = document.getElementById('newCreatorAffiliation').value.trim();
-  let affiliation;
-  if (rorDataJson) {
-    affiliation = JSON.parse(rorDataJson);
-  } else if (orcidAffDataJson) {
-    affiliation = JSON.parse(orcidAffDataJson);
-  } else {
-    affiliation = affiliationText;
-  }
+  const nameInput            = document.getElementById('newCreatorName');
+  const lastNameInput        = document.getElementById('newCreatorLastName');
+  const affiliationInput     = document.getElementById('newCreatorAffiliation');
+  const orcidInput           = document.getElementById('newCreatorOrcid');
+  const rorDataEl            = document.getElementById('newCreatorRorData');
+  const orcidAffDataEl       = document.getElementById('newCreatorOrcidAffiliationData');
+  const affiliationSuggestEl = document.getElementById('affiliationSuggestions');
+  const orcidSuggestEl       = document.getElementById('orcidSuggestions');
+  const saveBtn              = document.getElementById('saveCreatorBtn');
+  const saveAnotherBtn       = document.getElementById('saveAndAddAnotherCreatorBtn');
 
-  // Validate required fields: name, lastName, and affiliation (ORCID is optional)
-  if (!name || !lastName || !affiliation) {
-    alert('Please fill in all required fields: First Name, Last Name, and Affiliation.');
-    return;
-  }
+  // ---- State ----
+  const state = { editIndex: null };
 
-  // Sanitize names to remove any accidental duplicate formatting (e.g. from ORCID search or form re-entry)
-  const cleanName = name.split(',')[0].trim();
-  const cleanLastName = lastName.split(',')[0].trim();
+  // ---- Utilities ----
+  const escapeHtml = (s) =>
+    (s || '').replace(/[&<>"']/g, (c) => (
+      {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c]
+    ));
 
-  let creatorInfo = `<strong>${cleanName} ${cleanLastName}</strong><br><small class="text-muted">`;
-  if (affiliation) {
-    const affiliationName = typeof affiliation === 'string' ? affiliation : (affiliation.title || affiliation.name);
-    creatorInfo += `Affiliation: ${affiliationName}<br>`;
-  }
-  if (orcid) creatorInfo += `ORCID: ${orcid}`;
-  creatorInfo += '</small>';
+  const parseCreators = () => {
+    try { return JSON.parse(hiddenField.value || '[]'); }
+    catch { return []; }
+  };
 
-  // Check if we're in editing mode
-  const modal = document.getElementById('creatorsModal');
-  const isEditing = modal.dataset.editingMode === 'true';
-  const editingItem = modal.editingItem;
+  const writeCreators = (list) => {
+    hiddenField.value = JSON.stringify(list || []);
+    renderCreators();
+  };
 
-  if (isEditing && editingItem) {
-    // Update existing item - rebuild the action buttons to match the original format
-    const actionButtons = `
-      <div class="d-flex align-items-center gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-edit-creator="updated" title="Edit creator">
-          <i class="fas fa-edit"></i>
-        </button>
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCreator(this)" title="Remove creator">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-    `;
+  // ---- Validation ----
+  const syncSaveButtons = () => {
+    const valid = !!(nameInput.value.trim() && lastNameInput.value.trim() && affiliationInput.value.trim());
+    if (saveBtn) saveBtn.disabled = !valid;
+    if (saveAnotherBtn) saveAnotherBtn.disabled = !valid;
+  };
 
-    editingItem.innerHTML = `
-      <div>${creatorInfo}</div>
-      ${actionButtons}
-    `;
-    editingItem.setAttribute('data-creator', JSON.stringify({name: cleanName, lastName: cleanLastName, affiliation, orcid}));
-
-    // Reset editing mode
-    modal.dataset.editingMode = 'false';
-    modal.editingItem = null;
+  // ---- Modal open / reset ----
+  const resetModal = () => {
+    state.editIndex = null;
+    nameInput.value = '';
+    lastNameInput.value = '';
+    affiliationInput.value = '';
+    orcidInput.value = '';
+    rorDataEl.value = '';
+    orcidAffDataEl.value = '';
     document.getElementById('creatorsModalLabel').textContent = 'Add creator';
-    document.getElementById('saveCreatorBtn').textContent = '✓ Save';
-  } else {
-    // Add new item
-    const newItem = `
-      <li class="list-group-item d-flex justify-content-between align-items-center" style="cursor: move;"
-          data-creator='${JSON.stringify({name: cleanName, lastName: cleanLastName, affiliation, orcid})}'>
-        <div>${creatorInfo}</div>
-        <div class="d-flex align-items-center gap-2">
-          <button type="button" class="btn btn-outline-secondary btn-sm" data-edit-creator="new" title="Edit creator">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCreator(this)" title="Remove creator">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      </li>`;
+    if (affiliationSuggestEl) affiliationSuggestEl.style.display = 'none';
+    if (orcidSuggestEl) orcidSuggestEl.style.display = 'none';
+    syncSaveButtons();
+  };
 
-    document.getElementById('creatorsSortableList').insertAdjacentHTML('beforeend', newItem);
-  }
+  const openAddModal = () => {
+    resetModal();
+    bsModal.show();
+    setTimeout(() => nameInput.focus(), 150);
+  };
 
-  // Clear form fields
-  clearCreatorForm();
+  const openEditModal = (idx) => {
+    const creators = parseCreators();
+    const c = creators[idx];
+    if (!c) return;
 
-  updateCreatorsField();
+    state.editIndex = idx;
+    document.getElementById('creatorsModalLabel').textContent = 'Edit creator';
 
-  // Close modal only if requested
-  if (shouldCloseModal) {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('creatorsModal'));
-    if (modal) {
-      modal.hide();
+    nameInput.value = c.name || '';
+    lastNameInput.value = c.lastName || '';
+    orcidInput.value = c.orcid || '';
+
+    const aff = c.affiliation;
+    if (typeof aff === 'string') {
+      affiliationInput.value = aff;
+      rorDataEl.value = '';
+      orcidAffDataEl.value = '';
+    } else if (aff && typeof aff === 'object') {
+      affiliationInput.value = aff.title || aff.name || '';
+      if (aff.ror_id || aff.id) {
+        rorDataEl.value = JSON.stringify(aff);
+        orcidAffDataEl.value = '';
+      } else {
+        orcidAffDataEl.value = JSON.stringify(aff);
+        rorDataEl.value = '';
+      }
+    } else {
+      affiliationInput.value = '';
+      rorDataEl.value = '';
+      orcidAffDataEl.value = '';
     }
-  } else {
-    // If keeping modal open, focus on ORCID input for next entry
-    setTimeout(() => document.getElementById('newCreatorOrcid').focus(), 50);
-  }
-}
 
-function clearCreatorForm() {
-  document.getElementById('newCreatorName').value = '';
-  document.getElementById('newCreatorLastName').value = '';
-  document.getElementById('newCreatorAffiliation').value = '';
-  document.getElementById('newCreatorRorData').value = '';
-  document.getElementById('newCreatorOrcidAffiliationData').value = '';
-  document.getElementById('newCreatorOrcid').value = '';
-  syncCreatorButtons();
-}
+    if (affiliationSuggestEl) affiliationSuggestEl.style.display = 'none';
+    if (orcidSuggestEl) orcidSuggestEl.style.display = 'none';
+    syncSaveButtons();
+    bsModal.show();
+    setTimeout(() => nameInput.focus(), 150);
+  };
 
-function validateCreatorForm() {
-  const name = document.getElementById('newCreatorName').value.trim();
-  const lastName = document.getElementById('newCreatorLastName').value.trim();
-  const affiliation = document.getElementById('newCreatorAffiliation').value.trim();
+  // ---- Collect / upsert ----
+  const collectModalData = () => {
+    const name = nameInput.value.trim().split(',')[0].trim();
+    const lastName = lastNameInput.value.trim().split(',')[0].trim();
+    const affiliationText = affiliationInput.value.trim();
+    const orcid = orcidInput.value.trim();
 
-  // Valid if we have name, lastName, and affiliation (ORCID is optional)
-  return !!(name && lastName && affiliation);
-}
-
-function syncCreatorButtons() {
-  const isValid = validateCreatorForm();
-  const saveBtn = document.getElementById('saveCreatorBtn');
-  const saveAnotherBtn = document.getElementById('saveAndAddAnotherCreatorBtn');
-
-  if (saveBtn) saveBtn.disabled = !isValid;
-  if (saveAnotherBtn) saveAnotherBtn.disabled = !isValid;
-}
-
-function removeCreator(button) {
-  // Find the list item that contains this button
-  const listItem = button.closest('li[data-creator]');
-  if (listItem) {
-    listItem.remove();
-    updateCreatorsField();
-  }
-}
-
-function updateCreatorsField() {
-  const creatorsList = document.getElementById('creatorsSortableList');
-  const creatorsField = document.querySelector('input[name="creators"]');
-
-  if (!creatorsList || !creatorsField) return;
-
-  const creators = [];
-  const listItems = creatorsList.querySelectorAll('li[data-creator]');
-
-  listItems.forEach(item => {
-    const creatorData = item.getAttribute('data-creator');
-    if (creatorData) {
-      try {
-        creators.push(JSON.parse(creatorData));
-      } catch (e) {
-        console.error('Error parsing creator data:', e);
-      }
+    if (!name || !lastName || !affiliationText) {
+      alert('Please fill in all required fields: First Name, Last Name, and Affiliation.');
+      return null;
     }
-  });
 
-  creatorsField.value = JSON.stringify(creators);
-}
+    // Use structured ROR/ORCID data only when the text still matches the stored name,
+    // so that a manually-typed new affiliation never gets overridden by stale structured data.
+    let affiliation;
+    const rorJson = rorDataEl.value;
+    const orcidAffJson = orcidAffDataEl.value;
+    if (rorJson) {
+      const rorData = JSON.parse(rorJson);
+      const rorName = rorData.title || rorData.name || '';
+      affiliation = (affiliationText === rorName) ? rorData : affiliationText;
+    } else if (orcidAffJson) {
+      const orcidData = JSON.parse(orcidAffJson);
+      const orcidName = orcidData.name || orcidData.title || '';
+      affiliation = (affiliationText === orcidName) ? orcidData : affiliationText;
+    } else {
+      affiliation = affiliationText;
+    }
 
-// Update creators field when page loads and when sortable is used
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize sortable with update callback
-  if (typeof $ !== 'undefined' && $.ui) {
-    $("#creatorsSortableList").sortable({
-      placeholder: "list-group-item bg-light",
-      cursor: "move",
-      update: updateCreatorsField
-    });
-  }
+    return { name, lastName, affiliation, orcid };
+  };
 
-  // Initial update of creators field
-  setTimeout(updateCreatorsField, 100);
+  const upsertCreator = (data) => {
+    const creators = parseCreators();
+    if (state.editIndex === null) {
+      creators.push(data);
+    } else {
+      // Preserve isOwner flag — it must not be lost on edit
+      if (creators[state.editIndex]?.isOwner) data.isOwner = true;
+      creators[state.editIndex] = data;
+    }
+    writeCreators(creators);
+  };
 
-  // ROR autocomplete for affiliation field
-  const affiliationInput = document.getElementById('newCreatorAffiliation');
-  const suggestions = document.getElementById('affiliationSuggestions');
-  let debounceTimer;
+  // ---- Render ----
+  const renderCreators = () => {
+    if (!creatorsListEl) return;
+    const creators = parseCreators();
+    creatorsListEl.innerHTML = creators.map((c, i) => {
+      const affName = typeof c.affiliation === 'string'
+        ? c.affiliation
+        : (c.affiliation?.title || c.affiliation?.name || '');
+      let details = '';
+      if (affName) details += `Affiliation: ${escapeHtml(affName)}<br>`;
+      if (c.orcid) details += `ORCID: ${escapeHtml(c.orcid)}`;
+      return `
+        <li class="list-group-item d-flex justify-content-between align-items-center"
+            style="cursor: move;" data-creator-index="${i}">
+          <div>
+            <strong>${escapeHtml(c.name)} ${escapeHtml(c.lastName)}</strong>
+            ${details ? `<br><small class="text-muted">${details}</small>` : ''}
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            ${c.isOwner ? '<span class="badge bg-secondary">Owner</span>' : `
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    data-edit-creator="${i}" title="Edit creator">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm"
+                    data-remove-creator="${i}" title="Remove creator">
+              <i class="fas fa-times"></i>
+            </button>`}
+          </div>
+        </li>`;
+    }).join('');
 
-  if (affiliationInput && suggestions) {
-    affiliationInput.addEventListener('input', function() {
-      // Clear ROR data when user types manually
-      if (!this.value.trim()) {
-        document.getElementById('newCreatorRorData').value = '';
-      }
+    // Re-initialise sortable after every re-render
+    if (typeof $ !== 'undefined' && $.ui) {
+      try { $(creatorsListEl).sortable('destroy'); } catch (e) { /* not yet initialised */ }
+      $(creatorsListEl).sortable({
+        placeholder: 'list-group-item bg-light',
+        cursor: 'move',
+        update: () => {
+          // Re-read DOM order and persist to hidden field
+          const current = parseCreators();
+          const items = creatorsListEl.querySelectorAll('li[data-creator-index]');
+          const reordered = Array.from(items)
+            .map(li => current[parseInt(li.getAttribute('data-creator-index'), 10)])
+            .filter(Boolean);
+          hiddenField.value = JSON.stringify(reordered);
+          renderCreators();
+        }
+      });
+    }
+  };
 
-      clearTimeout(debounceTimer);
-      const query = this.value.trim();
-
-      if (query.length < 2) {
-        suggestions.style.display = 'none';
-        return;
-      }
-
-      debounceTimer = setTimeout(() => {
-        const loadingSpinner = document.getElementById('affiliationSearchLoading');
-        if (loadingSpinner) loadingSpinner.style.display = 'flex';
-
-        fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(query)}`)
-          .then(r => r.json())
-          .then(data => {
-            if (loadingSpinner) loadingSpinner.style.display = 'none';
-            suggestions.innerHTML = '';
-            if (data.results && data.results.length > 0) {
-              data.results.forEach(org => {
-                const item = document.createElement('a');
-                item.href = '#';
-                item.className = 'list-group-item list-group-item-action';
-                item.textContent = org.title;
-                item.addEventListener('click', (e) => {
-                  e.preventDefault();
-                  affiliationInput.value = org.title;
-                  document.getElementById('newCreatorRorData').value = JSON.stringify(org);
-                  suggestions.style.display = 'none';
-                });
-                suggestions.appendChild(item);
-              });
-              suggestions.style.display = 'block';
-            } else {
-              suggestions.style.display = 'none';
-            }
-          })
-          .catch(err => {
-            console.error('ROR autocomplete error:', err);
-            suggestions.style.display = 'none';
-          });
-      }, 300);
-    });
-
-    affiliationInput.addEventListener('blur', function() {
-      setTimeout(() => suggestions.style.display = 'none', 200);
-    });
-  }
-
-  // ORCID autocomplete for ORCID field
-  const orcidInput = document.getElementById('newCreatorOrcid');
-  const orcidSuggestions = document.getElementById('orcidSuggestions');
-  let orcidDebounceTimer;
-
-  if (orcidInput && orcidSuggestions) {
-    orcidInput.addEventListener('input', function() {
-      clearTimeout(orcidDebounceTimer);
-      const query = this.value.trim();
-
-      if (query.length < 2) {
-        orcidSuggestions.style.display = 'none';
-        return;
-      }
-
-      orcidDebounceTimer = setTimeout(() => {
-        const loadingSpinner = document.getElementById('orcidSearchLoading');
-        if (loadingSpinner) loadingSpinner.style.display = 'flex';
-
-        fetch(`/api/orcid-search/?query=${encodeURIComponent(query)}`)
-          .then(r => r.json())
-          .then(data => {
-            if (loadingSpinner) loadingSpinner.style.display = 'none';
-            orcidSuggestions.innerHTML = '';
-            if (data.results && data.results.length > 0) {
-              data.results.forEach(person => {
-                const item = document.createElement('a');
-                item.href = '#';
-                item.className = 'list-group-item list-group-item-action';
-
-                // Display actual person name with ORCID ID
-                item.innerHTML = `
-                  <div class="fw-semibold">${person.display_name}</div>
-                  <small class="text-muted">Click to add this person</small>
-                `;
-
-                item.addEventListener('click', (e) => {
-                  e.preventDefault();
-                  // Fill in the ORCID field and populate name fields
-                  orcidInput.value = person.orcid;
-
-                  // Auto-populate first and last name fields
-                  if (person.given_name) {
-                    document.getElementById('newCreatorName').value = person.given_name;
-                  }
-                  if (person.family_name) {
-                    document.getElementById('newCreatorLastName').value = person.family_name;
-                  }
-                  if (person.affiliation) {
-                    // Handle both string and structured affiliation data
-                    if (typeof person.affiliation === 'object') {
-                      // Structured affiliation with identifier
-                      document.getElementById('newCreatorAffiliation').value = person.affiliation.name;
-                      // Store full structured data for later use
-                      document.getElementById('newCreatorOrcidAffiliationData').value = JSON.stringify(person.affiliation);
-                    } else {
-                      // Simple string affiliation
-                      document.getElementById('newCreatorAffiliation').value = person.affiliation;
-                      document.getElementById('newCreatorOrcidAffiliationData').value = '';
-                    }
-                  }
-
-                  // Sync button states after populating fields
-                  syncCreatorButtons();
-
-                  orcidSuggestions.style.display = 'none';
-                });
-                orcidSuggestions.appendChild(item);
-              });
-              orcidSuggestions.style.display = 'block';
-            } else {
-              orcidSuggestions.style.display = 'none';
-            }
-          })
-          .catch(err => {            if (loadingSpinner) loadingSpinner.style.display = 'none';            console.error('ORCID autocomplete error:', err);
-            orcidSuggestions.style.display = 'none';
-          });
-      }, 300);
-    });
-
-    orcidInput.addEventListener('blur', function() {
-      setTimeout(() => orcidSuggestions.style.display = 'none', 200);
-    });
-  }
-
-  // Clear form when modal opens
-  const creatorsModal = document.getElementById('creatorsModal');
-  if (creatorsModal) {
-    creatorsModal.addEventListener('show.bs.modal', function(event) {
-      // Only clear form if NOT in editing mode (invoked by the "Add creator" button)
-      // Check if the modal was triggered by a button with data-bs-toggle="modal"
-      const trigger = event.relatedTarget;
-      if (trigger && !trigger.hasAttribute('data-edit-creator')) {
-        clearCreatorForm();
-        syncCreatorButtons();
-      }
-    });
-  }
-
-  // Add event listeners for new buttons
-  const saveBtn = document.getElementById('saveCreatorBtn');
-  const saveAnotherBtn = document.getElementById('saveAndAddAnotherCreatorBtn');
-
-  if (saveBtn) {
-    saveBtn.addEventListener('click', function() {
-      addCreator(true); // Close modal after saving
-    });
-  }
-
-  if (saveAnotherBtn) {
-    saveAnotherBtn.addEventListener('click', function() {
-      addCreator(false); // Keep modal open for another entry
-    });
-  }
-
-  // Add input event listeners to sync button states
-  const nameInput = document.getElementById('newCreatorName');
-  const lastNameInput = document.getElementById('newCreatorLastName');
-
-  [nameInput, lastNameInput, affiliationInput, orcidInput].forEach(input => {
-    if (input) {
-      input.addEventListener('input', syncCreatorButtons);
+  // ---- Event delegation for edit / remove ----
+  creatorsListEl?.addEventListener('click', (e) => {
+    const editBtn   = e.target.closest('[data-edit-creator]');
+    const removeBtn = e.target.closest('[data-remove-creator]');
+    if (editBtn)   return openEditModal(parseInt(editBtn.getAttribute('data-edit-creator'), 10));
+    if (removeBtn) {
+      const idx = parseInt(removeBtn.getAttribute('data-remove-creator'), 10);
+      const creators = parseCreators();
+      creators.splice(idx, 1);
+      writeCreators(creators);
     }
   });
-});
+
+  if (addBtn) addBtn.addEventListener('click', openAddModal);
+
+  saveBtn?.addEventListener('click', () => {
+    const data = collectModalData();
+    if (!data) return;
+    upsertCreator(data);
+    bsModal.hide();
+  });
+
+  saveAnotherBtn?.addEventListener('click', () => {
+    const data = collectModalData();
+    if (!data) return;
+    upsertCreator(data);
+    resetModal();
+    bsModal.show();
+    setTimeout(() => nameInput.focus(), 50);
+  });
+
+  [nameInput, lastNameInput, affiliationInput].forEach(el => el?.addEventListener('input', syncSaveButtons));
+
+  // ---- ROR autocomplete ----
+  let rorTimer;
+  affiliationInput?.addEventListener('input', () => {
+    rorDataEl.value = ''; // clear stale structured data whenever user types
+    clearTimeout(rorTimer);
+    const query = affiliationInput.value.trim();
+    if (query.length < 2) { if (affiliationSuggestEl) affiliationSuggestEl.style.display = 'none'; return; }
+    rorTimer = setTimeout(() => {
+      const spinner = document.getElementById('affiliationSearchLoading');
+      if (spinner) spinner.style.display = 'flex';
+      fetch(`/api/ror-autocomplete/?query=${encodeURIComponent(query)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (spinner) spinner.style.display = 'none';
+          if (!affiliationSuggestEl) return;
+          affiliationSuggestEl.innerHTML = '';
+          if (data.results && data.results.length > 0) {
+            data.results.forEach(org => {
+              const item = document.createElement('a');
+              item.href = '#';
+              item.className = 'list-group-item list-group-item-action';
+              item.textContent = org.title;
+              item.addEventListener('click', (e) => {
+                e.preventDefault();
+                affiliationInput.value = org.title;
+                rorDataEl.value = JSON.stringify(org);
+                orcidAffDataEl.value = '';
+                affiliationSuggestEl.style.display = 'none';
+                syncSaveButtons();
+              });
+              affiliationSuggestEl.appendChild(item);
+            });
+            affiliationSuggestEl.style.display = 'block';
+          } else {
+            affiliationSuggestEl.style.display = 'none';
+          }
+        })
+        .catch(err => {
+          if (spinner) spinner.style.display = 'none';
+          console.error('ROR autocomplete error:', err);
+          if (affiliationSuggestEl) affiliationSuggestEl.style.display = 'none';
+        });
+    }, 300);
+  });
+  affiliationInput?.addEventListener('blur', () => {
+    setTimeout(() => { if (affiliationSuggestEl) affiliationSuggestEl.style.display = 'none'; }, 200);
+  });
+
+  // ---- ORCID autocomplete ----
+  let orcidTimer;
+  orcidInput?.addEventListener('input', () => {
+    clearTimeout(orcidTimer);
+    const query = orcidInput.value.trim();
+    if (query.length < 2) { if (orcidSuggestEl) orcidSuggestEl.style.display = 'none'; return; }
+    orcidTimer = setTimeout(() => {
+      const spinner = document.getElementById('orcidSearchLoading');
+      if (spinner) spinner.style.display = 'flex';
+      fetch(`/api/orcid-search/?query=${encodeURIComponent(query)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (spinner) spinner.style.display = 'none';
+          if (!orcidSuggestEl) return;
+          orcidSuggestEl.innerHTML = '';
+          if (data.results && data.results.length > 0) {
+            data.results.forEach(person => {
+              const item = document.createElement('a');
+              item.href = '#';
+              item.className = 'list-group-item list-group-item-action';
+              item.innerHTML = `
+                <div class="fw-semibold">${escapeHtml(person.display_name)}</div>
+                <small class="text-muted">Click to add this person</small>
+              `;
+              item.addEventListener('click', (e) => {
+                e.preventDefault();
+                orcidInput.value = person.orcid;
+                if (person.given_name) nameInput.value = person.given_name;
+                if (person.family_name) lastNameInput.value = person.family_name;
+                if (person.affiliation) {
+                  if (typeof person.affiliation === 'object') {
+                    affiliationInput.value = person.affiliation.name;
+                    orcidAffDataEl.value = JSON.stringify(person.affiliation);
+                    rorDataEl.value = '';
+                  } else {
+                    affiliationInput.value = person.affiliation;
+                    orcidAffDataEl.value = '';
+                    rorDataEl.value = '';
+                  }
+                }
+                syncSaveButtons();
+                orcidSuggestEl.style.display = 'none';
+              });
+              orcidSuggestEl.appendChild(item);
+            });
+            orcidSuggestEl.style.display = 'block';
+          } else {
+            orcidSuggestEl.style.display = 'none';
+          }
+        })
+        .catch(err => {
+          const spinner = document.getElementById('orcidSearchLoading');
+          if (spinner) spinner.style.display = 'none';
+          console.error('ORCID autocomplete error:', err);
+          if (orcidSuggestEl) orcidSuggestEl.style.display = 'none';
+        });
+    }, 300);
+  });
+  orcidInput?.addEventListener('blur', () => {
+    setTimeout(() => { if (orcidSuggestEl) orcidSuggestEl.style.display = 'none'; }, 200);
+  });
+
+  // ---- Init ----
+  renderCreators();
+})();
 </script>

@@ -180,6 +180,22 @@ class CreatorsMixin:
         if "creators" not in self.fields:
             return
 
+        # Resolve app owner once so both paths below can mark isOwner
+        owner = None
+        if self.instance and hasattr(self.instance, "owner") and self.instance.owner:
+            owner = self.instance.owner
+        elif hasattr(self, "project") and self.project and self.project.owner:
+            owner = self.project.owner
+
+        owner_orcid = ""
+        owner_full_name = ""
+        if owner:
+            try:
+                owner_orcid = owner.userprofile.orcid_id or ""
+            except Exception:
+                pass
+            owner_full_name = f"{owner.first_name or ''} {owner.last_name or ''}".strip()
+
         # First check if we have Invenio creators data stored by add_metadata()
         if hasattr(self, "_invenio_creators") and self._invenio_creators:
             try:
@@ -230,12 +246,24 @@ class CreatorsMixin:
                     final_given = given_name.strip().strip(",")
                     final_family = family_name.strip().strip(",")
 
+                    is_owner = bool(
+                        (owner_orcid and orcid and owner_orcid == orcid)
+                        or (owner_full_name and owner_full_name == f"{final_given} {final_family}".strip())
+                        or (
+                            owner
+                            and owner.username
+                            and invenio_full_name
+                            and invenio_full_name.replace("@serve.scilifelab.se", "") == owner.username
+                        )
+                    )
                     creator_obj = {
                         "name": final_given,
                         "lastName": final_family,
                         "orcid": orcid,
                         "affiliation": affiliation,
                     }
+                    if is_owner:
+                        creator_obj["isOwner"] = True
                     creators_data.append(creator_obj)
 
                 self.fields["creators"].initial = json.dumps(creators_data, sort_keys=True)
@@ -246,19 +274,13 @@ class CreatorsMixin:
                 pass
 
         # Default initialization with app owner (for new instances or when Invenio fails)
-        owner = None
-        if self.instance and hasattr(self.instance, "owner") and self.instance.owner:
-            owner = self.instance.owner
-        elif hasattr(self, "project") and self.project and self.project.owner:
-            owner = self.project.owner
-
         if owner:
             # Get owner profile data for ROR/affiliation information
-            owner_orcid = ""
             owner_affiliation = ""
             try:
                 owner_profile = owner.userprofile
-                owner_orcid = owner_profile.orcid_id or ""
+                if not owner_orcid:
+                    owner_orcid = owner_profile.orcid_id or ""
                 owner_affiliation = owner_profile.get_organization_name() or ""
             except Exception:
                 # UserProfile doesn't exist or other error - use defaults
@@ -268,16 +290,13 @@ class CreatorsMixin:
             owner_first_name = owner.first_name or owner.username
             owner_last_name = owner.last_name or "Owner"
 
-            # Ensure affiliation is never empty - provide default if needed
-            if not owner_affiliation:
-                owner_affiliation = ""
-
             creators_data = [
                 {
                     "name": owner_first_name,
                     "lastName": owner_last_name,
                     "orcid": owner_orcid,
                     "affiliation": owner_affiliation,
+                    "isOwner": True,
                 }
             ]
             self.fields["creators"].initial = json.dumps(creators_data)
@@ -309,180 +328,15 @@ class CreatorsMixin:
 
     def get_creators_field_layout(self):
         """Get the complete crispy forms layout for the creators field."""
-        import json
-
         from crispy_forms.layout import HTML, Div
 
         if not (hasattr(self, "request") and self.request and self.request.user.is_authenticated):
             return Div()  # Return empty div if no user
 
-        # Use app owner for the fixed creator if available, otherwise project owner or current user
-        owner = None
-        if self.instance and hasattr(self.instance, "owner") and self.instance.owner:
-            owner = self.instance.owner
-        elif hasattr(self, "project") and self.project and self.project.owner:
-            owner = self.project.owner
-        else:
-            owner = self.request.user
-
-        owner_first_name = owner.first_name or owner.username
-        owner_last_name = (owner.last_name or "Owner") if owner != self.request.user else (owner.last_name or "User")
-        owner_full_name = f"{owner_first_name} {owner_last_name}"
-
-        # Get owner profile data for the display
-        owner_orcid = ""
-        owner_affiliation = ""
-        try:
-            owner_profile = owner.userprofile
-            owner_orcid = owner_profile.orcid_id or ""
-            owner_affiliation = owner_profile.get_organization_name() or ""
-        except Exception:
-            # UserProfile doesn't exist - use defaults
-            pass
-
-        # Check if we have Invenio creators data to display instead of default user
-        creators_to_display = []
-        if hasattr(self, "_invenio_creators") and self._invenio_creators:
-            for creator in self._invenio_creators:
-                # Convert Pydantic to dict for minimal changes
-                creator_dict = creator.model_dump()
-
-                # Extract data from dict structure (minimal changes to existing logic)
-                creator_name = ""
-                creator_orcid = ""
-                affiliation = ""
-
-                if "person_or_org" in creator_dict and creator_dict["person_or_org"]:
-                    person_org = creator_dict["person_or_org"]
-                    creator_name = person_org.get("name", "")
-
-                    # Extract ORCID from identifiers
-                    if "identifiers" in person_org and person_org["identifiers"]:
-                        for identifier in person_org["identifiers"]:
-                            if identifier.get("scheme") == "orcid":
-                                creator_orcid = identifier.get("identifier", "")
-                                break
-
-                # Extract first affiliation
-                if "affiliations" in creator_dict and creator_dict["affiliations"]:
-                    affiliation = creator_dict["affiliations"][0].get("name", "")
-
-                # Split name strictly: "Last, First" or "First Middle Last"
-                p_raw = [p.strip() for p in creator_name.split(",") if p.strip()] if creator_name else []
-                if len(p_raw) > 1:
-                    last_name = p_raw[0]
-                    first_name = " ".join(p_raw[1:])
-                else:
-                    parts = creator_name.split() if creator_name else []
-                    if len(parts) > 1:
-                        first_name = " ".join(parts[:-1])
-                        last_name = parts[-1]
-                    else:
-                        first_name = parts[0] if parts else ""
-                        last_name = ""
-
-                # Final cleaning
-                first_name = first_name.strip().strip(",")
-                last_name = last_name.strip().strip(",")
-
-                # Check if this creator is the app owner
-                is_app_owner = any(
-                    [
-                        creator_orcid and owner_orcid and creator_orcid == owner_orcid,
-                        creator_name == owner_full_name,
-                        creator_name and creator_name.replace("@serve.scilifelab.se", "") == owner.username,
-                        creator_name == f"{owner.first_name} {owner.last_name}".strip(),
-                    ]
-                )
-
-                creators_to_display.append(
-                    {
-                        "name": first_name,
-                        "lastName": last_name,
-                        "fullName": creator_name,
-                        "orcid": creator_orcid,
-                        "affiliation": affiliation,
-                        "isAppOwner": is_app_owner,
-                    }
-                )
-        else:
-            # Use default app owner creator
-            creators_to_display.append(
-                {
-                    "name": owner_first_name,
-                    "lastName": owner_last_name,
-                    "fullName": owner_full_name,
-                    "orcid": owner_orcid,
-                    "affiliation": owner_affiliation,
-                    "isAppOwner": True,
-                }
-            )
-
-        # Generate HTML for each creator
-        creators_html = ""
-        for i, creator in enumerate(creators_to_display):
-            # Prepare creator data as JSON for data-creator attribute
-            creator_data = json.dumps(
-                {
-                    "name": creator["name"],
-                    "lastName": creator["lastName"],
-                    "affiliation": creator["affiliation"],
-                    "orcid": creator["orcid"],
-                }
-            ).replace('"', "&quot;")
-
-            # Build creator info display
-            creator_info = f"<strong>{creator['name']} {creator['lastName']}</strong>"
-            if creator["orcid"] or creator["affiliation"]:
-                creator_info += "<br><small class='text-muted'>"
-                if creator["affiliation"]:
-                    creator_info += f"Affiliation: {creator['affiliation']}<br>"
-                if creator["orcid"]:
-                    creator_info += f"ORCID: {creator['orcid']}"
-                creator_info += "</small>"
-
-            # Add badge and action buttons
-            badge_html = ""
-            if creator.get("isAppOwner"):
-                badge_html = '<span class="badge bg-secondary me-2">Owner</span>'
-
-            # Add edit and remove buttons (conditionally)
-            action_buttons = ""
-            if not creator.get("isAppOwner"):
-                # Only show edit/remove buttons if this is not the app owner
-                action_buttons = f"""
-                    <div class="d-flex align-items-center gap-2">
-                        {badge_html}
-                        <button type="button" class="btn btn-outline-secondary btn-sm"
-                                data-edit-creator="{i}" title="Edit creator">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm"
-                                onclick="removeCreator(this)" title="Remove creator">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                """
-            else:
-                # For app owner, only show the badge without edit/remove buttons
-                action_buttons = f"""
-                    <div class="d-flex align-items-center gap-2">
-                        {badge_html}
-                    </div>
-                """
-
-            creators_html += f"""
-                <li class="list-group-item d-flex justify-content-between align-items-center"
-                    style="cursor: move;" data-creator="{creator_data}">
-                    <div>{creator_info}</div>
-                    {action_buttons}
-                </li>
-            """
-
         return Div(
             "creators",
             HTML(
-                f"""
+                """
                 <label class="form-label">Creators
                     <span class="bi bi-question-circle text-muted ms-2"
                           data-bs-toggle="tooltip"
@@ -494,141 +348,16 @@ class CreatorsMixin:
                     Drag to reorder the names.</small>
                 </div>
 
-                <ul id="creatorsSortableList" class="list-group mb-3">
-                    {creators_html}
-                </ul>
+                <ul id="creatorsSortableList" class="list-group mb-3"></ul>
 
                 <div class="mt-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                            data-bs-toggle="modal" data-bs-target="#creatorsModal">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="addCreatorBtn">
                         <span class="fas fa-plus text-muted"></span> Add creator
                     </button>
                 </div>
 
                 <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-                <script>
-                    $(document).ready(function() {{
-                        $("#creatorsSortableList").sortable({{
-                            placeholder: "list-group-item bg-light",
-                            cursor: "move"
-                        }});
-
-                        // Handle edit creator button clicks
-                        $(document).on('click', '[data-edit-creator]', function() {{
-
-                            const index = $(this).data('edit-creator');
-                            const listItem = $(this).closest('li[data-creator]');
-
-                            try {{
-                                const creatorData = JSON.parse(listItem.attr('data-creator'));
-
-                                // Populate the creator modal with existing data
-                                $('#newCreatorName').val(creatorData.name || '');
-                                $('#newCreatorLastName').val(creatorData.lastName || '');
-                                $('#newCreatorOrcid').val(creatorData.orcid || '');
-
-                                // Handle affiliation - could be string or object
-                                const affiliationData = creatorData.affiliation || '';
-
-                                if (typeof affiliationData === 'string') {{
-                                    $('#newCreatorAffiliation').val(affiliationData);
-                                    $('#newCreatorRorData').val('');
-                                    $('#newCreatorOrcidAffiliationData').val('');
-                                }} else if (typeof affiliationData === 'object' &&
-                                          affiliationData !== null) {{
-                                    // It's structured data (ROR or ORCID)
-                                    const affiliationName = affiliationData.title ||
-                                                           affiliationData.name || affiliationData;
-                                    $('#newCreatorAffiliation').val(affiliationName);
-
-                                    // Preserve the structured data
-                                    if (affiliationData.ror_id || affiliationData.id) {{
-                                        $('#newCreatorRorData').val(JSON.stringify(affiliationData));
-                                        $('#newCreatorOrcidAffiliationData').val('');
-                                    }} else {{
-                                        $('#newCreatorOrcidAffiliationData').val(JSON.stringify(affiliationData));
-                                        $('#newCreatorRorData').val('');
-                                    }}
-                                }} else {{
-                                    $('#newCreatorAffiliation').val('');
-                                    $('#newCreatorRorData').val('');
-                                    $('#newCreatorOrcidAffiliationData').val('');
-                                }}
-
-                                // Store the list item being edited and mark as editing mode
-                                const modal = document.getElementById('creatorsModal');
-                                modal.dataset.editingMode = 'true';
-                                modal.editingItem = listItem[0]; // Store the actual DOM element
-                                $('#creatorsModalLabel').text('Edit Creator');
-
-                                // Update save button text
-                                $('#saveCreatorBtn').text('Update');
-
-                                // Show the modal first
-                                const modalInstance = new bootstrap.Modal(modal);
-                                modalInstance.show();
-
-                                // Wait for modal to be fully shown before populating fields
-                                $(modal).on('shown.bs.modal.editData', function() {{
-
-                                    // Populate the creator modal with existing data
-                                    $('#newCreatorName').val(creatorData.name || '');
-                                    $('#newCreatorLastName').val(creatorData.lastName || '');
-                                    $('#newCreatorOrcid').val(creatorData.orcid || '');
-
-                                    // Handle affiliation
-                                    if (typeof affiliationData === 'string') {{
-                                        $('#newCreatorAffiliation').val(affiliationData);
-                                        $('#newCreatorRorData').val('');
-                                        $('#newCreatorOrcidAffiliationData').val('');
-                                    }} else if (typeof affiliationData === 'object' &&
-                                              affiliationData !== null) {{
-                                        const affiliationName = affiliationData.title ||
-                                                               affiliationData.name || affiliationData;
-                                        $('#newCreatorAffiliation').val(affiliationName);
-                                        if (affiliationData.ror_id || affiliationData.id) {{
-                                            $('#newCreatorRorData').val(JSON.stringify(affiliationData));
-                                            $('#newCreatorOrcidAffiliationData').val('');
-                                        }} else {{
-                                            $('#newCreatorOrcidAffiliationData').val(JSON.stringify(affiliationData));
-                                            $('#newCreatorRorData').val('');
-                                        }}
-                                    }} else {{
-                                        $('#newCreatorAffiliation').val('');
-                                        $('#newCreatorRorData').val('');
-                                        $('#newCreatorOrcidAffiliationData').val('');
-                                    }}
-
-                                    // Verify fields are populated
-                                    setTimeout(function() {{
-
-                                        // Trigger validation
-                                        $('#newCreatorName').trigger('input');
-                                        $('#newCreatorLastName').trigger('input');
-                                        $('#newCreatorAffiliation').trigger('input');
-                                        $('#newCreatorOrcid').trigger('input');
-                                    }}, 200);
-
-                                    // Remove this specific event handler so it doesn't fire again
-                                    $(this).off('shown.bs.modal.editData');
-                                }});
-
-                            }} catch(error) {{
-                                console.error('DEBUG: Error parsing creator data:', error);
-                            }}
-                        }});
-
-                        // Reset modal state when closed
-                        $('#creatorsModal').on('hidden.bs.modal', function() {{
-                            const modal = this;
-                            modal.dataset.editingMode = 'false';
-                            modal.editingItem = null;
-                            $('#creatorsModalLabel').text('Add Creator');
-                            $('#saveCreatorBtn').text('✓ Save');
-                        }});
-                    }});
-                </script>
-            """
+                """
             ),
             css_class="mb-3",
         )
