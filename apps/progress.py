@@ -359,6 +359,25 @@ def _get_helm_deploy_success(instance):
     return None
 
 
+def _get_helm_completed_at(instance):
+    """Return when the most recent helm run finished, or None if unknown."""
+    info = getattr(instance, "info", None) or {}
+    if not isinstance(info, dict):
+        return None
+
+    helm_info = info.get("helm")
+    if not isinstance(helm_info, dict):
+        return None
+
+    raw = helm_info.get("completed_at")
+    if not raw:
+        return None
+    try:
+        return dateutil.parser.isoparse(raw)
+    except (ValueError, TypeError):
+        return None
+
+
 def _get_deployment_inputs(instance):
     """
     Collect the deploy signals that come from the app instance itself.
@@ -374,6 +393,7 @@ def _get_deployment_inputs(instance):
         "app_status": app_status,
         "latest_user_action": latest_user_action,
         "helm_deploy_success": helm_deploy_success,
+        "helm_completed_at": _get_helm_completed_at(instance),
         "status_updated_at": getattr(status_object, "time", None),
         "is_transitioning": latest_user_action in {"Creating", "Changing", "Redeploying"},
     }
@@ -410,6 +430,7 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progre
     app_status = inputs["app_status"]
     latest_user_action = inputs["latest_user_action"]
     helm_deploy_success = inputs["helm_deploy_success"]
+    helm_completed_at = inputs.get("helm_completed_at")
     status_updated_at = inputs["status_updated_at"]
     is_transitioning = inputs["is_transitioning"]
 
@@ -443,6 +464,15 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progre
 
     has_fresh_running_status = app_status == "Running" and _is_status_fresh(status_updated_at, progress_started_at)
 
+    # Trust helm completion when pods didn't react (e.g. ingress-only changes).
+    helm_done_for_run = (
+        helm_deploy_success is True
+        and app_status in ("Running", "Changing")
+        and helm_completed_at is not None
+        and _is_status_fresh(helm_completed_at, progress_started_at)
+        and (status_updated_at is None or helm_completed_at > status_updated_at)
+    )
+
     # Metadata-only updates run the background-task workflow without redeploying helm
     # (skip_deploy=True). In that case there is no helm run to wait on, so once the
     # checks are done the synthetic "Deploy app" tile is finished by definition.
@@ -459,7 +489,7 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progre
         status = "failed"
         label = "Failed"
         message = "Deployment hit an error after the checks completed."
-    elif has_fresh_running_status and not blocked and not tasks_in_progress:
+    elif (has_fresh_running_status or helm_done_for_run) and not blocked and not tasks_in_progress:
         status = "success"
         label = "Done"
         message = "The app is running."

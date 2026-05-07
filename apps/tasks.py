@@ -439,6 +439,25 @@ def deploy_resource(self, serialized_instance):
     instance.save(update_fields=["info"])
     logger.info("deploy_resource.info_saved task_id=%s instance_id=%s success=%s", task_id, instance.pk, success)
 
+    # Depictio form changes never restart pods, so flip status.
+    if success and getattr(instance.app, "slug", None) == "depictio":
+        from apps.models import K8sUserAppStatus
+
+        status_object = instance.k8s_user_app_status
+        if status_object is None:
+            status_object = K8sUserAppStatus.objects.create(status="Running")
+            instance.k8s_user_app_status = status_object
+            instance.save(update_fields=["k8s_user_app_status"])
+        else:
+            status_object.status = "Running"
+            status_object.time = timezone.now()
+            status_object.save(update_fields=["status", "time"])
+        logger.info(
+            "deploy_resource.depictio_status_running instance_id=%s status_id=%s",
+            instance.pk,
+            status_object.pk,
+        )
+
     # In development, also generate and validate the k8s deployment manifest
     if settings.DEBUG:
         # Previously, we generated and validated the deployment after creation
