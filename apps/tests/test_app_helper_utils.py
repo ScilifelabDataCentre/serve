@@ -58,7 +58,7 @@ class CreateAppInstanceTestCase(TestCase):
             "flavor": str(self.flavor.pk),
             "access": "public",
             "port": 8000,
-            "image": "some-image",
+            "image": "mock.io/some-image",
             "source_code_url": "https://someurlthatdoesnotexist.com",
             "invenio_tags": "Antibodies|Cells",
         }
@@ -149,7 +149,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.name = "test-app-name-original"
         self.description = "app-form-description"
         self.port = 8000
-        self.image = "test-image-orig"
+        self.image = "mock.io/test-image-orig"
         self.subdomain_name = "test-subdomain-update-app"
         self.source_code_url = "https://someurlthatdoesnotexist.com"
 
@@ -230,7 +230,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "description": self.description,
             "access": "public",
             "port": self.port,
-            "image": "test-image-new",
+            "image": "mock.io/test-image-new",
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
             "invenio_tags": "Antibodies|Cells",
@@ -438,7 +438,7 @@ def test_get_subdomain_name():
         "description": "app-form-description",
         "access": "public",
         "port": 9999,
-        "image": "some-image",
+        "image": "mock.io/some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
         "subdomain": subdomain,
         "invenio_tags": "Antibodies|Cells",
@@ -470,7 +470,7 @@ def test_get_subdomain_name_no_subdomain_in_form():
         "description": "app-form-description",
         "access": "public",
         "port": 9999,
-        "image": "some-image",
+        "image": "mock.io/some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
         "invenio_tags": "Antibodies|Cells",
     }
@@ -512,7 +512,7 @@ def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_
         "flavor": str(flavor.pk),
         "access": "public",
         "port": 8000,
-        "image": "some-image-customapp",
+        "image": "mock.io/some-image-customapp",
         "source_code_url": "https://example.org/source",
         "language": "eng",
         "invenio_tags": "Antibodies|Cells",
@@ -556,7 +556,7 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
         "flavor": str(flavor.pk),
         "access": "public",
         "port": 8000,
-        "image": "some-image-dashapp",
+        "image": "mock.io/some-image-dashapp",
         "source_code_url": "https://example.org/source",
         "language": "eng",
         "invenio_tags": "Antibodies|Cells",
