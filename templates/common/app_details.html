@@ -40,11 +40,13 @@
         </a>
         {% endif %}
 
+        {% if app_otherdata.latest_version_doi == app_otherdata.current_version_doi %}
         <a title="Launch the app"
         rel="Link to launch the app"
         href="{{ app_otherdata.app_url }}"
         target="_blank"
         class="btn btn-primary">Launch (new tab)</a>
+        {% endif %}
     </div>
 
     </div>

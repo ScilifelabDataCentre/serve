@@ -35,6 +35,11 @@ class ContainerImageMixin:
     def _setup_container_image_field(self):
         """Setup the container image field in the form."""
         self.fields["image"] = self.image
+        # Pre-normalize initial so unchanged edits don't show as changed.
+        if self.instance and getattr(self.instance, "image", None):
+            normalized = self._normalize_image_registry(self.instance.image)
+            if normalized != self.instance.image:
+                self.initial["image"] = normalized
 
     def _setup_container_image_helper(self):
         """Returns the crispy layout for the container image field."""
@@ -48,12 +53,35 @@ class ContainerImageMixin:
             css_class="mb-3",
         )
 
+    @staticmethod
+    def _normalize_image_registry(image: str) -> str:
+        """Prepend ``docker.io/`` when the image has no explicit registry."""
+        if not image:
+            return image
+        parts = image.split("/")
+        first = parts[0]
+        has_registry = len(parts) > 1 and ("." in first or ":" in first or first == "localhost")
+        if has_registry:
+            return image
+        return f"docker.io/{image}"
+
     def clean_image(self):
         """Validate the container image input."""
         image = self.cleaned_data.get("image", "").strip()
 
         if not image:
             self.add_error("image", "Container image field cannot be empty.")
+            return image
+
+        image = self._normalize_image_registry(image)
+
+        # Re-check max_length: prepending "docker.io/" can push past the limit.
+        max_length = self.fields["image"].max_length
+        if max_length and len(image) > max_length:
+            self.add_error(
+                "image",
+                f"Image reference is too long ({len(image)} characters); maximum is {max_length}.",
+            )
             return image
 
         if "ghcr.io" in image:
