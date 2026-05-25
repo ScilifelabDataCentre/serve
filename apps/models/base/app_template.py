@@ -1,5 +1,9 @@
 from django.db import models
 
+# Categories where users are taken to project page
+# instead of deployment-details page.
+CATEGORY_SLUGS_WITHOUT_DEPLOYMENT_DETAILS = {"develop", "manage-files"}
+
 
 class Apps(models.Model):
     """Essentially app template"""
@@ -40,6 +44,12 @@ class Apps(models.Model):
 
     def __str__(self):
         return str(self.name) + "({})".format(self.revision)
+
+    @property
+    def should_display_deployment_details(self):
+        # `category_id` is the slug string — AppCategories uses `slug` as PK.
+        category_slug = self.category_id or ""
+        return category_slug not in CATEGORY_SLUGS_WITHOUT_DEPLOYMENT_DETAILS
 
     def to_dict(self):
         pass
