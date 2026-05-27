@@ -97,11 +97,13 @@
                         <i class="ellipsis vertical icon"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
+                        {% if instance.app.should_display_deployment_details or user.is_staff or user.is_superuser %}
                         <a class="dropdown-item default"
                             href="{% url 'apps:details' project.slug instance.app.slug instance.pk %}">
                             <i class="bi bi-info-circle me-1"></i>
                             Details
                         </a>
+                        {% endif %}
                         {% if objs.title == "Serve" %}
                         <a class="dropdown-item default"
                             href="{% url 'apps:logs' project.slug instance.app.slug instance.pk %}?from=overview">

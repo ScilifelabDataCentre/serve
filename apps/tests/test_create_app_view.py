@@ -306,13 +306,17 @@ class CreateAppViewTestCase(TestCase):
 
         fake_form = Mock()
         fake_form.is_valid.return_value = True
+        fake_form.instance.app.should_display_deployment_details = True
 
-        with patch("apps.views.CreateApp.get_form", return_value=fake_form), patch(
-            "apps.views.create_instance_from_form",
-            return_value=CreateInstanceResult(
-                instance_id=321,
-                progress_started_at="2026-04-17T10:11:12+00:00",
-                workflow_started=True,
+        with (
+            patch("apps.views.CreateApp.get_form", return_value=fake_form),
+            patch(
+                "apps.views.create_instance_from_form",
+                return_value=CreateInstanceResult(
+                    instance_id=321,
+                    progress_started_at="2026-04-17T10:11:12+00:00",
+                    workflow_started=True,
+                ),
             ),
         ):
             response = c.post(
@@ -326,3 +330,23 @@ class CreateAppViewTestCase(TestCase):
             f"{project.slug}/apps/progress/jupyter-lab/321?"
             f"{urlencode({'started_at': '2026-04-17T10:11:12+00:00'})}",
         )
+
+        fake_form = Mock()
+        fake_form.is_valid.return_value = True
+        fake_form.instance.app.should_display_deployment_details = False
+
+        with (
+            patch("apps.views.CreateApp.get_form", return_value=fake_form),
+            patch(
+                "apps.views.create_instance_from_form",
+                return_value=CreateInstanceResult(
+                    instance_id=321,
+                    progress_started_at="2026-04-17T10:11:12+00:00",
+                    workflow_started=True,
+                ),
+            ),
+        ):
+            response = c.post(f"/projects/{project.slug}/apps/create/jupyter-lab")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"/projects/{project.slug}/")

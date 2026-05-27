@@ -65,6 +65,14 @@ logger = get_logger(__name__)
 User = get_user_model()
 
 
+def _should_restrict_deployment_details(request, instance):
+    return (
+        not instance.app.should_display_deployment_details
+        and not request.user.is_staff
+        and not request.user.is_superuser
+    )
+
+
 @method_decorator(
     permission_required_or_403("can_view_project", (Project, "slug", "project")),
     name="dispatch",
@@ -341,6 +349,11 @@ class CreateApp(View):
 
         # Otherwise we can create the instance
         result = create_instance_from_form(form, project, app_slug, app_id)
+        # Redirects everyone (including admins) after creation; admins can still
+        # open the deployment pages (/progress, /details, /tasks) directly.
+        if not form.instance.app.should_display_deployment_details:
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_slug}))
+
         if not result.workflow_started:
             return HttpResponseRedirect(
                 build_project_app_path(str(project_slug), f"details/{app_slug}/{result.instance_id}")
@@ -412,6 +425,9 @@ class DeploymentProgressView(View):
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        if _should_restrict_deployment_details(request, instance):
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_obj.slug}))
+
         progress_mode = get_progress_mode_from_request(request) or "deploy"
         progress_started_at = get_progress_started_at_from_request(request)
         skip_deploy = get_skip_deploy_from_request(request)
@@ -451,6 +467,9 @@ class AppDetailsView(View):
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        if _should_restrict_deployment_details(request, instance):
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_obj.slug}))
+
         progress_state = build_progress_state(instance, progress_mode="details")
         tasks_data = progress_state["tasks"]
 
@@ -766,6 +785,9 @@ class BackgroundTasksView(View):
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        if _should_restrict_deployment_details(request, instance):
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_obj.slug}))
+
         tasks = get_progress_tasks(instance)
         serialized_tasks = serialize_tasks(tasks)
         serialized_by_id = {task_data["id"]: task_data for task_data in serialized_tasks}
@@ -806,6 +828,9 @@ class BackgroundTaskStatusAPI(View):
             _, instance = get_project_app_instance(project, app_slug, app_id)
         except (Http404, PermissionDenied):
             return JsonResponse({"error": "App instance not found"}, status=404)
+        if _should_restrict_deployment_details(request, instance):
+            return JsonResponse({"error": "Deployment details are available to administrators only."}, status=403)
+
         progress_mode = get_progress_mode_from_request(request) or "deploy"
         progress_started_at = get_progress_started_at_from_request(request)
         skip_deploy = get_skip_deploy_from_request(request)
@@ -846,6 +871,8 @@ class RetryBackgroundTaskView(View):
             instance = model_class.objects.get(pk=app_id)
         except model_class.DoesNotExist:
             return JsonResponse({"error": "App instance not found"}, status=404)
+        if _should_restrict_deployment_details(request, instance):
+            raise PermissionDenied("Deployment details are available to administrators only.")
 
         # Get the task
         try:
