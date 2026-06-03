@@ -1,0 +1,29 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "packageRules": [
+    {
+      "matchPackageNames": ["*"],
+      "enabled": false
+    },
+    {
+      "matchPackagePatterns": ["^ghcr\\.io/scilifelabdatacentre/serve-charts/"],
+      "enabled": true,
+      "groupName": "serve-charts app versions",
+      "additionalBranchPrefix": "renovate-",
+      "commitMessageTopic": "Update serve-charts {{depName}} to {{newValue}}",
+      "automerge": false,
+      "schedule": ["* 8-17 * * 1-5"],
+      "prConcurrentLimit": 1
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^fixtures/apps_fixtures\\.json$"],
+      "matchStrings": [
+        "\"chart\":\\s*\"(?<depName>ghcr\\.io/scilifelabdatacentre/serve-charts/[^:]+):(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}
