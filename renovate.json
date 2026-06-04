@@ -1,5 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "timezone": "Europe/Stockholm",
   "customManagers": [
     {
       "customType": "regex",
@@ -22,16 +23,13 @@
     {
       "additionalBranchPrefix": "renovate-",
       "automerge": false,
-      "commitMessageTopic": "Update serve-charts {{depName}} to {{newValue}}",
+      "commitMessageTopic": "serve-charts {{depName}}",
       "enabled": true,
       "groupName": "serve-charts app versions",
       "matchPackagePatterns": [
         "^ghcr\\.io/scilifelabdatacentre/serve-charts/"
       ],
-      "prConcurrentLimit": 1,
-      "schedule": [
-        "* 8-17 * * 1-5"
-      ]
+      "prConcurrentLimit": 1
     }
   ]
 }
