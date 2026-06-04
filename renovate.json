@@ -1,6 +1,5 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "timezone": "Europe/Stockholm",
   "customManagers": [
     {
       "customType": "regex",
@@ -31,5 +30,6 @@
       ],
       "prConcurrentLimit": 1
     }
-  ]
+  ],
+  "timezone": "Europe/Stockholm"
 }
