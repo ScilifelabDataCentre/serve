@@ -1,3 +1,4 @@
+import hashlib
 from typing import Any, Callable, cast
 
 import requests
@@ -6,6 +7,7 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.auth.views import PasswordResetView
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.db.models.signals import pre_save
@@ -31,6 +33,38 @@ from .helpers import do_delete_account
 from .negotiation import IgnoreClientContentNegotiation
 
 logger = get_logger(__name__)
+
+
+def _get_auth_permission_cache_key(request: Response) -> str | None:
+    user_id = getattr(request.user, "pk", None)
+    if user_id is None:
+        return None
+
+    release = request.GET.get("release") or ""
+    project = request.GET.get("project") or ""
+    if not release and not project:
+        return None
+
+    key_parts = f"{user_id}|{release}|{project}"
+    digest = hashlib.sha256(key_parts.encode("utf-8")).hexdigest()
+    return f"auth_permission:{digest}"
+
+
+def _log_auth_request(request: Response, event: str, allowed: bool) -> None:
+    if not getattr(settings, "AUTH_REQUEST_LOGGING_ENABLED", True):
+        return
+
+    original_uri = request.META.get("HTTP_X_ORIGINAL_URI") or request.get_full_path()
+    logger.info(
+        "Auth endpoint %s user_id=%s username=%s release=%s project=%s original_uri=%s allowed=%s",
+        event,
+        getattr(request.user, "pk", None),
+        getattr(request.user, "username", ""),
+        request.GET.get("release"),
+        request.GET.get("project"),
+        original_uri.split("?", 1)[0],
+        allowed,
+    )
 
 
 def disable_for_loaddata(signal_handler: Callable[..., Any]) -> Callable[..., Any]:
@@ -68,6 +102,27 @@ class AccessPermission(BasePermission):
         """
         Should simply return, or raise a 403 response.
         """
+        cache_enabled = getattr(settings, "AUTH_PERMISSION_CACHE_ENABLED", False)
+        cache_key = _get_auth_permission_cache_key(request)
+        if cache_enabled and cache_key is not None:
+            cached_permission = cache.get(cache_key)
+            if cached_permission in (True, False):
+                return cast(bool, cached_permission)
+
+        allowed = self._has_permission_uncached(request)
+        if cache_enabled and cache_key is not None:
+            timeout = getattr(settings, "AUTH_PERMISSION_CACHE_TIMEOUT", 30)
+            if not allowed:
+                timeout = getattr(settings, "AUTH_PERMISSION_CACHE_DENY_TIMEOUT", 5)
+            cache.set(cache_key, allowed, timeout=timeout)
+
+        cache_event = (
+            "permission cache miss" if cache_enabled and cache_key is not None else "permission cache disabled"
+        )
+        _log_auth_request(request, cache_event, allowed=allowed)
+        return allowed
+
+    def _has_permission_uncached(self, request: Response) -> bool:
         release = request.GET.get("release", None)
         try:
             # Must fetch the subdomain and reverse to the related model.
