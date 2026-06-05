@@ -4,8 +4,8 @@
     {
       "customType": "regex",
       "datasourceTemplate": "docker",
-      "fileMatch": [
-        "^fixtures/apps_fixtures\\.json$"
+      "managerFilePatterns": [
+        "/^fixtures/apps_fixtures\\.json$/"
       ],
       "matchStrings": [
         "\"chart\":\\s*\"(?<depName>ghcr\\.io/scilifelabdatacentre/serve-charts/[^:]+):(?<currentValue>[^\"]+)\""
@@ -25,10 +25,10 @@
       "commitMessageTopic": "serve-charts {{depName}}",
       "enabled": true,
       "groupName": "serve-charts app versions",
-      "matchPackagePatterns": [
-        "^ghcr\\.io/scilifelabdatacentre/serve-charts/"
-      ],
-      "prConcurrentLimit": 1
+      "prConcurrentLimit": 1,
+      "matchPackageNames": [
+        "/^ghcr\\.io/scilifelabdatacentre/serve-charts//"
+      ]
     }
   ],
   "timezone": "Europe/Stockholm"
