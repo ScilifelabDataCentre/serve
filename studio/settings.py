@@ -180,11 +180,26 @@ TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
+POSTGRES_IDLE_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_SESSION_TIMEOUT", "30m")
+POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT", "10m")
+
+
+def postgres_session_options() -> str:
+    options = []
+    if POSTGRES_IDLE_SESSION_TIMEOUT:
+        options.append(f"-c idle_session_timeout={POSTGRES_IDLE_SESSION_TIMEOUT}")
+    if POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT:
+        options.append(f"-c idle_in_transaction_session_timeout={POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT}")
+    return " ".join(options)
+
+
 if TESTING:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
+            "CONN_HEALTH_CHECKS": True,
             "OPTIONS": {
+                "options": postgres_session_options(),
                 "pool": {
                     "min_size": 4,
                     "max_size": 10,
@@ -203,7 +218,9 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
+            "CONN_HEALTH_CHECKS": True,
             "OPTIONS": {
+                "options": postgres_session_options(),
                 "pool": {
                     "min_size": 2,
                     "max_size": 4,
