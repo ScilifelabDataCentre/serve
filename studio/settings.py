@@ -205,7 +205,7 @@ if TESTING:
                     "max_size": 10,
                     "timeout": 30,
                     "max_idle": 300,
-                }
+                },
             },
             "NAME": "postgres",
             "USER": "postgres",
@@ -225,7 +225,7 @@ else:
                     "min_size": 2,
                     "max_size": 4,
                     "timeout": 10,
-                }
+                },
             },
             "NAME": "postgres",
             "USER": "postgres",
