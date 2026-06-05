@@ -180,8 +180,8 @@ TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-POSTGRES_IDLE_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_SESSION_TIMEOUT", "30m")
-POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT", "10m")
+POSTGRES_IDLE_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_SESSION_TIMEOUT", "30min")
+POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT", "10min")
 
 
 def postgres_session_options() -> str:
