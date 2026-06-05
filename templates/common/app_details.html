@@ -183,7 +183,7 @@
             {% for creator in app_metadata.creators %}
                 <div class="col-12">
                     {% if creator.person_or_org.identifiers %}
-                        <a href="{{ creator.person_or_org.identifiers.0.identifier }}"
+                        <a href="https://orcid.org/{{ creator.person_or_org.identifiers.0.identifier }}"
                           target="_blank"
                           rel="noopener"
                           class="value-label fw-normal text-dark card-username text-decoration-none"

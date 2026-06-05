@@ -160,9 +160,7 @@ class MockInvenioClient:
                                 "type": "personal",
                                 "given_name": "John",
                                 "family_name": "Doe",
-                                "identifiers": [
-                                    {"identifier": "https://orcid.org/0000-0001-5393-1421", "scheme": "orcid"}
-                                ],
+                                "identifiers": [{"identifier": "0000-0001-5393-1421", "scheme": "orcid"}],
                             },
                             "affiliations": [
                                 {
