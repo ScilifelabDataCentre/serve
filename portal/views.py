@@ -194,7 +194,15 @@ def add_additional_context_to_public_apps(published_apps):
         except Exception as e:
             logger.error(f"Error processing affiliations for app {app.id} (owner: {app.owner}): {e}", exc_info=True)
 
-        tag_list = app.tags.get_tag_list()
+        # I am replacing the existing tags list by a list coming from the subjects_keywords field
+        # but not renaming these anywhere else so that I avoid breaking anything
+        tag_list = list(
+            dict.fromkeys(
+                item.get("subject", "")
+                for item in (app.subjects_keywords or [])
+                if isinstance(item, dict) and item.get("subject")
+            )
+        )
         tags.update(tag_list)
         k8s_values = getattr(app, "k8s_values", {})
 
