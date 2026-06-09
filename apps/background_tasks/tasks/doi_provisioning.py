@@ -61,20 +61,20 @@ def _build_additional_metadata(
         additional_metadata["creators"] = creators
         logger.debug(f"DOI provisioning: Added {len(creators)} creators from form data")
 
-    # Subjects/tags from form data (prefer form data over model instance tags)
+    # Subjects/keywords from form data (prefer form data over model instance subjects_keywords)
     if subjects and isinstance(subjects, list):
-        # Form-processed subjects/tags take priority
+        # Form-processed subjects/keywords take priority
         additional_metadata["subjects"] = subjects
         logger.debug(f"DOI provisioning: Added {len(subjects)} subjects from form data")
-    elif hasattr(app_instance, "tags") and app_instance.tags:
-        # Fallback to model instance tags if no form data
+    elif hasattr(app_instance, "subjects_keywords"):
+        # Fallback to model instance subjects_keywords if no form data
         try:
-            tag_names = [t.name for t in app_instance.tags.all()]
-            if tag_names:
-                additional_metadata["subjects"] = tag_names
-                logger.debug(f"DOI provisioning: Added {len(tag_names)} subjects from model instance")
+            subjects_keywords = app_instance.subjects_keywords or []
+            if subjects_keywords:
+                additional_metadata["subjects"] = subjects_keywords
+                logger.debug(f"DOI provisioning: Added {len(subjects_keywords)} subjects from model instance")
         except Exception:
-            tag_names = None
+            subjects_keywords = None
 
     return additional_metadata if additional_metadata else None
 
@@ -135,7 +135,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
             language=kwargs.get("language"),
             funding=kwargs.get("funding"),
             creators=kwargs.get("creators"),
-            subjects=kwargs.get("tags"),  # Note: task receives 'tags' but function expects 'subjects'
+            subjects=kwargs.get("subjects_keywords"),  # Note: task receives 'tags' but function expects 'subjects'
         )
 
         try:
