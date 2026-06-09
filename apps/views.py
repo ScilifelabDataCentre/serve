@@ -669,7 +669,28 @@ def app_details(request, invenio_record_id):
     # Get version info
     app_pids = invenio_svc.extract_app_pids(record)
     app_versions_obj = invenio_svc.get_app_versions(invenio_record_id)
-    app_otherdata["versions"] = app_versions_obj.versions if app_versions_obj else []
+    versions = app_versions_obj.versions if app_versions_obj else []
+
+    doi_prefix = f"{settings.DOI_PREFIX}."
+    for version in versions:
+        if version.doi and not version.doi.lower().startswith(doi_prefix.lower()):
+            logger.error(
+                "DOI '%s' does not start with expected prefix '%s'",
+                version.doi,
+                doi_prefix,
+            )
+    app_otherdata["versions"] = [
+        {
+            "index": version.index,
+            "doi": version.doi,
+            "doi_string_end": (
+                version.doi[len(doi_prefix) :]
+                if version.doi and version.doi.lower().startswith(doi_prefix.lower())
+                else None
+            ),
+        }
+        for version in versions
+    ]
     app_otherdata["current_version_doi"] = app_pids.doi.identifier if app_pids and app_pids.doi else None
     app_otherdata["current_version"] = None
     app_otherdata["latest_version_doi"] = None
@@ -677,15 +698,17 @@ def app_details(request, invenio_record_id):
     if app_otherdata["versions"]:
         current_version_doi = app_otherdata["current_version_doi"]
         app_otherdata["current_version"] = next(
-            (v.index for v in app_otherdata["versions"] if v.doi == current_version_doi),
+            (v["index"] for v in app_otherdata["versions"] if v["doi"] == current_version_doi),
             None,
         )
         latest_version = max(
             app_otherdata["versions"],
-            key=lambda v: v.index,
+            key=lambda v: v["index"],
             default=None,
         )
-        app_otherdata["latest_version_doi"] = latest_version.doi if latest_version else None
+
+        app_otherdata["latest_version_doi"] = latest_version["doi"] if latest_version else None
+        app_otherdata["latest_version_doi_string_end"] = latest_version["doi_string_end"] if latest_version else None
 
     # Get parent info
     app_parent = invenio_svc.extract_app_parent(record)
