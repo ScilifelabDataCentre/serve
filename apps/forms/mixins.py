@@ -425,14 +425,24 @@ class KeywordTagsValidationMixin:
 
         service = VocabularyMemoryService()
         valid_tags = []
+
         for tag in tags_list:
             found = False
+
             for term in service.term_metadata.values():
                 if (term.subject or "").lower() == tag.lower():
-                    valid_tags.append(tag)
+                    valid_tags.append(
+                        {
+                            "subject": term.subject,
+                            "subject_scheme": term.subject_scheme,
+                            "classification_code": term.classification_code,
+                        }
+                    )
                     found = True
                     break
+
             if not found:
                 self.add_error("invenio_tags", f"Tag '{tag}' is not valid.")
                 return []
+
         return valid_tags
