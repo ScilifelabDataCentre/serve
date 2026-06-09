@@ -95,7 +95,7 @@ def __get_university_lookup_by_name() -> dict[str, dict[str, Any]]:
 def __get_content_stats() -> dict[str, int]:
     cache_key = "portal_public_apps:content_stats"
     cached_stats = cache.get(cache_key)
-    if cached_stats is not None:
+    if isinstance(cached_stats, dict) and all(isinstance(value, int) for value in cached_stats.values()):
         return cached_stats
 
     apps = BaseAppInstance.objects.get_app_instances_not_deleted().filter(app__category__slug="serve")
@@ -114,7 +114,7 @@ def _get_public_apps_cache_timeout() -> int:
 def _get_serve_category_apps() -> list[Apps]:
     cache_key = "portal_public_apps:serve_category_apps"
     cached_apps = cache.get(cache_key)
-    if cached_apps is not None:
+    if isinstance(cached_apps, list) and all(isinstance(app, Apps) for app in cached_apps):
         return cached_apps
 
     exclude_list = [
@@ -294,7 +294,7 @@ def add_additional_context_to_public_apps(published_apps):
 def _get_public_apps_page_context() -> dict[str, Any]:
     cache_key = "portal_public_apps:page_context"
     cached_context = cache.get(cache_key)
-    if cached_context is not None:
+    if isinstance(cached_context, dict):
         return cached_context
 
     published_apps = get_public_apps(None, order_by="updated_on", order_reverse=True)
@@ -314,7 +314,7 @@ def _get_public_apps_page_context() -> dict[str, Any]:
 def _get_recent_public_apps() -> list[dict[str, Any]]:
     cache_key = "portal_public_apps:recent"
     cached_apps = cache.get(cache_key)
-    if cached_apps is not None:
+    if isinstance(cached_apps, list) and all(isinstance(app, dict) for app in cached_apps):
         return cached_apps
 
     published_apps = get_public_apps(None, order_by="updated_on", order_reverse=True)[:6]
