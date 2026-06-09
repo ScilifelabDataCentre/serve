@@ -24,6 +24,7 @@ from django.urls import include, path
 from django_altcha import AltchaChallengeView
 
 from apps.views import record_lookup
+from studio.metrics import metrics_view
 
 from . import views
 
@@ -41,6 +42,7 @@ urlpatterns = (
             name="delete_account_post_handler",
         ),
         path("status", views.status_view, name="status"),
+        path("metrics", metrics_view, name="metrics"),
         path("user/account-deleted/<int:user_id>", views.account_deleted, name="account_deleted"),
         path("auth/", views.AuthView.as_view()),
         # API paths using NamespaceVersioning

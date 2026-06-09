@@ -26,12 +26,16 @@ def get_db_pool_stats(alias: str = "default") -> dict[str, Any]:
     pool_enabled = bool(connection.settings_dict["OPTIONS"].get("pool"))
     pools = getattr(connection, "_connection_pools", {})
     pool = pools.get(alias)
+    pod_name = os.environ.get("HOSTNAME", "")
+    pid = os.getpid()
 
     stats = {
         "alias": alias,
         "enabled": pool_enabled,
         "opened": pool is not None,
-        "pid": os.getpid(),
+        "pid": pid,
+        "pod": pod_name,
+        "pool_id": f"{pod_name}:{pid}:{alias}",
     }
     if pool is not None:
         stats.update(pool.get_stats())
@@ -78,11 +82,13 @@ class DatabasePoolStatsLoggingMiddleware:
             pool_stats = get_db_pool_stats()
             if _db_pool_stats_changed(pool_stats):
                 logger.info(
-                    "Django DB pool stats path=%s status=%s pid=%s opened=%s "
+                    "Django DB pool stats path=%s status=%s pod=%s pid=%s pool_id=%s opened=%s "
                     "pool_size=%s pool_available=%s requests_waiting=%s requests_num=%s requests_errors=%s stats=%s",
                     request.path,
                     response.status_code,
+                    pool_stats.get("pod"),
                     pool_stats.get("pid"),
+                    pool_stats.get("pool_id"),
                     pool_stats.get("opened"),
                     pool_stats.get("pool_size"),
                     pool_stats.get("pool_available"),

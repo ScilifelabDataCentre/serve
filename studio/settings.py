@@ -380,6 +380,11 @@ DB_POOL_STATS_LOGGING_ENABLED = os.environ.get("DB_POOL_STATS_LOGGING_ENABLED", 
     "true",
     "yes",
 )
+PROMETHEUS_METRICS_ENABLED = os.environ.get("PROMETHEUS_METRICS_ENABLED", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {
