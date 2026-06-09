@@ -426,6 +426,9 @@ INVENIO_MOCK_MODE = os.getenv("INVENIO_MOCK_MODE", "true").lower() == "true"
 # Invenio keywords data path
 VOCABULARY_DATA_PATH = os.getenv("VOCABULARY_DATA_PATH", os.path.join(BASE_DIR, "common", "data", "invenio_keywords"))
 
+# DataCite/Invenio integration options
+DOI_PREFIX = os.getenv("DOI_PREFIX", "10.83812/SCILIFELAB")
+
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
 IP = os.environ.get("IP", "127.0.0.1")
