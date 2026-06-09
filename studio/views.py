@@ -1,4 +1,3 @@
-import hashlib
 from typing import Any, Callable, cast
 
 import requests
@@ -7,7 +6,6 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.auth.views import PasswordResetView
-from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.db.models.signals import pre_save
@@ -17,6 +15,7 @@ from django.shortcuts import render, reverse
 from django.template.loader import render_to_string
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -26,6 +25,12 @@ from common.models import UserProfile
 from common.tasks import send_email_task
 from models.models import Model
 from projects.models import Project
+from studio.auth_permission_cache import (
+    build_auth_permission_cache_key,
+    get_cached_auth_permission,
+    is_auth_permission_cache_enabled,
+    set_cached_auth_permission,
+)
 from studio.throttle import WhitelistThrottleFilter
 from studio.utils import get_logger
 
@@ -35,22 +40,7 @@ from .negotiation import IgnoreClientContentNegotiation
 logger = get_logger(__name__)
 
 
-def _get_auth_permission_cache_key(request: Response) -> str | None:
-    user_id = getattr(request.user, "pk", None)
-    if user_id is None:
-        return None
-
-    release = request.GET.get("release") or ""
-    project = request.GET.get("project") or ""
-    if not release and not project:
-        return None
-
-    key_parts = f"{user_id}|{release}|{project}"
-    digest = hashlib.sha256(key_parts.encode("utf-8")).hexdigest()
-    return f"auth_permission:{digest}"
-
-
-def _log_auth_request(request: Response, event: str, allowed: bool) -> None:
+def _log_auth_request(request: Request, event: str, allowed: bool) -> None:
     if not getattr(settings, "AUTH_REQUEST_LOGGING_ENABLED", True):
         return
 
@@ -98,31 +88,27 @@ def handle_page_not_found(request: Response, exception: Exception) -> HttpRespon
 
 
 class AccessPermission(BasePermission):
-    def has_permission(self, request: Response, view: object) -> bool:
+    def has_permission(self, request: Request, view: object) -> bool:
         """
         Should simply return, or raise a 403 response.
         """
-        cache_enabled = getattr(settings, "AUTH_PERMISSION_CACHE_ENABLED", False)
-        cache_key = _get_auth_permission_cache_key(request)
-        if cache_enabled and cache_key is not None:
-            cached_permission = cache.get(cache_key)
-            if cached_permission in (True, False):
-                return cast(bool, cached_permission)
+        cache_key = build_auth_permission_cache_key(request)
+        cached_permission = get_cached_auth_permission(cache_key)
+        if cached_permission is not None:
+            return cached_permission
 
         allowed = self._has_permission_uncached(request)
-        if cache_enabled and cache_key is not None:
-            timeout = getattr(settings, "AUTH_PERMISSION_CACHE_TIMEOUT", 30)
-            if not allowed:
-                timeout = getattr(settings, "AUTH_PERMISSION_CACHE_DENY_TIMEOUT", 5)
-            cache.set(cache_key, allowed, timeout=timeout)
+        set_cached_auth_permission(cache_key, allowed)
 
         cache_event = (
-            "permission cache miss" if cache_enabled and cache_key is not None else "permission cache disabled"
+            "permission cache miss"
+            if is_auth_permission_cache_enabled() and cache_key is not None
+            else "permission cache disabled"
         )
         _log_auth_request(request, cache_event, allowed=allowed)
         return allowed
 
-    def _has_permission_uncached(self, request: Response) -> bool:
+    def _has_permission_uncached(self, request: Request) -> bool:
         release = request.GET.get("release", None)
         try:
             # Must fetch the subdomain and reverse to the related model.
@@ -161,7 +147,7 @@ class ModifiedSessionAuthentication(SessionAuthentication):
     header can be retrieved and the response code is automatically set to 401 in case of unauthenticated requests.
     """
 
-    def authenticate_header(self, request: Response) -> str:
+    def authenticate_header(self, request: Request) -> str:
         return "Session"
 
 
@@ -171,7 +157,7 @@ class AuthView(APIView):
     content_negotiation_class = IgnoreClientContentNegotiation
     throttle_classes = [WhitelistThrottleFilter]
 
-    def get(self, request: Response, format: str | None = None) -> Response:
+    def get(self, request: Request, format: str | None = None) -> Response:
         content = {
             "user": str(request.user),
             "auth": str(request.auth),

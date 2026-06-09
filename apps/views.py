@@ -37,6 +37,7 @@ from doi_minting.services.invenio_svc import (
     RecordDeletedError,
 )
 from projects.models import Project
+from projects.permissions import CachedProjectPermissionRequiredMixin
 from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
@@ -180,11 +181,9 @@ class GetLogs(View):
         return JsonResponse({"data": logs})
 
 
-@method_decorator(
-    permission_required_or_403("can_view_project", (Project, "slug", "project")),
-    name="dispatch",
-)
-class GetStatusView(View):
+class GetStatusView(CachedProjectPermissionRequiredMixin):
+    project_url_kwarg = "project"
+
     def post(self, request, project):
         body = request.POST.get("apps", "")
 
@@ -839,12 +838,10 @@ class BackgroundTasksView(View):
         return render(request, self.template, context)
 
 
-@method_decorator(
-    permission_required_or_403("can_view_project", (Project, "slug", "project")),
-    name="dispatch",
-)
-class BackgroundTaskStatusAPI(View):
+class BackgroundTaskStatusAPI(CachedProjectPermissionRequiredMixin):
     """API endpoint to get task status for an app instance."""
+
+    project_url_kwarg = "project"
 
     def get(self, request, project, app_slug, app_id):
         try:

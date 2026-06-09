@@ -1,9 +1,13 @@
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
+from django.test import Client, RequestFactory, TestCase, override_settings
 
 from projects.models import Project
+from projects.permissions import get_project_permission
 
 from ..models import AppCategories, Apps, JupyterInstance, K8sUserAppStatus, Subdomain
+from ..views import GetStatusView
 
 User = get_user_model()
 
@@ -69,6 +73,25 @@ class GetStatusViewTestCase(TestCase):
         response = c.post(url, {"apps": [self.app_instance.id]})
 
         self.assertEqual(response.status_code, 403)
+
+    def test_anonymous_user_rejected_before_project_lookup(self):
+        request = RequestFactory().post(f"/projects/{self.project.slug}/apps/status", {"apps": []})
+        request.user = AnonymousUser()
+
+        with self.assertNumQueries(0):
+            response = GetStatusView.as_view()(request, project=self.project.slug)
+
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(PROJECT_PERMISSION_CACHE_TIMEOUT=5)
+    def test_project_permission_decision_is_cached(self):
+        cache.clear()
+
+        self.assertTrue(get_project_permission(self.user, self.project.slug, "can_view_project"))
+        with self.assertNumQueries(0):
+            allowed = get_project_permission(self.user, self.project.slug, "can_view_project")
+
+        self.assertTrue(allowed)
 
     def test_apps_empty(self):
         c = Client()
