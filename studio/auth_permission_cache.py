@@ -1,7 +1,12 @@
 from django.conf import settings
 from rest_framework.request import Request
 
-from common.auth_cache import build_cache_key, get_cached_value, is_cache_miss, set_cached_value
+from common.auth_cache import (
+    build_cache_key,
+    get_cached_value,
+    is_cache_miss,
+    set_cached_value,
+)
 
 
 def is_auth_permission_cache_enabled() -> bool:

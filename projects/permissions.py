@@ -4,7 +4,13 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views import View
 
-from common.auth_cache import build_cache_key, get_cached_value, invalidate_cache_key, is_cache_miss, set_cached_value
+from common.auth_cache import (
+    build_cache_key,
+    get_cached_value,
+    invalidate_cache_key,
+    is_cache_miss,
+    set_cached_value,
+)
 from projects.models import Project
 
 
