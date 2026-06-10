@@ -11,7 +11,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import (
     Http404,
@@ -146,7 +145,7 @@ class GetLogs(View):
                 "since": "24h",
             }
 
-            res = requests.get(url, params=query_params)
+            res = requests.get(url, params=query_params, timeout=(3.05, 20))
             res.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
 
             res_json = res.json().get("data", {}).get("result", [])
@@ -319,10 +318,10 @@ class CreateApp(View):
             },
         )
 
-    @transaction.atomic
     def post(self, request, project, app_slug, app_id=None):
-        # App id is used when updating an existing app instance
-
+        # App id is used when updating an existing app instance Form construction
+        # and validation here perform external I/O and risk session timeouts. The actual
+        # DB writes are already wrapped atomically inside create_instance_from_form().
         # TODO Same as in get method
         project_slug = project
         project = Project.objects.get(slug=project_slug)
@@ -545,6 +544,7 @@ class SecretsView(View):
                 check=True,
                 text=True,
                 capture_output=True,
+                timeout=10,
             ).stdout
             username = base64.b64decode(username).decode()
             password = subprocess.run(
@@ -556,6 +556,7 @@ class SecretsView(View):
                 check=True,
                 text=True,
                 capture_output=True,
+                timeout=10,
             ).stdout
             password = base64.b64decode(password).decode()
 

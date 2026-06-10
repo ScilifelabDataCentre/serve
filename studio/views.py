@@ -248,7 +248,7 @@ def __get_university_name(request: Response, code: str) -> str:
     host = request.build_absolute_uri("/")
     api_url = host + reverse("v1:openapi-lookups-universities")
     logger.info(f"Making an API request to URL {api_url}")
-    response = requests.get(api_url, params={"code": code})
+    response = requests.get(api_url, params={"code": code}, timeout=(3.05, 10))
 
     if response.status_code == 200:
         data = response.json()["data"]
