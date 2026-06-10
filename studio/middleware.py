@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import traceback
 from typing import Any, Callable
 
@@ -19,6 +20,7 @@ DB_POOL_STATS_CHANGE_KEYS = (
     "requests_waiting",
     "requests_errors",
 )
+METRICS_PATHS = ("/metrics", "/metrics/")
 
 
 def get_db_pool_stats(alias: str = "default") -> dict[str, Any]:
@@ -65,6 +67,33 @@ class ExceptionLoggingMiddleware:
         msg += "".join(traceback.format_tb(stacktrace)).replace("\n", "\\n")
         logger.error(msg)
         return None
+
+
+class PrometheusHttpMetricsMiddleware:
+    """
+    Records Django HTTP request metrics for the Prometheus endpoint.
+    """
+
+    def __init__(self, get_response: Callable[[HttpRequest], Any]):
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        if not settings.PROMETHEUS_METRICS_ENABLED or request.path in METRICS_PATHS:
+            return self.get_response(request)
+
+        start = time.perf_counter()
+        try:
+            response = self.get_response(request)
+        except Exception as exception:
+            from studio.metrics import record_http_exception_metrics
+
+            record_http_exception_metrics(request, exception, time.perf_counter() - start)
+            raise
+
+        from studio.metrics import record_http_request_metrics
+
+        record_http_request_metrics(request, response, time.perf_counter() - start)
+        return response
 
 
 class DatabasePoolStatsLoggingMiddleware:

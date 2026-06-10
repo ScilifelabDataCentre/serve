@@ -122,6 +122,7 @@ MIDDLEWARE = (
         "corsheaders.middleware.CorsMiddleware",
         "axes.middleware.AxesMiddleware",
         "studio.middleware.ExceptionLoggingMiddleware",
+        "studio.middleware.PrometheusHttpMetricsMiddleware",
         "studio.middleware.DatabasePoolStatsLoggingMiddleware",
         "django_htmx.middleware.HtmxMiddleware",
         "waffle.middleware.WaffleMiddleware",

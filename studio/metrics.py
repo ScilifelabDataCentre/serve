@@ -1,3 +1,4 @@
+import os
 from importlib import import_module
 from typing import Any
 
@@ -9,6 +10,8 @@ from studio.middleware import get_db_pool_stats
 prometheus_client = import_module("prometheus_client")
 CONTENT_TYPE_LATEST = prometheus_client.CONTENT_TYPE_LATEST
 Gauge = prometheus_client.Gauge
+Counter = prometheus_client.Counter
+Histogram = prometheus_client.Histogram
 generate_latest = prometheus_client.generate_latest
 
 DB_POOL_ENABLED = Gauge(
@@ -56,6 +59,21 @@ DB_POOL_REQUESTS_ERRORS = Gauge(
     "Total number of Django database connection pool request errors in this process.",
     ["alias", "pod", "pid", "pool_id"],
 )
+HTTP_REQUESTS_TOTAL = Counter(
+    "django_http_requests_total",
+    "Total number of Django HTTP requests handled by this process.",
+    ["method", "route", "status_code", "pod"],
+)
+HTTP_REQUEST_DURATION_SECONDS = Histogram(
+    "django_http_request_duration_seconds",
+    "Django HTTP request duration in seconds for this process.",
+    ["method", "route", "status_code", "pod"],
+)
+HTTP_REQUEST_EXCEPTIONS_TOTAL = Counter(
+    "django_http_request_exceptions_total",
+    "Total number of Django HTTP requests that raised an exception in this process.",
+    ["method", "route", "exception", "pod"],
+)
 
 
 def _metric_value(stats: dict[str, Any], key: str) -> float:
@@ -85,6 +103,50 @@ def update_db_pool_metrics() -> None:
     DB_POOL_REQUESTS_WAITING.labels(**labels).set(_metric_value(stats, "requests_waiting"))
     DB_POOL_REQUESTS_NUM.labels(**labels).set(_metric_value(stats, "requests_num"))
     DB_POOL_REQUESTS_ERRORS.labels(**labels).set(_metric_value(stats, "requests_errors"))
+
+
+def get_http_route_label(request: HttpRequest) -> str:
+    resolver_match = getattr(request, "resolver_match", None)
+    if resolver_match is None:
+        return "unknown"
+    view_name = getattr(resolver_match, "view_name", "")
+    if isinstance(view_name, str) and view_name:
+        return view_name
+    route = getattr(resolver_match, "route", "")
+    if isinstance(route, str) and route:
+        return route
+    return "unknown"
+
+
+def _pod_label() -> str:
+    return os.environ.get("HOSTNAME", "")
+
+
+def record_http_request_metrics(request: HttpRequest, response: HttpResponse, duration_seconds: float) -> None:
+    labels = {
+        "method": request.method,
+        "route": get_http_route_label(request),
+        "status_code": str(response.status_code),
+        "pod": _pod_label(),
+    }
+    HTTP_REQUESTS_TOTAL.labels(**labels).inc()
+    HTTP_REQUEST_DURATION_SECONDS.labels(**labels).observe(duration_seconds)
+
+
+def record_http_exception_metrics(request: HttpRequest, exception: Exception, duration_seconds: float) -> None:
+    HTTP_REQUEST_EXCEPTIONS_TOTAL.labels(
+        method=request.method,
+        route=get_http_route_label(request),
+        exception=exception.__class__.__name__,
+        pod=_pod_label(),
+    ).inc()
+    labels = {
+        "method": request.method,
+        "route": get_http_route_label(request),
+        "status_code": "exception",
+        "pod": _pod_label(),
+    }
+    HTTP_REQUEST_DURATION_SECONDS.labels(**labels).observe(duration_seconds)
 
 
 def metrics_view(request: HttpRequest) -> HttpResponse:
