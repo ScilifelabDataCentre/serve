@@ -8,7 +8,7 @@ from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import transaction
+from django.db import connection, transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -257,7 +257,6 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
 
 
 @shared_task(bind=True, max_retries=DEPLOY_RESOURCE_MAX_RETRIES)
-@transaction.atomic
 def deploy_resource(self, serialized_instance):
     model = serialized_instance.get("model") if isinstance(serialized_instance, dict) else None
     pk = serialized_instance.get("pk") if isinstance(serialized_instance, dict) else None
@@ -391,6 +390,10 @@ def deploy_resource(self, serialized_instance):
         version,
     )
 
+    # Release the pooled DB connection for the duration of the helm subprocess.
+    # Django reconnects on the next ORM access (the status writes below).
+    connection.close()
+
     # Install the app using Helm install
     output, error = helm_install(release, chart, values["namespace"], values_file, version)
     success = not error
@@ -443,15 +446,17 @@ def deploy_resource(self, serialized_instance):
     if success and getattr(instance.app, "slug", None) == "depictio":
         from apps.models import K8sUserAppStatus
 
-        status_object = instance.k8s_user_app_status
-        if status_object is None:
-            status_object = K8sUserAppStatus.objects.create(status="Running")
-            instance.k8s_user_app_status = status_object
-            instance.save(update_fields=["k8s_user_app_status"])
-        else:
-            status_object.status = "Running"
-            status_object.time = timezone.now()
-            status_object.save(update_fields=["status", "time"])
+        # Keep the status creation and its link to the instance atomic
+        with transaction.atomic():
+            status_object = instance.k8s_user_app_status
+            if status_object is None:
+                status_object = K8sUserAppStatus.objects.create(status="Running")
+                instance.k8s_user_app_status = status_object
+                instance.save(update_fields=["k8s_user_app_status"])
+            else:
+                status_object.status = "Running"
+                status_object.time = timezone.now()
+                status_object.save(update_fields=["status", "time"])
         logger.info(
             "deploy_resource.depictio_status_running instance_id=%s status_id=%s",
             instance.pk,
@@ -480,7 +485,6 @@ def deploy_resource(self, serialized_instance):
 
 
 @shared_task
-@transaction.atomic
 def delete_resource(serialized_instance, initiated_by_str: str):
     """
     Deletes a cluster resource object.
@@ -509,6 +513,10 @@ def delete_resource(serialized_instance, initiated_by_str: str):
 
     # Use merged values for consistency, but don't update since we're deleting
     values = get_merged_k8s_values(instance, ensure_up_to_date=False)
+
+    # Release the pooled DB connection during the helm subprocess;
+    # Django reconnects automatically for the status writes below.
+    connection.close()
 
     success = False
     if values.get("subdomain") is not None:
