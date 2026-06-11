@@ -1,7 +1,7 @@
 from typing import Any
 
-from django.core.exceptions import FieldError
-from django.db.models import Q
+from django.conf import settings
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
@@ -9,10 +9,81 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
 from apps.app_registry import APP_REGISTRY
-from apps.models import Apps, BaseAppInstance, K8sUserAppStatus
+from apps.models import Apps, BaseAppInstance
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
+
+
+def _public_apps_cache_timeout() -> int:
+    return getattr(settings, "PUBLIC_APPS_CACHE_TIMEOUT", 30)
+
+
+def _add_app_type_data(apps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    app_ids = {app["app_id"] for app in apps}
+    app_types = Apps.objects.in_bulk(app_ids)
+
+    for app in apps:
+        assert app["app_status"] != "Deleted"
+        app_type = app_types.get(app["app_id"])
+        app["app_type"] = app_type.name if app_type else ""
+
+        # Add the previous url key located at app.table_field.url to support clients using the previous schema
+        app["table_field"] = {"url": app["url"]}
+
+        # Remove misleading app_id from the final output because it only refers to the app type
+        del app["app_id"]
+
+    return apps
+
+
+def _get_public_apps(limit: int | None) -> list[dict[str, Any]]:
+    list_apps_dict = {}
+
+    for model_class in APP_REGISTRY.iter_orm_models():
+        # Loop over all models, and check if they have the access and description field
+        # Note: It is not possible to use BaseAppInstance.objects.get_app_instances_not_deleted here
+        # This is the reason for looping over model_class instead
+        if hasattr(model_class, "description") and hasattr(model_class, "access"):
+            queryset = (
+                model_class.objects.filter(access="public")
+                .select_related("k8s_user_app_status")
+                .values(
+                    "id",
+                    "name",
+                    "app_id",
+                    "url",
+                    "description",
+                    "created_on",
+                    "updated_on",
+                    "access",
+                    "latest_user_action",
+                    "k8s_user_app_status",
+                    "k8s_user_app_status__status",
+                )
+            )
+
+            # Using a dictionary to avoid duplicates for shiny apps
+            for item in queryset:
+                # k8s_user_app_status must be the string text version, not id
+                item["k8s_user_app_status"] = item.get("k8s_user_app_status__status")
+                del item["k8s_user_app_status__status"]
+
+                app_status = BaseAppInstance.convert_to_app_status(
+                    item.get("latest_user_action"),
+                    item.get("k8s_user_app_status"),
+                )
+
+                # Do not include deleted apps
+                if app_status != "Deleted":
+                    item["app_status"] = app_status
+                    list_apps_dict[item["id"]] = item
+
+    list_apps = sorted(list_apps_dict.values(), key=lambda x: x["created_on"], reverse=True)
+    if limit is not None and limit > 0:
+        list_apps = list_apps[:limit]
+
+    return _add_app_type_data(list_apps)
 
 
 class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
@@ -33,8 +104,6 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         /openapi/v1/public-apps?limit=5
         """
         logger.info("PublicAppsAPI. Entered list method. Requested API version %s", request.version)
-        list_apps = []
-        list_apps_dict = {}
 
         # Handle user input parameters
         limit: int | None = request.GET.get("limit")
@@ -46,63 +115,11 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
 
         # NB: It is important that it only returns public apps
         try:
-            for model_class in APP_REGISTRY.iter_orm_models():
-                # Loop over all models, and check if they have the access and description field
-                # Note: It is not possible to use BaseAppInstance.objects.get_app_instances_not_deleted here
-                # This is the reason for looping over model_class instead
-                if hasattr(model_class, "description") and hasattr(model_class, "access"):
-                    queryset = (
-                        model_class.objects.filter(access="public")
-                        .select_related("k8s_user_app_status")
-                        .values(
-                            "id",
-                            "name",
-                            "app_id",
-                            "url",
-                            "description",
-                            "created_on",
-                            "updated_on",
-                            "access",
-                            "latest_user_action",
-                            "k8s_user_app_status",
-                            "k8s_user_app_status__status",
-                        )
-                    )
-
-                    # Using a dictionary to avoid duplicates for shiny apps
-                    for item in queryset:
-                        # k8s_user_app_status must be the string text version, not id
-                        item["k8s_user_app_status"] = item.get("k8s_user_app_status__status")
-                        del item["k8s_user_app_status__status"]
-
-                        app_status = BaseAppInstance.convert_to_app_status(
-                            item.get("latest_user_action"),
-                            item.get("k8s_user_app_status"),
-                        )
-
-                        # Do not include deleted apps
-                        if app_status != "Deleted":
-                            item["app_status"] = app_status
-                            list_apps_dict[item["id"]] = item
-
-                # Order the combined list by "created_on"
-                list_apps = sorted(list_apps_dict.values(), key=lambda x: x["created_on"], reverse=True)
-
-                # Truncate to limit (after sorting is done)
-                if limit is not None and limit > 0:
-                    # This list is small enough that slicing is performant
-                    list_apps = list_apps[:limit]
-
-            for app in list_apps:
-                assert app["app_status"] != "Deleted"
-
-                app["app_type"] = Apps.objects.get(id=app["app_id"]).name
-
-                # Add the previous url key located at app.table_field.url to support clients using the previous schema
-                app["table_field"] = {"url": app["url"]}
-
-                # Remove misleading app_id from the final output because it only refers to the app type
-                del app["app_id"]
+            cache_key = f"openapi_public_apps:v1:{limit}"
+            list_apps = cache.get(cache_key)
+            if list_apps is None:
+                list_apps = _get_public_apps(limit)
+                cache.set(cache_key, list_apps, timeout=_public_apps_cache_timeout())
 
         except Exception as e:
             logger.error("Unable to collect a list of the public apps. %s", e)
@@ -124,7 +141,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
             return JsonResponse({"error": "The input app id in invalid."}, status=403)
 
         # First retrieve the app slug by id
-        app = BaseAppInstance.objects.filter(pk=pk_in).first()
+        app = BaseAppInstance.objects.select_related("app").filter(pk=pk_in).first()
 
         if app is None:
             raise NotFound("An app with this id does not exist.")
@@ -180,8 +197,7 @@ class PublicAppsAPI(viewsets.ReadOnlyModelViewSet):
         if app_instance.get("access", False) != "public":
             raise NotFound("This app is non-existent or not public")
 
-        app_type_info = Apps.objects.get(id=app_instance["app_id"])
-        app_instance["app_type"] = app_type_info.name
+        app_instance["app_type"] = app.app.name
 
         # Remove misleading app_id from the final output because it only refers to the app type
         del app_instance["app_id"]
