@@ -29,7 +29,12 @@ from rest_framework.exceptions import NotFound
 
 from apps.constants import INVENIO_RECORD_REMOVAL_REASON_LABELS, AppActionOrigin
 from apps.types_.subdomain import SubdomainCandidateName
-from common.auth_cache import build_cache_key, get_cached_value, is_cache_miss, set_cached_value
+from common.auth_cache import (
+    build_cache_key,
+    get_cached_value,
+    is_cache_miss,
+    set_cached_value,
+)
 from doi_minting.services.invenio_svc import (
     InvenioClientError,
     InvenioClientRequestError,
