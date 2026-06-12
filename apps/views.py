@@ -29,6 +29,7 @@ from rest_framework.exceptions import NotFound
 
 from apps.constants import INVENIO_RECORD_REMOVAL_REASON_LABELS, AppActionOrigin
 from apps.types_.subdomain import SubdomainCandidateName
+from common.auth_cache import build_cache_key, get_cached_value, is_cache_miss, set_cached_value
 from doi_minting.services.invenio_svc import (
     InvenioClientError,
     InvenioClientRequestError,
@@ -70,6 +71,32 @@ def _should_restrict_deployment_details(request, instance):
         not instance.app.should_display_deployment_details
         and not request.user.is_staff
         and not request.user.is_superuser
+    )
+
+
+def _background_task_status_cache_timeout() -> int:
+    return getattr(settings, "BACKGROUND_TASK_STATUS_CACHE_TIMEOUT", 2)
+
+
+def _build_background_task_status_cache_key(
+    user_id: int,
+    project_slug: str,
+    app_slug: str,
+    app_id: int | str,
+    progress_mode: str,
+    progress_started_at,
+    skip_deploy: bool,
+) -> str:
+    started_at = progress_started_at.isoformat() if progress_started_at is not None else ""
+    return build_cache_key(
+        "background_task_status",
+        user_id,
+        project_slug,
+        app_slug,
+        app_id,
+        progress_mode,
+        started_at,
+        skip_deploy,
     )
 
 
@@ -845,6 +872,25 @@ class BackgroundTaskStatusAPI(CachedProjectPermissionRequiredMixin):
     project_url_kwarg = "project"
 
     def get(self, request, project, app_slug, app_id):
+        progress_mode = get_progress_mode_from_request(request) or "deploy"
+        progress_started_at = get_progress_started_at_from_request(request)
+        skip_deploy = get_skip_deploy_from_request(request)
+
+        cache_timeout = _background_task_status_cache_timeout()
+        cache_key = _build_background_task_status_cache_key(
+            request.user.pk,
+            project,
+            app_slug,
+            app_id,
+            progress_mode,
+            progress_started_at,
+            skip_deploy,
+        )
+        if cache_timeout > 0:
+            cached_value = get_cached_value(cache_key)
+            if not is_cache_miss(cached_value) and isinstance(cached_value, dict):
+                return JsonResponse(cached_value)
+
         try:
             _, instance = get_project_app_instance(project, app_slug, app_id)
         except (Http404, PermissionDenied):
@@ -852,9 +898,6 @@ class BackgroundTaskStatusAPI(CachedProjectPermissionRequiredMixin):
         if _should_restrict_deployment_details(request, instance):
             return JsonResponse({"error": "Deployment details are available to administrators only."}, status=403)
 
-        progress_mode = get_progress_mode_from_request(request) or "deploy"
-        progress_started_at = get_progress_started_at_from_request(request)
-        skip_deploy = get_skip_deploy_from_request(request)
         progress_state = build_progress_state(
             instance,
             progress_mode=progress_mode,
@@ -862,14 +905,14 @@ class BackgroundTaskStatusAPI(CachedProjectPermissionRequiredMixin):
             skip_deploy=skip_deploy,
         )
 
-        return JsonResponse(
-            {
-                "steps": progress_state["steps"],
-                "tasks": progress_state["tasks"],
-                "summary": progress_state["summary"],
-                "deployment": progress_state["deployment"],
-            }
-        )
+        response_data = {
+            "steps": progress_state["steps"],
+            "tasks": progress_state["tasks"],
+            "summary": progress_state["summary"],
+            "deployment": progress_state["deployment"],
+        }
+        set_cached_value(cache_key, response_data, cache_timeout)
+        return JsonResponse(response_data)
 
 
 @method_decorator(
