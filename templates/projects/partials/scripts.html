@@ -1,5 +1,7 @@
+{% load static %}
 {% if project.status == "active" %}
 
+    <script src="{% static 'js/adaptive-polling.js' %}"></script>
     <script>
             function revealCredential(id) {
               var credential = document.getElementById(id);
@@ -24,6 +26,11 @@
 
             const url = "{% url 'apps:get_status' project.slug %}"
             const csrftoken = getCookie('csrftoken');
+            const ACTIVE_STATUS_POLL_MS = 5000;
+            const STABLE_STATUS_POLL_MS = 30000;
+            const ERROR_STATUS_POLL_MS = 10000;
+
+            const hasActiveStatus = (status) => ["Creating", "Changing"].includes(status)
 
             const updateStatus = async () => {
 
@@ -37,11 +44,12 @@
                 })
 
                 const json = await response.json()
+                let hasActiveApps = false
 
                 for (const key in json) {
                     if (Object.hasOwnProperty.call(json, key)) {
-                        console.log(key)
                         const { status, statusGroup, latestUserAction, k8sStatus } = json[key]
+                        hasActiveApps = hasActiveApps || hasActiveStatus(status)
                         // To match elements with id with this pattern: id="status-customapp-nnn"
                         const querySelector = `#status-${key}`
                         const elements = document.querySelectorAll(querySelector);
@@ -63,21 +71,18 @@
                         });
                     }
                 }
+
+                return hasActiveApps
             }
 
-            const loop = async () => {
-
-                if ((apps?.length ?? 0) > 0) {
-
-                    await updateStatus()
-
-                    setTimeout(() => {
-                        loop()
-                    }, 5000)
-                }
+            if ((apps?.length ?? 0) > 0) {
+                ServeAdaptivePolling.createPoller({
+                    poll: updateStatus,
+                    getDelay: hasActiveApps => hasActiveApps ? ACTIVE_STATUS_POLL_MS : STABLE_STATUS_POLL_MS,
+                    errorDelay: ERROR_STATUS_POLL_MS,
+                    onError: error => console.error("Error updating app status:", error)
+                })
             }
-
-            loop()
         }
     </script>
 </div>
@@ -90,11 +95,14 @@
         </div>
     </div>
 
+    <script src="{% static 'js/adaptive-polling.js' %}"></script>
     <script>
         {
 
             const url = "{% url 'projects:get_status' project.slug %}"
             const csrftoken = getCookie('csrftoken');
+            const PROJECT_STATUS_POLL_MS = 2000;
+            const PROJECT_STATUS_ERROR_POLL_MS = 10000;
 
             const getStatus = async () => {
 
@@ -112,16 +120,12 @@
                 }
             }
 
-            const loop = async () => {
-
-                await getStatus()
-
-                setTimeout(() => {
-                    loop()
-                }, 2000)
-            }
-
-            loop()
+            ServeAdaptivePolling.createPoller({
+                poll: getStatus,
+                getDelay: () => PROJECT_STATUS_POLL_MS,
+                errorDelay: PROJECT_STATUS_ERROR_POLL_MS,
+                onError: error => console.error("Error updating project status:", error)
+            })
 
         }
     </script>
