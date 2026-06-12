@@ -38,6 +38,10 @@ from .models import (
     ProjectLog,
     ProjectTemplate,
 )
+from .permissions import (
+    CachedProjectPermissionRequiredMixin,
+    invalidate_project_permission,
+)
 from .tasks import create_resources_from_template, delete_project
 
 logger = logging.getLogger(__name__)
@@ -362,11 +366,7 @@ def delete_flavor(request, project_slug):
     )
 
 
-@method_decorator(
-    permission_required_or_403("can_view_project", (Project, "slug", "project_slug")),
-    name="dispatch",
-)
-class ProjectStatusView(View):
+class ProjectStatusView(CachedProjectPermissionRequiredMixin):
     def get(self, request, project_slug):
         project = Project.objects.get(slug=project_slug)
 
@@ -394,6 +394,7 @@ class GrantAccessToProjectView(View):
 
             project.authorized.add(selected_user)
             assign_perm("can_view_project", selected_user, project)
+            invalidate_project_permission(selected_user.id, project.slug, "can_view_project")
 
             project_uri = f"{request.get_host()}/projects/{project.slug}"
             # The backslash below is used to ignore a newline
@@ -483,6 +484,7 @@ class RevokeAccessToProjectView(View):
 
         project.authorized.remove(selected_user)
         remove_perm("can_view_project", selected_user, project)
+        invalidate_project_permission(selected_user.id, project.slug, "can_view_project")
 
         log = ProjectLog(
             project=project,
@@ -751,6 +753,7 @@ def delete(request, project_slug):
     users_with_permission = get_users_with_perms(project)
     for user in users_with_permission:
         remove_perm("can_view_project", user, project)
+        invalidate_project_permission(user.id, project.slug, "can_view_project")
     # set the status to 'deleted'
     project.status = "deleted"
     project.save()
