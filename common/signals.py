@@ -1,8 +1,10 @@
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save, pre_save
+from django.core.cache import cache
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
-from common.models import EmailSendingTable, EmailVerificationTable
+from common.context_processors import MAINTENANCE_MODE_CACHE_KEY
+from common.models import EmailSendingTable, EmailVerificationTable, MaintenanceMode
 
 
 @receiver(pre_save, sender=User)
@@ -50,3 +52,8 @@ def send_manual_email(sender, instance: EmailSendingTable, **kwargs):
         # Log the error or handle it as needed
         print(f"Error sending email: {e}")
         instance.status = "failed"
+
+
+@receiver([post_save, post_delete], sender=MaintenanceMode)
+def clear_maintenance_mode_cache(sender, **kwargs):
+    cache.delete(MAINTENANCE_MODE_CACHE_KEY)
