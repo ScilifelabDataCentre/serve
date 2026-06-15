@@ -135,7 +135,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
             language=kwargs.get("language"),
             funding=kwargs.get("funding"),
             creators=kwargs.get("creators"),
-            subjects=kwargs.get("subjects_keywords"),  # Note: task receives 'tags' but function expects 'subjects'
+            subjects=kwargs.get("subjects_keywords"),
         )
 
         try:
