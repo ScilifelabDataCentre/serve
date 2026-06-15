@@ -19,7 +19,11 @@
         <p class="small mb-0 mt-1">
         Version {{ app_otherdata.current_version }}
         {% if app_otherdata.latest_version_doi != app_otherdata.current_version_doi %}
-            (<a href="{% url 'app-details' app_otherdata.latest_version_doi|cut:'10.83812/SCILIFELAB.' %}">see latest version</a>)
+            {% if app_otherdata.latest_version_doi_string_end %}
+                (<a href="{% url 'app-details' app_otherdata.latest_version_doi_string_end %}">see latest version</a>)
+            {% else %}
+                (<a href="https://doi.org/{{ app_otherdata.latest_version_doi }}">see latest version</a>)
+            {% endif %}
         {% else %}
             (latest version)
         {% endif %}
@@ -179,7 +183,7 @@
             {% for creator in app_metadata.creators %}
                 <div class="col-12">
                     {% if creator.person_or_org.identifiers %}
-                        <a href="{{ creator.person_or_org.identifiers.0.identifier }}"
+                        <a href="https://orcid.org/{{ creator.person_or_org.identifiers.0.identifier }}"
                           target="_blank"
                           rel="noopener"
                           class="value-label fw-normal text-dark card-username text-decoration-none"
@@ -209,27 +213,29 @@
         </div>
         <div class="card-body small">
           <div class="row g-2">
-              {% for version in app_otherdata.versions %}
-                  <div class="{% if version.index == app_otherdata.current_version %}fw-bold{% endif %}">
-                      Version {{ version.index }}:<br>
+            {% for version in app_otherdata.versions %}
+                <div class="{% if version.index == app_otherdata.current_version %}fw-bold{% endif %}">
+                    Version {{ version.index }}:<br>
 
-                      {% if version.index == app_otherdata.current_version %}
-                          <span>
-                              https://doi.org/{{ version.doi|lower }}
-                          </span>
-                          <span class="badge bg-secondary ms-2">current</span>
-                      {% else %}
-                          <a href="{% url 'app-details' version.doi|cut:'10.83812/SCILIFELAB.' %}"
-                            target="_blank"
-                            rel="noopener">
-                              https://doi.org/{{ version.doi|lower }}
-                          </a>
-                      {% endif %}
-                  </div>
-              {% endfor %}
+                    {% if version.index == app_otherdata.current_version %}
+                        <span>
+                            https://doi.org/{{ version.doi|lower }}
+                        </span>
+                        <span class="badge bg-secondary ms-2">current</span>
+                    {% elif not version.doi_string_end %}
+                        <a href="https://doi.org/{{ version.doi|lower }}">
+                            https://doi.org/{{ version.doi|lower }}
+                            </a>
+                    {% else %}
+                        <a href="{% url 'app-details' version.doi_string_end %}">
+                            https://doi.org/{{ version.doi|lower }}
+                        </a>
+                    {% endif %}
+                </div>
+            {% endfor %}
           </div>
           <div><hr>To cite all versions, use the following DOI:<br>
-            <a href="https://doi.org/{{ app_otherdata.parent_doi|lower }}" target="_blank">https://doi.org/{{ app_otherdata.parent_doi|lower }}</a>
+            <a href="https://doi.org/{{ app_otherdata.parent_doi|lower }}">https://doi.org/{{ app_otherdata.parent_doi|lower }}</a>
           </div>
 
         </div>

@@ -180,17 +180,32 @@ TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
+POSTGRES_IDLE_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_SESSION_TIMEOUT", "30min")
+POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT", "10min")
+
+
+def postgres_session_options() -> str:
+    options = []
+    if POSTGRES_IDLE_SESSION_TIMEOUT:
+        options.append(f"-c idle_session_timeout={POSTGRES_IDLE_SESSION_TIMEOUT}")
+    if POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT:
+        options.append(f"-c idle_in_transaction_session_timeout={POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT}")
+    return " ".join(options)
+
+
 if TESTING:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
+            "CONN_HEALTH_CHECKS": True,
             "OPTIONS": {
+                "options": postgres_session_options(),
                 "pool": {
                     "min_size": 4,
                     "max_size": 10,
                     "timeout": 30,
                     "max_idle": 300,
-                }
+                },
             },
             "NAME": "postgres",
             "USER": "postgres",
@@ -203,12 +218,14 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
+            "CONN_HEALTH_CHECKS": True,
             "OPTIONS": {
+                "options": postgres_session_options(),
                 "pool": {
                     "min_size": 2,
                     "max_size": 4,
                     "timeout": 10,
-                }
+                },
             },
             "NAME": "postgres",
             "USER": "postgres",
@@ -239,6 +256,10 @@ SESSION_COOKIE_AGE = 86400
 SESSION_SAVE_EVERY_REQUEST = True
 # Whether to expire the session when the user closes their browser:
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_CACHE_ENABLED = os.environ.get("SESSION_CACHE_ENABLED", "false").lower() in ("1", "true", "yes")
+if SESSION_CACHE_ENABLED:
+    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+    SESSION_CACHE_ALIAS = "default"
 
 # The expiration duration in seconds for authentication tokens
 AUTH_TOKEN_EXPIRATION = 60 * 20
@@ -358,6 +379,13 @@ AUTH_RATE_LIMIT_VALUE = os.environ.get("AUTH_RATE_LIMIT_VALUE", None)
 AUTH_RATE_LIMIT_WHITELIST_RAW = os.environ.get("AUTH_RATE_LIMIT_WHITELIST", "")
 AUTH_RATE_LIMIT_WHITELIST = [ip.strip() for ip in AUTH_RATE_LIMIT_WHITELIST_RAW.split(",")]
 
+AUTH_PERMISSION_CACHE_ENABLED = os.environ.get("AUTH_PERMISSION_CACHE_ENABLED", "false").lower() in ("1", "true", "yes")
+AUTH_PERMISSION_CACHE_TIMEOUT = int(os.environ.get("AUTH_PERMISSION_CACHE_TIMEOUT", "30"))
+AUTH_PERMISSION_CACHE_DENY_TIMEOUT = int(os.environ.get("AUTH_PERMISSION_CACHE_DENY_TIMEOUT", "5"))
+AUTH_REQUEST_LOGGING_ENABLED = os.environ.get("AUTH_REQUEST_LOGGING_ENABLED", "true").lower() in ("1", "true", "yes")
+PUBLIC_APPS_CACHE_TIMEOUT = int(os.environ.get("PUBLIC_APPS_CACHE_TIMEOUT", "30"))
+PROJECT_PERMISSION_CACHE_TIMEOUT = int(os.environ.get("PROJECT_PERMISSION_CACHE_TIMEOUT", "5"))
+
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {
     "xml": "tagulous.serializers.xml_serializer",
@@ -415,6 +443,9 @@ INVENIO_MOCK_MODE = os.getenv("INVENIO_MOCK_MODE", "true").lower() == "true"
 
 # Invenio keywords data path
 VOCABULARY_DATA_PATH = os.getenv("VOCABULARY_DATA_PATH", os.path.join(BASE_DIR, "common", "data", "invenio_keywords"))
+
+# DataCite/Invenio integration options
+DOI_PREFIX = os.getenv("DOI_PREFIX", "10.83812/SCILIFELAB")
 
 # This can be simply "localhost", but it's better to test with a
 # wildcard dns such as nip.io
