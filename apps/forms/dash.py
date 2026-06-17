@@ -48,12 +48,12 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
 
     def _load_existing_tags_to_invenio_field(self):
         """Load existing database tags into the invenio_tags field"""
-        if self.instance and self.instance.pk and hasattr(self.instance, "tags"):
-            existing_tags = list(self.instance.tags.all())
+        if self.instance and self.instance.pk and hasattr(self.instance, "subjects_keywords"):
+            existing_tags = self.instance.subjects_keywords or []
             if existing_tags:
                 # Convert tag objects to pipe-separated format for template
-                tag_names = [str(tag) for tag in existing_tags]
-                tag_string = " | ".join(tag_names)
+                tag_names = [item.get("subject", "") for item in existing_tags if isinstance(item, dict)]
+                tag_string = " | ".join(filter(None, tag_names))
                 self.fields["invenio_tags"].initial = tag_string
             else:
                 self.fields["invenio_tags"].initial = ""
@@ -168,13 +168,13 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
 
             if invenio_tags_value:
                 # Process the tags using the existing cleaning logic
-                cleaned_data["tags"] = self.clean_keyword_tags()
-            elif self.instance and self.instance.pk and hasattr(self.instance, "tags"):
+                cleaned_data["subjects_keywords"] = self.clean_keyword_tags()
+            elif self.instance and self.instance.pk and hasattr(self.instance, "subjects_keywords"):
                 # If no tags in form but instance has existing tags, preserve them
-                existing_tags = list(self.instance.tags.all())
+                existing_tags = self.instance.subjects_keywords or []
                 if existing_tags:
                     # Keep existing tags as they are
-                    cleaned_data["tags"] = existing_tags
+                    cleaned_data["subjects_keywords"] = existing_tags
         return cleaned_data
 
     class Meta:
@@ -188,10 +188,10 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
             "source_code_url",
             "port",
             "image",
-            "tags",
+            "subjects_keywords",
             "default_url_subpath",
         ]
         labels = {
-            "tags": "Subjects and keywords",
+            "subjects_keywords": "Subjects and keywords",
             "note_on_linkonly_privacy": "Reason for choosing the link only option",
         }

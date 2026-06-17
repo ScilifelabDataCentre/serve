@@ -9,7 +9,7 @@
             <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
             <th class="" tabindex="0" rowspan="1" colspan="1">Permissions</th>
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Hits <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Unique IP visits during the last 30 days"></span></th>
-            <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Tags</th>
+            <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Subjects & keywords</th>
             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
         </tr>
     </thead>
@@ -77,18 +77,19 @@
             {% endif %}
             </td>
             <td class="d-none d-xxl-table-cell" id="tags-{{ instance.pk }}">
-    {% for tag in instance.tags.all %}
-        <span class="badge text-bg-primary badge-grape badge-ico me-1 tag-item app-table-tag {% if forloop.counter > 3 %}d-none extra-tag{% endif %}">
-            <div class="fas fa-tag fa-sm me-1"></div>
-            <span class="tag-name">{{ tag.name }}</span>
-        </span>
-    {% endfor %}
 
-    {% if instance.tags.count > 3 %}
-        <a href="javascript:void(0);" class="ui tiny label pointer toggle-tags">
-            See more
-        </a>
-    {% endif %}
+            {% for keyword in instance.subjects_keywords %}
+                <span class="badge text-bg-primary badge-grape badge-ico me-1 tag-item app-table-tag {% if forloop.counter > 3 %}d-none extra-tag{% endif %}">
+                    <div class="fas fa-tag fa-sm me-1"></div>
+                    <span class="tag-name">{{ keyword.subject }}</span>
+                </span>
+            {% endfor %}
+
+            {% if instance.subjects_keywords|length > 3 %}
+                <a href="javascript:void(0);" class="ui tiny label pointer toggle-tags">
+                    See more
+                </a>
+            {% endif %}
 </td>
 
             <td class="table-action text-center">

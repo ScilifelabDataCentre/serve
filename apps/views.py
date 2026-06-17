@@ -475,7 +475,13 @@ class AppDetailsView(View):
         description = getattr(instance, "description", "")
         source_code_url = getattr(instance, "source_code_url", "")
         image = getattr(instance, "image", "")
-        tags = instance.tags.all() if hasattr(instance, "tags") else []
+        tags = list(
+            dict.fromkeys(
+                item.get("subject", "")
+                for item in (instance.subjects_keywords or [])
+                if isinstance(item, dict) and item.get("subject")
+            )
+        )
         access = getattr(instance, "access", "")
         details_rows = [
             ("Type", instance.app.name),
