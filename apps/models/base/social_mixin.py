@@ -4,6 +4,11 @@ from tagulous.models import TagField
 
 class SocialMixin(models.Model):
     tags = TagField(blank=True, help_text="Add keywords to help categorize your app", force_lowercase=True)
+    subjects_keywords = models.JSONField(
+        blank=True,
+        default=list,
+        help_text=("Select research field(s) and keyword(s) to help categorize your app."),
+    )
     note_on_linkonly_privacy = models.TextField(
         blank=True,
         null=True,

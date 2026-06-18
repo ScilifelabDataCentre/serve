@@ -389,7 +389,7 @@ def create_instance_from_form(
             "language",
             "funding_sources_json",
             "creators",
-            "tags",
+            "subjects_keywords",
             "invenio_tags",
             "source_code_url",
             "note_on_linkonly_privacy",
@@ -682,15 +682,15 @@ def _prepare_doi_task_kwargs(instance, form, app_slug, access_changed_to_public=
             logger.debug(f"Background task: creators_data from form: {creators_data}")
 
         # Get processed tags data from form if available
-        tags_data = form.cleaned_data.get("tags") if hasattr(form, "cleaned_data") else None
-        logger.debug(f"Background task: tags_data from form: {tags_data}")
+        subjects_keywords_data = form.cleaned_data.get("subjects_keywords") if hasattr(form, "cleaned_data") else None
+        logger.debug(f"Background task: subjects_keywords data from form: {subjects_keywords_data}")
 
         task_kwargs_by_task_name = {
             "doi_provisioning": {
                 "language": form.cleaned_data.get("language"),
                 "funding": funding_list,
                 "creators": creators_data,
-                "tags": form.cleaned_data.get("tags"),
+                "subjects_keywords": form.cleaned_data.get("subjects_keywords"),
             },
         }
         logger.debug(

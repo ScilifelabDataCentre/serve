@@ -856,34 +856,25 @@ class InvenioService:
                 vocab_service = None
 
             subject_terms = []
-            if vocab_service:
-                for tag in subject_input:
-                    # Extract tag label
-                    tag_label = str(tag) if isinstance(tag, str) else None
-                    if not tag_label:
-                        continue
 
-                    found_match = False
-                    # Find matching vocabulary term
-                    # TODO - Include term ID/URI in subject when vocab is configured in our Invenio instance
-                    for term_id, term_data in vocab_service.term_metadata.items():
-                        if term_data.subject and term_data.subject.lower() == tag_label.lower():
-                            subject_term = Subject(subject=tag_label)
-                            subject_terms.append(subject_term)
+            for item in subject_input:
+                subject_label = (item.get("subject") or "").strip()
+                if not subject_label:
+                    continue
+
+                found_match = False
+                # Find matching vocabulary term
+                # TODO - Include term ID/URI in subject when vocab is configured in our Invenio instance
+                if vocab_service:
+                    for term_data in vocab_service.term_metadata.values():
+                        if term_data.subject and term_data.subject.lower() == subject_label.lower():
+                            subject_terms.append(Subject(subject=subject_label))
                             found_match = True
                             break
 
-                    # If no vocabulary match found, use as free text subject
-                    if not found_match:
-                        subject_term = Subject(subject=tag_label)
-                        subject_terms.append(subject_term)
-            else:
-                # If no vocabulary service, use all as free text subjects
-                for tag in subject_input:
-                    tag_label = str(tag) if isinstance(tag, str) else None
-                    if tag_label:
-                        subject_term = Subject(subject=tag_label)
-                        subject_terms.append(subject_term)
+                # If no vocabulary match found, use as free text subject
+                if not found_match:
+                    subject_terms.append(Subject(subject=subject_label))
 
             target_metadata["subjects"] = subject_terms if subject_terms else None
         else:
