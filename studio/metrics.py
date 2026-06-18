@@ -1,18 +1,17 @@
 import os
-from importlib import import_module
 from typing import Any
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 
 from studio.middleware import get_db_pool_stats
-
-prometheus_client = import_module("prometheus_client")
-CONTENT_TYPE_LATEST = prometheus_client.CONTENT_TYPE_LATEST
-Gauge = prometheus_client.Gauge
-Counter = prometheus_client.Counter
-Histogram = prometheus_client.Histogram
-generate_latest = prometheus_client.generate_latest
 
 DB_POOL_ENABLED = Gauge(
     "django_db_pool_enabled",
