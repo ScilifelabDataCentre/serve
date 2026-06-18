@@ -258,6 +258,10 @@ SESSION_COOKIE_AGE = 86400
 SESSION_SAVE_EVERY_REQUEST = True
 # Whether to expire the session when the user closes their browser:
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_CACHE_ENABLED = os.environ.get("SESSION_CACHE_ENABLED", "false").lower() in ("1", "true", "yes")
+if SESSION_CACHE_ENABLED:
+    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+    SESSION_CACHE_ALIAS = "default"
 
 # The expiration duration in seconds for authentication tokens
 AUTH_TOKEN_EXPIRATION = 60 * 20
@@ -386,6 +390,13 @@ PROMETHEUS_METRICS_ENABLED = os.environ.get("PROMETHEUS_METRICS_ENABLED", "false
     "true",
     "yes",
 )
+
+AUTH_PERMISSION_CACHE_ENABLED = os.environ.get("AUTH_PERMISSION_CACHE_ENABLED", "false").lower() in ("1", "true", "yes")
+AUTH_PERMISSION_CACHE_TIMEOUT = int(os.environ.get("AUTH_PERMISSION_CACHE_TIMEOUT", "30"))
+AUTH_PERMISSION_CACHE_DENY_TIMEOUT = int(os.environ.get("AUTH_PERMISSION_CACHE_DENY_TIMEOUT", "5"))
+AUTH_REQUEST_LOGGING_ENABLED = os.environ.get("AUTH_REQUEST_LOGGING_ENABLED", "true").lower() in ("1", "true", "yes")
+PUBLIC_APPS_CACHE_TIMEOUT = int(os.environ.get("PUBLIC_APPS_CACHE_TIMEOUT", "30"))
+PROJECT_PERMISSION_CACHE_TIMEOUT = int(os.environ.get("PROJECT_PERMISSION_CACHE_TIMEOUT", "5"))
 
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {

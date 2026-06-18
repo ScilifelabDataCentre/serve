@@ -9,6 +9,7 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.syndication.views import Feed
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -92,11 +93,40 @@ def __get_university_lookup_by_name() -> dict[str, dict[str, Any]]:
 
 
 def __get_content_stats() -> dict[str, int]:
+    cache_key = "portal_public_apps:content_stats"
+    cached_stats = cache.get(cache_key)
+    if isinstance(cached_stats, dict) and all(isinstance(value, int) for value in cached_stats.values()):
+        return cached_stats
+
     apps = BaseAppInstance.objects.get_app_instances_not_deleted().filter(app__category__slug="serve")
-    return {
+    stats = {
         "n_apps": apps.count(),
         "n_apps_public": apps.filter(k8s_values__permission="public").count(),
     }
+    cache.set(cache_key, stats, timeout=_get_public_apps_cache_timeout())
+    return stats
+
+
+def _get_public_apps_cache_timeout() -> int:
+    return getattr(settings, "PUBLIC_APPS_CACHE_TIMEOUT", 30)
+
+
+def _get_serve_category_apps() -> list[Apps]:
+    cache_key = "portal_public_apps:serve_category_apps"
+    cached_apps = cache.get(cache_key)
+    if isinstance(cached_apps, list) and all(isinstance(app, Apps) for app in cached_apps):
+        return cached_apps
+
+    exclude_list = [
+        "ShinyProxy App",
+        "Tensorflow Serving",
+        "PyTorch Serve",
+        "Python Model Deployment",
+        "MLFlow Serve",
+    ]
+    serve_category_apps = list(Apps.objects.filter(Q(category__name="Serve")).exclude(name__in=exclude_list))
+    cache.set(cache_key, serve_category_apps, timeout=_get_public_apps_cache_timeout())
+    return serve_category_apps
 
 
 def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", order_reverse=False):
@@ -194,7 +224,15 @@ def add_additional_context_to_public_apps(published_apps):
         except Exception as e:
             logger.error(f"Error processing affiliations for app {app.id} (owner: {app.owner}): {e}", exc_info=True)
 
-        tag_list = app.tags.get_tag_list()
+        # I am replacing the existing tags list by a list coming from the subjects_keywords field
+        # but not renaming these anywhere else so that I avoid breaking anything
+        tag_list = list(
+            dict.fromkeys(
+                item.get("subject", "")
+                for item in (app.subjects_keywords or [])
+                if isinstance(item, dict) and item.get("subject")
+            )
+        )
         tags.update(tag_list)
         k8s_values = getattr(app, "k8s_values", {})
 
@@ -261,22 +299,60 @@ def add_additional_context_to_public_apps(published_apps):
     return serialized_apps, unique_organizations, unique_departments, unique_tags
 
 
+def _get_public_apps_page_context() -> dict[str, Any]:
+    cache_key = "portal_public_apps:page_context"
+    cached_context = cache.get(cache_key)
+    if isinstance(cached_context, dict):
+        return cached_context
+
+    published_apps = get_public_apps(None, order_by="updated_on", order_reverse=True)
+    serialized_apps, unique_organizations, unique_departments, unique_tags = add_additional_context_to_public_apps(
+        published_apps
+    )
+    context = {
+        "serialized_apps": serialized_apps,
+        "unique_organizations": unique_organizations,
+        "unique_departments": unique_departments,
+        "unique_tags": unique_tags,
+    }
+    cache.set(cache_key, context, timeout=_get_public_apps_cache_timeout())
+    return context
+
+
+def _get_recent_public_apps() -> list[dict[str, Any]]:
+    cache_key = "portal_public_apps:recent"
+    cached_apps = cache.get(cache_key)
+    if isinstance(cached_apps, list) and all(isinstance(app, dict) for app in cached_apps):
+        return cached_apps
+
+    published_apps = get_public_apps(None, order_by="updated_on", order_reverse=True)[:6]
+    recent_apps = [
+        {
+            "url": app.url,
+            "name": app.name,
+            "description": app.description,
+            "created_on": app.created_on,
+            "updated_on": app.updated_on,
+            "app": {
+                "logo": app.app.logo,
+                "name": app.app.name,
+            },
+        }
+        for app in published_apps
+    ]
+    cache.set(cache_key, recent_apps, timeout=_get_public_apps_cache_timeout())
+    return recent_apps
+
+
 # @silk_profile(name='Public apps')
 def public_apps(request, app_id=0):
     try:
-        published_apps = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
-        exclude_list = [
-            "ShinyProxy App",
-            "Tensorflow Serving",
-            "PyTorch Serve",
-            "Python Model Deployment",
-            "MLFlow Serve",
-        ]
-
-        serve_category_apps = Apps.objects.filter(Q(category__name="Serve")).exclude(name__in=exclude_list)
-        serialized_apps, unique_organizations, unique_departments, unique_tags = add_additional_context_to_public_apps(
-            published_apps
-        )
+        public_apps_context = _get_public_apps_page_context()
+        serialized_apps = public_apps_context["serialized_apps"]
+        unique_organizations = public_apps_context["unique_organizations"]
+        unique_departments = public_apps_context["unique_departments"]
+        unique_tags = public_apps_context["unique_tags"]
+        serve_category_apps = _get_serve_category_apps()
         university_logo_keys = __get_university_logo_keys()
         university_logos = [
             {
@@ -308,9 +384,7 @@ class HomeView(View):
     template = "portal/home.html"
 
     def get(self, request, app_id=0):
-        published_apps_updated_on = get_public_apps(request, app_id=app_id, order_by="updated_on", order_reverse=True)
-        published_apps_updated_on = published_apps_updated_on[:6]  # we display only 6 apps
-        # TODO: add selection of N apps into the function so that it is optimized in the future with more apps in the db
+        published_apps_updated_on = _get_recent_public_apps()
 
         news_objects = NewsObject.objects.all().order_by("-created_on")
         link_all_news = False

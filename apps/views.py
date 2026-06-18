@@ -37,6 +37,7 @@ from doi_minting.services.invenio_svc import (
     RecordDeletedError,
 )
 from projects.models import Project
+from projects.permissions import CachedProjectPermissionRequiredMixin
 from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
@@ -180,11 +181,9 @@ class GetLogs(View):
         return JsonResponse({"data": logs})
 
 
-@method_decorator(
-    permission_required_or_403("can_view_project", (Project, "slug", "project")),
-    name="dispatch",
-)
-class GetStatusView(View):
+class GetStatusView(CachedProjectPermissionRequiredMixin):
+    project_url_kwarg = "project"
+
     def post(self, request, project):
         body = request.POST.get("apps", "")
 
@@ -476,7 +475,13 @@ class AppDetailsView(View):
         description = getattr(instance, "description", "")
         source_code_url = getattr(instance, "source_code_url", "")
         image = getattr(instance, "image", "")
-        tags = instance.tags.all() if hasattr(instance, "tags") else []
+        tags = list(
+            dict.fromkeys(
+                item.get("subject", "")
+                for item in (instance.subjects_keywords or [])
+                if isinstance(item, dict) and item.get("subject")
+            )
+        )
         access = getattr(instance, "access", "")
         details_rows = [
             ("Type", instance.app.name),
@@ -839,12 +844,10 @@ class BackgroundTasksView(View):
         return render(request, self.template, context)
 
 
-@method_decorator(
-    permission_required_or_403("can_view_project", (Project, "slug", "project")),
-    name="dispatch",
-)
-class BackgroundTaskStatusAPI(View):
+class BackgroundTaskStatusAPI(CachedProjectPermissionRequiredMixin):
     """API endpoint to get task status for an app instance."""
+
+    project_url_kwarg = "project"
 
     def get(self, request, project, app_slug, app_id):
         try:

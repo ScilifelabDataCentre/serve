@@ -205,7 +205,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         }
 
         # These fields are always present in changed_data due to normalization
-        changed_fields = ["port", "invenio_tags", "tags", "creators"]
+        changed_fields = ["port", "invenio_tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -223,7 +223,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         """
 
         # Create the form data
-        # Fields requiring special consideration: tags, volume, subdomain
+        # Fields requiring special consideration: subjects_keywords, volume, subdomain
         # In the below data dict, we modify the app image:
         data = {
             "name": self.name,
@@ -237,7 +237,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["image", "invenio_tags", "tags", "creators"]
+        changed_fields = ["image", "invenio_tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -256,7 +256,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         """
 
         # Create the form data
-        # Fields requiring special consideration: tags, volume, subdomain
+        # Fields requiring special consideration: subjects_keywords, volume, subdomain
         # In the below data dict, we modify the app subdomain:
         data = {
             "name": self.name,
@@ -270,7 +270,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["subdomain", "invenio_tags", "tags", "creators"]
+        changed_fields = ["subdomain", "invenio_tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
@@ -296,7 +296,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.assertIsInstance(instance, DashInstance)
 
         # Create the form data
-        # Fields requiring special consideration: tags, volume, subdomain
+        # Fields requiring special consideration: subjects_keywords, volume, subdomain
         # In the below data dict, we modify only properties that do not lead to re-deployment:
         data = {
             "name": "test-app-name-new",
@@ -310,7 +310,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
         }
 
-        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "tags", "creators"]
+        changed_fields = ["name", "description", "source_code_url", "invenio_tags", "creators"]
 
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
