@@ -470,6 +470,9 @@ STUDIO_URL = f"http://studio.{IP}.nip.io:8080"
 # To enable sticky sessions for k8s ingress
 SESSION_COOKIE_DOMAIN = f".{IP}.nip.io"
 
+# Total number of GPUs in the cluster that user apps can request.
+GPU_TOTAL_CAPACITY = int(os.environ.get("GPU_TOTAL_CAPACITY", "0"))
+
 # App statuses
 APPS_STATUS_SUCCESS = ["Running", "Succeeded", "Success"]
 APPS_STATUS_WARNING = [
