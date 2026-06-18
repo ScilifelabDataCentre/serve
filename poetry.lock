@@ -5404,4 +5404,4 @@ tests = ["hypothesis", "moto", "pytest", "pytest-cov", "pytest-django", "pytest-
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10.0"
-content-hash = "13beff4b2f0bad91f3a53558245fdda4dfbd7e61e186e969d36cf1afc73d4813"
+content-hash = "6e6a85c50a48f067e81b4ea4ca62cb9c950f820b0e62042b5fa4d269eaeb0f7f"
