@@ -5,6 +5,9 @@ from django.dispatch import receiver
 
 from common.context_processors import MAINTENANCE_MODE_CACHE_KEY
 from common.models import EmailSendingTable, EmailVerificationTable, MaintenanceMode
+from studio.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 @receiver(pre_save, sender=User)
@@ -56,4 +59,7 @@ def send_manual_email(sender, instance: EmailSendingTable, **kwargs):
 
 @receiver([post_save, post_delete], sender=MaintenanceMode)
 def clear_maintenance_mode_cache(sender, **kwargs):
-    cache.delete(MAINTENANCE_MODE_CACHE_KEY)
+    try:
+        cache.delete(MAINTENANCE_MODE_CACHE_KEY)
+    except Exception:
+        logger.exception("Failed to clear maintenance mode cache")
