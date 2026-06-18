@@ -73,16 +73,16 @@
                             <dt class="col-sm-4">Description</dt>
                             <dd class="col-sm-8">{{ app.description }}</dd>
 
-                            <dt class="col-sm-4">Tags</dt>
+                            <dt class="col-sm-4">Subjects & keywords</dt>
                             <dd class="col-sm-8">
-                                {% for tag in app.tags.all %}
-                              <a class="tag me-1 mb-1" onclick="searchByTag('{{ tag | title }}','card-keyword',this)">
+                                {% for keyword in app.subjects_keywords %}
+                            <a class="tag me-1 mb-1" onclick="searchByTag('{{ keyword.subject | title }}','card-keyword',this)">
                                 <span class="badge text-bg-primary badge-grape badge-ico" style="margin-right: -0.2rem;">
-                                  <div class="fas fa-tag fa-sm me-1"></div>
-                                  <span class="tag-name">{{ tag |title }}</span>
+                                <div class="fas fa-tag fa-sm me-1"></div>
+                                <span class="tag-name">{{ keyword.subject |title }}</span>
                                 </span>
-                              </a>
-                              {% endfor %}
+                            </a>
+                            {% endfor %}
                             </dd>
 
                              </dl>

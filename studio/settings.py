@@ -122,6 +122,8 @@ MIDDLEWARE = (
         "corsheaders.middleware.CorsMiddleware",
         "axes.middleware.AxesMiddleware",
         "studio.middleware.ExceptionLoggingMiddleware",
+        "studio.middleware.PrometheusHttpMetricsMiddleware",
+        "studio.middleware.DatabasePoolStatsLoggingMiddleware",
         "django_htmx.middleware.HtmxMiddleware",
         "waffle.middleware.WaffleMiddleware",
     ]
@@ -378,6 +380,16 @@ REST_FRAMEWORK = {
 AUTH_RATE_LIMIT_VALUE = os.environ.get("AUTH_RATE_LIMIT_VALUE", None)
 AUTH_RATE_LIMIT_WHITELIST_RAW = os.environ.get("AUTH_RATE_LIMIT_WHITELIST", "")
 AUTH_RATE_LIMIT_WHITELIST = [ip.strip() for ip in AUTH_RATE_LIMIT_WHITELIST_RAW.split(",")]
+DB_POOL_STATS_LOGGING_ENABLED = os.environ.get("DB_POOL_STATS_LOGGING_ENABLED", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+PROMETHEUS_METRICS_ENABLED = os.environ.get("PROMETHEUS_METRICS_ENABLED", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 AUTH_PERMISSION_CACHE_ENABLED = os.environ.get("AUTH_PERMISSION_CACHE_ENABLED", "false").lower() in ("1", "true", "yes")
 AUTH_PERMISSION_CACHE_TIMEOUT = int(os.environ.get("AUTH_PERMISSION_CACHE_TIMEOUT", "30"))

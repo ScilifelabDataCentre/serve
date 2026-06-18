@@ -83,12 +83,12 @@ class BaseForm(forms.ModelForm):
 
         # Handle name
         self.fields["name"].initial = ""
-        # Initialize the tags field to existing tags or empty list
-        if self.instance and self.instance.pk and hasattr(self.instance, "tags"):
+        # Initialize subjects_keywords field to existing JSON data or empty list
+        if self.instance and self.instance.pk and hasattr(self.instance, "subjects_keywords"):
             self.instance.refresh_from_db()
-            self._original_tags = list(self.instance.tags.all())
+            self._original_subjects_keywords = self.instance.subjects_keywords or []
         else:
-            self._original_tags = []
+            self._original_subjects_keywords = []
 
         self._restore_model_help_text()
 
@@ -243,9 +243,44 @@ class BaseForm(forms.ModelForm):
 
         return note_on_linkonly_privacy
 
-    def clean_tags(self):
-        cleaned_data = super().clean()
-        return cleaned_data.get("tags", [])
+    def clean_subjects_keywords(self):
+        raw = self.cleaned_data.get("subjects_keywords") or []
+
+        if isinstance(raw, str):
+            try:
+                raw = json.loads(raw)
+            except json.JSONDecodeError as e:
+                raise forms.ValidationError("Invalid subjects/keywords data.") from e
+
+        if not isinstance(raw, list):
+            raise forms.ValidationError("Subjects/keywords must be a list.")
+
+        cleaned_subjects_keywords = []
+
+        for item in raw:
+            if not isinstance(item, dict):
+                raise forms.ValidationError("Each subject/keyword entry must be an object.")
+
+            subject = (item.get("subject") or "").strip()
+            subject_scheme = (item.get("subject_scheme") or "").strip()
+            classification_code = (item.get("classification_code") or "").strip()
+
+            if not subject:
+                raise forms.ValidationError("Each subject/keyword entry must have a subject.")
+            if not subject_scheme:
+                raise forms.ValidationError("Each subject/keyword entry must have a scheme.")
+            if not classification_code:
+                raise forms.ValidationError("Each subject/keyword entry must have an identifier.")
+
+            cleaned_subjects_keywords.append(
+                {
+                    "subject": subject,
+                    "subject_scheme": subject_scheme,
+                    "classification_code": classification_code,
+                }
+            )
+
+        return cleaned_subjects_keywords
 
     def clean_funding_sources_json(self):
         raw = self.cleaned_data.get("funding_sources_json") or "[]"
@@ -372,26 +407,28 @@ class BaseForm(forms.ModelForm):
                 # If there's an error, keep the field in changed_data to be safe
                 pass
 
-        # Handle tags field - compare current input with initial tags
-        if "tags" in changed_data and self.instance and self.instance.pk:
+        # Handle subjects_keywords field - compare JSON data
+        if "subjects_keywords" in changed_data and self.instance and self.instance.pk:
             try:
-                # Try invenio_tags field first, then tags field
-                current_tags_input = self.data.get("invenio_tags", "") or self.data.get("tags", "") or ""
-                initial_tags_input = None
+                current_subjects_keywords = self.data.get("subjects_keywords", "") or "[]"
+                initial_subjects_keywords = self.fields["subjects_keywords"].initial or "[]"
 
-                if "invenio_tags" in self.fields:
-                    initial_tags_input = self.fields["invenio_tags"].initial or ""
-                elif hasattr(self, "_original_tags") and self._original_tags:
-                    # Fallback to database tags formatted as pipe-separated
-                    initial_tags_input = " | ".join(str(tag) for tag in self._original_tags)
-                else:
-                    initial_tags_input = ""
+                current_data = (
+                    json.loads(current_subjects_keywords)
+                    if isinstance(current_subjects_keywords, str)
+                    else current_subjects_keywords
+                )
+                initial_data = (
+                    json.loads(initial_subjects_keywords)
+                    if isinstance(initial_subjects_keywords, str)
+                    else initial_subjects_keywords
+                )
 
-                # If the tag input is the same, remove from changed_data
-                if current_tags_input == initial_tags_input:
-                    changed_data.remove("tags")
-            except (AttributeError, KeyError):
-                # If there's an error, keep the field in changed_data to be safe
+                # If the data is the same, remove from changed_data
+                if current_data == initial_data:
+                    changed_data.remove("subjects_keywords")
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+                # If there's an error parsing, keep the field in changed_data to be safe
                 pass
 
         # Handle language field - compare current value with initial form value
