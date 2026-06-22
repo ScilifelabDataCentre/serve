@@ -99,6 +99,70 @@ jobs:
         run: |
           docker compose run unit-tests
 
+  accessibility:
+    name: Accessibility checks
+    if: github.repository == 'scilifelabdatacentre/serve'
+    runs-on: ubuntu-22.04
+    env:
+      working-directory: .
+
+    steps:
+      - name: Branch or tag that triggered the workflow run
+        run: |
+          echo "Running on branch ${GITHUB_REF##*/}"
+          echo "Running as UID: $UID, GID: $GID"
+          whoami
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare repository
+        run: |
+          echo "Running as UID: $UID, GID: $GID"
+          export GID=127
+          echo "Now running as UID: $UID, GID: $GID"
+          whoami
+          pwd
+          mv .env.template .env
+          sudo chgrp -R 127 media
+          sudo chmod -R g+rwx media
+          ls -al
+          sed -i 's/UID=1000/UID=1001/g' .env
+          sed -i 's/GID=1000/GID=127/g' .env
+
+      - name: Start serve
+        working-directory: ${{env.working-directory}}
+        id: setup
+        run: |
+          set -ex
+          echo "Deploying serve"
+          docker compose up -d --build
+
+      - name: Set Serve URL
+        working-directory: ${{env.working-directory}}
+        run: |
+          curl --version | head -n 1
+          STUDIO_URL=http://studio.127.0.0.1.nip.io:8080
+          echo "STUDIO_URL=$STUDIO_URL" >> $GITHUB_ENV
+          echo "The Serve URL is $STUDIO_URL"
+
+      - name: Check URL is up
+        uses: gerdemann/http-status-code@1.0.0
+        with:
+          url: ${{ env.STUDIO_URL }}
+          code: 200 # http status code
+          timeout: 120 # seconds
+          interval: 5 # seconds
+        continue-on-error: true
+
+      - name: Check if Serve is ready
+        working-directory: ${{env.working-directory}}
+        id: check_serve_up
+        run: |
+          echo "Checking response from STUDIO_URL: ${{ env.STUDIO_URL }}"
+          response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
+          if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
+
       # Run Pa11y on the PR, including pages that need a logged-in user.
       # This is non-blocking for now; make it blocking once tested and makes sense.
       - name: Set up Node.js for accessibility checks

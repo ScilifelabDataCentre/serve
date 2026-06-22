@@ -246,7 +246,7 @@ npx cypress open
 We try to catch accessibility problems in two ways:
 
 - `pre-commit run --all-files` runs a quick template check. It catches simple issues such as missing image alt text, missing page titles, missing `lang` attributes, and `javascript:` links.
-- The `CI` GitHub Action runs Pa11y against the app started by Docker Compose for the pull request. It seeds a small user/project fixture with `python manage.py seed_a11y_data`, then checks public pages and logged-in project, settings, and app creation pages.
+- The `Accessibility checks` CI job runs Pa11y against the Docker Compose setup for the pull request. It seeds a small user/project fixture with `python manage.py seed_a11y_data`, then checks public pages and logged-in project, settings, and app creation pages.
 
 To run the same rendered-page check locally, start Serve, add the fixture data, and point Pa11y at your local URL:
 
