@@ -55,6 +55,7 @@
     </div>
   </div>
 </div>
+<script src="{% static 'js/adaptive-polling.js' %}"></script>
 <script>
 const statusApiUrl = "{{ status_api_url|escapejs }}";
 const detailUrl = "{{ detail_url }}";
@@ -68,6 +69,9 @@ const REQUIRED_SUCCESS_POLLS_BY_APP = {
 const DEFAULT_REQUIRED_SUCCESS_POLLS = 2;
 const REQUIRED_SUCCESS_POLLS =
   REQUIRED_SUCCESS_POLLS_BY_APP[APP_SLUG] || DEFAULT_REQUIRED_SUCCESS_POLLS;
+const ACTIVE_STATUS_POLL_MS = 3000;
+const STABLE_STATUS_POLL_MS = 30000;
+const ERROR_STATUS_POLL_MS = 10000;
 const TERMINAL_STEP_STATUSES = new Set(["success", "warning", "failed", "skipped"]);
 const STEP_ROW_CLASS_BY_STATUS = {
   failed: "is-failed",
@@ -95,7 +99,7 @@ const STATUS_LABELS = {
   failed: "Failed"
 };
 
-let refreshInterval = null;
+let progressPoller = null;
 let successRedirectTimer = null;
 let consecutiveSuccessPolls = 0;
 let stepRevealTimer = null;
@@ -108,18 +112,6 @@ let latestServerData = {
   steps: JSON.parse("{{ initial_steps_json|escapejs }}")
 };
 let displayedProgressData = copyProgressData(latestServerData);
-
-function startAutoRefresh() {
-  stopAutoRefresh();
-  refreshInterval = window.setInterval(refreshProgress, 3000);
-}
-
-function stopAutoRefresh() {
-  if (refreshInterval) {
-    window.clearInterval(refreshInterval);
-    refreshInterval = null;
-  }
-}
 
 function stopSuccessRedirect() {
   if (successRedirectTimer) {
@@ -512,9 +504,8 @@ function refreshProgress() {
         data.deployment?.status === "success" && successRedirectTimer !== null;
       const terminalNonSuccess =
         data.deployment?.status === "failed" || data.deployment?.status === "blocked";
-      if (rawDone && tasksIdle && stepsSettled && (successConfirmed || terminalNonSuccess)) {
-        stopAutoRefresh();
-      }
+      const canSlowPoll = rawDone && tasksIdle && stepsSettled && (successConfirmed || terminalNonSuccess);
+      return canSlowPoll ? STABLE_STATUS_POLL_MS : ACTIVE_STATUS_POLL_MS;
     })
     .catch(error => {
       console.error("Error fetching deployment progress:", error);
@@ -522,6 +513,7 @@ function refreshProgress() {
       if (inline) {
         inline.textContent = "Could not load the latest deployment update. Retrying automatically.";
       }
+      throw error;
     });
 }
 
@@ -538,8 +530,11 @@ document.addEventListener("DOMContentLoaded", () => {
   displayedProgressData = copyProgressData(latestServerData);
   renderProgress(displayedProgressData);
   maybeRedirectToDetails(displayedProgressData);
-  refreshProgress();
-  startAutoRefresh();
+  progressPoller = ServeAdaptivePolling.createPoller({
+    poll: refreshProgress,
+    getDelay: delay => delay,
+    errorDelay: ERROR_STATUS_POLL_MS
+  });
 });
 </script>
 {% endblock %}

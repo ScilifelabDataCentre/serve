@@ -10,7 +10,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.syndication.views import Feed
 from django.core.cache import cache
-from django.core.mail import send_mail
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -20,6 +19,7 @@ from django.views.generic import View
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import Apps, BaseAppInstance, SocialMixin
+from common.tasks import send_email_task
 from studio.utils import get_logger
 
 from .forms import TeachingRequestForm
@@ -476,14 +476,13 @@ Description:
 This email was sent from the SciLifeLab Serve teaching request form.
 """
 
-            # Send email to ADMIN_EMAIL
+            # Queue the email off-request so SMTP latency never holds a DB connection.
             try:
-                send_mail(
+                send_email_task.delay(
                     subject=subject,
                     message=message,
-                    from_email=settings.EMAIL_FROM,
                     recipient_list=[settings.ADMIN_EMAIL],
-                    fail_silently=False,
+                    from_email=settings.EMAIL_FROM,
                 )
                 # Show success message
                 messages.success(
@@ -492,7 +491,7 @@ This email was sent from the SciLifeLab Serve teaching request form.
                 )
                 return redirect("portal:teaching")
             except Exception as e:
-                logger.error(f"Error sending teaching request email: {e}", exc_info=True)
+                logger.error(f"Error queuing teaching request email: {e}", exc_info=True)
                 messages.error(
                     request,
                     "There was an error submitting your request. Please try again later or contact us directly.",

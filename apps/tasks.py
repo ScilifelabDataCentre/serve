@@ -8,7 +8,7 @@ from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import transaction
+from django.db import connection, transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -106,28 +106,58 @@ def delete_old_objects():
     def get_threshold(threshold):
         return timezone.now() - timezone.timedelta(days=threshold)
 
+    seen_models = set()
+    seen_instances = set()
+
+    def enqueue_delete(app_) -> None:
+        instance_key = (app_._meta.label_lower, app_.pk)
+        if instance_key in seen_instances:
+            return
+        seen_instances.add(instance_key)
+        previous_latest_user_action = app_.latest_user_action
+        previous_deleted_on = app_.deleted_on
+        serialized_instance = {"model": app_._meta.label_lower, "pk": app_.pk}
+
+        app_.latest_user_action = "SystemDeleting"
+        app_.deleted_on = timezone.now()
+        app_.save(update_fields=["latest_user_action", "deleted_on"])
+
+        try:
+            delete_resource.delay(serialized_instance, AppActionOrigin.SYSTEM.value)
+        except Exception:
+            app_.latest_user_action = previous_latest_user_action
+            app_.deleted_on = previous_deleted_on
+            app_.save(update_fields=["latest_user_action", "deleted_on"])
+            raise
+
     # Handle deletion of apps in the "Develop" category
     for orm_model in APP_REGISTRY.iter_orm_models():
+        if orm_model in seen_models:
+            continue
+        seen_models.add(orm_model)
         old_develop_apps = (
             orm_model.objects.filter(
                 created_on__lt=get_threshold(GPU_DEVELOP_APP_MAX_AGE_DAYS), app__category__name="Develop"
             )
-            .exclude(latest_user_action="SystemDeleting")
+            .exclude(latest_user_action__in=["Deleting", "SystemDeleting"])
             .exclude(app__slug="mlflow")
             .select_related("app", "flavor")
+            .order_by("created_on", "pk")
         )
 
         for app_ in old_develop_apps:
             if instance_holds_gpu(app_) or app_.created_on < get_threshold(DEVELOP_APP_MAX_AGE_DAYS):
-                delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
+                enqueue_delete(app_)
 
     # Handle deletion of non persistent file managers
-    old_file_managers = FilemanagerInstance.objects.filter(
-        created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False
-    ).exclude(latest_user_action="SystemDeleting")
+    old_file_managers = (
+        FilemanagerInstance.objects.filter(created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False)
+        .exclude(latest_user_action__in=["Deleting", "SystemDeleting"])
+        .order_by("created_on", "pk")
+    )
 
     for app_ in old_file_managers:
-        delete_resource.delay(app_.serialize(), AppActionOrigin.SYSTEM.value)
+        enqueue_delete(app_)
 
 
 @app.task
@@ -267,7 +297,6 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
 
 
 @shared_task(bind=True, max_retries=DEPLOY_RESOURCE_MAX_RETRIES)
-@transaction.atomic
 def deploy_resource(self, serialized_instance):
     model = serialized_instance.get("model") if isinstance(serialized_instance, dict) else None
     pk = serialized_instance.get("pk") if isinstance(serialized_instance, dict) else None
@@ -401,6 +430,10 @@ def deploy_resource(self, serialized_instance):
         version,
     )
 
+    # Release the pooled DB connection for the duration of the helm subprocess.
+    # Django reconnects on the next ORM access (the status writes below).
+    connection.close()
+
     # Install the app using Helm install
     output, error = helm_install(release, chart, values["namespace"], values_file, version)
     success = not error
@@ -453,15 +486,17 @@ def deploy_resource(self, serialized_instance):
     if success and getattr(instance.app, "slug", None) == "depictio":
         from apps.models import K8sUserAppStatus
 
-        status_object = instance.k8s_user_app_status
-        if status_object is None:
-            status_object = K8sUserAppStatus.objects.create(status="Running")
-            instance.k8s_user_app_status = status_object
-            instance.save(update_fields=["k8s_user_app_status"])
-        else:
-            status_object.status = "Running"
-            status_object.time = timezone.now()
-            status_object.save(update_fields=["status", "time"])
+        # Keep the status creation and its link to the instance atomic
+        with transaction.atomic():
+            status_object = instance.k8s_user_app_status
+            if status_object is None:
+                status_object = K8sUserAppStatus.objects.create(status="Running")
+                instance.k8s_user_app_status = status_object
+                instance.save(update_fields=["k8s_user_app_status"])
+            else:
+                status_object.status = "Running"
+                status_object.time = timezone.now()
+                status_object.save(update_fields=["status", "time"])
         logger.info(
             "deploy_resource.depictio_status_running instance_id=%s status_id=%s",
             instance.pk,
@@ -490,7 +525,6 @@ def deploy_resource(self, serialized_instance):
 
 
 @shared_task
-@transaction.atomic
 def delete_resource(serialized_instance, initiated_by_str: str):
     """
     Deletes a cluster resource object.
@@ -519,6 +553,10 @@ def delete_resource(serialized_instance, initiated_by_str: str):
 
     # Use merged values for consistency, but don't update since we're deleting
     values = get_merged_k8s_values(instance, ensure_up_to_date=False)
+
+    # Release the pooled DB connection during the helm subprocess;
+    # Django reconnects automatically for the status writes below.
+    connection.close()
 
     success = False
     if values.get("subdomain") is not None:
@@ -568,7 +606,9 @@ def deserialize(serialized_instance):
         app_label, model_name = model.split(".")
 
         model_class = apps.get_model(app_label, model_name)
-        instance = model_class.objects.get(pk=pk)
+        instance = model_class.objects.select_related(
+            "app", "project", "subdomain", "flavor", "k8s_user_app_status"
+        ).get(pk=pk)
         logger.info("deserialize.resolved model=%s pk=%s concrete_model=%s", model, pk, model_class.__name__)
 
         return instance

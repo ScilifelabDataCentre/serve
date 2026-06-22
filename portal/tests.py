@@ -86,14 +86,12 @@ def test_teaching_view_get():
 
 @pytest.mark.django_db
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+@patch("portal.views.send_email_task")
 @patch("portal.forms.AltchaField.clean")
-def test_teaching_view_post_valid(mock_altcha_clean):
-    """Test that POST with valid data sends email and redirects."""
+def test_teaching_view_post_valid(mock_altcha_clean, mock_send_email_task):
+    """Test that POST with valid data queues the email and redirects."""
     # Mock Altcha validation to return a valid value
     mock_altcha_clean.return_value = "valid_altcha_solution"
-
-    # Clear mail outbox
-    mail.outbox = []
 
     # Prepare valid form data
     form_data = {
@@ -117,18 +115,19 @@ def test_teaching_view_post_valid(mock_altcha_clean):
 
     response = views.teaching(request)
 
-    # Check that email was sent
-    assert len(mail.outbox) == 1
+    # Check that the email task was queued (sending is now off-request)
+    mock_send_email_task.delay.assert_called_once()
+    call_kwargs = mock_send_email_task.delay.call_args.kwargs
 
     # Check email content
-    email = mail.outbox[0]
-    assert email.subject == "New teaching request - SciLifeLab Serve"
-    assert "serve@scilifelab.se" in email.to
-    assert "John Doe" in email.body
-    assert "john.doe@example.com" in email.body
-    assert "Introduction to Python" in email.body
-    assert "2024-01-15 to 2024-01-17" in email.body
-    assert "A comprehensive course on Python programming for beginners." in email.body
+    assert call_kwargs["subject"] == "New teaching request - SciLifeLab Serve"
+    assert "serve@scilifelab.se" in call_kwargs["recipient_list"]
+    body = call_kwargs["message"]
+    assert "John Doe" in body
+    assert "john.doe@example.com" in body
+    assert "Introduction to Python" in body
+    assert "2024-01-15 to 2024-01-17" in body
+    assert "A comprehensive course on Python programming for beginners." in body
 
     # Check redirect (status 302)
     assert response.status_code == 302
@@ -137,14 +136,12 @@ def test_teaching_view_post_valid(mock_altcha_clean):
 
 @pytest.mark.django_db
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+@patch("portal.views.send_email_task")
 @patch("portal.forms.AltchaField.clean")
-def test_teaching_view_post_valid_minimal(mock_altcha_clean):
-    """Test that POST with minimal required fields sends email."""
+def test_teaching_view_post_valid_minimal(mock_altcha_clean, mock_send_email_task):
+    """Test that POST with minimal required fields queues the email."""
     # Mock Altcha validation to return a valid value
     mock_altcha_clean.return_value = "valid_altcha_solution"
-
-    # Clear mail outbox
-    mail.outbox = []
 
     # Prepare minimal valid form data (only required fields)
     form_data = {
@@ -166,15 +163,15 @@ def test_teaching_view_post_valid_minimal(mock_altcha_clean):
 
     views.teaching(request)
 
-    # Check that email was sent
-    assert len(mail.outbox) == 1
+    # Check that the email task was queued
+    mock_send_email_task.delay.assert_called_once()
+    body = mock_send_email_task.delay.call_args.kwargs["message"]
 
     # Check email content
-    email = mail.outbox[0]
-    assert "Jane Smith" in email.body
-    assert "jane.smith@example.com" in email.body
-    assert "Not provided" in email.body  # For optional fields
-    assert "Workshop on data analysis." in email.body
+    assert "Jane Smith" in body
+    assert "jane.smith@example.com" in body
+    assert "Not provided" in body  # For optional fields
+    assert "Workshop on data analysis." in body
 
 
 @pytest.mark.django_db
@@ -210,14 +207,12 @@ def test_teaching_view_post_invalid():
 
 @pytest.mark.django_db
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+@patch("portal.views.send_email_task")
 @patch("portal.forms.AltchaField.clean")
-def test_teaching_view_email_content_format(mock_altcha_clean):
+def test_teaching_view_email_content_format(mock_altcha_clean, mock_send_email_task):
     """Test that email content is properly formatted."""
     # Mock Altcha validation to return a valid value
     mock_altcha_clean.return_value = "valid_altcha_solution"
-
-    # Clear mail outbox
-    mail.outbox = []
 
     form_data = {
         "name": "Test User",
@@ -237,19 +232,19 @@ def test_teaching_view_email_content_format(mock_altcha_clean):
 
     views.teaching(request)
 
-    # Check email was sent
-    assert len(mail.outbox) == 1
-    email = mail.outbox[0]
+    # Check the email task was queued
+    mock_send_email_task.delay.assert_called_once()
+    body = mock_send_email_task.delay.call_args.kwargs["message"]
 
     # Check email structure
-    assert "A new teaching request has been submitted:" in email.body
-    assert "Name: Test User" in email.body
-    assert "Email: test@example.com" in email.body
-    assert "Course/Workshop/Webinar Title: Test Course" in email.body
-    assert "Date(s) and Time(s): 2024-02-01" in email.body
-    assert "Description:" in email.body
-    assert "Test description with multiple lines." in email.body
-    assert "This email was sent from the SciLifeLab Serve teaching request form." in email.body
+    assert "A new teaching request has been submitted:" in body
+    assert "Name: Test User" in body
+    assert "Email: test@example.com" in body
+    assert "Course/Workshop/Webinar Title: Test Course" in body
+    assert "Date(s) and Time(s): 2024-02-01" in body
+    assert "Description:" in body
+    assert "Test description with multiple lines." in body
+    assert "This email was sent from the SciLifeLab Serve teaching request form." in body
 
 
 @pytest.mark.django_db
@@ -258,14 +253,12 @@ def test_teaching_view_email_content_format(mock_altcha_clean):
     DEFAULT_FROM_EMAIL="serve@scilifelab.se",
     EMAIL_FROM="noreply-serve@scilifelab.se",
 )
+@patch("portal.views.send_email_task")
 @patch("portal.forms.AltchaField.clean")
-def test_teaching_view_email_recipient(mock_altcha_clean):
-    """Test that email is sent to DEFAULT_FROM_EMAIL."""
+def test_teaching_view_email_recipient(mock_altcha_clean, mock_send_email_task):
+    """Test that email is sent to ADMIN_EMAIL from EMAIL_FROM."""
     # Mock Altcha validation to return a valid value
     mock_altcha_clean.return_value = "valid_altcha_solution"
-
-    # Clear mail outbox
-    mail.outbox = []
 
     form_data = {
         "name": "Test User",
@@ -283,11 +276,11 @@ def test_teaching_view_email_recipient(mock_altcha_clean):
 
     views.teaching(request)
 
-    # Check email recipient
-    assert len(mail.outbox) == 1
-    email = mail.outbox[0]
-    assert "serve@scilifelab.se" in email.to
-    assert email.from_email == "noreply-serve@scilifelab.se"
+    # Check email recipient and sender passed to the queued task
+    mock_send_email_task.delay.assert_called_once()
+    call_kwargs = mock_send_email_task.delay.call_args.kwargs
+    assert "serve@scilifelab.se" in call_kwargs["recipient_list"]
+    assert call_kwargs["from_email"] == "noreply-serve@scilifelab.se"
 
 
 @pytest.mark.django_db
@@ -361,12 +354,9 @@ def test_teaching_form_validation(mock_altcha_clean):
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 @patch("portal.forms.AltchaField.clean")
 def test_teaching_view_email_sending_error(mock_altcha_clean):
-    """Test error handling when email sending fails."""
+    """Test error handling when queuing the email task fails."""
     # Mock Altcha validation to return a valid value
     mock_altcha_clean.return_value = "valid_altcha_solution"
-
-    # Clear mail outbox
-    mail.outbox = []
 
     form_data = {
         "name": "Test User",
@@ -375,9 +365,9 @@ def test_teaching_view_email_sending_error(mock_altcha_clean):
         "captcha": "valid_altcha_solution",
     }
 
-    # Mock send_mail to raise an exception
-    with patch("portal.views.send_mail") as mock_send_mail:
-        mock_send_mail.side_effect = Exception("SMTP server error")
+    # Mock the email task enqueue to raise (e.g. broker unavailable)
+    with patch("portal.views.send_email_task") as mock_send_email_task:
+        mock_send_email_task.delay.side_effect = Exception("Broker unavailable")
 
         request = RequestFactory().post(reverse("portal:teaching"), data=form_data)
         s = SessionStore()
@@ -388,27 +378,24 @@ def test_teaching_view_email_sending_error(mock_altcha_clean):
 
         response = views.teaching(request)
 
-        # Check that no email was sent (because it failed)
-        assert len(mail.outbox) == 0
-
-        # Check that error message is set (response should be 200, not redirect)
+        # Check that the error path is taken (response should be 200, not redirect)
         assert response.status_code == 200
 
-        # Verify send_mail was called
-        mock_send_mail.assert_called_once()
+        # Verify the task enqueue was attempted
+        mock_send_email_task.delay.assert_called_once()
 
 
 @pytest.mark.django_db
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+@patch("portal.views.send_email_task")
 @patch("portal.forms.AltchaField.clean")
-def test_teaching_view_success_message(mock_altcha_clean):
+def test_teaching_view_success_message(mock_altcha_clean, mock_send_email_task):
     """Test that success message is displayed after successful submission."""
     # Mock Altcha validation to return a valid value
     mock_altcha_clean.return_value = "valid_altcha_solution"
 
     # Use Django Client for proper message handling
     client = Client()
-    mail.outbox = []
 
     form_data = {
         "name": "Test User",
@@ -422,8 +409,8 @@ def test_teaching_view_success_message(mock_altcha_clean):
     # Check redirect happened
     assert response.status_code == 200
 
-    # Check that email was sent
-    assert len(mail.outbox) == 1
+    # Email is queued off-request
+    mock_send_email_task.delay.assert_called_once()
 
     # Check for success message in response
     messages = list(get_messages(response.wsgi_request))
