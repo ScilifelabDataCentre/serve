@@ -86,6 +86,20 @@
     outline:2px solid #bb2d3b;
 }
 
+.aff-remove-btn {
+    --bs-btn-color: #b02a37;
+    --bs-btn-border-color: #b02a37;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #b02a37;
+    --bs-btn-hover-border-color: #b02a37;
+    --bs-btn-focus-shadow-rgb: 176, 42, 55;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #842029;
+    --bs-btn-active-border-color: #842029;
+    --bs-btn-disabled-color: #842029;
+    --bs-btn-disabled-border-color: #842029;
+}
+
 .btn-profile:hover {
     outline-offset: -1px;
     outline:2px solid var(--serve-lime);

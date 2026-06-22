@@ -86,18 +86,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Create one affiliation row ---
     function createRow(data) {
         const row = document.createElement('div');
+        const rowId = `affiliation-${Math.random().toString(36).slice(2)}`;
+        const orgInputId = `${rowId}-organization`;
+        const deptInputId = `${rowId}-department`;
         row.className = 'affiliation-row border rounded p-3 mb-2 bg-light position-relative';
         row.dataset.rorId = data.ror_id || '';
 
         row.innerHTML = `
             <div class="d-flex justify-content-end mb-1">
-                <button type="button" class="btn btn-sm btn-link text-danger aff-remove-btn p-0"
+                <button type="button" class="btn btn-sm btn-outline-danger aff-remove-btn"
                         title="Remove affiliation">✕ Remove</button>
             </div>
             <div class="row">
                 <div class="col-12 col-md-6 mb-2 mb-md-0">
-                    <label class="form-label">Organization:</label>
-                    <input type="text" class="form-control aff-org-input"
+                    <label class="form-label" for="${orgInputId}">Organization:</label>
+                    <input type="text" class="form-control aff-org-input" id="${orgInputId}"
                            placeholder="Start typing organization name..."
                            autocomplete="off"
                            value="${escapeHtml(data.title || '')}">
@@ -106,8 +109,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="aff-ror-status mt-1" style="font-size: 0.75rem;"></div>
                 </div>
                 <div class="col-12 col-md-6">
-                    <label class="form-label">Department:</label>
-                    <input type="text" class="form-control aff-dept-input"
+                    <label class="form-label" for="${deptInputId}">Department:</label>
+                    <input type="text" class="form-control aff-dept-input" id="${deptInputId}"
                            list="department-datalist"
                            placeholder="Select or enter department"
                            value="${escapeHtml(data.department || '')}">

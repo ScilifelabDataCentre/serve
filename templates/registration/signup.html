@@ -32,9 +32,9 @@
                                 {% csrf_token %}
                                 <div class="row pb-3">
                                     <div class="col-12">
-                                        <label class="form-label">{{form.email.label_tag}}</label>
+                                        <label for="{{ form.email.id_for_label }}" class="form-label required">{{ form.email.label }}:</label>
                                         {{form.email}}
-                                        <div class="form-text">{{form.email.help_text}}</div>
+                                        <div id="{{ form.email.id_for_label }}_helptext" class="form-text">{{form.email.help_text}}</div>
                                         {% if form.email.errors %}
                                         <div id="validation_email" class="invalid-feedback pt-1">
                                             {% for error in form.email.errors %}
@@ -47,9 +47,9 @@
                                 <div id="id_request_account_info" class="rollable">
 																	<div class="row pb-3">
                                     <div class="col-12 ">
-                                        <label class="form-label">{{profile_form.why_account_needed.label_tag}}</label>
+                                        <label for="{{ profile_form.why_account_needed.id_for_label }}" class="form-label">{{ profile_form.why_account_needed.label }}:</label>
 									    {{ profile_form.why_account_needed }}
-                                        <div class="form-text">{{profile_form.why_account_needed.help_text}}</div>
+                                        <div id="{{ profile_form.why_account_needed.id_for_label }}_helptext" class="form-text">{{profile_form.why_account_needed.help_text}}</div>
                                       {% if profile_form.why_account_needed.errors %}
                                       <div id="validation_why_account_needed" class="invalid-feedback pt-1">
                                           {% for error in profile_form.why_account_needed.errors %}
@@ -59,13 +59,13 @@
                                       {% endif %}
 																		</div>
 																	</div>
-																</div>
+                                </div>
                                 <div class="row pb-3">
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
-                                        <label class="form-label">{{form.first_name.label_tag}}</label>
+                                        <label for="{{ form.first_name.id_for_label }}" class="form-label required">{{ form.first_name.label }}:</label>
                                         {{form.first_name}}
                                     {% if form.first_name.errors %}
-                                    <div class="form-text">{{form.first_name.help_text}}</div>
+                                    <div id="{{ form.first_name.id_for_label }}_helptext" class="form-text">{{form.first_name.help_text}}</div>
                                     <div id="validation_first_name" class="invalid-feedback pt-1">
                                         {% for error in form.first_name.errors %}
                                           <p class="m-0">{{error|escape}}</p>
@@ -74,9 +74,9 @@
                                     {% endif %}
                                     </div>
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
-                                        <label class="form-label">{{form.last_name.label_tag}}</label>
+                                        <label for="{{ form.last_name.id_for_label }}" class="form-label required">{{ form.last_name.label }}:</label>
                                         {{form.last_name}}
-                                        <div class="form-text">{{form.last_name.help_text}}</div>
+                                        <div id="{{ form.last_name.id_for_label }}_helptext" class="form-text">{{form.last_name.help_text}}</div>
                                       {% if form.last_name.errors %}
                                       <div id="validation_last_name" class="pt-1 invalid-feedback">
                                           {% for error in form.last_name.errors %}
@@ -92,7 +92,7 @@
                                     <!-- Affiliation Block: dynamic multi-affiliation rows -->
 <div class="row pb-3">
     <div class="col-12">
-        <label class="form-label required">Affiliation:</label>
+        <div class="form-label required">Affiliation:</div>
     </div>
 </div>
 
@@ -130,7 +130,7 @@
 
                                 <div class="row pb-3">
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
-                                        <label class="form-label">{{form.password1.label_tag}}</label>
+                                        <label for="{{ form.password1.id_for_label }}" class="form-label required">{{ form.password1.label }}:</label>
                                         {{form.password1}}
                                         {% if form.password1.errors %}
                                         <div id="validation_password1" class="pt-1 invalid-feedback">
@@ -141,9 +141,9 @@
                                         {% endif %}
                                     </div>
                                     <div class="col-12 col-md-6 pb-3 pb-md-0">
-                                        <label class="form-label">{{form.password2.label_tag}}</label>
+                                        <label for="{{ form.password2.id_for_label }}" class="form-label required">{{ form.password2.label }}:</label>
                                         {{form.password2}}
-                                        <div class="form-text">{{form.password2.help_text}}</div>
+                                        <div id="{{ form.password2.id_for_label }}_helptext" class="form-text">{{form.password2.help_text}}</div>
                                         {% if form.password2.errors %}
                                         <div id="validation_password2" class="pt-1 invalid-feedback">
                                             {% for error in form.password2.errors %}
@@ -164,9 +164,9 @@
                                 </div>
 									<div class="row pb-3">
 										<div class="col-12">
-                                        <label class="form-label">{{profile_form.note.label_tag}}</label>
+                                        <label for="{{ profile_form.note.id_for_label }}" class="form-label">{{ profile_form.note.label }}:</label>
 										{{ profile_form.note }}
-                                        <div class="form-text">{{profile_form.note.help_text}}</div>
+                                        <div id="{{ profile_form.note.id_for_label }}_helptext" class="form-text">{{profile_form.note.help_text}}</div>
 										</div>
 										</div>
 
