@@ -83,10 +83,15 @@ document.addEventListener('DOMContentLoaded', function() {
         hiddenInput.value = JSON.stringify(data);
     }
 
+    // Gives each row a unique id so its labels stay tied to their inputs.
+    // Only increments, so removed rows never clash with new ones.
+    let affiliationRowCount = 0;
+
     // --- Create one affiliation row ---
     function createRow(data) {
         const row = document.createElement('div');
-        const rowId = `affiliation-${Math.random().toString(36).slice(2)}`;
+        affiliationRowCount += 1;
+        const rowId = `affiliation-${affiliationRowCount}`;
         const orgInputId = `${rowId}-organization`;
         const deptInputId = `${rowId}-department`;
         row.className = 'affiliation-row border rounded p-3 mb-2 bg-light position-relative';
