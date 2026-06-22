@@ -9,7 +9,8 @@ class Subdomain(models.Model):
     is_created_by_user = models.BooleanField(default=False)
 
     def __str__(self):
-        return str(self.subdomain) + " ({})".format(self.project.name)
+        project_name = self.project.name if self.project else "no project"
+        return str(self.subdomain) + " ({})".format(project_name)
 
     def to_dict(self):
         return {
