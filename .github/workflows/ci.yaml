@@ -60,13 +60,27 @@ jobs:
           sed -i 's/UID=1000/UID=1001/g' .env
           sed -i 's/GID=1000/GID=127/g' .env
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build app image with cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: runtime
+          tags: stackn:base
+          load: true
+          cache-from: type=gha,scope=stackn-base
+          cache-to: type=gha,mode=max,scope=stackn-base
+
       - name: Start serve
         working-directory: ${{env.working-directory}}
         id: setup
         run: |
           set -ex
           echo "Deploying serve"
-          docker compose up -d --build
+          docker compose up -d --no-build db redis rabbit studio
 
       - name: Set Serve URL
         working-directory: ${{env.working-directory}}
@@ -130,13 +144,27 @@ jobs:
           sed -i 's/UID=1000/UID=1001/g' .env
           sed -i 's/GID=1000/GID=127/g' .env
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build app image with cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: runtime
+          tags: stackn:base
+          load: true
+          cache-from: type=gha,scope=stackn-base
+          cache-to: type=gha,mode=max,scope=stackn-base
+
       - name: Start serve
         working-directory: ${{env.working-directory}}
         id: setup
         run: |
           set -ex
           echo "Deploying serve"
-          docker compose up -d --build
+          docker compose up -d --no-build db redis rabbit studio
 
       - name: Set Serve URL
         working-directory: ${{env.working-directory}}
@@ -164,7 +192,7 @@ jobs:
           if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
 
       # Run Pa11y on the PR, including pages that need a logged-in user.
-      # This is non-blocking for now; make it blocking once tested and makes sense.
+      # Fails the accessibility job when Pa11y finds WCAG2AA issues.
       - name: Set up Node.js for accessibility checks
         uses: actions/setup-node@v4
         with:
@@ -180,7 +208,6 @@ jobs:
 
       - name: Run Pa11y accessibility checks
         id: pa11y
-        continue-on-error: true
         working-directory: ${{env.working-directory}}
         env:
           A11Y_TEST_USERNAME: no-reply-a11y@scilifelab.uu.se
