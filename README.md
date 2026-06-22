@@ -257,7 +257,7 @@ npm install -g pa11y-ci
 STUDIO_URL=http://studio.127.0.0.1.nip.io:8080 pa11y-ci --config .github/pa11y.config.cjs
 ```
 
-For now, Pa11y reports findings without failing CI. In the following release, we will remove `continue-on-error` from `.github/workflows/ci.yaml` and make the check required for pull requests.
+Pa11y fails the `Accessibility checks` job when it finds issues. The details are visible directly in the PR check logs.
 
 ### ERD for Pydantic models
 
