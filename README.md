@@ -241,6 +241,24 @@ Then to run the integration tests:
 npx cypress open
 ```
 
+### Accessibility checks
+
+We try to catch accessibility problems in two ways:
+
+- `pre-commit run --all-files` runs a quick template check. It catches simple issues such as missing image alt text, missing page titles, missing `lang` attributes, and `javascript:` links.
+- The `CI` GitHub Action runs Pa11y against the app started by Docker Compose for the pull request. It seeds a small user/project fixture with `python manage.py seed_a11y_data`, then checks public pages and logged-in project, settings, and app creation pages.
+
+To run the same rendered-page check locally, start Serve, add the fixture data, and point Pa11y at your local URL:
+
+```bash
+docker compose up -d --build
+docker exec studio python manage.py seed_a11y_data
+npm install -g pa11y-ci
+STUDIO_URL=http://studio.127.0.0.1.nip.io:8080 pa11y-ci --config .github/pa11y.config.cjs
+```
+
+For now, Pa11y reports findings without failing CI. In the following release, we will remove `continue-on-error` from `.github/workflows/ci.yaml` and make the check required for pull requests.
+
 ### ERD for Pydantic models
 
 We make use of Pydantic models in Serve's source code. Follow the steps below to generate an entity-relationship diagram.

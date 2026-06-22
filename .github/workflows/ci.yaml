@@ -98,3 +98,37 @@ jobs:
         id: tests
         run: |
           docker compose run unit-tests
+
+      # Run Pa11y on the PR, including pages that need a logged-in user.
+      # This is non-blocking for now; make it blocking once tested and makes sense.
+      - name: Set up Node.js for accessibility checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install Pa11y CI
+        run: npm install -g pa11y-ci
+
+      - name: Seed accessibility check data
+        working-directory: ${{env.working-directory}}
+        run: |
+          docker exec studio python manage.py seed_a11y_data
+
+      - name: Run Pa11y accessibility checks
+        id: pa11y
+        continue-on-error: true
+        working-directory: ${{env.working-directory}}
+        env:
+          A11Y_TEST_USERNAME: no-reply-a11y@scilifelab.uu.se
+          A11Y_TEST_PASSWORD: tesT12345@
+        run: |
+          mkdir -p pa11y-ci-report
+          pa11y-ci --config .github/pa11y.config.cjs
+
+      - name: Upload Pa11y reports (if generated)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa11y-ci-reports
+          path: pa11y-ci-report
+          if-no-files-found: ignore
