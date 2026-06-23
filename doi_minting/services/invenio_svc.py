@@ -331,15 +331,16 @@ class InvenioService:
             draft_with_doi = self.client.reserve_doi(draft["id"])
             reserved_doi = draft_with_doi.get("pids", {}).get("doi", {}).get("identifier", "Unknown")
             logger.debug(f"DOI reserved: {reserved_doi}")
-        except Exception as doi_error:
-            logger.error(f"Could not reserve DOI: {doi_error}")
+        except Exception:
+            logger.exception("Could not reserve DOI for draft %s", draft["id"])
+            raise
 
         # Publish record if needed
         if not publish:
             logger.info(f"Created Invenio draft with reserved DOI, not publishing. Draft ID: {draft['id']}")
             return draft_with_doi
 
-        record_result = self.client.publish_draft(draft["id"])
+        record_result = self.client.publish_draft(draft_with_doi["id"])
         if not isinstance(record_result, dict):
             raise TypeError("publish_draft did not return a dict")
 
@@ -387,14 +388,16 @@ class InvenioService:
         # Reserve DOI for new version
         try:
             logger.debug(f"Reserving internal DOI for new version: {updated_version['id']}")
-            version_with_doi = self.client.reserve_doi(updated_version["id"])
-            reserved_doi = version_with_doi["pids"]["doi"]["identifier"]
+            updated_version_with_doi = self.client.reserve_doi(updated_version["id"])
+            reserved_doi = updated_version_with_doi["pids"]["doi"]["identifier"]
             logger.debug(f"DOI reserved: {reserved_doi}")
-        except Exception as doi_error:
-            logger.error(f"Could not reserve DOI: {doi_error}")
+        except Exception:
+            logger.exception("Could not reserve DOI for new version %s", updated_version["id"])
+            raise
 
         # Publish new version
-        record_result = self.client.publish_draft(updated_version["id"])
+        record_result = self.client.publish_draft(updated_version_with_doi["id"])
+
         if not isinstance(record_result, dict):
             raise TypeError("publish_draft did not return a dict")
 
@@ -470,9 +473,11 @@ class InvenioService:
 
     def get_record_data(self, record_id: str) -> Optional[InvenioRecord]:
         """
-        Retrieve an Invenio record or draft for a given Invenio ID as an InvenioRecord Pydantic model.
+        Retrieve a published Invenio record for a given Invenio ID as an
+        InvenioRecord Pydantic model.
 
-        The ID may refer either to an unpublished draft or to a published record.
+        This method is used by the public /records/<id>/ endpoint, so it should
+        only retrieve published records.
         Args:
             record_id: The Invenio record ID.
         Returns:
@@ -480,6 +485,43 @@ class InvenioService:
         """
         if not record_id:
             logger.error("Cannot retrieve record: record_id is None or empty")
+            return None
+
+        try:
+            record_dict = self.client.get_record(record_id)
+
+            if not isinstance(record_dict, dict):
+                logger.error(f"Invenio record data for {record_id} is not a dictionary")
+                return None
+
+            try:
+                return InvenioRecord(**record_dict)
+            except Exception as validation_error:
+                logger.error(f"Validation error for published Invenio record {record_id}: {validation_error}")
+                return None
+
+        except RecordDeletedError as e:
+            logger.warning(f"Record deleted for record_id={record_id}: {e}")
+            raise
+
+        except Exception as e:
+            logger.error(f"Error retrieving published Invenio record {record_id}: {e}")
+            return None
+
+    def get_current_record_data(self, record_id: str) -> Optional[InvenioRecord]:
+        """
+        Retrieve the current Invenio object for a given ID as an InvenioRecord.
+
+        The ID may refer either to an unpublished draft or to a published record.
+        This should be used by internal form edit workflows, not by the public
+        /records/<id>/ endpoint.
+        Args:
+            record_id: The Invenio record ID.
+        Returns:
+            InvenioRecord instance or None if not found/invalid.
+        """
+        if not record_id:
+            logger.error("Cannot retrieve Invenio object: record_id is None or empty")
             return None
 
         try:
