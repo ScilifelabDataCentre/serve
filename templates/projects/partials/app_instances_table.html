@@ -55,6 +55,14 @@
                 <span class="alert bg-secondary alert-app-table" id="status-{{ instance.app.slug }}-{{ instance.pk }}" title="Status for app" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
                     Refreshing...
                 </span>
+                {% if instance.scheduled_deletion_at %}
+                <div class="app-deletion-countdown mt-1" data-delete-at="{{ instance.scheduled_deletion_at|date:'c' }}" data-cy="app-deletion-countdown">
+                    <small class="text-muted" data-bs-toggle="tooltip" data-bs-placement="bottom"
+                        data-bs-original-title="Apps in the Develop category are automatically removed. The exact removal happens during a scheduled clean-up.">
+                        <i class="bi bi-hourglass-split me-1"></i><span class="app-deletion-text"></span>
+                    </small>
+                </div>
+                {% endif %}
             </td>
             <td class="text-center">
               {% if instance.app.name != "MLFlow" %}
@@ -190,5 +198,52 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Deletion countdown for auto-deleted (Develop category) apps.
+    const MINUTE = 60 * 1000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
+
+    const formatRemaining = (ms) => {
+        if (ms >= DAY) {
+            const days = Math.floor(ms / DAY);
+            return `${days} day${days === 1 ? '' : 's'} remaining`;
+        }
+        if (ms >= HOUR) {
+            const hours = Math.floor(ms / HOUR);
+            return `${hours} hour${hours === 1 ? '' : 's'} remaining`;
+        }
+        if (ms >= MINUTE) {
+            const minutes = Math.floor(ms / MINUTE);
+            return `${minutes} minute${minutes === 1 ? '' : 's'} remaining`;
+        }
+        return 'Less than a minute remaining';
+    };
+
+    const updateDeletionCountdowns = () => {
+        document.querySelectorAll('.app-deletion-countdown').forEach((el) => {
+            const deleteAt = Date.parse(el.dataset.deleteAt);
+            if (Number.isNaN(deleteAt)) {
+                el.classList.add('d-none');
+                return;
+            }
+            const remaining = deleteAt - Date.now();
+            const small = el.querySelector('small');
+            const text = el.querySelector('.app-deletion-text');
+            const icon = el.querySelector('i');
+            if (remaining <= 0) {
+                text.textContent = 'Scheduled for deletion';
+                small.classList.remove('text-muted');
+                small.classList.add('text-danger');
+                if (icon) { icon.className = 'bi bi-trash me-1'; }
+            } else {
+                text.textContent = formatRemaining(remaining);
+                // Highlight when the app has less than a day left.
+                small.classList.toggle('text-danger', remaining < DAY);
+                small.classList.toggle('text-muted', remaining >= DAY);
+            }
+        });
+    };
+
+    updateDeletionCountdowns();
+    setInterval(updateDeletionCountdowns, MINUTE);
 });
 </script>

@@ -35,7 +35,7 @@ class GpuAvailabilityTestCase(TestCase):
         self.project = Project.objects.create_project(name="test-gpu", owner=self.user, description="")
         self.category = AppCategories.objects.create(name="Develop", priority=100, slug="develop")
         self.app = Apps.objects.create(name="Jupyter Lab", slug="jupyter-lab", category=self.category, gpu_enabled=True)
-        self.gpu_flavor = Flavor.objects.create(name="gpu-flavor", project=self.project, gpu_req="1", gpu_lim="1")
+        self.gpu_flavor = Flavor.objects.create(name="gpu-flavor", project=self.project, gpu_req=1, gpu_lim=1)
         self.cpu_flavor = Flavor.objects.create(name="cpu-flavor", project=self.project)
 
     def create_jupyter_instance(self, flavor, subdomain_name, **kwargs):
@@ -55,7 +55,7 @@ class GpuAvailabilityTestCase(TestCase):
         self.assertEqual(flavor_gpu_count(self.gpu_flavor), 1)
         self.assertEqual(flavor_gpu_count(self.cpu_flavor), 0)
         self.assertEqual(flavor_gpu_count(None), 0)
-        self.assertEqual(flavor_gpu_count(Flavor(gpu_req="not-a-number")), 0)
+        self.assertEqual(flavor_gpu_count(Flavor(gpu_req=0)), 0)
         self.assertEqual(flavor_gpu_count(Flavor(gpu_req=None)), 0)
 
     def test_gpus_in_use_counts_active_gpu_apps(self):
@@ -143,7 +143,7 @@ class GpuFlavorFormTestCase(TestCase):
             is_default=True,
         )
         self.cpu_flavor = Flavor.objects.create(name="cpu-flavor", project=self.project)
-        self.gpu_flavor = Flavor.objects.create(name="gpu-flavor", project=self.project, gpu_req="1", gpu_lim="1")
+        self.gpu_flavor = Flavor.objects.create(name="gpu-flavor", project=self.project, gpu_req=1, gpu_lim=1)
 
     def get_form_data(self, flavor):
         return {
@@ -247,7 +247,7 @@ class DeleteOldGpuAppsTestCase(TestCase):
         self.project = Project.objects.create_project(name="test-gpu-delete", owner=self.user, description="")
         self.category = AppCategories.objects.create(name="Develop", priority=100, slug="develop")
         self.app = Apps.objects.create(name="Jupyter Lab", slug="jupyter-lab", category=self.category, gpu_enabled=True)
-        self.gpu_flavor = Flavor.objects.create(name="gpu-flavor", project=self.project, gpu_req="1", gpu_lim="1")
+        self.gpu_flavor = Flavor.objects.create(name="gpu-flavor", project=self.project, gpu_req=1, gpu_lim=1)
         self.cpu_flavor = Flavor.objects.create(name="cpu-flavor", project=self.project)
 
     def create_jupyter_instance(self, flavor, subdomain_name, age):

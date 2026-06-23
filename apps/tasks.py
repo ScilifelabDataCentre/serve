@@ -31,9 +31,6 @@ CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
 DEPLOY_RESOURCE_MAX_RETRIES = 3
 DEPLOY_RESOURCE_RETRY_BASE_SECONDS = 10
 DEPLOY_RESOURCE_RETRY_MAX_SECONDS = 30
-DEVELOP_APP_MAX_AGE_DAYS = 7
-# Develop apps holding a GPU are deleted sooner to free up the scarce GPUs
-GPU_DEVELOP_APP_MAX_AGE_DAYS = 1
 
 
 class MissingSerializedInstanceError(ValueError):
@@ -137,7 +134,7 @@ def delete_old_objects():
         seen_models.add(orm_model)
         old_develop_apps = (
             orm_model.objects.filter(
-                created_on__lt=get_threshold(GPU_DEVELOP_APP_MAX_AGE_DAYS), app__category__name="Develop"
+                created_on__lt=get_threshold(settings.GPU_DEVELOP_APP_MAX_AGE_DAYS), app__category__name="Develop"
             )
             .exclude(latest_user_action__in=["Deleting", "SystemDeleting"])
             .exclude(app__slug="mlflow")
@@ -146,7 +143,7 @@ def delete_old_objects():
         )
 
         for app_ in old_develop_apps:
-            if instance_holds_gpu(app_) or app_.created_on < get_threshold(DEVELOP_APP_MAX_AGE_DAYS):
+            if instance_holds_gpu(app_) or app_.created_on < get_threshold(settings.DEVELOP_APP_MAX_AGE_DAYS):
                 enqueue_delete(app_)
 
     # Handle deletion of non persistent file managers

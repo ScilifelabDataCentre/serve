@@ -26,14 +26,10 @@ class GpuUnavailableError(Exception):
 
 
 def flavor_gpu_count(flavor) -> int:
-    """Number of GPUs a flavor requests. gpu_req is a free-text field."""
+    """Number of GPUs a flavor requests."""
     if flavor is None or not flavor.gpu_req:
         return 0
-    try:
-        return max(int(flavor.gpu_req), 0)
-    except (TypeError, ValueError):
-        logger.warning(f"Could not parse gpu_req '{flavor.gpu_req}' of flavor {flavor.pk} as an integer")
-        return 0
+    return max(flavor.gpu_req, 0)
 
 
 def instance_holds_gpu(instance) -> bool:
