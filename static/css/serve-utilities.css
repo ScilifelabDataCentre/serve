@@ -335,9 +335,18 @@ label.required::before {
 
 .serve-filter-nav > .nav-item > .nav-link {
     background: #c4c4c44f !important;
+    appearance: none;
+    border: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
     font-size: 0.85rem !important;
+    line-height: 1.5;
     margin-right: 0.2rem !important;
-    padding: 0 0.5rem !important;
+    min-height: 1.5rem;
+    padding: 0 0.55rem !important;
+    white-space: nowrap;
 }
 
 .filter-subheading {
@@ -820,7 +829,8 @@ label.required::before {
 }
 
 .apps-page .filters-panel .serve-filter-nav {
-    gap: .5rem;
+    flex-wrap: nowrap;
+    gap: .35rem;
     padding: .5rem 0;
 }
 

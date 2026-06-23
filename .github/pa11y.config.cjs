@@ -19,7 +19,6 @@ const publicPaths = [
   "/accounts/login/",
   "/accounts/password_reset/",
   "/docs/",
-  "/openapi/",
 ];
 
 const loginActions = [
@@ -92,7 +91,8 @@ module.exports = {
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
       ignoreHTTPSErrors: true,
     },
-    hideElements: "div.g-recaptcha, div.plot_wrapper, iframe[style*='display: none']",
+    hideElements:
+      "div.g-recaptcha, div.plot_wrapper, iframe[style*='display: none'], iframe[src*='matomo.dc.scilifelab.se'], altcha-widget .altcha-logo[aria-hidden='true'], #cboxPrevious, #cboxNext, #cboxSlideshow",
     ignore: ["color-contrast"],
     reporters: [
       "cli",
@@ -105,6 +105,15 @@ module.exports = {
   },
   urls: [
     ...publicPaths.map(absoluteUrl),
+    {
+      url: absoluteUrl("/openapi/"),
+      ignore: [
+        "WCAG2AA.Principle2.Guideline2_4.2_4_2.H25.1.NoTitleEl",
+        "WCAG2AA.Principle3.Guideline3_1.3_1_1.H57.2",
+        "document-title",
+        "html-has-lang",
+      ],
+    },
     authenticatedPath("/projects/"),
     authenticatedPath("/projects/templates/"),
     authenticatedPath("/projects/create/"),

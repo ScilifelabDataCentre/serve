@@ -22,10 +22,9 @@ class Command(BaseCommand):
             defaults={"username": user_data["username"]},
         )
 
-        if created:
-            user.set_password(user_data["password"])
-        else:
+        if not created:
             user.username = user_data["username"]
+        user.set_password(user_data["password"])
         user.is_active = True
         user.save()
 

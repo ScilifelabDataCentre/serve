@@ -21,7 +21,7 @@
         {{ field }}
         <div class="client-validation-feedback" style="display:none;"></div>
         {% if field.help_text %}
-            <small id="id_mount_path_helptext" class="form-text text-muted">{{ field.help_text }}</small>
+            <small id="{{ field.id_for_label }}_helptext" class="form-text text-muted">{{ field.help_text }}</small>
         {% endif %}
         {% for error in field.errors %}
             <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>
