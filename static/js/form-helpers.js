@@ -83,8 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
         hiddenInput.value = JSON.stringify(data);
     }
 
-    // Gives each row a unique id so its labels stay tied to their inputs.
-    // Only increments, so removed rows never clash with new ones.
     let affiliationRowCount = 0;
 
     // --- Create one affiliation row ---

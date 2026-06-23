@@ -97,6 +97,7 @@ module.exports = {
       "cli",
       ["json", { fileName: "./pa11y-ci-report/results.json" }],
     ],
+    runners: ["htmlcs", "axe"],
     standard: "WCAG2AA",
     timeout: 120000,
     wait: 1500,

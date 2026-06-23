@@ -191,8 +191,6 @@ jobs:
           response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
           if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
 
-      # Run Pa11y on the PR, including pages that need a logged-in user.
-      # Fails the accessibility job when Pa11y finds WCAG2AA issues.
       - name: Set up Node.js for accessibility checks
         uses: actions/setup-node@v4
         with:

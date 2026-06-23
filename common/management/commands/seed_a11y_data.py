@@ -29,7 +29,13 @@ class Command(BaseCommand):
         user.is_active = True
         user.save()
 
-        project_template = ProjectTemplate.objects.get(pk=1)
+        project_template = ProjectTemplate.objects.filter(enabled=True).order_by("slug", "-revision").first()
+        if project_template is None:
+            project_template = ProjectTemplate.objects.order_by("slug", "-revision").first()
+        if project_template is None:
+            self.stderr.write(self.style.ERROR("No project templates found. Load project template fixtures first."))
+            return
+
         project = Project.objects.filter(owner=user, name="e2e-a11y-project", status="active").first()
 
         if project is None:
