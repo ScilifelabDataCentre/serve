@@ -430,6 +430,10 @@ CHART_FOLDER = "/app/charts/apps"
 EXTERNAL_KUBECONF = True
 KUBECONFIG = "/app/cluster.conf"
 NAMESPACE = "default"
+GATEWAY_NAME = os.getenv("GATEWAY_NAME", "default")
+GATEWAY_NAMESPACE = os.getenv("GATEWAY_NAMESPACE", "gateway")
+GATEWAY_SECTION_NAME = os.getenv("GATEWAY_SECTION_NAME", "serve-dev-subdomains")
+GATEWAY_PORT = int(os.getenv("GATEWAY_PORT", "80"))
 KUBE_API_REQUEST_TIMEOUT = 1
 STORAGECLASS = "local-path"
 
