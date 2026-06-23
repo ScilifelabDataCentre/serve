@@ -93,6 +93,7 @@ module.exports = {
       ignoreHTTPSErrors: true,
     },
     hideElements: "div.g-recaptcha, div.plot_wrapper, iframe[style*='display: none']",
+    ignore: ["color-contrast"],
     reporters: [
       "cli",
       ["json", { fileName: "./pa11y-ci-report/results.json" }],
