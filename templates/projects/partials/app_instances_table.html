@@ -19,8 +19,13 @@
 
             {% static 'images/logos/apps/' as static_url %}
 
-            <td class="text-center-small-screen"><span class="me-2 app-table-logo-wrap">
-                <img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid app-table-logo" alt="{{ instance.app.name }} Logo"></span>{{ instance.app.name }}
+            <td class="text-center-small-screen">
+                <span class="d-inline-flex align-items-center gap-2">
+                    <span class="app-table-logo-wrap">
+                        <img src="{{ static_url }}{{ instance.app.logo|default:'default-logo.svg' }}" class="img-fluid app-table-logo" alt="{{ instance.app.name }} Logo">
+                    </span>
+                    <span>{{ instance.app.name }}</span>
+                </span>
             </td>
             {% if instance.url %}
             <td class="sorting_1 text-center-small-screen">
@@ -56,11 +61,10 @@
                     Refreshing...
                 </span>
                 {% if instance.scheduled_deletion_at %}
-                <div class="app-deletion-countdown mt-1" data-delete-at="{{ instance.scheduled_deletion_at|date:'c' }}" data-cy="app-deletion-countdown">
-                    <small class="text-muted" data-bs-toggle="tooltip" data-bs-placement="bottom"
-                        data-bs-original-title="Apps in the Develop category are automatically removed. The exact removal happens during a scheduled clean-up.">
-                        <i class="bi bi-hourglass-split me-1"></i><span class="app-deletion-text"></span>
-                    </small>
+                <div class="app-deletion-countdown small text-muted mt-1" data-delete-at="{{ instance.scheduled_deletion_at|date:'c' }}" data-cy="app-deletion-countdown"
+                    data-bs-toggle="tooltip" data-bs-placement="bottom"
+                    data-bs-original-title="App will be scheduled for deletion after {{ instance.deletion_threshold_days }} day{{ instance.deletion_threshold_days|pluralize }}.">
+                    <i class="bi bi-hourglass-split me-1"></i><span class="app-deletion-text"></span>
                 </div>
                 {% endif %}
             </td>
@@ -199,23 +203,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Deletion countdown for auto-deleted (Develop category) apps.
+    // Deletion countdown for auto-deleted (Develop category) apps, shown as a
+    // second line under the created date.
     const MINUTE = 60 * 1000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
 
     const formatRemaining = (ms) => {
         if (ms >= DAY) {
             const days = Math.floor(ms / DAY);
-            return `${days} day${days === 1 ? '' : 's'} remaining`;
+            return `${days} day${days === 1 ? '' : 's'}`;
         }
         if (ms >= HOUR) {
             const hours = Math.floor(ms / HOUR);
-            return `${hours} hour${hours === 1 ? '' : 's'} remaining`;
+            return `${hours} hour${hours === 1 ? '' : 's'}`;
         }
         if (ms >= MINUTE) {
             const minutes = Math.floor(ms / MINUTE);
-            return `${minutes} minute${minutes === 1 ? '' : 's'} remaining`;
+            return `${minutes} minute${minutes === 1 ? '' : 's'}`;
         }
-        return 'Less than a minute remaining';
+        return 'less than a minute';
     };
 
     const updateDeletionCountdowns = () => {
@@ -226,19 +231,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             const remaining = deleteAt - Date.now();
-            const small = el.querySelector('small');
             const text = el.querySelector('.app-deletion-text');
             const icon = el.querySelector('i');
             if (remaining <= 0) {
-                text.textContent = 'Scheduled for deletion';
-                small.classList.remove('text-muted');
-                small.classList.add('text-danger');
+                text.textContent = 'scheduled for removal';
+                el.classList.remove('text-muted');
+                el.classList.add('text-danger');
                 if (icon) { icon.className = 'bi bi-trash me-1'; }
             } else {
-                text.textContent = formatRemaining(remaining);
+                text.textContent = `${formatRemaining(remaining)} left`;
                 // Highlight when the app has less than a day left.
-                small.classList.toggle('text-danger', remaining < DAY);
-                small.classList.toggle('text-muted', remaining >= DAY);
+                el.classList.toggle('text-danger', remaining < DAY);
+                el.classList.toggle('text-muted', remaining >= DAY);
             }
         });
     };

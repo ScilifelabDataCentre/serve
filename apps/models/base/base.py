@@ -237,15 +237,14 @@ class BaseAppInstance(models.Model):
         return group
 
     @property
-    def scheduled_deletion_at(self) -> datetime | None:
-        """When this app is scheduled to be auto-deleted, or None if it is not.
+    def deletion_threshold_days(self) -> int | None:
+        """How many days this app may live before auto-deletion, or None if it is not auto-deleted.
 
-        Mirrors apps.tasks.delete_old_objects. The deletion runs on a periodic
-        schedule, so the real removal may happen somewhat later than this time.
+        Mirrors apps.tasks.delete_old_objects.
         """
         from apps.gpu import instance_holds_gpu
 
-        if not self.created_on or not self.app_id:
+        if not self.app_id:
             return None
 
         category = self.app.category
@@ -253,7 +252,18 @@ class BaseAppInstance(models.Model):
         if category_name != "Develop" or self.app.slug == "mlflow":
             return None
 
-        days = settings.GPU_DEVELOP_APP_MAX_AGE_DAYS if instance_holds_gpu(self) else settings.DEVELOP_APP_MAX_AGE_DAYS
+        return settings.GPU_DEVELOP_APP_MAX_AGE_DAYS if instance_holds_gpu(self) else settings.DEVELOP_APP_MAX_AGE_DAYS
+
+    @property
+    def scheduled_deletion_at(self) -> datetime | None:
+        """When this app is scheduled to be auto-deleted, or None if it is not.
+
+        The deletion runs on a periodic schedule, so the real removal may happen
+        somewhat later than this time.
+        """
+        days = self.deletion_threshold_days
+        if not self.created_on or days is None:
+            return None
         return self.created_on + timedelta(days=days)
 
     url = models.URLField(blank=True, null=True)
