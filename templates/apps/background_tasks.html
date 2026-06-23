@@ -239,6 +239,7 @@
   </div>
 </div>
 
+<script src="{% static 'js/adaptive-polling.js' %}"></script>
 <script>
 const statusApiUrl = "{{ status_api_url|escapejs }}";
 const retryUrl = "{% url 'apps:retry_background_task' project.slug app_slug instance.pk 0 %}".replace('/0/', '/{task_id}/');
@@ -246,18 +247,18 @@ const csrftoken = getCookieValue('csrftoken');
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const WAITING_FOR_APP_STATUS_MESSAGE = "Waiting for app status. Note that this may take up to five minutes or longer because the app is currently being deployed.";
 
-// Poll for task status updates every 3 seconds
-let refreshInterval;
+const ACTIVE_STATUS_POLL_MS = 3000;
+const STABLE_STATUS_POLL_MS = 30000;
+const ERROR_STATUS_POLL_MS = 10000;
 
-function startAutoRefresh() {
-  stopAutoRefresh();
-  refreshInterval = setInterval(refreshTasks, 3000);
+let taskStatusPoller = null;
+
+function isStableDeployment(deployment = {}) {
+  return ['success', 'failed', 'blocked'].includes(deployment.status) && !deployment.tasks_in_progress;
 }
 
-function stopAutoRefresh() {
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
-  }
+function getNextRefreshDelay(data = {}) {
+  return isStableDeployment(data.deployment || {}) ? STABLE_STATUS_POLL_MS : ACTIVE_STATUS_POLL_MS;
 }
 
 function renderProgress(data) {
@@ -274,11 +275,7 @@ function refreshTasks() {
     .then(response => response.json())
     .then(data => {
       renderProgress(data);
-
-      const deploymentDone = ['success', 'failed', 'blocked'].includes(data.deployment?.status);
-      if (deploymentDone && !data.deployment?.tasks_in_progress) {
-        stopAutoRefresh();
-      }
+      return data;
     })
     .catch(error => {
       console.error('Error fetching task status:', error);
@@ -296,6 +293,7 @@ function refreshTasks() {
           banner.textContent = 'Could not load live task status. Please try Refresh.';
         }
       }
+      throw error;
     });
 }
 
@@ -835,8 +833,11 @@ function retryTask(taskId) {
   .then(data => {
     if (data.success) {
       alert('Task retry initiated');
-      refreshTasks();
-      startAutoRefresh();
+      if (taskStatusPoller) {
+        taskStatusPoller.run();
+      } else {
+        refreshTasks();
+      }
     } else {
       alert('Error: ' + data.error);
     }
@@ -873,18 +874,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  refreshTasks();
-  startAutoRefresh();
-});
-
-// Stop auto-refresh when page is hidden
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden) {
-    stopAutoRefresh();
-  } else {
-    refreshTasks();
-    startAutoRefresh();
-  }
+  taskStatusPoller = ServeAdaptivePolling.createPoller({
+    poll: refreshTasks,
+    getDelay: getNextRefreshDelay,
+    errorDelay: ERROR_STATUS_POLL_MS
+  });
 });
 </script>
 
