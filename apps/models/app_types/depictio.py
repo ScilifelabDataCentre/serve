@@ -43,6 +43,35 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
                 "nginx.ingress.kubernetes.io/auth-signin": f"https://{settings.DOMAIN}/accounts/login/",
                 "nginx.ingress.kubernetes.io/auth-signin-redirect-param": "next",
             }
+            # Gateway API equivalent: SnippetsFilter with nginx auth_request directives.
+            # The server-context snippet defines the internal auth proxy location and
+            # the error redirect; the location-context snippet activates auth_request.
+            k8s_values["gateway"] = {
+                "snippetsFilter": {
+                    "enabled": True,
+                    "snippets": [
+                        {
+                            "context": "http.server",
+                            "value": (
+                                f"location @login_redirect {{\n"
+                                f"    return 302 https://{settings.DOMAIN}/accounts/login/?next=$request_uri;\n"
+                                f"}}\n"
+                                f"location = /_depictio_auth {{\n"
+                                f"    internal;\n"
+                                f"    proxy_pass {settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={self.subdomain.subdomain};\n"
+                                f"    proxy_pass_request_body off;\n"
+                                f'    proxy_set_header Content-Length "";\n'
+                                f"    proxy_set_header X-Original-URI $request_uri;\n"
+                                f"}}"
+                            ),
+                        },
+                        {
+                            "context": "http.server.location",
+                            "value": "auth_request /_depictio_auth;\nerror_page 401 = @login_redirect;",
+                        },
+                    ],
+                }
+            }
         else:
             k8s_values["ingress"]["annotations"] = base_annotations
 
