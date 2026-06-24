@@ -20,8 +20,7 @@ class FilemanagerInstance(BaseAppInstance):
 
     @property
     def deletion_threshold_days(self) -> int | None:
-        """Deletion threshold for filemanager.
-        """
+        """Deletion threshold for filemanager."""
         if self.persistent:
             return None
         return settings.FILEMANAGER_MAX_AGE_DAYS
