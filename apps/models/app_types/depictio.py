@@ -36,18 +36,22 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
             "nginx.ingress.kubernetes.io/proxy-body-size": f"{self.upload_size}M",
         }
 
-        if self.access in ("private", "project"):
-            k8s_values["ingress"]["annotations"] = {
-                **base_annotations,
-                "nginx.ingress.kubernetes.io/auth-url": f"{settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={self.subdomain.subdomain}",
-                "nginx.ingress.kubernetes.io/auth-signin": f"https://{settings.DOMAIN}/accounts/login/",
-                "nginx.ingress.kubernetes.io/auth-signin-redirect-param": "next",
+        if settings.GATEWAY_ENABLED:
+            k8s_values["ingress"] = {"enabled": False}
+            gateway_values = {
+                "enabled": True,
+                "parentRefs": [
+                    {
+                        "group": "gateway.networking.k8s.io",
+                        "kind": "Gateway",
+                        "name": settings.GATEWAY_NAME,
+                        "namespace": settings.GATEWAY_NAMESPACE,
+                        "sectionName": settings.GATEWAY_SECTION_NAME,
+                    }
+                ],
             }
-            # Gateway API equivalent: SnippetsFilter with nginx auth_request directives.
-            # The server-context snippet defines the internal auth proxy location and
-            # the error redirect; the location-context snippet activates auth_request.
-            k8s_values["gateway"] = {
-                "snippetsFilter": {
+            if self.access in ("private", "project"):
+                gateway_values["snippetsFilter"] = {
                     "enabled": True,
                     "snippets": [
                         {
@@ -71,9 +75,17 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
                         },
                     ],
                 }
-            }
+            k8s_values["gateway"] = gateway_values
         else:
-            k8s_values["ingress"]["annotations"] = base_annotations
+            if self.access in ("private", "project"):
+                k8s_values["ingress"]["annotations"] = {
+                    **base_annotations,
+                    "nginx.ingress.kubernetes.io/auth-url": f"{settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={self.subdomain.subdomain}",
+                    "nginx.ingress.kubernetes.io/auth-signin": f"https://{settings.DOMAIN}/accounts/login/",
+                    "nginx.ingress.kubernetes.io/auth-signin-redirect-param": "next",
+                }
+            else:
+                k8s_values["ingress"]["annotations"] = base_annotations
 
         k8s_values["backend"] = {
             "ingress": {
