@@ -4,7 +4,7 @@ import uuid
 
 import waffle
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Button, Div, Submit
+from crispy_forms.layout import HTML, Button, Div, Submit
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -522,6 +522,9 @@ class AppBaseForm(BaseForm):
         self.fields["flavor"].label = "Hardware"
         self.fields["flavor"].queryset = flavor_queryset
         self.fields["flavor"].initial = flavor_queryset.first()  # if flavor_queryset else None
+        self.fields["flavor"].widget.gpu_flavors = {
+            str(flavor.pk) for flavor in flavor_queryset if flavor_gpu_count(flavor) > 0
+        }
         self._setup_gpu_flavor_availability(flavor_queryset)
 
         # Handle Access field
@@ -563,3 +566,22 @@ class AppBaseForm(BaseForm):
             if not gpu_available_for_flavor(flavor, exclude_instance=exclude_instance):
                 raise forms.ValidationError(GPU_UNAVAILABLE_MESSAGE)
         return flavor
+
+    def _deletion_note_layout(self):
+        """Auto-deletion note shown above the submit button (create app only).
+
+        The day count is updated client-side for GPU flavors (in create_base.html).
+        """
+        if self.instance and self.instance.pk:
+            return HTML("")
+        default_days = settings.DEVELOP_APP_MAX_AGE_DAYS
+        gpu_days = settings.GPU_DEVELOP_APP_MAX_AGE_DAYS
+        default_label = f"{default_days} day{'' if default_days == 1 else 's'}"
+        return HTML(
+            f'<div class="card-body pt-0" id="app-deletion-note" '
+            f'data-default-days="{default_days}" data-gpu-days="{gpu_days}">'
+            f"<p class='mb-0'>Note: <b>after <span class='deletion-days'>{default_label}</span> "
+            f"the created {self.model_name} instance will be deleted</b>, "
+            "only the files saved in 'project-vol' will stay available.</p>"
+            "</div>"
+        )

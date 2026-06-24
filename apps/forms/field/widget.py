@@ -37,9 +37,13 @@ class FlavorSelect(forms.Select):
         super().__init__(*args, **kwargs)
         # Primary keys of flavors that should not be selectable
         self.unavailable_flavors = set()
+        # Primary keys of flavors that request a GPU
+        self.gpu_flavors = set()
 
     def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
         option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        # Tag GPU flavors
+        option["attrs"]["data-gpu"] = "1" if str(value) in self.gpu_flavors else "0"
         if str(value) in self.unavailable_flavors:
             option["attrs"]["disabled"] = True
             option["label"] = f"{label} (no GPU available at the moment)"

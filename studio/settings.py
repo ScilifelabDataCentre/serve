@@ -477,6 +477,7 @@ GPU_TOTAL_CAPACITY = int(os.environ.get("GPU_TOTAL_CAPACITY", "0"))
 
 DEVELOP_APP_MAX_AGE_DAYS = int(os.environ.get("DEVELOP_APP_MAX_AGE_DAYS", "7"))
 GPU_DEVELOP_APP_MAX_AGE_DAYS = int(os.environ.get("GPU_DEVELOP_APP_MAX_AGE_DAYS", "1"))
+FILEMANAGER_MAX_AGE_DAYS = int(os.environ.get("FILEMANAGER_MAX_AGE_DAYS", "1"))
 
 # App statuses
 APPS_STATUS_SUCCESS = ["Running", "Succeeded", "Success"]

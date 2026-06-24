@@ -519,7 +519,7 @@ class AppDetailsView(View):
         tags = list(
             dict.fromkeys(
                 item.get("subject", "")
-                for item in (instance.subjects_keywords or [])
+                for item in (getattr(instance, "subjects_keywords", None) or [])
                 if isinstance(item, dict) and item.get("subject")
             )
         )

@@ -9,7 +9,9 @@
             <th class="" tabindex="0" rowspan="1" colspan="1">Status</th>
             <th class="" tabindex="0" rowspan="1" colspan="1">Permissions</th>
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Hits <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Unique IP visits during the last 30 days"></span></th>
+            {% if objs.title != "Develop" and objs.title != "Manage files" %}
             <th class="d-none d-xxl-table-cell " tabindex="0" rowspan="1" colspan="1">Subjects & keywords</th>
+            {% endif %}
             <th tabindex="0" rowspan="1" colspan="1">Actions</th>
         </tr>
     </thead>
@@ -63,7 +65,7 @@
                 {% if instance.scheduled_deletion_at %}
                 <div class="app-deletion-countdown small text-muted mt-1" data-delete-at="{{ instance.scheduled_deletion_at|date:'c' }}" data-cy="app-deletion-countdown"
                     data-bs-toggle="tooltip" data-bs-placement="bottom"
-                    data-bs-original-title="App will be scheduled for deletion after {{ instance.deletion_threshold_days }} day{{ instance.deletion_threshold_days|pluralize }}.">
+                    data-bs-original-title="App will be scheduled for deletion">
                     <i class="bi bi-hourglass-split me-1"></i><span class="app-deletion-text"></span>
                 </div>
                 {% endif %}
@@ -88,6 +90,7 @@
                 {{ instance.unique_visitors_ip_count }}
             {% endif %}
             </td>
+            {% if objs.title != "Develop" and objs.title != "Manage files" %}
             <td class="d-none d-xxl-table-cell" id="tags-{{ instance.pk }}">
 
             {% for keyword in instance.subjects_keywords %}
@@ -103,6 +106,7 @@
                 </a>
             {% endif %}
 </td>
+            {% endif %}
 
             <td class="table-action text-center">
                 <div class="dropdown show">

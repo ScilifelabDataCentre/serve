@@ -148,7 +148,9 @@ def delete_old_objects():
 
     # Handle deletion of non persistent file managers
     old_file_managers = (
-        FilemanagerInstance.objects.filter(created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False)
+        FilemanagerInstance.objects.filter(
+            created_on__lt=get_threshold(settings.FILEMANAGER_MAX_AGE_DAYS), persistent=False
+        )
         .exclude(latest_user_action__in=["Deleting", "SystemDeleting"])
         .order_by("created_on", "pk")
     )
@@ -429,7 +431,8 @@ def deploy_resource(self, serialized_instance):
 
     # Release the pooled DB connection for the duration of the helm subprocess.
     # Django reconnects on the next ORM access (the status writes below).
-    connection.close()
+    if not connection.in_atomic_block:
+        connection.close()
 
     # Install the app using Helm install
     output, error = helm_install(release, chart, values["namespace"], values_file, version)
@@ -553,7 +556,8 @@ def delete_resource(serialized_instance, initiated_by_str: str):
 
     # Release the pooled DB connection during the helm subprocess;
     # Django reconnects automatically for the status writes below.
-    connection.close()
+    if not connection.in_atomic_block:
+        connection.close()
 
     success = False
     if values.get("subdomain") is not None:
