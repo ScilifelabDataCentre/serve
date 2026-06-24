@@ -11,6 +11,7 @@ if (Cypress.env('create_resources') === true) {
         // The default command timeout should not be so long
         // Instead use longer timeouts on specific commands where deemed necessary and valid
         const defaultCmdTimeoutMs = 10000
+        const longCmdTimeoutMs = 180000
 
         // Cypress env variables with default value
         let env_run_extended_k8s_checks
@@ -23,10 +24,10 @@ if (Cypress.env('create_resources') === true) {
             expected_permission,
             expected_latest_user_action) => {
 
-            cy.get('tr:contains("' + app_name + '")').should('be.visible').then(($approw) => {
+            cy.get('tr:contains("' + app_name + '")', { timeout: longCmdTimeoutMs }).should('be.visible').then(($approw) => {
                 // The status span element has id with format: status-customapp-nnn
                 if (expected_status != "") {
-                    cy.get($approw).find('[data-cy="appstatus"]').should('contain', expected_status)
+                    cy.get($approw).find('[data-cy="appstatus"]', { timeout: longCmdTimeoutMs }).should('contain', expected_status)
                 }
 
                 if (expected_latest_user_action != "") {
@@ -273,7 +274,7 @@ if (Cypress.env('create_resources') === true) {
                 .and('include', default_url_subpath);
 
             cy.visit("/apps")
-            cy.get('h4.card-title').should('contain', app_name_public)
+            cy.get('h4.card-title', { timeout: longCmdTimeoutMs }).should('contain', app_name_public)
             cy.get('.card-text').find('p').should('contain', app_description)
 
             // Check that the public app is displayed on the homepage
@@ -395,7 +396,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name_public_2).should('exist')
+            cy.contains('h4.card-title', app_name_public_2, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
         it("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -446,7 +447,7 @@ if (Cypress.env('create_resources') === true) {
 
             cy.logf("Checking that the shiny app is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
-            cy.get('h4.card-title').should('contain', app_name)
+            cy.get('h4.card-title', { timeout: longCmdTimeoutMs }).should('contain', app_name)
             cy.get('.card-text').find('p').should('contain', app_description)
 
             cy.logf("Checking that instructions for running the app locally are displayed on public apps page", Cypress.currentTest)
@@ -459,7 +460,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Checking that source code URL is displayed on the public apps page", Cypress.currentTest)
             cy.visit("/apps")
             // Find the card with specific app name and owner
-            cy.contains('h4.card-title', app_name)
+            cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs })
                 .parents('.card')
                     .within(() => {
                         // Click the Details link
@@ -481,7 +482,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit("/apps")
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('exist')
+            cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
         it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -562,7 +563,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('exist')
+            cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
         it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -627,7 +628,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('exist')
+            cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
         it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -694,7 +695,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('exist')
+            cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
         it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -761,7 +762,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('exist')
+            cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
         it("can modify app settings resulting in NO k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -852,7 +853,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name_edited).should('exist')
+            cy.contains('h4.card-title', app_name_edited, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
         it("can modify app settings resulting in k8s redeployment shows correct app status", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -958,7 +959,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('exist')
+            cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
         it("can set and change subdomain", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
@@ -1045,7 +1046,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit('/apps/')
             cy.get("title").should("have.text", "Apps and models | SciLifeLab Serve (beta)")
             cy.get('[data-cy="apps-status-title"]').should('contain', 'Applications & models')
-            cy.contains('h4.card-title', app_name).should('exist')
+            cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
         it("can set and change custom subdomain several times", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {

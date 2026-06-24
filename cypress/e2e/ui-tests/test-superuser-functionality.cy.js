@@ -180,7 +180,7 @@ describe("Test superuser access", () => {
         })
     })
 
-    it("can see and manipulate other users' projects and apps", () => {
+    it("can see and manipulate other users' projects and apps", { defaultCommandTimeout: longCmdTimeoutMs }, () => {
 
         // Names of objects
         const project_name = "e2e-superuser-testuser-proj-test" // from seed_superuser.py

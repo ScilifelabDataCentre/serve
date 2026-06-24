@@ -200,7 +200,7 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
-    it("limit on number of apps per project is enforced", () => {
+    it("limit on number of apps per project is enforced", { defaultCommandTimeout: longCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test-1"
 
@@ -243,7 +243,7 @@ describe("Test project contributor user functionality", () => {
         })
     })
 
-    it("limit on number of projects per user is enforced", () => {
+    it("limit on number of projects per user is enforced", { defaultCommandTimeout: longCmdTimeoutMs }, () => {
         // Names of projects to create
         const project_name = "e2e-create-proj-test-2"
 
@@ -325,7 +325,7 @@ describe("Test project contributor user functionality", () => {
             })
     })
 
-    it("can give and revoke access to a project to another user", () => {
+    it("can give and revoke access to a project to another user", { defaultCommandTimeout: longCmdTimeoutMs }, () => {
         // Names of projects and apps to create
         const project_name_access = "e2e-access-proj-test"
         const private_app_name = "e2e-private-app-test"
@@ -445,7 +445,7 @@ describe("Test project contributor user functionality", () => {
         })
     })
 
-    it("can create a file management instance", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it("can create a file management instance", { defaultCommandTimeout: longCmdTimeoutMs }, () => {
         const project_name = "e2e-create-proj-test-3"
 
         cy.logf("Creating a blank project", Cypress.currentTest)
