@@ -53,3 +53,13 @@ repos:
   - id: mypy
     args: [--config-file, pyproject.toml]
     additional_dependencies: [types-requests==2.25.9, pydantic==2.12.5, prometheus-client==0.24.1]
+
+
+# Catch simple template accessibility issues before they reach CI.
+- repo: https://github.com/djlint/djLint
+  rev: v1.39.2
+  hooks:
+  - id: djlint-django
+    name: linting for accessibility
+    files: ^templates/
+    exclude: ^static/
