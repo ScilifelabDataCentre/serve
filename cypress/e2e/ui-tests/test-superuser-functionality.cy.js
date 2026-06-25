@@ -180,7 +180,7 @@ describe("Test superuser access", () => {
         })
     })
 
-    it("can see and manipulate other users' projects and apps", () => {
+    it("can see and manipulate other users' projects and apps", { defaultCommandTimeout: longCmdTimeoutMs }, () => {
 
         // Names of objects
         const project_name = "e2e-superuser-testuser-proj-test" // from seed_superuser.py
@@ -483,7 +483,7 @@ describe("Test superuser access", () => {
         })
     })
 
-    it("can bypass N projects limit", () => {
+    it("can bypass N projects limit", { defaultCommandTimeout: longCmdTimeoutMs }, () => {
         // Names of projects to create
         const project_name = "e2e-superuser-proj-limits-test"
 
@@ -520,7 +520,7 @@ describe("Test superuser access", () => {
         });
     })
 
-    it("can bypass N apps limit", () => {
+    it("can bypass N apps limit", { defaultCommandTimeout: longCmdTimeoutMs }, () => {
         // Names of objects to create
         const project_name = "e2e-create-proj-test-apps-limit"
         const app_name = "e2e-create-jl"
