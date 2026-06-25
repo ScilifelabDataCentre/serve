@@ -29,14 +29,13 @@
                   </form>
             </div>
             {% if urlpath.root.get_descendants %}
-            <nav id="GuideIndex">
+            <nav id="GuideIndex" aria-label="User guide pages">
             {% url 'wiki:get' path=urlpath as current_path %}
+                <ul class="my-0 ps-0 list-unstyled">
                 {% for child in urlpath.root.get_descendants %}
                   {% if not child.is_deleted %}
-                    {% with ''|center:child.level as range %}
-                      {% for _ in range %}<ul class="my-0">{% endfor %}
                       {% url 'wiki:get' path=child.path as childpath %}
-                      <li>
+                      <li class="my-1" style="padding-left: {{ child.level }}rem;">
                         {% if current_path|stringformat:"s" == childpath|stringformat:"s" %}
                         <b>{{ child.article.current_revision.title }}</b>
                         {% else %}
@@ -45,11 +44,10 @@
                         </a>
                         {% endif %}
                       </li>
-                      {% for _ in range %}</ul>{% endfor %}
-                    {% endwith %}
                   {% endif %}
                 {% endfor %}
-        </nav>
+                </ul>
+            </nav>
         {% endif %}
         </aside>
     </div>
