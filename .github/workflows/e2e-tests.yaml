@@ -78,13 +78,27 @@ jobs:
           ls -la
           cat cluster.conf
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build app image with cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: runtime
+          tags: stackn:base
+          load: true
+          cache-from: type=gha,scope=stackn-base
+          cache-to: type=gha,mode=max,scope=stackn-base
+
       - name: Start serve
         working-directory: ${{env.working-directory}}
         id: setup
         run: |
           set -ex
           echo "Deploying serve"
-          docker compose up -d
+          docker compose up -d --no-build db redis rabbit studio celery-worker celery-beat event-listener
 
       - name: Set Serve URL
         working-directory: ${{env.working-directory}}
