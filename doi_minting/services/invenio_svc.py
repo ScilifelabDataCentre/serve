@@ -52,7 +52,9 @@ from .schemas import (
     Parent,
     PersonOrOrg,
     Pids,
+    PublicationResourceTypeId,
     RelatedIdentifierItem,
+    RelatedPublication,
     RelationType,
     ResourceType,
     Role,
@@ -63,6 +65,23 @@ logger = get_logger(__name__)
 
 
 _LATEST_IMAGE_CACHE_TTL_SECONDS = 60
+
+PUBLICATION_TYPE_TO_INVENIO_RESOURCE_TYPE: dict[PublicationResourceTypeId, str] = {
+    "Book": "publication-book",
+    "BookChapter": "publication-section",
+    "ConferencePaper": "publication-conferencepaper",
+    "ConferenceProceeding": "publication-conferenceproceeding",
+    "DataPaper": "publication-datapaper",
+    "Dissertation": "publication-thesis",
+    "JournalArticle": "publication-article",
+    "Preprint": "publication-preprint",
+    "Report": "publication-report",
+    "Other": "publication-other",
+}
+
+INVENIO_RESOURCE_TYPE_TO_PUBLICATION_TYPE: dict[str, PublicationResourceTypeId] = {
+    value: key for key, value in PUBLICATION_TYPE_TO_INVENIO_RESOURCE_TYPE.items()
+}
 
 
 def _version_index(hit: dict[str, Any]) -> int:
@@ -839,6 +858,72 @@ class InvenioService:
 
         return creator_items
 
+    def extract_related_publications(self, metadata: InvenioMetadata) -> list[RelatedPublication]:
+        """
+        Extract related publications from Invenio related_identifiers.
+
+        Only returns entries with relation_type=issupplementto and scheme=doi.
+        Converts Invenio resource_type IDs back to the form publication type values.
+        Normalizes DOI identifiers back to https://doi.org/... for the form.
+        """
+        if metadata is None:
+            return []
+
+        metadata_dict = metadata.model_dump(mode="json")
+        related_identifiers = metadata_dict.get("related_identifiers")
+
+        if not isinstance(related_identifiers, list):
+            return []
+
+        publications: list[RelatedPublication] = []
+
+        for item in related_identifiers:
+            if not isinstance(item, dict):
+                continue
+
+            relation_type_id = str(item.get("relation_type", {}).get("id", "")).lower()
+            scheme = str(item.get("scheme", "")).lower()
+
+            if relation_type_id != "issupplementto" or scheme != "doi":
+                continue
+
+            raw_identifier = str(item.get("identifier", "")).strip()
+            if not raw_identifier:
+                logger.warning("Skipping related publication without DOI identifier: %s", item)
+                continue
+
+            if raw_identifier.startswith("https://doi.org/"):
+                doi = raw_identifier
+            else:
+                doi = f"https://doi.org/{raw_identifier}"
+
+            resource_type = item.get("resource_type") or {}
+            invenio_resource_type_id = str(resource_type.get("id") or "").strip()
+
+            if not invenio_resource_type_id:
+                logger.warning("Skipping related publication without resource_type.id: %s", item)
+                continue
+
+            publication_type = INVENIO_RESOURCE_TYPE_TO_PUBLICATION_TYPE.get(invenio_resource_type_id)
+            if not publication_type:
+                logger.warning(
+                    "Skipping related publication with unsupported Invenio resource_type.id: %s",
+                    invenio_resource_type_id,
+                )
+                continue
+
+            try:
+                publications.append(
+                    RelatedPublication(
+                        doi=doi,
+                        publication_type=publication_type,
+                    )
+                )
+            except Exception:
+                logger.warning("Skipping invalid related publication from Invenio metadata: %s", item)
+
+        return publications
+
     def _apply_additional_invenio_metadata(
         self, target_metadata: dict[str, Any], extra: AdditionalMetadata
     ) -> dict[str, Any]:
@@ -1014,6 +1099,8 @@ class InvenioService:
         else:
             logger.debug("[Invenio] No valid creators_input provided, keeping existing creators")
         # If no creators_input provided, keep existing creators (don't modify target_metadata)
+
+        # Handle funding metadata
         funding_input: Any = extra.get("funding")
         funding_entries: list[Funding] = []
         if isinstance(funding_input, list):
@@ -1095,6 +1182,67 @@ class InvenioService:
             target_metadata["funding"] = [entry.model_dump(exclude_none=True) for entry in funding_entries]
         else:
             target_metadata.pop("funding", None)
+
+        # Handle related publications metadata
+        related_publications_input: Any = extra.get("related_publications")
+        existing_related_identifiers = target_metadata.get("related_identifiers") or []
+
+        if not isinstance(existing_related_identifiers, list):
+            existing_related_identifiers = []
+
+        # Keep non-publication related identifiers that we already have.
+        preserved_related_identifiers = []
+        for item in existing_related_identifiers:
+            if isinstance(item, RelatedIdentifierItem):
+                item_dict = item.model_dump(mode="json")
+            elif isinstance(item, dict):
+                item_dict = item
+            else:
+                continue
+
+            relation_type_id = str(item_dict.get("relation_type", {}).get("id", "")).lower()
+            scheme = str(item_dict.get("scheme", "")).lower()
+
+            if not (relation_type_id == "issupplementto" and scheme == "doi"):
+                preserved_related_identifiers.append(item)
+
+        publication_related_identifiers: list[RelatedIdentifierItem] = []
+
+        if isinstance(related_publications_input, list):
+            for item in related_publications_input:
+                try:
+                    publication = item if isinstance(item, RelatedPublication) else RelatedPublication(**item)
+                except Exception:
+                    logger.warning("[Invenio] Skipping invalid related publication: %s", item)
+                    continue
+
+                resource_type_id = PUBLICATION_TYPE_TO_INVENIO_RESOURCE_TYPE.get(publication.publication_type)
+                if not resource_type_id:
+                    logger.warning(
+                        "[Invenio] Skipping related publication with unsupported publication_type: %s",
+                        publication.publication_type,
+                    )
+                    continue
+
+                publication_related_identifiers.append(
+                    RelatedIdentifierItem(
+                        identifier=publication.doi,
+                        scheme="doi",
+                        relation_type=RelationType(
+                            id="issupplementto",
+                        ),
+                        resource_type=ResourceType(
+                            id=resource_type_id,
+                        ),
+                    )
+                )
+
+        related_identifiers = preserved_related_identifiers + publication_related_identifiers
+
+        if related_identifiers:
+            target_metadata["related_identifiers"] = related_identifiers
+        else:
+            target_metadata.pop("related_identifiers", None)
 
         logger.debug(f"Applied additional metadata: {extra}. Resulting metadata: {target_metadata}")
 

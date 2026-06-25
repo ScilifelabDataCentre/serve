@@ -27,6 +27,7 @@ def _build_additional_metadata(
     *,
     language: str | None = None,
     funding: list[dict[str, Any]] | str | None = None,
+    related_publications: list[dict[str, Any]] | str | None = None,
     creators: list[Creator] | None = None,
     subjects: list[Subject] | None = None,
 ) -> dict[str, Any] | None:
@@ -54,6 +55,20 @@ def _build_additional_metadata(
 
     if isinstance(funding_entries, list):
         additional_metadata["funding"] = funding_entries
+
+    related_publication_entries = related_publications
+    if isinstance(related_publication_entries, str):
+        try:
+            related_publication_entries = json.loads(related_publication_entries)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Invalid related publications payload received by DOI provisioning task; "
+                "skipping related publications metadata."
+            )
+            related_publication_entries = []
+
+    if isinstance(related_publication_entries, list):
+        additional_metadata["related_publications"] = related_publication_entries
 
     # Creators from form data
     if creators and isinstance(creators, list):
@@ -129,10 +144,12 @@ class DOIProvisioningTask(BaseBackgroundTask):
 
         app_slug = app_instance.app.slug
         instance_id = app_instance.id
+
         additional_metadata = _build_additional_metadata(
             app_instance,
             language=kwargs.get("language"),
             funding=kwargs.get("funding"),
+            related_publications=kwargs.get("related_publications"),
             creators=kwargs.get("creators"),
             subjects=kwargs.get("subjects_keywords"),
         )

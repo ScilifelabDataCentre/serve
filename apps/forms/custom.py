@@ -31,6 +31,11 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         label="Language of the application interface",
     )
     funding_sources_json = forms.CharField(required=False, widget=forms.HiddenInput(), label="Funding sources")
+    related_publications_json = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Related publications and preprints",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -105,6 +110,16 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
                     tooltip=False,
                     label="Funding sources",
                     template="apps/funding_sources_field.html",
+                )
+            )
+
+        if "related_publications_json" in self.fields:
+            general_fields.append(
+                SRVCommonDivField(
+                    "related_publications_json",
+                    tooltip=False,
+                    label="Related publications and preprints",
+                    template="apps/related_publications_field.html",
                 )
             )
 

@@ -671,6 +671,33 @@ def app_details(request, invenio_record_id):
         logger.warning(f"Metadata could not be extracted for requested invenio_record_id={invenio_record_id}")
         raise Http404("Record metadata not found")
 
+    # Extract related publications
+    related_publications = []
+    if app_metadata.related_identifiers:
+        for related_identifier in app_metadata.related_identifiers:
+            relation_type_id = ""
+            if related_identifier.relation_type:
+                relation_type_id = related_identifier.relation_type.id
+
+            if related_identifier.scheme != "doi" or relation_type_id != "issupplementto":
+                continue
+
+            doi = related_identifier.identifier.strip()
+            doi_url = doi if doi.startswith("https://doi.org/") else f"https://doi.org/{doi}"
+
+            publication_type = ""
+            if related_identifier.resource_type:
+                title = related_identifier.resource_type.title or {}
+                publication_type = title.get("en") or related_identifier.resource_type.id
+
+            related_publications.append(
+                {
+                    "type": publication_type,
+                    "doi": doi,
+                    "doi_url": doi_url,
+                }
+            )
+
     # Variable for some extracted and other data about the app
     app_otherdata = {}
 
@@ -756,6 +783,7 @@ def app_details(request, invenio_record_id):
 
     context = {
         "app_metadata": app_metadata,
+        "related_publications": related_publications,
         "app_otherdata": app_otherdata,
     }
 

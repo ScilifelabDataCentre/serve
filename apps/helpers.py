@@ -60,6 +60,33 @@ def parse_funding_sources_json(funding_raw: Any) -> list[dict[str, Any]]:
     return parsed_funding
 
 
+def parse_related_publications_json(related_publications_raw: Any) -> list[dict[str, Any]]:
+    """Normalize related_publications_json from form data into a list."""
+    if not related_publications_raw:
+        return []
+
+    parsed_related_publications = related_publications_raw
+    if isinstance(parsed_related_publications, str):
+        try:
+            parsed_related_publications = json.loads(parsed_related_publications)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Unable to parse related_publications_json while creating app. "
+                "Proceeding with empty related publications metadata."
+            )
+            return []
+
+    if not isinstance(parsed_related_publications, list):
+        logger.warning(
+            "related_publications_json has unsupported type %s. "
+            "Proceeding with empty related publications metadata.",
+            type(parsed_related_publications).__name__,
+        )
+        return []
+
+    return parsed_related_publications
+
+
 def get_select_options(project_pk, selected_option=""):
     from apps.types_.subdomain import SubdomainCandidateName
 
@@ -388,6 +415,7 @@ def create_instance_from_form(
             "description",
             "language",
             "funding_sources_json",
+            "related_publications_json",
             "creators",
             "subjects_keywords",
             "invenio_tags",
@@ -652,6 +680,8 @@ def _prepare_doi_task_kwargs(instance, form, app_slug):
     # Public apps are published in Invenio; non-public apps are saved as a draft.
     funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
+    related_publications_list = parse_related_publications_json(form.cleaned_data.get("related_publications_json"))
+
     # Get creators data from form if available
     creators_data = None
     if hasattr(form, "get_creators_data"):
@@ -666,6 +696,7 @@ def _prepare_doi_task_kwargs(instance, form, app_slug):
         "doi_provisioning": {
             "language": form.cleaned_data.get("language"),
             "funding": funding_list,
+            "related_publications": related_publications_list,
             "creators": creators_data,
             "subjects_keywords": form.cleaned_data.get("subjects_keywords"),
         },
