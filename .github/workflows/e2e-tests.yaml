@@ -139,6 +139,24 @@ jobs:
           name: cypress-videos
           path: cypress/videos
 
+      - name: Dump container logs
+        if: always()
+        working-directory: ${{env.working-directory}}
+        run: |
+          mkdir -p container-logs
+          docker compose logs --no-color --timestamps > container-logs/all-services.log 2>&1 || true
+          docker compose logs --no-color --timestamps celery-worker > container-logs/celery-worker.log 2>&1 || true
+          docker compose logs --no-color --timestamps studio > container-logs/studio.log 2>&1 || true
+          docker compose logs --no-color --timestamps celery-beat > container-logs/celery-beat.log 2>&1 || true
+
+      - name: Upload container logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-logs
+          path: container-logs
+          if-no-files-found: ignore
+
 #      - name: Setup upterm session
 #        uses: lhotari/action-upterm@v1
 #        with:
