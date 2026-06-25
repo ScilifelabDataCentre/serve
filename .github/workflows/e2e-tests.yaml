@@ -30,6 +30,14 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       working-directory: .
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - "cypress/e2e/ui-tests/test-superuser-functionality.cy.js"
+          - "cypress/e2e/ui-tests/test-project-as-contributor.cy.js,cypress/e2e/ui-tests/test-storage-settings.cy.js,cypress/e2e/ui-tests/test-login-account-handling.cy.js"
+          - "cypress/e2e/ui-tests/test-user-manage-app-settings.cy.js,cypress/e2e/ui-tests/test-user-manage-apps.cy.js"
+          - "cypress/e2e/ui-tests/test-user-manage-app-types.cy.js,cypress/e2e/ui-tests/test-public-webpages.cy.js,cypress/e2e/ui-tests/test-collections.cy.js,cypress/e2e/ui-tests/test-signup.cy.js,cypress/e2e/ui-tests/test-brute-force-login-attempts.cy.js,cypress/e2e/ui-tests/test-views-as-reader.cy.js,cypress/e2e/ui-tests/test-app-details-pages.cy.js,cypress/e2e/ui-tests/test-invenio-funding.cy.js"
 
     steps:
       - name: Workflow Telemetry
@@ -70,6 +78,24 @@ jobs:
           sudo usermod -a -G microk8s $USER
           sudo chown -f -R $USER ~/.kube
           sudo microk8s config >> ~/.kube/config
+
+      - name: Pre-pull app images into MicroK8s (background)
+        run: |
+          images=(
+            ghcr.io/scilifelabdatacentre/serve-jupyterlab-minimal:250213-1113
+            ghcr.io/scilifelabdatacentre/serve-rstudio:250304-1611
+            ghcr.io/scilifelabdatacentre/example-dash:latest
+            ghcr.io/scilifelabdatacentre/example-streamlit:latest
+            ghcr.io/scilifelabdatacentre/shiny-adhd-medication-sweden:20240117-062031
+            ghcr.io/scilifelabdatacentre/gradio-flower-classification:20241118-174426
+            ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059
+            ghcr.io/scilifelabdatacentre/streamlit-image-to-smiles:20241112-183549
+          )
+          for img in "${images[@]}"; do
+            nohup sudo microk8s ctr image pull "$img" >/dev/null 2>&1 &
+          done
+          disown -a
+          echo "Started background pre-pull of ${#images[@]} app images"
 
       - name: Dump config
         working-directory: ${{env.working-directory}}
@@ -161,9 +187,9 @@ jobs:
         working-directory: ${{env.working-directory}}
         run: npm ci
 
-      - name: Cypress run e2e tests in parallel
+      - name: Cypress run e2e tests (shard ${{ strategy.job-index }})
         working-directory: ${{env.working-directory}}
-        run: npm run cy:run:parallel -- -a "--config pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }} --quiet"
+        run: npx cypress run --spec "${{ matrix.shard }}" --config pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }} --quiet
         env:
           ELECTRON_DISABLE_GPU: true
 
@@ -171,14 +197,16 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-screenshots
+          name: cypress-screenshots-${{ strategy.job-index }}
           path: cypress/screenshots
+          if-no-files-found: ignore
       - name: Save cypress video artifacts on failure
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-videos
+          name: cypress-videos-${{ strategy.job-index }}
           path: cypress/videos
+          if-no-files-found: ignore
 
       - name: Dump container logs
         if: always()
@@ -194,16 +222,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: container-logs
+          name: container-logs-${{ strategy.job-index }}
           path: container-logs
           if-no-files-found: ignore
-
-#      - name: Setup upterm session
-#        uses: lhotari/action-upterm@v1
-#        with:
-#          ## If no one connects after 2 minutes, shut down server.
-#          wait-timeout-minutes: 2
-#          ## limits ssh access and adds the ssh public key for the user which triggered the #workflow
-#          limit-access-to-actor: true
-#          ## limits ssh access and adds the ssh public keys of the listed GitHub users
-#          limit-access-to-users: churnikov,hamzaimran08,alfredeen,akochari,anondo1969
