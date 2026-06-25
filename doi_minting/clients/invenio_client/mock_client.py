@@ -214,6 +214,18 @@ class MockInvenioClient:
                         "relation_type": {"id": "isvariantformof", "title": {"en": "Docker image"}},
                         "resource_type": {"id": "software", "title": {"en": "Software"}},
                     },
+                    {
+                        "identifier": "10.1038/s41467-022-33050-0",
+                        "scheme": "doi",
+                        "relation_type": {"id": "issupplementto", "title": {"en": "Is supplement to"}},
+                        "resource_type": {"id": "publication-article", "title": {"en": "Journal article"}},
+                    },
+                    {
+                        "identifier": "10.17044/scilifelab.14124014",
+                        "scheme": "doi",
+                        "relation_type": {"id": "issupplementto", "title": {"en": "Is supplement to"}},
+                        "resource_type": {"id": "dataset", "title": {"en": "Dataset"}},
+                    },
                 ],
                 "funding": [
                     {
