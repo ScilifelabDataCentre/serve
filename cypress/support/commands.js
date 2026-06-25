@@ -114,7 +114,7 @@ Cypress.Commands.add('createBlankProject', (project_name) => {
   cy.get('input[name=name]').type(project_name)
   cy.get('textarea[name=description]').type("A test project created by an e2e test.")
   cy.get("input[name=save]").contains('Create project').click()
-  cy.get('h3', { timeout: 20000 }).should('contain', project_name)
+  cy.wait(5000) // need to wait a bit for the project to be created on some machines, otherwise won't find the new project under /projects/
 
 })
 

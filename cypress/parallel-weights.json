@@ -20,8 +20,8 @@
     "weight": 35
   },
   "cypress/e2e/ui-tests/test-project-as-contributor.cy.js": {
-    "time": 200000,
-    "weight": 200
+    "time": 276000,
+    "weight": 276
   },
   "cypress/e2e/ui-tests/test-public-webpages.cy.js": {
     "time": 35000,
@@ -36,20 +36,20 @@
     "weight": 34
   },
   "cypress/e2e/ui-tests/test-superuser-functionality.cy.js": {
-    "time": 300000,
-    "weight": 300
+    "time": 385000,
+    "weight": 385
   },
   "cypress/e2e/ui-tests/test-user-manage-app-settings.cy.js": {
-    "time": 85000,
-    "weight": 85
+    "time": 170000,
+    "weight": 170
   },
   "cypress/e2e/ui-tests/test-user-manage-app-types.cy.js": {
-    "time": 119000,
-    "weight": 119
+    "time": 170000,
+    "weight": 170
   },
   "cypress/e2e/ui-tests/test-user-manage-apps.cy.js": {
-    "time": 137000,
-    "weight": 137
+    "time": 390000,
+    "weight": 390
   },
   "cypress/e2e/ui-tests/test-views-as-reader.cy.js": {
     "time": 3000,
