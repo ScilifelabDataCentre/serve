@@ -35,14 +35,21 @@ class MLFlowInstance(BaseAppInstance):
             "ingress": {"enabled": False},
             "httproute": {
                 "enabled": True,
-                "hostnames": [self.url.split("://")[1]] if self.url is not None else [],
+                "hostnames": (
+                    [
+                        self.url.split("://")[1],
+                        self.url.split("://")[1].replace(f".{settings.DOMAIN}", f".gw.{settings.DOMAIN}", 1),
+                    ]
+                    if self.url is not None
+                    else []
+                ),
                 "parentRefs": [
                     {
                         "name": settings.GATEWAY_NAME,
                         "namespace": settings.GATEWAY_NAMESPACE,
                         "sectionName": settings.GATEWAY_SECTION_NAME,
                         "port": settings.GATEWAY_PORT,
-                    }
+                    },
                 ],
             },
             "podLabels": {
