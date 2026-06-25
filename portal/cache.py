@@ -1,8 +1,8 @@
 from django.core.cache import cache
 
-
 PUBLIC_APPS_CACHE_KEYS = (
     "portal_public_apps:content_stats",
+    "portal_public_apps:serve_category_apps",
     "portal_public_apps:page_context",
     "portal_public_apps:recent",
 )

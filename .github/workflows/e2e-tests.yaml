@@ -122,13 +122,40 @@ jobs:
         id: check_serve_up
         run: |
           echo "Checking response from STUDIO_URL: ${{ env.STUDIO_URL }}"
-          response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
-          if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
+          for attempt in {1..24}; do
+            response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
+            if [[ "$response" -eq 200 ]] ; then
+              echo "serve is ready"
+              exit 0
+            fi
+
+            echo "status $response on attempt $attempt; retrying"
+            sleep 5
+          done
+
+          echo "Serve did not become ready in time"
+          docker compose logs --no-color --timestamps studio
+          exit 1
 
       - name: Check if celery worker can access kubectl and helm
         run: |
           docker exec celery-worker kubectl version
           docker exec celery-worker helm version
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-
 
       - name: Install Node.js dependencies
         working-directory: ${{env.working-directory}}
