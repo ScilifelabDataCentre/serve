@@ -24,7 +24,7 @@ from apps.models import (
     VolumeInstance,
 )
 from apps.models.app_types.custom.custom import validate_default_url_subpath
-from doi_minting.services.schemas import Award, Funder, Funding
+from doi_minting.services.schemas import Award, Funder, Funding, RelatedPublication
 from projects.models import Flavor, PersistentVolumeMountPath, Project
 
 User = get_user_model()
@@ -141,7 +141,11 @@ class CustomAppFormTest(BaseAppFormTest):
 
     @patch("apps.forms.base.InvenioService")
     @patch("apps.forms.base.waffle.switch_is_active", return_value=True)
-    def test_edit_form_prefills_language_and_funding_from_invenio(self, _mock_switch, mock_invenio_service):
+    def test_edit_form_prefills_language_funding_and_related_publications_from_invenio(
+        self,
+        _mock_switch,
+        mock_invenio_service,
+    ):
         instance = CustomAppInstance.objects.create(
             app=self.app,
             chart="custom-app",
@@ -158,7 +162,6 @@ class CustomAppFormTest(BaseAppFormTest):
             invenio_record_id="mock-record-id",
         )
 
-        # Create proper Pydantic funding objects
         funding = [
             Funding(
                 funder=Funder(id="004hzzk67", name="Knut and Alice Wallenberg Foundation"),
@@ -166,7 +169,13 @@ class CustomAppFormTest(BaseAppFormTest):
             )
         ]
 
-        # Expected flattened output after processing
+        related_publications = [
+            RelatedPublication(
+                doi="https://doi.org/10.123/12345",
+                publication_type="Preprint",
+            )
+        ]
+
         expected_funding = [
             {
                 "funder_id": "004hzzk67",
@@ -177,19 +186,39 @@ class CustomAppFormTest(BaseAppFormTest):
             }
         ]
 
-        # Mock the service instance and its methods
+        expected_related_publications = [
+            {
+                "doi": "https://doi.org/10.123/12345",
+                "publication_type": "Preprint",
+            }
+        ]
+
         mock_service_instance = mock_invenio_service.return_value
-        mock_app_metadata = {"metadata": {"languages": [{"id": "swe"}], "funding": []}}
+        mock_app_metadata = {
+            "metadata": {
+                "languages": [{"id": "swe"}],
+                "funding": [],
+                "related_identifiers": [],
+            }
+        }
         mock_service_instance.extract_app_metadata.return_value = mock_app_metadata
         mock_service_instance.extract_language_id.return_value = "swe"
         mock_service_instance.extract_funding.return_value = funding
+        mock_service_instance.extract_related_publications.return_value = related_publications
         mock_service_instance.extract_creators.return_value = []
 
         form = CustomAppForm(project_pk=self.project.pk, instance=instance)
 
         self.assertEqual(form.fields["language"].initial, "swe")
+
         self.assertIn("funding_sources_json", form.fields)
         self.assertEqual(form.fields["funding_sources_json"].initial, json.dumps(expected_funding))
+
+        self.assertIn("related_publications_json", form.fields)
+        self.assertEqual(
+            form.fields["related_publications_json"].initial,
+            json.dumps(expected_related_publications),
+        )
 
 
 class CustomAppFormRenderingTest(BaseAppFormTest):
@@ -247,6 +276,18 @@ class FundingFieldPresenceTest(BaseAppFormTest):
         for form_class in self.funding_forms:
             form = form_class(project_pk=self.project.pk)
             self.assertIn("funding_sources_json", form.fields, f"Missing funding field in {form_class.__name__}")
+
+
+class RelatedPublicationsFieldPresenceTest(BaseAppFormTest):
+    related_publications_forms = [CustomAppForm, DashForm, GradioForm, ShinyForm, StreamlitForm]
+
+    def test_related_publications_field_always_present_with_doi_enabled(self):
+        """DOI functionality is always enabled, so funding field should always be present."""
+        for form_class in self.related_publications_forms:
+            form = form_class(project_pk=self.project.pk)
+            self.assertIn(
+                "related_publications_json", form.fields, f"Missing related publications field in {form_class.__name__}"
+            )
 
 
 class DepictioFormTest(BaseAppFormTest):
