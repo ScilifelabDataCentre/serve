@@ -47,6 +47,7 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
                         "name": settings.GATEWAY_NAME,
                         "namespace": settings.GATEWAY_NAMESPACE,
                         "sectionName": settings.GATEWAY_SECTION_NAME,
+                        "port": settings.GATEWAY_PORT,
                     }
                 ],
             }
