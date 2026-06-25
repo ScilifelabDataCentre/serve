@@ -24,6 +24,11 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, C
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     shiny_site_dir = forms.CharField(max_length=255, required=False, label="Path to site_dir")
     funding_sources_json = forms.CharField(required=False, widget=forms.HiddenInput(), label="Funding sources")
+    related_publications_json = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Related publications and preprints",
+    )
     language = forms.ChoiceField(
         choices=AppBaseForm.LANGUAGE_CHOICES,
         required=False,
@@ -100,6 +105,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, C
 
         if "language" in self.fields:
             general_fields.append(SRVCommonDivField("language", tooltip=False))
+
         if "funding_sources_json" in self.fields:
             general_fields.append(
                 SRVCommonDivField(
@@ -107,6 +113,16 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, C
                     tooltip=False,
                     label="Funding sources",
                     template="apps/funding_sources_field.html",
+                )
+            )
+
+        if "related_publications_json" in self.fields:
+            general_fields.append(
+                SRVCommonDivField(
+                    "related_publications_json",
+                    tooltip=False,
+                    label="Related publications and preprints",
+                    template="apps/related_publications_field.html",
                 )
             )
 
