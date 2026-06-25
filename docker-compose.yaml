@@ -68,7 +68,7 @@ services:
          - redis.127.0.0.1.nip.io
 
   rabbit:
-    image: rabbitmq
+    image: rabbitmq:4.2.3
     env_file:
       - .env
     container_name: rabbitmq

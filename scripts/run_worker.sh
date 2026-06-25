@@ -14,7 +14,7 @@ CELERY_CONCURRENCY=${CELERY_CONCURRENCY:-4}
 echo "Starting celery worker with concurrency: ${CELERY_CONCURRENCY}"
 
 if $DEBUG ; then
-    watchmedo auto-restart -R --patterns="*.py" -- celery -A studio worker -l "${CELERY_LOG_LEVEL}" --scheduler django --concurrency="${CELERY_CONCURRENCY}"
+    watchmedo auto-restart -R --patterns="*.py" -- celery -A studio worker -l "${CELERY_LOG_LEVEL}" --scheduler django --concurrency="${CELERY_CONCURRENCY}" --without-mingle --without-gossip
 else
-    celery -A studio worker -l "${CELERY_LOG_LEVEL}" --scheduler django --concurrency="${CELERY_CONCURRENCY}"
+    celery -A studio worker -l "${CELERY_LOG_LEVEL}" --scheduler django --concurrency="${CELERY_CONCURRENCY}" --without-mingle --without-gossip
 fi
