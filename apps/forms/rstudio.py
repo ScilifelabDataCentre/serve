@@ -55,7 +55,7 @@ class RStudioForm(VolumeMixin, AppBaseForm):
 
         body = Div(accordion, css_class="card-body")
         body.always_open = True
-        self.helper.layout = Layout(body, self.footer)
+        self.helper.layout = Layout(body, self._deletion_note_layout(), self.footer)
 
     class Meta:
         model = RStudioInstance

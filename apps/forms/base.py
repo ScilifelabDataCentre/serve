@@ -4,14 +4,21 @@ import uuid
 
 import waffle
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Button, Div, Submit
+from crispy_forms.layout import HTML, Button, Div, Submit
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.forms import Select, SelectMultiple
 from django.shortcuts import get_object_or_404
 
-from apps.forms.field.widget import SubdomainInputGroup
+from apps.forms.field.widget import FlavorSelect, SubdomainInputGroup
+from apps.gpu import (
+    GPU_UNAVAILABLE_MESSAGE,
+    flavor_gpu_count,
+    gpu_available_for_flavor,
+    gpus_in_use,
+    model_class_gpu_enabled,
+)
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
 from doi_minting.services.invenio_svc import InvenioService
@@ -575,7 +582,9 @@ class AppBaseForm(BaseForm):
         queryset=VolumeInstance.objects.none(), required=False, empty_label="None", initial=None
     )
 
-    flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=True, empty_label=None)
+    flavor = forms.ModelChoiceField(
+        queryset=Flavor.objects.none(), required=True, empty_label=None, widget=FlavorSelect
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -589,8 +598,66 @@ class AppBaseForm(BaseForm):
         self.fields["flavor"].label = "Hardware"
         self.fields["flavor"].queryset = flavor_queryset
         self.fields["flavor"].initial = flavor_queryset.first()  # if flavor_queryset else None
+        self.fields["flavor"].widget.gpu_flavors = {
+            str(flavor.pk) for flavor in flavor_queryset if flavor_gpu_count(flavor) > 0
+        }
+        self._setup_gpu_flavor_availability(flavor_queryset)
 
         # Handle Access field
         self.fields["access"].label = "Permission"
 
         self.fields["subdomain"].help_text = "Choose subdomain, create a new one or leave blank to get a random one."
+
+    def _app_template_gpu_enabled(self) -> bool:
+        """Whether the app template behind this form allows GPU allocation."""
+        if self.instance and self.instance.pk and self.instance.app_id:
+            return self.instance.app.gpu_enabled
+        return model_class_gpu_enabled(self._meta.model)
+
+    def _setup_gpu_flavor_availability(self, flavor_queryset):
+        """Disable GPU flavors in the dropdown when all GPUs in the cluster are taken."""
+        gpu_flavors = [flavor for flavor in flavor_queryset if flavor_gpu_count(flavor) > 0]
+        if not gpu_flavors or not self._app_template_gpu_enabled():
+            return
+
+        # An existing app keeps the GPU it already holds, so leave it out of the count
+        exclude_instance = self.instance if self.instance and self.instance.pk else None
+        in_use = gpus_in_use(exclude_instance=exclude_instance)
+        unavailable = {
+            str(flavor.pk) for flavor in gpu_flavors if in_use + flavor_gpu_count(flavor) > settings.GPU_TOTAL_CAPACITY
+        }
+        if not unavailable:
+            return
+
+        self.fields["flavor"].widget.unavailable_flavors = unavailable
+        initial = self.fields["flavor"].initial
+        if initial is not None and str(initial.pk) in unavailable:
+            available = [flavor for flavor in flavor_queryset if str(flavor.pk) not in unavailable]
+            self.fields["flavor"].initial = available[0] if available else None
+
+    def clean_flavor(self):
+        flavor = self.cleaned_data.get("flavor")
+        if flavor and flavor_gpu_count(flavor) > 0 and self._app_template_gpu_enabled():
+            exclude_instance = self.instance if self.instance and self.instance.pk else None
+            if not gpu_available_for_flavor(flavor, exclude_instance=exclude_instance):
+                raise forms.ValidationError(GPU_UNAVAILABLE_MESSAGE)
+        return flavor
+
+    def _deletion_note_layout(self):
+        """Auto-deletion note shown above the submit button (create app only).
+
+        The day count is updated client-side for GPU flavors (in create_base.html).
+        """
+        if self.instance and self.instance.pk:
+            return HTML("")
+        default_days = settings.DEVELOP_APP_MAX_AGE_DAYS
+        gpu_days = settings.GPU_DEVELOP_APP_MAX_AGE_DAYS
+        default_label = f"{default_days} day{'' if default_days == 1 else 's'}"
+        return HTML(
+            f'<div class="card-body pt-0" id="app-deletion-note" '
+            f'data-default-days="{default_days}" data-gpu-days="{gpu_days}">'
+            f"<p class='mb-0'>Note: <b>after <span class='deletion-days'>{default_label}</span> "
+            f"the created {self.model_name} instance will be deleted</b>, "
+            "only the files saved in 'project-vol' will stay available.</p>"
+            "</div>"
+        )

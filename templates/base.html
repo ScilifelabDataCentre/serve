@@ -17,10 +17,12 @@
 
 <body class="d-flex flex-column min-vh-100 serve-background">
 
+    <a class="visually-hidden-focusable" href="#main-content">Skip to main content</a>
+
     {% include 'common/navbar.html' with minimum=False %}
 
     {% block page %}
-      <main class="container-xl mt-3 mb-3">
+      <main id="main-content" class="container-xl mt-3 mb-3">
         {% block content %}{% endblock %}
       </main>
     {% endblock %}

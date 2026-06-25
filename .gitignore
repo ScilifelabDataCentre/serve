@@ -163,3 +163,6 @@ media/*
 !media/.gitkeep
 
 local_.dockerfile
+
+# Pa11y accessibility report
+pa11y-ci-report/

@@ -13,6 +13,7 @@
 - [ ] I have included migration files (if there are changes to the model classes)
 - [ ] I have added or updated unit and end2end tests or a manual test case to complement my changes
 - [ ] I have ran unit and end2end tests
+- [ ] I have considered accessibility for UI changes and reviewed pre-commit/Pa11y results or documented a manual check
 - [ ] I have updated the related documentation (if necessary)
 - [ ] I have added a reviewer for this pull request
 - [ ] I have added myself as an author for this pull request
