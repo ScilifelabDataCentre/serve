@@ -1,0 +1,58 @@
+{
+  "cypress/e2e/ui-tests/test-app-details-pages.cy.js": {
+    "time": 6000,
+    "weight": 6
+  },
+  "cypress/e2e/ui-tests/test-brute-force-login-attempts.cy.js": {
+    "time": 21000,
+    "weight": 21
+  },
+  "cypress/e2e/ui-tests/test-collections.cy.js": {
+    "time": 19000,
+    "weight": 19
+  },
+  "cypress/e2e/ui-tests/test-invenio-funding.cy.js": {
+    "time": 1000,
+    "weight": 1
+  },
+  "cypress/e2e/ui-tests/test-login-account-handling.cy.js": {
+    "time": 35000,
+    "weight": 35
+  },
+  "cypress/e2e/ui-tests/test-project-as-contributor.cy.js": {
+    "time": 200000,
+    "weight": 200
+  },
+  "cypress/e2e/ui-tests/test-public-webpages.cy.js": {
+    "time": 35000,
+    "weight": 35
+  },
+  "cypress/e2e/ui-tests/test-signup.cy.js": {
+    "time": 26000,
+    "weight": 26
+  },
+  "cypress/e2e/ui-tests/test-storage-settings.cy.js": {
+    "time": 34000,
+    "weight": 34
+  },
+  "cypress/e2e/ui-tests/test-superuser-functionality.cy.js": {
+    "time": 300000,
+    "weight": 300
+  },
+  "cypress/e2e/ui-tests/test-user-manage-app-settings.cy.js": {
+    "time": 85000,
+    "weight": 85
+  },
+  "cypress/e2e/ui-tests/test-user-manage-app-types.cy.js": {
+    "time": 119000,
+    "weight": 119
+  },
+  "cypress/e2e/ui-tests/test-user-manage-apps.cy.js": {
+    "time": 137000,
+    "weight": 137
+  },
+  "cypress/e2e/ui-tests/test-views-as-reader.cy.js": {
+    "time": 3000,
+    "weight": 3
+  }
+}
