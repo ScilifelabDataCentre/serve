@@ -1,9 +1,8 @@
 """
 DOI provisioning background task.
 
-This task sends app metadata to Invenio and mints a DOI when the app is eligible
-(e.g. public access, new image version). The task is optional (is_critical=False) so
-deployment is not blocked if DOI minting fails.
+This task sends app metadata to Invenio and reserves a DOI + publishes it
+if needed (e.g. public access, new image version).
 """
 
 from __future__ import annotations
@@ -81,7 +80,7 @@ def _build_additional_metadata(
 
 @TASK_REGISTRY.register(
     name="doi_provisioning",
-    is_critical=False,
+    is_critical=True,
     execution_order=3,
     app_types=["customapp", "dashapp", "shinyproxyapp", "shinyapp", "gradio", "streamlit"],
 )
@@ -140,20 +139,8 @@ class DOIProvisioningTask(BaseBackgroundTask):
 
         try:
             from doi_minting.services.invenio_svc import (
-                InvenioService,
                 save_metadata_to_invenio_then_mint_doi,
             )
-
-            invenio_svc = InvenioService()
-            is_eligible, reason = invenio_svc.is_app_eligible_for_doi(app_instance)
-            if not is_eligible:
-                logger.info(
-                    "DOI provisioning skipped for app %s (id=%s): %s",
-                    app_slug,
-                    instance_id,
-                    reason,
-                )
-                return {"skipped": True, "reason": reason}
 
             save_metadata_to_invenio_then_mint_doi(app_slug, instance_id, additional_metadata=additional_metadata)
             return {
@@ -162,7 +149,6 @@ class DOIProvisioningTask(BaseBackgroundTask):
                 "app_id": instance_id,
             }
         except Exception as e:
-            # Log but do not block deployment (task is optional)
             logger.warning(
                 "DOI provisioning failed for app %s (id=%s): %s",
                 app_slug,

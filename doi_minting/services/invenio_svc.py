@@ -116,67 +116,9 @@ class InvenioService:
                 return item.get("identifier")
         return None
 
-    def _get_latest_published_image(self, invenio_record_id: str) -> Optional[str]:
-        """Fetch the image identifier from the latest published version, cached briefly."""
-        cache_key = f"invenio:latest_image:{self.base_url}:{invenio_record_id}"
-        cached = cache.get(cache_key)
-        if cached is not None:
-            # "" = cached negative (distinguishes from cache miss).
-            return cached or None
-
-        try:
-            all_versions = self.client.get_all_versions(invenio_record_id)
-        except Exception as e:
-            logger.error(f"Error checking existing versions: {e}")
-            return None
-
-        hits = (all_versions or {}).get("hits", {}).get("hits") or []
-        dict_hits: list[dict[str, Any]] = [cast(dict[str, Any], hit) for hit in hits if isinstance(hit, dict)]
-        if not dict_hits:
-            return None
-
-        latest_hit = next(
-            (hit for hit in dict_hits if hit.get("versions", {}).get("is_latest")),
-            None,
-        )
-        if latest_hit is None:
-            latest_hit = max(dict_hits, key=_version_index)
-
-        latest_metadata = latest_hit.get("metadata") or {}
-        latest_related_identifiers = latest_metadata.get("related_identifiers", [])
-        latest_image = self._extract_image_identifier(latest_related_identifiers)
-        cache.set(cache_key, latest_image or "", _LATEST_IMAGE_CACHE_TTL_SECONDS)
-        return latest_image
-
-    def matches_latest_version_image(self, app_instance: Any, image_value: str) -> bool:
-        """
-        Check whether the given image matches the latest published Invenio version.
-
-        Args:
-            app_instance: The application instance
-            image_value: The image identifier to check
-
-        Returns:
-            True if the latest published version already uses this image, False otherwise
-        """
-        invenio_record_id = getattr(app_instance, "invenio_record_id", None)
-        if not invenio_record_id:
-            logger.debug(f"No existing Invenio record ID for app, image '{image_value}' is new.")
-            return False
-
-        latest_image = self._get_latest_published_image(invenio_record_id)
-        logger.debug(f"Latest published image version: {latest_image}")
-
-        if latest_image == image_value:
-            logger.info(f"Image '{image_value}' already matches the latest published version.")
-            return True
-
-        return False
-
     def is_app_access_public(self, app_instance: Any) -> tuple[bool, str]:
         """
-        Check if DOI minting is allowed for the app's current access level.
-
+        Check if the current app accessibility level is public.
         Args:
             app_instance: The application instance to check
 
@@ -188,32 +130,10 @@ class InvenioService:
         # Check if app is public
         if access != "public":
             if access:
-                return False, f"DOI minting is only available for Public apps. Visibility level: {access}"
-            return False, "DOI minting is only available for public apps."
+                return False, f"Visibility level: {access}"
+            return False, "Not a public app."
 
         return True, "App is public"
-
-    def is_app_eligible_for_doi(self, app_instance: Any) -> tuple[bool, str]:
-        """
-        Check if the application is eligible for DOI minting.
-
-        Args:
-            app_instance: The application instance to check
-
-        Returns:
-            Tuple of (is_eligible, reason)
-        """
-        is_public, reason = self.is_app_access_public(app_instance)
-        if not is_public:
-            return False, reason
-
-        # Check if it's a new image version
-        image_value = resolve_app_image(app_instance)
-        if not image_value:
-            return False, "DOI minting requires an app image."
-        if self.matches_latest_version_image(app_instance, image_value):
-            return False, f"Image '{image_value}' already matches the latest published version"
-        return True, "App is eligible for DOI minting"
 
     def _are_subjects_different(self, current_subjects: Any, new_subjects: Any) -> bool:
         """Compare subjects lists with case-insensitive and order-independent comparison."""
@@ -329,16 +249,18 @@ class InvenioService:
         self,
         app_instance: Any,
         invenio_record: InvenioRecord,
+        publish: bool = False,
     ) -> dict[str, Any]:
         """
-        Create a new Invenio record for the application.
+        Create a new Invenio draft record, reserve a DOI, and optionally publish it.
 
         Args:
             app_instance: The application instance
             invenio_record: Complete Invenio record object with metadata, access, and files config
+            publish: If True, publish the draft after reserving the DOI. If False, leave it as a draft.
 
         Returns:
-            Published record data
+            The published record data if publish=True, otherwise the draft data with reserved DOI.
         """
         logger.info(f"Creating new Invenio record for app: {app_instance.id}")
 
@@ -352,19 +274,29 @@ class InvenioService:
             draft_with_doi = self.client.reserve_doi(draft["id"])
             reserved_doi = draft_with_doi.get("pids", {}).get("doi", {}).get("identifier", "Unknown")
             logger.debug(f"DOI reserved: {reserved_doi}")
-        except Exception as doi_error:
-            logger.error(f"Could not reserve DOI: {doi_error}")
+        except Exception:
+            logger.exception("Could not reserve DOI for draft %s", draft["id"])
+            raise
 
-        # Publish record
-        published_record = self.client.publish_draft(draft["id"])
-        logger.info(f"Successfully published Invenio record with ID: {published_record['id']}")
-        if not isinstance(published_record, dict):
+        # Publish record if needed
+        if not publish:
+            logger.info(f"Created Invenio draft with reserved DOI, not publishing. Draft ID: {draft['id']}")
+            return draft_with_doi
+
+        record_result = self.client.publish_draft(draft_with_doi["id"])
+        if not isinstance(record_result, dict):
             raise TypeError("publish_draft did not return a dict")
-        return published_record
 
-    def create_new_version(self, app_instance: Any, metadata: InvenioMetadata) -> dict[str, Any]:
+        logger.info(f"Successfully published Invenio record with ID: {record_result['id']}")
+        return record_result
+
+    def create_new_version(
+        self,
+        app_instance: Any,
+        metadata: InvenioMetadata,
+    ) -> dict[str, Any]:
         """
-        Create a new version of an existing Invenio record.
+        Create a new version of an existing published Invenio record.
 
         Args:
             app_instance: The application instance
@@ -373,16 +305,16 @@ class InvenioService:
         Returns:
             Published new version data
         """
-        logger.info(f"Creating new version for existing Invenio record: {app_instance.invenio_record_id}")
+        logger.info(f"Creating new version for existing published Invenio record: {app_instance.invenio_record_id}")
 
         # Create new version
         new_version = self.client.create_new_version(app_instance.invenio_record_id)
         logger.debug(f"Created new version with ID: {new_version['id']}")
 
-        # Get current draft
+        # Get current record
         current_draft = self.client.get_draft(new_version["id"])
 
-        # Update draft with new metadata
+        # Update record with new metadata
         metadata_dict = metadata.model_dump(mode="json")
         updated_metadata = {**metadata_dict}
 
@@ -399,19 +331,22 @@ class InvenioService:
         # Reserve DOI for new version
         try:
             logger.debug(f"Reserving internal DOI for new version: {updated_version['id']}")
-            version_with_doi = self.client.reserve_doi(updated_version["id"])
-            reserved_doi = version_with_doi["pids"]["doi"]["identifier"]
+            updated_version_with_doi = self.client.reserve_doi(updated_version["id"])
+            reserved_doi = updated_version_with_doi["pids"]["doi"]["identifier"]
             logger.debug(f"DOI reserved: {reserved_doi}")
-        except Exception as doi_error:
-            logger.error(f"Could not reserve DOI: {doi_error}")
+        except Exception:
+            logger.exception("Could not reserve DOI for new version %s", updated_version["id"])
+            raise
 
         # Publish new version
-        published_version = self.client.publish_draft(updated_version["id"])
-        logger.info(f"Published new version: {published_version['id']}")
+        record_result = self.client.publish_draft(updated_version_with_doi["id"])
 
-        if not isinstance(published_version, dict):
+        if not isinstance(record_result, dict):
             raise TypeError("publish_draft did not return a dict")
-        return published_version
+
+        logger.info(f"Published new version: {record_result['id']}")
+
+        return record_result
 
     def edit_and_publish_record(
         self,
@@ -457,16 +392,12 @@ class InvenioService:
         logger.debug(f"Draft updated with new metadata: {updated_draft}")
 
         # Step 3: Publish the draft
-        published_record = self.client.publish_draft(draft_id)
-        record_id_val = None
-        if hasattr(published_record, "id"):
-            record_id_val = getattr(published_record, "id", None)
-        elif isinstance(published_record, dict):
-            record_id_val = published_record.get("id", None)
-        logger.info(f"Published updated record: {record_id_val}")
-        if not isinstance(published_record, dict):
+        record_result = self.client.publish_draft(draft_id)
+        if not isinstance(record_result, dict):
             raise TypeError("publish_draft did not return a dict")
-        return published_record
+
+        logger.info(f"Published updated record: {record_result.get('id')}")
+        return record_result
 
     def update_app_instance(self, app_instance: Any, record_id: str, doi: str) -> None:
         """
@@ -475,7 +406,7 @@ class InvenioService:
         Args:
             app_instance: The application instance to update
             record_id: The Invenio record ID
-            doi: The DOI identifier
+            doi: The reserved DOI identifier
         """
         app_instance.invenio_record_id = record_id
         app_instance.app_doi = doi
@@ -485,7 +416,11 @@ class InvenioService:
 
     def get_record_data(self, record_id: str) -> Optional[InvenioRecord]:
         """
-        Retrieve record for a given Invenio record ID as an InvenioRecord Pydantic model.
+        Retrieve a published Invenio record for a given Invenio ID as an
+        InvenioRecord Pydantic model.
+
+        This method is used by the public /records/<id>/ endpoint, so it should
+        only retrieve published records.
         Args:
             record_id: The Invenio record ID.
         Returns:
@@ -497,15 +432,15 @@ class InvenioService:
 
         try:
             record_dict = self.client.get_record(record_id)
+
             if not isinstance(record_dict, dict):
-                logger.error(f"Record data for {record_id} is not a dictionary")
+                logger.error(f"Invenio record data for {record_id} is not a dictionary")
                 return None
 
-            # Parse the dictionary into InvenioRecord Pydantic model
             try:
                 return InvenioRecord(**record_dict)
             except Exception as validation_error:
-                logger.error(f"Validation error for InvenioRecord {record_id}: {validation_error}")
+                logger.error(f"Validation error for published Invenio record {record_id}: {validation_error}")
                 return None
 
         except RecordDeletedError as e:
@@ -513,7 +448,47 @@ class InvenioService:
             raise
 
         except Exception as e:
-            logger.error(f"Error retrieving record {record_id}: {e}")
+            logger.error(f"Error retrieving published Invenio record {record_id}: {e}")
+            return None
+
+    def get_current_record_data(self, record_id: str) -> Optional[InvenioRecord]:
+        """
+        Retrieve the current Invenio object for a given ID as an InvenioRecord.
+
+        The ID may refer either to an unpublished draft or to a published record.
+        This should be used by internal form edit workflows, not by the public
+        /records/<id>/ endpoint.
+        Args:
+            record_id: The Invenio record ID.
+        Returns:
+            InvenioRecord instance or None if not found/invalid.
+        """
+        if not record_id:
+            logger.error("Cannot retrieve Invenio object: record_id is None or empty")
+            return None
+
+        try:
+            record_dict, is_draft = self.get_current_invenio_object(record_id)
+
+            if not isinstance(record_dict, dict):
+                logger.error(f"Invenio object data for {record_id} is not a dictionary")
+                return None
+
+            try:
+                return InvenioRecord(**record_dict)
+            except Exception as validation_error:
+                logger.error(
+                    f"Validation error for Invenio object {record_id} "
+                    f"({'draft' if is_draft else 'published record'}): {validation_error}"
+                )
+                return None
+
+        except RecordDeletedError as e:
+            logger.warning(f"Record deleted for record_id={record_id}: {e}")
+            raise
+
+        except Exception as e:
+            logger.error(f"Error retrieving Invenio object {record_id}: {e}")
             return None
 
     def extract_app_metadata(self, record: Optional[InvenioRecord]) -> Optional["InvenioMetadata"]:
@@ -1334,11 +1309,76 @@ class InvenioService:
         except Exception as e:
             logger.error(f"Error logging version information: {e}")
 
+    def update_existing_draft(
+        self,
+        record_id: str,
+        current_draft: dict[str, Any],
+        metadata: InvenioMetadata,
+        publish: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Update an existing unpublished Invenio draft.
+
+        The draft should already have a reserved DOI from the first time it was
+        created. If the app is now public, publish this same draft using that
+        previously reserved DOI.
+        """
+        logger.info(f"Updating existing Invenio draft with ID: {record_id}")
+
+        existing_doi = current_draft.get("pids", {}).get("doi", {}).get("identifier")
+        if not existing_doi:
+            raise ValueError(
+                f"Existing Invenio draft {record_id} does not have a reserved DOI. "
+                "Expected a DOI to have been reserved when the draft was first created."
+            )
+
+        updated_draft = self.client.update_draft(
+            record_id=record_id,
+            metadata=metadata.model_dump(mode="json", by_alias=True),
+            access=current_draft.get("access"),
+            files={"enabled": False},
+            custom_fields=current_draft.get("custom_fields"),
+            pids=current_draft.get("pids"),
+        )
+        logger.debug(f"Updated existing draft ID: {updated_draft['id']}")
+
+        if not publish:
+            logger.info(f"Updated Invenio draft, not publishing. Draft ID: {updated_draft['id']}")
+            return updated_draft
+
+        record_result = self.client.publish_draft(updated_draft["id"])
+        if not isinstance(record_result, dict):
+            raise TypeError("publish_draft did not return a dict")
+
+        logger.info(f"Published existing draft: {record_result['id']}")
+        return record_result
+
+    def get_current_invenio_object(
+        self,
+        record_id: str,
+    ) -> tuple[dict[str, Any], bool]:
+        """
+        Return the current Invenio object and whether it is an unpublished draft.
+
+        This is needed because app_instance.invenio_record_id may currently contain
+        either a draft ID or a published record ID.
+        """
+        try:
+            draft = self.client.get_draft(record_id)
+        except InvenioClientRequestError:
+            record = self.client.get_record(record_id)
+            return record, False
+
+        return draft, not draft.get("is_published", False)
+
     def process_app_metadata(
         self, app_slug: str, app_id: int, additional_metadata: Optional[AdditionalMetadata] = None
     ) -> None:
         """
-        Process application metadata and mint DOI.
+        Process application metadata and mint or reserve DOI.
+
+        Public apps are published after DOI reservation. Non-public apps are kept
+        as Invenio drafts after DOI reservation.
 
         Args:
             app_slug: Application slug for registry lookup
@@ -1363,26 +1403,39 @@ class InvenioService:
         logger.info(f"Processing app '{app_data.name}' with image '{app_data.image}'")
 
         # Check if the app is publicly accessible
-        is_public, reason = self.is_app_access_public(app_instance)
-
-        # Early exit for non-public apps
-        if not is_public:
-            logger.info(f"Skipping DOI minting: {reason}")
-            return
-
-        logger.debug("App is eligible for DOI minting or updating, proceeding...")
+        is_public, access_reason = self.is_app_access_public(app_instance)
+        if is_public:
+            logger.info("App is public. Invenio record will be published after DOI reservation.")
+        else:
+            logger.info(f"App is not public. Invenio record will remain a draft after DOI reservation: {access_reason}")
 
         # Generate new metadata for comparison
         invenio_record = self.generate_invenio_record(app_instance, additional_metadata=additional_metadata)
 
         # Get current metadata once (if record exists)
         current_metadata_obj = None
+        current_draft: Optional[dict[str, Any]] = None
+        is_existing_draft = False
+
         if app_instance.invenio_record_id:
-            record = self.get_record_data(app_instance.invenio_record_id)
-            if record:
-                current_metadata_obj = self.extract_app_metadata(record)
-        else:
-            logger.debug("App instance has no Invenio record ID - this is expected for new apps")
+            try:
+                current_object, is_existing_draft = self.get_current_invenio_object(app_instance.invenio_record_id)
+
+                if current_object:
+                    current_metadata_obj = InvenioRecord(**current_object).metadata
+
+                    if is_existing_draft:
+                        current_draft = current_object
+
+            except RecordDeletedError:
+                raise
+            except Exception:
+                logger.exception(
+                    "Could not retrieve current Invenio object for app %s, record_id=%s",
+                    app_instance.pk,
+                    app_instance.invenio_record_id,
+                )
+                raise
 
         # Check for changes using the fetched metadata
         metadata_change, metadata_reason = self.has_app_metadata_changed(
@@ -1395,30 +1448,46 @@ class InvenioService:
             f"Metadata change: {metadata_change} ({metadata_reason})"
         )
 
-        logger.debug("App is eligible for DOI minting or updating, proceeding...")
-
         try:
-            # Prioritize image change (new version) over metadata change (edit record)
-            if image_change:
+            record_result: Optional[dict[str, Any]] = None
+
+            if is_existing_draft and current_draft:
+                logger.info(
+                    "Existing Invenio record is still a draft. Updating draft instead of creating a new version."
+                )
+                record_result = self.update_existing_draft(
+                    record_id=app_instance.invenio_record_id,
+                    current_draft=current_draft,
+                    metadata=invenio_record.metadata,
+                    publish=is_public,
+                )
+            elif not app_instance.invenio_record_id:
+                logger.info(f"Creating a new Invenio record for app '{app_data.name}'")
+                record_result = self.create_new_record(
+                    app_instance,
+                    invenio_record,
+                    publish=is_public,
+                )
+            elif image_change:
                 logger.info(f"App image has changed: {image_reason}. Creating new version.")
-                published_record = self.create_new_version(app_instance, invenio_record.metadata)
+                record_result = self.create_new_version(
+                    app_instance,
+                    invenio_record.metadata,
+                )
             elif metadata_change:
                 logger.info(f"Metadata has changed: {metadata_reason}. Updating existing record.")
-                published_record = self.edit_and_publish_record(
+                record_result = self.edit_and_publish_record(
                     record_id=app_instance.invenio_record_id,
                     metadata=invenio_record.metadata.model_dump(mode="json", by_alias=True),
                     files={"enabled": False},
                 )
-            elif not app_instance.invenio_record_id or app_instance.invenio_record_id == "":
-                logger.info(f"Creating a new Invenio record for app '{app_data.name}'")
-                published_record = self.create_new_record(app_instance, invenio_record)
             else:
-                logger.info(f"Creating a new version of Invenio record for app '{app_data.name}'")
-                published_record = self.create_new_version(app_instance, invenio_record.metadata)
+                logger.info(f"No Invenio metadata or image changes detected for app '{app_data.name}'.")
+                return
 
             # Extract DOI and update app instance
-            published_doi = published_record.get("pids", {}).get("doi", {}).get("identifier", "")
-            self.update_app_instance(app_instance, published_record["id"], published_doi)
+            doi = record_result.get("pids", {}).get("doi", {}).get("identifier", "")
+            self.update_app_instance(app_instance, record_result["id"], doi)
 
             # Allow processing time and log results
             time.sleep(3)
@@ -1427,7 +1496,10 @@ class InvenioService:
             logger.info(f"DOI: {app_instance.app_doi}")
 
             # Log version information
-            self.log_version_information(app_instance)
+            if record_result.get("is_published"):
+                self.log_version_information(app_instance)
+            else:
+                logger.debug("Record is still a draft; skipping published version information logging.")
 
         except Exception as e:
             logger.error(f"Error in process_app_metadata: {e}")
