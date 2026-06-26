@@ -98,7 +98,7 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
 
 
 @pytest.mark.django_db
-def test_doi_provisioning_task_includes_related_publications_metadata(app_instance):
+def test_doi_provisioning_task_includes_related_publications_datasets_metadata(app_instance):
     related_publications_payload = [
         {
             "doi": "https://doi.org/10.1101/2026.01.01.123456",
@@ -127,7 +127,7 @@ def test_doi_provisioning_task_includes_related_publications_metadata(app_instan
             task_kwargs_by_task_name={
                 "doi_provisioning": {
                     "language": "eng",
-                    "related_publications": related_publications_payload,
+                    "related_publications_datasets": related_publications_payload,
                 }
             },
         )
@@ -137,7 +137,7 @@ def test_doi_provisioning_task_includes_related_publications_metadata(app_instan
 
     additional_metadata = mock_mint.call_args.kwargs["additional_metadata"]
 
-    assert additional_metadata["related_publications"] == related_publications_payload
+    assert additional_metadata["related_publications_datasets"] == related_publications_payload
 
 
 @pytest.fixture()

@@ -542,7 +542,7 @@ def test_forms_submit_funding_related_publications_and_enqueue_doi_background_ta
     assert called_app_slug == app_instance.app.slug
     assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
     assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
-    assert task_kwargs_by_task_name["doi_provisioning"]["related_publications"] == related_publications_payload
+    assert task_kwargs_by_task_name["doi_provisioning"]["related_publications_datasets"] == related_publications_payload
 
 
 @pytest.mark.django_db
@@ -594,7 +594,7 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
     assert called_app_slug == app_instance.app.slug
     assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
     assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
-    assert task_kwargs_by_task_name["doi_provisioning"]["related_publications"] == related_publications_payload
+    assert task_kwargs_by_task_name["doi_provisioning"]["related_publications_datasets"] == related_publications_payload
 
 
 @pytest.mark.django_db
@@ -1009,7 +1009,7 @@ def test_apply_additional_metadata_maps_funding_entries():
     ]
 
 
-def test_apply_additional_metadata_maps_related_publications_entries():
+def test_apply_additional_metadata_maps_related_publications_datasets_entries():
     service = InvenioService(mock_mode=True)
 
     target_metadata = {
@@ -1029,10 +1029,14 @@ def test_apply_additional_metadata_maps_related_publications_entries():
     }
 
     extra_metadata = {
-        "related_publications": [
+        "related_publications_datasets": [
             {
                 "doi": "https://doi.org/10.1101/2026.01.01.123456",
                 "publication_type": "Preprint",
+            },
+            {
+                "doi": "https://doi.org/10.5281/zenodo.1234567",
+                "publication_type": "Dataset",
             },
         ]
     }
@@ -1064,6 +1068,18 @@ def test_apply_additional_metadata_maps_related_publications_entries():
             },
             "resource_type": {
                 "id": "publication-preprint",
+                "title": None,
+            },
+        },
+        {
+            "identifier": "https://doi.org/10.5281/zenodo.1234567",
+            "scheme": "doi",
+            "relation_type": {
+                "id": "issupplementto",
+                "title": None,
+            },
+            "resource_type": {
+                "id": "dataset",
                 "title": None,
             },
         },
