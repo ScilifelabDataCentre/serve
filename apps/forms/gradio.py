@@ -6,6 +6,7 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.field.widget import FlavorSelect
 from apps.forms.mixins import (
     ContainerImageMixin,
     CreatorsMixin,
@@ -19,7 +20,9 @@ __all__ = ["GradioForm"]
 
 
 class GradioForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, CreatorsMixin, AppBaseForm):
-    flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
+    flavor = forms.ModelChoiceField(
+        queryset=Flavor.objects.none(), required=False, empty_label=None, widget=FlavorSelect
+    )
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
     funding_sources_json = forms.CharField(required=False, widget=forms.HiddenInput(), label="Funding sources")

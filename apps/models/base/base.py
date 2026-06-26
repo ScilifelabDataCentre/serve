@@ -236,6 +236,36 @@ class BaseAppInstance(models.Model):
         group = "success" if status in status_success else "warning" if status in status_warning else "danger"
         return group
 
+    @property
+    def deletion_threshold_days(self) -> int | None:
+        """How many days this app may live before auto-deletion, or None if it is not auto-deleted.
+
+        Mirrors apps.tasks.delete_old_objects.
+        """
+        from apps.gpu import instance_holds_gpu
+
+        if not self.app_id:
+            return None
+
+        category = self.app.category
+        category_name = category.name if category else None
+        if category_name != "Develop" or self.app.slug == "mlflow":
+            return None
+
+        return settings.GPU_DEVELOP_APP_MAX_AGE_DAYS if instance_holds_gpu(self) else settings.DEVELOP_APP_MAX_AGE_DAYS
+
+    @property
+    def scheduled_deletion_at(self) -> datetime | None:
+        """When this app is scheduled to be auto-deleted, or None if it is not.
+
+        The deletion runs on a periodic schedule, so the real removal may happen
+        somewhat later than this time.
+        """
+        days = self.deletion_threshold_days
+        if not self.created_on or days is None:
+            return None
+        return self.created_on + timedelta(days=days)
+
     url = models.URLField(blank=True, null=True)
     updated_on = models.DateTimeField(auto_now=True)
     upload_size = models.PositiveIntegerField(default=100, help_text="Max upload size in MB")

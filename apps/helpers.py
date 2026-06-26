@@ -559,6 +559,11 @@ def create_instance_from_form(
                 status_object.time = timezone.now()
                 status_object.save(update_fields=["status", "time"])
 
+    # Re-check GPU capacity under lock before saving.
+    from apps.gpu import ensure_gpu_capacity
+
+    ensure_gpu_capacity(instance)
+
     instance_id = save_instance_and_related_data(instance, form)
     if do_deploy:
         reset_k8s_user_app_status_for_deployment(instance)

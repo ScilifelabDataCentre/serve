@@ -46,6 +46,7 @@ from projects.permissions import CachedProjectPermissionRequiredMixin
 from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
+from .gpu import GpuUnavailableError
 from .helpers import (
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
@@ -361,7 +362,7 @@ class CreateApp(View):
         if form is None:
             raise PermissionDenied()
 
-        if not form.is_valid():
+        def render_form_with_errors():
             form_header = "Update" if app_id else "Create"
             return render(
                 request,
@@ -377,8 +378,17 @@ class CreateApp(View):
                 },
             )
 
+        if not form.is_valid():
+            return render_form_with_errors()
+
         # Otherwise we can create the instance
-        result = create_instance_from_form(form, project, app_slug, app_id)
+        try:
+            result = create_instance_from_form(form, project, app_slug, app_id)
+        except GpuUnavailableError as exc:
+            # Another request may have claimed the last GPU after this form
+            # validated, check and return as a form error if needed.
+            form.add_error("flavor", exc.ui_error)
+            return render_form_with_errors()
         # Redirects everyone (including admins) after creation; admins can still
         # open the deployment pages (/progress, /details, /tasks) directly.
         if not form.instance.app.should_display_deployment_details:
@@ -509,7 +519,7 @@ class AppDetailsView(View):
         tags = list(
             dict.fromkeys(
                 item.get("subject", "")
-                for item in (instance.subjects_keywords or [])
+                for item in (getattr(instance, "subjects_keywords", None) or [])
                 if isinstance(item, dict) and item.get("subject")
             )
         )

@@ -31,7 +31,7 @@
 {% endblock %}
 
 {% block page %}
-<div class="container px-0 apps-page container-background">
+<main id="main-content" class="container px-0 apps-page container-background">
     <div id="apps-status-bar" class="w-100">
         <div class="apps-status-bar d-flex flex-wrap align-items-center justify-content-between ps-3 pe-2 py-2">
                 <div class="apps-status-title" data-cy="apps-status-title">
@@ -81,50 +81,50 @@
                         <div class="container-fluid d-flex flex-wrap ps-2 pe-2">
                             <ul class="nav nav-pills serve-filter-nav justify-content-center w-100">
                                 <li class="nav-item ms-1 mb-1">
-                                    <a class="nav-link position-relative rounded-pill active"
+                                    <button type="button"
+                                       class="nav-link position-relative rounded-pill active"
                                        data-short="All"
                                        data-filter-target="all"
-                                       aria-label="All Filters"
                                        onclick="showFilterSection('all')">
                                         <span class="filter-label">All Filters</span>
                                         <span class="filter-icon" aria-hidden="true"><i class="fas fa-sliders"></i></span>
-                                    </a>
+                                    </button>
                                 </li>
                                 <li class="nav-item ms-1 mb-1">
-                                    <a class="nav-link position-relative rounded-pill"
+                                    <button type="button"
+                                       class="nav-link position-relative rounded-pill"
                                        data-short="Type"
                                        data-filter-target="app-type"
-                                       aria-label="Frameworks"
                                        title="Frameworks"
                                        onclick="showFilterSection('app-type')">
                                         <span class="filter-label">Frameworks</span>
                                         <span class="filter-icon" aria-hidden="true"><i class="fas fa-cube"></i></span>
                                         <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
-                                    </a>
+                                    </button>
                                 </li>
                                 <li class="nav-item ms-1 mb-1">
-                                    <a class="nav-link position-relative rounded-pill"
+                                    <button type="button"
+                                       class="nav-link position-relative rounded-pill"
                                        data-short="Org"
                                        data-filter-target="organization"
-                                       aria-label="Organizations"
                                        title="Organizations"
                                        onclick="showFilterSection('organization')">
                                         <span class="filter-label">Organizations</span>
                                         <span class="filter-icon" aria-hidden="true"><i class="fas fa-graduation-cap"></i></span>
                                         <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
-                                    </a>
+                                    </button>
                                 </li>
                                 <li class="nav-item ms-1 mb-1">
-                                    <a class="nav-link position-relative rounded-pill"
+                                    <button type="button"
+                                       class="nav-link position-relative rounded-pill"
                                        data-short="Key"
                                        data-filter-target="keyword"
-                                       aria-label="Keywords"
                                        title="Keywords"
                                        onclick="showFilterSection('keyword')">
                                         <span class="filter-label">Keywords</span>
                                         <span class="filter-icon" aria-hidden="true"><i class="fas fa-tag"></i></span>
                                         <span class="card-count-tag card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
-                                    </a>
+                                    </button>
                                 </li>
                             </ul>
                         </div>
@@ -321,7 +321,7 @@
         </div>
 
         </div>
-    </div>
+    </main>
 
 <div class="offcanvas offcanvas-bottom d-lg-none"
      tabindex="-1"
@@ -354,35 +354,39 @@
                 <div class="container-fluid d-flex flex-wrap ps-0">
                     <ul class="nav nav-pills serve-filter-nav justify-content-center w-100">
                         <li class="nav-item me-1 mb-1">
-                            <a class="nav-link position-relative rounded-pill active"
+                            <button type="button"
+                               class="nav-link position-relative rounded-pill active"
                                data-filter-target="all"
                                onclick="showFilterSection('all')">
                                 All Filters
-                            </a>
+                            </button>
                         </li>
                         <li class="nav-item me-1 mb-1">
-                            <a class="nav-link position-relative rounded-pill"
+                            <button type="button"
+                               class="nav-link position-relative rounded-pill"
                                data-filter-target="app-type"
                                onclick="showFilterSection('app-type')">
                                 Frameworks
                                 <span class="card-count-tag card-app-type-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
-                            </a>
+                            </button>
                         </li>
                         <li class="nav-item me-1 mb-1">
-                            <a class="nav-link position-relative rounded-pill"
+                            <button type="button"
+                               class="nav-link position-relative rounded-pill"
                                data-filter-target="organization"
                                onclick="showFilterSection('organization')">
                                 Organizations
                                 <span class="card-count-tag card-institution-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
-                            </a>
+                            </button>
                         </li>
                         <li class="nav-item me-1 mb-1">
-                            <a class="nav-link position-relative rounded-pill"
+                            <button type="button"
+                               class="nav-link position-relative rounded-pill"
                                data-filter-target="keyword"
                                onclick="showFilterSection('keyword')">
                                 Keywords
                                 <span class="card-count-tag card-keyword-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-grape-075 visually-hidden">0</span>
-                            </a>
+                            </button>
                         </li>
                     </ul>
                 </div>
