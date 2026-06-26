@@ -6,7 +6,6 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.template import Context, Template
 from django.test import TestCase
-from sympy.physics.units import volume
 
 from apps.forms import CustomAppForm
 from apps.forms.dash import DashForm
@@ -24,7 +23,12 @@ from apps.models import (
     VolumeInstance,
 )
 from apps.models.app_types.custom.custom import validate_default_url_subpath
-from doi_minting.services.schemas import Award, Funder, Funding, RelatedPublication
+from doi_minting.services.schemas import (
+    Award,
+    Funder,
+    Funding,
+    RelatedPublicationDataset,
+)
 from projects.models import Flavor, PersistentVolumeMountPath, Project
 
 User = get_user_model()
@@ -141,7 +145,7 @@ class CustomAppFormTest(BaseAppFormTest):
 
     @patch("apps.forms.base.InvenioService")
     @patch("apps.forms.base.waffle.switch_is_active", return_value=True)
-    def test_edit_form_prefills_language_funding_and_related_publications_from_invenio(
+    def test_edit_form_prefills_language_funding_related_publications_datasets_from_invenio(
         self,
         _mock_switch,
         mock_invenio_service,
@@ -169,11 +173,15 @@ class CustomAppFormTest(BaseAppFormTest):
             )
         ]
 
-        related_publications = [
-            RelatedPublication(
+        related_publications_datasets = [
+            RelatedPublicationDataset(
                 doi="https://doi.org/10.123/12345",
                 publication_type="Preprint",
-            )
+            ),
+            RelatedPublicationDataset(
+                doi="https://doi.org/10.5281/zenodo.1234567",
+                publication_type="Dataset",
+            ),
         ]
 
         expected_funding = [
@@ -193,6 +201,12 @@ class CustomAppFormTest(BaseAppFormTest):
             }
         ]
 
+        expected_related_datasets = [
+            {
+                "doi": "https://doi.org/10.5281/zenodo.1234567",
+            }
+        ]
+
         mock_service_instance = mock_invenio_service.return_value
         mock_app_metadata = {
             "metadata": {
@@ -204,7 +218,7 @@ class CustomAppFormTest(BaseAppFormTest):
         mock_service_instance.extract_app_metadata.return_value = mock_app_metadata
         mock_service_instance.extract_language_id.return_value = "swe"
         mock_service_instance.extract_funding.return_value = funding
-        mock_service_instance.extract_related_publications.return_value = related_publications
+        mock_service_instance.extract_related_publications_datasets.return_value = related_publications_datasets
         mock_service_instance.extract_creators.return_value = []
 
         form = CustomAppForm(project_pk=self.project.pk, instance=instance)
@@ -218,6 +232,54 @@ class CustomAppFormTest(BaseAppFormTest):
         self.assertEqual(
             form.fields["related_publications_json"].initial,
             json.dumps(expected_related_publications),
+        )
+
+        self.assertIn("related_datasets_json", form.fields)
+        self.assertEqual(
+            form.fields["related_datasets_json"].initial,
+            json.dumps(expected_related_datasets),
+        )
+
+    def test_related_datasets_json_clean_adds_dataset_publication_type(self):
+        data = self.valid_data.copy()
+        data["related_datasets_json"] = json.dumps(
+            [
+                {
+                    "doi": "https://doi.org/10.5281/zenodo.1234567",
+                }
+            ]
+        )
+
+        form = CustomAppForm(data, project_pk=self.project.pk)
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(
+            json.loads(form.cleaned_data["related_datasets_json"]),
+            [
+                {
+                    "doi": "https://doi.org/10.5281/zenodo.1234567",
+                    "publication_type": "Dataset",
+                }
+            ],
+        )
+
+    def test_related_datasets_json_rejects_invalid_doi(self):
+        data = self.valid_data.copy()
+        data["related_datasets_json"] = json.dumps(
+            [
+                {
+                    "doi": "10.5281/zenodo.1234567",
+                }
+            ]
+        )
+
+        form = CustomAppForm(data, project_pk=self.project.pk)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("related_datasets_json", form.errors)
+        self.assertIn(
+            "Dataset DOI must start with https://doi.org/ and include a DOI value.",
+            str(form.errors["related_datasets_json"]),
         )
 
 
@@ -278,15 +340,23 @@ class FundingFieldPresenceTest(BaseAppFormTest):
             self.assertIn("funding_sources_json", form.fields, f"Missing funding field in {form_class.__name__}")
 
 
-class RelatedPublicationsFieldPresenceTest(BaseAppFormTest):
-    related_publications_forms = [CustomAppForm, DashForm, GradioForm, ShinyForm, StreamlitForm]
+class RelatedPublicationDatasetsFieldPresenceTest(BaseAppFormTest):
+    related_work_forms = [CustomAppForm, DashForm, GradioForm, ShinyForm, StreamlitForm]
 
-    def test_related_publications_field_always_present_with_doi_enabled(self):
-        """DOI functionality is always enabled, so funding field should always be present."""
-        for form_class in self.related_publications_forms:
+    def test_related_publications_and_datasets_fields_always_present_with_doi_enabled(self):
+        """DOI functionality is always enabled, so related work fields should always be present."""
+        for form_class in self.related_work_forms:
             form = form_class(project_pk=self.project.pk)
+
             self.assertIn(
-                "related_publications_json", form.fields, f"Missing related publications field in {form_class.__name__}"
+                "related_publications_json",
+                form.fields,
+                f"Missing related publications field in {form_class.__name__}",
+            )
+            self.assertIn(
+                "related_datasets_json",
+                form.fields,
+                f"Missing related datasets field in {form_class.__name__}",
             )
 
 

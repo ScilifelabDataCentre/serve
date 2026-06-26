@@ -20,7 +20,9 @@ class AdditionalMetadata(TypedDict, total=False):
     subjects: list[Subject] | None  # List of tags/keywords for the record
     creators: list[Creator] | None  # List of Creator objects for the record
     funding: list[Funding] | None  # List of funding entries for the record
-    related_publications: list[RelatedPublication] | None  # List of related publications for the record
+    related_publications_datasets: list[
+        RelatedPublicationDataset
+    ] | None  # List of related publications/datasets for the record
 
 
 # ============================================================================
@@ -204,6 +206,7 @@ PublicationResourceTypeId = Literal[
     "BookChapter",
     "ConferencePaper",
     "ConferenceProceeding",
+    "Dataset",
     "DataPaper",
     "Dissertation",
     "JournalArticle",
@@ -213,8 +216,8 @@ PublicationResourceTypeId = Literal[
 ]
 
 
-class RelatedPublication(BaseModel):
-    """Related publication submitted from the app form."""
+class RelatedPublicationDataset(BaseModel):
+    """Related publication or dataset submitted from the app form."""
 
     doi: str
     publication_type: PublicationResourceTypeId
@@ -224,9 +227,9 @@ class RelatedPublication(BaseModel):
     def validate_doi_url(cls, v: str) -> str:
         doi = v.strip()
         if not doi.startswith("https://doi.org/"):
-            raise ValueError("Publication DOI must start with https://doi.org/")
+            raise ValueError("Publication/dataset DOI must start with https://doi.org/")
         if doi == "https://doi.org/":
-            raise ValueError("Publication DOI must include a DOI value after https://doi.org/")
+            raise ValueError("Publication/dataset DOI must include a DOI value after https://doi.org/")
         return doi
 
 

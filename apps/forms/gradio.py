@@ -28,6 +28,11 @@ class GradioForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, 
         widget=forms.HiddenInput(),
         label="Related publications and preprints",
     )
+    related_datasets_json = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Related datasets",
+    )
     language = forms.ChoiceField(
         choices=AppBaseForm.LANGUAGE_CHOICES,
         required=False,
@@ -106,6 +111,16 @@ class GradioForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, 
                     tooltip=False,
                     label="Related publications and preprints",
                     template="apps/related_publications_field.html",
+                )
+            )
+
+        if "related_datasets_json" in self.fields:
+            general_fields.append(
+                SRVCommonDivField(
+                    "related_datasets_json",
+                    tooltip=False,
+                    label="Related datasets",
+                    template="apps/related_datasets_field.html",
                 )
             )
 

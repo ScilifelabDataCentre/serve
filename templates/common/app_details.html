@@ -157,7 +157,7 @@
         </div>
       </div>
 
-    {% if related_publications %}
+    {% if related_work %}
     <div class="card shadow mb-4">
         <div class="card-header">
           <h2 class="h5 mb-0">Related work</h2>
@@ -165,11 +165,11 @@
         <div class="card-body">
           <div class="row">
             <div class="col"></div>
-            {% for publication in related_publications %}
+            {% for work in related_work %}
                     <span class="mb-2">
-                    <span class="fw-semibold">{{ publication.type }}:</span>
-                    <a href="{{ publication.doi_url }}" target="_blank">
-                    {{ publication.doi }}
+                    <span class="fw-semibold">{{ work.type }}:</span>
+                    <a href="{{ work.doi_url }}" target="_blank">
+                    {{ work.doi }}
                     </a>
                     </span>
             {% endfor %}

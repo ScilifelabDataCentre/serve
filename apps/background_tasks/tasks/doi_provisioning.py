@@ -27,12 +27,14 @@ def _build_additional_metadata(
     *,
     language: str | None = None,
     funding: list[dict[str, Any]] | str | None = None,
-    related_publications: list[dict[str, Any]] | str | None = None,
+    related_publications_datasets: list[dict[str, Any]] | str | None = None,
     creators: list[Creator] | None = None,
     subjects: list[Subject] | None = None,
 ) -> dict[str, Any] | None:
     """
-    Build additional_metadata from app instance for Invenio (language, subjects/tags).
+    Build additional_metadata from app instance for Invenio.
+    Includes form-only metadata such as language, funding, related publications/datasets,
+    creators, and subjects/tags.
 
     Mirrors the form-derived metadata used in helpers.create_instance_from_form().
     """
@@ -56,19 +58,19 @@ def _build_additional_metadata(
     if isinstance(funding_entries, list):
         additional_metadata["funding"] = funding_entries
 
-    related_publication_entries = related_publications
-    if isinstance(related_publication_entries, str):
+    related_publication_dataset_entries = related_publications_datasets
+    if isinstance(related_publication_dataset_entries, str):
         try:
-            related_publication_entries = json.loads(related_publication_entries)
+            related_publication_dataset_entries = json.loads(related_publication_dataset_entries)
         except json.JSONDecodeError:
             logger.warning(
-                "Invalid related publications payload received by DOI provisioning task; "
-                "skipping related publications metadata."
+                "Invalid related publications/datasets payload received by DOI provisioning task; "
+                "skipping related publications/datasets metadata."
             )
-            related_publication_entries = []
+            related_publication_dataset_entries = []
 
-    if isinstance(related_publication_entries, list):
-        additional_metadata["related_publications"] = related_publication_entries
+    if isinstance(related_publication_dataset_entries, list):
+        additional_metadata["related_publications_datasets"] = related_publication_dataset_entries
 
     # Creators from form data
     if creators and isinstance(creators, list):
@@ -149,7 +151,7 @@ class DOIProvisioningTask(BaseBackgroundTask):
             app_instance,
             language=kwargs.get("language"),
             funding=kwargs.get("funding"),
-            related_publications=kwargs.get("related_publications"),
+            related_publications_datasets=kwargs.get("related_publications_datasets"),
             creators=kwargs.get("creators"),
             subjects=kwargs.get("subjects_keywords"),
         )

@@ -54,7 +54,7 @@ from .schemas import (
     Pids,
     PublicationResourceTypeId,
     RelatedIdentifierItem,
-    RelatedPublication,
+    RelatedPublicationDataset,
     RelationType,
     ResourceType,
     Role,
@@ -66,11 +66,12 @@ logger = get_logger(__name__)
 
 _LATEST_IMAGE_CACHE_TTL_SECONDS = 60
 
-PUBLICATION_TYPE_TO_INVENIO_RESOURCE_TYPE: dict[PublicationResourceTypeId, str] = {
+RELATED_WORK_TYPE_TO_INVENIO_RESOURCE_TYPE: dict[PublicationResourceTypeId, str] = {
     "Book": "publication-book",
     "BookChapter": "publication-section",
     "ConferencePaper": "publication-conferencepaper",
     "ConferenceProceeding": "publication-conferenceproceeding",
+    "Dataset": "dataset",
     "DataPaper": "publication-datapaper",
     "Dissertation": "publication-thesis",
     "JournalArticle": "publication-article",
@@ -79,8 +80,8 @@ PUBLICATION_TYPE_TO_INVENIO_RESOURCE_TYPE: dict[PublicationResourceTypeId, str] 
     "Other": "publication-other",
 }
 
-INVENIO_RESOURCE_TYPE_TO_PUBLICATION_TYPE: dict[str, PublicationResourceTypeId] = {
-    value: key for key, value in PUBLICATION_TYPE_TO_INVENIO_RESOURCE_TYPE.items()
+INVENIO_RESOURCE_TYPE_TO_RELATED_WORK: dict[str, PublicationResourceTypeId] = {
+    value: key for key, value in RELATED_WORK_TYPE_TO_INVENIO_RESOURCE_TYPE.items()
 }
 
 
@@ -858,12 +859,12 @@ class InvenioService:
 
         return creator_items
 
-    def extract_related_publications(self, metadata: InvenioMetadata) -> list[RelatedPublication]:
+    def extract_related_publications_datasets(self, metadata: InvenioMetadata) -> list[RelatedPublicationDataset]:
         """
-        Extract related publications from Invenio related_identifiers.
+        Extract related publications and datasets from Invenio related_identifiers.
 
         Only returns entries with relation_type=issupplementto and scheme=doi.
-        Converts Invenio resource_type IDs back to the form publication type values.
+        Converts Invenio resource_type IDs back to the form related work type values.
         Normalizes DOI identifiers back to https://doi.org/... for the form.
         """
         if metadata is None:
@@ -875,7 +876,7 @@ class InvenioService:
         if not isinstance(related_identifiers, list):
             return []
 
-        publications: list[RelatedPublication] = []
+        publications_datasets: list[RelatedPublicationDataset] = []
 
         for item in related_identifiers:
             if not isinstance(item, dict):
@@ -889,7 +890,7 @@ class InvenioService:
 
             raw_identifier = str(item.get("identifier", "")).strip()
             if not raw_identifier:
-                logger.warning("Skipping related publication without DOI identifier: %s", item)
+                logger.warning("Skipping related publication/dataset without DOI identifier: %s", item)
                 continue
 
             if raw_identifier.startswith("https://doi.org/"):
@@ -901,28 +902,28 @@ class InvenioService:
             invenio_resource_type_id = str(resource_type.get("id") or "").strip()
 
             if not invenio_resource_type_id:
-                logger.warning("Skipping related publication without resource_type.id: %s", item)
+                logger.warning("Skipping related publication or dataset without resource_type.id: %s", item)
                 continue
 
-            publication_type = INVENIO_RESOURCE_TYPE_TO_PUBLICATION_TYPE.get(invenio_resource_type_id)
+            publication_type = INVENIO_RESOURCE_TYPE_TO_RELATED_WORK.get(invenio_resource_type_id)
             if not publication_type:
                 logger.warning(
-                    "Skipping related publication with unsupported Invenio resource_type.id: %s",
+                    "Skipping related publication or dataset with unsupported Invenio resource_type.id: %s",
                     invenio_resource_type_id,
                 )
                 continue
 
             try:
-                publications.append(
-                    RelatedPublication(
+                publications_datasets.append(
+                    RelatedPublicationDataset(
                         doi=doi,
                         publication_type=publication_type,
                     )
                 )
             except Exception:
-                logger.warning("Skipping invalid related publication from Invenio metadata: %s", item)
+                logger.warning("Skipping invalid related publication or dataset from Invenio metadata: %s", item)
 
-        return publications
+        return publications_datasets
 
     def _apply_additional_invenio_metadata(
         self, target_metadata: dict[str, Any], extra: AdditionalMetadata
@@ -1183,8 +1184,8 @@ class InvenioService:
         else:
             target_metadata.pop("funding", None)
 
-        # Handle related publications metadata
-        related_publications_input: Any = extra.get("related_publications")
+        # Handle related publications and datasets metadata
+        related_publications_datasets_input: Any = extra.get("related_publications_datasets")
         existing_related_identifiers = target_metadata.get("related_identifiers") or []
 
         if not isinstance(existing_related_identifiers, list):
@@ -1206,17 +1207,19 @@ class InvenioService:
             if not (relation_type_id == "issupplementto" and scheme == "doi"):
                 preserved_related_identifiers.append(item)
 
-        publication_related_identifiers: list[RelatedIdentifierItem] = []
+        publication_dataset_related_identifiers: list[RelatedIdentifierItem] = []
 
-        if isinstance(related_publications_input, list):
-            for item in related_publications_input:
+        if isinstance(related_publications_datasets_input, list):
+            for item in related_publications_datasets_input:
                 try:
-                    publication = item if isinstance(item, RelatedPublication) else RelatedPublication(**item)
+                    publication = (
+                        item if isinstance(item, RelatedPublicationDataset) else RelatedPublicationDataset(**item)
+                    )
                 except Exception:
                     logger.warning("[Invenio] Skipping invalid related publication: %s", item)
                     continue
 
-                resource_type_id = PUBLICATION_TYPE_TO_INVENIO_RESOURCE_TYPE.get(publication.publication_type)
+                resource_type_id = RELATED_WORK_TYPE_TO_INVENIO_RESOURCE_TYPE.get(publication.publication_type)
                 if not resource_type_id:
                     logger.warning(
                         "[Invenio] Skipping related publication with unsupported publication_type: %s",
@@ -1224,7 +1227,7 @@ class InvenioService:
                     )
                     continue
 
-                publication_related_identifiers.append(
+                publication_dataset_related_identifiers.append(
                     RelatedIdentifierItem(
                         identifier=publication.doi,
                         scheme="doi",
@@ -1237,7 +1240,7 @@ class InvenioService:
                     )
                 )
 
-        related_identifiers = preserved_related_identifiers + publication_related_identifiers
+        related_identifiers = preserved_related_identifiers + publication_dataset_related_identifiers
 
         if related_identifiers:
             target_metadata["related_identifiers"] = related_identifiers
