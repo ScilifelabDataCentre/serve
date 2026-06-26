@@ -235,23 +235,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 : accessHelpText.dataset.defaultText;
     }
 
-    function togglePublicOnlyFields() {
-        const accessSelect = document.getElementById('id_access');
-
-        const publicOnlyFields = [
-            document.getElementById('id_creators')?.closest('.mb-3'),
-            document.getElementById('div_id_language'),
-            document.getElementById('div_id_funding_sources_json'),
-        ];
-
-        if (!accessSelect) return;
-
-        publicOnlyFields.forEach(function(field) {
-            if (!field) return;
-            field.style.display = accessSelect.value === 'public' ? '' : 'none';
-        });
-    }
-
     // SS-1176 Users are able to set a custom default start URL for their apps
     const subdomainInput = document.getElementById("id_subdomain");
     const customDefaultUrlFormModifiedUrlText = document.getElementById("id_custom_default_url_prepend");
@@ -331,7 +314,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         toggleVisibilityPublicPermission()
         toggleAccessHelpText()
-        togglePublicOnlyFields()
 
         // Check if the select element exists
         if (accessSelect) {
@@ -339,7 +321,6 @@ document.addEventListener("DOMContentLoaded", function() {
             accessSelect.addEventListener('change', function() {
                 toggleVisibilityPublicPermission();
                 toggleAccessHelpText();
-                togglePublicOnlyFields();
             });
         }
 
@@ -356,8 +337,11 @@ document.addEventListener("DOMContentLoaded", function() {
         updateUrlWithSubdomain();
         toggleVisibilityPublicPermission();
         toggleAccessHelpText();
+<<<<<<< ss-1871-create-draft-invenio-records-for-non-public-apps
+=======
         togglePublicOnlyFields();
         updateDeletionNote();
+>>>>>>> develop
     })
 
     // Invenio Tags with Bootstrap Badges (only if field exists)

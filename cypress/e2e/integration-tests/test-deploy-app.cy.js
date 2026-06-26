@@ -605,6 +605,14 @@ describe("Test deploying app", () => {
       }
     })
 
+
+    // TO-DO:
+    // Add tests related to integration between Serve and Invenio. This means
+    // adding info such as creators, funding, language, etc. to the form and subsequently
+    // retrieving this info (from Invenio) when editing the form, making changes
+    // again, etc. Then checking if this info is correctly displayed on the public
+    // app details public if the app is made public.
+
     // This test may only work against a Serve instance running on our cluster. as
     // it takes a long time. It does not work on GitHub CI. So it's better
     // to skip it now. As we have Django endpoints, so it can be locally tested directly
