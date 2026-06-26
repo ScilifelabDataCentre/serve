@@ -228,11 +228,7 @@ describe("Test superuser access", () => {
             .find('[data-cy="delete-app-button-confirm"]')
             .click()
 
-        // Give the action some time after the click event
-        cy.wait(2000).then(() => {
-            // verify that the app is not visible in the project overview
-                cy.get('tr:contains("' + private_app_name_2 + '")').should('not.exist')
-        })
+        cy.get('tr:contains("' + private_app_name_2 + '")').should('not.exist')
 
         // cy.get('tr:contains("' + private_app_name_2 + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Deleted')
 
@@ -495,9 +491,8 @@ describe("Test superuser access", () => {
             cy.get("a").should('be.visible').contains('Create').first().click()
             cy.get('input[name=name]').type(project_name)
             cy.get("input[name=save]").should('be.visible').contains('Create project').click()
-            cy.wait(5000)
+            cy.get('h3', { timeout: longCmdTimeoutMs }).should('contain', project_name)
         });
-        cy.wait(15000) // sometimes it takes a while to create a project but just waiting once at the end should be enough
 
         cy.logf("Check that it is still possible to click the button to create a new project", Cypress.currentTest)
         cy.visit("/projects/")
