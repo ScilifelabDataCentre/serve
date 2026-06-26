@@ -249,6 +249,20 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // Show the GPU deletion days when a GPU flavor is selected.
+    function updateDeletionNote() {
+        const note = document.getElementById('app-deletion-note');
+        const flavorSelect = document.getElementById('id_flavor');
+        if (!note || !flavorSelect) return;
+        const daysSpan = note.querySelector('.deletion-days');
+        if (!daysSpan) return;
+
+        const option = flavorSelect.options[flavorSelect.selectedIndex];
+        const isGpu = option && parseInt(option.dataset.gpu || '0', 10) > 0;
+        const days = parseInt(isGpu ? note.dataset.gpuDays : note.dataset.defaultDays, 10);
+        daysSpan.textContent = `${days} day${days === 1 ? '' : 's'}`;
+    }
+
     // User is "finished typing," do something
     function doneTyping () {
 
@@ -310,6 +324,12 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         }
 
+        const flavorSelect = document.getElementById('id_flavor');
+        if (flavorSelect) {
+            flavorSelect.addEventListener('change', updateDeletionNote);
+        }
+        updateDeletionNote();
+
         runScript();
     });
     htmx.onLoad(function(content) {
@@ -317,6 +337,11 @@ document.addEventListener("DOMContentLoaded", function() {
         updateUrlWithSubdomain();
         toggleVisibilityPublicPermission();
         toggleAccessHelpText();
+<<<<<<< ss-1871-create-draft-invenio-records-for-non-public-apps
+=======
+        togglePublicOnlyFields();
+        updateDeletionNote();
+>>>>>>> develop
     })
 
     // Invenio Tags with Bootstrap Badges (only if field exists)
@@ -344,6 +369,7 @@ document.addEventListener("DOMContentLoaded", function() {
         tagsInput.style.outline = 'none';
         tagsInput.style.minWidth = '150px';
         tagsInput.placeholder = 'Start typing to find subjects and keywords...';
+        tagsInput.setAttribute('aria-label', 'Subjects and keywords');
 
         // Create dropdown for suggestions
         const dropdown = document.createElement('div');

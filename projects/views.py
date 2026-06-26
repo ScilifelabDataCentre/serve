@@ -316,6 +316,16 @@ def create_flavor(request, project_slug):
             cpu_lim = request.POST.get("cpu_lim")
             mem_lim = request.POST.get("mem_lim")
             ephmem_lim = request.POST.get("ephmem_lim")
+
+            # GPU fields are whole counts; default to 0 (no GPU) when blank or invalid.
+            def _parse_gpu(raw):
+                try:
+                    return max(int(raw), 0)
+                except (TypeError, ValueError):
+                    return 0
+
+            gpu_req = _parse_gpu(request.POST.get("gpu_req"))
+            gpu_lim = _parse_gpu(request.POST.get("gpu_lim"))
             flavor = Flavor(
                 name=name,
                 project=project,
@@ -325,6 +335,8 @@ def create_flavor(request, project_slug):
                 mem_lim=mem_lim,
                 ephmem_req=ephmem_req,
                 ephmem_lim=ephmem_lim,
+                gpu_req=gpu_req,
+                gpu_lim=gpu_lim,
             )
             flavor.save()
     return HttpResponseRedirect(

@@ -157,7 +157,7 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
     password1 = forms.CharField(
         min_length=10,
         label="Password",
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        widget=forms.PasswordInput(attrs={"class": "form-control", "aria-describedby": "password_requirements"}),
         help_text=mark_safe(password_validators_help_text_html()),
     )
     password2 = forms.CharField(
