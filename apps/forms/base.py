@@ -147,6 +147,7 @@ class BaseForm(forms.ModelForm):
             record = invenio_svc.get_current_record_data(record_id)
             app_metadata = invenio_svc.extract_app_metadata(record)
 
+            # Extract language from Invenio metadata
             if "language" in self.fields:
                 extracted_language = invenio_svc.extract_language_id(app_metadata)
                 logger.info(
@@ -164,6 +165,7 @@ class BaseForm(forms.ModelForm):
                 self.fields["language"].initial = language_code
                 logger.info(f"Final language mapping: {language_code}")
 
+            # Extract funding from Invenio metadata
             funding = invenio_svc.extract_funding(app_metadata)
             logger.info(f"Extracted funding from Invenio: {funding} (type: {type(funding)})")
             if "funding_sources_json" in self.fields:
@@ -212,6 +214,41 @@ class BaseForm(forms.ModelForm):
             else:
                 self._invenio_creators = []
                 logger.info("No creators found in Invenio metadata")
+
+            # Extract related publications and datasets data from Invenio metadata
+            # Both publications and datasets are stored as related identifiers but
+            # with different publication type.
+            related_publications_datasets = invenio_svc.extract_related_publications_datasets(app_metadata)
+            logger.info(
+                "Extracted related work from Invenio: %s (type: %s)",
+                related_publications_datasets,
+                type(related_publications_datasets),
+            )
+
+            if "related_publications_json" in self.fields or "related_datasets_json" in self.fields:
+                related_publications_data = []
+                related_datasets_data = []
+
+                for work in related_publications_datasets:
+                    if work.publication_type == "Dataset":
+                        related_datasets_data.append(
+                            {
+                                "doi": work.doi,
+                            }
+                        )
+                    else:
+                        related_publications_data.append(
+                            {
+                                "doi": work.doi,
+                                "publication_type": work.publication_type,
+                            }
+                        )
+
+                if "related_publications_json" in self.fields:
+                    self.fields["related_publications_json"].initial = json.dumps(related_publications_data)
+
+                if "related_datasets_json" in self.fields:
+                    self.fields["related_datasets_json"].initial = json.dumps(related_datasets_data)
 
         except Exception:
             logger.exception("Failed to fetch metadata from Invenio; leaving default initial values.")
@@ -312,6 +349,75 @@ class BaseForm(forms.ModelForm):
                 raise forms.ValidationError("Each funding source must be selected from the Invenio funders list.")
 
         return json.dumps(data)
+
+    def clean_related_publications_json(self):
+        raw = self.cleaned_data.get("related_publications_json") or "[]"
+
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+        except json.JSONDecodeError as e:
+            raise forms.ValidationError("Invalid related publications data.") from e
+
+        if not isinstance(data, list):
+            raise forms.ValidationError("Related publications must be a list.")
+
+        cleaned = []
+
+        for item in data:
+            if not isinstance(item, dict):
+                raise forms.ValidationError("Invalid related publication entry.")
+
+            doi = (item.get("doi") or "").strip()
+            publication_type = (item.get("publication_type") or "").strip()
+
+            if not doi:
+                raise forms.ValidationError("Each related publication must have a DOI.")
+            if not doi.startswith("https://doi.org/") or doi == "https://doi.org/":
+                raise forms.ValidationError("Publication DOI must start with https://doi.org/ and include a DOI value.")
+            if not publication_type:
+                raise forms.ValidationError("Each related publication must have a publication type.")
+
+            cleaned.append(
+                {
+                    "doi": doi,
+                    "publication_type": publication_type,
+                }
+            )
+
+        return json.dumps(cleaned)
+
+    def clean_related_datasets_json(self):
+        raw = self.cleaned_data.get("related_datasets_json") or "[]"
+
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+        except json.JSONDecodeError as e:
+            raise forms.ValidationError("Invalid related datasets data.") from e
+
+        if not isinstance(data, list):
+            raise forms.ValidationError("Related datasets must be a list.")
+
+        cleaned = []
+
+        for item in data:
+            if not isinstance(item, dict):
+                raise forms.ValidationError("Invalid related dataset entry.")
+
+            doi = (item.get("doi") or "").strip()
+
+            if not doi:
+                raise forms.ValidationError("Each related dataset must have a DOI.")
+            if not doi.startswith("https://doi.org/") or doi == "https://doi.org/":
+                raise forms.ValidationError("Dataset DOI must start with https://doi.org/ and include a DOI value.")
+
+            cleaned.append(
+                {
+                    "doi": doi,
+                    "publication_type": "Dataset",
+                }
+            )
+
+        return json.dumps(cleaned)
 
     def validate_subdomain(self, subdomain_input):
         # If user did not input subdomain, set it to our standard release name
@@ -473,6 +579,41 @@ class BaseForm(forms.ModelForm):
                     changed_data.remove("funding_sources_json")
             except (json.JSONDecodeError, KeyError, ValueError):
                 # If there's an error parsing, keep the field in changed_data to be safe
+                pass
+
+        # Handle related publications - compare JSON data
+        if "related_publications_json" in changed_data and self.instance and self.instance.pk:
+            try:
+                import json
+
+                current_publications = self.data.get("related_publications_json", "") or "[]"
+                initial_publications = self.fields["related_publications_json"].initial or "[]"
+
+                # Parse both JSON strings and compare the data structures
+                current_data = json.loads(current_publications) if current_publications else []
+                initial_data = json.loads(initial_publications) if initial_publications else []
+
+                # If the data is the same, remove from changed_data
+                if current_data == initial_data:
+                    changed_data.remove("related_publications_json")
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # If there's an error parsing, keep the field in changed_data to be safe
+                pass
+
+        # Handle related datasets - compare JSON data
+        if "related_datasets_json" in changed_data and self.instance and self.instance.pk:
+            try:
+                import json
+
+                current_datasets = self.data.get("related_datasets_json", "") or "[]"
+                initial_datasets = self.fields["related_datasets_json"].initial or "[]"
+
+                current_data = json.loads(current_datasets) if current_datasets else []
+                initial_data = json.loads(initial_datasets) if initial_datasets else []
+
+                if current_data == initial_data:
+                    changed_data.remove("related_datasets_json")
+            except (json.JSONDecodeError, KeyError, ValueError):
                 pass
 
         # Handle volume field - compare current value with initial form value

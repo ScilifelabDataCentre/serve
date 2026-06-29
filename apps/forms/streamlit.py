@@ -26,6 +26,16 @@ class StreamlitForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
     funding_sources_json = forms.CharField(required=False, widget=forms.HiddenInput(), label="Funding sources")
+    related_publications_json = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Related publications and preprints",
+    )
+    related_datasets_json = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Related datasets",
+    )
     language = forms.ChoiceField(
         choices=AppBaseForm.LANGUAGE_CHOICES,
         required=False,
@@ -87,6 +97,7 @@ class StreamlitForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
 
         if "language" in self.fields:
             general_fields.append(SRVCommonDivField("language", tooltip=False))
+
         if "funding_sources_json" in self.fields:
             general_fields.append(
                 SRVCommonDivField(
@@ -94,6 +105,26 @@ class StreamlitForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
                     tooltip=False,
                     label="Funding sources",
                     template="apps/funding_sources_field.html",
+                )
+            )
+
+        if "related_publications_json" in self.fields:
+            general_fields.append(
+                SRVCommonDivField(
+                    "related_publications_json",
+                    tooltip=False,
+                    label="Related publications and preprints",
+                    template="apps/related_publications_field.html",
+                )
+            )
+
+        if "related_datasets_json" in self.fields:
+            general_fields.append(
+                SRVCommonDivField(
+                    "related_datasets_json",
+                    tooltip=False,
+                    label="Related datasets",
+                    template="apps/related_datasets_field.html",
                 )
             )
 
