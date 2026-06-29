@@ -87,11 +87,11 @@ class GradioForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, 
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags", template="apps/invenio_tags_field.html"),
             SRVCommonDivField("access"),
-            self.get_creators_field_layout(),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
             ),
+            self.get_creators_field_layout(),
         ]
 
         if "language" in self.fields:
