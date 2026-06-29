@@ -136,63 +136,6 @@ class InvenioService:
                 return item.get("identifier")
         return None
 
-    def _get_latest_published_image(self, invenio_record_id: str) -> Optional[str]:
-        """Fetch the image identifier from the latest published version, cached briefly."""
-        cache_key = f"invenio:latest_image:{self.base_url}:{invenio_record_id}"
-        cached = cache.get(cache_key)
-        if cached is not None:
-            # "" = cached negative (distinguishes from cache miss).
-            return cached or None
-
-        try:
-            all_versions = self.client.get_all_versions(invenio_record_id)
-        except Exception as e:
-            logger.error(f"Error checking existing versions: {e}")
-            return None
-
-        hits = (all_versions or {}).get("hits", {}).get("hits") or []
-        dict_hits: list[dict[str, Any]] = [cast(dict[str, Any], hit) for hit in hits if isinstance(hit, dict)]
-        if not dict_hits:
-            return None
-
-        latest_hit = next(
-            (hit for hit in dict_hits if hit.get("versions", {}).get("is_latest")),
-            None,
-        )
-        if latest_hit is None:
-            latest_hit = max(dict_hits, key=_version_index)
-
-        latest_metadata = latest_hit.get("metadata") or {}
-        latest_related_identifiers = latest_metadata.get("related_identifiers", [])
-        latest_image = self._extract_image_identifier(latest_related_identifiers)
-        cache.set(cache_key, latest_image or "", _LATEST_IMAGE_CACHE_TTL_SECONDS)
-        return latest_image
-
-    def matches_latest_version_image(self, app_instance: Any, image_value: str) -> bool:
-        """
-        Check whether the given image matches the latest published Invenio version.
-
-        Args:
-            app_instance: The application instance
-            image_value: The image identifier to check
-
-        Returns:
-            True if the latest published version already uses this image, False otherwise
-        """
-        invenio_record_id = getattr(app_instance, "invenio_record_id", None)
-        if not invenio_record_id:
-            logger.debug(f"No existing Invenio record ID for app, image '{image_value}' is new.")
-            return False
-
-        latest_image = self._get_latest_published_image(invenio_record_id)
-        logger.debug(f"Latest published image version: {latest_image}")
-
-        if latest_image == image_value:
-            logger.info(f"Image '{image_value}' already matches the latest published version.")
-            return True
-
-        return False
-
     def is_app_access_public(self, app_instance: Any) -> tuple[bool, str]:
         """
         Check if the current app accessibility level is public.

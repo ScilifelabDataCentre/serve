@@ -147,6 +147,7 @@ dmypy.json
 cypress/screenshots
 cypress/videos
 cypress/logs
+cypress/parallel-weights.json
 cypress/fixtures/profile.json
 
 # Dependency directories

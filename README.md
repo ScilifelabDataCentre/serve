@@ -241,6 +241,19 @@ Then to run the integration tests:
 npx cypress open
 ```
 
+#### Adding a new end2end UI test
+
+UI specs live in `cypress/e2e/ui-tests/` as `*.cy.js` files.
+
+- **Adding tests to an existing spec file** needs no other changes — that file already runs in CI.
+- **Adding a new spec file** also requires registering it in the workflow. The `E2E-tests` workflow (`.github/workflows/e2e-tests.yaml`) shards specs across parallel runner jobs using explicit file lists under `strategy.matrix.shard`. A new file that is not added to one of those lists will silently not run. Add it to the lightest shard, or give it its own entry if it is heavy.
+
+Follow the conventions used by the existing specs:
+
+- Log in with `cy.loginViaApi(...)` (cached per session).
+- Create and tear down test data with the helper commands in `cypress/support/commands.js` (e.g. `populateTestUser` / `populateTestProject` / `populateTestApp` and the matching `cleanup*`), which seed via the Django devtools endpoints.
+- For tests that create projects or deploy apps: those resources are provisioned asynchronously by Celery and Kubernetes, which is slower in CI than locally. Put a long timeout on the specific "app is visible / status is Running" assertions (see `longCmdTimeoutMs` and the `verifyAppStatus` helper in the existing specs) instead of raising the global command timeout.
+
 ### Accessibility checks
 
 We try to catch accessibility problems in two ways:

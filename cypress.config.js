@@ -27,6 +27,14 @@ module.exports = defineConfig({
       };
 
       require('cypress-terminal-report/src/installLogsPrinter')(on, logOptions);
+
+      // Use /tmp instead of /dev/shm to avoid Chromium SIGBUS crashes on CI.
+      on('before:browser:launch', (browser = {}, launchOptions) => {
+        if (browser.family === 'chromium') {
+          launchOptions.args.push('--disable-dev-shm-usage');
+        }
+        return launchOptions;
+      });
     },
   },
 });

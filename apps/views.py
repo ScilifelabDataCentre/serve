@@ -643,7 +643,7 @@ def record_lookup(request, record_id):
         # TO-DO: Below is a temporary solution while there is no invenio_record_id for some public apps
         # We will remove the below view and the corresponding template once all public apps have an
         # invenio record associated with them.
-        if app.invenio_record_id:
+        if app.invenio_record_id and not settings.INVENIO_MOCK_MODE:
             invenio_record_id = app.invenio_record_id
         else:
             return app_metadata(request, app_id=record_id)
