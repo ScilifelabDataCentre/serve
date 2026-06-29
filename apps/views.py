@@ -279,6 +279,15 @@ def delete(request, project, app_slug, app_id):
     ):
         return HttpResponseForbidden("Cannot delete public apps with published DOIs.")
 
+    # Discard any unpublished DOI draft associated with this app
+    if (
+        hasattr(instance, "invenio_record_id")
+        and instance.invenio_record_id
+        and getattr(instance, "access", None) != "public"
+    ):
+        invenio_svc = InvenioService()
+        invenio_svc.delete_draft_record(instance.invenio_record_id)
+
     serialized_instance = instance.serialize()
 
     delete_resource.delay(serialized_instance, AppActionOrigin.USER.value)

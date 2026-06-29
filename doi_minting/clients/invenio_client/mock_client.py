@@ -99,6 +99,12 @@ class MockInvenioClient:
             }
         return {}
 
+    def delete_draft(self, record_id: str) -> bool:
+        return True
+
+    def delete_doi(self, record_id: str) -> bool:
+        return True
+
     def get_record(self, record_id: str) -> dict[str, Any]:
         # Return empty dict if record_id is None or empty
         if not record_id:

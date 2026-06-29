@@ -165,7 +165,7 @@
                         </a>
                         {% endif %}
                       {% else %}
-                        {% if instance.access != 'public' and not instance.app_doi|default:False %}
+                        {% if instance.access != 'public' %}
                           {% if instance.app.user_can_delete %}
 
                           <a class="dropdown-item bg-danger text-white confirm-delete default"
