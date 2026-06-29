@@ -61,10 +61,10 @@ class TissuumapsForm(VolumeMixin, KeywordTagsValidationMixin, CreatorsMixin, App
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags", template="apps/invenio_tags_field.html"),
             SRVCommonDivField("access"),
-            self.get_creators_field_layout(),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
             ),
+            self.get_creators_field_layout(),
             active=True,
         )
 
