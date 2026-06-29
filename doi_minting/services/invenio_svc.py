@@ -434,6 +434,23 @@ class InvenioService:
 
         logger.debug(f"Updated app instance - Record ID: {record_id}, DOI: {doi}")
 
+    def delete_draft_record(self, record_id: str) -> bool:
+        """
+        Discard an unpublished Invenio draft record.
+
+        Args:
+            record_id: The Invenio record ID of the draft to delete.
+        Returns:
+            True if successfully deleted, False otherwise.
+        """
+        try:
+            result = self.client.delete_draft(record_id)
+            logger.info(f"Deleted Invenio draft record {record_id}")
+            return result
+        except Exception:
+            logger.exception(f"Failed to delete Invenio draft record {record_id}")
+            return False
+
     def get_record_data(self, record_id: str) -> Optional[InvenioRecord]:
         """
         Retrieve a published Invenio record for a given Invenio ID as an
