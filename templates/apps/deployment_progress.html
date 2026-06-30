@@ -45,6 +45,9 @@
           <div class="small text-muted mb-4" id="progress-next-step">
             We will open the app details page automatically when everything is ready.
           </div>
+          <div class="small text-warning d-none mb-4" id="progress-poll-warning">
+            Could not load the latest deployment update. Retrying automatically.
+          </div>
 
           <div class="d-flex flex-wrap gap-2">
             <a href="{{ form_url }}" class="btn btn-outline-secondary">Back to form</a>
@@ -102,6 +105,7 @@ const STATUS_LABELS = {
 let progressPoller = null;
 let successRedirectTimer = null;
 let consecutiveSuccessPolls = 0;
+let consecutiveErrorPolls = 0;
 let stepRevealTimer = null;
 let latestServerData = {
   deployment: {
@@ -125,6 +129,13 @@ function stopStepReveal() {
   if (stepRevealTimer) {
     window.clearTimeout(stepRevealTimer);
     stepRevealTimer = null;
+  }
+}
+
+function updatePollWarning(isVisible) {
+  const warning = document.getElementById("progress-poll-warning");
+  if (warning) {
+    warning.classList.toggle("d-none", !isVisible);
   }
 }
 
@@ -379,6 +390,12 @@ function renderProgress(data) {
   updateHeader(data.deployment, steps);
 }
 
+function renderProgressShell(data) {
+  const steps = data.steps || [];
+  updateSummary(steps, data.deployment);
+  updateHeader(data.deployment, steps);
+}
+
 function areSameStep(left, right) {
   return JSON.stringify(left || null) === JSON.stringify(right || null);
 }
@@ -442,7 +459,7 @@ function syncDisplayedProgress() {
       ...displayedProgressData,
       deployment: {...latestServerData.deployment}
     };
-    renderProgress(displayedProgressData);
+    renderProgressShell(displayedProgressData);
     maybeRedirectToDetails(displayedProgressData);
     return;
   }
@@ -485,6 +502,8 @@ function refreshProgress() {
       return response.json();
     })
     .then(data => {
+      consecutiveErrorPolls = 0;
+      updatePollWarning(false);
       const fresh = copyProgressData(data);
 
       if (isProgressSuccessful(fresh)) {
@@ -509,10 +528,8 @@ function refreshProgress() {
     })
     .catch(error => {
       console.error("Error fetching deployment progress:", error);
-      const inline = document.getElementById("progress-inline");
-      if (inline) {
-        inline.textContent = "Could not load the latest deployment update. Retrying automatically.";
-      }
+      consecutiveErrorPolls += 1;
+      updatePollWarning(consecutiveErrorPolls >= 2);
       throw error;
     });
 }
