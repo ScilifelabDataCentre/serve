@@ -202,8 +202,8 @@ describe("Test deploying app", () => {
         const invalid_default_url_subpath = "€% / ()"
         const keyword = "Microscopy"
         const keyword_two = "COVID-19"
-        const creator_firstname = "Somefirstname"
-        const creator_lastname = "Somelastname"
+        const creator_firstname = "First"
+        const creator_lastname = "Last"
         const creator_affiliation = "Uppsala University"
         const funder_number = "0000-1234"
         const funder_org = "Swedish Research Council"
@@ -395,8 +395,8 @@ describe("Test deploying app", () => {
             cy.get('#id_language').should('have.value', 'swe')
             cy.get('#id_language').select('eng')
             // keywords
-            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword.toLowerCase())
-            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword.toLowerCase()).closest('.badge').find('.tag-remove-button').click()
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword)
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword).closest('.badge').find('.tag-remove-button').click()
             cy.get('#div_id_invenio_tags').should('be.visible')
                 .within(() => {
                     cy.get('input[placeholder*="Start typing"]').should('be.visible').type(keyword_two)
@@ -468,7 +468,7 @@ describe("Test deploying app", () => {
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path_2)
             // The form tag renders the keyword in lowercase.
-            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword_two.toLowerCase())
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword_two)
             cy.get('#id_language').should('have.value', 'eng')
             cy.get('#creatorsSortableList').should('be.visible').children('li').should('have.length', 2)
             cy.get('#fundersList').should('be.visible').children().should('have.length', 2)
