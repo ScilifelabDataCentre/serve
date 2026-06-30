@@ -45,9 +45,6 @@
           <div class="small text-muted mb-4" id="progress-next-step">
             We will open the app details page automatically when everything is ready.
           </div>
-          <div class="small text-warning d-none mb-4" id="progress-poll-warning">
-            Could not load the latest deployment update. Retrying automatically.
-          </div>
 
           <div class="d-flex flex-wrap gap-2">
             <a href="{{ form_url }}" class="btn btn-outline-secondary">Back to form</a>
@@ -75,6 +72,7 @@ const REQUIRED_SUCCESS_POLLS =
 const ACTIVE_STATUS_POLL_MS = 3000;
 const STABLE_STATUS_POLL_MS = 30000;
 const ERROR_STATUS_POLL_MS = 10000;
+const REQUIRED_ERROR_POLLS = 3;
 const TERMINAL_STEP_STATUSES = new Set(["success", "warning", "failed", "skipped"]);
 const STEP_ROW_CLASS_BY_STATUS = {
   failed: "is-failed",
@@ -107,6 +105,7 @@ let successRedirectTimer = null;
 let consecutiveSuccessPolls = 0;
 let consecutiveErrorPolls = 0;
 let stepRevealTimer = null;
+let pageIsUnloading = false;
 let latestServerData = {
   deployment: {
     status: "{{ deployment.status|default:'pending'|escapejs }}",
@@ -132,11 +131,15 @@ function stopStepReveal() {
   }
 }
 
-function updatePollWarning(isVisible) {
-  const warning = document.getElementById("progress-poll-warning");
-  if (warning) {
-    warning.classList.toggle("d-none", !isVisible);
+function showInlinePollError() {
+  const inline = document.getElementById("progress-inline");
+  if (inline) {
+    inline.textContent = "Could not load the latest deployment update. Retrying automatically.";
   }
+}
+
+function shouldIgnorePollError(error) {
+  return pageIsUnloading || document.hidden || error?.name === "AbortError";
 }
 
 function copyProgressData(data = {}) {
@@ -378,6 +381,7 @@ function maybeRedirectToDetails(data) {
   }
   if (!successRedirectTimer) {
     successRedirectTimer = window.setTimeout(() => {
+      progressPoller?.stop();
       window.location.assign(detailUrl);
     }, SUCCESS_REDIRECT_DELAY_MS);
   }
@@ -503,7 +507,6 @@ function refreshProgress() {
     })
     .then(data => {
       consecutiveErrorPolls = 0;
-      updatePollWarning(false);
       const fresh = copyProgressData(data);
 
       if (isProgressSuccessful(fresh)) {
@@ -527,9 +530,14 @@ function refreshProgress() {
       return canSlowPoll ? STABLE_STATUS_POLL_MS : ACTIVE_STATUS_POLL_MS;
     })
     .catch(error => {
+      if (shouldIgnorePollError(error)) {
+        return ERROR_STATUS_POLL_MS;
+      }
       console.error("Error fetching deployment progress:", error);
       consecutiveErrorPolls += 1;
-      updatePollWarning(consecutiveErrorPolls >= 2);
+      if (consecutiveErrorPolls >= REQUIRED_ERROR_POLLS) {
+        showInlinePollError();
+      }
       throw error;
     });
 }
@@ -547,11 +555,19 @@ document.addEventListener("DOMContentLoaded", () => {
   displayedProgressData = copyProgressData(latestServerData);
   renderProgress(displayedProgressData);
   maybeRedirectToDetails(displayedProgressData);
+  window.serveDeploymentProgressPoller?.stop();
   progressPoller = ServeAdaptivePolling.createPoller({
     poll: refreshProgress,
     getDelay: delay => delay,
     errorDelay: ERROR_STATUS_POLL_MS
   });
+  window.serveDeploymentProgressPoller = progressPoller;
+});
+
+window.addEventListener("pagehide", () => {
+  pageIsUnloading = true;
+  progressPoller?.stop();
+  window.serveDeploymentProgressPoller?.stop();
 });
 </script>
 {% endblock %}
