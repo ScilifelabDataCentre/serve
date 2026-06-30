@@ -319,7 +319,7 @@ describe("Test deploying app", () => {
                     cy.get('#newCreatorLastName').type(creator_lastname)
                     cy.get('#newCreatorAffiliation').should('be.visible').type(creator_affiliation)
                     cy.get('#affiliationSuggestions', { timeout: 10000 }).should('be.visible').contains(creator_affiliation)
-                    cy.get('#affiliationSuggestions .list-group-item').first().click()
+                    cy.get('#affiliationSuggestions .list-group-item').first().click({ force: true })
                     cy.get('#saveCreatorBtn').should('not.be.disabled').click()
                 })
             cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(1)
