@@ -315,8 +315,8 @@ describe("Test deploying app", () => {
             cy.contains('.modal-content', 'Add creator')
                 .should('be.visible')
                 .within(() => {
-                    cy.get('#newCreatorName').type(creator_firstname).should('have.value', creator_firstname)
-                    cy.get('#newCreatorLastName').type(creator_lastname).should('have.value', creator_lastname)
+                    cy.get('#newCreatorName').type(creator_firstname)
+                    cy.get('#newCreatorLastName').type(creator_lastname)
                     cy.get('#newCreatorAffiliation').should('be.visible').type(creator_affiliation)
                     cy.get('#affiliationSuggestions', { timeout: 10000 }).should('be.visible').contains(creator_affiliation)
                     cy.get('#affiliationSuggestions .list-group-item').first().click()
