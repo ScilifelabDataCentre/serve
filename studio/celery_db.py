@@ -3,7 +3,13 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from celery.signals import task_failure, task_postrun, task_prerun, worker_process_shutdown, worker_ready
+from celery.signals import (
+    task_failure,
+    task_postrun,
+    task_prerun,
+    worker_process_shutdown,
+    worker_ready,
+)
 from django.conf import settings
 from django.db import close_old_connections
 
