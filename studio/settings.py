@@ -184,6 +184,14 @@ TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 POSTGRES_IDLE_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_SESSION_TIMEOUT", "30min")
 POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT = os.getenv("POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT", "10min")
+DB_POOL_MIN_SIZE = int(os.getenv("DB_POOL_MIN_SIZE", "2"))
+DB_POOL_MAX_SIZE = int(os.getenv("DB_POOL_MAX_SIZE", "4"))
+DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "10"))
+DB_POOL_MAX_IDLE = int(os.getenv("DB_POOL_MAX_IDLE", "300"))
+DB_TEST_POOL_MIN_SIZE = int(os.getenv("DB_TEST_POOL_MIN_SIZE", "4"))
+DB_TEST_POOL_MAX_SIZE = int(os.getenv("DB_TEST_POOL_MAX_SIZE", "10"))
+DB_TEST_POOL_TIMEOUT = int(os.getenv("DB_TEST_POOL_TIMEOUT", "30"))
+DB_TEST_POOL_MAX_IDLE = int(os.getenv("DB_TEST_POOL_MAX_IDLE", "300"))
 
 
 def postgres_session_options() -> str:
@@ -195,6 +203,15 @@ def postgres_session_options() -> str:
     return " ".join(options)
 
 
+def log_db_pool_reconnect_failed(pool: object) -> None:
+    stats = pool.get_stats() if hasattr(pool, "get_stats") else {}
+    logging.getLogger("psycopg_pool").error(
+        "Django DB pool reconnect failed pool_name=%s stats=%s",
+        getattr(pool, "name", None),
+        stats,
+    )
+
+
 if TESTING:
     DATABASES = {
         "default": {
@@ -203,10 +220,11 @@ if TESTING:
             "OPTIONS": {
                 "options": postgres_session_options(),
                 "pool": {
-                    "min_size": 4,
-                    "max_size": 10,
-                    "timeout": 30,
-                    "max_idle": 300,
+                    "min_size": DB_TEST_POOL_MIN_SIZE,
+                    "max_size": DB_TEST_POOL_MAX_SIZE,
+                    "timeout": DB_TEST_POOL_TIMEOUT,
+                    "max_idle": DB_TEST_POOL_MAX_IDLE,
+                    "reconnect_failed": log_db_pool_reconnect_failed,
                 },
             },
             "NAME": "postgres",
@@ -224,9 +242,11 @@ else:
             "OPTIONS": {
                 "options": postgres_session_options(),
                 "pool": {
-                    "min_size": 2,
-                    "max_size": 4,
-                    "timeout": 10,
+                    "min_size": DB_POOL_MIN_SIZE,
+                    "max_size": DB_POOL_MAX_SIZE,
+                    "timeout": DB_POOL_TIMEOUT,
+                    "max_idle": DB_POOL_MAX_IDLE,
+                    "reconnect_failed": log_db_pool_reconnect_failed,
                 },
             },
             "NAME": "postgres",
@@ -422,6 +442,7 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TIMEZONE = "UTC"
 CELERY_ENABLE_UTC = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 # For Model Objects creation (check models/models.py, pre_save_model() )
 VERSION_BACKEND = "studio.version.Version"
 
@@ -633,6 +654,11 @@ LOGGING = {
         "django.server": {
             "handlers": ["console" if DEBUG else "json"],
             "level": "WARNING",
+            "propagate": False,
+        },
+        "psycopg_pool": {
+            "handlers": ["console" if DEBUG else "json"],
+            "level": os.getenv("PSYCOPG_POOL_LOG_LEVEL", "WARNING"),
             "propagate": False,
         },
     },
