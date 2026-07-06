@@ -1,47 +1,17 @@
-import os
 import sys
 import time
 import traceback
 from typing import Any, Callable
 
 from django.conf import settings
-from django.db import connections
 from django.http import HttpRequest, HttpResponse
 
+from studio.db_pool import db_pool_stats_changed, get_db_pool_stats
 from studio.utils import get_logger
 
 logger = get_logger(__name__)
 _last_db_pool_stats: dict[str, Any] | None = None
-DB_POOL_STATS_CHANGE_KEYS = (
-    "enabled",
-    "opened",
-    "pool_size",
-    "pool_available",
-    "requests_waiting",
-    "requests_errors",
-)
 METRICS_PATHS = ("/metrics", "/metrics/")
-
-
-def get_db_pool_stats(alias: str = "default") -> dict[str, Any]:
-    connection = connections[alias]
-    pool_enabled = bool(connection.settings_dict["OPTIONS"].get("pool"))
-    pools = getattr(connection, "_connection_pools", {})
-    pool = pools.get(alias)
-    pod_name = os.environ.get("HOSTNAME", "")
-    pid = os.getpid()
-
-    stats = {
-        "alias": alias,
-        "enabled": pool_enabled,
-        "opened": pool is not None,
-        "pid": pid,
-        "pod": pod_name,
-        "pool_id": f"{pod_name}:{pid}:{alias}",
-    }
-    if pool is not None:
-        stats.update(pool.get_stats())
-    return stats
 
 
 class ExceptionLoggingMiddleware:
@@ -133,7 +103,6 @@ class DatabasePoolStatsLoggingMiddleware:
 def _db_pool_stats_changed(stats: dict[str, Any]) -> bool:
     global _last_db_pool_stats
 
-    current_stats = {key: stats.get(key) for key in DB_POOL_STATS_CHANGE_KEYS}
-    previous_stats = _last_db_pool_stats
+    changed, current_stats = db_pool_stats_changed(stats, _last_db_pool_stats)
     _last_db_pool_stats = current_stats
-    return previous_stats != current_stats
+    return changed
