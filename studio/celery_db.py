@@ -92,7 +92,7 @@ def start_metrics_server(**kwargs: Any) -> None:
     from prometheus_client import CollectorRegistry, multiprocess, start_http_server
 
     registry = CollectorRegistry()
-    multiprocess.MultiProcessCollector(registry)
+    multiprocess.MultiProcessCollector(registry)  # type: ignore[no-untyped-call]
     start_http_server(CELERY_METRICS_PORT, registry=registry)
     logger.info("Celery metrics server started on port %s", CELERY_METRICS_PORT)
 
@@ -104,7 +104,7 @@ def cleanup_dead_process_metrics(pid: int | None = None, **kwargs: Any) -> None:
 
     from prometheus_client import multiprocess
 
-    multiprocess.mark_process_dead(pid)
+    multiprocess.mark_process_dead(pid)  # type: ignore[no-untyped-call]
 
 
 @task_prerun.connect
