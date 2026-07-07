@@ -30,6 +30,14 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       working-directory: .
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - "cypress/e2e/ui-tests/test-superuser-functionality.cy.js"
+          - "cypress/e2e/ui-tests/test-project-as-contributor.cy.js,cypress/e2e/ui-tests/test-storage-settings.cy.js,cypress/e2e/ui-tests/test-login-account-handling.cy.js"
+          - "cypress/e2e/ui-tests/test-user-manage-app-settings.cy.js,cypress/e2e/ui-tests/test-user-manage-apps.cy.js"
+          - "cypress/e2e/ui-tests/test-user-manage-app-types.cy.js,cypress/e2e/ui-tests/test-public-webpages.cy.js,cypress/e2e/ui-tests/test-collections.cy.js,cypress/e2e/ui-tests/test-signup.cy.js,cypress/e2e/ui-tests/test-brute-force-login-attempts.cy.js,cypress/e2e/ui-tests/test-views-as-reader.cy.js,cypress/e2e/ui-tests/test-app-details-pages.cy.js,cypress/e2e/ui-tests/test-invenio-funding.cy.js"
 
     steps:
       - name: Workflow Telemetry
@@ -58,6 +66,12 @@ jobs:
           sed -i 's/UID=1000/UID=1001/g' .env
           sed -i 's/GID=1000/GID=127/g' .env
 
+      - name: Free up disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/powershell /usr/local/share/chromium
+          df -h /
+
       - name: A job to install MicroK8s
         uses: balchua/microk8s-actions@v0.4.3
         with:
@@ -71,6 +85,24 @@ jobs:
           sudo chown -f -R $USER ~/.kube
           sudo microk8s config >> ~/.kube/config
 
+      - name: Pre-pull app images into MicroK8s (background)
+        run: |
+          images=(
+            ghcr.io/scilifelabdatacentre/serve-jupyterlab-minimal:250213-1113
+            ghcr.io/scilifelabdatacentre/serve-rstudio:250304-1611
+            ghcr.io/scilifelabdatacentre/example-dash:latest
+            ghcr.io/scilifelabdatacentre/example-streamlit:latest
+            ghcr.io/scilifelabdatacentre/shiny-adhd-medication-sweden:20240117-062031
+            ghcr.io/scilifelabdatacentre/gradio-flower-classification:20241118-174426
+            ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059
+            ghcr.io/scilifelabdatacentre/streamlit-image-to-smiles:20241112-183549
+          )
+          for img in "${images[@]}"; do
+            nohup sudo microk8s ctr image pull "$img" >/dev/null 2>&1 &
+          done
+          disown -a
+          echo "Started background pre-pull of ${#images[@]} app images"
+
       - name: Dump config
         working-directory: ${{env.working-directory}}
         run: |
@@ -78,13 +110,27 @@ jobs:
           ls -la
           cat cluster.conf
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build app image with cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: runtime
+          tags: stackn:base
+          load: true
+          cache-from: type=gha,scope=stackn-base
+          cache-to: type=gha,mode=max,scope=stackn-base
+
       - name: Start serve
         working-directory: ${{env.working-directory}}
         id: setup
         run: |
           set -ex
           echo "Deploying serve"
-          docker compose up -d
+          docker compose up -d --no-build db redis rabbit studio celery-worker celery-beat event-listener
 
       - name: Set Serve URL
         working-directory: ${{env.working-directory}}
@@ -108,21 +154,48 @@ jobs:
         id: check_serve_up
         run: |
           echo "Checking response from STUDIO_URL: ${{ env.STUDIO_URL }}"
-          response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
-          if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
+          for attempt in {1..24}; do
+            response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
+            if [[ "$response" -eq 200 ]] ; then
+              echo "serve is ready"
+              exit 0
+            fi
+
+            echo "status $response on attempt $attempt; retrying"
+            sleep 5
+          done
+
+          echo "Serve did not become ready in time"
+          docker compose logs --no-color --timestamps studio
+          exit 1
 
       - name: Check if celery worker can access kubectl and helm
         run: |
           docker exec celery-worker kubectl version
           docker exec celery-worker helm version
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-
+
       - name: Install Node.js dependencies
         working-directory: ${{env.working-directory}}
         run: npm ci
 
-      - name: Cypress run e2e tests in parallel
+      - name: Cypress run e2e tests (shard ${{ strategy.job-index }})
         working-directory: ${{env.working-directory}}
-        run: npm run cy:run:parallel -- -a "--config pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }} --quiet"
+        run: npx cypress run --spec "${{ matrix.shard }}" --config pageLoadTimeout=100000,baseUrl=${{ env.STUDIO_URL }} --quiet
         env:
           ELECTRON_DISABLE_GPU: true
 
@@ -130,21 +203,31 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-screenshots
+          name: cypress-screenshots-${{ strategy.job-index }}
           path: cypress/screenshots
+          if-no-files-found: ignore
       - name: Save cypress video artifacts on failure
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-videos
+          name: cypress-videos-${{ strategy.job-index }}
           path: cypress/videos
+          if-no-files-found: ignore
 
-#      - name: Setup upterm session
-#        uses: lhotari/action-upterm@v1
-#        with:
-#          ## If no one connects after 2 minutes, shut down server.
-#          wait-timeout-minutes: 2
-#          ## limits ssh access and adds the ssh public key for the user which triggered the #workflow
-#          limit-access-to-actor: true
-#          ## limits ssh access and adds the ssh public keys of the listed GitHub users
-#          limit-access-to-users: churnikov,hamzaimran08,alfredeen,akochari,anondo1969
+      - name: Dump container logs
+        if: always()
+        working-directory: ${{env.working-directory}}
+        run: |
+          mkdir -p container-logs
+          docker compose logs --no-color --timestamps > container-logs/all-services.log 2>&1 || true
+          docker compose logs --no-color --timestamps celery-worker > container-logs/celery-worker.log 2>&1 || true
+          docker compose logs --no-color --timestamps studio > container-logs/studio.log 2>&1 || true
+          docker compose logs --no-color --timestamps celery-beat > container-logs/celery-beat.log 2>&1 || true
+
+      - name: Upload container logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-logs-${{ strategy.job-index }}
+          path: container-logs
+          if-no-files-found: ignore

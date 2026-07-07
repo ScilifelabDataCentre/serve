@@ -11,52 +11,86 @@ from prometheus_client import (
     generate_latest,
 )
 
-from studio.middleware import get_db_pool_stats
+from studio.db_pool import get_db_pool_stats
 
 DB_POOL_ENABLED = Gauge(
     "django_db_pool_enabled",
     "Whether Django database connection pooling is enabled.",
     ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
 )
 DB_POOL_OPENED = Gauge(
     "django_db_pool_opened",
     "Whether the Django database connection pool has been opened in this process.",
     ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
 )
 DB_POOL_SIZE = Gauge(
     "django_db_pool_size",
     "Current number of connections in the Django database connection pool.",
     ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
 )
 DB_POOL_AVAILABLE = Gauge(
     "django_db_pool_available",
     "Current number of available connections in the Django database connection pool.",
     ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
 )
 DB_POOL_MIN = Gauge(
     "django_db_pool_min",
     "Configured minimum number of connections in the Django database connection pool.",
     ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
 )
 DB_POOL_MAX = Gauge(
     "django_db_pool_max",
     "Configured maximum number of connections in the Django database connection pool.",
     ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
 )
 DB_POOL_REQUESTS_WAITING = Gauge(
     "django_db_pool_requests_waiting",
     "Current number of requests waiting for a Django database connection pool slot.",
     ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
 )
 DB_POOL_REQUESTS_NUM = Gauge(
     "django_db_pool_requests_total",
     "Total number of requests served by the Django database connection pool in this process.",
     ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
 )
 DB_POOL_REQUESTS_ERRORS = Gauge(
     "django_db_pool_requests_errors_total",
     "Total number of Django database connection pool request errors in this process.",
     ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
+)
+DB_POOL_REQUESTS_QUEUED = Gauge(
+    "django_db_pool_requests_queued_total",
+    "Total number of Django database connection pool requests that had to queue in this process.",
+    ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
+)
+DB_POOL_REQUESTS_WAIT_MS = Gauge(
+    "django_db_pool_requests_wait_ms_total",
+    "Total time in milliseconds that Django database connection pool requests spent waiting in this process.",
+    ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
+)
+DB_POOL_CONNECTIONS_NUM = Gauge(
+    "django_db_pool_connections_total",
+    "Total number of database connections created by the Django database connection pool in this process.",
+    ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
+)
+DB_POOL_CONNECTIONS_MS = Gauge(
+    "django_db_pool_connections_ms_total",
+    "Total time in milliseconds spent creating database connections for the Django database connection pool in this "
+    "process.",
+    ["alias", "pod", "pid", "pool_id"],
+    multiprocess_mode="liveall",
 )
 HTTP_REQUESTS_TOTAL = Counter(
     "django_http_requests_total",
@@ -102,6 +136,10 @@ def update_db_pool_metrics() -> None:
     DB_POOL_REQUESTS_WAITING.labels(**labels).set(_metric_value(stats, "requests_waiting"))
     DB_POOL_REQUESTS_NUM.labels(**labels).set(_metric_value(stats, "requests_num"))
     DB_POOL_REQUESTS_ERRORS.labels(**labels).set(_metric_value(stats, "requests_errors"))
+    DB_POOL_REQUESTS_QUEUED.labels(**labels).set(_metric_value(stats, "requests_queued"))
+    DB_POOL_REQUESTS_WAIT_MS.labels(**labels).set(_metric_value(stats, "requests_wait_ms"))
+    DB_POOL_CONNECTIONS_NUM.labels(**labels).set(_metric_value(stats, "connections_num"))
+    DB_POOL_CONNECTIONS_MS.labels(**labels).set(_metric_value(stats, "connections_ms"))
 
 
 def get_http_route_label(request: HttpRequest) -> str:

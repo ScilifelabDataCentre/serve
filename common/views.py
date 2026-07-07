@@ -222,10 +222,10 @@ class EditProfileView(TemplateView):
             user_profile = UserProfile.objects.get(user_id=request.user.id)
         except ObjectDoesNotExist as e:
             logger.error(str(e), exc_info=True)
-            user_profile = UserProfile()
+            user_profile = UserProfile(user=request.user)
         except Exception as e:
             logger.error(str(e), exc_info=True)
-            user_profile = UserProfile()
+            user_profile = UserProfile(user=request.user)
 
         return user_profile
 

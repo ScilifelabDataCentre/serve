@@ -6,6 +6,6 @@
   },
   "scripts": {
     "cy:run": "cypress run",
-    "cy:run:parallel": "cypress-parallel -s cy:run -t 4 -d cypress/e2e/ui-tests"
+    "cy:run:parallel": "cypress-parallel -s cy:run -t 2 -d cypress/e2e/ui-tests -w cypress/parallel-weights.json"
   }
 }

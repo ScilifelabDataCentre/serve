@@ -5,6 +5,7 @@ from guardian.shortcuts import assign_perm, remove_perm
 
 from apps.app_registry import APP_REGISTRY
 from apps.models import BaseAppInstance, MLFlowInstance
+from portal.cache import invalidate_public_apps_cache
 from studio.utils import get_logger
 
 from .tasks import helm_delete
@@ -13,6 +14,7 @@ logger = get_logger(__name__)
 
 
 UID = "app_instance_update_permission"
+PUBLIC_APPS_CACHE_UID = "app_instance_invalidate_public_apps_cache"
 
 
 @receiver(pre_delete, sender=BaseAppInstance)
@@ -68,8 +70,13 @@ def update_permission(sender, instance, created, **kwargs):
             remove_perm("can_access_app", owner, instance)
 
 
+def clear_public_apps_cache(sender, instance, **kwargs):
+    invalidate_public_apps_cache()
+
+
 for model in APP_REGISTRY.iter_orm_models():
     receiver(post_save, sender=model, dispatch_uid=UID)(update_permission)
+    receiver([post_save, post_delete], sender=model, dispatch_uid=PUBLIC_APPS_CACHE_UID)(clear_public_apps_cache)
 
     """
     What is going on here?

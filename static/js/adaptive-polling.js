@@ -16,7 +16,8 @@
       if (stopped || document.hidden) {
         return;
       }
-      timer = window.setTimeout(run, delay);
+      const safeDelay = Number.isFinite(delay) && delay > 0 ? delay : errorDelay;
+      timer = window.setTimeout(run, safeDelay);
     };
 
     const run = async () => {

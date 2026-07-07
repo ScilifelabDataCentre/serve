@@ -17,6 +17,7 @@ from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
 from apps.background_tasks.utils import select_latest_task_records
 from apps.constants import AppActionOrigin
+from apps.gpu import instance_holds_gpu
 from apps.helpers import generate_helm_install_command, get_merged_k8s_values
 from common.tasks import send_email_task
 from studio.celery import app
@@ -93,6 +94,8 @@ def delete_old_objects():
     This function retrieves the old apps based on the given threshold, category, and model class.
     It then iterates through the subclasses of BaseAppInstance and deletes the old apps
     for both the "Develop" and "Manage files" categories.
+    Develop apps are deleted after DEVELOP_APP_MAX_AGE_DAYS days, except apps holding a GPU,
+    which are deleted already after GPU_DEVELOP_APP_MAX_AGE_DAYS day(s).
     It skips app instances with action set to SystemDeleting.
     TODO: Make app categories and their corresponding thresholds variables in settings.py.
     """
@@ -130,18 +133,24 @@ def delete_old_objects():
             continue
         seen_models.add(orm_model)
         old_develop_apps = (
-            orm_model.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
+            orm_model.objects.filter(
+                created_on__lt=get_threshold(settings.GPU_DEVELOP_APP_MAX_AGE_DAYS), app__category__name="Develop"
+            )
             .exclude(latest_user_action__in=["Deleting", "SystemDeleting"])
             .exclude(app__slug="mlflow")
+            .select_related("app", "flavor")
             .order_by("created_on", "pk")
         )
 
         for app_ in old_develop_apps:
-            enqueue_delete(app_)
+            if instance_holds_gpu(app_) or app_.created_on < get_threshold(settings.DEVELOP_APP_MAX_AGE_DAYS):
+                enqueue_delete(app_)
 
     # Handle deletion of non persistent file managers
     old_file_managers = (
-        FilemanagerInstance.objects.filter(created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False)
+        FilemanagerInstance.objects.filter(
+            created_on__lt=get_threshold(settings.FILEMANAGER_MAX_AGE_DAYS), persistent=False
+        )
         .exclude(latest_user_action__in=["Deleting", "SystemDeleting"])
         .order_by("created_on", "pk")
     )
@@ -422,7 +431,8 @@ def deploy_resource(self, serialized_instance):
 
     # Release the pooled DB connection for the duration of the helm subprocess.
     # Django reconnects on the next ORM access (the status writes below).
-    connection.close()
+    if not connection.in_atomic_block:
+        connection.close()
 
     # Install the app using Helm install
     output, error = helm_install(release, chart, values["namespace"], values_file, version)
@@ -546,7 +556,8 @@ def delete_resource(serialized_instance, initiated_by_str: str):
 
     # Release the pooled DB connection during the helm subprocess;
     # Django reconnects automatically for the status writes below.
-    connection.close()
+    if not connection.in_atomic_block:
+        connection.close()
 
     success = False
     if values.get("subdomain") is not None:

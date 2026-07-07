@@ -1,0 +1,298 @@
+<div id="div_{{ field.id_for_label }}" class="{% if wrapper_class %}{{ wrapper_class }}{% endif %}">
+  {% include "apps/partials/div_label_with_help_toggle.html" %}
+
+  <div class="clearfix">
+    {{ field }} {# hidden JSON #}
+
+    <div id="relatedDatasetsList" class="mb-2"></div>
+
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-2" id="addRelatedDatasetBtn">
+      <span class="fas fa-plus text-muted"></span> Add dataset
+    </button>
+
+    {% if field.help_text %}
+      <small id="{{ field.id_for_label }}_helptext" class="form-text text-muted d-block">
+        {{ field.help_text }}
+      </small>
+    {% endif %}
+
+    {% for error in field.errors %}
+      <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="modal fade"
+     id="relatedDatasetModal"
+     tabindex="-1"
+     aria-labelledby="relatedDatasetModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="relatedDatasetModalLabel">Add dataset</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-3">
+          <p>We currently only accept datasets that have an assigned DOI.</p>
+          <label class="form-label" for="datasetDoiInput">
+            Dataset DOI <span class="text-danger">*</span>
+          </label>
+
+          <div class="input-group">
+            <span class="input-group-text">https://doi.org/</span>
+            <input type="text"
+                   class="form-control"
+                   id="datasetDoiInput"
+                   autocomplete="off"
+                   required>
+          </div>
+
+          <div class="form-text">
+            Enter the DOI part only. Example: 10.17044/scilifelab.16677252
+          </div>
+
+          <div class="invalid-feedback">
+            Enter a valid DOI value after https://doi.org/
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">✕ Cancel</button>
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-primary" id="saveAndAddAnotherDatasetBtn" disabled>
+            ✓ Save and add another
+          </button>
+          <button type="button" class="btn btn-primary" id="saveRelatedDatasetBtn" disabled>
+            ✓ Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DOI_PREFIX = "https://doi.org/";
+
+  const hiddenField = document.getElementById("{{ field.id_for_label }}");
+  const datasetsListEl = document.getElementById("relatedDatasetsList");
+  const addBtn = document.getElementById("addRelatedDatasetBtn");
+
+  const modalEl = document.getElementById("relatedDatasetModal");
+  const modal = new bootstrap.Modal(modalEl);
+
+  const doiInput = document.getElementById("datasetDoiInput");
+
+  const saveBtn = document.getElementById("saveRelatedDatasetBtn");
+  const saveAnotherBtn = document.getElementById("saveAndAddAnotherDatasetBtn");
+
+  const state = {
+    editIndex: null,
+  };
+
+  const escapeHtml = (s) =>
+    (s || "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[c]));
+
+  const parseDatasets = () => {
+    try {
+      const parsed = JSON.parse(hiddenField.value || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const writeDatasets = (list) => {
+    hiddenField.value = JSON.stringify(list || []);
+    renderDatasets();
+  };
+
+  const stripDoiPrefix = (doi) => {
+    const value = (doi || "").trim();
+    return value.startsWith(DOI_PREFIX) ? value.slice(DOI_PREFIX.length) : value;
+  };
+
+  const buildDoiUrl = (doiSuffix) => {
+    return `${DOI_PREFIX}${doiSuffix.trim()}`;
+  };
+
+  const isDoiValid = (value) => {
+    const suffix = (value || "").trim();
+
+    if (!suffix) {
+      return false;
+    }
+
+    // The prefix is fixed in the UI; users should only enter the DOI suffix.
+    if (suffix.startsWith("http://") || suffix.startsWith("https://")) {
+      return false;
+    }
+
+    try {
+      const parsed = new URL(buildDoiUrl(suffix));
+      return (
+        parsed.protocol === "https:" &&
+        parsed.hostname === "doi.org" &&
+        parsed.pathname.length > 1
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const markDoiValidity = () => {
+    const valid = isDoiValid(doiInput.value);
+    doiInput.classList.toggle("is-invalid", !valid && doiInput.value.trim().length > 0);
+    return valid;
+  };
+
+  const syncSaveButtons = () => {
+    const hasValidDoi = markDoiValidity();
+
+    saveBtn.disabled = !hasValidDoi;
+    saveAnotherBtn.disabled = !hasValidDoi;
+  };
+
+  const resetModal = () => {
+    state.editIndex = null;
+    doiInput.value = "";
+    doiInput.classList.remove("is-invalid");
+
+    document.getElementById("relatedDatasetModalLabel").textContent = "Add dataset";
+    syncSaveButtons();
+  };
+
+  const openAddModal = () => {
+    resetModal();
+    modal.show();
+    setTimeout(() => doiInput.focus(), 150);
+  };
+
+  const openEditModal = (idx) => {
+    const datasets = parseDatasets();
+    const dataset = datasets[idx];
+    if (!dataset) return;
+
+    state.editIndex = idx;
+    document.getElementById("relatedDatasetModalLabel").textContent = "Edit dataset";
+
+    doiInput.value = stripDoiPrefix(dataset.doi || "");
+    doiInput.classList.remove("is-invalid");
+
+    syncSaveButtons();
+
+    modal.show();
+    setTimeout(() => doiInput.focus(), 150);
+  };
+
+  const renderDatasets = () => {
+    const datasets = parseDatasets();
+
+    if (!datasets.length) {
+      datasetsListEl.innerHTML = `<div class="text-muted">No datasets added.</div>`;
+      return;
+    }
+
+    datasetsListEl.innerHTML = datasets.map((dataset, i) => {
+      const doi = escapeHtml(dataset.doi || "");
+
+      return `
+        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+          <div>
+            <div class="fw-semibold">${doi}</div>
+            <div class="small text-muted">Dataset</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-edit="${i}">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-remove="${i}">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  };
+
+  const collectModalData = () => {
+    const doiSuffix = doiInput.value.trim();
+    const validDoi = markDoiValidity();
+
+    if (!validDoi) {
+      doiInput.classList.add("is-invalid");
+      doiInput.focus();
+      return null;
+    }
+
+    return {
+      doi: buildDoiUrl(doiSuffix),
+    };
+  };
+
+  const upsertDataset = (data) => {
+    const datasets = parseDatasets();
+
+    if (state.editIndex === null) {
+      datasets.push(data);
+    } else {
+      datasets[state.editIndex] = data;
+    }
+
+    writeDatasets(datasets);
+  };
+
+  addBtn.addEventListener("click", openAddModal);
+
+  datasetsListEl.addEventListener("click", (e) => {
+    const editBtn = e.target.closest("[data-edit]");
+    const removeBtn = e.target.closest("[data-remove]");
+
+    if (editBtn) {
+      return openEditModal(parseInt(editBtn.getAttribute("data-edit"), 10));
+    }
+
+    if (removeBtn) {
+      const idx = parseInt(removeBtn.getAttribute("data-remove"), 10);
+      const datasets = parseDatasets();
+      datasets.splice(idx, 1);
+      writeDatasets(datasets);
+    }
+  });
+
+  doiInput.addEventListener("input", syncSaveButtons);
+
+  saveBtn.addEventListener("click", () => {
+    const data = collectModalData();
+    if (!data) return;
+
+    upsertDataset(data);
+    modal.hide();
+  });
+
+  saveAnotherBtn.addEventListener("click", () => {
+    const data = collectModalData();
+    if (!data) return;
+
+    upsertDataset(data);
+    resetModal();
+    modal.show();
+    setTimeout(() => doiInput.focus(), 50);
+  });
+
+  renderDatasets();
+  syncSaveButtons();
+})();
+</script>

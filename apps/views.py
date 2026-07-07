@@ -46,6 +46,7 @@ from projects.permissions import CachedProjectPermissionRequiredMixin
 from studio.utils import get_logger
 
 from .app_registry import APP_REGISTRY
+from .gpu import GpuUnavailableError
 from .helpers import (
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
@@ -278,6 +279,15 @@ def delete(request, project, app_slug, app_id):
     ):
         return HttpResponseForbidden("Cannot delete public apps with published DOIs.")
 
+    # Discard any unpublished DOI draft associated with this app
+    if (
+        hasattr(instance, "invenio_record_id")
+        and instance.invenio_record_id
+        and getattr(instance, "access", None) != "public"
+    ):
+        invenio_svc = InvenioService()
+        invenio_svc.delete_draft_record(instance.invenio_record_id)
+
     serialized_instance = instance.serialize()
 
     delete_resource.delay(serialized_instance, AppActionOrigin.USER.value)
@@ -361,7 +371,7 @@ class CreateApp(View):
         if form is None:
             raise PermissionDenied()
 
-        if not form.is_valid():
+        def render_form_with_errors():
             form_header = "Update" if app_id else "Create"
             return render(
                 request,
@@ -377,8 +387,17 @@ class CreateApp(View):
                 },
             )
 
+        if not form.is_valid():
+            return render_form_with_errors()
+
         # Otherwise we can create the instance
-        result = create_instance_from_form(form, project, app_slug, app_id)
+        try:
+            result = create_instance_from_form(form, project, app_slug, app_id)
+        except GpuUnavailableError as exc:
+            # Another request may have claimed the last GPU after this form
+            # validated, check and return as a form error if needed.
+            form.add_error("flavor", exc.ui_error)
+            return render_form_with_errors()
         # Redirects everyone (including admins) after creation; admins can still
         # open the deployment pages (/progress, /details, /tasks) directly.
         if not form.instance.app.should_display_deployment_details:
@@ -509,7 +528,7 @@ class AppDetailsView(View):
         tags = list(
             dict.fromkeys(
                 item.get("subject", "")
-                for item in (instance.subjects_keywords or [])
+                for item in (getattr(instance, "subjects_keywords", None) or [])
                 if isinstance(item, dict) and item.get("subject")
             )
         )
@@ -633,7 +652,7 @@ def record_lookup(request, record_id):
         # TO-DO: Below is a temporary solution while there is no invenio_record_id for some public apps
         # We will remove the below view and the corresponding template once all public apps have an
         # invenio record associated with them.
-        if app.invenio_record_id:
+        if app.invenio_record_id and not settings.INVENIO_MOCK_MODE:
             invenio_record_id = app.invenio_record_id
         else:
             return app_metadata(request, app_id=record_id)
@@ -670,6 +689,33 @@ def app_details(request, invenio_record_id):
     if app_metadata is None:
         logger.warning(f"Metadata could not be extracted for requested invenio_record_id={invenio_record_id}")
         raise Http404("Record metadata not found")
+
+    # Extract related work
+    related_work = []
+    if app_metadata.related_identifiers:
+        for related_identifier in app_metadata.related_identifiers:
+            relation_type_id = ""
+            if related_identifier.relation_type:
+                relation_type_id = related_identifier.relation_type.id
+
+            if related_identifier.scheme != "doi" or relation_type_id != "issupplementto":
+                continue
+
+            doi = related_identifier.identifier.strip()
+            doi_url = doi if doi.startswith("https://doi.org/") else f"https://doi.org/{doi}"
+
+            publication_type = ""
+            if related_identifier.resource_type:
+                title = related_identifier.resource_type.title or {}
+                publication_type = title.get("en") or related_identifier.resource_type.id
+
+            related_work.append(
+                {
+                    "type": publication_type,
+                    "doi": doi,
+                    "doi_url": doi_url,
+                }
+            )
 
     # Variable for some extracted and other data about the app
     app_otherdata = {}
@@ -756,6 +802,7 @@ def app_details(request, invenio_record_id):
 
     context = {
         "app_metadata": app_metadata,
+        "related_work": related_work,
         "app_otherdata": app_otherdata,
     }
 
