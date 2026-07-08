@@ -51,6 +51,7 @@ class MLFlowInstance(BaseAppInstance):
                         "port": settings.GATEWAY_PORT,
                     },
                 ],
+                "clientMaxBodySize": f"{self.upload_size}m",
             },
             "podLabels": {
                 "type": "app",
