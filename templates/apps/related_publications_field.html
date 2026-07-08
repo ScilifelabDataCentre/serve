@@ -1,0 +1,340 @@
+<div id="div_{{ field.id_for_label }}" class="{% if wrapper_class %}{{ wrapper_class }}{% endif %}">
+  {% include "apps/partials/div_label_with_help_toggle.html" %}
+
+  <div class="clearfix">
+    {{ field }} {# hidden JSON #}
+
+    <div id="relatedPublicationsList" class="mb-2"></div>
+
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-2" id="addRelatedPublicationBtn">
+      <span class="fas fa-plus text-muted"></span> Add publication/preprint
+    </button>
+
+    {% if field.help_text %}
+      <small id="{{ field.id_for_label }}_helptext" class="form-text text-muted d-block">
+        {{ field.help_text }}
+      </small>
+    {% endif %}
+
+    {% for error in field.errors %}
+      <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="modal fade"
+     id="relatedPublicationModal"
+     tabindex="-1"
+     aria-labelledby="relatedPublicationModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="relatedPublicationModalLabel">Add publication or preprint</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="publicationDoiInput">
+            Publication/preprint DOI <span class="text-danger">*</span>
+          </label>
+
+          <div class="input-group">
+            <span class="input-group-text">https://doi.org/</span>
+            <input type="text"
+                   class="form-control"
+                   id="publicationDoiInput"
+                   autocomplete="off"
+                   required>
+          </div>
+
+          <div class="form-text">
+            Enter the DOI part only. Example: 10.1038/s41467-022-33050-0
+          </div>
+
+          <div class="invalid-feedback">
+            Enter a valid DOI value after https://doi.org/
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="publicationTypeInput">
+            Publication type <span class="text-danger">*</span>
+          </label>
+          <select class="form-select" id="publicationTypeInput" required>
+            <option value="Book">Book</option>
+            <option value="BookChapter">Book chapter</option>
+            <option value="ConferencePaper">Conference paper</option>
+            <option value="ConferenceProceeding">Conference proceeding</option>
+            <option value="DataPaper">Data paper</option>
+            <option value="Dissertation">Dissertation</option>
+            <option value="JournalArticle" selected>Journal article</option>
+            <option value="Preprint">Preprint</option>
+            <option value="Report">Report</option>
+            <option value="Other">Other</option>
+          </select>
+          <div class="invalid-feedback">
+            Select a publication type.
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">✕ Cancel</button>
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-primary" id="saveAndAddAnotherPublicationBtn" disabled>
+            ✓ Save and add another
+          </button>
+          <button type="button" class="btn btn-primary" id="saveRelatedPublicationBtn" disabled>
+            ✓ Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DOI_PREFIX = "https://doi.org/";
+
+  const hiddenField = document.getElementById("{{ field.id_for_label }}");
+  const publicationsListEl = document.getElementById("relatedPublicationsList");
+  const addBtn = document.getElementById("addRelatedPublicationBtn");
+
+  const modalEl = document.getElementById("relatedPublicationModal");
+  const modal = new bootstrap.Modal(modalEl);
+
+  const doiInput = document.getElementById("publicationDoiInput");
+  const typeInput = document.getElementById("publicationTypeInput");
+
+  const saveBtn = document.getElementById("saveRelatedPublicationBtn");
+  const saveAnotherBtn = document.getElementById("saveAndAddAnotherPublicationBtn");
+
+  const state = {
+    editIndex: null,
+  };
+
+  const escapeHtml = (s) =>
+    (s || "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+    }[c]));
+
+  const parsePublications = () => {
+    try {
+      const parsed = JSON.parse(hiddenField.value || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const writePublications = (list) => {
+    hiddenField.value = JSON.stringify(list || []);
+    renderPublications();
+  };
+
+  const stripDoiPrefix = (doi) => {
+    const value = (doi || "").trim();
+    return value.startsWith(DOI_PREFIX) ? value.slice(DOI_PREFIX.length) : value;
+  };
+
+  const buildDoiUrl = (doiSuffix) => {
+    return `${DOI_PREFIX}${doiSuffix.trim()}`;
+  };
+
+  const isDoiValid = (value) => {
+    const suffix = (value || "").trim();
+
+    if (!suffix) {
+      return false;
+    }
+
+    // The prefix is fixed in the UI; users should only enter the DOI suffix.
+    if (suffix.startsWith("http://") || suffix.startsWith("https://")) {
+      return false;
+    }
+
+    try {
+      const parsed = new URL(buildDoiUrl(suffix));
+      return (
+        parsed.protocol === "https:" &&
+        parsed.hostname === "doi.org" &&
+        parsed.pathname.length > 1
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const markDoiValidity = () => {
+    const valid = isDoiValid(doiInput.value);
+    doiInput.classList.toggle("is-invalid", !valid && doiInput.value.trim().length > 0);
+    return valid;
+  };
+
+  const markTypeValidity = () => {
+    const valid = !!typeInput.value;
+    typeInput.classList.toggle("is-invalid", !valid);
+    return valid;
+  };
+
+  const syncSaveButtons = () => {
+    const hasValidDoi = markDoiValidity();
+    const hasValidType = markTypeValidity();
+
+    saveBtn.disabled = !(hasValidDoi && hasValidType);
+    saveAnotherBtn.disabled = !(hasValidDoi && hasValidType);
+  };
+
+  const resetModal = () => {
+    state.editIndex = null;
+    doiInput.value = "";
+    typeInput.value = "JournalArticle";
+
+    doiInput.classList.remove("is-invalid");
+    typeInput.classList.remove("is-invalid");
+
+    document.getElementById("relatedPublicationModalLabel").textContent = "Add publication or preprint";
+    syncSaveButtons();
+  };
+
+  const openAddModal = () => {
+    resetModal();
+    modal.show();
+    setTimeout(() => doiInput.focus(), 150);
+  };
+
+  const openEditModal = (idx) => {
+    const publications = parsePublications();
+    const publication = publications[idx];
+    if (!publication) return;
+
+    state.editIndex = idx;
+    document.getElementById("relatedPublicationModalLabel").textContent = "Edit publication";
+
+    doiInput.value = stripDoiPrefix(publication.doi || "");
+    typeInput.value = publication.publication_type || "";
+
+    doiInput.classList.remove("is-invalid");
+    typeInput.classList.remove("is-invalid");
+
+    syncSaveButtons();
+
+    modal.show();
+    setTimeout(() => doiInput.focus(), 150);
+  };
+
+  const renderPublications = () => {
+    const publications = parsePublications();
+
+    if (!publications.length) {
+      publicationsListEl.innerHTML = `<div class="text-muted">No publications added.</div>`;
+      return;
+    }
+
+    publicationsListEl.innerHTML = publications.map((publication, i) => {
+      const doi = escapeHtml(publication.doi || "");
+      const publicationType = escapeHtml(publication.publication_type || "");
+
+      return `
+        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+          <div>
+            <div class="fw-semibold">${doi}</div>
+            <div class="small text-muted">${publicationType}</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-edit="${i}">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-remove="${i}">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  };
+
+  const collectModalData = () => {
+    const doiSuffix = doiInput.value.trim();
+    const publicationType = typeInput.value;
+
+    const validDoi = markDoiValidity();
+    const validType = markTypeValidity();
+
+    if (!validDoi) {
+      doiInput.classList.add("is-invalid");
+      doiInput.focus();
+      return null;
+    }
+
+    if (!validType) {
+      typeInput.classList.add("is-invalid");
+      typeInput.focus();
+      return null;
+    }
+
+    return {
+      doi: buildDoiUrl(doiSuffix),
+      publication_type: publicationType,
+    };
+  };
+
+  const upsertPublication = (data) => {
+    const publications = parsePublications();
+
+    if (state.editIndex === null) {
+      publications.push(data);
+    } else {
+      publications[state.editIndex] = data;
+    }
+
+    writePublications(publications);
+  };
+
+  addBtn.addEventListener("click", openAddModal);
+
+  publicationsListEl.addEventListener("click", (e) => {
+    const editBtn = e.target.closest("[data-edit]");
+    const removeBtn = e.target.closest("[data-remove]");
+
+    if (editBtn) {
+      return openEditModal(parseInt(editBtn.getAttribute("data-edit"), 10));
+    }
+
+    if (removeBtn) {
+      const idx = parseInt(removeBtn.getAttribute("data-remove"), 10);
+      const publications = parsePublications();
+      publications.splice(idx, 1);
+      writePublications(publications);
+    }
+  });
+
+  doiInput.addEventListener("input", syncSaveButtons);
+  typeInput.addEventListener("change", syncSaveButtons);
+
+  saveBtn.addEventListener("click", () => {
+    const data = collectModalData();
+    if (!data) return;
+
+    upsertPublication(data);
+    modal.hide();
+  });
+
+  saveAnotherBtn.addEventListener("click", () => {
+    const data = collectModalData();
+    if (!data) return;
+
+    upsertPublication(data);
+    resetModal();
+    modal.show();
+    setTimeout(() => doiInput.focus(), 50);
+  });
+
+  renderPublications();
+  syncSaveButtons();
+})();
+</script>

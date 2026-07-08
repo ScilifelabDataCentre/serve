@@ -157,18 +157,26 @@
         </div>
       </div>
 
-    {% comment %}
+    {% if related_work %}
     <div class="card shadow mb-4">
         <div class="card-header">
           <h2 class="h5 mb-0">Related work</h2>
         </div>
         <div class="card-body">
           <div class="row">
-
+            <div class="col"></div>
+            {% for work in related_work %}
+                    <span class="mb-2">
+                    <span class="fw-semibold">{{ work.type }}:</span>
+                    <a href="{{ work.doi_url }}" target="_blank">
+                    {{ work.doi }}
+                    </a>
+                    </span>
+            {% endfor %}
           </div>
         </div>
       </div>
-    {% endcomment %}
+    {% endif %}
 
     </div>
 
@@ -186,12 +194,12 @@
                         <a href="https://orcid.org/{{ creator.person_or_org.identifiers.0.identifier }}"
                           target="_blank"
                           rel="noopener"
-                          class="value-label fw-normal text-dark card-username text-decoration-none"
+                          class="value-label fw-normal text-dark card-username text-decoration-none app-details-orcid-link"
                           data-bs-toggle="tooltip"
                           data-bs-placement="top"
                           title="{% if creator.affiliations %}{% for aff in creator.affiliations %}{{ aff.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}No affiliations{% endif %}">
-                            <img src="/static/images/orcid_16x16.png" alt="ORCID" width="16" height="16" class="me-1">
-                            {{ creator.person_or_org.name }}
+                            <img src="{% static 'images/orcid-vector.svg' %}" alt="ORCID" width="16" height="16" class="app-details-orcid-icon">
+                            <span>{{ creator.person_or_org.name }}</span>
                         </a>
                     {% else %}
                         <span class="value-label fw-normal text-dark card-username"

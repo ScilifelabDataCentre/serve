@@ -490,7 +490,9 @@ def test_get_subdomain_name_no_subdomain_in_form():
 
 
 @pytest.mark.django_db
-def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_commit_callbacks):
+def test_forms_submit_funding_related_publications_and_enqueue_doi_background_task(
+    django_capture_on_commit_callbacks,
+):
     user = User.objects.create_user("funding-doi-user", "funding-doi@test.com", "bar")
     project = Project.objects.create_project(name="test-funding-doi", owner=user, description="")
     flavor = Flavor.objects.create(name="funding-doi-flavor", project=project)
@@ -504,11 +506,17 @@ def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_
     )
 
     funding_payload = [{"funder_name": "Uppsala University", "funder_id": "048a87296"}]
+    related_publications_payload = [
+        {
+            "doi": "https://doi.org/10.123/12345",
+            "publication_type": "DataPaper",
+        }
+    ]
 
     model_class, form_class = APP_REGISTRY.get("customapp")
     form_data = {
         "name": "customapp-funding-doi-test",
-        "description": "form with funding and tags",
+        "description": "form with funding, related publications and tags",
         "flavor": str(flavor.pk),
         "access": "public",
         "port": 8000,
@@ -517,6 +525,7 @@ def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_
         "language": "eng",
         "invenio_tags": "Antibodies|Cells",
         "funding_sources_json": json.dumps(funding_payload),
+        "related_publications_json": json.dumps(related_publications_payload),
     }
     form = form_class(form_data, project_pk=project.pk)
     assert form.is_valid(), f"form should be valid but has errors: {form.errors}"
@@ -528,10 +537,12 @@ def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_
     app_instance = model_class.objects.get(pk=app_id)
 
     called_serialized_instance, called_app_slug, task_kwargs_by_task_name, _ = mock_bg.call_args.args
+
     assert called_serialized_instance["pk"] == app_instance.id
     assert called_app_slug == app_instance.app.slug
     assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
     assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
+    assert task_kwargs_by_task_name["doi_provisioning"]["related_publications_datasets"] == related_publications_payload
 
 
 @pytest.mark.django_db
@@ -548,11 +559,17 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
     )
 
     funding_payload = [{"funder_name": "Uppsala University", "funder_id": "048a87296"}]
+    related_publications_payload = [
+        {
+            "doi": "https://doi.org/10.123/12345",
+            "publication_type": "DataPaper",
+        }
+    ]
 
     model_class, form_class = APP_REGISTRY.get("dashapp")
     form_data = {
         "name": "dashapp-funding-doi-test",
-        "description": "dash form with funding and tags",
+        "description": "dash form with funding, related publications and tags",
         "flavor": str(flavor.pk),
         "access": "public",
         "port": 8000,
@@ -561,6 +578,7 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
         "language": "eng",
         "invenio_tags": "Antibodies|Cells",
         "funding_sources_json": json.dumps(funding_payload),
+        "related_publications_json": json.dumps(related_publications_payload),
     }
     form = form_class(form_data, project_pk=project.pk)
     assert form.is_valid(), f"form should be valid but has errors: {form.errors}"
@@ -576,6 +594,7 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
     assert called_app_slug == app_instance.app.slug
     assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
     assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
+    assert task_kwargs_by_task_name["doi_provisioning"]["related_publications_datasets"] == related_publications_payload
 
 
 @pytest.mark.django_db
@@ -985,6 +1004,83 @@ def test_apply_additional_metadata_maps_funding_entries():
         {
             "funder": {
                 "id": "0014h3x09",
+            },
+        },
+    ]
+
+
+def test_apply_additional_metadata_maps_related_publications_datasets_entries():
+    service = InvenioService(mock_mode=True)
+
+    target_metadata = {
+        "related_identifiers": [
+            {
+                "identifier": "https://mock.io/some-image",
+                "scheme": "url",
+                "relation_type": {
+                    "id": "isvariantformof",
+                    "title": {"en": "Docker image"},
+                },
+                "resource_type": {
+                    "id": "software",
+                },
+            }
+        ]
+    }
+
+    extra_metadata = {
+        "related_publications_datasets": [
+            {
+                "doi": "https://doi.org/10.1101/2026.01.01.123456",
+                "publication_type": "Preprint",
+            },
+            {
+                "doi": "https://doi.org/10.5281/zenodo.1234567",
+                "publication_type": "Dataset",
+            },
+        ]
+    }
+
+    result = service._apply_additional_invenio_metadata(target_metadata, extra_metadata)
+
+    related_identifiers = [
+        item.model_dump(mode="json") if hasattr(item, "model_dump") else item for item in result["related_identifiers"]
+    ]
+
+    assert related_identifiers == [
+        {
+            "identifier": "https://mock.io/some-image",
+            "scheme": "url",
+            "relation_type": {
+                "id": "isvariantformof",
+                "title": {"en": "Docker image"},
+            },
+            "resource_type": {
+                "id": "software",
+            },
+        },
+        {
+            "identifier": "https://doi.org/10.1101/2026.01.01.123456",
+            "scheme": "doi",
+            "relation_type": {
+                "id": "issupplementto",
+                "title": None,
+            },
+            "resource_type": {
+                "id": "publication-preprint",
+                "title": None,
+            },
+        },
+        {
+            "identifier": "https://doi.org/10.5281/zenodo.1234567",
+            "scheme": "doi",
+            "relation_type": {
+                "id": "issupplementto",
+                "title": None,
+            },
+            "resource_type": {
+                "id": "dataset",
+                "title": None,
             },
         },
     ]

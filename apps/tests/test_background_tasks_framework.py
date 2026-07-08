@@ -84,8 +84,8 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
     )
 
     with patch("apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"), patch(
-        "doi_minting.services.invenio_svc.InvenioService.is_app_eligible_for_doi", return_value=(True, "")
-    ), patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint:
+        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
+    ) as mock_mint:
         result = execute_single_background_task(
             task_db_id=task_record.id,
             task_kwargs_by_task_name={"doi_provisioning": {"language": "eng", "funding": funding_payload}},
@@ -95,6 +95,49 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
     mock_mint.assert_called_once()
     assert mock_mint.call_args.kwargs["additional_metadata"]["languages"] == "eng"
     assert mock_mint.call_args.kwargs["additional_metadata"]["funding"] == funding_payload
+
+
+@pytest.mark.django_db
+def test_doi_provisioning_task_includes_related_publications_datasets_metadata(app_instance):
+    related_publications_payload = [
+        {
+            "doi": "https://doi.org/10.1101/2026.01.01.123456",
+            "publication_type": "Preprint",
+        }
+    ]
+
+    task_record = BackgroundTask.objects.create(
+        app_instance=app_instance,
+        task_name="doi_provisioning",
+        task_type="external_api",
+        status="pending",
+        is_critical=False,
+        execution_order=2,
+        max_retries=0,
+    )
+
+    with patch(
+        "apps.background_tasks.tasks.doi_provisioning.resolve_app_image",
+        return_value="some-image",
+    ), patch(
+        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi",
+    ) as mock_mint:
+        result = execute_single_background_task(
+            task_db_id=task_record.id,
+            task_kwargs_by_task_name={
+                "doi_provisioning": {
+                    "language": "eng",
+                    "related_publications_datasets": related_publications_payload,
+                }
+            },
+        )
+
+    assert result["success"] is True
+    mock_mint.assert_called_once()
+
+    additional_metadata = mock_mint.call_args.kwargs["additional_metadata"]
+
+    assert additional_metadata["related_publications_datasets"] == related_publications_payload
 
 
 @pytest.fixture()

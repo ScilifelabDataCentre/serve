@@ -60,13 +60,27 @@ jobs:
           sed -i 's/UID=1000/UID=1001/g' .env
           sed -i 's/GID=1000/GID=127/g' .env
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build app image with cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: runtime
+          tags: stackn:base
+          load: true
+          cache-from: type=gha,scope=stackn-base
+          cache-to: type=gha,mode=max,scope=stackn-base
+
       - name: Start serve
         working-directory: ${{env.working-directory}}
         id: setup
         run: |
           set -ex
           echo "Deploying serve"
-          docker compose up -d --build
+          docker compose up -d --no-build db redis rabbit studio
 
       - name: Set Serve URL
         working-directory: ${{env.working-directory}}
@@ -98,3 +112,112 @@ jobs:
         id: tests
         run: |
           docker compose run unit-tests
+
+  accessibility:
+    name: Accessibility checks
+    if: github.repository == 'scilifelabdatacentre/serve'
+    runs-on: ubuntu-22.04
+    env:
+      working-directory: .
+
+    steps:
+      - name: Branch or tag that triggered the workflow run
+        run: |
+          echo "Running on branch ${GITHUB_REF##*/}"
+          echo "Running as UID: $UID, GID: $GID"
+          whoami
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare repository
+        run: |
+          echo "Running as UID: $UID, GID: $GID"
+          export GID=127
+          echo "Now running as UID: $UID, GID: $GID"
+          whoami
+          pwd
+          mv .env.template .env
+          sudo chgrp -R 127 media
+          sudo chmod -R g+rwx media
+          ls -al
+          sed -i 's/UID=1000/UID=1001/g' .env
+          sed -i 's/GID=1000/GID=127/g' .env
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build app image with cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: runtime
+          tags: stackn:base
+          load: true
+          cache-from: type=gha,scope=stackn-base
+          cache-to: type=gha,mode=max,scope=stackn-base
+
+      - name: Start serve
+        working-directory: ${{env.working-directory}}
+        id: setup
+        run: |
+          set -ex
+          echo "Deploying serve"
+          docker compose up -d --no-build db redis rabbit studio
+
+      - name: Set Serve URL
+        working-directory: ${{env.working-directory}}
+        run: |
+          curl --version | head -n 1
+          STUDIO_URL=http://studio.127.0.0.1.nip.io:8080
+          echo "STUDIO_URL=$STUDIO_URL" >> $GITHUB_ENV
+          echo "The Serve URL is $STUDIO_URL"
+
+      - name: Check URL is up
+        uses: gerdemann/http-status-code@1.0.0
+        with:
+          url: ${{ env.STUDIO_URL }}
+          code: 200 # http status code
+          timeout: 120 # seconds
+          interval: 5 # seconds
+        continue-on-error: true
+
+      - name: Check if Serve is ready
+        working-directory: ${{env.working-directory}}
+        id: check_serve_up
+        run: |
+          echo "Checking response from STUDIO_URL: ${{ env.STUDIO_URL }}"
+          response=$(curl --write-out '%{http_code}' --silent --output /dev/null ${{ env.STUDIO_URL }})
+          if [[ "$response" -ne 200 ]] ; then echo "status $response" && sleep 30; else echo "serve is ready"; fi
+
+      - name: Set up Node.js for accessibility checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install Pa11y CI
+        run: npm install -g pa11y-ci
+
+      - name: Seed accessibility check data
+        working-directory: ${{env.working-directory}}
+        run: |
+          docker exec studio python manage.py seed_a11y_data
+
+      - name: Run Pa11y accessibility checks
+        id: pa11y
+        working-directory: ${{env.working-directory}}
+        env:
+          A11Y_TEST_USERNAME: no-reply-a11y@scilifelab.uu.se
+          A11Y_TEST_PASSWORD: tesT12345@
+        run: |
+          mkdir -p pa11y-ci-report
+          pa11y-ci --config .github/pa11y.config.cjs
+
+      - name: Upload Pa11y reports (if generated)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa11y-ci-reports
+          path: pa11y-ci-report
+          if-no-files-found: ignore

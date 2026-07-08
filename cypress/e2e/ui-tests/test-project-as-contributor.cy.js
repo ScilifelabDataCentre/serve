@@ -101,7 +101,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('input[name=name]').type(project_name)
         cy.get('textarea[name=description]').type(project_description)
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(5000) // sometimes it takes a while to create a project
+        cy.get('h3', { timeout: longCmdTimeoutMs }).should('contain', project_name)
 
         cy.get("title").should("have.text", project_title_name)
         cy.get('h3').should('contain', project_name)
@@ -210,7 +210,7 @@ describe("Test project contributor user functionality", () => {
         cy.get("a").contains('Create').first().click()
         cy.get('input[name=name]').type(project_name)
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(10000) // sometimes it takes a while to create a project
+        cy.get('h3', { timeout: longCmdTimeoutMs }).should('contain', project_name)
             .then((href) => {
                 cy.logf(href, Cypress.currentTest)
                 // Check that the app limits work using Jupyter Lab as example
@@ -254,9 +254,8 @@ describe("Test project contributor user functionality", () => {
             cy.get("a").contains('Create').first().click()
             cy.get('input[name=name]').type(`${project_name}-${i + 1}`);
             cy.get("input[name=save]").contains('Create project').click()
-            cy.wait(5000)
+            cy.get('h3', { timeout: longCmdTimeoutMs }).should('contain', `${project_name}-${i + 1}`)
         });
-        cy.wait(15000) // sometimes it takes a while to create a project but just waiting once at the end should be enough
 
         // Now check that it is not possible to create another project
         // not possible to click the button to create a new project
@@ -343,7 +342,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('input[name=name]').type(project_name_access)
         cy.get('textarea[name=description]').type("A test project created by an e2e test.")
         cy.get("input[name=save]").contains('Create project').click()
-        cy.wait(5000) // sometimes it takes a while to create a project
+        cy.get('h3', { timeout: longCmdTimeoutMs }).should('contain', project_name_access)
 
         // Create private app
         cy.logf("Now creating a private app", Cypress.currentTest)

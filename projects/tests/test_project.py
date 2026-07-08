@@ -33,8 +33,8 @@ class ProjectTestCase(TestCase):
             mem_lim="1Gi",
             ephmem_req="200Mi",
             ephmem_lim="500Mi",
-            gpu_req="1",
-            gpu_lim="1",
+            gpu_req=1,
+            gpu_lim=1,
             name="1 vCPU, 0.5 GB RAM",
             project=None,
         )

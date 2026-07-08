@@ -60,6 +60,33 @@ def parse_funding_sources_json(funding_raw: Any) -> list[dict[str, Any]]:
     return parsed_funding
 
 
+def parse_related_publications_datasets_json(related_publications_datasets_raw: Any) -> list[dict[str, Any]]:
+    """Normalize a related publications/datasets JSON form field into a list."""
+    if not related_publications_datasets_raw:
+        return []
+
+    parsed_related_publications_datasets = related_publications_datasets_raw
+    if isinstance(parsed_related_publications_datasets, str):
+        try:
+            parsed_related_publications_datasets = json.loads(parsed_related_publications_datasets)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Unable to parse related_publications_json or related_datasets_json while creating app. "
+                "Proceeding with empty related publications or datasets metadata."
+            )
+            return []
+
+    if not isinstance(parsed_related_publications_datasets, list):
+        logger.warning(
+            "related_publications_json or related_datasets_json has unsupported type %s. "
+            "Proceeding with empty related publications/datasets metadata.",
+            type(parsed_related_publications_datasets).__name__,
+        )
+        return []
+
+    return parsed_related_publications_datasets
+
+
 def get_select_options(project_pk, selected_option=""):
     from apps.types_.subdomain import SubdomainCandidateName
 
@@ -388,6 +415,8 @@ def create_instance_from_form(
             "description",
             "language",
             "funding_sources_json",
+            "related_publications_json",
+            "related_datasets_json",
             "creators",
             "subjects_keywords",
             "invenio_tags",
@@ -430,25 +459,6 @@ def create_instance_from_form(
                     )
                     run_background_tasks_only = True
                     break
-    # For existing apps, detect if access is changing from non-public to public
-    access_changed_to_public = False
-    if not new_app:
-        # Get the original instance to compare access levels
-        from .app_registry import APP_REGISTRY
-
-        original_instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
-        original_access = getattr(original_instance, "access", None) if original_instance else None
-        new_access = form.cleaned_data.get("access")
-
-        # Check if access changed from non-public to public
-        if original_access != "public" and new_access == "public":
-            access_changed_to_public = True
-            logger.info(
-                "create_instance_from_form.access_changed_to_public app_id=%s original=%s new=%s",
-                app_id,
-                original_access,
-                new_access,
-            )
 
     subdomain_name, is_created_by_user = get_subdomain_name(form)
     logger.info(
@@ -457,6 +467,13 @@ def create_instance_from_form(
         subdomain_name,
         is_created_by_user,
     )
+
+    # This is needed for Depictio later on.
+    original_instance = None
+    if not new_app:
+        from .app_registry import APP_REGISTRY
+
+        original_instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
 
     instance = form.save(commit=False)
 
@@ -542,6 +559,11 @@ def create_instance_from_form(
                 status_object.time = timezone.now()
                 status_object.save(update_fields=["status", "time"])
 
+    # Re-check GPU capacity under lock before saving.
+    from apps.gpu import ensure_gpu_capacity
+
+    ensure_gpu_capacity(instance)
+
     instance_id = save_instance_and_related_data(instance, form)
     if do_deploy:
         reset_k8s_user_app_status_for_deployment(instance)
@@ -572,7 +594,6 @@ def create_instance_from_form(
             instance,
             form,
             app_slug,
-            access_changed_to_public,
             progress_started_at=progress_started_at,
         )
     elif run_background_tasks_only:
@@ -583,7 +604,6 @@ def create_instance_from_form(
             instance,
             form,
             app_slug,
-            access_changed_to_public,
             progress_started_at=progress_started_at,
         )
         logger.info("create_instance_from_form.background_tasks_only app_id=%s instance_id=%s", app_id, instance_id)
@@ -602,7 +622,6 @@ def _run_background_tasks_and_doi_only(
     instance,
     form,
     app_slug,
-    access_changed_to_public=False,
     skip_deploy=True,
     progress_started_at: str | None = None,
 ):
@@ -610,16 +629,13 @@ def _run_background_tasks_and_doi_only(
     from .tasks import run_background_tasks
 
     logger.info(
-        "run_background_tasks_and_doi_only start for app_slug=%s instance_id=%s access_changed=%s skip_deploy=%s",
+        "run_background_tasks_and_doi_only start for app_slug=%s instance_id=%s skip_deploy=%s",
         app_slug,
         instance.id,
-        access_changed_to_public,
         skip_deploy,
     )
 
-    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(
-        instance, form, app_slug, access_changed_to_public
-    )
+    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(instance, form, app_slug)
 
     transaction.on_commit(
         lambda: run_background_tasks.delay(
@@ -636,22 +652,18 @@ def _deploy_with_background_tasks_and_doi(
     instance,
     form,
     app_slug,
-    access_changed_to_public=False,
     progress_started_at: str | None = None,
 ):
-    """Deploy using background tasks with DOI minting for public apps."""
+    """Deploy using background tasks with DOI minting."""
     from .tasks import run_background_tasks
 
     logger.info(
-        "_deploy_with_background_tasks_and_doi start for app_slug=%s instance_id=%s access_changed=%s",
+        "_deploy_with_background_tasks_and_doi start for app_slug=%s instance_id=%s",
         app_slug,
         instance.id,
-        access_changed_to_public,
     )
 
-    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(
-        instance, form, app_slug, access_changed_to_public
-    )
+    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(instance, form, app_slug)
 
     transaction.on_commit(
         lambda: run_background_tasks.delay(
@@ -663,42 +675,45 @@ def _deploy_with_background_tasks_and_doi(
     )
 
 
-def _prepare_doi_task_kwargs(instance, form, app_slug, access_changed_to_public=False):
+def _prepare_doi_task_kwargs(instance, form, app_slug):
     """
     Prepare the serialized instance and DOI provisioning task kwargs for background tasks.
     Returns (serialized_instance, task_kwargs_by_task_name)
     """
     serialized_instance = instance.serialize()
 
-    # Include DOI task if app is public or if access just changed to public
-    should_mint_doi = (hasattr(instance, "access") and instance.access == "public") or access_changed_to_public
-    if should_mint_doi:
-        funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
+    # NB: Before we only included public apps in DOI provisioning, now all apps
+    # Public apps are published in Invenio; non-public apps are saved as a draft.
+    funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
-        # Get creators data from form if available
-        creators_data = None
-        if hasattr(form, "get_creators_data"):
-            creators_data = form.get_creators_data()
-            logger.debug(f"Background task: creators_data from form: {creators_data}")
+    # Both related publications and datasets go under the same metadata field on Invenio,
+    # specifically as related identifiers but with different resource_type values.
+    related_publications_list = parse_related_publications_datasets_json(
+        form.cleaned_data.get("related_publications_json")
+    )
+    related_datasets_list = parse_related_publications_datasets_json(form.cleaned_data.get("related_datasets_json"))
+    related_identifiers_list = related_publications_list + related_datasets_list
 
-        # Get processed tags data from form if available
-        subjects_keywords_data = form.cleaned_data.get("subjects_keywords") if hasattr(form, "cleaned_data") else None
-        logger.debug(f"Background task: subjects_keywords data from form: {subjects_keywords_data}")
+    # Get creators data from form if available
+    creators_data = None
+    if hasattr(form, "get_creators_data"):
+        creators_data = form.get_creators_data()
+        logger.debug(f"Background task: creators_data from form: {creators_data}")
 
-        task_kwargs_by_task_name = {
-            "doi_provisioning": {
-                "language": form.cleaned_data.get("language"),
-                "funding": funding_list,
-                "creators": creators_data,
-                "subjects_keywords": form.cleaned_data.get("subjects_keywords"),
-            },
-        }
-        logger.debug(
-            "DOI provisioning will be handled by background task for public app '%s' (id=%s).", app_slug, instance.id
-        )
-    else:
-        task_kwargs_by_task_name = {}
-        logger.debug("Skipping DOI provisioning for non-public app '%s' (id=%s).", app_slug, instance.id)
+    # Get processed tags data from form if available
+    subjects_keywords_data = form.cleaned_data.get("subjects_keywords") if hasattr(form, "cleaned_data") else None
+    logger.debug(f"Background task: subjects_keywords data from form: {subjects_keywords_data}")
+
+    task_kwargs_by_task_name = {
+        "doi_provisioning": {
+            "language": form.cleaned_data.get("language"),
+            "funding": funding_list,
+            "related_publications_datasets": related_identifiers_list,
+            "creators": creators_data,
+            "subjects_keywords": form.cleaned_data.get("subjects_keywords"),
+        },
+    }
+    logger.debug("DOI provisioning will be handled by background task for app '%s' (id=%s).", app_slug, instance.id)
 
     return serialized_instance, task_kwargs_by_task_name
 
