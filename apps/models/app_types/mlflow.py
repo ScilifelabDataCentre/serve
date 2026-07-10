@@ -31,6 +31,7 @@ class MLFlowInstance(BaseAppInstance):
         }
         k8s_values["tracking"] = {
             "auth": {"enabled": True, "username": get_random_string(10), "password": get_random_string(20)},
+            "service": {"type": "ClusterIP"},
             "ingress": {
                 "enabled": True,
                 "ingressClassName": "nginx",
@@ -62,6 +63,14 @@ class MLFlowInstance(BaseAppInstance):
             "image": {
                 "repository": "bitnamilegacy/minio",
                 "tag": "2025.6.13-debian-12-r0",
+            },
+            "defaultInitContainers": {
+                "volumePermissions": {
+                    "image": {
+                        "repository": "bitnamilegacy/os-shell",
+                        "tag": "12-debian-12-r50",
+                    }
+                }
             },
         }
         k8s_values["postgresql"] = {
