@@ -228,18 +228,9 @@ def helm_delete(release_name: str, namespace: str = "default") -> tuple[str | No
     # Execute the command
     try:
         result = subprocess.run(command.split(" "), check=True, text=True, capture_output=True)
+        return result.stdout, None
     except subprocess.CalledProcessError as e:
         return e.stdout, e.stderr
-
-    # Clean up resources that survive helm uninstall for mlflow:
-    # - minio provisioning job (before-hook-creation delete policy)
-    # - postgresql StatefulSet PVC (helm never deletes volumeClaimTemplates PVCs)
-    for cmd in [
-        ["kubectl", "delete", "job", f"{release_name}-minio-provisioning", "-n", namespace, "--ignore-not-found=true"],
-        ["kubectl", "delete", "pvc", f"data-{release_name}-postgresql-0", "-n", namespace, "--ignore-not-found=true"],
-    ]:
-        subprocess.run(cmd, capture_output=True)
-    return result.stdout, None
 
 
 @shared_task

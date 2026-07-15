@@ -80,6 +80,9 @@ class MLFlowInstance(BaseAppInstance):
                 "repository": "bitnamilegacy/minio",
                 "tag": "2025.6.13-debian-12-r0",
             },
+            "provisioning": {
+                "cleanupAfterFinished": {"enabled": True, "seconds": 600},
+            },
             "defaultInitContainers": {
                 "volumePermissions": {
                     "image": {
@@ -92,6 +95,11 @@ class MLFlowInstance(BaseAppInstance):
         k8s_values["postgresql"] = {
             "primary": {
                 "pdb": {"create": False},
+                "persistentVolumeClaimRetentionPolicy": {
+                    "enabled": True,
+                    "whenDeleted": "Delete",
+                    "whenScaled": "Retain",
+                }
             },
             "readReplicas": {
                 "pdb": {"create": False},
