@@ -99,7 +99,7 @@ class MLFlowInstance(BaseAppInstance):
                     "enabled": True,
                     "whenDeleted": "Delete",
                     "whenScaled": "Retain",
-                }
+                },
             },
             "readReplicas": {
                 "pdb": {"create": False},
