@@ -32,6 +32,7 @@ class MLFlowInstance(BaseAppInstance):
         }
         k8s_values["tracking"] = {
             "auth": {"enabled": True, "username": get_random_string(10), "password": get_random_string(20)},
+            "service": {"type": "ClusterIP"},
             "ingress": {"enabled": False},
             "httproute": {
                 "enabled": True,
@@ -79,10 +80,26 @@ class MLFlowInstance(BaseAppInstance):
                 "repository": "bitnamilegacy/minio",
                 "tag": "2025.6.13-debian-12-r0",
             },
+            "provisioning": {
+                "cleanupAfterFinished": {"enabled": True, "seconds": 600},
+            },
+            "defaultInitContainers": {
+                "volumePermissions": {
+                    "image": {
+                        "repository": "bitnamilegacy/os-shell",
+                        "tag": "12-debian-12-r50",
+                    }
+                }
+            },
         }
         k8s_values["postgresql"] = {
             "primary": {
                 "pdb": {"create": False},
+                "persistentVolumeClaimRetentionPolicy": {
+                    "enabled": True,
+                    "whenDeleted": "Delete",
+                    "whenScaled": "Retain",
+                },
             },
             "readReplicas": {
                 "pdb": {"create": False},
