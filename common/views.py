@@ -1,6 +1,7 @@
 import json
 import secrets
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from django.conf import settings
@@ -221,10 +222,10 @@ class EditProfileView(TemplateView):
             user_profile = UserProfile.objects.get(user_id=request.user.id)
         except ObjectDoesNotExist as e:
             logger.error(str(e), exc_info=True)
-            user_profile = UserProfile()
+            user_profile = UserProfile(user=request.user)
         except Exception as e:
             logger.error(str(e), exc_info=True)
-            user_profile = UserProfile()
+            user_profile = UserProfile(user=request.user)
 
         return user_profile
 
@@ -648,15 +649,18 @@ class OrcidSearchView(View):
             response.raise_for_status()
             data = response.json()
 
-            # Format results - fetch names from individual person records
-            results = []
-            for result in data.get("result", []):
-                orcid_identifier = result.get("orcid-identifier", {})
-                orcid_id = orcid_identifier.get("path", "")
+            # Collect the matched ORCID ids, preserving ORCID's ranking order.
+            orcid_ids = [result.get("orcid-identifier", {}).get("path", "") for result in data.get("result", [])]
+            orcid_ids = [orcid_id for orcid_id in orcid_ids if orcid_id]
 
-                if orcid_id:
-                    # Get person details to retrieve actual names
-                    person_data = self._get_orcid_person_details(orcid_id)
+            # Fetch each result's ORCID lookups concurrently so the request
+            # isn't pinned for the sum of sequential calls. map preserves order.
+            results = []
+            if orcid_ids:
+                with ThreadPoolExecutor(max_workers=min(len(orcid_ids), 10)) as executor:
+                    person_results = list(executor.map(self._get_orcid_person_details, orcid_ids))
+
+                for orcid_id, person_data in zip(orcid_ids, person_results):
                     if person_data:
                         results.append(person_data)
                     else:

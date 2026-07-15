@@ -180,12 +180,12 @@ describe("Test deploying app", () => {
         cy.logf("End beforeEach() hook", Cypress.currentTest)
     })
 
-    it("can deploy a project, link, and public app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+    it("can deploy a project and link app using the custom app chart", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name_project = "e2e-custom-example-project"
-        const app_name_public = "e2e-custom-example-public"
-        const app_name_public_2 = "e2e-custom-example-2-public"
+        const app_name_link = "e2e-custom-example-link"
+        const app_name_link_2 = "e2e-custom-example-2-link"
         const app_description = "e2e-custom-description"
         const app_description_2 = "e2e-custom-2-description"
         const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
@@ -197,15 +197,13 @@ describe("Test deploying app", () => {
         const link_privacy_type_note = "some-text-on-link-only-app"
         const createResources = Cypress.env('create_resources')
         const app_type = "Custom App"
-        const app_source_code_public = "https://doi.org/example"
-        const app_source_code_public_changed = "https://doi.org/another/example"
         const default_url_subpath = "default/url/subpath/"
         const changed_default_url_subpath = "changed/subpath/"
         const invalid_default_url_subpath = "€% / ()"
         const keyword = "Microscopy"
         const keyword_two = "COVID-19"
-        const creator_firstname = "Somefirstname"
-        const creator_lastname = "Somelastname"
+        const creator_firstname = "Jane"
+        const creator_lastname = "Doe"
         const creator_affiliation = "Uppsala University"
         const funder_number = "0000-1234"
         const funder_org = "Swedish Research Council"
@@ -290,13 +288,13 @@ describe("Test deploying app", () => {
                  cy.get('tr:contains("' + app_name_project + '")').should('not.exist')
             })
 
-            // create a public app and verify that it is displayed on the public apps page
-            cy.logf("Now creating a public app", Cypress.currentTest)
+            // create a link app
+            cy.logf("Now creating a link app", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
-            cy.get('#id_name').type(app_name_public)
+            cy.get('#id_name').type(app_name_link)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
-            cy.get('#id_source_code_url').type(app_source_code_public)
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_mount_path').select(mount_path)
@@ -321,7 +319,7 @@ describe("Test deploying app", () => {
                     cy.get('#newCreatorLastName').type(creator_lastname)
                     cy.get('#newCreatorAffiliation').should('be.visible').type(creator_affiliation)
                     cy.get('#affiliationSuggestions', { timeout: 10000 }).should('be.visible').contains(creator_affiliation)
-                    cy.get('#affiliationSuggestions .list-group-item').first().click()
+                    cy.get('#affiliationSuggestions .list-group-item').first().click({ force: true })
                     cy.get('#saveCreatorBtn').should('not.be.disabled').click()
                 })
             cy.get('#creatorsSortableList').should('exist').and('be.visible').find('li').eq(1)
@@ -363,114 +361,42 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             cy.completeAppSubmissionFlow()
 
-            verifyAppStatus(app_name_public,  "Running", "Creating", "Running", "Public")
+            verifyAppStatus(app_name_link,  "Running", "Creating", "Running", "Link")
 
             // wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public,  "Running", "Creating", "Running", "Public")
+              verifyAppStatus(app_name_link,  "Running", "Creating", "Running", "Link")
             })
 
             // check that the default URL subpath was created
-            cy.contains('a', app_name_public)
+            cy.contains('a', app_name_link)
                   .should('have.attr', 'href')
                   .and('include', default_url_subpath)
-
-            // check that it's present on the public apps page
-            cy.logf("Now checking if the public app is displayed on the public apps page.", Cypress.currentTest)
-            cy.visit("/apps")
-            cy.contains('h4.card-title', app_name_public).should('be.visible').closest('.card')
-                .within(() => {
-                cy.get('.card-text p').should('contain', app_description)
-                cy.contains('a', 'Details').should('be.visible').click()
-            })
-
-            // check the app details page is correct
-            cy.logf("Now checking if the app details page is displaying correct information.", Cypress.currentTest)
-            cy.get("title").should("contain", app_name_public)
-            // title block
-            cy.get('.d-flex.flex-column.flex-md-row').first()
-            .within(() => {
-                cy.get('h2').should('have.text', app_name_public)
-                cy.get('p').should('contain', "Version 1").and('contain', "latest version")
-            })
-            cy.get('.d-flex.flex-column.flex-md-row').first()
-            .within(() => {
-                // Apps that have volume attached don't have Run Locally on public details page.
-                cy.contains('a', 'Run Locally').should('not.exist')
-            })
-            // check record description block
-            cy.contains('.card', 'Record description').within(() => {
-                cy.contains('dt', 'Title').next('dd').should('contain', app_name_public)
-                cy.contains('dt', 'DOI').should('exist')
-                cy.contains('dt', 'Description').next('dd').should('contain', app_description)
-                cy.contains('dt', 'URL').next('dd').should('contain', default_url_subpath)
-                cy.contains('dt', 'Source code').next('dd').should('contain', app_source_code_public)
-                cy.contains('dt', 'Docker image').next('dd').should('contain', image_name)
-                cy.contains('dt', 'Language').next('dd').should('contain', "Swedish")
-                cy.contains('dt', 'Date submitted').should('exist')
-                cy.contains('dt', 'Date updated').should('exist')
-                cy.contains('dt', 'Date available').should('exist')
-                cy.contains('.tag-name', keyword).should('be.visible')
-                cy.contains('dt', 'Funding')
-                    .next('dd')
-                    .should('contain', funder_org)
-
-                })
-            // creators block
-            cy.contains('.card', 'Creators').within(() => {
-                cy.contains('.card-username', creator_lastname + ', ' + creator_firstname).should('be.visible')
-                cy.contains('.card-username', 'Doe, Jane').should('be.visible')
-                    .and('have.attr', 'href', '0000-0002-1584-4316')
-                })
-
-
-            // check that the public app is displayed on the homepage
-            cy.logf("Now checking if the public app is displayed when not logged in.", Cypress.currentTest)
-            cy.visit("/home/")
-            cy.get('h4').should('contain', app_name_public)
-
-            // log out and check that the public app is still displayed on the homepage
-            cy.clearCookies()
-            cy.clearLocalStorage()
-            Cypress.session.clearAllSavedSessions()
-            cy.visit('/projects/')
-            cy.get('h3').should('contain', 'Login required') // check that logout worked
-            cy.visit("/")
-            cy.get('h4').should('contain', app_name_public)
-
-            // log back in
-            cy.fixture('users.json').then(function (data) {
-                users = data
-                cy.loginViaUI(users.deploy_app_user.email, users.deploy_app_user.password)
-            })
 
             // check that the logs page opens for the app
             cy.logf("Now checking that the logs page for the app opens", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name_public + '")').find('a').contains('Logs').click()
+            cy.get('tr:contains("' + app_name_link + '")').find('i.ellipsis.vertical.icon').click()
+            cy.get('tr:contains("' + app_name_link + '")').find('a').contains('Logs').click()
             cy.get('h3').should('contain', "Logs")
 
             // try changing the name, description, etc. of the app and verify it works
-            cy.logf("Now changing the name, description, etc of the public app", Cypress.currentTest)
+            cy.logf("Now changing the name, description, etc of the link app", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name_public + '")').find('a').contains('Settings').click()
-            cy.get('#id_name').should('have.value', app_name_public) // name should be same as before
-            cy.get('#id_name').clear().type(app_name_public_2) // now change name
+            cy.get('tr:contains("' + app_name_link + '")').find('i.ellipsis.vertical.icon').click()
+            cy.get('tr:contains("' + app_name_link + '")').find('a').contains('Settings').click()
+            cy.get('#id_name').should('have.value', app_name_link) // name should be same as before
+            cy.get('#id_name').clear().type(app_name_link_2) // now change name
             cy.get('#id_description').should('have.value', app_description) // description should be same as set before
             cy.get('#id_description').clear().type(app_description_2) // now change description
-            cy.get('#id_source_code_url').should('have.value', app_source_code_public) // source code url should be same as before
-            cy.get('#id_source_code_url').clear().type(app_source_code_public_changed) // now change source code url
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
-            cy.get('#id_access').should('be.disabled')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_language').should('have.value', 'swe')
             cy.get('#id_language').select('eng')
             // keywords
-            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword.toLowerCase())
-            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword.toLowerCase()).closest('.badge').find('.tag-remove-button').click()
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword)
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword).closest('.badge').find('.tag-remove-button').click()
             cy.get('#div_id_invenio_tags').should('be.visible')
                 .within(() => {
                     cy.get('input[placeholder*="Start typing"]').should('be.visible').type(keyword_two)
@@ -518,33 +444,31 @@ describe("Test deploying app", () => {
             cy.completeAppSubmissionFlow()
 
             // NB: it will get status "Running" but it won't work because the new port is incorrect
-            verifyAppStatus(app_name_public_2,  "Running", "Changing", "Running", "Public")
+            verifyAppStatus(app_name_link_2,  "Running", "Changing", "Running", "Link")
 
             // wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name_public_2,  "Running", "Changing", "Running", "Public")
+              verifyAppStatus(app_name_link_2,  "Running", "Changing", "Running", "Link")
             })
 
             // check that the default URL subpath was changed
-            cy.contains('a', app_name_public_2)
+            cy.contains('a', app_name_link_2)
                   .should('have.attr', 'href')
                   .and('include', changed_default_url_subpath)
 
             // check that the changes were saved
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name_public_2 + '")').find('a').contains('Settings').click()
-            cy.get('#id_name').should('have.value', app_name_public_2)
+            cy.get('tr:contains("' + app_name_link_2 + '")').find('i.ellipsis.vertical.icon').click()
+            cy.get('tr:contains("' + app_name_link_2 + '")').find('a').contains('Settings').click()
+            cy.get('#id_name').should('have.value', app_name_link_2)
             cy.get('#id_description').should('have.value', app_description_2)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
-            cy.get('#id_access').should('be.disabled')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
-            cy.get('#id_source_code_url').should('have.value', app_source_code_public_changed)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path_2)
             // The form tag renders the keyword in lowercase.
-            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword_two.toLowerCase())
+            cy.get('#div_id_invenio_tags .badge span').should('have.text', keyword_two)
             cy.get('#id_language').should('have.value', 'eng')
             cy.get('#creatorsSortableList').should('be.visible').children('li').should('have.length', 2)
             cy.get('#fundersList').should('be.visible').children().should('have.length', 2)
@@ -556,54 +480,18 @@ describe("Test deploying app", () => {
             cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.get('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
 
-            // check the app details info has been changed
-            cy.logf("Now checking if the app details page is displaying updated information.", Cypress.currentTest)
-            cy.visit("/apps")
-            cy.contains('h4.card-title', app_name_public_2).should('be.visible').closest('.card')
-                .within(() => {
-                cy.get('.card-text p').should('contain', app_description_2)
-                cy.contains('a', 'Details').should('be.visible').click()
-            })
-            cy.get("title").should("contain", app_name_public_2)
-            // title block
-            cy.get('.d-flex.flex-column.flex-md-row').first()
-            .within(() => {
-                cy.get('h2').should('have.text', app_name_public_2)
-                cy.get('p').should('contain', "Version 2").and('contain', "latest version")
-            })
-            cy.get('.d-flex.flex-column.flex-md-row').first()
-            .within(() => {
-                // Volume-backed apps cannot be run locally from the public details page.
-                cy.contains('a', 'Run Locally').should('not.exist')
-            })
-            // check record description block
-            cy.contains('.card', 'Record description').within(() => {
-                cy.contains('dt', 'Title').next('dd').should('contain', app_name_public_2)
-                cy.contains('dt', 'DOI').should('exist')
-                cy.contains('dt', 'Description').next('dd').should('contain', app_description_2)
-                cy.contains('dt', 'URL').next('dd').should('contain', changed_default_url_subpath)
-                cy.contains('dt', 'Source code').next('dd').should('contain', app_source_code_public_changed)
-                cy.contains('dt', 'Docker image').next('dd').should('contain', image_name_2)
-                cy.contains('dt', 'Language').next('dd').should('contain', "English")
-                cy.contains('dt', 'Date submitted').should('exist')
-                cy.contains('dt', 'Date updated').should('exist')
-                cy.contains('dt', 'Date available').should('exist')
-                cy.contains('.tag-name', keyword_two).should('be.visible')
-                cy.contains('dt', 'Funding')
-                    .next('dd')
-                    .should('contain', funder_org)
-                    .and('contain', funder_org_two)
-                })
-            // creators block
-            cy.contains('.card', 'Creators').within(() => {
-                cy.contains('.card-username', creator_lastname + ', ' + creator_firstname).should('be.visible')
-                cy.contains('.card-username', 'Doe, Jane').should('not.exist')
-                })
-
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
       }
     })
+
+
+    // TO-DO:
+    // Add tests related to integration between Serve and Invenio. This means
+    // adding info such as creators, funding, language, etc. to the form and subsequently
+    // retrieving this info (from Invenio) when editing the form, making changes
+    // again, etc. Then checking if this info is correctly displayed on the public
+    // app details public if the app is made public.
 
     // This test may only work against a Serve instance running on our cluster. as
     // it takes a long time. It does not work on GitHub CI. So it's better
@@ -615,12 +503,13 @@ describe("Test deploying app", () => {
         // delete previous test apps in case the test failed
         cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
         deleteAppIfExists("e2e-custom-example-project", "e2e-deploy-app-test")
-        deleteAppIfExists("e2e-custom-example-2-public", "e2e-deploy-app-test")
+        deleteAppIfExists("e2e-custom-example-2-link", "e2e-deploy-app-test")
 
         // names of objects to create
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-shiny-example"
         const app_description = "e2e-shiny-description"
+        const link_privacy_type_note = "some-text-on-link-only-app"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/shiny-adhd-medication-sweden:20240117-062031"
         const image_port = "3838"
@@ -635,17 +524,18 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             cy.completeAppSubmissionFlow()
 
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "Public", shinyAppCmdTimeoutMs)
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "Link", shinyAppCmdTimeoutMs)
 
             cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Running')
-            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Public')
+            cy.get('tr:contains("' + app_name + '")').find('span').should('contain', 'Link')
 
             cy.logf("Checking that all shiny app settings were saved", Cypress.currentTest)
             cy.visit("/projects/")
@@ -654,41 +544,9 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
-
-            cy.logf("Checking that the shiny app is displayed on the public apps page", Cypress.currentTest)
-            cy.visit("/apps")
-            cy.get('h4.card-title').should('contain', app_name)
-            cy.get('.card-text').find('p').should('contain', app_description)
-
-            cy.logf("Checking that instructions for running the app locally are displayed on public apps page", Cypress.currentTest)
-            cy.contains('.card', app_name).within(() => {
-                cy.get('a[data-bs-target="#dockerInfoModal"]').should('be.visible').click()
-            })
-
-            // wait for the Bootstrap modal to actually be shown
-            cy.get('div#dockerInfoModal')
-                .should('have.class', 'show')   // modal is open
-                .should('be.visible')
-                .within(() => {
-                    cy.get('.modal-body code').first().should('contain', image_name)
-                    cy.get('.modal-body code').first().should('contain', image_port)
-
-                    cy.contains('.modal-footer button', 'Close')
-                    .should('be.visible')
-                    .click()
-                });
-
-            cy.logf("Checking that source code URL is displayed on the public apps page", Cypress.currentTest)
-            cy.visit("/apps")
-            cy.contains('h4.card-title', app_name)
-                .parents('.card')
-                    .within(() => {
-                        // Click the Details link
-                        cy.get('a[id^="source-code-url"]').should('have.attr', 'href', source_code_url)
-                    })
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
       }
@@ -705,6 +563,7 @@ describe("Test deploying app", () => {
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-dash-example"
         const app_description = "e2e-dash-description"
+        const link_privacy_type_note = "some-text-on-link-only-app"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
         const image_port = "8000"
@@ -719,7 +578,8 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
@@ -731,7 +591,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "Link")
 
             // verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -741,7 +601,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -761,6 +621,7 @@ describe("Test deploying app", () => {
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-tissuumaps-example"
         const app_description = "e2e-tissuumaps-description"
+        const link_privacy_type_note = "some-text-on-link-only-app"
         const createResources = Cypress.env('create_resources')
         const app_type = "TissUUmaps App"
 
@@ -775,7 +636,8 @@ describe("Test deploying app", () => {
 
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_volume').select(volume_display_text)
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
@@ -783,11 +645,11 @@ describe("Test deploying app", () => {
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             cy.completeAppSubmissionFlow()
 
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "Link")
 
             // wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-              verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
+              verifyAppStatus(app_name, "Running", "Creating", "Running", "Link")
             })
 
             cy.logf("Checking that all tissuumaps app settings were saved", Cypress.currentTest)
@@ -797,7 +659,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
 
         } else {
@@ -816,6 +678,7 @@ describe("Test deploying app", () => {
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-gradio-example"
         const app_description = "e2e-gradio-description"
+        const link_privacy_type_note = "some-text-on-link-only-app"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/gradio-flower-classification:20241118-174426"
         const image_port = "7860"
@@ -830,7 +693,8 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
@@ -847,7 +711,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "Link")
 
             // verify Gradio app values
             cy.logf("Checking that all gradio app settings were saved", Cypress.currentTest)
@@ -857,7 +721,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -877,6 +741,7 @@ describe("Test deploying app", () => {
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-streamlit-example"
         const app_description = "e2e-streamlit-description"
+        const link_privacy_type_note = "some-text-on-link-only-app"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/streamlit-image-to-smiles:20241112-183549"
         const image_port = "8501"
@@ -891,7 +756,8 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
@@ -907,7 +773,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "Link")
 
             // verify Streamlit app values
             cy.logf("Checking that all streamlit app settings were saved", Cypress.currentTest)
@@ -917,7 +783,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -938,6 +804,7 @@ describe("Test deploying app", () => {
         const app_name = "e2e-change-app-settings-no-redeploy"
         const app_name_edited = app_name + "-edited"
         const app_description = "e2e-change-app-settings-description"
+        const link_privacy_type_note = "some-text-on-link-only-app"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
         const image_port = "8000"
@@ -952,7 +819,8 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
@@ -964,7 +832,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "Link")
 
             // verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -974,7 +842,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -996,12 +864,12 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // verify that the app status still equals Running
-            verifyAppStatus(app_name_edited,"Running", "Changing", "Running", "Public")
+            verifyAppStatus(app_name_edited,"Running", "Changing", "Running", "Link")
 
             // wait for 20 seconds and check the app status again
             // this is a brittle part of the test, therefore we wait a longer time to see if the status (incorrectly) changes
             cy.wait(20000).then(() => {
-              verifyAppStatus(app_name_edited, "Running", "Changing", "Running", "Public")
+              verifyAppStatus(app_name_edited, "Running", "Changing", "Running", "Link")
             })
 
         } else {
@@ -1025,6 +893,7 @@ describe("Test deploying app", () => {
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-change-app-settings-redeploy"
         const app_description = "e2e-change-app-settings-description"
+        const link_privacy_type_note = "some-text-on-link-only-app"
         const source_code_url = "https://doi.org/example"
         const image_name_1 = "ghcr.io/alfredeen/hello-shiny:main-20241018-0849"
         const image_name_2 = "ghcr.io/alfredeen/shiny-example:main-20250325-1424"
@@ -1041,7 +910,8 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name_1)
             cy.get('#id_port').clear().type(image_port)
@@ -1053,7 +923,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "Public", shinyAppCmdTimeoutMs)
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "Link", shinyAppCmdTimeoutMs)
 
             // verify Shiny app values
             cy.logf("Checking that all shiny app settings were saved", Cypress.currentTest)
@@ -1063,7 +933,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_image').should('have.value', image_name_1)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -1082,13 +952,13 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // verify that the app status now equals Running
-            verifyAppStatus(app_name, "Running", "Changing", "Running", "Public", shinyAppCmdTimeoutMs)
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "Link", shinyAppCmdTimeoutMs)
 
             // wait for 30 seconds and check the app status again
             // we want to wait this long to ensure that the status is still correct after the Shiny deployment
             // has rotated the pods
             cy.wait(30000).then(() => {
-              verifyAppStatus(app_name, "Running", "Changing", "Running", "Public", shinyAppCmdTimeoutMs)
+              verifyAppStatus(app_name, "Running", "Changing", "Running", "Link", shinyAppCmdTimeoutMs)
             })
 
             // edit Shiny app: change the subdomain
@@ -1102,23 +972,22 @@ describe("Test deploying app", () => {
             cy.completeAppSubmissionFlow()
 
             // verify that the app status now equals Running
-            verifyAppStatus(app_name, "Running", "Changing", "Running", "Public", shinyAppCmdTimeoutMs)
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "Link", shinyAppCmdTimeoutMs)
 
             // wait for 30 seconds and check the app status again
             // we want to wait this long to ensure that the status is still correct after the Shiny deployment
             // has rotated the pods
             cy.wait(30000).then(() => {
-              verifyAppStatus(app_name, "Running", "Changing", "Running", "Public", shinyAppCmdTimeoutMs)
+              verifyAppStatus(app_name, "Running", "Changing", "Running", "Link", shinyAppCmdTimeoutMs)
             })
 
-            // Public apps have DOI metadata and their access level cannot be changed back.
-            cy.logf("Checking that the public shiny app access level is locked", Cypress.currentTest)
+            // verify the link app access level is still shown correctly
+            cy.logf("Checking that the link shiny app access level is correct", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
-            cy.get('#id_access').should('be.disabled')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
@@ -1135,6 +1004,7 @@ describe("Test deploying app", () => {
         const project_name = "e2e-deploy-app-test"
         const app_name = "e2e-subdomain-change"
         const app_description = "e2e-subdomain-change-description"
+        const link_privacy_type_note = "some-text-on-link-only-app"
         const source_code_url = "https://doi.org/example"
         const image_name = "ghcr.io/scilifelabdatacentre/dash-covid-in-sweden:20240117-063059"
         const image_port = "8000"
@@ -1150,7 +1020,8 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.get('#id_access').select('Link')
+            cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
@@ -1162,7 +1033,7 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // check that the app was created
-            verifyAppStatus(app_name, "Running", "Creating", "Running", "Public")
+            verifyAppStatus(app_name, "Running", "Creating", "Running", "Link")
 
             // verify Dash app values
             cy.logf("Checking that all dash app settings were saved", Cypress.currentTest)
@@ -1172,7 +1043,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access').find(':selected').should('contain', 'Link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -1191,11 +1062,11 @@ describe("Test deploying app", () => {
             cy.get('h3').should('have.text', project_name)
 
             // verify that the app status now equals Running
-            verifyAppStatus(app_name, "Running", "Changing", "Running", "Public")
+            verifyAppStatus(app_name, "Running", "Changing", "Running", "Link")
 
             // wait for 5 seconds and check the app status again
             cy.wait(5000).then(() => {
-                verifyAppStatus(app_name, "Running", "Changing", "Running", "Public")
+                verifyAppStatus(app_name, "Running", "Changing", "Running", "Link")
               })
 
         } else {
@@ -1372,19 +1243,19 @@ describe("Test deploying app", () => {
             cy.get('#id_port').type("8501")
             cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
-            cy.completeAppSubmissionFlow()
 
-            // verify that the app was created. Using custom timeout.
-            cy.get('tr:contains("' + app_name_statuses + '")').find('span', {timeout: shinyAppCmdTimeoutMs}).should('contain', 'Error: ErrImagePull')
-            cy.logf("Now updating the app to give a correct image reference - expecting Running", Cypress.currentTest)
-            cy.get('tr:contains("' + app_name_statuses + '")').find('i.ellipsis.vertical.icon').click()
-            cy.get('tr:contains("' + app_name_statuses + '")').find('a').contains('Settings').click()
+            // Invalid image should be rejected by server-side validation - app must not be created
+            cy.url().should('include', '/apps/create/')
+            cy.contains('Error validating Docker image').should('be.visible')
+
+            // Now submit with a valid image
+            cy.logf("Now creating the app with a valid image reference - expecting Running", Cypress.currentTest)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
             cy.completeAppSubmissionFlow()
 
-            // using longer custom timeout for correct image to be set to Running
-            verifyAppStatus(app_name_statuses, "Running", "Changing", "Running", "Project")
+            // using longer custom timeout for app to reach Running
+            verifyAppStatus(app_name_statuses, "Running", "Creating", "Running", "Project")
             cy.get('tr:contains("' + app_name_statuses + '")', {timeout: longCmdTimeoutMs}).find('span', {timeout: longCmdTimeoutMs}).should('contain', 'Running')
 
             // delete the app

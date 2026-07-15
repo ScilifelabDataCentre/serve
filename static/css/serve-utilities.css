@@ -259,19 +259,19 @@ label.required::before {
 }
 
 .btn-outline-secondary {
-    --bs-btn-color: #8392ab;
-    --bs-btn-border-color: #8392ab;
+    --bs-btn-color: #697590;
+    --bs-btn-border-color: #697590;
     --bs-btn-hover-color: #000;
-    --bs-btn-hover-bg: #8392ab;
-    --bs-btn-hover-border-color: #8392ab;
-    --bs-btn-focus-shadow-rgb: 131, 146, 171;
+    --bs-btn-hover-bg: #697590;
+    --bs-btn-hover-border-color: #697590;
+    --bs-btn-focus-shadow-rgb: 105, 117, 144;
     --bs-btn-active-color: #000;
-    --bs-btn-active-bg: #8392ab;
-    --bs-btn-active-border-color: #8392ab;
+    --bs-btn-active-bg: #697590;
+    --bs-btn-active-border-color: #697590;
     --bs-btn-active-shadow: none;
-    --bs-btn-disabled-color: #8392ab;
+    --bs-btn-disabled-color: #697590;
     --bs-btn-disabled-bg: transparent;
-    --bs-btn-disabled-border-color: #8392ab;
+    --bs-btn-disabled-border-color: #697590;
     --bs-gradient: none;
 }
 
@@ -335,9 +335,18 @@ label.required::before {
 
 .serve-filter-nav > .nav-item > .nav-link {
     background: #c4c4c44f !important;
+    appearance: none;
+    border: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
     font-size: 0.85rem !important;
+    line-height: 1.5;
     margin-right: 0.2rem !important;
-    padding: 0 0.5rem !important;
+    min-height: 1.5rem;
+    padding: 0 0.55rem !important;
+    white-space: nowrap;
 }
 
 .filter-subheading {
@@ -820,7 +829,8 @@ label.required::before {
 }
 
 .apps-page .filters-panel .serve-filter-nav {
-    gap: .5rem;
+    flex-wrap: nowrap;
+    gap: .35rem;
     padding: .5rem 0;
 }
 

@@ -146,6 +146,7 @@
   </div>
 </div>
 
+<script src="{% static 'js/adaptive-polling.js' %}"></script>
 <script>
 const detailsStatusApiUrl = "{{ status_api_url|escapejs }}";
 const deploymentBadge = document.getElementById("deployment-badge");
@@ -157,6 +158,9 @@ const summarySkipped = document.getElementById("summary-skipped");
 const summaryFailed = document.getElementById("summary-failed");
 const recentChecksList = document.getElementById("recent-checks-list");
 const noChecksMessage = document.getElementById("no-checks-message");
+const ACTIVE_STATUS_POLL_MS = 5000;
+const STABLE_STATUS_POLL_MS = 30000;
+const ERROR_STATUS_POLL_MS = 10000;
 
 function escapeHtml(value) {
   return String(value || "")
@@ -250,6 +254,14 @@ function updateDetailsPage(data) {
   renderRecentChecks(data.tasks || []);
 }
 
+function isStableDeployment(deployment = {}) {
+  return ["success", "failed", "blocked"].includes(deployment.status) && !deployment.tasks_in_progress;
+}
+
+function getNextDetailsRefreshDelay(data = {}) {
+  return isStableDeployment(data.deployment || {}) ? STABLE_STATUS_POLL_MS : ACTIVE_STATUS_POLL_MS;
+}
+
 function refreshDetailsPage() {
   fetch(detailsStatusApiUrl)
     .then(response => {
@@ -258,13 +270,20 @@ function refreshDetailsPage() {
       }
       return response.json();
     })
-    .then(updateDetailsPage)
+    .then(data => {
+      updateDetailsPage(data);
+      return data;
+    })
     .catch(error => {
       console.error("Error refreshing app details:", error);
+      throw error;
     });
 }
 
-refreshDetailsPage();
-window.setInterval(refreshDetailsPage, 5000);
+ServeAdaptivePolling.createPoller({
+  poll: refreshDetailsPage,
+  getDelay: getNextDetailsRefreshDelay,
+  errorDelay: ERROR_STATUS_POLL_MS
+});
 </script>
 {% endblock %}

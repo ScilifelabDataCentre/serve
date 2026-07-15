@@ -241,6 +241,37 @@ Then to run the integration tests:
 npx cypress open
 ```
 
+#### Adding a new end2end UI test
+
+UI specs live in `cypress/e2e/ui-tests/` as `*.cy.js` files.
+
+- **Adding tests to an existing spec file** needs no other changes — that file already runs in CI.
+- **Adding a new spec file** also requires registering it in the workflow. The `E2E-tests` workflow (`.github/workflows/e2e-tests.yaml`) shards specs across parallel runner jobs using explicit file lists under `strategy.matrix.shard`. A new file that is not added to one of those lists will silently not run. Add it to the lightest shard, or give it its own entry if it is heavy.
+
+Follow the conventions used by the existing specs:
+
+- Log in with `cy.loginViaApi(...)` (cached per session).
+- Create and tear down test data with the helper commands in `cypress/support/commands.js` (e.g. `populateTestUser` / `populateTestProject` / `populateTestApp` and the matching `cleanup*`), which seed via the Django devtools endpoints.
+- For tests that create projects or deploy apps: those resources are provisioned asynchronously by Celery and Kubernetes, which is slower in CI than locally. Put a long timeout on the specific "app is visible / status is Running" assertions (see `longCmdTimeoutMs` and the `verifyAppStatus` helper in the existing specs) instead of raising the global command timeout.
+
+### Accessibility checks
+
+We try to catch accessibility problems in two ways:
+
+- `pre-commit run --all-files` runs a quick template check. It catches simple issues such as missing image alt text, missing page titles, missing `lang` attributes, and `javascript:` links.
+- The `Accessibility checks` CI job runs Pa11y against the Docker Compose setup for the pull request. It seeds a small user/project fixture with `python manage.py seed_a11y_data`, then checks public pages and logged-in project, settings, and app creation pages.
+
+To run the same rendered-page check locally, start Serve, add the fixture data, and point Pa11y at your local URL:
+
+```bash
+docker compose up -d --build
+docker exec studio python manage.py seed_a11y_data
+npm install -g pa11y-ci
+STUDIO_URL=http://studio.127.0.0.1.nip.io:8080 pa11y-ci --config .github/pa11y.config.cjs
+```
+
+Pa11y fails the `Accessibility checks` job when it finds issues. The details are visible directly in the PR check logs.
+
 ### ERD for Pydantic models
 
 We make use of Pydantic models in Serve's source code. Follow the steps below to generate an entity-relationship diagram.

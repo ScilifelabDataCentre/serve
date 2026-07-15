@@ -37,6 +37,7 @@ wiki = "==0.11.2"
 
 # Other Python and project-related libraries
 flower = "^2.0.1"
+prometheus-client = "==0.24.1"
 requests = "==2.31.0"
 amqp = "==5.1.1"
 psycopg = {extras = ["binary", "pool", "c"], version = "^3.2.1"}
@@ -114,6 +115,10 @@ imagetag = ""
 
 [tool.isort]
 profile = 'black'
+
+[tool.djlint]
+profile = "django"
+ignore = "T001,T002,T003,T032,D004,D018,H006,H014,H020,H021,H023,H025,H026,H029,H030,H031,H037"
 
 [tool.black]
 line-length = 120

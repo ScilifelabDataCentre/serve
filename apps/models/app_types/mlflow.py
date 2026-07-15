@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils.crypto import get_random_string
 
@@ -31,11 +32,26 @@ class MLFlowInstance(BaseAppInstance):
         }
         k8s_values["tracking"] = {
             "auth": {"enabled": True, "username": get_random_string(10), "password": get_random_string(20)},
-            "ingress": {
+            "ingress": {"enabled": False},
+            "httproute": {
                 "enabled": True,
-                "ingressClassName": "nginx",
-                "hostname": self.url.split("://")[1] if self.url is not None else self.url,
-                "annotations": {"nginx.ingress.kubernetes.io/proxy-body-size": f"{self.upload_size}M"},
+                "hostnames": (
+                    [
+                        self.url.split("://")[1],
+                        self.url.split("://")[1].replace(f".{settings.DOMAIN}", f".gw.{settings.DOMAIN}", 1),
+                    ]
+                    if self.url is not None
+                    else []
+                ),
+                "parentRefs": [
+                    {
+                        "name": settings.GATEWAY_NAME,
+                        "namespace": settings.GATEWAY_NAMESPACE,
+                        "sectionName": settings.GATEWAY_SECTION_NAME,
+                        "port": settings.GATEWAY_PORT,
+                    },
+                ],
+                "clientMaxBodySize": f"{self.upload_size}m",
             },
             "podLabels": {
                 "type": "app",

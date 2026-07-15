@@ -235,23 +235,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 : accessHelpText.dataset.defaultText;
     }
 
-    function togglePublicOnlyFields() {
-        const accessSelect = document.getElementById('id_access');
-
-        const publicOnlyFields = [
-            document.getElementById('id_creators')?.closest('.mb-3'),
-            document.getElementById('div_id_language'),
-            document.getElementById('div_id_funding_sources_json'),
-        ];
-
-        if (!accessSelect) return;
-
-        publicOnlyFields.forEach(function(field) {
-            if (!field) return;
-            field.style.display = accessSelect.value === 'public' ? '' : 'none';
-        });
-    }
-
     // SS-1176 Users are able to set a custom default start URL for their apps
     const subdomainInput = document.getElementById("id_subdomain");
     const customDefaultUrlFormModifiedUrlText = document.getElementById("id_custom_default_url_prepend");
@@ -264,6 +247,20 @@ document.addEventListener("DOMContentLoaded", function() {
         } catch (error) {
             //console.log("No custom url subpath option in this app type.");
         }
+    }
+
+    // Show the GPU deletion days when a GPU flavor is selected.
+    function updateDeletionNote() {
+        const note = document.getElementById('app-deletion-note');
+        const flavorSelect = document.getElementById('id_flavor');
+        if (!note || !flavorSelect) return;
+        const daysSpan = note.querySelector('.deletion-days');
+        if (!daysSpan) return;
+
+        const option = flavorSelect.options[flavorSelect.selectedIndex];
+        const isGpu = option && parseInt(option.dataset.gpu || '0', 10) > 0;
+        const days = parseInt(isGpu ? note.dataset.gpuDays : note.dataset.defaultDays, 10);
+        daysSpan.textContent = `${days} day${days === 1 ? '' : 's'}`;
     }
 
     // User is "finished typing," do something
@@ -317,7 +314,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         toggleVisibilityPublicPermission()
         toggleAccessHelpText()
-        togglePublicOnlyFields()
 
         // Check if the select element exists
         if (accessSelect) {
@@ -325,9 +321,14 @@ document.addEventListener("DOMContentLoaded", function() {
             accessSelect.addEventListener('change', function() {
                 toggleVisibilityPublicPermission();
                 toggleAccessHelpText();
-                togglePublicOnlyFields();
             });
         }
+
+        const flavorSelect = document.getElementById('id_flavor');
+        if (flavorSelect) {
+            flavorSelect.addEventListener('change', updateDeletionNote);
+        }
+        updateDeletionNote();
 
         runScript();
     });
@@ -336,7 +337,7 @@ document.addEventListener("DOMContentLoaded", function() {
         updateUrlWithSubdomain();
         toggleVisibilityPublicPermission();
         toggleAccessHelpText();
-        togglePublicOnlyFields();
+        updateDeletionNote();
     })
 
     // Invenio Tags with Bootstrap Badges (only if field exists)
@@ -364,6 +365,7 @@ document.addEventListener("DOMContentLoaded", function() {
         tagsInput.style.outline = 'none';
         tagsInput.style.minWidth = '150px';
         tagsInput.placeholder = 'Start typing to find subjects and keywords...';
+        tagsInput.setAttribute('aria-label', 'Subjects and keywords');
 
         // Create dropdown for suggestions
         const dropdown = document.createElement('div');

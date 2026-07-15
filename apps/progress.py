@@ -27,7 +27,7 @@ TASK_STATUS_DISPLAY = {
 TASK_NAME_LABELS = {
     "validate_image_public": "Check Image Access",
     "validate_docker_image": "Check Image Compatibility",
-    "doi_provisioning": "Create a Digital Object Identifier (DOI)",
+    "doi_provisioning": "Reserve a Digital Object Identifier (DOI)",
     "validate_source_code_url": "Check Source Code URL",
 }
 

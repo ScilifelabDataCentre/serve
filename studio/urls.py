@@ -20,10 +20,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django_altcha import AltchaChallengeView
 
 from apps.views import record_lookup
+from studio.metrics import metrics_view
 
 from . import views
 
@@ -41,6 +42,7 @@ urlpatterns = (
             name="delete_account_post_handler",
         ),
         path("status", views.status_view, name="status"),
+        re_path(r"^metrics/?$", metrics_view, name="metrics"),
         path("user/account-deleted/<int:user_id>", views.account_deleted, name="account_deleted"),
         path("auth/", views.AuthView.as_view()),
         # API paths using NamespaceVersioning

@@ -147,6 +147,7 @@ dmypy.json
 cypress/screenshots
 cypress/videos
 cypress/logs
+cypress/parallel-weights.json
 cypress/fixtures/profile.json
 
 # Dependency directories
@@ -163,3 +164,6 @@ media/*
 !media/.gitkeep
 
 local_.dockerfile
+
+# Pa11y accessibility report
+pa11y-ci-report/

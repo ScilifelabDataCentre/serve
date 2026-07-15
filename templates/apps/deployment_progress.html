@@ -55,6 +55,7 @@
     </div>
   </div>
 </div>
+<script src="{% static 'js/adaptive-polling.js' %}"></script>
 <script>
 const statusApiUrl = "{{ status_api_url|escapejs }}";
 const detailUrl = "{{ detail_url }}";
@@ -68,6 +69,10 @@ const REQUIRED_SUCCESS_POLLS_BY_APP = {
 const DEFAULT_REQUIRED_SUCCESS_POLLS = 2;
 const REQUIRED_SUCCESS_POLLS =
   REQUIRED_SUCCESS_POLLS_BY_APP[APP_SLUG] || DEFAULT_REQUIRED_SUCCESS_POLLS;
+const ACTIVE_STATUS_POLL_MS = 3000;
+const STABLE_STATUS_POLL_MS = 30000;
+const ERROR_STATUS_POLL_MS = 10000;
+const REQUIRED_ERROR_POLLS = 3;
 const TERMINAL_STEP_STATUSES = new Set(["success", "warning", "failed", "skipped"]);
 const STEP_ROW_CLASS_BY_STATUS = {
   failed: "is-failed",
@@ -95,10 +100,12 @@ const STATUS_LABELS = {
   failed: "Failed"
 };
 
-let refreshInterval = null;
+let progressPoller = null;
 let successRedirectTimer = null;
 let consecutiveSuccessPolls = 0;
+let consecutiveErrorPolls = 0;
 let stepRevealTimer = null;
+let pageIsUnloading = false;
 let latestServerData = {
   deployment: {
     status: "{{ deployment.status|default:'pending'|escapejs }}",
@@ -108,18 +115,6 @@ let latestServerData = {
   steps: JSON.parse("{{ initial_steps_json|escapejs }}")
 };
 let displayedProgressData = copyProgressData(latestServerData);
-
-function startAutoRefresh() {
-  stopAutoRefresh();
-  refreshInterval = window.setInterval(refreshProgress, 3000);
-}
-
-function stopAutoRefresh() {
-  if (refreshInterval) {
-    window.clearInterval(refreshInterval);
-    refreshInterval = null;
-  }
-}
 
 function stopSuccessRedirect() {
   if (successRedirectTimer) {
@@ -134,6 +129,17 @@ function stopStepReveal() {
     window.clearTimeout(stepRevealTimer);
     stepRevealTimer = null;
   }
+}
+
+function showInlinePollError() {
+  const inline = document.getElementById("progress-inline");
+  if (inline) {
+    inline.textContent = "Could not load the latest deployment update. Retrying automatically.";
+  }
+}
+
+function shouldIgnorePollError(error) {
+  return pageIsUnloading || document.hidden || error?.name === "AbortError";
 }
 
 function copyProgressData(data = {}) {
@@ -375,6 +381,7 @@ function maybeRedirectToDetails(data) {
   }
   if (!successRedirectTimer) {
     successRedirectTimer = window.setTimeout(() => {
+      progressPoller?.stop();
       window.location.assign(detailUrl);
     }, SUCCESS_REDIRECT_DELAY_MS);
   }
@@ -383,6 +390,12 @@ function maybeRedirectToDetails(data) {
 function renderProgress(data) {
   const steps = data.steps || [];
   renderSteps(steps);
+  updateSummary(steps, data.deployment);
+  updateHeader(data.deployment, steps);
+}
+
+function renderProgressShell(data) {
+  const steps = data.steps || [];
   updateSummary(steps, data.deployment);
   updateHeader(data.deployment, steps);
 }
@@ -450,7 +463,7 @@ function syncDisplayedProgress() {
       ...displayedProgressData,
       deployment: {...latestServerData.deployment}
     };
-    renderProgress(displayedProgressData);
+    renderProgressShell(displayedProgressData);
     maybeRedirectToDetails(displayedProgressData);
     return;
   }
@@ -493,6 +506,7 @@ function refreshProgress() {
       return response.json();
     })
     .then(data => {
+      consecutiveErrorPolls = 0;
       const fresh = copyProgressData(data);
 
       if (isProgressSuccessful(fresh)) {
@@ -512,16 +526,19 @@ function refreshProgress() {
         data.deployment?.status === "success" && successRedirectTimer !== null;
       const terminalNonSuccess =
         data.deployment?.status === "failed" || data.deployment?.status === "blocked";
-      if (rawDone && tasksIdle && stepsSettled && (successConfirmed || terminalNonSuccess)) {
-        stopAutoRefresh();
-      }
+      const canSlowPoll = rawDone && tasksIdle && stepsSettled && (successConfirmed || terminalNonSuccess);
+      return canSlowPoll ? STABLE_STATUS_POLL_MS : ACTIVE_STATUS_POLL_MS;
     })
     .catch(error => {
-      console.error("Error fetching deployment progress:", error);
-      const inline = document.getElementById("progress-inline");
-      if (inline) {
-        inline.textContent = "Could not load the latest deployment update. Retrying automatically.";
+      if (shouldIgnorePollError(error)) {
+        return ERROR_STATUS_POLL_MS;
       }
+      console.error("Error fetching deployment progress:", error);
+      consecutiveErrorPolls += 1;
+      if (consecutiveErrorPolls >= REQUIRED_ERROR_POLLS) {
+        showInlinePollError();
+      }
+      throw error;
     });
 }
 
@@ -538,8 +555,19 @@ document.addEventListener("DOMContentLoaded", () => {
   displayedProgressData = copyProgressData(latestServerData);
   renderProgress(displayedProgressData);
   maybeRedirectToDetails(displayedProgressData);
-  refreshProgress();
-  startAutoRefresh();
+  window.serveDeploymentProgressPoller?.stop();
+  progressPoller = ServeAdaptivePolling.createPoller({
+    poll: refreshProgress,
+    getDelay: delay => delay,
+    errorDelay: ERROR_STATUS_POLL_MS
+  });
+  window.serveDeploymentProgressPoller = progressPoller;
+});
+
+window.addEventListener("pagehide", () => {
+  pageIsUnloading = true;
+  progressPoller?.stop();
+  window.serveDeploymentProgressPoller?.stop();
 });
 </script>
 {% endblock %}
