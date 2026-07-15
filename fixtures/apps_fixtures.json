@@ -433,7 +433,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/depictio/depictio-helm/depictio:20260507.1",
+      "chart": "ghcr.io/depictio/depictio-helm/depictio:20260708.1",
       "created_on": "2025-04-28T10:25:37.815Z",
       "description": "App for creating dashboards from bioinformatics workflow outputs.",
       "name": "Depictio",

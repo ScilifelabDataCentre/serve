@@ -458,6 +458,12 @@ GATEWAY_PORT = int(os.getenv("GATEWAY_PORT", "80"))
 KUBE_API_REQUEST_TIMEOUT = 1
 STORAGECLASS = "local-path"
 
+GATEWAY_ENABLED = os.getenv("GATEWAY_ENABLED", "false").lower() in ("true", "1", "yes")
+GATEWAY_NAME = os.getenv("GATEWAY_NAME", "")
+GATEWAY_NAMESPACE = os.getenv("GATEWAY_NAMESPACE", "")
+GATEWAY_SECTION_NAME = os.getenv("GATEWAY_SECTION_NAME", "")
+GATEWAY_PORT = int(os.getenv("GATEWAY_PORT", "443"))
+
 # Docker hub API
 DOCKER_HUB_REPO_SEARCH = "https://hub.docker.com/v2/search/repositories"
 DOCKER_HUB_TAG_SEARCH = "https://hub.docker.com/v2/repositories"
