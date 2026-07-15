@@ -36,15 +36,57 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
             "nginx.ingress.kubernetes.io/proxy-body-size": f"{self.upload_size}M",
         }
 
-        if self.access in ("private", "project"):
-            k8s_values["ingress"]["annotations"] = {
-                **base_annotations,
-                "nginx.ingress.kubernetes.io/auth-url": f"{settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={self.subdomain.subdomain}",
-                "nginx.ingress.kubernetes.io/auth-signin": f"https://{settings.DOMAIN}/accounts/login/",
-                "nginx.ingress.kubernetes.io/auth-signin-redirect-param": "next",
+        if settings.GATEWAY_ENABLED:
+            k8s_values["ingress"] = {"enabled": False}
+            gateway_values = {
+                "enabled": True,
+                "parentRefs": [
+                    {
+                        "group": "gateway.networking.k8s.io",
+                        "kind": "Gateway",
+                        "name": settings.GATEWAY_NAME,
+                        "namespace": settings.GATEWAY_NAMESPACE,
+                        "sectionName": settings.GATEWAY_SECTION_NAME,
+                        "port": settings.GATEWAY_PORT,
+                    }
+                ],
             }
+            if self.access in ("private", "project"):
+                gateway_values["snippetsFilter"] = {
+                    "enabled": True,
+                    "snippets": [
+                        {
+                            "context": "http.server",
+                            "value": (
+                                f"location @login_redirect {{\n"
+                                f"    return 302 https://{settings.DOMAIN}/accounts/login/?next=$request_uri;\n"
+                                f"}}\n"
+                                f"location = /_depictio_auth {{\n"
+                                f"    internal;\n"
+                                f"    proxy_pass {settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={self.subdomain.subdomain};\n"
+                                f"    proxy_pass_request_body off;\n"
+                                f'    proxy_set_header Content-Length "";\n'
+                                f"    proxy_set_header X-Original-URI $request_uri;\n"
+                                f"}}"
+                            ),
+                        },
+                        {
+                            "context": "http.server.location",
+                            "value": "auth_request /_depictio_auth;\nerror_page 401 = @login_redirect;",
+                        },
+                    ],
+                }
+            k8s_values["gateway"] = gateway_values
         else:
-            k8s_values["ingress"]["annotations"] = base_annotations
+            if self.access in ("private", "project"):
+                k8s_values["ingress"]["annotations"] = {
+                    **base_annotations,
+                    "nginx.ingress.kubernetes.io/auth-url": f"{settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={self.subdomain.subdomain}",
+                    "nginx.ingress.kubernetes.io/auth-signin": f"https://{settings.DOMAIN}/accounts/login/",
+                    "nginx.ingress.kubernetes.io/auth-signin-redirect-param": "next",
+                }
+            else:
+                k8s_values["ingress"]["annotations"] = base_annotations
 
         k8s_values["backend"] = {
             "ingress": {
