@@ -202,6 +202,7 @@ if (Cypress.env('create_resources') === true) {
                     cy.get('#saveAndAddAnotherCreatorBtn').should('be.disabled')
                     cy.get('#saveCreatorBtn').should('be.disabled')
                 })
+            cy.wait(350) // let the Bootstrap modal fade-in transition fully finish before dismissing it
             cy.get('#creatorsModal .btn-close').should('be.visible').click()
             cy.get('#creatorsModal').should('not.be.visible')
             cy.get('#addFunderBtn').should('be.visible').click()
@@ -214,6 +215,7 @@ if (Cypress.env('create_resources') === true) {
                     cy.get('#saveAndAddAnotherBtn').should('be.disabled')
                     cy.get('#saveFunderBtn').should('be.disabled')
                 })
+            cy.wait(350) // let the Bootstrap modal fade-in transition fully finish before dismissing it
             cy.get('#funderModal .btn-close').should('be.visible').click()
             cy.get('#funderModal').should('not.be.visible')
             cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()

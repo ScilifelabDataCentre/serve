@@ -11,7 +11,7 @@
           <div class="col-md-6 position-relative">
             <label for="newCreatorOrcid" class="form-label fw-bold">ORCID ID <small class="text-muted">(optional)</small></label>
             <div class="input-group">
-              <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Name or ORCID ID">
+              <input type="text" class="form-control" id="newCreatorOrcid" placeholder="Name or ORCID ID" autocomplete="off">
               <span class="input-group-text" id="orcidSearchLoading" style="display: none;">
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               </span>
@@ -23,7 +23,7 @@
           <div class="col-md-6 position-relative">
             <label for="newCreatorAffiliation" class="form-label fw-bold">Affiliation <span class="text-danger">*</span></label>
             <div class="input-group">
-              <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation" required>
+              <input type="text" class="form-control" id="newCreatorAffiliation" placeholder="Affiliation" required autocomplete="off">
               <span class="input-group-text" id="affiliationSearchLoading" style="display: none;">
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               </span>
@@ -35,11 +35,11 @@
           <!-- Name fields - Required and editable -->
           <div class="col-md-6">
             <label for="newCreatorName" class="form-label fw-bold">First Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="newCreatorName" placeholder="First name" required>
+            <input type="text" class="form-control" id="newCreatorName" placeholder="First name" required autocomplete="off">
           </div>
           <div class="col-md-6">
             <label for="newCreatorLastName" class="form-label fw-bold">Last Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="newCreatorLastName" placeholder="Last name" required>
+            <input type="text" class="form-control" id="newCreatorLastName" placeholder="Last name" required autocomplete="off">
           </div>
         </div>
       </div>

@@ -314,6 +314,8 @@ describe("Test deploying app", () => {
             cy.contains('button', 'Add creator').should('be.visible').click()
             cy.contains('.modal-content', 'Add creator')
                 .should('be.visible')
+            cy.wait(200) // let the modal's delayed auto-focus (setTimeout 150ms) fire before typing, or it steals focus mid-type
+            cy.contains('.modal-content', 'Add creator')
                 .within(() => {
                     cy.get('#newCreatorName').type(creator_firstname)
                     cy.get('#newCreatorLastName').type(creator_lastname)
@@ -328,6 +330,8 @@ describe("Test deploying app", () => {
             cy.contains('button', 'Add creator').should('be.visible').click()
             cy.contains('.modal-content', 'Add creator')
                 .should('be.visible')
+            cy.wait(200) // let the modal's delayed auto-focus (setTimeout 150ms) fire before typing, or it steals focus mid-type
+            cy.contains('.modal-content', 'Add creator')
                 .within(() => {
                     cy.get('#newCreatorOrcid').should('be.visible').type('Jane Doe')
                     cy.get('#orcidSuggestions .list-group-item', { timeout: 10000 }).should('be.visible').first().should('contain', 'Jane Doe').click()
