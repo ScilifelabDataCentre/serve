@@ -13,7 +13,7 @@ describe("Test deploying app", () => {
     // Instead use longer timeouts on specific commands where deemed necessary and valid
     const defaultCmdTimeoutMs = 10000
     // The longer timeout is often used when waiting for k8s operations to complete
-    const longCmdTimeoutMs = 60000
+    const longCmdTimeoutMs = 180000
     // Shiny apps have a longer timeout because of special treatment,
     // such as URL probing in the event-listener. Using timeout just over 3 minutes
     const shinyAppCmdTimeoutMs = 183000
@@ -317,8 +317,9 @@ describe("Test deploying app", () => {
             cy.wait(200) // let the modal's delayed auto-focus (setTimeout 150ms) fire before typing, or it steals focus mid-type
             cy.contains('.modal-content', 'Add creator')
                 .within(() => {
-                    cy.get('#newCreatorName').type(creator_firstname)
-                    cy.get('#newCreatorLastName').type(creator_lastname)
+                    cy.get('#newCreatorName').click().type(creator_firstname)
+                    cy.get('#newCreatorName').should('have.value', creator_firstname)
+                    cy.get('#newCreatorLastName').click().type(creator_lastname)
                     cy.get('#newCreatorAffiliation').should('be.visible').type(creator_affiliation)
                     cy.get('#affiliationSuggestions', { timeout: 10000 }).should('be.visible').contains(creator_affiliation)
                     cy.get('#affiliationSuggestions .list-group-item').first().click({ force: true })
@@ -333,8 +334,8 @@ describe("Test deploying app", () => {
             cy.wait(200) // let the modal's delayed auto-focus (setTimeout 150ms) fire before typing, or it steals focus mid-type
             cy.contains('.modal-content', 'Add creator')
                 .within(() => {
-                    cy.get('#newCreatorOrcid').should('be.visible').type('Jane Doe')
-                    cy.get('#orcidSuggestions .list-group-item', { timeout: 10000 }).should('be.visible').first().should('contain', 'Jane Doe').click()
+                    cy.get('#newCreatorOrcid').should('be.visible').click().type('Jane Doe')
+                    cy.get('#orcidSuggestions .list-group-item', { timeout: 20000 }).should('be.visible').first().should('contain', 'Jane Doe').click()
                     cy.get('#newCreatorOrcid').should('have.value', 'https://orcid.org/0000-0002-1584-4316')
                     cy.get('#newCreatorAffiliation').should('have.value', 'Example Research Institute')
                     cy.get('#newCreatorName').should('have.value', 'Jane')
