@@ -27,6 +27,14 @@ from .models import EventsObject, NewsObject
 
 logger = get_logger(__name__)
 
+API_ENDPOINT_APP_SLUGS = frozenset(
+    {
+        "pytorch-serve",
+        "python-serve",
+        "tensorflow-serve",
+    }
+)
+
 
 Project = apps.get_model(app_label=settings.PROJECTS_MODEL)
 PublishedModel = apps.get_model(app_label=settings.PUBLISHEDMODEL_MODEL)
@@ -105,6 +113,10 @@ def __get_content_stats() -> dict[str, int]:
     }
     cache.set(cache_key, stats, timeout=_get_public_apps_cache_timeout())
     return stats
+
+
+def _is_api_endpoint_slug(slug: str | None) -> bool:
+    return slug in API_ENDPOINT_APP_SLUGS
 
 
 def _get_public_apps_cache_timeout() -> int:
@@ -265,6 +277,7 @@ def add_additional_context_to_public_apps(published_apps):
                 "logo": app.app.logo,
                 "slug": app.app.slug,
                 "app_type": "Shiny App" if app.app.name == "ShinyProxy App" else app.app.name,
+                "is_api_endpoint": _is_api_endpoint_slug(app.app.slug),
                 "project_slug": app.project.slug,
                 "source_code_url": app.source_code_url,
                 "status_group": app.status_group,
