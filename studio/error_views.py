@@ -7,7 +7,7 @@ opened on the ASGI error path.
 
 from __future__ import annotations
 
-from django.http import HttpResponse, HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.template import loader
 
 

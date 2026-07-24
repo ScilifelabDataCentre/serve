@@ -22,6 +22,13 @@ from apps.models import Apps, BaseAppInstance, SocialMixin
 from common.tasks import send_email_task
 from studio.utils import get_logger
 
+from .cache import (
+    COLLECTIONS_CACHE_KEY,
+    EVENTS_CACHE_KEY,
+    HOME_CACHE_KEY,
+    NEWS_CACHE_KEY,
+    get_public_pages_cache_timeout,
+)
 from .forms import TeachingRequestForm
 from .models import EventsObject, NewsObject
 
@@ -399,43 +406,36 @@ class HomeView(View):
     def get(self, request, app_id=0):
         published_apps_updated_on = _get_recent_public_apps()
 
-        news_objects = NewsObject.objects.all().order_by("-created_on")
-        link_all_news = False
-        if news_objects.count() > 3:
+        home_blocks = cache.get(HOME_CACHE_KEY)
+        if home_blocks is None:
+            news_objects = list(NewsObject.objects.all().order_by("-created_on"))
+            link_all_news = len(news_objects) > 3
             news_objects = news_objects[:3]
-            link_all_news = True
-        else:
-            news_objects = news_objects
-        for news in news_objects:
-            news.body_html = markdown.markdown(news.body)
+            for news in news_objects:
+                news.body_html = markdown.markdown(news.body)
 
-        collection_objects = Collection.objects.all().order_by("-created_on")
-        link_all_collections = False
-        if collection_objects.count() > 3:
+            collection_objects = list(Collection.objects.all().order_by("-created_on"))
+            link_all_collections = len(collection_objects) > 3
             collection_objects = collection_objects[:3]
-            link_all_collections = True
-        else:
-            collection_objects = collection_objects
 
-        events_objects = EventsObject.objects.all().order_by("-start_time")
-        link_all_events = False
-        if events_objects.count() > 3:
-            link_all_events = True
+            events_objects = list(EventsObject.objects.all().order_by("-start_time"))
+            link_all_events = len(events_objects) > 3
             events_objects = events_objects[:3]
-        else:
-            events_objects = events_objects
-        for event in events_objects:
-            event.description_html = markdown.markdown(event.description)
-            event.past = True if event.start_time.date() < timezone.now().date() else False
-        context = {
-            "published_apps_updated_on": published_apps_updated_on,
-            "news_objects": news_objects,
-            "link_all_news": link_all_news,
-            "collection_objects": collection_objects,
-            "link_all_collections": link_all_collections,
-            "events_objects": events_objects,
-            "link_all_events": link_all_events,
-        }
+            for event in events_objects:
+                event.description_html = markdown.markdown(event.description)
+                event.past = event.start_time.date() < timezone.now().date()
+
+            home_blocks = {
+                "news_objects": news_objects,
+                "link_all_news": link_all_news,
+                "collection_objects": collection_objects,
+                "link_all_collections": link_all_collections,
+                "events_objects": events_objects,
+                "link_all_events": link_all_events,
+            }
+            cache.set(HOME_CACHE_KEY, home_blocks, timeout=get_public_pages_cache_timeout())
+
+        context = {"published_apps_updated_on": published_apps_updated_on, **home_blocks}
 
         return render(request, self.template, context=context)
 
@@ -521,16 +521,22 @@ def privacy(request):
 
 
 def get_news(request):
-    news_objects = NewsObject.objects.all().order_by("-created_on")
-    for news in news_objects:
-        news.body_html = markdown.markdown(news.body)
+    news_objects = cache.get(NEWS_CACHE_KEY)
+    if news_objects is None:
+        news_objects = list(NewsObject.objects.all().order_by("-created_on"))
+        for news in news_objects:
+            news.body_html = markdown.markdown(news.body)
+        cache.set(NEWS_CACHE_KEY, news_objects, timeout=get_public_pages_cache_timeout())
     return render(request, "news/news.html", {"news_objects": news_objects})
 
 
 def get_collections_index(request):
     template = "collections/index.html"
 
-    collection_objects = Collection.objects.all().order_by("-created_on")
+    collection_objects = cache.get(COLLECTIONS_CACHE_KEY)
+    if collection_objects is None:
+        collection_objects = list(Collection.objects.all().order_by("-created_on"))
+        cache.set(COLLECTIONS_CACHE_KEY, collection_objects, timeout=get_public_pages_cache_timeout())
 
     context = {"collection_objects": collection_objects}
 
@@ -560,13 +566,21 @@ def get_collection(request, slug, app_id=0):
 
 
 def get_events(request):
-    future_events = EventsObject.objects.filter(start_time__date__gte=timezone.now().date()).order_by("start_time")
-    for event in future_events:
-        event.description_html = markdown.markdown(event.description)
-    past_events = EventsObject.objects.filter(start_time__date__lt=timezone.now().date()).order_by("-start_time")
-    for event in past_events:
-        event.description_html = markdown.markdown(event.description)
-    return render(request, "events/events.html", {"future_events": future_events, "past_events": past_events})
+    events = cache.get(EVENTS_CACHE_KEY)
+    if events is None:
+        future_events = list(
+            EventsObject.objects.filter(start_time__date__gte=timezone.now().date()).order_by("start_time")
+        )
+        for event in future_events:
+            event.description_html = markdown.markdown(event.description)
+        past_events = list(
+            EventsObject.objects.filter(start_time__date__lt=timezone.now().date()).order_by("-start_time")
+        )
+        for event in past_events:
+            event.description_html = markdown.markdown(event.description)
+        events = {"future_events": future_events, "past_events": past_events}
+        cache.set(EVENTS_CACHE_KEY, events, timeout=get_public_pages_cache_timeout())
+    return render(request, "events/events.html", events)
 
 
 class EventsFeed(Feed):
