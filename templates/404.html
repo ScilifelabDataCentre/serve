@@ -1,11 +1,58 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}Forbidden{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page not found (404) — SciLifeLab Serve</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23a7c947' d='M16 2 L30 28 L2 28 Z'/%3E%3Cpath fill='%23FFFFFF' d='M14 12 h4 v8 h-4 z'/%3E%3Ccircle fill='%23FFFFFF' cx='16' cy='24' r='2'/%3E%3C/svg%3E">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+        }
+        h1 {
+            font-size: 1.6em;
+        }
+        .btn {
+            background: #a7c947;
+            padding: 14px 28px;
+            color: black;
+            text-decoration: none;
+            border-radius: 6px;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background: #95b03a;
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 30px 15px; margin: 10px; }
+            h1 { font-size: 1.3em; }
+            .btn { padding: 12px 16px; font-size: 14px; }
+        }
+    </style>
+</head>
 
-{% load static %}
+<body>
+    <div class="container">
+        <h1>Page cannot be <i>served</i> 🥁 (404 error)</h1>
+        <p>It's okay, don't worry. Just go back to the home page and try what you wanted to do again.</p>
+        <div>
+            <a href="/" class="btn">Home</a>
+        </div>
+    </div>
+</body>
 
-{% block content %}
-  <h1>Page cannot be <i>served</i> 🥁 (404 error)</h1>
-  <p style="font-size: x-large">It's okay, don't worry. Just go to the <a href="{% url 'portal:home' %}">home page</a>
-    and try what you wanted to do again.</p>
-{% endblock %}
+</html>

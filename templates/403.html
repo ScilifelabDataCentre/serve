@@ -1,22 +1,59 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}Forbidden{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access forbidden (403) — SciLifeLab Serve</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23a7c947' d='M16 2 L30 28 L2 28 Z'/%3E%3Cpath fill='%23FFFFFF' d='M14 12 h4 v8 h-4 z'/%3E%3Ccircle fill='%23FFFFFF' cx='16' cy='24' r='2'/%3E%3C/svg%3E">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+        }
+        h1 {
+            font-size: 1.6em;
+        }
+        .btn {
+            background: #a7c947;
+            padding: 14px 28px;
+            color: black;
+            text-decoration: none;
+            border-radius: 6px;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px 8px 0;
+        }
+        .btn:hover {
+            background: #95b03a;
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 30px 15px; margin: 10px; }
+            h1 { font-size: 1.3em; }
+            .btn { padding: 12px 16px; font-size: 14px; }
+        }
+    </style>
+</head>
 
-{% load static %}
+<body>
+    <div class="container">
+        <h1>Access to page forbidden (403 error)</h1>
+        <p>You don't have access to this project. Log in, or ask the project owner to grant you access.</p>
+        <div>
+            <a href="/accounts/login/" class="btn">Log in</a>
+            <a href="/" class="btn">Home</a>
+        </div>
+    </div>
+</body>
 
-{% block content %}
-	<h1>Access to page forbidden. Error 403.</h1>
-	<p>You don't have access to this project! Log in or ask the project owner to grant you access.</p>
-	<p>
-		Is this your project?
-		{% if request.user.is_authenticated %}
-			<a class="btn" href="{% url 'logout' %}">
-				<i class="bi bi-box-arrow-right me-1"></i> Sign out
-			</a>
-		{% else %}
-			<a class="btn btn-profile text-dark" href="{% url 'login' %}">
-				<i class="bi bi-box-arrow-in-right"></i> Log in
-			</a>
-		{% endif %}
-	</p>
-{% endblock %}
+</html>
