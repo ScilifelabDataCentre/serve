@@ -28,6 +28,11 @@ from studio.metrics import metrics_view
 
 from . import views
 
+# DB-free error handlers, to avoid leaking pooled connections on the ASGI error
+handler403 = "studio.error_views.handler403"
+handler404 = "studio.error_views.handler404"
+handler500 = "studio.error_views.handler500"
+
 urlpatterns = (
     [
         path(settings.DJANGO_ADMIN_URL_PATH.rstrip("/") + "/", admin.site.urls, name="django-admin"),

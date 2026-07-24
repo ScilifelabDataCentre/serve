@@ -109,7 +109,7 @@
                             <a id="source-code-url-{{ app.id }}" target="_blank" title="Source code of the app" rel="Link to the source code of the app" href="{{ app.source_code_url }}" class="btn btn-outline-serve btn-sm"> <i class="bi bi-code-slash"></i> Source code</a>
                             {% endif %}
                             </div>
-                            {% if "Serve" in app.name or app.name == "Python Model Deployment" %}
+                            {% if app.is_api_endpoint %}
                                 <a class="btn btn-primary btn-sm" onclick="copyClip('{{app.url}}')">Copy API Endpoint</a>
                             {% else %}
                                 <a title="Launch the app" rel="Link to launch the app" href="{{ app.url }}" target="_blank" class="btn btn-primary btn-sm">Launch</a>
