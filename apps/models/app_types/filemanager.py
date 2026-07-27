@@ -33,6 +33,7 @@ class FilemanagerInstance(BaseAppInstance):
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
+        k8s_values["ingress"]["clientMaxBodySize"] = "10g"
 
         k8s_values["permission"] = str(self.access)
 
