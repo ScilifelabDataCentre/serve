@@ -25,8 +25,15 @@ class FilemanagerInstance(BaseAppInstance):
             return None
         return settings.FILEMANAGER_MAX_AGE_DAYS
 
+    def save(self, *args, **kwargs):
+        # Only for new instances
+        if not self.pk:
+            self.upload_size = 10240
+        super().save(*args, **kwargs)
+
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
+        k8s_values["ingress"]["clientMaxBodySize"] = "10g"
 
         k8s_values["permission"] = str(self.access)
 
