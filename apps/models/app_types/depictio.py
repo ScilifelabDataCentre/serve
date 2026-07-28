@@ -63,6 +63,7 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
                                 f"}}\n"
                                 f"location = /_depictio_auth {{\n"
                                 f"    internal;\n"
+                                f"    client_max_body_size {self.upload_size}M;\n"
                                 f"    proxy_pass {settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={self.subdomain.subdomain};\n"
                                 f"    proxy_pass_request_body off;\n"
                                 f'    proxy_set_header Content-Length "";\n'
