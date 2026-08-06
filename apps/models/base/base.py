@@ -300,6 +300,17 @@ class BaseAppInstance(models.Model):
             auth_domain=settings.AUTH_DOMAIN,
             protocol=settings.AUTH_PROTOCOL,
         )
+
+        k8s_values["gateway"] = dict(
+            enabled=settings.GATEWAY_ENABLED,
+            name=settings.GATEWAY_NAME,
+            namespace=settings.GATEWAY_NAMESPACE,
+            domainSectionName=settings.GATEWAY_DOMAIN_SECTION_NAME,
+            studioSectionName=settings.GATEWAY_STUDIO_SECTION_NAME,
+            sectionName=settings.GATEWAY_SECTION_NAME,
+            port=settings.GATEWAY_PORT,
+        )
+
         return k8s_values
 
     def set_k8s_values(self):
