@@ -13,7 +13,14 @@ from django.test import Client, TestCase
 
 from projects.models import Project
 
-from ..models import AppCategories, Apps, BackgroundTask, JupyterInstance, K8sUserAppStatus, Subdomain
+from ..models import (
+    AppCategories,
+    Apps,
+    BackgroundTask,
+    JupyterInstance,
+    K8sUserAppStatus,
+    Subdomain,
+)
 
 User = get_user_model()
 
