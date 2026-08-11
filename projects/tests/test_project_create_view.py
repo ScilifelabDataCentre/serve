@@ -3,6 +3,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from ..exceptions import ProjectLimitReachedException
 from ..models import ProjectTemplate
 
 User = get_user_model()
@@ -50,3 +51,23 @@ class ProjectCreateViewTestCase(TestCase):
             self.assertEqual(response.status_code, 302)
 
             mock_task.assert_called_once()
+
+    def test_project_create_post_returns_forbidden_if_limit_is_reached_during_creation(self):
+        with (
+            patch(
+                "projects.views.Project.objects.create_project",
+                side_effect=ProjectLimitReachedException("User not allowed to create project"),
+            ),
+            patch("projects.tasks.create_resources_from_template.delay") as mock_task,
+        ):
+            response = self.client.post(
+                "/projects/create/?template=Template",
+                {
+                    "name": "My Project",
+                    "description": "My description",
+                    "template_id": self.template_id,
+                },
+            )
+
+        self.assertEqual(response.status_code, 403)
+        mock_task.assert_not_called()

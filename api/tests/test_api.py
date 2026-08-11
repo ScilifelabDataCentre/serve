@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -93,6 +94,21 @@ class ApiTests(APITestCase):
         url = os.path.join(self.BASE_API_URL, "content-review/")
         response = self.client.get(url, query_params={"token": "badToken"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    @override_settings(PROJECTS_PER_USER_LIMIT=1)
+    @patch("api.views.create_resources_from_template.delay")
+    def test_create_project_returns_forbidden_when_limit_is_reached(self, mock_task):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            os.path.join(self.BASE_API_URL, "projects/"),
+            {"name": "over-limit", "description": "", "template": "unused"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json(), {"detail": "User not allowed to create project"})
+        mock_task.assert_not_called()
 
     @patch("api.views.validate_static_token")
     def test_get_content_review(self, mock_validate_static_token):
