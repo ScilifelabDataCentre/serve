@@ -113,10 +113,16 @@ def _build_background_task_status_cache_key(
 class GetLogs(View):
     template = "apps/logs.html"
 
-    def get_instance(self, app_slug, app_id, post=False):
+    def get_instance(self, project, app_slug, app_id, post=False):
         model_class = APP_REGISTRY.get_orm_model(app_slug)
         if model_class:
-            return model_class.objects.get(pk=app_id)
+            try:
+                return model_class.objects.get(pk=app_id, project=project)
+            except model_class.DoesNotExist as exc:
+                message = "An app with this id does not exist in this project."
+                if post:
+                    return JsonResponse({"error": message}, status=404)
+                raise Http404(message) from exc
         else:
             message = f"Could not find model for slug {app_slug}"
             if post:
@@ -139,7 +145,7 @@ class GetLogs(View):
 
     def get(self, request, project, app_slug, app_id):
         project = self.get_project(project)
-        instance = self.get_instance(app_slug, app_id)
+        instance = self.get_instance(project, app_slug, app_id)
 
         context = {"instance": instance, "project": project}
         return render(request, self.template, context)
@@ -147,7 +153,11 @@ class GetLogs(View):
     def post(self, request, project, app_slug, app_id):
         # Validate project and instance existence
         project = self.get_project(project, post=True)
-        instance = self.get_instance(app_slug, app_id, post=True)
+        if isinstance(project, JsonResponse):
+            return project
+        instance = self.get_instance(project, app_slug, app_id, post=True)
+        if isinstance(instance, JsonResponse):
+            return instance
 
         # get container name from UI (subdomain or copy-to-pvc) if none exists then use subdomain name
         container = request.POST.get("container", "") or instance.subdomain.subdomain
@@ -225,7 +235,7 @@ class GetStatusView(CachedProjectPermissionRequiredMixin):
             arr = body.split(",")
 
             for orm_model in APP_REGISTRY.iter_orm_models():
-                instances = orm_model.objects.filter(pk__in=arr)
+                instances = orm_model.objects.filter(pk__in=arr, project__slug=project)
 
                 for instance in instances:
                     status = instance.get_app_status()
@@ -261,7 +271,7 @@ def delete(request, project, app_slug, app_id):
     if model_class is None:
         raise PermissionDenied()
 
-    instance = model_class.objects.get(pk=app_id) if app_id else None
+    instance = model_class.objects.filter(pk=app_id, project__slug=project).first() if app_id else None
 
     if instance is None:
         raise PermissionDenied()
@@ -580,7 +590,7 @@ class SecretsView(View):
     template = "apps/secrets_view.html"
 
     def get(self, request, project, app_slug, app_id):
-        instance: BaseAppInstance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
+        _, instance = get_project_app_instance(project, app_slug, app_id)
 
         username, password = None, None
         if instance.get_app_status() == "Running":
@@ -990,7 +1000,7 @@ class RetryBackgroundTaskView(View):
             return JsonResponse({"error": "Application model not found"}, status=404)
 
         try:
-            instance = model_class.objects.get(pk=app_id)
+            instance = model_class.objects.get(pk=app_id, project__slug=project)
         except model_class.DoesNotExist:
             return JsonResponse({"error": "App instance not found"}, status=404)
         if _should_restrict_deployment_details(request, instance):
