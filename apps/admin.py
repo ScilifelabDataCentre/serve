@@ -139,7 +139,7 @@ class BaseAppAdmin(admin.ModelAdmin):
 
     display_volumes.short_description = "Volumes"
 
-    @admin.action(description="Redeploy apps")
+    @admin.action(description="(Re)deploy resources")
     def deploy_resources(self, request, queryset):
         scheduled_count = 0
 
