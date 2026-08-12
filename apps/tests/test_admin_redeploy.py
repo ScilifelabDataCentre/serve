@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from apps.admin import BaseAppAdmin
 from apps.models import Apps, DashInstance, K8sUserAppStatus, Subdomain
-from apps.tasks import deploy_resource, restart_helm_workloads
+from apps.tasks import _kubectl_rollout_restart, deploy_resource
 from projects.models import Flavor, Project
 
 User = get_user_model()
@@ -68,7 +68,7 @@ class RedeployAppsAdminActionTestCase(TestCase):
         self.assertTrue(mock_deploy.call_args.kwargs["force_redeploy"])
 
     @override_settings(DEBUG=False)
-    @patch("apps.tasks.restart_helm_workloads", return_value=("restarted", None))
+    @patch("apps.tasks._kubectl_rollout_restart", return_value=("restarted", None))
     @patch("apps.tasks.helm_install", return_value=("upgraded", None))
     def test_force_redeploy_restarts_workloads_after_helm_upgrade(self, _mock_helm, mock_restart):
         self.instance.set_k8s_values()
@@ -82,7 +82,7 @@ class RedeployAppsAdminActionTestCase(TestCase):
         self.assertEqual(self.instance.info["helm"]["restart"]["stdout"], "restarted")
 
     @override_settings(DEBUG=False)
-    @patch("apps.tasks.restart_helm_workloads")
+    @patch("apps.tasks._kubectl_rollout_restart")
     @patch("apps.tasks.helm_install", return_value=("upgraded", None))
     def test_regular_deploy_does_not_force_workload_restart(self, _mock_helm, mock_restart):
         self.instance.set_k8s_values()
@@ -193,7 +193,7 @@ metadata:
         )
         mock_run.return_value.stdout = "restarted"
 
-        output, error = restart_helm_workloads("release", "namespace")
+        output, error = _kubectl_rollout_restart("release", "namespace")
 
         self.assertEqual(output, "restarted")
         self.assertIsNone(error)
@@ -215,7 +215,7 @@ metadata:
     @patch("apps.tasks.subprocess.run")
     @patch("apps.tasks.get_manifest_yaml", return_value=("kind: PersistentVolumeClaim", None))
     def test_release_without_workloads_does_not_call_kubectl(self, _mock_manifest, mock_run):
-        output, error = restart_helm_workloads("release", "namespace")
+        output, error = _kubectl_rollout_restart("release", "namespace")
 
         self.assertEqual(output, "No restartable workloads found for Helm release release.")
         self.assertIsNone(error)

@@ -295,7 +295,7 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
         return e.stdout, e.stderr
 
 
-def restart_helm_workloads(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
+def _kubectl_rollout_restart(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
     """Restart the rollout-capable workloads managed by a Helm release."""
     manifest, error = get_manifest_yaml(release_name, namespace)
     if error:
@@ -506,7 +506,7 @@ def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
     restart_output = None
     restart_error = None
     if success and force_redeploy:
-        restart_output, restart_error = restart_helm_workloads(release, values["namespace"])
+        restart_output, restart_error = _kubectl_rollout_restart(release, values["namespace"])
         success = not restart_error
         logger.info(
             "deploy_resource.rollout_restart_done task_id=%s instance_id=%s success=%s release=%s stderr=%s",
