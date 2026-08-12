@@ -1,4 +1,3 @@
-import time
 from datetime import datetime
 
 from django.contrib import admin, messages
@@ -10,7 +9,12 @@ from apps.constants import AppActionOrigin
 from projects.models import PersistentVolumeMountPath
 from studio.utils import get_logger
 
-from .helpers import export_k8s_values_to_yaml, get_URI, set_linkonly_reminder_date
+from .helpers import (
+    export_k8s_values_to_yaml,
+    get_URI,
+    reset_k8s_user_app_status_for_deployment,
+    set_linkonly_reminder_date,
+)
 from .models import (
     AppCategories,
     Apps,
@@ -91,7 +95,6 @@ class BaseAppAdmin(admin.ModelAdmin):
     readonly_fields = ("id", "created_on", "updated_on")
     list_filter = ["owner", "project", "k8s_user_app_status__status", "chart"]
     actions = [
-        "redeploy_apps",
         "deploy_resources",
         "delete_resources",
         "export_values_yaml",
@@ -136,33 +139,25 @@ class BaseAppAdmin(admin.ModelAdmin):
 
     display_volumes.short_description = "Volumes"
 
-    @admin.action(description="(Re)deploy resources")
+    @admin.action(description="Redeploy apps")
     def deploy_resources(self, request, queryset):
-        success_count = 0
-        failure_count = 0
+        scheduled_count = 0
 
         for instance in queryset:
             instance.set_k8s_values()
             instance.url = get_URI(instance)
-            instance.save(update_fields=["k8s_values", "url"])
+            instance.latest_user_action = "Changing"
+            instance.save(update_fields=["k8s_values", "url", "latest_user_action"])
+            reset_k8s_user_app_status_for_deployment(instance)
 
-            deploy_resource.delay(instance.serialize())
-            time.sleep(2)
-            info_dict = instance.info
-            if info_dict:
-                success = info_dict["helm"].get("success", False)
-                if success:
-                    success_count += 1
-                else:
-                    failure_count += 1
-            else:
-                failure_count += 1
+            deploy_resource.delay(instance.serialize(), force_redeploy=True)
+            scheduled_count += 1
 
-        if success_count:
-            self.message_user(request, f"{success_count} apps successfully (re)deployed.", messages.SUCCESS)
-        if failure_count:
+        if scheduled_count:
             self.message_user(
-                request, f"Failed to redeploy {failure_count} apps. Check logs for details.", messages.ERROR
+                request,
+                f"Scheduled {scheduled_count} apps for redeployment.",
+                messages.SUCCESS,
             )
 
     @admin.action(description="Delete resources")

@@ -295,18 +295,52 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
         return e.stdout, e.stderr
 
 
+def restart_helm_workloads(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
+    """Restart the rollout-capable workloads managed by a Helm release."""
+    manifest, error = get_manifest_yaml(release_name, namespace)
+    if error:
+        return manifest, error
+
+    try:
+        documents = yaml.safe_load_all(manifest or "")
+        restartable_kinds = {"Deployment", "StatefulSet", "DaemonSet"}
+        resources = []
+        for document in documents:
+            if not isinstance(document, dict) or document.get("kind") not in restartable_kinds:
+                continue
+
+            metadata = document.get("metadata")
+            name = metadata.get("name") if isinstance(metadata, dict) else None
+            if name:
+                resources.append(f"{document['kind'].lower()}/{name}")
+    except yaml.YAMLError as exc:
+        return None, f"Failed to parse Helm manifest for release {release_name}: {exc}"
+
+    resources = list(dict.fromkeys(resources))
+    if not resources:
+        return f"No restartable workloads found for Helm release {release_name}.", None
+
+    command = ["kubectl", "rollout", "restart", *resources, "--namespace", namespace]
+    try:
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+        return result.stdout, None
+    except subprocess.CalledProcessError as exc:
+        return exc.stdout, exc.stderr
+
+
 @shared_task(bind=True, max_retries=DEPLOY_RESOURCE_MAX_RETRIES)
-def deploy_resource(self, serialized_instance):
+def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
     model = serialized_instance.get("model") if isinstance(serialized_instance, dict) else None
     pk = serialized_instance.get("pk") if isinstance(serialized_instance, dict) else None
     task_id = getattr(self.request, "id", None)
 
     logger.info(
-        "deploy_resource.start task_id=%s model=%s pk=%s retry=%s",
+        "deploy_resource.start task_id=%s model=%s pk=%s retry=%s force_redeploy=%s",
         task_id,
         model,
         pk,
         self.request.retries,
+        force_redeploy,
     )
 
     try:
@@ -469,11 +503,42 @@ def deploy_resource(self, serialized_instance):
         release,
     )
 
+    restart_output = None
+    restart_error = None
+    if success and force_redeploy:
+        restart_output, restart_error = restart_helm_workloads(release, values["namespace"])
+        success = not restart_error
+        logger.info(
+            "deploy_resource.rollout_restart_done task_id=%s instance_id=%s success=%s release=%s stderr=%s",
+            task_id,
+            instance.pk,
+            success,
+            release,
+            restart_error,
+        )
+
+        if restart_error and self.request.retries < self.max_retries:
+            countdown = _retry_countdown(self.request.retries)
+            logger.warning(
+                "deploy_resource.rollout_restart_retry task_id=%s instance_id=%s retry=%s/%s countdown=%ss",
+                task_id,
+                instance.pk,
+                self.request.retries + 1,
+                self.max_retries,
+                countdown,
+            )
+            raise self.retry(exc=RuntimeError(restart_error), countdown=countdown)
+
+    if restart_error:
+        error = restart_error
+
     helm_info = {
         "success": success,
         "info": {"stdout": output, "stderr": error},
         "completed_at": timezone.now().isoformat(),
     }
+    if force_redeploy:
+        helm_info["restart"] = {"stdout": restart_output, "stderr": restart_error}
 
     instance.info = dict(helm=helm_info)
     # instance.app_status.status = "Created" if success else "Failed"
