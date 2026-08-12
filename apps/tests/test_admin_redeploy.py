@@ -8,7 +8,7 @@ from django.urls import reverse
 from apps.admin import BaseAppAdmin
 from apps.models import Apps, DashInstance, K8sUserAppStatus, Subdomain
 from apps.tasks import deploy_resource, restart_helm_workloads
-from projects.models import Project
+from projects.models import Flavor, Project
 
 User = get_user_model()
 
@@ -97,9 +97,7 @@ class RedeployAppsAdminActionTestCase(TestCase):
 
 class CreateLinkOnlyAppInAdminTestCase(TestCase):
     def setUp(self):
-        self.superuser = User.objects.create_superuser(
-            "link-admin", "link-admin@example.com", "password"
-        )
+        self.superuser = User.objects.create_superuser("link-admin", "link-admin@example.com", "password")
         self.project = Project.objects.create_project(name="link-admin", owner=self.superuser, description="")
         self.app = Apps.objects.create(name="Dash", slug="dashapp", chart="dash-chart:1.0.0")
         self.subdomain = Subdomain.objects.create(subdomain="link-admin-app", project=self.project)
@@ -123,6 +121,7 @@ class CreateLinkOnlyAppInAdminTestCase(TestCase):
                 "subdomain": self.subdomain.pk,
                 "subjects_keywords": "[]",
                 "tags": "",
+                "upload_size": 100,
                 "_save": "Save",
             },
         )
@@ -131,6 +130,41 @@ class CreateLinkOnlyAppInAdminTestCase(TestCase):
         instance = DashInstance.objects.get(name="Admin-created link app")
         self.assertEqual(instance.access, "link")
         self.assertEqual(instance.note_on_linkonly_privacy, "Shared with reviewers")
+
+
+class CreateLinkOnlyAppInProductUITestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("link-user", "link-user@example.com", "password")
+        self.project = Project.objects.create_project(name="link-ui", owner=self.user, description="")
+        self.flavor = Flavor.objects.create(name="Small", project=self.project)
+        self.app = Apps.objects.create(name="Dash", slug="dashapp", chart="dash-chart:1.0.0")
+        self.client.force_login(self.user)
+
+    @patch("apps.tasks.run_background_tasks.delay")
+    def test_user_can_create_link_only_app(self, mock_background_tasks):
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("apps:create", kwargs={"project": self.project.slug, "app_slug": self.app.slug}),
+                {
+                    "access": "link",
+                    "description": "Link-only app created through the product UI",
+                    "flavor": self.flavor.pk,
+                    "image": "example.org/dash:latest",
+                    "invenio_tags": "",
+                    "name": "UI-created link app",
+                    "note_on_linkonly_privacy": "Shared with reviewers",
+                    "port": 8050,
+                    "source_code_url": "",
+                    "subdomain": "link-ui-app",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        instance = DashInstance.objects.get(name="UI-created link app")
+        self.assertEqual(instance.access, "link")
+        self.assertEqual(instance.note_on_linkonly_privacy, "Shared with reviewers")
+        self.assertIsNotNone(instance.reminder_date_linkonly_privacy)
+        mock_background_tasks.assert_called_once()
 
 
 class RestartHelmWorkloadsTestCase(SimpleTestCase):
