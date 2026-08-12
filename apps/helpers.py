@@ -730,11 +730,57 @@ def get_or_create_status(instance, app_id):
     # return instance.app_status if app_id else AppStatus.objects.create()
 
 
+def _old_release_is_removed(delete_result: Any) -> bool:
+    """
+    Whether delete_resource confirmed that nothing is left in the cluster.
+
+    Without a confirmed result the old release must be assumed to be running.
+    """
+    if not isinstance(delete_result, dict):
+        return False
+
+    return bool(delete_result.get("success")) or bool(delete_result.get("release_missing"))
+
+
+SUBDOMAIN_RELEASE_EXCLUDED_APP_SLUGS = ("volumeK8s", "netpolicy")
+
+
+def release_subdomain_after_delete(instance: BaseAppInstance) -> Optional[Subdomain]:
+    """
+    Detach a deleted app from its subdomain so that the name becomes available again.
+
+    Only user-chosen names are reclaimed, and volumes are excluded because the apps that
+    mount them still read their subdomain.
+
+    Must only be called once the release is confirmed gone from the cluster, otherwise the
+    name becomes available while its resources are still running.
+
+    Returns the detached subdomain, or None if nothing was released. The caller is
+    responsible for saving the instance.
+    """
+    subdomain = instance.subdomain
+
+    if subdomain is None or not subdomain.is_created_by_user:
+        return None
+
+    if instance.app.slug in SUBDOMAIN_RELEASE_EXCLUDED_APP_SLUGS:
+        return None
+
+    instance.subdomain = None
+    return subdomain
+
+
 def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) -> None:
     """
     Detects if there has been a user-initiated subdomain change and if so,
     then re-creates the app instance, also re-deploying the k8s resource.
+
+    Raises:
+    - SubdomainChangeError: if the app's current release could not be removed from the
+      cluster. The subdomain is then left unchanged.
     """
+    from apps.types_.subdomain import SubdomainChangeError
+
     from .tasks import delete_resource
 
     assert instance is not None, "instance is required"
@@ -753,7 +799,19 @@ def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) 
     if instance.subdomain.subdomain != subdomain_name:
         # The user modified the subdomain name
         # In this special case, we avoid async task.
-        delete_resource(instance.serialize(), AppActionOrigin.USER.value)
+        delete_result = delete_resource(instance.serialize(), AppActionOrigin.USER.value)
+
+        if not _old_release_is_removed(delete_result):
+            logger.error(
+                "handle_subdomain_change.aborted_release_not_removed instance_id=%s "
+                "old_subdomain=%s requested_subdomain=%s error=%s",
+                instance.pk,
+                instance.subdomain.subdomain,
+                subdomain_name,
+                delete_result.get("error") if isinstance(delete_result, dict) else None,
+            )
+            raise SubdomainChangeError()
+
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])

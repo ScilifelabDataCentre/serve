@@ -26,7 +26,7 @@ class MLFlowInstance(BaseAppInstance):
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
         k8s_values["commonLabels"] = {
-            "release": self.subdomain.subdomain,
+            "release": self.subdomain.subdomain if self.subdomain else "deleted",
             "app": "mlflow",
             "project": self.project.slug,
         }
