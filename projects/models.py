@@ -18,6 +18,8 @@ from guardian.shortcuts import assign_perm
 
 from studio.utils import get_logger
 
+from .exceptions import ProjectLimitReachedException
+
 logger = get_logger(__name__)
 
 
@@ -113,11 +115,6 @@ class Flavor(models.Model):
 # it will become the default objects attribute for a Project model
 class ProjectManager(models.Manager):
     def create_project(self, name, owner, description, status="active", project_template=None):
-        user_can_create = self.user_can_create(owner)
-
-        if not user_can_create:
-            raise Exception("User not allowed to create project")
-
         key = self.generate_passkey()
         letters = string.ascii_lowercase
         secret = self.generate_passkey(40)
@@ -127,18 +124,25 @@ class ProjectManager(models.Manager):
         slug_extension = "".join(random.choice(letters) for i in range(3))
         slug = "{}-{}".format(slugify(slug), slug_extension)
 
-        project = self.create(
-            name=name,
-            owner=owner,
-            slug=slug,
-            project_key=key,
-            project_secret=secret,
-            description=description,
-            status=status,
-            project_template=project_template,
-        )
+        with transaction.atomic():
+            locked_owner = get_user_model().objects.select_for_update().get(pk=owner.pk)
 
-        assign_perm("can_view_project", owner, project)
+            if not self.user_can_create(locked_owner):
+                raise ProjectLimitReachedException("User not allowed to create project")
+
+            project = self.create(
+                name=name,
+                owner=locked_owner,
+                slug=slug,
+                project_key=key,
+                project_secret=secret,
+                description=description,
+                status=status,
+                project_template=project_template,
+            )
+
+            assign_perm("can_view_project", locked_owner, project)
+
         return project
 
     def generate_passkey(self, length=20):
@@ -155,7 +159,7 @@ class ProjectManager(models.Manager):
         if not user.is_authenticated:
             return False
 
-        num_of_projects = self.filter(Q(owner=user), status="active").count()
+        num_of_projects = self.filter(Q(owner=user), status__in=("created", "active")).count()
 
         try:
             project_per_user_limit = settings.PROJECTS_PER_USER_LIMIT

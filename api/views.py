@@ -26,6 +26,7 @@ from rest_framework.decorators import (
     authentication_classes,
     permission_classes,
 )
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.mixins import (
     CreateModelMixin,
     ListModelMixin,
@@ -45,6 +46,7 @@ from apps.types_.subdomain import SubdomainCandidateName
 from doi_minting.clients.invenio_client import InvenioClient
 from models.models import ObjectType
 from portal.models import PublishedModel
+from projects.exceptions import ProjectLimitReachedException
 from projects.models import Environment, Flavor, ProjectLog, ProjectTemplate
 from projects.tasks import create_resources_from_template, delete_project_apps
 from studio.utils import get_logger
@@ -406,11 +408,14 @@ class ProjectList(
     def create(self, request):
         name = request.data["name"]
         description = request.data["description"]
-        project = Project.objects.create_project(
-            name=name,
-            owner=request.user,
-            description=description,
-        )
+        try:
+            project = Project.objects.create_project(
+                name=name,
+                owner=request.user,
+                description=description,
+            )
+        except ProjectLimitReachedException as exc:
+            raise PermissionDenied(str(exc)) from exc
         success = True
 
         try:
