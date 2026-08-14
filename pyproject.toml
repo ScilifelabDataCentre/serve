@@ -18,7 +18,7 @@ packages = []
 [tool.poetry.dependencies]
 python = "^3.10.0"
 
-django = "==5.2"
+django = "==5.2.16"
 django-celery-beat = "==2.9.0"
 django-compressor = "==4.6.0"
 django-cors-headers = "==4.9.0"
