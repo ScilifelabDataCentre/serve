@@ -642,7 +642,7 @@ class CreateProjectView(View):
 
         next_page = request.POST.get("next", "/projects/{}".format(project.slug))
 
-        return HttpResponseRedirect(next_page, {"message": "Created project"})
+        return HttpResponseRedirect(next_page)
 
 
 @method_decorator(
@@ -771,7 +771,7 @@ def delete(request, project_slug):
     project.save()
     delete_project.delay(project.pk)
 
-    return HttpResponseRedirect(next_page, {"message": "Deleted project successfully."})
+    return HttpResponseRedirect(next_page)
 
 
 @login_required

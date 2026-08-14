@@ -1,6 +1,5 @@
 import rest_framework.routers as drfrouters
-from django.conf.urls import include
-from django.urls import path
+from django.urls import include, path
 from rest_framework_nested import routers
 
 from .public_views import are_you_there, get_studio_settings

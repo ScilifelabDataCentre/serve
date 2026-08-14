@@ -91,7 +91,7 @@ INSTALLED_APPS = [
     "django_filters",
     "django_structlog",
     "django_prose_editor",
-    "tagulous",
+    "django_tagulous",
     "guardian",
     "crispy_forms",
     "crispy_bootstrap5",

@@ -9,6 +9,7 @@ from .models import (
 )
 
 
+@admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
     search_fields = ("name", "maintainer__username")
     list_display = ("name", "maintainer", "website")
@@ -20,18 +21,17 @@ class CollectionAdmin(admin.ModelAdmin):
         return app_list or "No apps connected"
 
 
+@admin.register(EventsObject)
 class EventsAdmin(admin.ModelAdmin):
     list_display = ("title", "start_time")
     search_fields = ["title"]
 
 
+@admin.register(NewsObject)
 class NewsAdmin(admin.ModelAdmin):
     list_display = ("title", "created_on")
     search_fields = ["title"]
 
 
-admin.site.register(Collection, CollectionAdmin)
-admin.site.register(NewsObject, NewsAdmin)
-admin.site.register(EventsObject, EventsAdmin)
 admin.site.register(PublishedModel)
 admin.site.register(PublicModelObject)
