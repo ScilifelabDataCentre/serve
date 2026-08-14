@@ -5,8 +5,8 @@ from apps.models import BaseAppInstance
 
 
 class ModelFormTuple(NamedTuple):
-    Model: Type[BaseAppInstance]
-    Form: Type[BaseForm]
+    Model: type[BaseAppInstance]
+    Form: type[BaseForm]
 
 
 NoneTuple = tuple[None, None]

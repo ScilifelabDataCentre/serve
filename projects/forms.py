@@ -19,7 +19,7 @@ class GrantAccessForm(forms.Form):
     platform_users = []  # type: ignore
 
     def __init__(self, *args, **kwargs):
-        super(GrantAccessForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.platform_users = User.objects.all()
 
     OPTIONS = []

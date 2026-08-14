@@ -1,21 +1,22 @@
 """Configure requests.Session with retries, adapters, and TLS settings."""
 
-from typing import Mapping, Optional, Tuple, Union
+from collections.abc import Mapping
+from typing import Optional, Tuple, Union
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry  # type: ignore
 
-Timeout = Tuple[float, float]
+Timeout = tuple[float, float]
 VerifyType = Union[bool, str]
 
 
 def make_session(
     *,
-    default_headers: Optional[Mapping[str, str]] = None,
-    token: Optional[str] = None,
+    default_headers: Mapping[str, str] | None = None,
+    token: str | None = None,
     total_retries: int = 3,
-    verify: Optional[VerifyType] = None,
+    verify: VerifyType | None = None,
 ) -> requests.Session:
     """
     Create and configure a requests.Session with retry logic and optional headers.

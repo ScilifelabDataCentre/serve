@@ -4,8 +4,6 @@ Shared utilities for background tasks.
 Use these from task modules to avoid duplicating logic across different task types.
 """
 
-from __future__ import annotations
-
 
 def select_latest_task_records(task_records):
     """

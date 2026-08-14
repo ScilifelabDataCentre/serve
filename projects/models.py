@@ -125,7 +125,7 @@ class ProjectManager(models.Manager):
         if len(slug) < 3:
             slug = "".join(random.choice(letters) for i in range(3))
         slug_extension = "".join(random.choice(letters) for i in range(3))
-        slug = "{}-{}".format(slugify(slug), slug_extension)
+        slug = f"{slugify(slug)}-{slug_extension}"
 
         project = self.create(
             name=name,
@@ -212,7 +212,7 @@ class ProjectTemplate(models.Model):
         )
 
     def __str__(self):
-        return "{} ({})".format(self.name, self.revision)
+        return f"{self.name} ({self.revision})"
 
 
 class Project(models.Model):
@@ -249,7 +249,7 @@ class Project(models.Model):
         permissions = [("can_view_project", "Can view project")]
 
     def __str__(self):
-        return "Name: {} ({})".format(self.name, self.status)
+        return f"Name: {self.name} ({self.status})"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
