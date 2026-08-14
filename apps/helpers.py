@@ -477,9 +477,11 @@ def create_instance_from_form(
 
     instance = form.save(commit=False)
 
-    # Retrieve or create the subdomain
+    # Retrieve or create the subdomain. Look up on the unique field only, so an existing
+    # row with a different project or is_created_by_user is reused, not inserted again.
     subdomain, created = Subdomain.objects.get_or_create(
-        subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user
+        subdomain=subdomain_name,
+        defaults={"project": project, "is_created_by_user": is_created_by_user},
     )
     assert subdomain is not None
     assert subdomain.subdomain == subdomain_name
