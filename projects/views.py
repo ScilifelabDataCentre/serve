@@ -29,7 +29,7 @@ from apps.helpers import get_cached_ip_count
 from apps.models import BaseAppInstance, VolumeInstance
 from common.tasks import send_email_task
 
-from .exceptions import ProjectCreationException
+from .exceptions import ProjectCreationException, ProjectLimitReachedException
 from .models import (
     Environment,
     Flavor,
@@ -608,9 +608,9 @@ class CreateProjectView(View):
                 status="created",
                 project_template=project_template,
             )
-        except ProjectCreationException:
-            logger.error("Failed to create project database object.")
-            success = False
+        except ProjectLimitReachedException:
+            logger.warning("Project limit reached while creating project for user %s.", request.user.pk)
+            return HttpResponseForbidden()
 
         try:
             # Create resources from the chosen template
