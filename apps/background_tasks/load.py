@@ -5,7 +5,6 @@ Background tasks are registered via decorators at import time, so we keep a
 single deterministic import list here and call it from Django app startup.
 """
 
-from __future__ import annotations
 
 from importlib import import_module
 from typing import Final

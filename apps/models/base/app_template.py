@@ -43,7 +43,7 @@ class Apps(models.Model):
         verbose_name_plural = "App Templates"
 
     def __str__(self):
-        return str(self.name) + "({})".format(self.revision)
+        return str(self.name) + f"({self.revision})"
 
     @property
     def should_display_deployment_details(self):

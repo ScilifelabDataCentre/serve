@@ -43,8 +43,8 @@ class InvenioClient:
         base_url: str,
         token: str,
         auth_scheme: str = "Bearer",
-        verify: Optional[Union[bool, str]] = None,
-        timeout: Tuple[float, float] = (3.05, 20.0),
+        verify: bool | str | None = None,
+        timeout: tuple[float, float] = (3.05, 20.0),
     ):
         """
         Initialize the InvenioRDM client
@@ -90,8 +90,8 @@ class InvenioClient:
         return urljoin(self.base_url + "/", endpoint.lstrip("/"))
 
     def _handle_response(
-        self, response: Optional[requests.Response], success_codes: Optional[List[int]] = None
-    ) -> Dict[str, Any]:
+        self, response: requests.Response | None, success_codes: list[int] | None = None
+    ) -> dict[str, Any]:
         """
         Handle API response, raising exceptions for errors
 
@@ -113,7 +113,7 @@ class InvenioClient:
 
         if response.status_code not in success_codes:
             error_msg = f"API request failed with status {response.status_code}"
-            error_data: Dict[str, Any] = {}
+            error_data: dict[str, Any] = {}
             try:
                 error_data = response.json()
                 if "message" in error_data:
@@ -140,13 +140,13 @@ class InvenioClient:
 
         # Try to parse JSON response
         try:
-            return cast(Dict[str, Any], response.json())
+            return cast(dict[str, Any], response.json())
         except json.JSONDecodeError:
             raise InvenioClientError(f"Failed to parse JSON response: {response.text}")
 
     # ==================== DRAFT RECORDS ====================
 
-    def create_draft(self, record_data: Dict[str, Any]) -> Dict[str, Any]:
+    def create_draft(self, record_data: dict[str, Any]) -> dict[str, Any]:
         """
         Create a draft record
 
@@ -174,7 +174,7 @@ class InvenioClient:
         response = post(self.session, url, data=data, timeout=self.timeout)
         return self._handle_response(response, success_codes=[201])
 
-    def get_draft(self, record_id: str) -> Dict[str, Any]:
+    def get_draft(self, record_id: str) -> dict[str, Any]:
         """
         Get a draft record
 
@@ -191,12 +191,12 @@ class InvenioClient:
     def update_draft(
         self,
         record_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        access: Optional[Dict[str, Any]] = None,
-        files: Optional[Dict[str, Any]] = None,
-        custom_fields: Optional[Dict[str, Any]] = None,
-        pids: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+        access: dict[str, Any] | None = None,
+        files: dict[str, Any] | None = None,
+        custom_fields: dict[str, Any] | None = None,
+        pids: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Update a draft record
 
@@ -232,7 +232,7 @@ class InvenioClient:
         response = put(self.session, url, data=data, timeout=self.timeout)
         return self._handle_response(response)
 
-    def publish_draft(self, record_id: str) -> Dict[str, Any]:
+    def publish_draft(self, record_id: str) -> dict[str, Any]:
         """
         Publish a draft record
 
@@ -267,7 +267,7 @@ class InvenioClient:
 
     # ==================== RECORDS (PUBLISHED) ====================
 
-    def get_record(self, record_id: str) -> Dict[str, Any]:
+    def get_record(self, record_id: str) -> dict[str, Any]:
         """
         Get a published record
 
@@ -283,13 +283,13 @@ class InvenioClient:
 
     def search_records(
         self,
-        query: Optional[str] = None,
+        query: str | None = None,
         sort: str = "newest",
         size: int = 10,
         page: int = 1,
         allversions: bool = False,
         **additional_params: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Search published records
 
@@ -319,7 +319,7 @@ class InvenioClient:
         response = get(self.session, url, params=params, timeout=self.timeout)
         return self._handle_response(response)
 
-    def edit_published_record(self, record_id: str) -> Dict[str, Any]:
+    def edit_published_record(self, record_id: str) -> dict[str, Any]:
         """
         Edit a published record (create a draft from published record)
 
@@ -337,13 +337,13 @@ class InvenioClient:
 
     def list_user_records(
         self,
-        query: Optional[str] = None,
+        query: str | None = None,
         sort: str = "newest",
         size: int = 10,
         page: int = 1,
         allversions: bool = False,
         **additional_params: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         List user's draft and published records
 
@@ -374,7 +374,7 @@ class InvenioClient:
 
     # ==================== VERSION MANAGEMENT ====================
 
-    def create_new_version(self, record_id: str) -> Dict[str, Any]:
+    def create_new_version(self, record_id: str) -> dict[str, Any]:
         """
         Create a new version of a record
 
@@ -388,7 +388,7 @@ class InvenioClient:
         response = post(self.session, url, timeout=self.timeout)
         return self._handle_response(response, success_codes=[201])
 
-    def get_all_versions(self, record_id: str) -> Dict[str, Any]:
+    def get_all_versions(self, record_id: str) -> dict[str, Any]:
         """
         Get all versions of a record
 
@@ -415,7 +415,7 @@ class InvenioClient:
         response = get(self.session, url, timeout=self.timeout)
         return self._handle_response(response)
 
-    def get_latest_version(self, record_id: str) -> Dict[str, Any]:
+    def get_latest_version(self, record_id: str) -> dict[str, Any]:
         """
         Get the latest version of a record
 
@@ -431,7 +431,7 @@ class InvenioClient:
 
     # ==================== DOI MANAGEMENT ====================
 
-    def reserve_doi(self, record_id: str) -> Dict[str, Any]:
+    def reserve_doi(self, record_id: str) -> dict[str, Any]:
         """
         Reserve a DOI for a draft record
 
@@ -466,7 +466,7 @@ class InvenioClient:
         self._handle_response(response, success_codes=[204])
         return True
 
-    def search_funders(self, query: str, size: int = 10) -> List[Dict[str, str]]:
+    def search_funders(self, query: str, size: int = 10) -> list[dict[str, str]]:
         """
         Search Invenio funders.
 
@@ -479,7 +479,7 @@ class InvenioClient:
         if not query:
             return []
 
-        params: Dict[str, Any] = {"q": query, "size": size}
+        params: dict[str, Any] = {"q": query, "size": size}
         endpoints = [
             "/api/funders",
             "/api/vocabularies/funders",
@@ -493,7 +493,7 @@ class InvenioClient:
 
             data = self._handle_response(response)
             hits = data.get("hits", {}).get("hits", []) or []
-            results: List[Dict[str, str]] = []
+            results: list[dict[str, str]] = []
             for hit in hits:
                 funder_id = hit.get("id")
                 title = hit.get("title") or {}

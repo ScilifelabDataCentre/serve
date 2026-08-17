@@ -5,7 +5,6 @@ These toggles are intentionally centralized here so the semantics (and switch
 names) are consistent across the codebase.
 """
 
-from __future__ import annotations
 
 import waffle  # type: ignore
 

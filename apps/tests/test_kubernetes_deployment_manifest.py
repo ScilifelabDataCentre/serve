@@ -249,7 +249,7 @@ class ValidateExistingKubernetesDeploymentManifestTestCase(TestCase):
         print(f"Nr of manifest files to validate: {len(deployment_files)}")
 
         for file in deployment_files:
-            f = open(file, "r")
+            f = open(file)
             manifest_data = f.read()
 
             kdm = KubernetesDeploymentManifest()

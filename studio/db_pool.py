@@ -27,7 +27,7 @@ def get_db_pool_stats(alias: str = "default") -> dict[str, Any]:
         "opened": pool is not None,
         "pid": pid,
         "pod": pod_name,
-        "pool_id": "{}:{}:{}".format(pod_name, pid, alias),
+        "pool_id": f"{pod_name}:{pid}:{alias}",
     }
     if pool is not None:
         stats.update(pool.get_stats())

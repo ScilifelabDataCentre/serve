@@ -4,7 +4,7 @@ import requests
 from django.conf import settings
 
 
-def fetch_docker_hub_images_and_tags(query: str) -> List[str]:
+def fetch_docker_hub_images_and_tags(query: str) -> list[str]:
     """
     Fetch Docker images and latest tags matching a query.
     This function fetches images with the highest pull count.
