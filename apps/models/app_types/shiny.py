@@ -64,6 +64,8 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
 
+        # Set appname as runLabel.
+        k8s_values["service"]["runLabel"] = k8s_values["appname"]
         k8s_values["permission"] = str(self.access)
         k8s_values["appconfig"] = dict(
             port=self.port,
