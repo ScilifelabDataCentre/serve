@@ -26,9 +26,38 @@ from doi_minting.services.schemas import InvenioRecord
 from projects.models import Flavor, Project
 
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
-from ..types_.subdomain import SubdomainTuple
+from ..tasks import _is_helm_release_not_found
+from ..types_.subdomain import SubdomainChangeError, SubdomainTuple
+
+DELETE_RESOURCE_OK = {"success": True, "release_missing": False, "error": None}
 
 User = get_user_model()
+
+
+class HelmReleaseNotFoundTestCase(TestCase):
+    """Tests for classifying helm uninstall errors."""
+
+    def test_missing_release_errors_are_recognised(self):
+        errors = [
+            "Error: uninstall: Release not loaded: my-app: release: not found",
+            "Error: release: not found",
+            "ERROR: UNINSTALL: RELEASE NOT LOADED: MY-APP",
+        ]
+        for error in errors:
+            with self.subTest(error=error):
+                self.assertTrue(_is_helm_release_not_found(error))
+
+    def test_real_failures_are_not_treated_as_missing_release(self):
+        errors = [
+            "Error: uninstall: timed out waiting for the condition",
+            "Error: failed to delete release: my-app",
+            'Error: pre-delete hook failed: job "delete-user-pods-my-app" failed: BackoffLimitExceeded',
+            "",
+            None,
+        ]
+        for error in errors:
+            with self.subTest(error=error):
+                self.assertFalse(_is_helm_release_not_found(error))
 
 
 class CreateAppInstanceTestCase(TestCase):
@@ -272,6 +301,8 @@ class UpdateExistingAppInstanceTestCase(TestCase):
 
         changed_fields = ["subdomain", "invenio_tags", "creators"]
 
+        mock_delete.return_value = DELETE_RESOURCE_OK
+
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
 
@@ -279,6 +310,79 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         mock_deploy.assert_called_once()
         # Modifying the subdomain SHOULD cause a delete:
         mock_delete.assert_called_once_with(ANY, AppActionOrigin.USER.value)
+
+    def _subdomain_change_form(self, new_subdomain: str):
+        """Build a valid form that only changes the app subdomain."""
+        data = {
+            "name": self.name,
+            "description": self.description,
+            "access": "public",
+            "port": self.port,
+            "image": self.image,
+            "source_code_url": self.source_code_url,
+            "subdomain": new_subdomain,
+            "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
+        }
+
+        model_class, form_class = APP_REGISTRY.get(self.app_slug)
+        instance = model_class.objects.get(pk=self.app_instance.id)
+        form = form_class(data, project_pk=self.project.pk, instance=instance)
+        self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
+        return form
+
+    def test_update_instance_from_form_subdomain_change_aborts_when_release_not_removed(self, mock_delete, mock_deploy):
+        """A failed helm uninstall must not release the old subdomain."""
+        new_subdomain = "test-subdomain-update-app-new"
+        mock_delete.return_value = {
+            "success": False,
+            "release_missing": False,
+            "error": "Error: uninstall: timed out waiting for the condition",
+        }
+
+        form = self._subdomain_change_form(new_subdomain)
+
+        with self.assertRaises(SubdomainChangeError):
+            create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+
+        mock_delete.assert_called_once_with(ANY, AppActionOrigin.USER.value)
+
+        instance = DashInstance.objects.get(pk=self.app_instance.id)
+        self.assertEqual(instance.subdomain.subdomain, self.subdomain_name)
+        self.assertFalse(Subdomain.objects.filter(subdomain=new_subdomain).exists())
+        mock_deploy.assert_not_called()
+
+    def test_update_instance_from_form_subdomain_change_proceeds_when_release_missing(self, mock_delete, mock_deploy):
+        """A release that does not exist is not a delete failure, so the rename proceeds."""
+        new_subdomain = "test-subdomain-update-app-new"
+        mock_delete.return_value = {
+            "success": False,
+            "release_missing": True,
+            "error": "Error: uninstall: Release not loaded: test-subdomain-update-app: release: not found",
+        }
+
+        form = self._subdomain_change_form(new_subdomain)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+
+        instance = DashInstance.objects.get(pk=self.app_instance.id)
+        self.assertEqual(instance.subdomain.subdomain, new_subdomain)
+        mock_deploy.assert_called_once()
+
+    def test_update_instance_from_form_subdomain_change_aborts_on_unknown_delete_result(self, mock_delete, mock_deploy):
+        """Without a confirmed result the cluster cannot be assumed clean, so fail closed."""
+        new_subdomain = "test-subdomain-update-app-new"
+        mock_delete.return_value = None
+
+        form = self._subdomain_change_form(new_subdomain)
+
+        with self.assertRaises(SubdomainChangeError):
+            create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+
+        instance = DashInstance.objects.get(pk=self.app_instance.id)
+        self.assertEqual(instance.subdomain.subdomain, self.subdomain_name)
+        mock_deploy.assert_not_called()
 
     def test_update_instance_from_form_modify_no_redeploy_values(self, mock_delete, mock_deploy):
         """

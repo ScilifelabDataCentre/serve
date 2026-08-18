@@ -28,7 +28,7 @@ from guardian.decorators import permission_required_or_403
 from rest_framework.exceptions import NotFound
 
 from apps.constants import INVENIO_RECORD_REMOVAL_REASON_LABELS, AppActionOrigin
-from apps.types_.subdomain import SubdomainCandidateName
+from apps.types_.subdomain import SubdomainCandidateName, SubdomainChangeError
 from common.auth_cache import (
     build_cache_key,
     get_cached_value,
@@ -158,6 +158,9 @@ class GetLogs(View):
         instance = self.get_instance(project, app_slug, app_id, post=True)
         if isinstance(instance, JsonResponse):
             return instance
+
+        if instance.subdomain is None:
+            return JsonResponse({"error": "This app has been deleted and no longer has logs."}, status=404)
 
         # get container name from UI (subdomain or copy-to-pvc) if none exists then use subdomain name
         container = request.POST.get("container", "") or instance.subdomain.subdomain
@@ -300,7 +303,7 @@ def delete(request, project, app_slug, app_id):
 
     serialized_instance = instance.serialize()
 
-    delete_resource.delay(serialized_instance, AppActionOrigin.USER.value)
+    delete_resource.delay(serialized_instance, AppActionOrigin.USER.value, release_subdomain=True)
 
     # fix: in case appinstance is public switch to private
     instance.access = "private"
@@ -407,6 +410,9 @@ class CreateApp(View):
             # Another request may have claimed the last GPU after this form
             # validated, check and return as a form error if needed.
             form.add_error("flavor", exc.ui_error)
+            return render_form_with_errors()
+        except SubdomainChangeError as exc:
+            form.add_error("subdomain", exc.ui_error)
             return render_form_with_errors()
         # Redirects everyone (including admins) after creation; admins can still
         # open the deployment pages (/progress, /details, /tasks) directly.

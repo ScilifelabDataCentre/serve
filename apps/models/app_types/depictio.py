@@ -23,8 +23,9 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
 
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
+        release_name = self.subdomain.subdomain if self.subdomain else "deleted"
         k8s_values["commonLabels"] = {
-            "release": self.subdomain.subdomain,
+            "release": release_name,
             "app": "depictio",
             "project": self.project.slug,
         }
@@ -64,7 +65,7 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
                                 f"location = /_depictio_auth {{\n"
                                 f"    internal;\n"
                                 f"    client_max_body_size {self.upload_size}M;\n"
-                                f"    proxy_pass {settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={self.subdomain.subdomain};\n"
+                                f"    proxy_pass {settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={release_name};\n"
                                 f"    proxy_pass_request_body off;\n"
                                 f'    proxy_set_header Content-Length "";\n'
                                 f"    proxy_set_header X-Original-URI $request_uri;\n"
@@ -82,7 +83,7 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
             if self.access in ("private", "project"):
                 k8s_values["ingress"]["annotations"] = {
                     **base_annotations,
-                    "nginx.ingress.kubernetes.io/auth-url": f"{settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={self.subdomain.subdomain}",
+                    "nginx.ingress.kubernetes.io/auth-url": f"{settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={release_name}",
                     "nginx.ingress.kubernetes.io/auth-signin": f"https://{settings.DOMAIN}/accounts/login/",
                     "nginx.ingress.kubernetes.io/auth-signin-redirect-param": "next",
                 }
