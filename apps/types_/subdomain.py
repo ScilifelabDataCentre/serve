@@ -5,6 +5,20 @@ from django.core.validators import RegexValidator
 
 from apps.models import BaseAppInstance, Subdomain
 
+SUBDOMAIN_RELEASE_NOT_REMOVED_MESSAGE = (
+    "The subdomain could not be changed because the current deployment of this app could not "
+    "be removed from the cluster. The subdomain was left unchanged. Please try again in a few "
+    "minutes, and contact serve@scilifelab.se if the problem persists."
+)
+
+
+class SubdomainChangeError(Exception):
+    """Raised when an app's subdomain cannot be changed without orphaning cluster resources."""
+
+    def __init__(self, message: str = SUBDOMAIN_RELEASE_NOT_REMOVED_MESSAGE):
+        self.ui_error = message
+        super().__init__(message)
+
 
 class SubdomainCandidateName:
     """
