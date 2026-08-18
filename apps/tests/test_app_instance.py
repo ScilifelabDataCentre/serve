@@ -155,6 +155,42 @@ class AppInstanceStatusTestCase(TestCase):
         self.assertEqual(app_instance.get_status_group(), "danger")
 
 
+class ShinyK8sValuesTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("shiny-user", "shiny@test.com", "password")
+        self.project = Project.objects.create_project(name="Shiny project", owner=self.user, description="")
+        self.app = Apps.objects.create(name="Shiny", slug="shiny", chart="shinyproxy")
+
+    def test_service_run_label_uses_maximum_length_subdomain(self):
+        subdomain_name = "a" * 53
+        instance = ShinyInstance.objects.create(
+            owner=self.user,
+            name="Shiny app",
+            app=self.app,
+            chart="shinyproxy",
+            project=self.project,
+            subdomain=Subdomain.objects.create(subdomain=subdomain_name),
+            image="example/shiny:latest",
+        )
+
+        k8s_values = instance.get_k8s_values()
+
+        self.assertEqual(k8s_values["service"]["runLabel"], subdomain_name)
+        self.assertLessEqual(len(k8s_values["service"]["runLabel"]), 63)
+
+    def test_service_run_label_is_not_added_to_other_app_types(self):
+        instance = BaseAppInstance.objects.create(
+            owner=self.user,
+            name="Other app",
+            app=self.app,
+            chart="other-chart",
+            project=self.project,
+            subdomain=Subdomain.objects.create(subdomain="other-app"),
+        )
+
+        self.assertNotIn("runLabel", instance.get_k8s_values()["service"])
+
+
 @pytest.mark.parametrize(
     "latest_user_action, k8s_user_app_status, expected",
     [
