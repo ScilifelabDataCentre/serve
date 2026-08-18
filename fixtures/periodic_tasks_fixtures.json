@@ -250,5 +250,33 @@
     },
     "model": "django_celery_beat.periodictask",
     "pk": 13
+  },
+  {
+    "fields": {
+      "args": "[]",
+      "clocked": null,
+      "crontab": null,
+      "date_changed": "2026-01-01T00:00:00.000Z",
+      "description": "Mark in-flight apps as Running once every workload of their Helm release is ready",
+      "enabled": true,
+      "exchange": null,
+      "expire_seconds": null,
+      "expires": null,
+      "headers": "{}",
+      "interval": 2,
+      "kwargs": "{}",
+      "last_run_at": null,
+      "name": "reconcile_app_statuses",
+      "one_off": false,
+      "priority": null,
+      "queue": null,
+      "routing_key": null,
+      "solar": null,
+      "start_time": null,
+      "task": "apps.tasks.reconcile_app_statuses",
+      "total_run_count": 0
+    },
+    "model": "django_celery_beat.periodictask",
+    "pk": 14
   }
 ]

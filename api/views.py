@@ -985,6 +985,13 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
                     200,
                 )
 
+            elif result == HandleUpdateStatusResponseCode.DEFERRED_TO_AGGREGATION:
+                return Response(
+                    "OK. DEFERRED_TO_AGGREGATION. A single pod reported Running. \
+                    The app is marked Running once all workloads of the release are ready.",
+                    200,
+                )
+
             elif result == HandleUpdateStatusResponseCode.CREATED_FIRST_STATUS:
                 return Response("OK. CREATED_FIRST_STATUS. Created a missing AppStatus.", 200)
 

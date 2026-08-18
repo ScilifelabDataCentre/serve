@@ -1,3 +1,4 @@
+import json
 import re
 import subprocess
 from typing import Any
@@ -27,11 +28,16 @@ from common.tasks import send_email_task
 from studio.celery import app
 from studio.utils import get_logger
 
-from .models import BaseAppInstance, FilemanagerInstance
+from .models import BaseAppInstance, FilemanagerInstance, K8sUserAppStatus
 
 logger = get_logger(__name__)
 
 CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
+WORKLOAD_KINDS = frozenset({"Deployment", "StatefulSet", "DaemonSet"})
+# These charts create no pods, so there is never any readiness to wait for.
+POD_LESS_APP_SLUGS = frozenset({"volumeK8s", "netpolicy"})
+# A deploy that has not become ready within this window is not going to.
+RECONCILE_MAX_AGE = timezone.timedelta(minutes=15)
 DEPLOY_RESOURCE_MAX_RETRIES = 3
 DEPLOY_RESOURCE_RETRY_BASE_SECONDS = 10
 DEPLOY_RESOURCE_RETRY_MAX_SECONDS = 30
@@ -310,6 +316,81 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
         return e.stdout, e.stderr
 
 
+def _workload_readiness(item: dict, kind: str) -> tuple[str, int, int]:
+    """
+    Return (reference, ready_replicas, desired_replicas) for one workload object.
+
+    kind comes from the helm resource key ("v1/Deployment").
+    """
+    kind = kind.lower()
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    name = metadata.get("name") or "unknown"
+    status = item.get("status") if isinstance(item.get("status"), dict) else {}
+    spec = item.get("spec") if isinstance(item.get("spec"), dict) else {}
+
+    if kind == "daemonset":
+        # DaemonSets have no spec.replicas, the scheduler decides the desired count.
+        desired = int(status.get("desiredNumberScheduled") or 0)
+        ready = int(status.get("numberReady") or 0)
+    else:
+        # spec.replicas defaults to 1 when omitted.
+        replicas = spec.get("replicas")
+        desired = 1 if replicas is None else int(replicas)
+        ready = int(status.get("readyReplicas") or 0)
+
+    return f"{kind}/{name}", ready, desired
+
+
+def get_release_readiness(release_name: str, namespace: str = "default") -> tuple[dict | None, str | None]:
+    """
+    Determine whether every workload of a Helm release is ready.
+
+    Returns ({"all_ready": bool, "workloads": {ref: {"ready": int, "desired": int}}}, None)
+    or (None, error).
+    """
+    command = [
+        "helm",
+        "status",
+        release_name,
+        "--namespace",
+        namespace,
+        "--show-resources",
+        "-o",
+        "json",
+    ]
+    try:
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+    except subprocess.CalledProcessError as exc:
+        return None, exc.stderr or f"helm status failed for release {release_name}"
+
+    try:
+        payload = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        return None, f"Failed to parse helm status output for release {release_name}: {exc}"
+
+    info = payload.get("info") if isinstance(payload.get("info"), dict) else {}
+    resources = info.get("resources") if isinstance(info.get("resources"), dict) else {}
+
+    workloads: dict[str, dict[str, int]] = {}
+    all_ready = True
+    for group, items in resources.items():
+        if "(related)" in group:
+            continue
+        kind = group.rsplit("/", 1)[-1]
+        if kind not in WORKLOAD_KINDS or not isinstance(items, list):
+            continue
+
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            ref, ready, desired = _workload_readiness(item, kind=kind)
+            workloads[ref] = {"ready": ready, "desired": desired}
+            if ready < desired:
+                all_ready = False
+
+    return {"all_ready": all_ready and bool(workloads), "workloads": workloads}, None
+
+
 def _kubectl_rollout_restart(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
     """Restart the rollout-capable workloads managed by a Helm release."""
     manifest, error = get_manifest_yaml(release_name, namespace)
@@ -318,10 +399,9 @@ def _kubectl_rollout_restart(release_name: str, namespace: str = "default") -> t
 
     try:
         documents = yaml.safe_load_all(manifest or "")
-        restartable_kinds = {"Deployment", "StatefulSet", "DaemonSet"}
         resources = []
         for document in documents:
-            if not isinstance(document, dict) or document.get("kind") not in restartable_kinds:
+            if not isinstance(document, dict) or document.get("kind") not in WORKLOAD_KINDS:
                 continue
 
             metadata = document.get("metadata")
@@ -562,27 +642,6 @@ def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
     instance.save(update_fields=["info"])
     logger.info("deploy_resource.info_saved task_id=%s instance_id=%s success=%s", task_id, instance.pk, success)
 
-    # Depictio form changes never restart pods, so flip status.
-    if success and getattr(instance.app, "slug", None) == "depictio":
-        from apps.models import K8sUserAppStatus
-
-        # Keep the status creation and its link to the instance atomic
-        with transaction.atomic():
-            status_object = instance.k8s_user_app_status
-            if status_object is None:
-                status_object = K8sUserAppStatus.objects.create(status="Running")
-                instance.k8s_user_app_status = status_object
-                instance.save(update_fields=["k8s_user_app_status"])
-            else:
-                status_object.status = "Running"
-                status_object.time = timezone.now()
-                status_object.save(update_fields=["status", "time"])
-        logger.info(
-            "deploy_resource.depictio_status_running instance_id=%s status_id=%s",
-            instance.pk,
-            status_object.pk,
-        )
-
     # In development, also generate and validate the k8s deployment manifest
     if settings.DEBUG:
         # Previously, we generated and validated the deployment after creation
@@ -761,6 +820,82 @@ def resolve_task_app_instance(task_record):
             type(base_instance).__name__,
         )
         return base_instance
+
+
+@app.task
+def reconcile_app_statuses():
+    """
+    Mark in-flight apps as Running once every workload of their release is ready.
+
+    """
+    if not getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
+        logger.debug("reconcile_app_statuses.disabled")
+        return
+
+    instances = list(
+        BaseAppInstance.objects.filter(
+            latest_user_action__in=["Creating", "Changing", "Redeploying"],
+            subdomain__isnull=False,
+            updated_on__gte=timezone.now() - RECONCILE_MAX_AGE,
+        )
+        .exclude(k8s_user_app_status__status="Running")
+        .exclude(app__slug__in=POD_LESS_APP_SLUGS)
+        .select_related("subdomain", "k8s_user_app_status")
+    )
+
+    for instance in instances:
+        release = instance.subdomain.subdomain
+        k8s_values = instance.k8s_values if isinstance(instance.k8s_values, dict) else {}
+        namespace = k8s_values.get("namespace") or settings.NAMESPACE
+
+        # Release the pooled DB connection for the duration of the helm subprocess.
+        # Django reconnects on the next ORM access.
+        if not connection.in_atomic_block:
+            connection.close()
+
+        try:
+            readiness, error = get_release_readiness(release, namespace)
+        except Exception as exc:  # noqa: BLE001 - one bad release must not stop the sweep
+            logger.warning("reconcile_app_statuses.error release=%s %s", release, exc)
+            continue
+
+        if error:
+            if _is_helm_release_not_found(error):
+                # Expected while the release is still in progress.
+                logger.debug("reconcile_app_statuses.no_release release=%s", release)
+            else:
+                logger.warning("reconcile_app_statuses.read_failed release=%s %s", release, error)
+            continue
+
+        if not readiness["all_ready"]:
+            logger.debug("reconcile_app_statuses.not_ready release=%s workloads=%s", release, readiness["workloads"])
+            continue
+
+        with transaction.atomic():
+            locked = BaseAppInstance.objects.select_for_update().filter(pk=instance.pk).first()
+            if locked is None:
+                continue
+
+            status_object = locked.k8s_user_app_status
+            if status_object is None:
+                status_object = K8sUserAppStatus.objects.create()
+                locked.k8s_user_app_status = status_object
+                locked.save(update_fields=["k8s_user_app_status"])
+
+            if status_object.status == "Running":
+                continue
+
+            status_object.status = "Running"
+            status_object.time = timezone.now()
+            status_object.info = {"workloads": readiness["workloads"]}
+            status_object.save(update_fields=["status", "time", "info"])
+
+        logger.info(
+            "reconcile_app_statuses.marked_running instance_id=%s release=%s workloads=%s",
+            instance.pk,
+            release,
+            readiness["workloads"],
+        )
 
 
 @app.task
