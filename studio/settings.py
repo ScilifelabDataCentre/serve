@@ -427,6 +427,11 @@ SERIALIZATION_MODULES = {
     "yaml": "django_tagulous.serializers.pyyaml",
 }
 
+# tagulous.W001 checks SERIALIZATION_MODULES against the pre-rename "tagulous.serializers.*"
+# paths and wasn't updated for the django_tagulous rename in 2.x, so it always fires even
+# though the module paths above are the correct, non-deprecated ones.
+SILENCED_SYSTEM_CHECKS = ["tagulous.W001"]
+
 # Specific to Studio stack:
 # Redis settings
 REDIS_PORT = 6379
