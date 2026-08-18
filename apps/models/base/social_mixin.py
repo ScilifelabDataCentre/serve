@@ -1,5 +1,5 @@
 from django.db import models
-from tagulous.models import TagField
+from django_tagulous.models import TagField
 
 
 class SocialMixin(models.Model):

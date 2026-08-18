@@ -227,6 +227,7 @@ module = [
 	"django_filters.*",
 	"rest_framework_nested.*",
 	"tagulous.*",
+	"django_tagulous.*",
 	"minio.*",
 	"moto.*",
 	"celery.*",

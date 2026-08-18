@@ -5,8 +5,8 @@ from django.db import models
 from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
 from django.utils.module_loading import import_string
+from django_tagulous.models import TagField
 from minio import Minio
-from tagulous.models import TagField
 
 from studio.utils import get_logger
 

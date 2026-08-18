@@ -421,10 +421,10 @@ MAINTENANCE_MODE_CACHE_TIMEOUT = int(os.environ.get("MAINTENANCE_MODE_CACHE_TIME
 
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {
-    "xml": "tagulous.serializers.xml_serializer",
-    "json": "tagulous.serializers.json",
-    "python": "tagulous.serializers.python",
-    "yaml": "tagulous.serializers.pyyaml",
+    "xml": "django_tagulous.serializers.xml_serializer",
+    "json": "django_tagulous.serializers.json",
+    "python": "django_tagulous.serializers.python",
+    "yaml": "django_tagulous.serializers.pyyaml",
 }
 
 # Specific to Studio stack:
