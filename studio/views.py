@@ -1,4 +1,5 @@
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import requests
 from django.conf import settings
@@ -44,7 +45,7 @@ def _log_auth_request(request: Request, event: str, allowed: bool) -> None:
     if not getattr(settings, "AUTH_REQUEST_LOGGING_ENABLED", True):
         return
 
-    original_uri = request.META.get("HTTP_X_ORIGINAL_URI") or request.get_full_path()
+    original_uri = request.headers.get("x-original-uri") or request.get_full_path()
     logger.info(
         "Auth endpoint %s user_id=%s username=%s release=%s project=%s original_uri=%s allowed=%s",
         event,

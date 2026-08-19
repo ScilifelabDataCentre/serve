@@ -27,6 +27,6 @@ class InvenioServerError(InvenioClientError):
 class RecordDeletedError(InvenioClientError):
     """Raised when a requested record has been removed and a tombstone is returned"""
 
-    def __init__(self, message: str, tombstone_data: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, tombstone_data: dict[str, Any] | None = None):
         super().__init__(message)
         self.tombstone_data = tombstone_data or {}

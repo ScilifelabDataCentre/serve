@@ -79,11 +79,9 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
         self.fields["default_url_subpath"].help_text = "Specify a non-default start URL if your app requires that."
         apps_url = reverse("portal:apps")
         self.fields["default_url_subpath"].bottom_help_text = mark_safe(
-            (
-                f"<span class='fw-bold' id='id_default_url_subpath_helptext'>Note:</span> "
-                f"This changes the URL connected to the Open button for an app"
-                f" on the Serve <a href='{apps_url}'>Apps & Models</a> page."
-            )
+            f"<span class='fw-bold' id='id_default_url_subpath_helptext'>Note:</span> "
+            f"This changes the URL connected to the Open button for an app"
+            f" on the Serve <a href='{apps_url}'>Apps & Models</a> page."
         )
 
         # Setup container image field from mixin

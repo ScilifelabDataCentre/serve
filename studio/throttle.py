@@ -20,13 +20,13 @@ class WhitelistThrottleFilter(UserRateThrottle):
         """
 
         # Try X-Forwarded-For first (standard proxy header)
-        xff = request.META.get("HTTP_X_FORWARDED_FOR")
+        xff = request.headers.get("x-forwarded-for")
         if xff:
             ip = xff.split(",")[0].strip()
             return ip
 
         # Try X-Real-IP (nginx specific)
-        real_ip = request.META.get("HTTP_X_REAL_IP")
+        real_ip = request.headers.get("x-real-ip")
         if real_ip:
             return real_ip
 

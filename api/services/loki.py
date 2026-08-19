@@ -8,7 +8,7 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 
-def process_loki_response(response_json: Dict[str, Any]) -> Set[str]:
+def process_loki_response(response_json: dict[str, Any]) -> set[str]:
     """
     Extract unique IP addresses from the Loki JSON response.
 

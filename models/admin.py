@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import Metadata, Model, ModelLog, ObjectType
 
 
+@admin.register(Model)
 class ModelAdmin(admin.ModelAdmin):
     search_fields = ("name", "project__name", "object_type__name")
     empty_value_display = "-"
@@ -15,7 +16,6 @@ class ModelAdmin(admin.ModelAdmin):
         return obj.object_type.name if obj.object_type else None
 
 
-admin.site.register(Model, ModelAdmin)
 admin.site.register(ObjectType)
 admin.site.register(ModelLog)
 admin.site.register(Metadata)

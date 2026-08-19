@@ -5,7 +5,6 @@ This task sends app metadata to Invenio and reserves a DOI + publishes it
 if needed (e.g. public access, new image version).
 """
 
-from __future__ import annotations
 
 import json
 from typing import Any

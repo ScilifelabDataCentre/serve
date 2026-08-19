@@ -31,11 +31,11 @@ class MockInvenioClient:
     def update_draft(
         self,
         record_id: str,
-        metadata: Optional[dict[str, Any]] = None,
-        access: Optional[dict[str, Any]] = None,
-        files: Optional[dict[str, Any]] = None,
-        custom_fields: Optional[dict[str, Any]] = None,
-        pids: Optional[dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
+        access: dict[str, Any] | None = None,
+        files: dict[str, Any] | None = None,
+        custom_fields: dict[str, Any] | None = None,
+        pids: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         record = self._mock_record(record_id, is_published=False)
 

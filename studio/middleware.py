@@ -1,7 +1,8 @@
 import sys
 import time
 import traceback
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse

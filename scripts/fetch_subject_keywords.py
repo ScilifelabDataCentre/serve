@@ -371,7 +371,7 @@ def parse_gemet_rdf_gz(config):
 
 
 def store_keywords_as_binary(
-    source: str, keywords: List[Dict[str, Any]], config: Dict[str, Any], vocab_dir: Optional[str] = None
+    source: str, keywords: list[dict[str, Any]], config: dict[str, Any], vocab_dir: str | None = None
 ) -> int:
     """Store keywords as binary files with efficient autocomplete structure using pickle."""
 
@@ -385,8 +385,8 @@ def store_keywords_as_binary(
 
     # Store individual keywords with full metadata
     keyword_count = 0
-    autocomplete_data: Dict[str, List[Dict[str, Any]]] = {}
-    term_metadata: Dict[str, Dict[str, Any]] = {}
+    autocomplete_data: dict[str, list[dict[str, Any]]] = {}
+    term_metadata: dict[str, dict[str, Any]] = {}
 
     for keyword in keywords:
         # Create complete subject data

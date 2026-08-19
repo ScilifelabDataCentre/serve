@@ -22,7 +22,7 @@ class UniversityLookupAPI(viewsets.GenericViewSet):
 
     def __get_universities(self):
         """Get the universities data from the json file."""
-        with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
+        with open(settings.STATICFILES_DIRS[0] + "/common/universities.json") as f:
             universities = json.load(f).get("universities", dict())
             list = []
             for code, value in universities.items():
@@ -92,7 +92,7 @@ class DepartmentLookupAPI(viewsets.GenericViewSet):
 
     def __get_departments(self):
         """Get the departments data from the json file."""
-        with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+        with open(settings.STATICFILES_DIRS[0] + "/common/departments.json") as f:
             departments = json.load(f).get("departments", [])
             return departments
 

@@ -443,7 +443,7 @@ class ProjectList(
                 project=project,
                 module="PR",
                 headline="Project created",
-                description="Created project {}".format(project.name),
+                description=f"Created project {project.name}",
             )
             l1.save()
 
@@ -451,7 +451,7 @@ class ProjectList(
                 project=project,
                 module="PR",
                 headline="Getting started",
-                description="Getting started with project {}".format(project.name),
+                description=f"Getting started with project {project.name}",
             )
             l2.save()
 
@@ -729,7 +729,7 @@ class ProjectTemplateList(
             image = request.FILES["image"]
         except Exception:
             logger.error(request.data, exc_info=True)
-            return HttpResponse("Failed to create new template: {}".format(name), status=400)
+            return HttpResponse(f"Failed to create new template: {name}", status=400)
 
         try:
             template_latest_rev = ProjectTemplate.objects.filter(slug=slug).order_by("-revision")
@@ -748,7 +748,7 @@ class ProjectTemplateList(
             template.save()
         except Exception as err:
             logger.error(err, exc_info=True)
-        return HttpResponse("Created new template: {}.".format(name), status=200)
+        return HttpResponse(f"Created new template: {name}.", status=200)
 
 
 @api_view(["GET"])

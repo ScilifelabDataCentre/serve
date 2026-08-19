@@ -10,7 +10,7 @@ class Subdomain(models.Model):
 
     def __str__(self):
         project_name = self.project.name if self.project else "no project"
-        return str(self.subdomain) + " ({})".format(project_name)
+        return str(self.subdomain) + f" ({project_name})"
 
     def to_dict(self):
         return {

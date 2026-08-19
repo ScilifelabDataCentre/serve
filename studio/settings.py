@@ -91,7 +91,7 @@ INSTALLED_APPS = [
     "django_filters",
     "django_structlog",
     "django_prose_editor",
-    "tagulous",
+    "django_tagulous",
     "guardian",
     "crispy_forms",
     "crispy_bootstrap5",
@@ -148,7 +148,6 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "common.context_processors.maintenance_mode",
-                "js_asset.context_processors.importmap",
             ]
             + DJANGO_WIKI_CONTEXT_PROCESSOR,
             "libraries": {
@@ -422,11 +421,16 @@ MAINTENANCE_MODE_CACHE_TIMEOUT = int(os.environ.get("MAINTENANCE_MODE_CACHE_TIME
 
 # Tagulous serialization settings
 SERIALIZATION_MODULES = {
-    "xml": "tagulous.serializers.xml_serializer",
-    "json": "tagulous.serializers.json",
-    "python": "tagulous.serializers.python",
-    "yaml": "tagulous.serializers.pyyaml",
+    "xml": "django_tagulous.serializers.xml_serializer",
+    "json": "django_tagulous.serializers.json",
+    "python": "django_tagulous.serializers.python",
+    "yaml": "django_tagulous.serializers.pyyaml",
 }
+
+# tagulous.W001 checks SERIALIZATION_MODULES against the pre-rename "tagulous.serializers.*"
+# paths and wasn't updated for the django_tagulous rename in 2.x, so it always fires even
+# though the module paths above are the correct, non-deprecated ones.
+SILENCED_SYSTEM_CHECKS = ["tagulous.W001"]
 
 # Specific to Studio stack:
 # Redis settings

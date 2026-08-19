@@ -9,7 +9,7 @@ class SubdomainInputGroup(forms.Widget):
 
     def __init__(self, base_widget, data, *args, **kwargs):
         # Initialise widget and get base instance
-        super(SubdomainInputGroup, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.base_widget = base_widget(*args, **kwargs)
         self.data = data
 
