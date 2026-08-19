@@ -300,14 +300,14 @@ class InvenioMetadata(BaseModel):
     publisher: str
     contributors: list[Contributor]
     resource_type: ResourceType
-    creators: List[Creator]
+    creators: list[Creator]
 
     # Identifiers and relationships
-    identifiers: List[Identifier] | None = None
-    related_identifiers: List[RelatedIdentifierItem] | None = None
+    identifiers: list[Identifier] | None = None
+    related_identifiers: list[RelatedIdentifierItem] | None = None
 
     # Optional metadata fields
-    languages: List[Language] | None = None
+    languages: list[Language] | None = None
     subjects: list[Subject] | None = None
     funding: list[Funding] | None = None
 

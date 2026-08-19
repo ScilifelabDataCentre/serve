@@ -100,10 +100,10 @@ class InvenioService:
     Manages Invenio record creation, versioning, and DOI minting for application instances.
     """
 
-    client: Union[InvenioClient, MockInvenioClient]
+    client: InvenioClient | MockInvenioClient
 
     def __init__(
-        self, base_url: Optional[str] = None, token: Optional[str] = None, verify: bool = True, mock_mode: bool = False
+        self, base_url: str | None = None, token: str | None = None, verify: bool = True, mock_mode: bool = False
     ):
         """
         Initialize the Invenio Record Service.
@@ -129,7 +129,7 @@ class InvenioService:
                 verify=self.verify,
             )
 
-    def _extract_image_identifier(self, related_identifiers: list[dict[str, Any]]) -> Optional[str]:
+    def _extract_image_identifier(self, related_identifiers: list[dict[str, Any]]) -> str | None:
         """Return the app image identifier from a version's related identifiers."""
         for item in related_identifiers:
             if item.get("relation_type", {}).get("id") == "isvariantformof":
@@ -169,7 +169,7 @@ class InvenioService:
         return current_texts != new_texts
 
     def has_app_metadata_changed(
-        self, app_instance: Any, new_metadata: InvenioMetadata, current_metadata_obj: Optional["InvenioMetadata"] = None
+        self, app_instance: Any, new_metadata: InvenioMetadata, current_metadata_obj: Optional[InvenioMetadata] = None
     ) -> tuple[bool, str]:
         """
         Check if the new metadata for an app differ from the current metadata in its Invenio record.
@@ -218,7 +218,7 @@ class InvenioService:
             return False, "No metadata changes detected."
 
     def has_app_image_changed(
-        self, app_instance: Any, new_image: str, current_metadata_obj: Optional["InvenioMetadata"] = None
+        self, app_instance: Any, new_image: str, current_metadata_obj: Optional[InvenioMetadata] = None
     ) -> tuple[bool, str]:
         """Check if the app image has changed compared to the current Invenio record."""
         if not app_instance.invenio_record_id:
@@ -372,10 +372,10 @@ class InvenioService:
         self,
         record_id: str,
         metadata: dict[str, Any],
-        access: Optional[dict[str, Any]] = None,
-        files: Optional[dict[str, Any]] = None,
-        custom_fields: Optional[dict[str, Any]] = None,
-        pids: Optional[dict[str, Any]] = None,
+        access: dict[str, Any] | None = None,
+        files: dict[str, Any] | None = None,
+        custom_fields: dict[str, Any] | None = None,
+        pids: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Edit a published record: create a draft, update it with new metadata, and publish it.
@@ -451,7 +451,7 @@ class InvenioService:
             logger.exception(f"Failed to delete Invenio draft record {record_id}")
             return False
 
-    def get_record_data(self, record_id: str) -> Optional[InvenioRecord]:
+    def get_record_data(self, record_id: str) -> InvenioRecord | None:
         """
         Retrieve a published Invenio record for a given Invenio ID as an
         InvenioRecord Pydantic model.
@@ -488,7 +488,7 @@ class InvenioService:
             logger.error(f"Error retrieving published Invenio record {record_id}: {e}")
             return None
 
-    def get_current_record_data(self, record_id: str) -> Optional[InvenioRecord]:
+    def get_current_record_data(self, record_id: str) -> InvenioRecord | None:
         """
         Retrieve the current Invenio object for a given ID as an InvenioRecord.
 
@@ -528,7 +528,7 @@ class InvenioService:
             logger.error(f"Error retrieving Invenio object {record_id}: {e}")
             return None
 
-    def extract_app_metadata(self, record: Optional[InvenioRecord]) -> Optional["InvenioMetadata"]:
+    def extract_app_metadata(self, record: InvenioRecord | None) -> Optional[InvenioMetadata]:
         """
         Retrieve metadata for a given Invenio record as an InvenioMetadata Pydantic model.
         Args:
@@ -546,7 +546,7 @@ class InvenioService:
             logger.error(f"Error extracting metadata from InvenioRecord {record_id}: {e}")
             return None
 
-    def extract_app_pids(self, record: Optional[InvenioRecord]) -> Optional[Pids]:
+    def extract_app_pids(self, record: InvenioRecord | None) -> Pids | None:
         """
         Retrieve pids for a given Invenio record as a Pids Pydantic model.
         Args:
@@ -564,7 +564,7 @@ class InvenioService:
             logger.error(f"Error retrieving pids from InvenioRecord {record_id}: {e}")
             return None
 
-    def extract_app_parent(self, record: Optional[InvenioRecord]) -> Optional[Parent]:
+    def extract_app_parent(self, record: InvenioRecord | None) -> Parent | None:
         """
         Retrieve parent for a given Invenio record as a Parent Pydantic model.
         Args:
@@ -582,7 +582,7 @@ class InvenioService:
             logger.error(f"Error retrieving parent from InvenioRecord {record_id}: {e}")
             return None
 
-    def get_app_versions(self, record_id: str) -> Optional[AppVersions]:
+    def get_app_versions(self, record_id: str) -> AppVersions | None:
         """
         Retrieve version index and DOI for all versions of a given Invenio record.
         Args:
@@ -615,7 +615,7 @@ class InvenioService:
             logger.error(f"Error retrieving versions for record {record_id}: {e}")
             return None
 
-    def extract_language_id(self, metadata: InvenioMetadata) -> Optional[str]:
+    def extract_language_id(self, metadata: InvenioMetadata) -> str | None:
         """
         Extract the language ID from Invenio record metadata.
 
@@ -656,7 +656,7 @@ class InvenioService:
 
         return language_id
 
-    def extract_funding(self, metadata: InvenioMetadata) -> Optional[list[Funding]]:
+    def extract_funding(self, metadata: InvenioMetadata) -> list[Funding] | None:
         """
         Extract funding information from Invenio record metadata.
 
@@ -740,7 +740,7 @@ class InvenioService:
 
         return funding_items
 
-    def extract_creators(self, metadata: InvenioMetadata) -> Optional[list[Creator]]:
+    def extract_creators(self, metadata: InvenioMetadata) -> list[Creator] | None:
         """
         Extract creators from Invenio record metadata.
 
@@ -1346,7 +1346,7 @@ class InvenioService:
         )
 
     def generate_invenio_record(
-        self, app_instance: Any, additional_metadata: Optional[AdditionalMetadata] = None
+        self, app_instance: Any, additional_metadata: AdditionalMetadata | None = None
     ) -> InvenioRecord:
         """
         Generate direct InvenioRDM metadata structure.
@@ -1540,7 +1540,7 @@ class InvenioService:
         return draft, not draft.get("is_published", False)
 
     def process_app_metadata(
-        self, app_slug: str, app_id: int, additional_metadata: Optional[AdditionalMetadata] = None
+        self, app_slug: str, app_id: int, additional_metadata: AdditionalMetadata | None = None
     ) -> None:
         """
         Process application metadata and mint or reserve DOI.
@@ -1558,7 +1558,7 @@ class InvenioService:
         logger.info(f"Starting metadata processing for app '{app_slug}' with ID '{app_id}'")
 
         # Get the ORM model class
-        model_class: Optional[Type[Any]] = APP_REGISTRY.get_orm_model(app_slug)
+        model_class: type[Any] | None = APP_REGISTRY.get_orm_model(app_slug)
         if not model_class:
             logger.error(f"Missing model for slug: {app_slug}")
             raise PermissionDenied("Application model not found")
@@ -1582,7 +1582,7 @@ class InvenioService:
 
         # Get current metadata once (if record exists)
         current_metadata_obj = None
-        current_draft: Optional[dict[str, Any]] = None
+        current_draft: dict[str, Any] | None = None
         is_existing_draft = False
 
         if app_instance.invenio_record_id:
@@ -1617,7 +1617,7 @@ class InvenioService:
         )
 
         try:
-            record_result: Optional[dict[str, Any]] = None
+            record_result: dict[str, Any] | None = None
 
             if is_existing_draft and current_draft:
                 logger.info(
@@ -1678,7 +1678,7 @@ class InvenioService:
 
 
 def save_metadata_to_invenio_then_mint_doi(
-    app_slug: str, app_id: int, additional_metadata: Optional[AdditionalMetadata] = None
+    app_slug: str, app_id: int, additional_metadata: AdditionalMetadata | None = None
 ) -> None:
     """
     Invenio and DOI minting process for application metadata.

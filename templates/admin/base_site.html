@@ -4,13 +4,6 @@
 {% load static %}
 {% block title %}{{ title }} - Studio{% endblock %}
 
-{# django-prose-editor requires an import map to load its JS modules in the admin. #}
-{# The `importmap` variable is provided by `js_asset.context_processors.importmap` (see `studio/settings.py`). #}
-{# Keep `block.super` so we don't drop Django admin's default <head> content. #}
-{% block extrahead %}
-{{ importmap }}
-{{ block.super }}
-{% endblock %}
 {% block extrastyle %}
 <link rel="stylesheet" href="{% static 'css/serve-text.css' %}">
 {% endblock %}

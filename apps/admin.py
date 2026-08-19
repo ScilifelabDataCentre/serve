@@ -43,6 +43,7 @@ from .tasks import delete_resource, deploy_resource
 logger = get_logger(__name__)
 
 
+@admin.register(AppStatus)
 class AppStatusAdmin(admin.ModelAdmin):
     list_display = (
         "status",
@@ -51,6 +52,7 @@ class AppStatusAdmin(admin.ModelAdmin):
     list_filter = ["status", "time"]
 
 
+@admin.register(Apps)
 class AppsAdmin(admin.ModelAdmin):
     list_display = (
         "name",
@@ -63,9 +65,7 @@ class AppsAdmin(admin.ModelAdmin):
     list_filter = ("user_can_create",)
 
 
-admin.site.register(Apps, AppsAdmin)
-
-
+@admin.register(K8sUserAppStatus)
 class K8sUserAppStatusAdmin(admin.ModelAdmin):
     list_display = (
         "status",
@@ -101,6 +101,7 @@ class BaseAppAdmin(admin.ModelAdmin):
         "set_linkonly_reminder_dates",
     ]
 
+    @admin.display(description="Status")
     def display_status(self, obj):
         try:
             return obj.get_app_status()
@@ -108,8 +109,7 @@ class BaseAppAdmin(admin.ModelAdmin):
             logger.warn("Error getting app status: %s", err)
             return "No status"
 
-    display_status.short_description = "Status"
-
+    @admin.display(description="Subdomain")
     def display_subdomain(self, obj):
         subdomain_object = obj.subdomain
         if subdomain_object:
@@ -117,18 +117,15 @@ class BaseAppAdmin(admin.ModelAdmin):
         else:
             "No Subdomain"
 
-    display_subdomain.short_description = "Subdomain"
-
+    @admin.display(description="Owner")
     def display_owner(self, obj):
         return obj.owner.username
 
-    display_owner.short_description = "Owner"
-
+    @admin.display(description="Project")
     def display_project(self, obj):
         return obj.project.name
 
-    display_project.short_description = "Project"
-
+    @admin.display(description="Volumes")
     def display_volumes(self, obj):
         if obj.volume is None:
             return "No Volumes"
@@ -136,8 +133,6 @@ class BaseAppAdmin(admin.ModelAdmin):
             return [volume.name for volume in obj.volume.all()]
         else:
             return obj.volume.name
-
-    display_volumes.short_description = "Volumes"
 
     @admin.action(description="(Re)deploy resources")
     def deploy_resources(self, request, queryset):
@@ -259,14 +254,13 @@ class BaseAppAdmin(admin.ModelAdmin):
 class BaseAppInstanceAdmin(BaseAppAdmin):
     list_display = BaseAppAdmin.list_display + ("display_subclass",)
 
+    @admin.display(description="Subclass")
     def display_subclass(self, obj):
         subclasses = BaseAppInstance.__subclasses__()
         for subclass in subclasses:
             app_type = getattr(obj, subclass.__name__.lower(), None)
             if app_type:
                 return app_type.__class__.__name__
-
-    display_subclass.short_description = "Subclass"
 
 
 @admin.register(RStudioInstance)
@@ -297,10 +291,9 @@ class VolumeInstanceAdmin(BaseAppAdmin):
     inlines = (VolumeMountPathsInline,)
     list_display = BaseAppAdmin.list_display + ("display_size",)
 
+    @admin.display(description="Size")
     def display_size(self, obj):
         return f"{str(obj.size)} GB"
-
-    display_size.short_description = "Size"
 
 
 @admin.register(NetpolicyInstance)
@@ -389,6 +382,7 @@ class StreamlitInstanceAdmin(BaseAppAdmin):
     ]
 
 
+@admin.register(Subdomain)
 class SubdomainAdmin(admin.ModelAdmin):
     list_display = (
         "subdomain",
@@ -426,10 +420,9 @@ class BackgroundTaskAdmin(admin.ModelAdmin):
     )
     ordering = ("-created_at",)
 
+    @admin.display(description="App Instance")
     def display_app(self, obj):
         return f"{obj.app_instance.name} ({obj.app_instance.app.slug})"
-
-    display_app.short_description = "App Instance"
 
     fieldsets = (
         (
@@ -485,7 +478,4 @@ class BackgroundTaskAdmin(admin.ModelAdmin):
     )
 
 
-admin.site.register(Subdomain, SubdomainAdmin)
 admin.site.register(AppCategories)
-admin.site.register(AppStatus, AppStatusAdmin)
-admin.site.register(K8sUserAppStatus, K8sUserAppStatusAdmin)

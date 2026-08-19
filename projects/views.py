@@ -628,7 +628,7 @@ class CreateProjectView(View):
                 project=project,
                 module="PR",
                 headline="Project created",
-                description="Created project {}".format(project.name),
+                description=f"Created project {project.name}",
             )
             l1.save()
 
@@ -636,13 +636,13 @@ class CreateProjectView(View):
                 project=project,
                 module="PR",
                 headline="Getting started",
-                description="Getting started with project {}".format(project.name),
+                description=f"Getting started with project {project.name}",
             )
             l2.save()
 
-        next_page = request.POST.get("next", "/projects/{}".format(project.slug))
+        next_page = request.POST.get("next", f"/projects/{project.slug}")
 
-        return HttpResponseRedirect(next_page, {"message": "Created project"})
+        return HttpResponseRedirect(next_page)
 
 
 @method_decorator(
@@ -771,7 +771,7 @@ def delete(request, project_slug):
     project.save()
     delete_project.delay(project.pk)
 
-    return HttpResponseRedirect(next_page, {"message": "Deleted project successfully."})
+    return HttpResponseRedirect(next_page)
 
 
 @login_required

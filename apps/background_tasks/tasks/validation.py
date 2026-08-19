@@ -61,12 +61,12 @@ IMAGE_COMPATIBILITY_APP_TYPES = [
 class TaskUIError(ContainerImageValidationError):
     """Validation error with a stable UI payload for the progress page."""
 
-    def __init__(self, message: str, *, ui_error: Dict[str, str], retryable: bool = False):
+    def __init__(self, message: str, *, ui_error: dict[str, str], retryable: bool = False):
         super().__init__(message, retryable=retryable)
         self.ui_error = ui_error
 
 
-def _validation_result_no_image(app_instance) -> Dict[str, Any]:
+def _validation_result_no_image(app_instance) -> dict[str, Any]:
     """Shared 'no image to validate' result for container image validators."""
     return {
         "valid": True,
@@ -79,7 +79,7 @@ def _validation_result_no_image(app_instance) -> Dict[str, Any]:
     }
 
 
-def _validation_result_skipped_unsupported_registry(ctx: ContainerImageContext) -> Dict[str, Any]:
+def _validation_result_skipped_unsupported_registry(ctx: ContainerImageContext) -> dict[str, Any]:
     """Shared 'skipped unsupported registry' result for container image validators."""
     return {
         "valid": True,
@@ -92,7 +92,7 @@ def _validation_result_skipped_unsupported_registry(ctx: ContainerImageContext) 
     }
 
 
-def _build_ui_error(*, code: str, summary: str, image_reference: str = "", note: str = "") -> Dict[str, str]:
+def _build_ui_error(*, code: str, summary: str, image_reference: str = "", note: str = "") -> dict[str, str]:
     return {
         "code": code,
         "summary": summary,
@@ -101,7 +101,7 @@ def _build_ui_error(*, code: str, summary: str, image_reference: str = "", note:
     }
 
 
-def _build_public_image_ui_error(image_reference: str) -> Dict[str, str]:
+def _build_public_image_ui_error(image_reference: str) -> dict[str, str]:
     return _build_ui_error(
         code="image_not_public",
         summary="We could not find this container image.",
@@ -110,7 +110,7 @@ def _build_public_image_ui_error(image_reference: str) -> Dict[str, str]:
     )
 
 
-def _build_docker_image_ui_error(error: Exception, image_reference: str) -> Dict[str, str]:
+def _build_docker_image_ui_error(error: Exception, image_reference: str) -> dict[str, str]:
     resolved_image_reference = getattr(error, "context", {}).get("image_reference") or image_reference
 
     if getattr(error, "code", "") == "image_unsupported_architecture":
@@ -232,7 +232,7 @@ class ImagePublicValidator(BaseBackgroundTask):
     # Allow time for OCIRegistryPublicChecker slow retries on HTTP 5xx (linear backoff + manifest calls).
     timeout_seconds = 120
 
-    def execute(self, app_instance, **kwargs) -> Dict[str, Any]:
+    def execute(self, app_instance, **kwargs) -> dict[str, Any]:
         from apps.validators.container_images import (
             OCIRegistryPublicChecker,
             PublicImageAccessOutcome,

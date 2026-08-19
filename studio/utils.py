@@ -17,7 +17,7 @@ def get_logger(name: str) -> Any:
         return structlog.getLogger(name)
 
 
-def add_loggers(logging: dict[str, Any], installed_apps: List[str]) -> dict[str, Any]:
+def add_loggers(logging: dict[str, Any], installed_apps: list[str]) -> dict[str, Any]:
     """
     Helper function to add loggers to each installed app
     """

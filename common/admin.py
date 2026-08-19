@@ -39,6 +39,7 @@ class EmailVerificationTableInline(admin.StackedInline):
     fk_name = "user"
 
 
+@admin.register(EmailSendingTable)
 class EmailSendingTableAdmin(admin.ModelAdmin):
     list_display = ("from_email", "to_user", "subject", "status", "created_at")
     search_fields = ("to_email", "subject")
@@ -163,4 +164,3 @@ class UserAdmin(DefaultUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 admin.site.register(MaintenanceMode)
-admin.site.register(EmailSendingTable, EmailSendingTableAdmin)

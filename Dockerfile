@@ -1,4 +1,4 @@
-FROM python:3.12.11-alpine3.22 AS builder
+FROM python:3.14.7-alpine3.23 AS builder
 
 LABEL maintainer="serve@scilifelab.se"
 WORKDIR /app
@@ -47,7 +47,7 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.3 python3 -
 # See SS-1503 https://github.com/bitnami/containers/issues/83267
 FROM bitnamilegacy/kubectl:1.32.4 AS kubectl
 FROM alpine/helm:3.18.4 AS helm
-FROM python:3.12.11-alpine3.22 AS runtime
+FROM python:3.14.7-alpine3.23 AS runtime
 
 ARG DISABLE_EXTRAS=false
 
@@ -59,9 +59,9 @@ RUN apk add --update --no-cache \
     jpeg-dev \
     openjpeg-dev \
     libpng-dev \
-    && rm -rf /usr/local/lib/python3.12/site-packages/
+    && rm -rf /usr/local/lib/python3.14/site-packages/
 
-COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
+COPY --from=builder /usr/local/lib/python3.14/site-packages/ /usr/local/lib/python3.14/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=kubectl /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/
 COPY --from=helm /usr/bin/helm /usr/local/bin/

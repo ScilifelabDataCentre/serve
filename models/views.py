@@ -182,7 +182,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             if model_file == "":
                 building_from_current = True
 
-                model_file = "{}.tar.gz".format(self.model_uid)
+                model_file = f"{self.model_uid}.tar.gz"
                 f = open(model_file, "w")
                 f.close()
 
@@ -190,7 +190,7 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                     result = subprocess.run(
                         [
                             "tar",
-                            "--exclude={}".format(model_file),
+                            f"--exclude={model_file}",
                             "-czvf",
                             model_file,
                             model_folder_name,
@@ -205,14 +205,14 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
                         ("Something went wrong: " "The archive for the model folder was not created!"),
                     )
                     # Clean up
-                    os.system("rm {}.tar.gz".format(self.model_uid))
-                    os.system("rm -rf {}".format(temp_folder_path))
+                    os.system(f"rm {self.model_uid}.tar.gz")
+                    os.system(f"rm -rf {temp_folder_path}")
                     return redirect(redirect_url)
 
             if model_card == "" or model_card is None:
                 model_card_html_string = ""
             else:
-                with open(model_card, "r") as f:
+                with open(model_card) as f:
                     model_card_html_string = f.read()
 
             # Method from helpers.py, where S3 related methods exists
@@ -255,8 +255,8 @@ class ModelCreate(LoginRequiredMixin, PermissionRequiredMixin, View):
             # Cleaning up generated tar for uploading artifact to S3 storage
             try:
                 if building_from_current:
-                    os.system("rm {}.tar.gz".format(self.model_uid))
-                    os.system("rm -rf {}".format(temp_folder_path))
+                    os.system(f"rm {self.model_uid}.tar.gz")
+                    os.system(f"rm -rf {temp_folder_path}")
                     os.chdir(settings.BASE_DIR)
             except OSError as error:
                 logger.error(error, exc_info=True)
@@ -429,7 +429,7 @@ def change_access(request, user, project, id):
             log = ProjectLog(
                 project=project_obj,
                 module="MO",
-                headline="Model - {name}".format(name=model.name),
+                headline=f"Model - {model.name}",
                 description=("Changed Access Level from {previous} to {current}").format(
                     previous=previous, current=model.get_access_display()
                 ),
@@ -518,7 +518,7 @@ def upload_model_headline(request, user, project, id):
             log = ProjectLog(
                 project=project_obj,
                 module="MO",
-                headline="Model - {name}".format(name=model.name),
+                headline=f"Model - {model.name}",
                 description="Uploaded new headline image.",
             )
             log.save()
@@ -564,7 +564,7 @@ def add_docker_image(request, user, project, id):
             log = ProjectLog(
                 project=project_obj,
                 module="MO",
-                headline="Model - {name}".format(name=model.name),
+                headline=f"Model - {model.name}",
                 description="Added reference to a Docker image.",
             )
             log.save()
@@ -612,7 +612,7 @@ def details(request, user, project, id):
     readme = None
     import requests as r
 
-    url = "http://{}-file-controller/models/{}/readme".format(project.slug, model.name)
+    url = f"http://{project.slug}-file-controller/models/{model.name}/readme"
     try:
         response = r.get(url)
         if response.status_code == 200 or response.status_code == 203:
@@ -623,7 +623,7 @@ def details(request, user, project, id):
                 md = markdown.Markdown(extensions=["extra"])
                 readme = md.convert(payload["readme"])
     except Exception as e:
-        logger.error("Failed to get response from {} with error: {}".format(url, e))
+        logger.error(f"Failed to get response from {url} with error: {e}")
 
     return render(request, "models_details.html", locals())
 
@@ -651,7 +651,7 @@ def get_chart_data(md_objects):
         run_counter = 0
         for item in value:
             run_counter += 1
-            labels.append("Run {}".format(run_counter))
+            labels.append(f"Run {run_counter}")
             run_id.append(item[0])
             data.append(item[1])
             params.append(item[2])
@@ -769,7 +769,7 @@ def delete(request, user, project, id):
         project=project,
         module="MO",
         headline="Model",
-        description="Model {name} has been removed".format(name=model.name),
+        description=f"Model {model.name} has been removed",
     )
     log.save()
 

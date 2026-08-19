@@ -81,7 +81,7 @@ class SignUpView(CreateView):
             context["profile_form"] = ProfileForm(self.request.POST or None)
 
         # Pass departments list for the datalist
-        with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+        with open(settings.STATICFILES_DIRS[0] + "/common/departments.json") as f:
             context["departments"] = json.load(f).get("departments", [])
         return context
 
@@ -248,7 +248,7 @@ class EditProfileView(TemplateView):
             }
         )
 
-        with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+        with open(settings.STATICFILES_DIRS[0] + "/common/departments.json") as f:
             departments = json.load(f).get("departments", [])
 
         return render(
@@ -329,7 +329,7 @@ class EditProfileView(TemplateView):
             if not profile_form_details.is_valid():
                 logger.error("Edit profile error: " + str(profile_form_details.errors))
 
-            with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+            with open(settings.STATICFILES_DIRS[0] + "/common/departments.json") as f:
                 departments = json.load(f).get("departments", [])
 
             context = {
@@ -342,7 +342,7 @@ class EditProfileView(TemplateView):
                 "orcid_id": getattr(user_profile_data, "orcid_id", ""),
             }
 
-            with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+            with open(settings.STATICFILES_DIRS[0] + "/common/departments.json") as f:
                 context["departments"] = json.load(f).get("departments", [])
 
             return render(request, self.template_name, context)
