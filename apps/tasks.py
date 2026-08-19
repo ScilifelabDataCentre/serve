@@ -18,7 +18,11 @@ from apps.app_registry import APP_REGISTRY
 from apps.background_tasks.utils import select_latest_task_records
 from apps.constants import AppActionOrigin
 from apps.gpu import instance_holds_gpu
-from apps.helpers import generate_helm_install_command, get_merged_k8s_values
+from apps.helpers import (
+    generate_helm_install_command,
+    get_merged_k8s_values,
+    release_subdomain_after_delete,
+)
 from common.tasks import send_email_task
 from studio.celery import app
 from studio.utils import get_logger
@@ -31,6 +35,8 @@ CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
 DEPLOY_RESOURCE_MAX_RETRIES = 3
 DEPLOY_RESOURCE_RETRY_BASE_SECONDS = 10
 DEPLOY_RESOURCE_RETRY_MAX_SECONDS = 30
+
+HELM_RELEASE_NOT_FOUND_MARKERS = ("release: not found", "release not loaded")
 
 
 class MissingSerializedInstanceError(ValueError):
@@ -85,6 +91,15 @@ def _retry_countdown(current_retries: int) -> int:
     return min(DEPLOY_RESOURCE_RETRY_BASE_SECONDS * (2**current_retries), DEPLOY_RESOURCE_RETRY_MAX_SECONDS)
 
 
+def _is_helm_release_not_found(error: str | None) -> bool:
+    """Whether a helm error only means that the release does not exist."""
+    if not error:
+        return False
+
+    lowered = error.lower()
+    return any(marker in lowered for marker in HELM_RELEASE_NOT_FOUND_MARKERS)
+
+
 @app.task
 def delete_old_objects():
     """
@@ -120,7 +135,7 @@ def delete_old_objects():
         app_.save(update_fields=["latest_user_action", "deleted_on"])
 
         try:
-            delete_resource.delay(serialized_instance, AppActionOrigin.SYSTEM.value)
+            delete_resource.delay(serialized_instance, AppActionOrigin.SYSTEM.value, release_subdomain=True)
         except Exception:
             app_.latest_user_action = previous_latest_user_action
             app_.deleted_on = previous_deleted_on
@@ -590,7 +605,7 @@ def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
 
 
 @shared_task
-def delete_resource(serialized_instance, initiated_by_str: str):
+def delete_resource(serialized_instance, initiated_by_str: str, release_subdomain: bool = False):
     """
     Deletes a cluster resource object.
     For deletes that are initiated by the system itself (such as recurring tasks),
@@ -602,6 +617,9 @@ def delete_resource(serialized_instance, initiated_by_str: str):
     Parameters:
     - serialized_instance: A serialized version of the app to be deleted.
     - initiated_by_str: A string of enum AppActionOrigin indicating the source of the deletion (user|system).
+    - release_subdomain: Set by app deletions so the subdomain becomes available again once
+      the release is confirmed gone. Left False by the subdomain change flow, which assigns
+      the new subdomain itself.
     """
     logger.info(
         "delete_resource.start model=%s pk=%s initiated_by=%s payload_type=%s",
@@ -625,9 +643,11 @@ def delete_resource(serialized_instance, initiated_by_str: str):
         connection.close()
 
     success = False
+    release_missing = False
     if values.get("subdomain") is not None:
         output, error = helm_delete(values["subdomain"], values["namespace"])
         success = not error
+        release_missing = bool(error) and _is_helm_release_not_found(error)
     else:
         error_text = f"Subdomain name does not exist. App: {values['name']}, Project: {values['project']['slug']}"
         output, error = error_text, error_text
@@ -656,9 +676,30 @@ def delete_resource(serialized_instance, initiated_by_str: str):
         # This is a common scenario for "apps" such as volumeK8s, netpolicy, notebooks and file managers.
         instance.latest_user_action = "SystemDeleting"
         instance.deleted_on = timezone.now()
-        instance.save(update_fields=["latest_user_action", "deleted_on", "info"])
+        update_fields = ["latest_user_action", "deleted_on", "info"]
     else:
-        instance.save(update_fields=["info"])
+        update_fields = ["info"]
+
+    released_subdomain = None
+    if release_subdomain and (success or release_missing):
+        released_subdomain = release_subdomain_after_delete(instance)
+        if released_subdomain is not None:
+            update_fields.append("subdomain")
+
+    instance.save(update_fields=update_fields)
+
+    if released_subdomain is not None:
+        logger.info(
+            "delete_resource.subdomain_released instance_id=%s subdomain=%s",
+            instance.pk,
+            released_subdomain.subdomain,
+        )
+
+    return {
+        "success": success,
+        "release_missing": release_missing,
+        "error": None if success else error,
+    }
 
 
 def deserialize(serialized_instance):
