@@ -823,10 +823,95 @@ def resolve_task_app_instance(task_record):
 
 
 @app.task
+def _mark_running_if_ready(instance, source: str) -> bool:
+    """
+    Set one app to Running if every workload of its release is ready.
+
+    """
+    release = instance.subdomain.subdomain
+    k8s_values = instance.k8s_values if isinstance(instance.k8s_values, dict) else {}
+    namespace = k8s_values.get("namespace") or settings.NAMESPACE
+
+    # Release the pooled DB connection for the duration of the helm subprocess.
+    # Django reconnects on the next ORM access.
+    if not connection.in_atomic_block:
+        connection.close()
+
+    try:
+        readiness, error = get_release_readiness(release, namespace)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("%s.error release=%s %s", source, release, exc)
+        return False
+
+    if error:
+        if _is_helm_release_not_found(error):
+            # Expected while the release is still in progress.
+            logger.debug("%s.no_release release=%s", source, release)
+        else:
+            logger.warning("%s.read_failed release=%s %s", source, release, error)
+        return False
+
+    if not readiness["all_ready"]:
+        logger.debug("%s.not_ready release=%s workloads=%s", source, release, readiness["workloads"])
+        return False
+
+    with transaction.atomic():
+        locked = BaseAppInstance.objects.select_for_update().filter(pk=instance.pk).first()
+        if locked is None:
+            return False
+
+        status_object = locked.k8s_user_app_status
+        if status_object is None:
+            status_object = K8sUserAppStatus.objects.create()
+            locked.k8s_user_app_status = status_object
+            locked.save(update_fields=["k8s_user_app_status"])
+
+        if status_object.status == "Running":
+            return False
+
+        status_object.status = "Running"
+        status_object.time = timezone.now()
+        status_object.info = {"workloads": readiness["workloads"]}
+        status_object.save(update_fields=["status", "time", "info"])
+
+    logger.info(
+        "%s.marked_running instance_id=%s release=%s workloads=%s",
+        source,
+        instance.pk,
+        release,
+        readiness["workloads"],
+    )
+    return True
+
+
+@shared_task
+def verify_app_running(instance_pk: int):
+    """
+    Check one app after one of its pods reported Running.
+
+    """
+    if not getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
+        return
+
+    instance = (
+        BaseAppInstance.objects.filter(pk=instance_pk, subdomain__isnull=False)
+        .select_related("subdomain", "k8s_user_app_status")
+        .first()
+    )
+    if instance is None:
+        logger.debug("verify_app_running.instance_gone instance_id=%s", instance_pk)
+        return
+
+    if getattr(instance.k8s_user_app_status, "status", None) == "Running":
+        return
+
+    _mark_running_if_ready(instance, source="verify_app_running")
+
+
+@app.task
 def reconcile_app_statuses():
     """
-    Mark in-flight apps as Running once every workload of their release is ready.
-
+    Task to reconcile app statuses.
     """
     if not getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
         logger.debug("reconcile_app_statuses.disabled")
@@ -844,58 +929,7 @@ def reconcile_app_statuses():
     )
 
     for instance in instances:
-        release = instance.subdomain.subdomain
-        k8s_values = instance.k8s_values if isinstance(instance.k8s_values, dict) else {}
-        namespace = k8s_values.get("namespace") or settings.NAMESPACE
-
-        # Release the pooled DB connection for the duration of the helm subprocess.
-        # Django reconnects on the next ORM access.
-        if not connection.in_atomic_block:
-            connection.close()
-
-        try:
-            readiness, error = get_release_readiness(release, namespace)
-        except Exception as exc:  # noqa: BLE001 - one bad release must not stop the sweep
-            logger.warning("reconcile_app_statuses.error release=%s %s", release, exc)
-            continue
-
-        if error:
-            if _is_helm_release_not_found(error):
-                # Expected while the release is still in progress.
-                logger.debug("reconcile_app_statuses.no_release release=%s", release)
-            else:
-                logger.warning("reconcile_app_statuses.read_failed release=%s %s", release, error)
-            continue
-
-        if not readiness["all_ready"]:
-            logger.debug("reconcile_app_statuses.not_ready release=%s workloads=%s", release, readiness["workloads"])
-            continue
-
-        with transaction.atomic():
-            locked = BaseAppInstance.objects.select_for_update().filter(pk=instance.pk).first()
-            if locked is None:
-                continue
-
-            status_object = locked.k8s_user_app_status
-            if status_object is None:
-                status_object = K8sUserAppStatus.objects.create()
-                locked.k8s_user_app_status = status_object
-                locked.save(update_fields=["k8s_user_app_status"])
-
-            if status_object.status == "Running":
-                continue
-
-            status_object.status = "Running"
-            status_object.time = timezone.now()
-            status_object.info = {"workloads": readiness["workloads"]}
-            status_object.save(update_fields=["status", "time", "info"])
-
-        logger.info(
-            "reconcile_app_statuses.marked_running instance_id=%s release=%s workloads=%s",
-            instance.pk,
-            release,
-            readiness["workloads"],
-        )
+        _mark_running_if_ready(instance, source="reconcile_app_statuses")
 
 
 @app.task

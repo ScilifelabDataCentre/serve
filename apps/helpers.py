@@ -189,7 +189,15 @@ def handle_update_status_request(
         new_status = new_status[:20]
 
     if new_status == "Running" and getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
-        logger.debug(f"Deferring Running status for release {release} to status aggregation.")
+        from .tasks import verify_app_running
+
+        instance = BaseAppInstance.objects.filter(subdomain__subdomain=release).last()
+        if instance is None:
+            logger.info(f"No such subdomain exists identified by release={release}")
+            return HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND
+
+        verify_app_running.delay(instance.pk)
+        logger.debug(f"Running event for release {release} queued a workload readiness check.")
         return HandleUpdateStatusResponseCode.DEFERRED_TO_AGGREGATION
 
     try:

@@ -20,6 +20,7 @@ from apps.tasks import (
     _workload_readiness,
     get_release_readiness,
     reconcile_app_statuses,
+    verify_app_running,
 )
 from projects.models import Project
 
@@ -37,8 +38,7 @@ def _deployment(name, ready, desired):
 
 
 class WorkloadReadinessTestCase(TestCase):
-    """No Serve chart has a DaemonSet, so that branch is unreachable through
-    get_release_readiness. The other kinds are covered there."""
+    """No Serve chart has a DaemonSet, so only that branch needs testing directly."""
 
     def test_daemonset_uses_scheduled_counts(self):
         item = {"metadata": {"name": "agent"}, "spec": {}, "status": {"desiredNumberScheduled": 3, "numberReady": 3}}
@@ -128,7 +128,7 @@ class GetReleaseReadinessTestCase(TestCase):
 
 
 class StatusIngestionGuardTestCase(TestCase):
-    """A single pod's Running event must not set the whole app to Running."""
+    """A Running event triggers a check of that one app rather than setting the status."""
 
     RELEASE = "test-release-name"
 
@@ -155,12 +155,21 @@ class StatusIngestionGuardTestCase(TestCase):
     def _newer_ts(self):
         return self.status.time + timedelta(seconds=60)
 
-    def test_running_event_is_deferred(self):
-        actual = handle_update_status_request(self.RELEASE, "Running", self._newer_ts())
+    def test_running_event_queues_a_check_for_that_app_only(self):
+        with patch("apps.tasks.verify_app_running.delay") as mock_verify:
+            actual = handle_update_status_request(self.RELEASE, "Running", self._newer_ts())
 
         assert actual == HandleUpdateStatusResponseCode.DEFERRED_TO_AGGREGATION
+        mock_verify.assert_called_once_with(self.instance.pk)
         self.status.refresh_from_db()
         assert self.status.status == "ContainerCreating"
+
+    def test_running_event_for_unknown_release_queues_nothing(self):
+        with patch("apps.tasks.verify_app_running.delay") as mock_verify:
+            actual = handle_update_status_request("no-such-release", "Running", self._newer_ts())
+
+        assert actual == HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND
+        mock_verify.assert_not_called()
 
     def test_non_running_events_still_apply(self):
         actual = handle_update_status_request(self.RELEASE, "CrashLoopBackOff", self._newer_ts())
@@ -179,7 +188,7 @@ class StatusIngestionGuardTestCase(TestCase):
 
 
 class ReconcileAppStatusesTestCase(TestCase):
-    """The reconciler is the only writer of Running."""
+    """verify_app_running does the real work; the sweep only catches what it missed."""
 
     RELEASE = "reconcile-release"
 
@@ -212,6 +221,49 @@ class ReconcileAppStatusesTestCase(TestCase):
         self.status.refresh_from_db()
         assert self.status.status == "Running"
         assert self.status.info == {"workloads": {"deployment/a": {"ready": 1, "desired": 1}}}
+
+    def test_verify_marks_running_for_that_app_alone(self):
+        """The triggered check reads only the release it was given."""
+        other_status = K8sUserAppStatus.objects.create(status="ContainerCreating")
+        other = JupyterInstance.objects.create(
+            access="private",
+            owner=self.user,
+            name="other_instance",
+            app=self.app,
+            project=self.project,
+            subdomain=Subdomain.objects.create(subdomain="other-release"),
+            k8s_user_app_status=other_status,
+            latest_user_action="Creating",
+            k8s_values={"release": "other-release", "namespace": "default"},
+        )
+
+        readiness = {"all_ready": True, "workloads": {"deployment/a": {"ready": 1, "desired": 1}}}
+        with patch("apps.tasks.get_release_readiness", return_value=(readiness, None)) as mock_readiness:
+            verify_app_running(self.instance.pk)
+
+        mock_readiness.assert_called_once_with(self.RELEASE, "default")
+        self.status.refresh_from_db()
+        other_status.refresh_from_db()
+        assert self.status.status == "Running"
+        assert other_status.status == "ContainerCreating", "an unrelated app must not be touched"
+        assert other.pk != self.instance.pk
+
+    def test_verify_skips_an_app_already_running(self):
+        self.status.status = "Running"
+        self.status.save(update_fields=["status"])
+
+        with patch("apps.tasks.get_release_readiness") as mock_readiness:
+            verify_app_running(self.instance.pk)
+
+        mock_readiness.assert_not_called()
+
+    def test_verify_does_not_mark_running_when_a_workload_is_not_ready(self):
+        readiness = {"all_ready": False, "workloads": {"deployment/frontend": {"ready": 0, "desired": 1}}}
+        with patch("apps.tasks.get_release_readiness", return_value=(readiness, None)):
+            verify_app_running(self.instance.pk)
+
+        self.status.refresh_from_db()
+        assert self.status.status == "ContainerCreating"
 
     def test_does_not_mark_running_when_a_workload_is_not_ready(self):
         readiness = {
