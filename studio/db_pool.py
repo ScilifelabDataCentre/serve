@@ -40,3 +40,11 @@ def db_pool_stats_changed(
 ) -> tuple[bool, dict[str, Any]]:
     current_stats = {key: stats.get(key) for key in DB_POOL_STATS_CHANGE_KEYS}
     return previous_stats != current_stats, current_stats
+
+
+def is_pool_saturated(alias: str = "default") -> bool:
+    """True if every pooled connection is checked out and a request is currently waiting for one."""
+    stats = get_db_pool_stats(alias)
+    if not stats.get("enabled") or not stats.get("opened"):
+        return False
+    return bool(stats.get("pool_available", 0) == 0 and stats.get("requests_waiting", 0) > 0)
