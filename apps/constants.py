@@ -7,6 +7,7 @@ class HandleUpdateStatusResponseCode(IntEnum):
     UPDATED_TIME_OF_STATUS = 2
     CREATED_FIRST_STATUS = 3
     OBJECT_NOT_FOUND = 4
+    DEFERRED_TO_AGGREGATION = 5
 
 
 class AppActionOrigin(StrEnum):

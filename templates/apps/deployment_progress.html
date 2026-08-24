@@ -61,14 +61,7 @@ const statusApiUrl = "{{ status_api_url|escapejs }}";
 const detailUrl = "{{ detail_url }}";
 const SUCCESS_REDIRECT_DELAY_MS = 5000;
 const STEP_REVEAL_DELAY_MS = 700;
-const APP_SLUG = "{{ app_slug|escapejs }}";
-// Per-app overrides needed by multi-pod charts (e.g. depictio)
-const REQUIRED_SUCCESS_POLLS_BY_APP = {
-  depictio: 15
-};
-const DEFAULT_REQUIRED_SUCCESS_POLLS = 2;
-const REQUIRED_SUCCESS_POLLS =
-  REQUIRED_SUCCESS_POLLS_BY_APP[APP_SLUG] || DEFAULT_REQUIRED_SUCCESS_POLLS;
+const REQUIRED_SUCCESS_POLLS = 2;
 const ACTIVE_STATUS_POLL_MS = 3000;
 const STABLE_STATUS_POLL_MS = 30000;
 const ERROR_STATUS_POLL_MS = 10000;
@@ -106,6 +99,8 @@ let consecutiveSuccessPolls = 0;
 let consecutiveErrorPolls = 0;
 let stepRevealTimer = null;
 let pageIsUnloading = false;
+let returnedFromHidden = false;
+let hasRedirected = false;
 let latestServerData = {
   deployment: {
     status: "{{ deployment.status|default:'pending'|escapejs }}",
@@ -379,8 +374,9 @@ function maybeRedirectToDetails(data) {
   if (!data.deployment?.skip_deploy && consecutiveSuccessPolls < REQUIRED_SUCCESS_POLLS) {
     return;
   }
-  if (!successRedirectTimer) {
+  if (!successRedirectTimer && !hasRedirected) {
     successRedirectTimer = window.setTimeout(() => {
+      hasRedirected = true;
       progressPoller?.stop();
       window.location.assign(detailUrl);
     }, SUCCESS_REDIRECT_DELAY_MS);
@@ -510,10 +506,13 @@ function refreshProgress() {
       const fresh = copyProgressData(data);
 
       if (isProgressSuccessful(fresh)) {
-        consecutiveSuccessPolls += 1;
+        consecutiveSuccessPolls = returnedFromHidden
+          ? REQUIRED_SUCCESS_POLLS
+          : consecutiveSuccessPolls + 1;
       } else {
         stopSuccessRedirect();
       }
+      returnedFromHidden = false;
 
       latestServerData = stabilizeDeployStep(fresh);
 
@@ -559,15 +558,31 @@ document.addEventListener("DOMContentLoaded", () => {
   progressPoller = ServeAdaptivePolling.createPoller({
     poll: refreshProgress,
     getDelay: delay => delay,
-    errorDelay: ERROR_STATUS_POLL_MS
+    errorDelay: ERROR_STATUS_POLL_MS,
+    pollWhileHidden: true
   });
   window.serveDeploymentProgressPoller = progressPoller;
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    returnedFromHidden = true;
+  }
 });
 
 window.addEventListener("pagehide", () => {
   pageIsUnloading = true;
   progressPoller?.stop();
   window.serveDeploymentProgressPoller?.stop();
+});
+
+window.addEventListener("pageshow", event => {
+  if (!event.persisted || hasRedirected) {
+    return;
+  }
+  pageIsUnloading = false;
+  returnedFromHidden = true;
+  progressPoller?.start();
 });
 </script>
 {% endblock %}
