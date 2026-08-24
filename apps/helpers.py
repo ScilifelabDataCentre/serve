@@ -188,6 +188,18 @@ def handle_update_status_request(
     if len(new_status) > 20:
         new_status = new_status[:20]
 
+    if new_status == "Running" and getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
+        from .tasks import verify_app_running
+
+        instance = BaseAppInstance.objects.filter(subdomain__subdomain=release).last()
+        if instance is None:
+            logger.info(f"No such subdomain exists identified by release={release}")
+            return HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND
+
+        verify_app_running.delay(instance.pk)
+        logger.debug(f"Running event for release {release} queued a workload readiness check.")
+        return HandleUpdateStatusResponseCode.DEFERRED_TO_AGGREGATION
+
     try:
         # Begin by verifying that the requested app instance exists
         # We wrap the select and update tasks in a select_for_update lock
@@ -538,28 +550,6 @@ def create_instance_from_form(
         )
         do_deploy = False
         run_background_tasks_only = True
-
-    # For depictio metadata-only flows: refresh k8s_user_app_status to "Running"
-    # if the prior helm run succeeded — nothing in the cluster has changed.
-    if (
-        not new_app
-        and not do_deploy
-        and run_background_tasks_only
-        and app_slug == "depictio"
-        and original_instance is not None
-    ):
-        prior_helm = (original_instance.info or {}).get("helm") if isinstance(original_instance.info, dict) else None
-        if isinstance(prior_helm, dict) and prior_helm.get("success") is True:
-            status_object = instance.k8s_user_app_status
-            if status_object is None:
-                from apps.models import K8sUserAppStatus
-
-                status_object = K8sUserAppStatus.objects.create(status="Running")
-                instance.k8s_user_app_status = status_object
-            else:
-                status_object.status = "Running"
-                status_object.time = timezone.now()
-                status_object.save(update_fields=["status", "time"])
 
     # Re-check GPU capacity under lock before saving.
     from apps.gpu import ensure_gpu_capacity
