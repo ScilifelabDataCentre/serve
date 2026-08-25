@@ -13,6 +13,8 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
     DEPLOYMENT_ID = "unittest-valid"
 
     VALUES_DATA = r"""
+        gateway:
+            enabled: false
         appconfig:
             allowContainerReuse: false
             image: ghcr.io/somerepo/shiny:v1
