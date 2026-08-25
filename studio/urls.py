@@ -47,6 +47,7 @@ urlpatterns = (
             name="delete_account_post_handler",
         ),
         path("status", views.status_view, name="status"),
+        path("status/liveness", views.liveness_view, name="liveness"),
         re_path(r"^metrics/?$", metrics_view, name="metrics"),
         path("user/account-deleted/<int:user_id>", views.account_deleted, name="account_deleted"),
         path("auth/", views.AuthView.as_view()),

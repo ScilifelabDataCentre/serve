@@ -455,6 +455,7 @@ CHART_FOLDER = "/app/charts/apps"
 EXTERNAL_KUBECONF = True
 KUBECONFIG = "/app/cluster.conf"
 NAMESPACE = "default"
+POD_STATUS_AGGREGATION_ENABLED = os.getenv("POD_STATUS_AGGREGATION_ENABLED", "true").lower() in ("true", "1", "yes")
 
 # Gateway API variables
 GATEWAY_ENABLED = os.getenv("GATEWAY_ENABLED", "false").lower() in ("true", "1", "yes")
