@@ -32,6 +32,7 @@ from studio.auth_permission_cache import (
     is_auth_permission_cache_enabled,
     set_cached_auth_permission,
 )
+from studio.db_pool import is_pool_saturated
 from studio.throttle import WhitelistThrottleFilter
 from studio.utils import get_logger
 
@@ -301,4 +302,16 @@ def __get_university_name(request: Response, code: str) -> str:
 
 def status_view(request: HttpRequest) -> HttpResponse:
     """Health check endpoint returning JSON status."""
+    return JsonResponse({"status": "ok"})
+
+
+def liveness_view(request: HttpRequest) -> HttpResponse:
+    """
+    Liveness probe endpoint.
+
+    Reports 503 when the DB connection pool is saturated.
+    Allows restarting the pod if the connection pool remains saturated.
+    """
+    if is_pool_saturated():
+        return JsonResponse({"status": "degraded", "reason": "db_pool_saturated"}, status=503)
     return JsonResponse({"status": "ok"})

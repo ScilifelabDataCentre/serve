@@ -118,5 +118,13 @@
     },
     "model": "django_celery_beat.crontabschedule",
     "pk": 9
+  },
+  {
+    "fields": {
+      "every": 5,
+      "period": "minutes"
+    },
+    "model": "django_celery_beat.intervalschedule",
+    "pk": 8
   }
 ]
