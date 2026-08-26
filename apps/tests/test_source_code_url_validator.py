@@ -135,29 +135,7 @@ def test_source_code_url_validator_falls_back_to_get_on_head_405(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_source_code_url_validator_non_2xx_warning_mode(settings, monkeypatch):
-    settings.SOURCE_CODE_URL_VALIDATION_FAILURE_MODE = "warning"
-    instance = _make_custom_app(source_code_url="https://example.org/missing")
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 404
-
-    monkeypatch.setattr(
-        "apps.background_tasks.tasks.validation.requests.head",
-        lambda *a, **kw: mock_resp,
-    )
-
-    result = SourceCodeUrlValidator().execute(instance)
-
-    assert result["valid"] is True
-    assert "validation_warning" in result
-    assert "404" in result["validation_warning"]
-    assert result["status_code"] == 404
-
-
-@pytest.mark.django_db
-def test_source_code_url_validator_non_2xx_error_mode(settings, monkeypatch):
-    settings.SOURCE_CODE_URL_VALIDATION_FAILURE_MODE = "error"
+def test_source_code_url_validator_non_2xx_fails_task(monkeypatch):
     instance = _make_custom_app(source_code_url="https://example.org/missing")
 
     mock_resp = MagicMock()
@@ -173,8 +151,7 @@ def test_source_code_url_validator_non_2xx_error_mode(settings, monkeypatch):
 
 
 @pytest.mark.django_db
-def test_source_code_url_validator_head_network_error_warning_mode(settings, monkeypatch):
-    settings.SOURCE_CODE_URL_VALIDATION_FAILURE_MODE = "warning"
+def test_source_code_url_validator_head_network_error_fails_task(monkeypatch):
     instance = _make_custom_app(source_code_url="https://example.org/repo")
 
     def boom(*a, **kw):
@@ -182,7 +159,5 @@ def test_source_code_url_validator_head_network_error_warning_mode(settings, mon
 
     monkeypatch.setattr("apps.background_tasks.tasks.validation.requests.head", boom)
 
-    result = SourceCodeUrlValidator().execute(instance)
-
-    assert result["valid"] is True
-    assert "unreachable" in result["validation_warning"].lower()
+    with pytest.raises(ValueError, match="unreachable"):
+        SourceCodeUrlValidator().execute(instance)
