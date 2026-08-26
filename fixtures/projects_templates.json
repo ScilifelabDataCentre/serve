@@ -28,7 +28,7 @@
         "environments": {
           "Jupyter Lab Minimal (Default)": {
             "app": "jupyter-lab",
-            "image": "serve-jupyterlab-minimal:250213-1113",
+            "image": "serve-jupyterlab-minimal:260825-1814",
             "repository": "ghcr.io/scilifelabdatacentre"
           },
           "Jupyter Lab Data Science": {
@@ -38,17 +38,17 @@
           },
           "Jupyter Lab PyTorch": {
             "app": "jupyter-lab",
-            "image": "serve-jupyterlab-pytorch:250213-1119",
+            "image": "serve-jupyterlab-pytorch:260825-1816",
             "repository": "ghcr.io/scilifelabdatacentre"
           },
           "Jupyter Lab Tensorflow": {
             "app": "jupyter-lab",
-            "image": "serve-jupyterlab-tensorflow:250213-1120",
+            "image": "serve-jupyterlab-tensorflow:260825-1818",
             "repository": "ghcr.io/scilifelabdatacentre"
           },
           "Default RStudio": {
             "app": "rstudio",
-            "image": "serve-rstudio:250304-1611",
+            "image": "serve-rstudio:260825-1821",
             "repository": "ghcr.io/scilifelabdatacentre"
           }
         },
