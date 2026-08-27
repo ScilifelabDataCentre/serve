@@ -155,7 +155,7 @@ class AppInstanceStatusTestCase(TestCase):
         self.assertEqual(app_instance.get_status_group(), "danger")
 
 
-class ShinyK8sValuesTestCase(TestCase):
+class K8sValuesNameLengthTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("shiny-user", "shiny@test.com", "password")
         self.project = Project.objects.create_project(name="Shiny project", owner=self.user, description="")
@@ -178,7 +178,24 @@ class ShinyK8sValuesTestCase(TestCase):
         self.assertEqual(k8s_values["service"]["runLabel"], subdomain_name)
         self.assertLessEqual(len(k8s_values["service"]["runLabel"]), 63)
 
-    def test_service_run_label_is_not_added_to_other_app_types(self):
+    def test_service_name_is_truncated_to_kubernetes_limit(self):
+        subdomain_name = "a" * 53
+        instance = ShinyInstance.objects.create(
+            owner=self.user,
+            name="ShinyProxy app",
+            app=Apps.objects.create(name="ShinyProxy", slug="shinyproxyapp", chart="shinyproxy"),
+            chart="shinyproxy",
+            project=self.project,
+            subdomain=Subdomain.objects.create(subdomain=subdomain_name),
+            image="example/shiny:latest",
+        )
+
+        service_name = instance.get_k8s_values()["service"]["name"]
+
+        self.assertEqual(service_name, f"{subdomain_name}-shinyproxyapp"[:63])
+        self.assertEqual(len(service_name), 63)
+
+    def test_service_run_label_is_added_to_other_app_types(self):
         instance = BaseAppInstance.objects.create(
             owner=self.user,
             name="Other app",
@@ -188,7 +205,7 @@ class ShinyK8sValuesTestCase(TestCase):
             subdomain=Subdomain.objects.create(subdomain="other-app"),
         )
 
-        self.assertNotIn("runLabel", instance.get_k8s_values()["service"])
+        self.assertEqual(instance.get_k8s_values()["service"]["runLabel"], "other-app")
 
 
 @pytest.mark.parametrize(
