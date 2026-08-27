@@ -27,6 +27,7 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 from apps.app_registry import APP_REGISTRY
 from apps.helpers import get_cached_ip_count
 from apps.models import BaseAppInstance, VolumeInstance
+from common.privileges import has_privileged_access
 from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException, ProjectLimitReachedException
@@ -116,6 +117,9 @@ def settings(request, project_slug):
             ~Q(username="AnonymousUser"),
             ~Q(username="admin"),
         )
+
+    # Flavors and environments managed by admins and privileged users.
+    can_manage_project_resources = has_privileged_access(request.user, project)
 
     environments = Environment.objects.filter(project=project)
     apps_with_environment_option = (
@@ -243,7 +247,7 @@ def can_model_instance_be_deleted(field_name: str, instance: Model) -> bool:
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_environment(request, project_slug):
     project = Project.objects.get(slug=project_slug)
-    if not request.user.is_superuser:
+    if not has_privileged_access(request.user, project):
         return HttpResponseForbidden()
     else:
         if request.method == "POST":
@@ -274,7 +278,7 @@ def create_environment(request, project_slug):
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def delete_environment(request, project_slug):
     project = Project.objects.get(slug=project_slug)
-    if not request.user.is_superuser:
+    if not has_privileged_access(request.user, project):
         return HttpResponseForbidden()
     else:
         if request.method == "POST":
@@ -303,7 +307,7 @@ def delete_environment(request, project_slug):
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_flavor(request, project_slug):
     project = Project.objects.get(slug=project_slug)
-    if not request.user.is_superuser:
+    if not has_privileged_access(request.user, project):
         return HttpResponseForbidden()
     else:
         if request.method == "POST":
@@ -351,7 +355,7 @@ def create_flavor(request, project_slug):
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def delete_flavor(request, project_slug):
     project = Project.objects.get(slug=project_slug)
-    if not request.user.is_superuser:
+    if not has_privileged_access(request.user, project):
         return HttpResponseForbidden()
     else:
         if request.method == "POST":

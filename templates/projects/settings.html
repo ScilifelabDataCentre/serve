@@ -35,7 +35,7 @@
                     role="tab">
                     Storage
                 </a>
-                {% if enable_extra_settings or request.user.is_superuser %}
+                {% if enable_extra_settings or can_manage_project_resources %}
                 <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#flavors"
                     role="tab">
                     Flavors
@@ -70,7 +70,7 @@
               {% include 'projects/partials/settings/storage.html' %}
             </div>
 
-            {% if enable_extra_settings or request.user.is_superuser %}
+            {% if enable_extra_settings or can_manage_project_resources %}
             <div class="tab-pane fade" id="flavors" role="tabpanel">
                 <div class="card shadow border-0">
 
