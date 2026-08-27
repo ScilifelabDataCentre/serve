@@ -230,6 +230,14 @@ class Project(models.Model):
     objects = ProjectManager()
     owner = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, related_name="owner")
 
+    privileged_users = models.ManyToManyField(
+        get_user_model(),
+        blank=True,
+        related_name="privileged_projects",
+        help_text="Users who may use their privileged rights here, besides the owner. "
+        "Only has an effect for users who are privileged users.",
+    )
+
     apps_per_project = models.JSONField(blank=True, null=True, default=get_default_apps_per_project_limit)
 
     pattern = models.CharField(max_length=255, default="")
