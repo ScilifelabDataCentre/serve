@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from guardian.shortcuts import assign_perm
 
+from common.privileges import is_privileged_user
 from studio.utils import get_logger
 
 from .exceptions import ProjectLimitReachedException
@@ -158,6 +159,9 @@ class ProjectManager(models.Manager):
     def user_can_create(self, user):
         if not user.is_authenticated:
             return False
+
+        if is_privileged_user(user):
+            return True
 
         num_of_projects = self.filter(Q(owner=user), status__in=("created", "active")).count()
 
