@@ -1,6 +1,5 @@
 from django.db import models
 
-
 class SocialMixin(models.Model):
     subjects_keywords = models.JSONField(
         blank=True,

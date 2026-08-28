@@ -2,13 +2,14 @@
 
 import logging
 import time
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple, Union
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, Dict, Optional, Tuple, Union
 
 import requests
 
 logger = logging.getLogger(__name__)
 
-Timeout = Tuple[float, float]
+Timeout = tuple[float, float]
 VerifyType = Union[bool, str]
 
 
@@ -17,19 +18,19 @@ def _request(
     method: str,
     url: str,
     *,
-    params: Optional[Mapping[str, Any]] = None,
-    json: Optional[Mapping[str, Any]] = None,
-    headers: Optional[Mapping[str, str]] = None,
-    verify: Optional[VerifyType] = None,
+    params: Mapping[str, Any] | None = None,
+    json: Mapping[str, Any] | None = None,
+    headers: Mapping[str, str] | None = None,
+    verify: VerifyType | None = None,
     timeout: Timeout = (3.05, 20.0),
     backoff_seconds: Sequence[int] = (1, 2, 4),
-    token_fetcher: Optional[Callable[[], str]] = None,  # optional
+    token_fetcher: Callable[[], str] | None = None,  # optional
     auth_scheme: str = "Token",  # can easily change to Bearer in the future
     sleep_fn: Callable[[float], None] = time.sleep,  # overridable in tests
     **request_kwargs: Any,  # pass-through for requests.Session.request
-) -> Optional[requests.Response]:
+) -> requests.Response | None:
     # Convert headers to regular dict to avoid type issues with CaseInsensitiveDict
-    merged_headers: Dict[str, str] = {}
+    merged_headers: dict[str, str] = {}
 
     # Copy session headers if they exist
     if session.headers:
@@ -101,7 +102,7 @@ def _request(
     return None
 
 
-def get(session: requests.Session, url: str, **kwargs: Any) -> Optional[requests.Response]:
+def get(session: requests.Session, url: str, **kwargs: Any) -> requests.Response | None:
     """
     Send a GET request using the provided requests.Session.
 
@@ -123,8 +124,8 @@ def get(session: requests.Session, url: str, **kwargs: Any) -> Optional[requests
 
 
 def post(
-    session: requests.Session, url: str, *, data: Optional[Dict[str, Any]] = None, **kwargs: Any
-) -> Optional[requests.Response]:
+    session: requests.Session, url: str, *, data: dict[str, Any] | None = None, **kwargs: Any
+) -> requests.Response | None:
     """
     Send a POST request using the provided requests.Session.
 
@@ -149,8 +150,8 @@ def post(
 
 
 def put(
-    session: requests.Session, url: str, *, data: Optional[Dict[str, Any]] = None, **kwargs: Any
-) -> Optional[requests.Response]:
+    session: requests.Session, url: str, *, data: dict[str, Any] | None = None, **kwargs: Any
+) -> requests.Response | None:
     """
     Send a PUT request using the provided requests.Session.
 
@@ -174,7 +175,7 @@ def put(
     return _request(session, "PUT", url, json=(data or {}), **kwargs)
 
 
-def delete(session: requests.Session, url: str, **kwargs: Any) -> Optional[requests.Response]:
+def delete(session: requests.Session, url: str, **kwargs: Any) -> requests.Response | None:
     """
     Send a DELETE request using the provided requests.Session.
 

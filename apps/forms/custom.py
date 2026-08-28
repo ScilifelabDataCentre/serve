@@ -7,6 +7,7 @@ from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
 from apps.forms.field.common import SRVCommonDivField
+from apps.forms.field.widget import FlavorSelect
 from apps.forms.mixins import (
     ContainerImageMixin,
     CreatorsMixin,
@@ -20,7 +21,9 @@ __all__ = ["CustomAppForm"]
 
 
 class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, CreatorsMixin, AppBaseForm):
-    flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=False, empty_label=None)
+    flavor = forms.ModelChoiceField(
+        queryset=Flavor.objects.none(), required=False, empty_label=None, widget=FlavorSelect
+    )
     port = forms.IntegerField(min_value=3000, max_value=9999, required=True)
     path = forms.CharField(max_length=255, required=False)
     default_url_subpath = forms.CharField(max_length=255, required=False, label="Custom URL subpath")
@@ -31,6 +34,16 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         label="Language of the application interface",
     )
     funding_sources_json = forms.CharField(required=False, widget=forms.HiddenInput(), label="Funding sources")
+    related_publications_json = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Related publications and preprints",
+    )
+    related_datasets_json = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Related datasets",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -68,11 +81,9 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
         self.fields["default_url_subpath"].help_text = "Specify a non-default start URL if your app requires that."
         apps_url = reverse("portal:apps")
         self.fields["default_url_subpath"].bottom_help_text = mark_safe(
-            (
-                f"<span class='fw-bold' id='id_default_url_subpath_helptext'>Note:</span> "
-                f"This changes the URL connected to the Open button for an app"
-                f" on the Serve <a href='{apps_url}'>Apps & Models</a> page."
-            )
+            f"<span class='fw-bold' id='id_default_url_subpath_helptext'>Note:</span> "
+            f"This changes the URL connected to the Open button for an app"
+            f" on the Serve <a href='{apps_url}'>Apps & Models</a> page."
         )
 
         # Setup container image field from mixin
@@ -89,11 +100,11 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags", template="apps/invenio_tags_field.html"),
             SRVCommonDivField("access"),
-            self.get_creators_field_layout(),
             SRVCommonDivField(
                 "note_on_linkonly_privacy",
                 rows=1,
             ),
+            self.get_creators_field_layout(),
         ]
         if "language" in self.fields:
             general_fields.append(SRVCommonDivField("language", tooltip=False))
@@ -105,6 +116,26 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
                     tooltip=False,
                     label="Funding sources",
                     template="apps/funding_sources_field.html",
+                )
+            )
+
+        if "related_publications_json" in self.fields:
+            general_fields.append(
+                SRVCommonDivField(
+                    "related_publications_json",
+                    tooltip=False,
+                    label="Related publications and preprints",
+                    template="apps/related_publications_field.html",
+                )
+            )
+
+        if "related_datasets_json" in self.fields:
+            general_fields.append(
+                SRVCommonDivField(
+                    "related_datasets_json",
+                    tooltip=False,
+                    label="Related datasets",
+                    template="apps/related_datasets_field.html",
                 )
             )
 

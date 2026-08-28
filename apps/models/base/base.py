@@ -15,6 +15,8 @@ from studio.utils import get_logger
 
 logger = get_logger(__name__)
 
+DNS_LABEL_MAX_LENGTH = 63
+
 USER_ACTION_STATUS_CHOICES = [
     ("Creating", "Creating"),
     ("Changing", "Changing"),
@@ -236,6 +238,36 @@ class BaseAppInstance(models.Model):
         group = "success" if status in status_success else "warning" if status in status_warning else "danger"
         return group
 
+    @property
+    def deletion_threshold_days(self) -> int | None:
+        """How many days this app may live before auto-deletion, or None if it is not auto-deleted.
+
+        Mirrors apps.tasks.delete_old_objects.
+        """
+        from apps.gpu import instance_holds_gpu
+
+        if not self.app_id:
+            return None
+
+        category = self.app.category
+        category_name = category.name if category else None
+        if category_name != "Develop" or self.app.slug == "mlflow":
+            return None
+
+        return settings.GPU_DEVELOP_APP_MAX_AGE_DAYS if instance_holds_gpu(self) else settings.DEVELOP_APP_MAX_AGE_DAYS
+
+    @property
+    def scheduled_deletion_at(self) -> datetime | None:
+        """When this app is scheduled to be auto-deleted, or None if it is not.
+
+        The deletion runs on a periodic schedule, so the real removal may happen
+        somewhat later than this time.
+        """
+        days = self.deletion_threshold_days
+        if not self.created_on or days is None:
+            return None
+        return self.created_on + timedelta(days=days)
+
     url = models.URLField(blank=True, null=True)
     updated_on = models.DateTimeField(auto_now=True)
     upload_size = models.PositiveIntegerField(default=100, help_text="Max upload size in MB")
@@ -249,12 +281,16 @@ class BaseAppInstance(models.Model):
         return f"{self.name}-{self.owner}-{self.app.name}-{self.project}"
 
     def get_k8s_values(self):
+        appname = self.subdomain.subdomain if self.subdomain else "deleted"
+        service_name = f"{appname}-{self.app.slug}"[:DNS_LABEL_MAX_LENGTH].rstrip("-")
+
         k8s_values = dict(
             name=self.name,
-            appname=self.subdomain.subdomain if self.subdomain else "deleted",
+            appname=appname,
             project=dict(name=self.project.name, slug=self.project.slug),
             service=dict(
-                name=(self.subdomain.subdomain if self.subdomain else "deleted") + "-" + self.app.slug,
+                name=service_name,
+                runLabel=appname,
             ),
             **self.subdomain.to_dict() if self.subdomain else {},
             **self.flavor.to_dict(self.app.gpu_enabled) if self.flavor else {},
@@ -270,6 +306,17 @@ class BaseAppInstance(models.Model):
             auth_domain=settings.AUTH_DOMAIN,
             protocol=settings.AUTH_PROTOCOL,
         )
+
+        k8s_values["gateway"] = dict(
+            enabled=settings.GATEWAY_ENABLED,
+            name=settings.GATEWAY_NAME,
+            namespace=settings.GATEWAY_NAMESPACE,
+            domainSectionName=settings.GATEWAY_DOMAIN_SECTION_NAME,
+            studioSectionName=settings.GATEWAY_STUDIO_SECTION_NAME,
+            sectionName=settings.GATEWAY_SECTION_NAME,
+            port=settings.GATEWAY_PORT,
+        )
+
         return k8s_values
 
     def set_k8s_values(self):

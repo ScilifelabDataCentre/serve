@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             entriesLoading.style.display = "none";
-            document.getElementById('zenodo-entries').innerHTML = `<div class="alert alert-danger" role="alert">Fetching Zenodo entries failed. ${error.message}</div>`;
+            console.warn('Fetching Zenodo entries failed.', error);
+            document.getElementById('zenodo-entries').innerHTML = '<div class="alert alert-secondary" role="status">Zenodo datasets are temporarily unavailable.</div>';
         });
 });

@@ -1,8 +1,9 @@
 import json
 import re
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional
 
 from django import forms
 from django.conf import settings
@@ -25,10 +26,10 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 
-with open(settings.STATICFILES_DIRS[0] + "/common/departments.json", "r") as f:
+with open(settings.STATICFILES_DIRS[0] + "/common/departments.json") as f:
     DEPARTMENTS = json.load(f).get("departments", [])
 
-with open(settings.STATICFILES_DIRS[0] + "/common/universities.json", "r") as f:
+with open(settings.STATICFILES_DIRS[0] + "/common/universities.json") as f:
     UNIVERSITIES = json.load(f).get("universities", dict())
     UNIVERSITIES = [(k, v) for k, v in UNIVERSITIES.items()]
 
@@ -83,7 +84,7 @@ class ListTextWidget(forms.TextInput):
     """
 
     def __init__(self, data_list, name, *args, **kwargs):
-        super(ListTextWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._name = name
         self._list = data_list
         self.attrs.update({"list": "list__%s" % self._name})
@@ -92,7 +93,7 @@ class ListTextWidget(forms.TextInput):
         """
         Render the widget as an HTML string.
         """
-        text_html = super(ListTextWidget, self).render(name, value, attrs=attrs)
+        text_html = super().render(name, value, attrs=attrs)
         data_list = '<datalist id="list__%s">' % self._name
         for item in self._list:
             data_list += '<option value="%s">' % item
@@ -157,7 +158,7 @@ class UserForm(BootstrapErrorFormMixin, UserCreationForm):
     password1 = forms.CharField(
         min_length=10,
         label="Password",
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        widget=forms.PasswordInput(attrs={"class": "form-control", "aria-describedby": "password_requirements"}),
         help_text=mark_safe(password_validators_help_text_html()),
     )
     password2 = forms.CharField(
@@ -281,7 +282,7 @@ class SignUpForm:
     user: UserForm
     profile: ProfileForm
     is_approved: bool = False
-    organization_data: Optional[Dict[str, Any]] = None
+    organization_data: dict[str, Any] | None = None
 
     def clean(self) -> None:
         user_data = self.user.cleaned_data

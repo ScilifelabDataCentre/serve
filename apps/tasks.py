@@ -1,3 +1,4 @@
+import json
 import re
 import subprocess
 from typing import Any
@@ -17,19 +18,31 @@ from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
 from apps.background_tasks.utils import select_latest_task_records
 from apps.constants import AppActionOrigin
-from apps.helpers import generate_helm_install_command, get_merged_k8s_values
+from apps.gpu import instance_holds_gpu
+from apps.helpers import (
+    generate_helm_install_command,
+    get_merged_k8s_values,
+    release_subdomain_after_delete,
+)
 from common.tasks import send_email_task
 from studio.celery import app
 from studio.utils import get_logger
 
-from .models import BaseAppInstance, FilemanagerInstance
+from .models import BaseAppInstance, FilemanagerInstance, K8sUserAppStatus
 
 logger = get_logger(__name__)
 
 CHART_REGEX = re.compile(r"^(?P<chart>.+):(?P<version>.+)$")
+WORKLOAD_KINDS = frozenset({"Deployment", "StatefulSet", "DaemonSet"})
+# These charts create no pods, so there is never any readiness to wait for.
+POD_LESS_APP_SLUGS = frozenset({"volumeK8s", "netpolicy"})
+# A deploy that has not become ready within this window is not going to.
+RECONCILE_MAX_AGE = timezone.timedelta(minutes=15)
 DEPLOY_RESOURCE_MAX_RETRIES = 3
 DEPLOY_RESOURCE_RETRY_BASE_SECONDS = 10
 DEPLOY_RESOURCE_RETRY_MAX_SECONDS = 30
+
+HELM_RELEASE_NOT_FOUND_MARKERS = ("release: not found", "release not loaded")
 
 
 class MissingSerializedInstanceError(ValueError):
@@ -84,6 +97,15 @@ def _retry_countdown(current_retries: int) -> int:
     return min(DEPLOY_RESOURCE_RETRY_BASE_SECONDS * (2**current_retries), DEPLOY_RESOURCE_RETRY_MAX_SECONDS)
 
 
+def _is_helm_release_not_found(error: str | None) -> bool:
+    """Whether a helm error only means that the release does not exist."""
+    if not error:
+        return False
+
+    lowered = error.lower()
+    return any(marker in lowered for marker in HELM_RELEASE_NOT_FOUND_MARKERS)
+
+
 @app.task
 def delete_old_objects():
     """
@@ -93,6 +115,8 @@ def delete_old_objects():
     This function retrieves the old apps based on the given threshold, category, and model class.
     It then iterates through the subclasses of BaseAppInstance and deletes the old apps
     for both the "Develop" and "Manage files" categories.
+    Develop apps are deleted after DEVELOP_APP_MAX_AGE_DAYS days, except apps holding a GPU,
+    which are deleted already after GPU_DEVELOP_APP_MAX_AGE_DAYS day(s).
     It skips app instances with action set to SystemDeleting.
     TODO: Make app categories and their corresponding thresholds variables in settings.py.
     """
@@ -117,7 +141,7 @@ def delete_old_objects():
         app_.save(update_fields=["latest_user_action", "deleted_on"])
 
         try:
-            delete_resource.delay(serialized_instance, AppActionOrigin.SYSTEM.value)
+            delete_resource.delay(serialized_instance, AppActionOrigin.SYSTEM.value, release_subdomain=True)
         except Exception:
             app_.latest_user_action = previous_latest_user_action
             app_.deleted_on = previous_deleted_on
@@ -130,18 +154,24 @@ def delete_old_objects():
             continue
         seen_models.add(orm_model)
         old_develop_apps = (
-            orm_model.objects.filter(created_on__lt=get_threshold(7), app__category__name="Develop")
+            orm_model.objects.filter(
+                created_on__lt=get_threshold(settings.GPU_DEVELOP_APP_MAX_AGE_DAYS), app__category__name="Develop"
+            )
             .exclude(latest_user_action__in=["Deleting", "SystemDeleting"])
             .exclude(app__slug="mlflow")
+            .select_related("app", "flavor")
             .order_by("created_on", "pk")
         )
 
         for app_ in old_develop_apps:
-            enqueue_delete(app_)
+            if instance_holds_gpu(app_) or app_.created_on < get_threshold(settings.DEVELOP_APP_MAX_AGE_DAYS):
+                enqueue_delete(app_)
 
     # Handle deletion of non persistent file managers
     old_file_managers = (
-        FilemanagerInstance.objects.filter(created_on__lt=timezone.now() - timezone.timedelta(days=1), persistent=False)
+        FilemanagerInstance.objects.filter(
+            created_on__lt=get_threshold(settings.FILEMANAGER_MAX_AGE_DAYS), persistent=False
+        )
         .exclude(latest_user_action__in=["Deleting", "SystemDeleting"])
         .order_by("created_on", "pk")
     )
@@ -286,18 +316,126 @@ def get_manifest_yaml(release_name: str, namespace: str = "default") -> tuple[st
         return e.stdout, e.stderr
 
 
+def _workload_readiness(item: dict, kind: str) -> tuple[str, int, int]:
+    """
+    Return (reference, ready_replicas, desired_replicas) for one workload object.
+
+    kind comes from the helm resource key ("v1/Deployment").
+    """
+    kind = kind.lower()
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    name = metadata.get("name") or "unknown"
+    status = item.get("status") if isinstance(item.get("status"), dict) else {}
+    spec = item.get("spec") if isinstance(item.get("spec"), dict) else {}
+
+    if kind == "daemonset":
+        # DaemonSets have no spec.replicas, the scheduler decides the desired count.
+        desired = int(status.get("desiredNumberScheduled") or 0)
+        ready = int(status.get("numberReady") or 0)
+    else:
+        # spec.replicas defaults to 1 when omitted.
+        replicas = spec.get("replicas")
+        desired = 1 if replicas is None else int(replicas)
+        ready = int(status.get("readyReplicas") or 0)
+
+    return f"{kind}/{name}", ready, desired
+
+
+def get_release_readiness(release_name: str, namespace: str = "default") -> tuple[dict | None, str | None]:
+    """
+    Determine whether every workload of a Helm release is ready.
+
+    Returns ({"all_ready": bool, "workloads": {ref: {"ready": int, "desired": int}}}, None)
+    or (None, error).
+    """
+    command = [
+        "helm",
+        "status",
+        release_name,
+        "--namespace",
+        namespace,
+        "--show-resources",
+        "-o",
+        "json",
+    ]
+    try:
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+    except subprocess.CalledProcessError as exc:
+        return None, exc.stderr or f"helm status failed for release {release_name}"
+
+    try:
+        payload = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        return None, f"Failed to parse helm status output for release {release_name}: {exc}"
+
+    info = payload.get("info") if isinstance(payload.get("info"), dict) else {}
+    resources = info.get("resources") if isinstance(info.get("resources"), dict) else {}
+
+    workloads: dict[str, dict[str, int]] = {}
+    all_ready = True
+    for group, items in resources.items():
+        if "(related)" in group:
+            continue
+        kind = group.rsplit("/", 1)[-1]
+        if kind not in WORKLOAD_KINDS or not isinstance(items, list):
+            continue
+
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            ref, ready, desired = _workload_readiness(item, kind=kind)
+            workloads[ref] = {"ready": ready, "desired": desired}
+            if ready < desired:
+                all_ready = False
+
+    return {"all_ready": all_ready and bool(workloads), "workloads": workloads}, None
+
+
+def _kubectl_rollout_restart(release_name: str, namespace: str = "default") -> tuple[str | None, str | None]:
+    """Restart the rollout-capable workloads managed by a Helm release."""
+    manifest, error = get_manifest_yaml(release_name, namespace)
+    if error:
+        return manifest, error
+
+    try:
+        documents = yaml.safe_load_all(manifest or "")
+        resources = []
+        for document in documents:
+            if not isinstance(document, dict) or document.get("kind") not in WORKLOAD_KINDS:
+                continue
+
+            metadata = document.get("metadata")
+            name = metadata.get("name") if isinstance(metadata, dict) else None
+            if name:
+                resources.append(f"{document['kind'].lower()}/{name}")
+    except yaml.YAMLError as exc:
+        return None, f"Failed to parse Helm manifest for release {release_name}: {exc}"
+
+    resources = list(dict.fromkeys(resources))
+    if not resources:
+        return f"No restartable workloads found for Helm release {release_name}.", None
+
+    command = ["kubectl", "rollout", "restart", *resources, "--namespace", namespace]
+    try:
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+        return result.stdout, None
+    except subprocess.CalledProcessError as exc:
+        return exc.stdout, exc.stderr
+
+
 @shared_task(bind=True, max_retries=DEPLOY_RESOURCE_MAX_RETRIES)
-def deploy_resource(self, serialized_instance):
+def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
     model = serialized_instance.get("model") if isinstance(serialized_instance, dict) else None
     pk = serialized_instance.get("pk") if isinstance(serialized_instance, dict) else None
     task_id = getattr(self.request, "id", None)
 
     logger.info(
-        "deploy_resource.start task_id=%s model=%s pk=%s retry=%s",
+        "deploy_resource.start task_id=%s model=%s pk=%s retry=%s force_redeploy=%s",
         task_id,
         model,
         pk,
         self.request.retries,
+        force_redeploy,
     )
 
     try:
@@ -422,7 +560,8 @@ def deploy_resource(self, serialized_instance):
 
     # Release the pooled DB connection for the duration of the helm subprocess.
     # Django reconnects on the next ORM access (the status writes below).
-    connection.close()
+    if not connection.in_atomic_block:
+        connection.close()
 
     # Install the app using Helm install
     output, error = helm_install(release, chart, values["namespace"], values_file, version)
@@ -459,11 +598,42 @@ def deploy_resource(self, serialized_instance):
         release,
     )
 
+    restart_output = None
+    restart_error = None
+    if success and force_redeploy:
+        restart_output, restart_error = _kubectl_rollout_restart(release, values["namespace"])
+        success = not restart_error
+        logger.info(
+            "deploy_resource.rollout_restart_done task_id=%s instance_id=%s success=%s release=%s stderr=%s",
+            task_id,
+            instance.pk,
+            success,
+            release,
+            restart_error,
+        )
+
+        if restart_error and self.request.retries < self.max_retries:
+            countdown = _retry_countdown(self.request.retries)
+            logger.warning(
+                "deploy_resource.rollout_restart_retry task_id=%s instance_id=%s retry=%s/%s countdown=%ss",
+                task_id,
+                instance.pk,
+                self.request.retries + 1,
+                self.max_retries,
+                countdown,
+            )
+            raise self.retry(exc=RuntimeError(restart_error), countdown=countdown)
+
+    if restart_error:
+        error = restart_error
+
     helm_info = {
         "success": success,
         "info": {"stdout": output, "stderr": error},
         "completed_at": timezone.now().isoformat(),
     }
+    if force_redeploy:
+        helm_info["restart"] = {"stdout": restart_output, "stderr": restart_error}
 
     instance.info = dict(helm=helm_info)
     # instance.app_status.status = "Created" if success else "Failed"
@@ -471,27 +641,6 @@ def deploy_resource(self, serialized_instance):
     # Only update the info field to avoid overriding other modified fields elsewhere
     instance.save(update_fields=["info"])
     logger.info("deploy_resource.info_saved task_id=%s instance_id=%s success=%s", task_id, instance.pk, success)
-
-    # Depictio form changes never restart pods, so flip status.
-    if success and getattr(instance.app, "slug", None) == "depictio":
-        from apps.models import K8sUserAppStatus
-
-        # Keep the status creation and its link to the instance atomic
-        with transaction.atomic():
-            status_object = instance.k8s_user_app_status
-            if status_object is None:
-                status_object = K8sUserAppStatus.objects.create(status="Running")
-                instance.k8s_user_app_status = status_object
-                instance.save(update_fields=["k8s_user_app_status"])
-            else:
-                status_object.status = "Running"
-                status_object.time = timezone.now()
-                status_object.save(update_fields=["status", "time"])
-        logger.info(
-            "deploy_resource.depictio_status_running instance_id=%s status_id=%s",
-            instance.pk,
-            status_object.pk,
-        )
 
     # In development, also generate and validate the k8s deployment manifest
     if settings.DEBUG:
@@ -515,7 +664,7 @@ def deploy_resource(self, serialized_instance):
 
 
 @shared_task
-def delete_resource(serialized_instance, initiated_by_str: str):
+def delete_resource(serialized_instance, initiated_by_str: str, release_subdomain: bool = False):
     """
     Deletes a cluster resource object.
     For deletes that are initiated by the system itself (such as recurring tasks),
@@ -527,6 +676,9 @@ def delete_resource(serialized_instance, initiated_by_str: str):
     Parameters:
     - serialized_instance: A serialized version of the app to be deleted.
     - initiated_by_str: A string of enum AppActionOrigin indicating the source of the deletion (user|system).
+    - release_subdomain: Set by app deletions so the subdomain becomes available again once
+      the release is confirmed gone. Left False by the subdomain change flow, which assigns
+      the new subdomain itself.
     """
     logger.info(
         "delete_resource.start model=%s pk=%s initiated_by=%s payload_type=%s",
@@ -546,12 +698,15 @@ def delete_resource(serialized_instance, initiated_by_str: str):
 
     # Release the pooled DB connection during the helm subprocess;
     # Django reconnects automatically for the status writes below.
-    connection.close()
+    if not connection.in_atomic_block:
+        connection.close()
 
     success = False
+    release_missing = False
     if values.get("subdomain") is not None:
         output, error = helm_delete(values["subdomain"], values["namespace"])
         success = not error
+        release_missing = bool(error) and _is_helm_release_not_found(error)
     else:
         error_text = f"Subdomain name does not exist. App: {values['name']}, Project: {values['project']['slug']}"
         output, error = error_text, error_text
@@ -580,9 +735,30 @@ def delete_resource(serialized_instance, initiated_by_str: str):
         # This is a common scenario for "apps" such as volumeK8s, netpolicy, notebooks and file managers.
         instance.latest_user_action = "SystemDeleting"
         instance.deleted_on = timezone.now()
-        instance.save(update_fields=["latest_user_action", "deleted_on", "info"])
+        update_fields = ["latest_user_action", "deleted_on", "info"]
     else:
-        instance.save(update_fields=["info"])
+        update_fields = ["info"]
+
+    released_subdomain = None
+    if release_subdomain and (success or release_missing):
+        released_subdomain = release_subdomain_after_delete(instance)
+        if released_subdomain is not None:
+            update_fields.append("subdomain")
+
+    instance.save(update_fields=update_fields)
+
+    if released_subdomain is not None:
+        logger.info(
+            "delete_resource.subdomain_released instance_id=%s subdomain=%s",
+            instance.pk,
+            released_subdomain.subdomain,
+        )
+
+    return {
+        "success": success,
+        "release_missing": release_missing,
+        "error": None if success else error,
+    }
 
 
 def deserialize(serialized_instance):
@@ -644,6 +820,116 @@ def resolve_task_app_instance(task_record):
             type(base_instance).__name__,
         )
         return base_instance
+
+
+@app.task
+def _mark_running_if_ready(instance, source: str) -> bool:
+    """
+    Set one app to Running if every workload of its release is ready.
+
+    """
+    release = instance.subdomain.subdomain
+    k8s_values = instance.k8s_values if isinstance(instance.k8s_values, dict) else {}
+    namespace = k8s_values.get("namespace") or settings.NAMESPACE
+
+    # Release the pooled DB connection for the duration of the helm subprocess.
+    # Django reconnects on the next ORM access.
+    if not connection.in_atomic_block:
+        connection.close()
+
+    try:
+        readiness, error = get_release_readiness(release, namespace)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("%s.error release=%s %s", source, release, exc)
+        return False
+
+    if error:
+        if _is_helm_release_not_found(error):
+            # Expected while the release is still in progress.
+            logger.debug("%s.no_release release=%s", source, release)
+        else:
+            logger.warning("%s.read_failed release=%s %s", source, release, error)
+        return False
+
+    if not readiness["all_ready"]:
+        logger.debug("%s.not_ready release=%s workloads=%s", source, release, readiness["workloads"])
+        return False
+
+    with transaction.atomic():
+        locked = BaseAppInstance.objects.select_for_update().filter(pk=instance.pk).first()
+        if locked is None:
+            return False
+
+        status_object = locked.k8s_user_app_status
+        if status_object is None:
+            status_object = K8sUserAppStatus.objects.create()
+            locked.k8s_user_app_status = status_object
+            locked.save(update_fields=["k8s_user_app_status"])
+
+        if status_object.status == "Running":
+            return False
+
+        status_object.status = "Running"
+        status_object.time = timezone.now()
+        status_object.info = {"workloads": readiness["workloads"]}
+        status_object.save(update_fields=["status", "time", "info"])
+
+    logger.info(
+        "%s.marked_running instance_id=%s release=%s workloads=%s",
+        source,
+        instance.pk,
+        release,
+        readiness["workloads"],
+    )
+    return True
+
+
+@shared_task
+def verify_app_running(instance_pk: int):
+    """
+    Check one app after one of its pods reported Running.
+
+    """
+    if not getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
+        return
+
+    instance = (
+        BaseAppInstance.objects.filter(pk=instance_pk, subdomain__isnull=False)
+        .select_related("subdomain", "k8s_user_app_status")
+        .first()
+    )
+    if instance is None:
+        logger.debug("verify_app_running.instance_gone instance_id=%s", instance_pk)
+        return
+
+    if getattr(instance.k8s_user_app_status, "status", None) == "Running":
+        return
+
+    _mark_running_if_ready(instance, source="verify_app_running")
+
+
+@app.task
+def reconcile_app_statuses():
+    """
+    Task to reconcile app statuses.
+    """
+    if not getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
+        logger.debug("reconcile_app_statuses.disabled")
+        return
+
+    instances = list(
+        BaseAppInstance.objects.filter(
+            latest_user_action__in=["Creating", "Changing", "Redeploying"],
+            subdomain__isnull=False,
+            updated_on__gte=timezone.now() - RECONCILE_MAX_AGE,
+        )
+        .exclude(k8s_user_app_status__status="Running")
+        .exclude(app__slug__in=POD_LESS_APP_SLUGS)
+        .select_related("subdomain", "k8s_user_app_status")
+    )
+
+    for instance in instances:
+        _mark_running_if_ready(instance, source="reconcile_app_statuses")
 
 
 @app.task

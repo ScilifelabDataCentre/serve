@@ -30,7 +30,7 @@ class BaseBackgroundTask(ABC):
     timeout_seconds = 300  # 5 minutes default timeout
 
     @abstractmethod
-    def execute(self, app_instance, **kwargs) -> Dict[str, Any]:
+    def execute(self, app_instance, **kwargs) -> dict[str, Any]:
         """
         Execute the task logic.
 
@@ -62,7 +62,7 @@ class BaseBackgroundTask(ABC):
             exc_info=True,
         )
 
-    def on_success(self, app_instance, result: Dict[str, Any]) -> None:
+    def on_success(self, app_instance, result: dict[str, Any]) -> None:
         """
         Called when task execution succeeds.
 

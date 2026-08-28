@@ -60,6 +60,33 @@ def parse_funding_sources_json(funding_raw: Any) -> list[dict[str, Any]]:
     return parsed_funding
 
 
+def parse_related_publications_datasets_json(related_publications_datasets_raw: Any) -> list[dict[str, Any]]:
+    """Normalize a related publications/datasets JSON form field into a list."""
+    if not related_publications_datasets_raw:
+        return []
+
+    parsed_related_publications_datasets = related_publications_datasets_raw
+    if isinstance(parsed_related_publications_datasets, str):
+        try:
+            parsed_related_publications_datasets = json.loads(parsed_related_publications_datasets)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Unable to parse related_publications_json or related_datasets_json while creating app. "
+                "Proceeding with empty related publications or datasets metadata."
+            )
+            return []
+
+    if not isinstance(parsed_related_publications_datasets, list):
+        logger.warning(
+            "related_publications_json or related_datasets_json has unsupported type %s. "
+            "Proceeding with empty related publications/datasets metadata.",
+            type(parsed_related_publications_datasets).__name__,
+        )
+        return []
+
+    return parsed_related_publications_datasets
+
+
 def get_select_options(project_pk, selected_option=""):
     from apps.types_.subdomain import SubdomainCandidateName
 
@@ -160,6 +187,18 @@ def handle_update_status_request(
 
     if len(new_status) > 20:
         new_status = new_status[:20]
+
+    if new_status == "Running" and getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
+        from .tasks import verify_app_running
+
+        instance = BaseAppInstance.objects.filter(subdomain__subdomain=release).last()
+        if instance is None:
+            logger.info(f"No such subdomain exists identified by release={release}")
+            return HandleUpdateStatusResponseCode.OBJECT_NOT_FOUND
+
+        verify_app_running.delay(instance.pk)
+        logger.debug(f"Running event for release {release} queued a workload readiness check.")
+        return HandleUpdateStatusResponseCode.DEFERRED_TO_AGGREGATION
 
     try:
         # Begin by verifying that the requested app instance exists
@@ -388,6 +427,8 @@ def create_instance_from_form(
             "description",
             "language",
             "funding_sources_json",
+            "related_publications_json",
+            "related_datasets_json",
             "creators",
             "subjects_keywords",
             "invenio_tags",
@@ -430,25 +471,6 @@ def create_instance_from_form(
                     )
                     run_background_tasks_only = True
                     break
-    # For existing apps, detect if access is changing from non-public to public
-    access_changed_to_public = False
-    if not new_app:
-        # Get the original instance to compare access levels
-        from .app_registry import APP_REGISTRY
-
-        original_instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
-        original_access = getattr(original_instance, "access", None) if original_instance else None
-        new_access = form.cleaned_data.get("access")
-
-        # Check if access changed from non-public to public
-        if original_access != "public" and new_access == "public":
-            access_changed_to_public = True
-            logger.info(
-                "create_instance_from_form.access_changed_to_public app_id=%s original=%s new=%s",
-                app_id,
-                original_access,
-                new_access,
-            )
 
     subdomain_name, is_created_by_user = get_subdomain_name(form)
     logger.info(
@@ -458,11 +480,20 @@ def create_instance_from_form(
         is_created_by_user,
     )
 
+    # This is needed for Depictio later on.
+    original_instance = None
+    if not new_app:
+        from .app_registry import APP_REGISTRY
+
+        original_instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
+
     instance = form.save(commit=False)
 
-    # Retrieve or create the subdomain
+    # Retrieve or create the subdomain. Look up on the unique field only, so an existing
+    # row with a different project or is_created_by_user is reused, not inserted again.
     subdomain, created = Subdomain.objects.get_or_create(
-        subdomain=subdomain_name, project=project, is_created_by_user=is_created_by_user
+        subdomain=subdomain_name,
+        defaults={"project": project, "is_created_by_user": is_created_by_user},
     )
     assert subdomain is not None
     assert subdomain.subdomain == subdomain_name
@@ -520,27 +551,10 @@ def create_instance_from_form(
         do_deploy = False
         run_background_tasks_only = True
 
-    # For depictio metadata-only flows: refresh k8s_user_app_status to "Running"
-    # if the prior helm run succeeded — nothing in the cluster has changed.
-    if (
-        not new_app
-        and not do_deploy
-        and run_background_tasks_only
-        and app_slug == "depictio"
-        and original_instance is not None
-    ):
-        prior_helm = (original_instance.info or {}).get("helm") if isinstance(original_instance.info, dict) else None
-        if isinstance(prior_helm, dict) and prior_helm.get("success") is True:
-            status_object = instance.k8s_user_app_status
-            if status_object is None:
-                from apps.models import K8sUserAppStatus
+    # Re-check GPU capacity under lock before saving.
+    from apps.gpu import ensure_gpu_capacity
 
-                status_object = K8sUserAppStatus.objects.create(status="Running")
-                instance.k8s_user_app_status = status_object
-            else:
-                status_object.status = "Running"
-                status_object.time = timezone.now()
-                status_object.save(update_fields=["status", "time"])
+    ensure_gpu_capacity(instance)
 
     instance_id = save_instance_and_related_data(instance, form)
     if do_deploy:
@@ -572,7 +586,6 @@ def create_instance_from_form(
             instance,
             form,
             app_slug,
-            access_changed_to_public,
             progress_started_at=progress_started_at,
         )
     elif run_background_tasks_only:
@@ -583,7 +596,6 @@ def create_instance_from_form(
             instance,
             form,
             app_slug,
-            access_changed_to_public,
             progress_started_at=progress_started_at,
         )
         logger.info("create_instance_from_form.background_tasks_only app_id=%s instance_id=%s", app_id, instance_id)
@@ -602,7 +614,6 @@ def _run_background_tasks_and_doi_only(
     instance,
     form,
     app_slug,
-    access_changed_to_public=False,
     skip_deploy=True,
     progress_started_at: str | None = None,
 ):
@@ -610,16 +621,13 @@ def _run_background_tasks_and_doi_only(
     from .tasks import run_background_tasks
 
     logger.info(
-        "run_background_tasks_and_doi_only start for app_slug=%s instance_id=%s access_changed=%s skip_deploy=%s",
+        "run_background_tasks_and_doi_only start for app_slug=%s instance_id=%s skip_deploy=%s",
         app_slug,
         instance.id,
-        access_changed_to_public,
         skip_deploy,
     )
 
-    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(
-        instance, form, app_slug, access_changed_to_public
-    )
+    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(instance, form, app_slug)
 
     transaction.on_commit(
         lambda: run_background_tasks.delay(
@@ -636,22 +644,18 @@ def _deploy_with_background_tasks_and_doi(
     instance,
     form,
     app_slug,
-    access_changed_to_public=False,
     progress_started_at: str | None = None,
 ):
-    """Deploy using background tasks with DOI minting for public apps."""
+    """Deploy using background tasks with DOI minting."""
     from .tasks import run_background_tasks
 
     logger.info(
-        "_deploy_with_background_tasks_and_doi start for app_slug=%s instance_id=%s access_changed=%s",
+        "_deploy_with_background_tasks_and_doi start for app_slug=%s instance_id=%s",
         app_slug,
         instance.id,
-        access_changed_to_public,
     )
 
-    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(
-        instance, form, app_slug, access_changed_to_public
-    )
+    serialized_instance, task_kwargs_by_task_name = _prepare_doi_task_kwargs(instance, form, app_slug)
 
     transaction.on_commit(
         lambda: run_background_tasks.delay(
@@ -663,42 +667,45 @@ def _deploy_with_background_tasks_and_doi(
     )
 
 
-def _prepare_doi_task_kwargs(instance, form, app_slug, access_changed_to_public=False):
+def _prepare_doi_task_kwargs(instance, form, app_slug):
     """
     Prepare the serialized instance and DOI provisioning task kwargs for background tasks.
     Returns (serialized_instance, task_kwargs_by_task_name)
     """
     serialized_instance = instance.serialize()
 
-    # Include DOI task if app is public or if access just changed to public
-    should_mint_doi = (hasattr(instance, "access") and instance.access == "public") or access_changed_to_public
-    if should_mint_doi:
-        funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
+    # NB: Before we only included public apps in DOI provisioning, now all apps
+    # Public apps are published in Invenio; non-public apps are saved as a draft.
+    funding_list = parse_funding_sources_json(form.cleaned_data.get("funding_sources_json"))
 
-        # Get creators data from form if available
-        creators_data = None
-        if hasattr(form, "get_creators_data"):
-            creators_data = form.get_creators_data()
-            logger.debug(f"Background task: creators_data from form: {creators_data}")
+    # Both related publications and datasets go under the same metadata field on Invenio,
+    # specifically as related identifiers but with different resource_type values.
+    related_publications_list = parse_related_publications_datasets_json(
+        form.cleaned_data.get("related_publications_json")
+    )
+    related_datasets_list = parse_related_publications_datasets_json(form.cleaned_data.get("related_datasets_json"))
+    related_identifiers_list = related_publications_list + related_datasets_list
 
-        # Get processed tags data from form if available
-        subjects_keywords_data = form.cleaned_data.get("subjects_keywords") if hasattr(form, "cleaned_data") else None
-        logger.debug(f"Background task: subjects_keywords data from form: {subjects_keywords_data}")
+    # Get creators data from form if available
+    creators_data = None
+    if hasattr(form, "get_creators_data"):
+        creators_data = form.get_creators_data()
+        logger.debug(f"Background task: creators_data from form: {creators_data}")
 
-        task_kwargs_by_task_name = {
-            "doi_provisioning": {
-                "language": form.cleaned_data.get("language"),
-                "funding": funding_list,
-                "creators": creators_data,
-                "subjects_keywords": form.cleaned_data.get("subjects_keywords"),
-            },
-        }
-        logger.debug(
-            "DOI provisioning will be handled by background task for public app '%s' (id=%s).", app_slug, instance.id
-        )
-    else:
-        task_kwargs_by_task_name = {}
-        logger.debug("Skipping DOI provisioning for non-public app '%s' (id=%s).", app_slug, instance.id)
+    # Get processed tags data from form if available
+    subjects_keywords_data = form.cleaned_data.get("subjects_keywords") if hasattr(form, "cleaned_data") else None
+    logger.debug(f"Background task: subjects_keywords data from form: {subjects_keywords_data}")
+
+    task_kwargs_by_task_name = {
+        "doi_provisioning": {
+            "language": form.cleaned_data.get("language"),
+            "funding": funding_list,
+            "related_publications_datasets": related_identifiers_list,
+            "creators": creators_data,
+            "subjects_keywords": form.cleaned_data.get("subjects_keywords"),
+        },
+    }
+    logger.debug("DOI provisioning will be handled by background task for app '%s' (id=%s).", app_slug, instance.id)
 
     return serialized_instance, task_kwargs_by_task_name
 
@@ -715,11 +722,57 @@ def get_or_create_status(instance, app_id):
     # return instance.app_status if app_id else AppStatus.objects.create()
 
 
+def _old_release_is_removed(delete_result: Any) -> bool:
+    """
+    Whether delete_resource confirmed that nothing is left in the cluster.
+
+    Without a confirmed result the old release must be assumed to be running.
+    """
+    if not isinstance(delete_result, dict):
+        return False
+
+    return bool(delete_result.get("success")) or bool(delete_result.get("release_missing"))
+
+
+SUBDOMAIN_RELEASE_EXCLUDED_APP_SLUGS = ("volumeK8s", "netpolicy")
+
+
+def release_subdomain_after_delete(instance: BaseAppInstance) -> Optional[Subdomain]:
+    """
+    Detach a deleted app from its subdomain so that the name becomes available again.
+
+    Only user-chosen names are reclaimed, and volumes are excluded because the apps that
+    mount them still read their subdomain.
+
+    Must only be called once the release is confirmed gone from the cluster, otherwise the
+    name becomes available while its resources are still running.
+
+    Returns the detached subdomain, or None if nothing was released. The caller is
+    responsible for saving the instance.
+    """
+    subdomain = instance.subdomain
+
+    if subdomain is None or not subdomain.is_created_by_user:
+        return None
+
+    if instance.app.slug in SUBDOMAIN_RELEASE_EXCLUDED_APP_SLUGS:
+        return None
+
+    instance.subdomain = None
+    return subdomain
+
+
 def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) -> None:
     """
     Detects if there has been a user-initiated subdomain change and if so,
     then re-creates the app instance, also re-deploying the k8s resource.
+
+    Raises:
+    - SubdomainChangeError: if the app's current release could not be removed from the
+      cluster. The subdomain is then left unchanged.
     """
+    from apps.types_.subdomain import SubdomainChangeError
+
     from .tasks import delete_resource
 
     assert instance is not None, "instance is required"
@@ -738,7 +791,19 @@ def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) 
     if instance.subdomain.subdomain != subdomain_name:
         # The user modified the subdomain name
         # In this special case, we avoid async task.
-        delete_resource(instance.serialize(), AppActionOrigin.USER.value)
+        delete_result = delete_resource(instance.serialize(), AppActionOrigin.USER.value)
+
+        if not _old_release_is_removed(delete_result):
+            logger.error(
+                "handle_subdomain_change.aborted_release_not_removed instance_id=%s "
+                "old_subdomain=%s requested_subdomain=%s error=%s",
+                instance.pk,
+                instance.subdomain.subdomain,
+                subdomain_name,
+                delete_result.get("error") if isinstance(delete_result, dict) else None,
+            )
+            raise SubdomainChangeError()
+
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain
         instance.save(update_fields=["subdomain"])

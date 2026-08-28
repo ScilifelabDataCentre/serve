@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils.crypto import get_random_string
 
@@ -25,17 +26,33 @@ class MLFlowInstance(BaseAppInstance):
     def get_k8s_values(self):
         k8s_values = super().get_k8s_values()
         k8s_values["commonLabels"] = {
-            "release": self.subdomain.subdomain,
+            "release": self.subdomain.subdomain if self.subdomain else "deleted",
             "app": "mlflow",
             "project": self.project.slug,
         }
         k8s_values["tracking"] = {
             "auth": {"enabled": True, "username": get_random_string(10), "password": get_random_string(20)},
-            "ingress": {
+            "service": {"type": "ClusterIP"},
+            "ingress": {"enabled": False},
+            "httproute": {
                 "enabled": True,
-                "ingressClassName": "nginx",
-                "hostname": self.url.split("://")[1] if self.url is not None else self.url,
-                "annotations": {"nginx.ingress.kubernetes.io/proxy-body-size": f"{self.upload_size}M"},
+                "hostnames": (
+                    [
+                        self.url.split("://")[1],
+                        self.url.split("://")[1].replace(f".{settings.DOMAIN}", f".gw.{settings.DOMAIN}", 1),
+                    ]
+                    if self.url is not None
+                    else []
+                ),
+                "parentRefs": [
+                    {
+                        "name": settings.GATEWAY_NAME,
+                        "namespace": settings.GATEWAY_NAMESPACE,
+                        "sectionName": settings.GATEWAY_SECTION_NAME,
+                        "port": settings.GATEWAY_PORT,
+                    },
+                ],
+                "clientMaxBodySize": f"{self.upload_size}m",
             },
             "podLabels": {
                 "type": "app",
@@ -63,10 +80,26 @@ class MLFlowInstance(BaseAppInstance):
                 "repository": "bitnamilegacy/minio",
                 "tag": "2025.6.13-debian-12-r0",
             },
+            "provisioning": {
+                "cleanupAfterFinished": {"enabled": True, "seconds": 600},
+            },
+            "defaultInitContainers": {
+                "volumePermissions": {
+                    "image": {
+                        "repository": "bitnamilegacy/os-shell",
+                        "tag": "12-debian-12-r50",
+                    }
+                }
+            },
         }
         k8s_values["postgresql"] = {
             "primary": {
                 "pdb": {"create": False},
+                "persistentVolumeClaimRetentionPolicy": {
+                    "enabled": True,
+                    "whenDeleted": "Delete",
+                    "whenScaled": "Retain",
+                },
             },
             "readReplicas": {
                 "pdb": {"create": False},

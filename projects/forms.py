@@ -19,7 +19,7 @@ class GrantAccessForm(forms.Form):
     platform_users = []  # type: ignore
 
     def __init__(self, *args, **kwargs):
-        super(GrantAccessForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.platform_users = User.objects.all()
 
     OPTIONS = []
@@ -34,10 +34,12 @@ class FlavorForm(forms.Form):
     cpu_req = forms.CharField(label="CPU request", max_length=10, initial="200m")
     mem_req = forms.CharField(label="Memory request", max_length=15, initial="0.5Gi")
     ephmem_req = forms.CharField(label="Ephemeral storage request", max_length=15, initial="200Mi")
+    gpu_req = forms.IntegerField(label="GPU request", min_value=0, initial=0)
 
     cpu_lim = forms.CharField(label="CPU limit", max_length=10, initial="2000m")
     mem_lim = forms.CharField(label="Memory limit", max_length=15, initial="4Gi")
-    ephmem_req = forms.CharField(label="Ephemeral storage limit", max_length=15, initial="5000Mi")
+    ephmem_lim = forms.CharField(label="Ephemeral storage limit", max_length=15, initial="5000Mi")
+    gpu_lim = forms.IntegerField(label="GPU limit", min_value=0, initial=0)
 
 
 class ImageUpdateForm(forms.Form):

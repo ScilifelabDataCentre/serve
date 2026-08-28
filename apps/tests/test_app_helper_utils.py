@@ -26,9 +26,38 @@ from doi_minting.services.schemas import InvenioRecord
 from projects.models import Flavor, Project
 
 from ..models import Apps, DashInstance, K8sUserAppStatus, Subdomain
-from ..types_.subdomain import SubdomainTuple
+from ..tasks import _is_helm_release_not_found
+from ..types_.subdomain import SubdomainChangeError, SubdomainTuple
+
+DELETE_RESOURCE_OK = {"success": True, "release_missing": False, "error": None}
 
 User = get_user_model()
+
+
+class HelmReleaseNotFoundTestCase(TestCase):
+    """Tests for classifying helm uninstall errors."""
+
+    def test_missing_release_errors_are_recognised(self):
+        errors = [
+            "Error: uninstall: Release not loaded: my-app: release: not found",
+            "Error: release: not found",
+            "ERROR: UNINSTALL: RELEASE NOT LOADED: MY-APP",
+        ]
+        for error in errors:
+            with self.subTest(error=error):
+                self.assertTrue(_is_helm_release_not_found(error))
+
+    def test_real_failures_are_not_treated_as_missing_release(self):
+        errors = [
+            "Error: uninstall: timed out waiting for the condition",
+            "Error: failed to delete release: my-app",
+            'Error: pre-delete hook failed: job "delete-user-pods-my-app" failed: BackoffLimitExceeded',
+            "",
+            None,
+        ]
+        for error in errors:
+            with self.subTest(error=error):
+                self.assertFalse(_is_helm_release_not_found(error))
 
 
 class CreateAppInstanceTestCase(TestCase):
@@ -272,6 +301,8 @@ class UpdateExistingAppInstanceTestCase(TestCase):
 
         changed_fields = ["subdomain", "invenio_tags", "creators"]
 
+        mock_delete.return_value = DELETE_RESOURCE_OK
+
         # Apply the form and validate the result
         self._verify_update_instance_from_form(data, changed_fields)
 
@@ -279,6 +310,79 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         mock_deploy.assert_called_once()
         # Modifying the subdomain SHOULD cause a delete:
         mock_delete.assert_called_once_with(ANY, AppActionOrigin.USER.value)
+
+    def _subdomain_change_form(self, new_subdomain: str):
+        """Build a valid form that only changes the app subdomain."""
+        data = {
+            "name": self.name,
+            "description": self.description,
+            "access": "public",
+            "port": self.port,
+            "image": self.image,
+            "source_code_url": self.source_code_url,
+            "subdomain": new_subdomain,
+            "invenio_tags": "Antibodies|Cells",
+            "creators": '[{"name": "Test", "lastName": "User", "affiliation": "", "orcid": "", "order": 0}]',
+        }
+
+        model_class, form_class = APP_REGISTRY.get(self.app_slug)
+        instance = model_class.objects.get(pk=self.app_instance.id)
+        form = form_class(data, project_pk=self.project.pk, instance=instance)
+        self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
+        return form
+
+    def test_update_instance_from_form_subdomain_change_aborts_when_release_not_removed(self, mock_delete, mock_deploy):
+        """A failed helm uninstall must not release the old subdomain."""
+        new_subdomain = "test-subdomain-update-app-new"
+        mock_delete.return_value = {
+            "success": False,
+            "release_missing": False,
+            "error": "Error: uninstall: timed out waiting for the condition",
+        }
+
+        form = self._subdomain_change_form(new_subdomain)
+
+        with self.assertRaises(SubdomainChangeError):
+            create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+
+        mock_delete.assert_called_once_with(ANY, AppActionOrigin.USER.value)
+
+        instance = DashInstance.objects.get(pk=self.app_instance.id)
+        self.assertEqual(instance.subdomain.subdomain, self.subdomain_name)
+        self.assertFalse(Subdomain.objects.filter(subdomain=new_subdomain).exists())
+        mock_deploy.assert_not_called()
+
+    def test_update_instance_from_form_subdomain_change_proceeds_when_release_missing(self, mock_delete, mock_deploy):
+        """A release that does not exist is not a delete failure, so the rename proceeds."""
+        new_subdomain = "test-subdomain-update-app-new"
+        mock_delete.return_value = {
+            "success": False,
+            "release_missing": True,
+            "error": "Error: uninstall: Release not loaded: test-subdomain-update-app: release: not found",
+        }
+
+        form = self._subdomain_change_form(new_subdomain)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+
+        instance = DashInstance.objects.get(pk=self.app_instance.id)
+        self.assertEqual(instance.subdomain.subdomain, new_subdomain)
+        mock_deploy.assert_called_once()
+
+    def test_update_instance_from_form_subdomain_change_aborts_on_unknown_delete_result(self, mock_delete, mock_deploy):
+        """Without a confirmed result the cluster cannot be assumed clean, so fail closed."""
+        new_subdomain = "test-subdomain-update-app-new"
+        mock_delete.return_value = None
+
+        form = self._subdomain_change_form(new_subdomain)
+
+        with self.assertRaises(SubdomainChangeError):
+            create_instance_from_form(form, self.project, self.app_slug, app_id=self.app_instance.id)
+
+        instance = DashInstance.objects.get(pk=self.app_instance.id)
+        self.assertEqual(instance.subdomain.subdomain, self.subdomain_name)
+        mock_deploy.assert_not_called()
 
     def test_update_instance_from_form_modify_no_redeploy_values(self, mock_delete, mock_deploy):
         """
@@ -490,7 +594,9 @@ def test_get_subdomain_name_no_subdomain_in_form():
 
 
 @pytest.mark.django_db
-def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_commit_callbacks):
+def test_forms_submit_funding_related_publications_and_enqueue_doi_background_task(
+    django_capture_on_commit_callbacks,
+):
     user = User.objects.create_user("funding-doi-user", "funding-doi@test.com", "bar")
     project = Project.objects.create_project(name="test-funding-doi", owner=user, description="")
     flavor = Flavor.objects.create(name="funding-doi-flavor", project=project)
@@ -504,11 +610,17 @@ def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_
     )
 
     funding_payload = [{"funder_name": "Uppsala University", "funder_id": "048a87296"}]
+    related_publications_payload = [
+        {
+            "doi": "https://doi.org/10.123/12345",
+            "publication_type": "DataPaper",
+        }
+    ]
 
     model_class, form_class = APP_REGISTRY.get("customapp")
     form_data = {
         "name": "customapp-funding-doi-test",
-        "description": "form with funding and tags",
+        "description": "form with funding, related publications and tags",
         "flavor": str(flavor.pk),
         "access": "public",
         "port": 8000,
@@ -517,6 +629,7 @@ def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_
         "language": "eng",
         "invenio_tags": "Antibodies|Cells",
         "funding_sources_json": json.dumps(funding_payload),
+        "related_publications_json": json.dumps(related_publications_payload),
     }
     form = form_class(form_data, project_pk=project.pk)
     assert form.is_valid(), f"form should be valid but has errors: {form.errors}"
@@ -528,10 +641,12 @@ def test_forms_submit_funding_and_enqueue_doi_background_task(django_capture_on_
     app_instance = model_class.objects.get(pk=app_id)
 
     called_serialized_instance, called_app_slug, task_kwargs_by_task_name, _ = mock_bg.call_args.args
+
     assert called_serialized_instance["pk"] == app_instance.id
     assert called_app_slug == app_instance.app.slug
     assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
     assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
+    assert task_kwargs_by_task_name["doi_provisioning"]["related_publications_datasets"] == related_publications_payload
 
 
 @pytest.mark.django_db
@@ -548,11 +663,17 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
     )
 
     funding_payload = [{"funder_name": "Uppsala University", "funder_id": "048a87296"}]
+    related_publications_payload = [
+        {
+            "doi": "https://doi.org/10.123/12345",
+            "publication_type": "DataPaper",
+        }
+    ]
 
     model_class, form_class = APP_REGISTRY.get("dashapp")
     form_data = {
         "name": "dashapp-funding-doi-test",
-        "description": "dash form with funding and tags",
+        "description": "dash form with funding, related publications and tags",
         "flavor": str(flavor.pk),
         "access": "public",
         "port": 8000,
@@ -561,6 +682,7 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
         "language": "eng",
         "invenio_tags": "Antibodies|Cells",
         "funding_sources_json": json.dumps(funding_payload),
+        "related_publications_json": json.dumps(related_publications_payload),
     }
     form = form_class(form_data, project_pk=project.pk)
     assert form.is_valid(), f"form should be valid but has errors: {form.errors}"
@@ -576,6 +698,7 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
     assert called_app_slug == app_instance.app.slug
     assert task_kwargs_by_task_name["doi_provisioning"]["funding"] == funding_payload
     assert task_kwargs_by_task_name["doi_provisioning"]["language"] == "eng"
+    assert task_kwargs_by_task_name["doi_provisioning"]["related_publications_datasets"] == related_publications_payload
 
 
 @pytest.mark.django_db
@@ -985,6 +1108,83 @@ def test_apply_additional_metadata_maps_funding_entries():
         {
             "funder": {
                 "id": "0014h3x09",
+            },
+        },
+    ]
+
+
+def test_apply_additional_metadata_maps_related_publications_datasets_entries():
+    service = InvenioService(mock_mode=True)
+
+    target_metadata = {
+        "related_identifiers": [
+            {
+                "identifier": "https://mock.io/some-image",
+                "scheme": "url",
+                "relation_type": {
+                    "id": "isvariantformof",
+                    "title": {"en": "Docker image"},
+                },
+                "resource_type": {
+                    "id": "software",
+                },
+            }
+        ]
+    }
+
+    extra_metadata = {
+        "related_publications_datasets": [
+            {
+                "doi": "https://doi.org/10.1101/2026.01.01.123456",
+                "publication_type": "Preprint",
+            },
+            {
+                "doi": "https://doi.org/10.5281/zenodo.1234567",
+                "publication_type": "Dataset",
+            },
+        ]
+    }
+
+    result = service._apply_additional_invenio_metadata(target_metadata, extra_metadata)
+
+    related_identifiers = [
+        item.model_dump(mode="json") if hasattr(item, "model_dump") else item for item in result["related_identifiers"]
+    ]
+
+    assert related_identifiers == [
+        {
+            "identifier": "https://mock.io/some-image",
+            "scheme": "url",
+            "relation_type": {
+                "id": "isvariantformof",
+                "title": {"en": "Docker image"},
+            },
+            "resource_type": {
+                "id": "software",
+            },
+        },
+        {
+            "identifier": "https://doi.org/10.1101/2026.01.01.123456",
+            "scheme": "doi",
+            "relation_type": {
+                "id": "issupplementto",
+                "title": None,
+            },
+            "resource_type": {
+                "id": "publication-preprint",
+                "title": None,
+            },
+        },
+        {
+            "identifier": "https://doi.org/10.5281/zenodo.1234567",
+            "scheme": "doi",
+            "relation_type": {
+                "id": "issupplementto",
+                "title": None,
+            },
+            "resource_type": {
+                "id": "dataset",
+                "title": None,
             },
         },
     ]

@@ -1,5 +1,7 @@
 {% load static %}
 {% load custom_tags %}
+{% load get_setting %}
+{% get_setting "INVENIO_MOCK_MODE" as invenio_mock_mode %}
 
                 <div class="card h-100 border-0 shadow">
                     <div class="card-header d-flex card-footer-text justify-content-between align-items-center">
@@ -94,7 +96,7 @@
                         <div class="clearfix"></div>
                     </div>
                     <div class="col-12">
-                        <a id="app-details-{{ app.id }}" title="App description" rel="Link to the description of the app" href="{% if app.invenio_record_id %}{% url 'app-details' app.invenio_record_id %}{% else %}{% url 'app-details' app.id %}{% endif %}" class="btn btn-outline-serve-grape btn-sm w-100" style="border-radius:2px;"> <i class="bi bi-info-circle"></i> Details</a>
+                        <a id="app-details-{{ app.id }}" title="App description" rel="Link to the description of the app" href="{% if app.invenio_record_id and not invenio_mock_mode %}{% url 'app-details' app.invenio_record_id %}{% else %}{% url 'app-details' app.id %}{% endif %}" class="btn btn-outline-serve-grape btn-sm w-100" style="border-radius:2px;"> <i class="bi bi-info-circle"></i> Details</a>
                     </div>
                     <div class="card-footer d-flex text-muted card-footer-text justify-content-between border-top-0">
                         <div>
@@ -107,7 +109,7 @@
                             <a id="source-code-url-{{ app.id }}" target="_blank" title="Source code of the app" rel="Link to the source code of the app" href="{{ app.source_code_url }}" class="btn btn-outline-serve btn-sm"> <i class="bi bi-code-slash"></i> Source code</a>
                             {% endif %}
                             </div>
-                            {% if "Serve" in app.name or app.name == "Python Model Deployment" %}
+                            {% if app.is_api_endpoint %}
                                 <a class="btn btn-primary btn-sm" onclick="copyClip('{{app.url}}')">Copy API Endpoint</a>
                             {% else %}
                                 <a title="Launch the app" rel="Link to launch the app" href="{{ app.url }}" target="_blank" class="btn btn-primary btn-sm">Launch</a>

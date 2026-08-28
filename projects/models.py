@@ -18,6 +18,8 @@ from guardian.shortcuts import assign_perm
 
 from studio.utils import get_logger
 
+from .exceptions import ProjectLimitReachedException
+
 logger = get_logger(__name__)
 
 
@@ -73,11 +75,11 @@ class Environment(models.Model):
 class Flavor(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     cpu_lim = models.TextField("CPU limit", blank=True, null=True, default="2000m")
-    gpu_lim = models.TextField(blank=True, null=True, default="0")
+    gpu_lim = models.PositiveSmallIntegerField("GPU limit", default=0)
     ephmem_lim = models.TextField("Ephemeral storage limit", blank=True, null=True, default="5000Mi")
     mem_lim = models.TextField("Memory limit", blank=True, null=True, default="4Gi")
     cpu_req = models.TextField("CPU request", blank=True, null=True, default="200m")
-    gpu_req = models.TextField(blank=True, null=True, default="0")
+    gpu_req = models.PositiveSmallIntegerField("GPU request", default=0)
     ephmem_req = models.TextField("Ephemeral storage request", blank=True, null=True, default="200Mi")
     mem_req = models.TextField("Memory request", blank=True, null=True, default="0.5Gi")
     name = models.CharField("Flavor name (N vCPU, N GB RAM)", max_length=512)
@@ -103,7 +105,7 @@ class Flavor(models.Model):
             )
         )
         # allow GPU only for apps that are flagged gpu enabled in app template.
-        if self.gpu_req and int(self.gpu_req) > 0 and gpu_enabled_app:
+        if self.gpu_req and self.gpu_req > 0 and gpu_enabled_app:
             flavor_dict["flavor"]["requests"]["nvidia.com/gpu"] = self.gpu_req
             flavor_dict["flavor"]["limits"]["nvidia.com/gpu"] = self.gpu_lim
 
@@ -113,11 +115,6 @@ class Flavor(models.Model):
 # it will become the default objects attribute for a Project model
 class ProjectManager(models.Manager):
     def create_project(self, name, owner, description, status="active", project_template=None):
-        user_can_create = self.user_can_create(owner)
-
-        if not user_can_create:
-            raise Exception("User not allowed to create project")
-
         key = self.generate_passkey()
         letters = string.ascii_lowercase
         secret = self.generate_passkey(40)
@@ -125,20 +122,27 @@ class ProjectManager(models.Manager):
         if len(slug) < 3:
             slug = "".join(random.choice(letters) for i in range(3))
         slug_extension = "".join(random.choice(letters) for i in range(3))
-        slug = "{}-{}".format(slugify(slug), slug_extension)
+        slug = f"{slugify(slug)}-{slug_extension}"
 
-        project = self.create(
-            name=name,
-            owner=owner,
-            slug=slug,
-            project_key=key,
-            project_secret=secret,
-            description=description,
-            status=status,
-            project_template=project_template,
-        )
+        with transaction.atomic():
+            locked_owner = get_user_model().objects.select_for_update().get(pk=owner.pk)
 
-        assign_perm("can_view_project", owner, project)
+            if not self.user_can_create(locked_owner):
+                raise ProjectLimitReachedException("User not allowed to create project")
+
+            project = self.create(
+                name=name,
+                owner=locked_owner,
+                slug=slug,
+                project_key=key,
+                project_secret=secret,
+                description=description,
+                status=status,
+                project_template=project_template,
+            )
+
+            assign_perm("can_view_project", locked_owner, project)
+
         return project
 
     def generate_passkey(self, length=20):
@@ -155,7 +159,7 @@ class ProjectManager(models.Manager):
         if not user.is_authenticated:
             return False
 
-        num_of_projects = self.filter(Q(owner=user), status="active").count()
+        num_of_projects = self.filter(Q(owner=user), status__in=("created", "active")).count()
 
         try:
             project_per_user_limit = settings.PROJECTS_PER_USER_LIMIT
@@ -212,7 +216,7 @@ class ProjectTemplate(models.Model):
         )
 
     def __str__(self):
-        return "{} ({})".format(self.name, self.revision)
+        return f"{self.name} ({self.revision})"
 
 
 class Project(models.Model):
@@ -249,7 +253,7 @@ class Project(models.Model):
         permissions = [("can_view_project", "Can view project")]
 
     def __str__(self):
-        return "Name: {} ({})".format(self.name, self.status)
+        return f"Name: {self.name} ({self.status})"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

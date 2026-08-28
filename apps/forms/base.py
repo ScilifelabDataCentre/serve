@@ -4,14 +4,21 @@ import uuid
 
 import waffle
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Button, Div, Submit
+from crispy_forms.layout import HTML, Button, Div, Submit
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.forms import Select, SelectMultiple
 from django.shortcuts import get_object_or_404
 
-from apps.forms.field.widget import SubdomainInputGroup
+from apps.forms.field.widget import FlavorSelect, SubdomainInputGroup
+from apps.gpu import (
+    GPU_UNAVAILABLE_MESSAGE,
+    flavor_gpu_count,
+    gpu_available_for_flavor,
+    gpus_in_use,
+    model_class_gpu_enabled,
+)
 from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
 from doi_minting.services.invenio_svc import InvenioService
@@ -126,8 +133,8 @@ class BaseForm(forms.ModelForm):
             return
 
         # Fetch metadata for public app from Invenio
-        if not instance.access == "public" or not instance.invenio_record_id:
-            logger.info("Skipping metadata fetch from Invenio for non-public app or app without Invenio record ID.")
+        if not instance.invenio_record_id:
+            logger.info("Skipping metadata fetch from Invenio for app without Invenio record ID.")
             return
 
         record_id = getattr(instance, "invenio_record_id", None)
@@ -137,9 +144,10 @@ class BaseForm(forms.ModelForm):
         try:
             logger.info(f"Fetching metadata from Invenio for record ID {record_id} to populate form initial values.")
             invenio_svc = InvenioService()
-            record = invenio_svc.get_record_data(record_id)
+            record = invenio_svc.get_current_record_data(record_id)
             app_metadata = invenio_svc.extract_app_metadata(record)
 
+            # Extract language from Invenio metadata
             if "language" in self.fields:
                 extracted_language = invenio_svc.extract_language_id(app_metadata)
                 logger.info(
@@ -157,6 +165,7 @@ class BaseForm(forms.ModelForm):
                 self.fields["language"].initial = language_code
                 logger.info(f"Final language mapping: {language_code}")
 
+            # Extract funding from Invenio metadata
             funding = invenio_svc.extract_funding(app_metadata)
             logger.info(f"Extracted funding from Invenio: {funding} (type: {type(funding)})")
             if "funding_sources_json" in self.fields:
@@ -205,6 +214,41 @@ class BaseForm(forms.ModelForm):
             else:
                 self._invenio_creators = []
                 logger.info("No creators found in Invenio metadata")
+
+            # Extract related publications and datasets data from Invenio metadata
+            # Both publications and datasets are stored as related identifiers but
+            # with different publication type.
+            related_publications_datasets = invenio_svc.extract_related_publications_datasets(app_metadata)
+            logger.info(
+                "Extracted related work from Invenio: %s (type: %s)",
+                related_publications_datasets,
+                type(related_publications_datasets),
+            )
+
+            if "related_publications_json" in self.fields or "related_datasets_json" in self.fields:
+                related_publications_data = []
+                related_datasets_data = []
+
+                for work in related_publications_datasets:
+                    if work.publication_type == "Dataset":
+                        related_datasets_data.append(
+                            {
+                                "doi": work.doi,
+                            }
+                        )
+                    else:
+                        related_publications_data.append(
+                            {
+                                "doi": work.doi,
+                                "publication_type": work.publication_type,
+                            }
+                        )
+
+                if "related_publications_json" in self.fields:
+                    self.fields["related_publications_json"].initial = json.dumps(related_publications_data)
+
+                if "related_datasets_json" in self.fields:
+                    self.fields["related_datasets_json"].initial = json.dumps(related_datasets_data)
 
         except Exception:
             logger.exception("Failed to fetch metadata from Invenio; leaving default initial values.")
@@ -305,6 +349,75 @@ class BaseForm(forms.ModelForm):
                 raise forms.ValidationError("Each funding source must be selected from the Invenio funders list.")
 
         return json.dumps(data)
+
+    def clean_related_publications_json(self):
+        raw = self.cleaned_data.get("related_publications_json") or "[]"
+
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+        except json.JSONDecodeError as e:
+            raise forms.ValidationError("Invalid related publications data.") from e
+
+        if not isinstance(data, list):
+            raise forms.ValidationError("Related publications must be a list.")
+
+        cleaned = []
+
+        for item in data:
+            if not isinstance(item, dict):
+                raise forms.ValidationError("Invalid related publication entry.")
+
+            doi = (item.get("doi") or "").strip()
+            publication_type = (item.get("publication_type") or "").strip()
+
+            if not doi:
+                raise forms.ValidationError("Each related publication must have a DOI.")
+            if not doi.startswith("https://doi.org/") or doi == "https://doi.org/":
+                raise forms.ValidationError("Publication DOI must start with https://doi.org/ and include a DOI value.")
+            if not publication_type:
+                raise forms.ValidationError("Each related publication must have a publication type.")
+
+            cleaned.append(
+                {
+                    "doi": doi,
+                    "publication_type": publication_type,
+                }
+            )
+
+        return json.dumps(cleaned)
+
+    def clean_related_datasets_json(self):
+        raw = self.cleaned_data.get("related_datasets_json") or "[]"
+
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+        except json.JSONDecodeError as e:
+            raise forms.ValidationError("Invalid related datasets data.") from e
+
+        if not isinstance(data, list):
+            raise forms.ValidationError("Related datasets must be a list.")
+
+        cleaned = []
+
+        for item in data:
+            if not isinstance(item, dict):
+                raise forms.ValidationError("Invalid related dataset entry.")
+
+            doi = (item.get("doi") or "").strip()
+
+            if not doi:
+                raise forms.ValidationError("Each related dataset must have a DOI.")
+            if not doi.startswith("https://doi.org/") or doi == "https://doi.org/":
+                raise forms.ValidationError("Dataset DOI must start with https://doi.org/ and include a DOI value.")
+
+            cleaned.append(
+                {
+                    "doi": doi,
+                    "publication_type": "Dataset",
+                }
+            )
+
+        return json.dumps(cleaned)
 
     def validate_subdomain(self, subdomain_input):
         # If user did not input subdomain, set it to our standard release name
@@ -468,6 +581,41 @@ class BaseForm(forms.ModelForm):
                 # If there's an error parsing, keep the field in changed_data to be safe
                 pass
 
+        # Handle related publications - compare JSON data
+        if "related_publications_json" in changed_data and self.instance and self.instance.pk:
+            try:
+                import json
+
+                current_publications = self.data.get("related_publications_json", "") or "[]"
+                initial_publications = self.fields["related_publications_json"].initial or "[]"
+
+                # Parse both JSON strings and compare the data structures
+                current_data = json.loads(current_publications) if current_publications else []
+                initial_data = json.loads(initial_publications) if initial_publications else []
+
+                # If the data is the same, remove from changed_data
+                if current_data == initial_data:
+                    changed_data.remove("related_publications_json")
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # If there's an error parsing, keep the field in changed_data to be safe
+                pass
+
+        # Handle related datasets - compare JSON data
+        if "related_datasets_json" in changed_data and self.instance and self.instance.pk:
+            try:
+                import json
+
+                current_datasets = self.data.get("related_datasets_json", "") or "[]"
+                initial_datasets = self.fields["related_datasets_json"].initial or "[]"
+
+                current_data = json.loads(current_datasets) if current_datasets else []
+                initial_data = json.loads(initial_datasets) if initial_datasets else []
+
+                if current_data == initial_data:
+                    changed_data.remove("related_datasets_json")
+            except (json.JSONDecodeError, KeyError, ValueError):
+                pass
+
         # Handle volume field - compare current value with initial form value
         if "volume" in changed_data and self.instance and self.instance.pk:
             try:
@@ -499,7 +647,9 @@ class AppBaseForm(BaseForm):
         queryset=VolumeInstance.objects.none(), required=False, empty_label="None", initial=None
     )
 
-    flavor = forms.ModelChoiceField(queryset=Flavor.objects.none(), required=True, empty_label=None)
+    flavor = forms.ModelChoiceField(
+        queryset=Flavor.objects.none(), required=True, empty_label=None, widget=FlavorSelect
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -513,8 +663,66 @@ class AppBaseForm(BaseForm):
         self.fields["flavor"].label = "Hardware"
         self.fields["flavor"].queryset = flavor_queryset
         self.fields["flavor"].initial = flavor_queryset.first()  # if flavor_queryset else None
+        self.fields["flavor"].widget.gpu_flavors = {
+            str(flavor.pk) for flavor in flavor_queryset if flavor_gpu_count(flavor) > 0
+        }
+        self._setup_gpu_flavor_availability(flavor_queryset)
 
         # Handle Access field
         self.fields["access"].label = "Permission"
 
         self.fields["subdomain"].help_text = "Choose subdomain, create a new one or leave blank to get a random one."
+
+    def _app_template_gpu_enabled(self) -> bool:
+        """Whether the app template behind this form allows GPU allocation."""
+        if self.instance and self.instance.pk and self.instance.app_id:
+            return self.instance.app.gpu_enabled
+        return model_class_gpu_enabled(self._meta.model)
+
+    def _setup_gpu_flavor_availability(self, flavor_queryset):
+        """Disable GPU flavors in the dropdown when all GPUs in the cluster are taken."""
+        gpu_flavors = [flavor for flavor in flavor_queryset if flavor_gpu_count(flavor) > 0]
+        if not gpu_flavors or not self._app_template_gpu_enabled():
+            return
+
+        # An existing app keeps the GPU it already holds, so leave it out of the count
+        exclude_instance = self.instance if self.instance and self.instance.pk else None
+        in_use = gpus_in_use(exclude_instance=exclude_instance)
+        unavailable = {
+            str(flavor.pk) for flavor in gpu_flavors if in_use + flavor_gpu_count(flavor) > settings.GPU_TOTAL_CAPACITY
+        }
+        if not unavailable:
+            return
+
+        self.fields["flavor"].widget.unavailable_flavors = unavailable
+        initial = self.fields["flavor"].initial
+        if initial is not None and str(initial.pk) in unavailable:
+            available = [flavor for flavor in flavor_queryset if str(flavor.pk) not in unavailable]
+            self.fields["flavor"].initial = available[0] if available else None
+
+    def clean_flavor(self):
+        flavor = self.cleaned_data.get("flavor")
+        if flavor and flavor_gpu_count(flavor) > 0 and self._app_template_gpu_enabled():
+            exclude_instance = self.instance if self.instance and self.instance.pk else None
+            if not gpu_available_for_flavor(flavor, exclude_instance=exclude_instance):
+                raise forms.ValidationError(GPU_UNAVAILABLE_MESSAGE)
+        return flavor
+
+    def _deletion_note_layout(self):
+        """Auto-deletion note shown above the submit button (create app only).
+
+        The day count is updated client-side for GPU flavors (in create_base.html).
+        """
+        if self.instance and self.instance.pk:
+            return HTML("")
+        default_days = settings.DEVELOP_APP_MAX_AGE_DAYS
+        gpu_days = settings.GPU_DEVELOP_APP_MAX_AGE_DAYS
+        default_label = f"{default_days} day{'' if default_days == 1 else 's'}"
+        return HTML(
+            f'<div class="card-body pt-0" id="app-deletion-note" '
+            f'data-default-days="{default_days}" data-gpu-days="{gpu_days}">'
+            f"<p class='mb-0'>Note: <b>after <span class='deletion-days'>{default_label}</span> "
+            f"the created {self.model_name} instance will be deleted</b>, "
+            "only the files saved in 'project-vol' will stay available.</p>"
+            "</div>"
+        )

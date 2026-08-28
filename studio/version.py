@@ -12,7 +12,7 @@ class Version:
 
     # Release a new version
     # Default is new minor version
-    def release(self, release_type: str = "minor") -> Tuple[bool, str]:
+    def release(self, release_type: str = "minor") -> tuple[bool, str]:
         if release_type == "minor":
             self.minor = self.minor + 1
             self.patch = 0

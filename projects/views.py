@@ -29,7 +29,7 @@ from apps.helpers import get_cached_ip_count
 from apps.models import BaseAppInstance, VolumeInstance
 from common.tasks import send_email_task
 
-from .exceptions import ProjectCreationException
+from .exceptions import ProjectCreationException, ProjectLimitReachedException
 from .models import (
     Environment,
     Flavor,
@@ -316,6 +316,16 @@ def create_flavor(request, project_slug):
             cpu_lim = request.POST.get("cpu_lim")
             mem_lim = request.POST.get("mem_lim")
             ephmem_lim = request.POST.get("ephmem_lim")
+
+            # GPU fields are whole counts; default to 0 (no GPU) when blank or invalid.
+            def _parse_gpu(raw):
+                try:
+                    return max(int(raw), 0)
+                except (TypeError, ValueError):
+                    return 0
+
+            gpu_req = _parse_gpu(request.POST.get("gpu_req"))
+            gpu_lim = _parse_gpu(request.POST.get("gpu_lim"))
             flavor = Flavor(
                 name=name,
                 project=project,
@@ -325,6 +335,8 @@ def create_flavor(request, project_slug):
                 mem_lim=mem_lim,
                 ephmem_req=ephmem_req,
                 ephmem_lim=ephmem_lim,
+                gpu_req=gpu_req,
+                gpu_lim=gpu_lim,
             )
             flavor.save()
     return HttpResponseRedirect(
@@ -596,9 +608,9 @@ class CreateProjectView(View):
                 status="created",
                 project_template=project_template,
             )
-        except ProjectCreationException:
-            logger.error("Failed to create project database object.")
-            success = False
+        except ProjectLimitReachedException:
+            logger.warning("Project limit reached while creating project for user %s.", request.user.pk)
+            return HttpResponseForbidden()
 
         try:
             # Create resources from the chosen template
@@ -616,7 +628,7 @@ class CreateProjectView(View):
                 project=project,
                 module="PR",
                 headline="Project created",
-                description="Created project {}".format(project.name),
+                description=f"Created project {project.name}",
             )
             l1.save()
 
@@ -624,13 +636,13 @@ class CreateProjectView(View):
                 project=project,
                 module="PR",
                 headline="Getting started",
-                description="Getting started with project {}".format(project.name),
+                description=f"Getting started with project {project.name}",
             )
             l2.save()
 
-        next_page = request.POST.get("next", "/projects/{}".format(project.slug))
+        next_page = request.POST.get("next", f"/projects/{project.slug}")
 
-        return HttpResponseRedirect(next_page, {"message": "Created project"})
+        return HttpResponseRedirect(next_page)
 
 
 @method_decorator(
@@ -759,7 +771,7 @@ def delete(request, project_slug):
     project.save()
     delete_project.delay(project.pk)
 
-    return HttpResponseRedirect(next_page, {"message": "Deleted project successfully."})
+    return HttpResponseRedirect(next_page)
 
 
 @login_required

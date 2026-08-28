@@ -26,6 +26,7 @@ from rest_framework.decorators import (
     authentication_classes,
     permission_classes,
 )
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.mixins import (
     CreateModelMixin,
     ListModelMixin,
@@ -45,6 +46,7 @@ from apps.types_.subdomain import SubdomainCandidateName
 from doi_minting.clients.invenio_client import InvenioClient
 from models.models import ObjectType
 from portal.models import PublishedModel
+from projects.exceptions import ProjectLimitReachedException
 from projects.models import Environment, Flavor, ProjectLog, ProjectTemplate
 from projects.tasks import create_resources_from_template, delete_project_apps
 from studio.utils import get_logger
@@ -406,11 +408,14 @@ class ProjectList(
     def create(self, request):
         name = request.data["name"]
         description = request.data["description"]
-        project = Project.objects.create_project(
-            name=name,
-            owner=request.user,
-            description=description,
-        )
+        try:
+            project = Project.objects.create_project(
+                name=name,
+                owner=request.user,
+                description=description,
+            )
+        except ProjectLimitReachedException as exc:
+            raise PermissionDenied(str(exc)) from exc
         success = True
 
         try:
@@ -438,7 +443,7 @@ class ProjectList(
                 project=project,
                 module="PR",
                 headline="Project created",
-                description="Created project {}".format(project.name),
+                description=f"Created project {project.name}",
             )
             l1.save()
 
@@ -446,7 +451,7 @@ class ProjectList(
                 project=project,
                 module="PR",
                 headline="Getting started",
-                description="Getting started with project {}".format(project.name),
+                description=f"Getting started with project {project.name}",
             )
             l2.save()
 
@@ -724,7 +729,7 @@ class ProjectTemplateList(
             image = request.FILES["image"]
         except Exception:
             logger.error(request.data, exc_info=True)
-            return HttpResponse("Failed to create new template: {}".format(name), status=400)
+            return HttpResponse(f"Failed to create new template: {name}", status=400)
 
         try:
             template_latest_rev = ProjectTemplate.objects.filter(slug=slug).order_by("-revision")
@@ -743,7 +748,7 @@ class ProjectTemplateList(
             template.save()
         except Exception as err:
             logger.error(err, exc_info=True)
-        return HttpResponse("Created new template: {}.".format(name), status=200)
+        return HttpResponse(f"Created new template: {name}.", status=200)
 
 
 @api_view(["GET"])
@@ -977,6 +982,13 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
                 return Response(
                     "OK. NO_ACTION. No action performed. Possibly the event time is older \
                     than the currently stored time.",
+                    200,
+                )
+
+            elif result == HandleUpdateStatusResponseCode.DEFERRED_TO_AGGREGATION:
+                return Response(
+                    "OK. DEFERRED_TO_AGGREGATION. A single pod reported Running. \
+                    The app is marked Running once all workloads of the release are ready.",
                     200,
                 )
 

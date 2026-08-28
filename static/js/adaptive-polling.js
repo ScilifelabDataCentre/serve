@@ -1,5 +1,12 @@
 (function () {
-  function createPoller({ poll, getDelay, errorDelay = 10000, onError = null, autoStart = true }) {
+  function createPoller({
+    poll,
+    getDelay,
+    errorDelay = 10000,
+    onError = null,
+    autoStart = true,
+    pollWhileHidden = false,
+  }) {
     let timer = null;
     let stopped = true;
     let running = false;
@@ -13,10 +20,11 @@
 
     const schedule = (delay) => {
       clearTimer();
-      if (stopped || document.hidden) {
+      if (stopped || (document.hidden && !pollWhileHidden)) {
         return;
       }
-      timer = window.setTimeout(run, delay);
+      const safeDelay = Number.isFinite(delay) && delay > 0 ? delay : errorDelay;
+      timer = window.setTimeout(run, safeDelay);
     };
 
     const run = async () => {
@@ -54,7 +62,9 @@
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
-        clearTimer();
+        if (!pollWhileHidden) {
+          clearTimer();
+        }
       } else if (!stopped) {
         run();
       }

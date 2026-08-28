@@ -1,5 +1,3 @@
-from __future__ import absolute_import, unicode_literals
-
 import os
 from logging.config import dictConfig
 
@@ -13,6 +11,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "studio.settings")
 app = Celery("studio")
 app.steps["worker"].add(DjangoStructLogInitStep)
 app.config_from_object("django.conf:settings", namespace="CELERY")
+# Import after Celery/Django settings are configured
+import studio.celery_db  # noqa: E402,F401
 
 
 @setup_logging.connect

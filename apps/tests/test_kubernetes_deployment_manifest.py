@@ -13,6 +13,8 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
     DEPLOYMENT_ID = "unittest-valid"
 
     VALUES_DATA = r"""
+        gateway:
+            enabled: false
         appconfig:
             allowContainerReuse: false
             image: ghcr.io/somerepo/shiny:v1
@@ -85,7 +87,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
         values_file, _ = self.kdm.get_filepaths()
         namespace = "default"
-        version = "1.4.2"
+        version = "1.4.12"
 
         output, error = self.kdm.generate_manifest_yaml_from_template(
             chart, values_file, namespace, version, save_to_file=False
@@ -107,7 +109,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
         values_file, _ = self.kdm.get_filepaths()
         namespace = "default"
-        version = "1.4.2"
+        version = "1.4.12"
 
         output, error = self.kdm.generate_manifest_yaml_from_template(
             chart, values_file, namespace, version, save_to_file=False
@@ -135,7 +137,7 @@ class ValidKubernetesDeploymentManifestTestCase(TestCase):
         chart = "oci://ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy"
         values_file, _ = self.kdm.get_filepaths()
         namespace = "default"
-        version = "1.4.2"
+        version = "1.4.12"
 
         output, error = self.kdm.generate_manifest_yaml_from_template(
             chart, values_file, namespace, version, save_to_file=False
@@ -249,7 +251,7 @@ class ValidateExistingKubernetesDeploymentManifestTestCase(TestCase):
         print(f"Nr of manifest files to validate: {len(deployment_files)}")
 
         for file in deployment_files:
-            f = open(file, "r")
+            f = open(file)
             manifest_data = f.read()
 
             kdm = KubernetesDeploymentManifest()

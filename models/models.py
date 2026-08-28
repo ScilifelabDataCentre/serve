@@ -5,6 +5,7 @@ from django.db import models
 from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
 from django.utils.module_loading import import_string
+from django_tagulous.models import TagField
 from minio import Minio
 
 from studio.utils import get_logger
@@ -58,7 +59,7 @@ class ObjectType(models.Model):
 
 
 def upload_headline_path(instance, filename):
-    return "models/model_{0}/{1}".format(instance.pk, filename)
+    return f"models/model_{instance.pk}/{filename}"
 
 
 class Model(models.Model):
@@ -123,7 +124,7 @@ class Model(models.Model):
         unique_together = ("name", "version", "project")
 
     def __str__(self):
-        return "{name}:{version}".format(name=self.name, version=self.version)
+        return f"{self.name}:{self.version}"
 
 
 class ModelLog(models.Model):
