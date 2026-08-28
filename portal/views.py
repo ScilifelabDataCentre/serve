@@ -138,10 +138,8 @@ def get_public_apps(request, app_id=0, collection=None, order_by="updated_on", o
         if collection:
             filters &= Q(collections__slug=collection)
 
-        queryset = (
-            app_orm.objects.filter(filters)
-            .select_related("owner__userprofile", "k8s_user_app_status", "project", "app")
-            .prefetch_related("tags")
+        queryset = app_orm.objects.filter(filters).select_related(
+            "owner__userprofile", "k8s_user_app_status", "project", "app"
         )
         return queryset
 

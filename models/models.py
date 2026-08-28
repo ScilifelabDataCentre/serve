@@ -6,7 +6,6 @@ from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
 from django.utils.module_loading import import_string
 from minio import Minio
-from tagulous.models import TagField
 
 from studio.utils import get_logger
 
@@ -103,7 +102,6 @@ class Model(models.Model):
     bucket = models.CharField(max_length=200, null=True, blank=True, default="models")
     path = models.CharField(max_length=200, null=True, blank=True, default="models")
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    tags = TagField(blank=True)
     project = models.ForeignKey(
         "projects.Project",
         on_delete=models.SET_NULL,

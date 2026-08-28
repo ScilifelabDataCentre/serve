@@ -91,7 +91,6 @@ INSTALLED_APPS = [
     "django_filters",
     "django_structlog",
     "django_prose_editor",
-    "tagulous",
     "guardian",
     "crispy_forms",
     "crispy_bootstrap5",
@@ -399,14 +398,6 @@ PUBLIC_APPS_CACHE_TIMEOUT = int(os.environ.get("PUBLIC_APPS_CACHE_TIMEOUT", "30"
 PROJECT_PERMISSION_CACHE_TIMEOUT = int(os.environ.get("PROJECT_PERMISSION_CACHE_TIMEOUT", "5"))
 BACKGROUND_TASK_STATUS_CACHE_TIMEOUT = int(os.environ.get("BACKGROUND_TASK_STATUS_CACHE_TIMEOUT", "2"))
 MAINTENANCE_MODE_CACHE_TIMEOUT = int(os.environ.get("MAINTENANCE_MODE_CACHE_TIMEOUT", "30"))
-
-# Tagulous serialization settings
-SERIALIZATION_MODULES = {
-    "xml": "tagulous.serializers.xml_serializer",
-    "json": "tagulous.serializers.json",
-    "python": "tagulous.serializers.python",
-    "yaml": "tagulous.serializers.pyyaml",
-}
 
 # Specific to Studio stack:
 # Redis settings
