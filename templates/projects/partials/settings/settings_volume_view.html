@@ -206,18 +206,13 @@
       body: new URLSearchParams({ size: input.value }).toString(),
       credentials: 'same-origin'
     })
-    .then(function (response) {
-      return response.json()
-        .catch(function () { return {}; })
-        .then(function (data) {
-          if (!response.ok) {
-            throw new Error(data.error || 'Failed to update volume size. Please try again.');
-          }
-          window.location.reload();
-        });
+    .then(function () {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'storage');
+      window.location.assign(url.toString());
     })
-    .catch(function (error) {
-      alert(error.message);
+    .catch(function () {
+      alert('Could not reach the server. Please try again.');
       btn.disabled = false;
     });
   }

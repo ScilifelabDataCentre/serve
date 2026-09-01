@@ -11,6 +11,7 @@ from .views import (
     ProjectStatusView,
     RevokeAccessToProjectView,
     UpdatePatternView,
+    UpdatePrivilegedAccessView,
 )
 
 app_name = "projects"
@@ -49,6 +50,11 @@ basicpatterns = [
         "<project_slug>/project/access/revoke/",
         RevokeAccessToProjectView.as_view(),
         name="revoke_access",
+    ),
+    path(
+        "<project_slug>/project/access/privileged/",
+        UpdatePrivilegedAccessView.as_view(),
+        name="update_privileged_access",
     ),
     path(
         "<project_slug>/project/status/",

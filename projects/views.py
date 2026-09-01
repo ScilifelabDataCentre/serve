@@ -28,7 +28,7 @@ from apps.app_registry import APP_REGISTRY
 from apps.forms.volumes import VolumeResizeForm
 from apps.helpers import get_cached_ip_count
 from apps.models import BaseAppInstance, VolumeInstance
-from common.privileges import has_privileged_access
+from common.privileges import has_privileged_access, is_privileged_user
 from common.tasks import send_email_task
 
 from .exceptions import ProjectCreationException, ProjectLimitReachedException
@@ -122,6 +122,18 @@ def settings(request, project_slug):
     # Flavors, environments and volume resizing managed by admins and privileged users.
     can_manage_project_resources = has_privileged_access(request.user, project)
     privileged_user_max_volume_size = django_settings.PRIVILEGED_USER_MAX_VOLUME_SIZE_GB
+
+    # Granting access, privileged or otherwise, is for the owner and admins.
+    can_manage_project_access = project.owner_id == request.user.pk or request.user.is_superuser
+    granted_ids = set(project.privileged_users.values_list("pk", flat=True))
+    project_members = [
+        {
+            "user": member,
+            "is_privileged_user": is_privileged_user(member),
+            "has_privileged_access": member.pk in granted_ids,
+        }
+        for member in project.authorized.all()
+    ]
 
     environments = Environment.objects.filter(project=project)
     apps_with_environment_option = (
@@ -417,7 +429,7 @@ class GrantAccessToProjectView(View):
                 messages.error(
                     request, "You cannot give access to the project owner. The owner already has access to the project."
                 )
-                return HttpResponseRedirect(f"/projects/{project_slug}/settings?template=access")
+                return HttpResponseRedirect(f"/projects/{project_slug}/settings/?tab=access")
 
             project.authorized.add(selected_user)
             assign_perm("can_view_project", selected_user, project)
@@ -469,7 +481,67 @@ class GrantAccessToProjectView(View):
 
             log.save()
 
-        return HttpResponseRedirect(f"/projects/{project_slug}/settings?template=access")
+        return HttpResponseRedirect(f"/projects/{project_slug}/settings/?tab=access")
+
+
+@method_decorator(
+    permission_required_or_403("can_view_project", (Project, "slug", "project_slug")),
+    name="dispatch",
+)
+class UpdatePrivilegedAccessView(View):
+    """Let the owner or an admin extend a privileged user's rights to this project.
+
+    The target must already be a project member and a privileged user.
+    """
+
+    def post(self, request, project_slug):
+        project = get_object_or_404(Project, slug=project_slug)
+
+        if project.owner_id != request.user.pk and not request.user.is_superuser:
+            return HttpResponseForbidden()
+
+        selected_username = request.POST.get("selected_user", "").lower().strip()
+        action = request.POST.get("action")
+
+        selected_user = User.objects.filter(username=selected_username).first()
+        redirect_to = HttpResponseRedirect(f"/projects/{project_slug}/settings/?tab=access")
+
+        if selected_user is None or selected_user.id == project.owner_id:
+            messages.error(request, "Could not update privileged access for that user.")
+            return redirect_to
+
+        if selected_user not in project.authorized.all():
+            messages.error(request, f"{selected_username} needs access to this project first.")
+            return redirect_to
+
+        if not is_privileged_user(selected_user):
+            messages.error(
+                request,
+                f"{selected_username} is not a privileged user, so this would have no effect. "
+                "Contact serve@scilifelab.se to have them made a privileged user.",
+            )
+            return redirect_to
+
+        if action == "grant":
+            project.privileged_users.add(selected_user)
+            headline = "Privileged access granted"
+            messages.success(request, f"{selected_username} can now use their privileged rights here.")
+        elif action == "revoke":
+            project.privileged_users.remove(selected_user)
+            headline = "Privileged access revoked"
+            messages.success(request, f"{selected_username} can no longer use their privileged rights here.")
+        else:
+            messages.error(request, "Could not update privileged access for that user.")
+            return redirect_to
+
+        ProjectLog(
+            project=project,
+            module="PR",
+            headline=headline,
+            description=f"Privileged access for {selected_username} updated by {request.user.username}",
+        ).save()
+
+        return redirect_to
 
 
 @method_decorator(
@@ -966,7 +1038,10 @@ def update_volume_size(request: HttpRequest, project_slug: str, volume_id: int) 
     form = VolumeResizeForm(request.POST, current_size=volume.size)
     if not form.is_valid():
         errors = form.errors.get("size") or ["Invalid size."]
-        return JsonResponse({"error": " ".join(str(error) for error in errors)}, status=400)
+        message = " ".join(str(error) for error in errors)
+        messages.error(request, message)
+
+        return JsonResponse({"error": message}, status=400)
 
     original_size = volume.size
     volume.size = form.cleaned_data["size"]
@@ -980,6 +1055,8 @@ def update_volume_size(request: HttpRequest, project_slug: str, volume_id: int) 
         volume.previous_size = None
         volume.save()
         logger.error(f"Invalid form data for volume redeployment: {redeploy_form.errors}")
+        messages.error(request, "Could not update the volume size. Please try again or contact support.")
+
         return JsonResponse({"error": "Failed to update volume size due to invalid data"}, status=500)
 
     try:
@@ -989,6 +1066,8 @@ def update_volume_size(request: HttpRequest, project_slug: str, volume_id: int) 
         volume.previous_size = None
         volume.save()
         logger.error(f"Failed to redeploy volume after size change: {str(e)}")
+        messages.error(request, "Could not update the volume size. Please try again or contact support.")
+
         return JsonResponse(
             {"error": "Failed to update volume size. Please try again or contact support."},
             status=500,
