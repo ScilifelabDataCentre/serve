@@ -52,32 +52,43 @@ class DepictioInstance(BaseAppInstance, SocialMixin):
                     }
                 ],
             }
+            # SnippetsFilter allows only one snippet per context, so blocks are
+            # merged per context below rather than appended as separate entries.
+            snippets_by_context = {
+                "http.server": [
+                    "location @custom_error_page {\n"
+                    "    internal;\n"
+                    "    proxy_set_header X-Code $status;\n"
+                    f"    proxy_pass http://nginx-errors.{settings.NAMESPACE}.svc.cluster.local;\n"
+                    "}"
+                ],
+                "http.server.location": [
+                    "proxy_intercept_errors on;\nerror_page 502 503 = @custom_error_page;",
+                ],
+            }
             if self.access in ("private", "project"):
-                gateway_values["snippetsFilter"] = {
-                    "enabled": True,
-                    "snippets": [
-                        {
-                            "context": "http.server",
-                            "value": (
-                                f"location @login_redirect {{\n"
-                                f"    return 302 https://{settings.DOMAIN}/accounts/login/?next=$request_uri;\n"
-                                f"}}\n"
-                                f"location = /_depictio_auth {{\n"
-                                f"    internal;\n"
-                                f"    client_max_body_size {self.upload_size}M;\n"
-                                f"    proxy_pass {settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={release_name};\n"
-                                f"    proxy_pass_request_body off;\n"
-                                f'    proxy_set_header Content-Length "";\n'
-                                f"    proxy_set_header X-Original-URI $request_uri;\n"
-                                f"}}"
-                            ),
-                        },
-                        {
-                            "context": "http.server.location",
-                            "value": "auth_request /_depictio_auth;\nerror_page 401 = @login_redirect;",
-                        },
-                    ],
-                }
+                snippets_by_context["http.server"].append(
+                    f"location @login_redirect {{\n"
+                    f"    return 302 https://{settings.DOMAIN}/accounts/login/?next=$request_uri;\n"
+                    f"}}\n"
+                    f"location = /_depictio_auth {{\n"
+                    f"    internal;\n"
+                    f"    client_max_body_size {self.upload_size}M;\n"
+                    f"    proxy_pass {settings.AUTH_PROTOCOL}://{settings.AUTH_DOMAIN}:8080/auth/?release={release_name};\n"
+                    f"    proxy_pass_request_body off;\n"
+                    f'    proxy_set_header Content-Length "";\n'
+                    f"    proxy_set_header X-Original-URI $request_uri;\n"
+                    f"}}"
+                )
+                snippets_by_context["http.server.location"].append(
+                    "auth_request /_depictio_auth;\nerror_page 401 = @login_redirect;"
+                )
+            gateway_values["snippetsFilter"] = {
+                "enabled": True,
+                "snippets": [
+                    {"context": context, "value": "\n".join(values)} for context, values in snippets_by_context.items()
+                ],
+            }
             k8s_values["gateway"] = gateway_values
         else:
             if self.access in ("private", "project"):
