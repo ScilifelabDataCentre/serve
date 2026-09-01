@@ -121,7 +121,7 @@ def settings(request, project_slug):
 
     # Flavors, environments and volume resizing managed by admins and privileged users.
     can_manage_project_resources = has_privileged_access(request.user, project)
-    privileged_user_max_volume_size = django_settings.PRIVILEGED_USER_MAX_VOLUME_SIZE_GB
+    privileged_user_max_volume_size = getattr(django_settings, "PRIVILEGED_USER_MAX_VOLUME_SIZE_GB", 50)
 
     # Granting access, privileged or otherwise, is for the owner and admins.
     can_manage_project_access = project.owner_id == request.user.pk or request.user.is_superuser

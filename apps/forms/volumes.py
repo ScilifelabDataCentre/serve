@@ -35,7 +35,7 @@ class VolumeResizeForm(forms.Form):
     def __init__(self, *args, current_size: int, **kwargs):
         super().__init__(*args, **kwargs)
         self.current_size = current_size
-        self.max_size = settings.PRIVILEGED_USER_MAX_VOLUME_SIZE_GB
+        self.max_size = getattr(settings, "PRIVILEGED_USER_MAX_VOLUME_SIZE_GB", 50)
 
     def clean_size(self) -> int:
         size = self.cleaned_data["size"]
