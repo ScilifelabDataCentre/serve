@@ -15,24 +15,45 @@
     </div>
 
     <div class="ms-auto d-flex gap-2">
-      {% if volume.size < 5 %}
-        <!-- Auto-increase button -->
-        <button type="button"
-                class="btn btn-outline-serve btn-sm increase-volume-btn"
-                data-project-slug="{{ project.slug }}"
-                data-volume-id="{{ volume.id }}"
-                data-csrf-token="{{ csrf_token }}">
-          Increase to 5 GB
+      {% if can_manage_project_resources %}
+        {# Privileged users set the size directly rather than requesting it. #}
+        <div class="input-group input-group-sm resize-volume-group w-auto">
+          <input type="number"
+                 class="form-control resize-volume-input"
+                 aria-label="New size for volume {{ volume.name }}, in GB"
+                 min="{{ volume.size|add:1 }}"
+                 max="{{ privileged_user_max_volume_size }}"
+                 step="1"
+                 value="{{ volume.size }}">
+          <span class="input-group-text">GB</span>
+          <button type="button"
+                  class="btn btn-outline-serve resize-volume-btn"
+                  data-project-slug="{{ project.slug }}"
+                  data-volume-id="{{ volume.id }}"
+                  data-csrf-token="{{ csrf_token }}">
+            Update size
+          </button>
+        </div>
+      {% else %}
+        {% if volume.size < 5 %}
+          <!-- Auto-increase button -->
+          <button type="button"
+                  class="btn btn-outline-serve btn-sm increase-volume-btn"
+                  data-project-slug="{{ project.slug }}"
+                  data-volume-id="{{ volume.id }}"
+                  data-csrf-token="{{ csrf_token }}">
+            Increase to 5 GB
+          </button>
+        {% endif %}
+
+        <button class="btn btn-outline-secondary btn-sm text-dark ms-auto"
+                hx-get="{% url 'projects:request_storage' project.slug volume.id %}"
+                hx-target="#storageRequestModalContainer"
+                hx-trigger="click"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+           Request more
         </button>
       {% endif %}
-
-      <button class="btn btn-outline-secondary btn-sm text-dark ms-auto"
-              hx-get="{% url 'projects:request_storage' project.slug volume.id %}"
-              hx-target="#storageRequestModalContainer"
-              hx-trigger="click"
-              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-         Request more
-      </button>
     </div>
   </div>
 
@@ -167,6 +188,59 @@
       }
     }
   }, { passive: true });
+
+  // Volume resizing (privileged users and admins)
+  function submitVolumeResize(btn) {
+    const group = btn.closest('.resize-volume-group');
+    const input = group && group.querySelector('.resize-volume-input');
+    if (!input) return;
+
+    btn.disabled = true;
+
+    fetch(`/projects/${btn.dataset.projectSlug}/volume/${btn.dataset.volumeId}/resize/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': btn.dataset.csrfToken,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({ size: input.value }).toString(),
+      credentials: 'same-origin'
+    })
+    .then(function (response) {
+      return response.json()
+        .catch(function () { return {}; })
+        .then(function (data) {
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to update volume size. Please try again.');
+          }
+          window.location.reload();
+        });
+    })
+    .catch(function (error) {
+      alert(error.message);
+      btn.disabled = false;
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    const resizeBtn = e.target.closest('.resize-volume-btn');
+    if (!resizeBtn || resizeBtn.disabled) return;
+
+    submitVolumeResize(resizeBtn);
+  }, { passive: true });
+
+  // Enter must resize, not submit the mount paths form around it.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+
+    const input = e.target.closest('.resize-volume-input');
+    if (!input) return;
+
+    e.preventDefault();
+
+    const resizeBtn = input.closest('.resize-volume-group').querySelector('.resize-volume-btn');
+    if (resizeBtn && !resizeBtn.disabled) submitVolumeResize(resizeBtn);
+  });
 
   // Handle volume increase button clicks
   document.addEventListener('click', function(e) {

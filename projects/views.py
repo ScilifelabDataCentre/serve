@@ -25,6 +25,7 @@ from guardian.decorators import permission_required_or_403
 from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 
 from apps.app_registry import APP_REGISTRY
+from apps.forms.volumes import VolumeResizeForm
 from apps.helpers import get_cached_ip_count
 from apps.models import BaseAppInstance, VolumeInstance
 from common.privileges import has_privileged_access
@@ -118,8 +119,9 @@ def settings(request, project_slug):
             ~Q(username="admin"),
         )
 
-    # Flavors and environments managed by admins and privileged users.
+    # Flavors, environments and volume resizing managed by admins and privileged users.
     can_manage_project_resources = has_privileged_access(request.user, project)
+    privileged_user_max_volume_size = django_settings.PRIVILEGED_USER_MAX_VOLUME_SIZE_GB
 
     environments = Environment.objects.filter(project=project)
     apps_with_environment_option = (
@@ -128,6 +130,15 @@ def settings(request, project_slug):
 
     flavors = Flavor.objects.filter(project=project)
     volumes = VolumeInstance.objects.filter(project=project).order_by("created_on")
+
+    for volume in volumes:
+        restored_size = volume.reconcile_resize()
+        if restored_size is not None:
+            messages.error(
+                request,
+                f"The size change for volume '{volume.name}' could not be applied and has been "
+                f"reset to {restored_size} GB. Contact serve@scilifelab.se if you need more storage.",
+            )
     # I think the way is to iterate over orm models of applications
     # and collect mappings from model path to app instances
     mount_paths_to_apps = defaultdict(list)
@@ -880,6 +891,28 @@ def request_storage(request, project_slug, volume_id):
     return HttpResponseBadRequest()
 
 
+def _build_volume_redeploy_form(volume: VolumeInstance, project: Project):
+    """Build the VolumeForm used to redeploy a resized volume."""
+
+    from apps.forms.volumes import VolumeForm
+
+    form_data = {
+        "name": volume.name,
+        "size": volume.size,
+        "subdomain": volume.subdomain.subdomain if volume.subdomain else "",
+    }
+
+    return VolumeForm(data=form_data, instance=volume, project_pk=project.pk)
+
+
+def _redeploy_volume(form, project: Project, volume: VolumeInstance) -> None:
+    """Redeploy a volume so the cluster picks up its new size."""
+
+    from apps.helpers import create_instance_from_form
+
+    create_instance_from_form(form=form, project=project, app_slug="volumeK8s", app_id=volume.pk, force_redeploy=True)
+
+
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def increase_volume_size(request: HttpRequest, project_slug: str, volume_id: int) -> HttpResponse:
@@ -898,24 +931,11 @@ def increase_volume_size(request: HttpRequest, project_slug: str, volume_id: int
     volume.size = 5
     volume.save()
 
-    # Create form data for redeployment
-    from apps.forms.volumes import VolumeForm
-    from apps.helpers import create_instance_from_form
-
-    # Create form instance with volume data
-    form_data = {
-        "name": volume.name,
-        "size": volume.size,
-        "subdomain": volume.subdomain.subdomain if volume.subdomain else "",
-    }
-    form = VolumeForm(data=form_data, instance=volume, project_pk=project.pk)
+    form = _build_volume_redeploy_form(volume, project)
 
     if form.is_valid():
         try:
-            # Redeploy with updated size
-            create_instance_from_form(
-                form=form, project=project, app_slug="volumeK8s", app_id=volume.id, force_redeploy=True
-            )
+            _redeploy_volume(form, project, volume)
             return JsonResponse({"message": "Volume size increased to 5GB and redeployment initiated"})
         except Exception as e:
             volume.size = original_size
@@ -928,6 +948,59 @@ def increase_volume_size(request: HttpRequest, project_slug: str, volume_id: int
     else:
         logger.error(f"Invalid form data for volume redeployment: {form.errors}")
         return JsonResponse({"error": "Failed to increase volume size due to invalid data"}, status=500)
+
+
+@login_required
+@permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
+def update_volume_size(request: HttpRequest, project_slug: str, volume_id: int) -> HttpResponse:
+    """Resize a volume. Only Admins and privileged users can do this."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Only POST method is allowed")
+
+    project = get_object_or_404(Project, slug=project_slug)
+    volume = get_object_or_404(VolumeInstance, id=volume_id, project=project)
+
+    if not has_privileged_access(request.user, project):
+        return HttpResponseForbidden()
+
+    form = VolumeResizeForm(request.POST, current_size=volume.size)
+    if not form.is_valid():
+        errors = form.errors.get("size") or ["Invalid size."]
+        return JsonResponse({"error": " ".join(str(error) for error in errors)}, status=400)
+
+    original_size = volume.size
+    volume.size = form.cleaned_data["size"]
+    volume.previous_size = original_size
+    volume.save()
+
+    redeploy_form = _build_volume_redeploy_form(volume, project)
+
+    if not redeploy_form.is_valid():
+        volume.size = original_size
+        volume.previous_size = None
+        volume.save()
+        logger.error(f"Invalid form data for volume redeployment: {redeploy_form.errors}")
+        return JsonResponse({"error": "Failed to update volume size due to invalid data"}, status=500)
+
+    try:
+        _redeploy_volume(redeploy_form, project, volume)
+    except Exception as e:
+        volume.size = original_size
+        volume.previous_size = None
+        volume.save()
+        logger.error(f"Failed to redeploy volume after size change: {str(e)}")
+        return JsonResponse(
+            {"error": "Failed to update volume size. Please try again or contact support."},
+            status=500,
+        )
+
+    messages.success(
+        request,
+        f"Requested a resize of volume '{volume.name}' from {original_size} GB to {volume.size} GB. "
+        "The cluster applies this in the background. Reload this page to see whether it succeeded.",
+    )
+
+    return JsonResponse({"message": f"Volume size updated to {volume.size} GB and redeployment initiated"})
 
 
 @login_required

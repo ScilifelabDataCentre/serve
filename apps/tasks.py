@@ -93,6 +93,14 @@ def _build_background_task_error_result(
     return result
 
 
+def should_retry_deploy(app_slug: str | None, retries: int, max_retries: int) -> bool:
+    """Whether a failed deploy of this app type is worth retrying."""
+    if app_slug in POD_LESS_APP_SLUGS:
+        return False
+
+    return retries < max_retries
+
+
 def _retry_countdown(current_retries: int) -> int:
     return min(DEPLOY_RESOURCE_RETRY_BASE_SECONDS * (2**current_retries), DEPLOY_RESOURCE_RETRY_MAX_SECONDS)
 
@@ -578,7 +586,7 @@ def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
             release,
             error,
         )
-        if retries < self.max_retries:
+        if should_retry_deploy(instance.app.slug, retries, self.max_retries):
             countdown = _retry_countdown(retries)
             logger.info(
                 "deploy_resource.helm_install_retry task_id=%s instance_id=%s retry=%s/%s countdown=%ss",
@@ -589,6 +597,14 @@ def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
                 countdown,
             )
             raise self.retry(exc=RuntimeError(error or "Helm install failed"), countdown=countdown)
+
+        if instance.app.slug in POD_LESS_APP_SLUGS:
+            logger.info(
+                "deploy_resource.helm_install_not_retried task_id=%s instance_id=%s app_slug=%s",
+                task_id,
+                instance.pk,
+                instance.app.slug,
+            )
 
     logger.info(
         "deploy_resource.helm_install_done task_id=%s instance_id=%s success=%s release=%s",
