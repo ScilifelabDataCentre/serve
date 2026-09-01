@@ -10,7 +10,7 @@ category: they are not privileged users, but they may do everything a privileged
 from django.core.exceptions import ObjectDoesNotExist
 
 PRIVILEGED_USER_PERM = "common.privileged_user"
-PRIVILEGED_USERS_GROUP = "Privileged users" # Carries PRIVILEGED_USER_PERM. Created by ``fixtures/groups_fixtures.json``.
+PRIVILEGED_USERS_GROUP = "Privileged users"
 
 
 def _has_privileged_profile(user) -> bool:
@@ -32,7 +32,7 @@ def is_privileged_user(user) -> bool:
     if user is None or not user.is_authenticated or user.is_superuser:
         return False
 
-    return _has_privileged_profile(user) or user.has_perm(PRIVILEGED_USER_PERM)
+    return _has_privileged_profile(user) or bool(user.has_perm(PRIVILEGED_USER_PERM))
 
 
 def has_privileged_access(user, project) -> bool:
@@ -54,4 +54,4 @@ def has_privileged_access(user, project) -> bool:
     if project.pk is None:
         return False
 
-    return project.privileged_users.filter(pk=user.pk).exists()
+    return bool(project.privileged_users.filter(pk=user.pk).exists())
