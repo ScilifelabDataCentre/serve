@@ -1,5 +1,3 @@
-from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django.urls import path
@@ -13,10 +11,10 @@ from .views import (
     ProjectStatusView,
     RevokeAccessToProjectView,
     UpdatePatternView,
+    UpdatePrivilegedAccessView,
 )
 
 app_name = "projects"
-User = get_user_model()
 basicpatterns = [
     path("", views.IndexView.as_view(), name="index"),
     path(
@@ -52,6 +50,11 @@ basicpatterns = [
         "<project_slug>/project/access/revoke/",
         RevokeAccessToProjectView.as_view(),
         name="revoke_access",
+    ),
+    path(
+        "<project_slug>/project/access/privileged/",
+        UpdatePrivilegedAccessView.as_view(),
+        name="update_privileged_access",
     ),
     path(
         "<project_slug>/project/status/",
@@ -97,13 +100,15 @@ extrapatterns = [
         name="increase_volume_size",
     ),
     path(
+        "<project_slug>/volume/<int:volume_id>/resize/",
+        views.update_volume_size,
+        name="update_volume_size",
+    ),
+    path(
         "<project_slug>/request_storage/<int:volume_id>/",
         views.request_storage,
         name="request_storage",
     ),
 ]
 
-if settings.ENABLE_PROJECT_EXTRA_SETTINGS or User.is_superuser:
-    urlpatterns = basicpatterns + extrapatterns
-else:
-    urlpatterns = basicpatterns
+urlpatterns = basicpatterns + extrapatterns

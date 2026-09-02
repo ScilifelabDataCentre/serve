@@ -5,7 +5,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.test import Client, TestCase, override_settings
+from guardian.shortcuts import assign_perm
 
+from common.models import UserProfile
 from projects.models import Project
 
 from ..helpers import CreateInstanceResult
@@ -195,6 +197,46 @@ class CreateAppViewTestCase(TestCase):
         response = c.get(f"/projects/{project.slug}/apps/create/jupyter-lab")
 
         self.assertEqual(response.status_code, 200)
+
+    def make_privileged(self, user):
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.is_privileged = True
+        profile.save()
+
+    def existing_instance(self, project, owner, subdomain="test_internal"):
+        return JupyterInstance.objects.create(
+            access="private",
+            owner=owner,
+            name="test_app_instance_private",
+            app=self.app,
+            project=project,
+            subdomain=Subdomain.objects.create(subdomain=subdomain),
+            k8s_user_app_status=K8sUserAppStatus.objects.create(),
+        )
+
+    @override_settings(APPS_PER_PROJECT_LIMIT={"jupyter-lab": 1})
+    def test_privileged_user_can_create_past_the_app_limit(self):
+        c = Client()
+        project = self.get_data()
+        self.existing_instance(project, self.user)
+
+        c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
+
+        self.assertEqual(c.get(f"/projects/{project.slug}/apps/create/jupyter-lab").status_code, 403)
+
+        self.make_privileged(self.user)
+
+        self.assertEqual(c.get(f"/projects/{project.slug}/apps/create/jupyter-lab").status_code, 200)
+
+    @override_settings(APPS_PER_PROJECT_LIMIT={"jupyter-lab": 0})
+    def test_privileged_user_cannot_create_a_disabled_app_type(self):
+        c = Client()
+        project = self.get_data()
+        self.make_privileged(self.user)
+
+        c.post("/accounts/login/", {"username": test_user["email"], "password": test_user["password"]})
+
+        self.assertEqual(c.get(f"/projects/{project.slug}/apps/create/jupyter-lab").status_code, 403)
 
     @override_settings(APPS_PER_PROJECT_LIMIT={"jupyter-lab": 1})
     def test_app_limit_is_per_project(self):

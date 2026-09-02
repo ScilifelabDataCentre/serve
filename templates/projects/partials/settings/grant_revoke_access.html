@@ -21,33 +21,81 @@
             <button type="submit" class="btn btn-square btn-primary">Grant access</button>
         </div>
     </form>
+</div>
 
-        {% if project.authorized.all %}
-
-        <div class="row pt-3">
-            <div class="col">
-                <table class="table">
+{% if project_members %}
+<div class="card shadow border-0 mt-4">
+    <div class="card-header bg-light py-3">
+        <h4 class="card-title mb-0">Project members</h4>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+                <table class="table align-middle mb-0">
                     <thead>
                         <tr>
                             <th scope="col">User</th>
-                            <th scope="col" class="text-center">Revoke access</th>
+                            <th scope="col" class="text-center">
+                                Privileged access
+                                <span class="bi bi-question-circle text-muted"
+                                      data-bs-toggle="tooltip"
+                                      data-bs-placement="top"
+                                      data-bs-original-title="Lets a privileged user manage flavors, environments and volume sizes in this project. Only users that SciLifeLab Serve has made privileged users can be granted it."></span>
+                            </th>
+                            {% if can_manage_project_access %}
+                              <th scope="col" class="text-center">Revoke access</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
 
-                        {% for user in project.authorized.all %}
+                        {% for member in project_members %}
+                        {% with user=member.user %}
                         <tr class="user-with-access" id="revokeAccessRow-{{user.pk}}">
                             <td scope="row">{{ user.username }}</td>
-                            {% if project.owner.id == request.user.id or request.user.is_superuser %}
-                                <td class="d-flex justify-content-center">
-                                    <button type="button" class="btn-close" aria-label="Close" data-bs-toggle="modal"
+                            <td class="text-center privileged-access-cell">
+                              {% if can_manage_project_access %}
+                                {% if member.is_privileged_user %}
+                                  <form action="{% url 'projects:update_privileged_access' project.slug %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="selected_user" value="{{ user.username }}">
+                                    <input type="hidden" name="action" value="{% if member.has_privileged_access %}revoke{% else %}grant{% endif %}">
+                                    <div class="form-check form-switch d-inline-block m-0">
+                                      <input class="form-check-input privileged-access-toggle"
+                                             type="checkbox"
+                                             role="switch"
+                                             onchange="this.form.submit()"
+                                             aria-label="Privileged access for {{ user.username }}"
+                                             {% if member.has_privileged_access %}checked{% endif %}>
+                                    </div>
+                                  </form>
+                                {% else %}
+                                  <span class="d-inline-block privileged-access-unavailable"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
+                                        data-bs-original-title="This user is not a privileged user, so it cannot be granted here. Contact serve@scilifelab.se.">
+                                    <div class="form-check form-switch d-inline-block m-0">
+                                      <input class="form-check-input" type="checkbox" role="switch" disabled
+                                             aria-label="Privileged access for {{ user.username }}, not available">
+                                    </div>
+                                  </span>
+                                {% endif %}
+                              {% elif member.has_privileged_access %}
+                                <i class="bi bi-check-circle-fill text-success privileged-access-icon"></i>
+                                <span class="visually-hidden">Has privileged access</span>
+                              {% else %}
+                                <i class="bi bi-x-circle-fill text-danger privileged-access-icon"></i>
+                                <span class="visually-hidden">No privileged access</span>
+                              {% endif %}
+                            </td>
+                            {% if can_manage_project_access %}
+                                <td class="text-center">
+                                    <button type="button" class="btn-close" aria-label="Revoke access for {{ user.username }}" data-bs-toggle="modal"
                                         data-bs-target="#revokeAccessModal-{{user.pk}}"></button>
                                 </td>
-                            {% else %}
-                                <td></td>
                             {% endif %}
                         </tr>
 
+                        {% if can_manage_project_access %}
                         <!-- Modal -->
                         <div class="modal fade" id="revokeAccessModal-{{user.pk}}" tabindex="-1"
                             aria-labelledby="revokeAccessModal-{{user.pk}}-Label" aria-hidden="true">
@@ -70,11 +118,14 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
+                        {% endwith %}
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
         </div>
+    </div>
+</div>
 
         <script>
 
@@ -117,6 +168,4 @@
         </script>
 
 
-        {% endif %}
-
-    </div>
+{% endif %}

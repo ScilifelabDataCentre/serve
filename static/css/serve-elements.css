@@ -925,3 +925,12 @@ cubic-bezier(.4, 0, .2, 1);
         height: 1.9rem;
     }
 }
+
+/* Privileged access toggle in project settings */
+.privileged-access-toggle {
+    cursor: pointer;
+}
+
+.privileged-access-unavailable {
+    cursor: not-allowed;
+}
