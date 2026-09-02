@@ -91,7 +91,6 @@ INSTALLED_APPS = [
     "django_filters",
     "django_structlog",
     "django_prose_editor",
-    "django_tagulous",
     "guardian",
     "crispy_forms",
     "crispy_bootstrap5",
@@ -418,19 +417,6 @@ PUBLIC_APPS_CACHE_TIMEOUT = int(os.environ.get("PUBLIC_APPS_CACHE_TIMEOUT", "30"
 PROJECT_PERMISSION_CACHE_TIMEOUT = int(os.environ.get("PROJECT_PERMISSION_CACHE_TIMEOUT", "5"))
 BACKGROUND_TASK_STATUS_CACHE_TIMEOUT = int(os.environ.get("BACKGROUND_TASK_STATUS_CACHE_TIMEOUT", "2"))
 MAINTENANCE_MODE_CACHE_TIMEOUT = int(os.environ.get("MAINTENANCE_MODE_CACHE_TIMEOUT", "30"))
-
-# Tagulous serialization settings
-SERIALIZATION_MODULES = {
-    "xml": "django_tagulous.serializers.xml_serializer",
-    "json": "django_tagulous.serializers.json",
-    "python": "django_tagulous.serializers.python",
-    "yaml": "django_tagulous.serializers.pyyaml",
-}
-
-# tagulous.W001 checks SERIALIZATION_MODULES against the pre-rename "tagulous.serializers.*"
-# paths and wasn't updated for the django_tagulous rename in 2.x, so it always fires even
-# though the module paths above are the correct, non-deprecated ones.
-SILENCED_SYSTEM_CHECKS = ["tagulous.W001"]
 
 # Specific to Studio stack:
 # Redis settings
