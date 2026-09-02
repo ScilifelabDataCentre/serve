@@ -44,6 +44,16 @@
     "reset_password": "^x#^PbLnDY!{J0ju",
     "username": "e2e_tests_login_user"
   },
+  "privileged_collaborator": {
+    "email": "no-reply-privileged-collab@scilifelab.uu.se",
+    "password": "tesT12345@",
+    "username": "e2e_tests_privileged_collaborator"
+  },
+  "privileged_user": {
+    "email": "no-reply-privileged@scilifelab.uu.se",
+    "password": "tesT12345@",
+    "username": "e2e_tests_privileged_user"
+  },
   "reader_user": {
     "email": "no-reply-reader@scilifelab.uu.se",
     "password": "tesT12345@",
