@@ -289,18 +289,9 @@ class ImagePublicValidator(BaseBackgroundTask):
 
 @TASK_REGISTRY.register(
     name="validate_source_code_url",
-    is_critical=False,
+    is_critical=True,
     execution_order=2,
-    app_types=[
-        "customapp",
-        "dashapp",
-        # "depictio",
-        "gradio",
-        "shinyapp",
-        "shinyproxyapp",
-        "streamlit",
-        # "tissuumaps",
-    ],
+    app_types=SOURCE_CODE_URL_APP_TYPES,
 )
 class SourceCodeUrlValidator(BaseBackgroundTask):
     """
@@ -333,27 +324,12 @@ class SourceCodeUrlValidator(BaseBackgroundTask):
             "SOURCE_CODE_URL_VALIDATION_TIMEOUT_SECONDS",
             10,
         )
-        failure_mode = getattr(
-            settings,
-            "SOURCE_CODE_URL_VALIDATION_FAILURE_MODE",
-            "warning",
-        ).lower()
-        if failure_mode not in ("warning", "error"):
-            failure_mode = "warning"
-        treat_as_error = failure_mode == "error"
 
-        def fail(message: str, status_code: int | None = None) -> dict[str, Any]:
-            if treat_as_error:
-                detail = message
-                if status_code is not None:
-                    detail = f"{message} (HTTP {status_code})"
-                raise ValueError(detail)
-            return {
-                "valid": True,
-                "validation_warning": message,
-                "status_code": status_code,
-                "url": url,
-            }
+        def fail(message: str, status_code: int | None = None) -> None:
+            detail = message
+            if status_code is not None:
+                detail = f"{message} (HTTP {status_code})"
+            raise ValueError(detail)
 
         try:
             # Prefer HEAD to avoid downloading body; allow_redirects to follow 3xx

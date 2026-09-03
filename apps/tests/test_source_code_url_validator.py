@@ -135,24 +135,16 @@ def test_source_code_url_validator_falls_back_to_get_on_head_405(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_source_code_url_validator_non_2xx_warning_mode(settings, monkeypatch):
-    settings.SOURCE_CODE_URL_VALIDATION_FAILURE_MODE = "warning"
-    instance = _make_custom_app(source_code_url="https://example.org/missing")
+def test_source_code_url_validator_head_network_error_error_mode(settings, monkeypatch):
+    instance = _make_custom_app(source_code_url="https://example.org/repo")
 
-    mock_resp = MagicMock()
-    mock_resp.status_code = 404
+    def boom(*a, **kw):
+        raise requests.ConnectionError("refused")
 
-    monkeypatch.setattr(
-        "apps.background_tasks.tasks.validation.requests.head",
-        lambda *a, **kw: mock_resp,
-    )
+    monkeypatch.setattr("apps.background_tasks.tasks.validation.requests.head", boom)
 
-    result = SourceCodeUrlValidator().execute(instance)
-
-    assert result["valid"] is True
-    assert "validation_warning" in result
-    assert "404" in result["validation_warning"]
-    assert result["status_code"] == 404
+    with pytest.raises(ValueError, match="unreachable"):
+        SourceCodeUrlValidator().execute(instance)
 
 
 @pytest.mark.django_db
@@ -170,19 +162,3 @@ def test_source_code_url_validator_non_2xx_error_mode(settings, monkeypatch):
 
     with pytest.raises(ValueError, match="returned unreachable"):
         SourceCodeUrlValidator().execute(instance)
-
-
-@pytest.mark.django_db
-def test_source_code_url_validator_head_network_error_warning_mode(settings, monkeypatch):
-    settings.SOURCE_CODE_URL_VALIDATION_FAILURE_MODE = "warning"
-    instance = _make_custom_app(source_code_url="https://example.org/repo")
-
-    def boom(*a, **kw):
-        raise requests.ConnectionError("refused")
-
-    monkeypatch.setattr("apps.background_tasks.tasks.validation.requests.head", boom)
-
-    result = SourceCodeUrlValidator().execute(instance)
-
-    assert result["valid"] is True
-    assert "unreachable" in result["validation_warning"].lower()
