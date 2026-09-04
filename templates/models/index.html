@@ -2,7 +2,6 @@
 
 {% block title %}Models{% endblock %}
 {% load static %}
-{% load custom_tags %}
 
 {% block content %}
 
@@ -17,17 +16,6 @@
 
         <div class="alert alert-warning small" role="alert">
             This section of SciLifeLab Serve is currently under reconstruction.
-        </div>
-
-        <div class="tag-list">
-            {% for tf in request.session.tag_filters %}
-            <div class="tag d-inline">
-                <span class="badge text-bg-primary">{{ tf }}
-                    <a class="tag-list-ico fas fa-times" style="color: inherit;"
-                    href="{% url 'models:index' %}?tf_remove={{ tf | urlencode }}">x</a>
-                </span>
-            </div>
-            {% endfor %}
         </div>
     </div>
 </div>
