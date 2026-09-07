@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block title %}FAIR Principles{% endblock %}
+
+{% block content %}
+
+{% include "breadcrumbs/bc_about_pages.html" with breadcrumb_currentpage_title="FAIR Principles" %}
+
+<div class="row">
+
+{% include "portal/sidebar_about_pages.html" %}
+
+  <div class="col-lg-10">
+          <div class="row">
+        <div class="col">
+            <h2>FAIR Principles</h2>
+            <hr class="bg-teal border-0 mb-3" style="height: 2px;">
+            <p><b>FAIR</b> (Findable, Accessible, Interoperable, Reusable) is a set of principles originally written for research data (see
+                <a href="https://doi.org/10.1038/sdata.2016.18">Wilkinson et al 2016</a>) but since expanded to other research output
+                (see <a href="https://doi.org/10.1038/s41597-022-01710-x">Baker et al 2022</a>,
+                <a href="https://doi.org/10.1038/s41597-023-02463-x">Patel et al 2023</a>). Both European and Swedish funders and
+                universities currently recommend or require adhering to FAIR principles (e.g.,
+                <a href="https://www.vr.se/english/mandates/open-science/open-access-to-research-data/support-and-tools-/making-research-data-accessible-and-fair.html">Swedish
+                  Research Council: Making research data accessible and FAIR criteria</a>). There is no one specific way to
+                'make something FAIR'; instead, research output can adhere to FAIR principles to different extent and in different ways.</p>
+            <p>
+                SciLifeLab Serve helps machine learning models and data science applications that have been developed during
+                research projects to be made available according to FAIR principles. Below we describe
+                how exactly models and applications made available through our service adhere to FAIR principles. This page is heavily inspired by
+                (and parts of the text copied from) a <a href="https://about.zenodo.org/principles/">similar page on Zenodo</a>.
+            </p>
+
+            <h2>How SciLifeLab Serve helps to meet FAIR Principles</h2>
+            <h3>To be Findable:</h3>
+            <ul>
+            <li><strong>F1</strong>: (meta)data are assigned a globally unique and persistent identifier<ul>
+            <li>A DOI is issued to every public application made available through SciLifeLab Serve.</li>
+            </ul>
+            </li>
+            <li><strong>F2</strong>: data are described with rich metadata (defined by R1 below)<ul>
+            <li>SciLifeLab Serve's metadata is compliant with <a href="https://schema.datacite.org/">DataCite's Metadata Schema</a> mandatory and recommended terms.
+                In a few cases we made additional metadata mandatory for DOIs issued through us, and in a few cases we additionally restricted the
+                vocabularies to ensure standardisation.</li>
+            </ul>
+            </li>
+            <li><strong>F3</strong>: metadata clearly and explicitly include the identifier of the data it describes<ul>
+            <li>The DOI is a top-level and a mandatory field that is provided in the metadata of each application on SciLifelab Serve.</li>
+            </ul>
+            </li>
+            <li><strong>F4</strong>: (meta)data are registered or indexed in a searchable resource<ul>
+            <li>Metadata of each public application is sent to <a href="https://datacite.org/">DataCite</a> servers during DOI registration and indexed there.</li>
+            <li>Selection of metadata of each public application is searchable directly in SciLifeLab Serve's <a href="https://serve.scilifelab.se/apps/">app catalogue</a> immediately after publishing.</li>
+            </ul>
+            </li>
+            </ul>
+            <h3>To be Accessible:</h3>
+            <ul>
+            <li><strong>A1</strong>: (meta)data are retrievable by their identifier using a standardized communications protocol<ul>
+            <li>Metadata for individual apps are harvestable using the DataCite REST API service (see <a href="https://commons.datacite.org/repositories/wxvm.wuunvi">all entries on DataCite Commons</a>) by
+                the DOI record identifier.</li>
+            </ul>
+            </li>
+            <li><strong>A1.1</strong>: the protocol is open, free, and universally implementable<ul>
+            <li>See point A1. REST is an open, free and universal protocols for information retrieval on the web.</li>
+            </ul>
+            </li>
+            <li><strong>A1.2</strong>: the protocol allows for an authentication and authorization procedure, where necessary<ul>
+            <li>Metadata are publicly accessible and licensed under public domain. No authorization is ever necessary to retrieve it.</li>
+            </ul>
+            </li>
+            <li><strong>A2</strong>: metadata are accessible, even when the data are no longer available<ul>
+            <li>The metadata will be retained for the lifetime of the SciLifeLab Serve.
+            This is currently at least the duration of the <a href="https://www.scilifelab.se/data-driven/">SciLifeLab & Wallenberg National Program for Data-Driven Life Science</a>, which is funded until 2032.</li>
+            <li>The metadata should be available even after that point in time through <a href="https://datacite.org">DataCite</a>.</li>
+            </ul>
+            </li>
+            </ul>
+            <h3>To be Interoperable:</h3>
+            <ul>
+            <li><strong>I1</strong>: (meta)data use a formal, accessible, shared, and broadly applicable language for knowledge representation.<ul>
+            <li>DataCite offers retrieval of metadata in DataCite XML, DataCite JSON, Schema.org JSON-LD formats.</li>
+            </ul>
+            </li>
+            <li><strong>I2</strong>: (meta)data use vocabularies that follow FAIR principles<ul>
+            <li>SciLifeLab Serve uses controlled vocabularies for the subjects and keywords (specifically:
+                <a href="https://www.nlm.nih.gov/mesh/meshhome.html">MeSH Medical Subject Headings</a>,
+                <a href="https://op.europa.eu/en/web/eu-vocabularies/euroscivoc">EuroSciVoc The European Science Vocabulary</a>,
+                and <a href="https://www.eionet.europa.eu/gemet/en/about/">GEMET General Multilingual Environmental Thesaurus</a>),
+                creator identifiers (<a href="https://orcid.org/">ORCID</a>),
+                creator affiliation (<a href="https://ror.org/">ROR</a>),
+                funder identifiers (<a href="https://ror.org/">ROR</a>).</li>
+            </ul>
+            </li>
+            <li><strong>I3</strong>: (meta)data include qualified references to other (meta)data<ul>
+            <li>Each referenced external piece of metadata is qualified by a resolvable URL.</li>
+            </ul>
+            </li>
+            </ul>
+            <h3>To be Reusable:</h3>
+            <ul>
+            <li><strong>R1</strong>: (meta)data are richly described with a plurality of accurate and relevant attributes<ul>
+            <li>Each app metadata record contains a minimum of <a href="https://schema.datacite.org/">DataCite's Metadata Schema</a> mandatory terms, with optionally additional <a href="https://schema.datacite.org/">DataCite's Metadata Schema</a> recommended terms and SciLifeLab Serve's own enrichments.</li>
+            </ul>
+            </li>
+            <li><strong>R1.1</strong>: (meta)data are released with a clear and accessible data usage license<ul>
+            <li><i>[We are currently working on this.]</i></li>
+            </ul>
+            </li>
+            <li><strong>R1.2</strong>: (meta)data are associated with detailed provenance<ul>
+            <li>All metadata uploaded is traceable to a registered SciLifeLab Serve user.</li>
+            </ul>
+            </li>
+            <li><strong>R1.3</strong>: (meta)data meet domain-relevant community standards<ul>
+            <li>SciLifeLab Serve is not a domain-specific repository, yet through compliance with <a href="https://schema.datacite.org/">DataCite's Metadata Schema</a>, metadata meets one of the broadest cross-domain standards available.</li>
+            </ul>
+            </li>
+            </ul>
+
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col">
+      <p class="text-muted fst-italic" data-gh-updated hidden>
+        Page last updated:
+        <span data-gh-path="templates/portal/fair_principles.html"></span>
+      </p>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/gh_last_updated_date.js' %}"></script>
+{% endblock %}
