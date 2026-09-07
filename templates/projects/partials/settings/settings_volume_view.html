@@ -10,13 +10,41 @@
     <div>
       <span class="fw-semibold me-1">Size:</span>
       <span class="badge bg-secondary">
-        {% if volume.size %}{{ volume.size }}{% else %}—{% endif %} Gb
+        {% if volume.size %}{{ volume.size }}{% else %}&mdash;{% endif %} Gb
       </span>
     </div>
 
-    <div class="ms-auto d-flex gap-2">
-      {% if can_manage_project_resources %}
-        {# Privileged users set the size directly rather than requesting it. #}
+    {% if not can_manage_project_resources %}
+      <div class="ms-auto d-flex gap-2">
+        {% if volume.size < 5 %}
+          <button type="button"
+                  class="btn btn-outline-serve btn-sm increase-volume-btn"
+                  data-project-slug="{{ project.slug }}"
+                  data-volume-id="{{ volume.id }}"
+                  data-csrf-token="{{ csrf_token }}">
+            Increase to 5 GB
+          </button>
+        {% endif %}
+        <button class="btn btn-outline-secondary btn-sm text-dark"
+                hx-get="{% url 'projects:request_storage' project.slug volume.id %}"
+                hx-target="#storageRequestModalContainer"
+                hx-trigger="click"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+           Request more
+        </button>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if can_manage_project_resources %}
+    <div class="border rounded mb-3">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2">
+        <div>
+          <div class="fw-semibold small">Increase volume size</div>
+          <div class="form-text m-0">
+            As a privileged user you can set this yourself, up to {{ privileged_user_max_volume_size }} GB.
+          </div>
+        </div>
         <div class="input-group input-group-sm resize-volume-group w-auto">
           <input type="number"
                  class="form-control resize-volume-input"
@@ -34,28 +62,23 @@
             Update size
           </button>
         </div>
-      {% else %}
-        {% if volume.size < 5 %}
-          <!-- Auto-increase button -->
-          <button type="button"
-                  class="btn btn-outline-serve btn-sm increase-volume-btn"
-                  data-project-slug="{{ project.slug }}"
-                  data-volume-id="{{ volume.id }}"
-                  data-csrf-token="{{ csrf_token }}">
-            Increase to 5 GB
-          </button>
-        {% endif %}
+      </div>
 
-        <button class="btn btn-outline-secondary btn-sm text-dark ms-auto"
+      <div class="border-top d-flex flex-wrap align-items-center justify-content-between gap-2 p-2">
+        <div>
+          <div class="fw-semibold small">Need more than {{ privileged_user_max_volume_size }} GB?</div>
+          <div class="form-text m-0">Ask the SciLifeLab Serve team to increase it further.</div>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm text-dark"
                 hx-get="{% url 'projects:request_storage' project.slug volume.id %}"
                 hx-target="#storageRequestModalContainer"
                 hx-trigger="click"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
            Request more
         </button>
-      {% endif %}
+      </div>
     </div>
-  </div>
+  {% endif %}
 
   <div>
       <label for="default_mount_path" class="form-label">Mount paths</label>

@@ -48,10 +48,10 @@ describe("Test privileged user functionality", () => {
         });
     });
 
-    it("sees the Flavors and Environments settings tabs", () => {
+    it("sees the Hardware and Environments settings tabs", () => {
         openProjectSettings(TEST_PROJECT_DATA.project_name);
 
-        cy.get('.list-group').find('a').should('contain', 'Flavors');
+        cy.get('.list-group').find('a').should('contain', 'Hardware');
         cy.get('.list-group').find('a').should('contain', 'Environments');
     });
 
@@ -59,21 +59,21 @@ describe("Test privileged user functionality", () => {
         const flavor_name = "8 vCPU, 16 GB RAM";
 
         openProjectSettings(TEST_PROJECT_DATA.project_name);
-        cy.get('.list-group').find('a').should('be.visible').contains('Flavors').click();
+        cy.get('.list-group').find('a').should('be.visible').contains('Hardware').click();
         cy.get('input[name="flavor_name"]').type(flavor_name);
         cy.get('input[name="cpu_req"]').clear().type("100m");
         cy.get('input[name="cpu_lim"]').clear().type("8000m");
         cy.get('input[name="mem_req"]').clear().type("2Gi");
         cy.get('input[name="mem_lim"]').clear().type("16Gi");
-        cy.get('button').should('be.visible').contains("Create flavor").click();
+        cy.get('button').should('be.visible').contains("Create hardware").click();
 
-        cy.get('.list-group').find('a').should('be.visible').contains('Flavors').click();
+        cy.get('.list-group').find('a').should('be.visible').contains('Hardware').click();
         cy.get('#flavor_pk').should('contain', flavor_name);
 
         cy.get('#flavor_pk').select(flavor_name);
-        cy.get('button').should('be.visible').contains("Delete flavor").click();
+        cy.get('button').should('be.visible').contains("Delete hardware").click();
 
-        cy.get('.list-group').find('a').should('be.visible').contains('Flavors').click();
+        cy.get('.list-group').find('a').should('be.visible').contains('Hardware').click();
         cy.get('#flavor_pk').should('not.contain', flavor_name);
     });
 
@@ -92,13 +92,17 @@ describe("Test privileged user functionality", () => {
         cy.get('#environment_pk').should('contain', environment_name);
     });
 
-    it("sets a volume size directly instead of requesting more storage", () => {
+    it("can set a volume size directly and still request more", () => {
         openProjectSettings(TEST_PROJECT_DATA.project_name);
         cy.get('a[href="#storage"]').click();
 
+        cy.logf("Both the privileged control and the request-more option are offered", Cypress.currentTest);
         cy.get('.resize-volume-input').first().should('be.visible');
         cy.get('.resize-volume-btn').first().should('be.visible');
-        cy.contains('button', 'Request more').should('not.exist');
+        cy.contains('button', 'Request more').should('be.visible');
+        cy.contains('Increase volume size').should('be.visible');
+        cy.contains('up to 50 GB').should('be.visible');
+        cy.contains('Need more than').should('be.visible');
 
         cy.logf("A size below the current one is refused with a message, not an alert", Cypress.currentTest);
         cy.get('.resize-volume-input').first().clear().type("1");
@@ -130,7 +134,7 @@ describe("Test privileged user functionality", () => {
         Cypress.session.clearAllSavedSessions();
         cy.loginViaUI(COLLABORATOR_DATA.email, COLLABORATOR_DATA.password);
         openProjectSettings(TEST_PROJECT_DATA.project_name);
-        cy.get('.list-group').find('a').should('contain', 'Flavors');
+        cy.get('.list-group').find('a').should('contain', 'Hardware');
         cy.logf("...but cannot pass it on", Cypress.currentTest);
         cy.get('a[href="#access"]').click();
         cy.get('.privileged-access-toggle').should('not.exist');
@@ -145,7 +149,7 @@ describe("Test privileged user functionality", () => {
         Cypress.session.clearAllSavedSessions();
         cy.loginViaUI(COLLABORATOR_DATA.email, COLLABORATOR_DATA.password);
         openProjectSettings(TEST_PROJECT_DATA.project_name);
-        cy.get('.list-group').find('a').should('not.contain', 'Flavors');
+        cy.get('.list-group').find('a').should('not.contain', 'Hardware');
     });
 
     after(() => {
