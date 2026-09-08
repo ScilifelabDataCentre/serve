@@ -17,46 +17,46 @@
       <hr class="bg-teal border-0 mb-3" style="height: 2px;">
 
       <p>Here we provide an overview of current and future focus areas for further development of the functionality
-        of SciLifeLab Serve. The team behind the platform regularly reviews and updates the long-term plan. When planning
-        work we always take into account the feedback that we receive from our users through various channels when
+        of SciLifeLab Serve. The team behind the platform regularly reviews and updates the long-term plan. We always take into account the feedback that we receive from our users through various channels when
         planning our work. Feel free to <a href="{% url 'portal:contact' %}">get in touch with us</a> with questions, comments, and suggestions.
       </p>
 
       <h3>Current work</h3>
 
       <div class="row">
-        <div class="col-lg-4 mt-2 mt-lg-0">
-      <div class="card">
-        <div class="card-body">
-          <h4>Metadata and FAIR improvements</h4>
-          <p class="card-text">We will be collecting additional information about applications and models published on SciLifeLab Serve
-            (such as list of authors and source of funding). We will also be registering Digital Object Identifiers
-            (DOIs) to allow tracking of metadata and citation of applications and models.</p>
-        </div>
-          <div class="card-footer"><p>Planned for Q1 2026</p></div>
-      </div>
-      </div>
 
-      <div class="col-lg-4 mt-2 mt-lg-0">
+        <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
+          <div class="card">
+              <div class="card-body">
+                <h4>Privileged user category</h4>
+                <p class="card-text">We will implement a new category of users that will have more permissions
+                  than regular users. For example, the privileged users will be allowed to create a higher number
+                of projects and apps as well as to get more storage per project.</p>
+              </div>
+                <div class="card-footer"><p>Planned for Q3 2026</p></div>
+            </div>
+          </div>
+
+      <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
         <div class="card">
         <div class="card-body">
-          <h4>Improved workflow for app creation & better feedback</h4>
-          <p class="card-text">For newly created applications, a multi-step process will be launched that
-            will provide feedback if there is an issue with the provided Docker image or elsewhere.
-            This way we hope to make catching issues and troubleshooting easier for app authors.</p>
+          <h4>Improved creation of apps using LLM-based tools</h4>
+          <p class="card-text">We will provide suitable documentation and templates to those who wish to use LLM-based tools
+            to create and publish apps on SciLifeLab Serve. We will also explore other ways to facilitate using LLM-based tools.
+          </p>
         </div>
-          <div class="card-footer"><p>Planned for Q1 2026</p></div>
+          <div class="card-footer"><p>Planned for Q3 2026</p></div>
       </div>
       </div>
 
-      <div class="col-lg-4 mt-2 mt-lg-0">
+      <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
         <div class="card">
         <div class="card-body">
           <h4>Access to an API endpoint to interact with LLM(s)</h4>
           <p class="card-text">We will provide an API endpoint for application developers that will allow their apps to interact with one
             or more LLMs. The apps will then need to be made available through SciLifeLab Serve.</p>
         </div>
-          <div class="card-footer"><p>Planned for Q1 2026</p></div>
+          <div class="card-footer"><p>Planned for Q4 2026</p></div>
       </div>
       </div>
 
@@ -65,39 +65,28 @@
       <h3>Near-term work</h3>
 
       <div class="row">
-          <div class="col-lg-4 mt-2 mt-lg-0">
-            <div class="card">
-              <div class="card-body">
-                <h4>Cluster internal security improvements</h4>
-                <p class="card-text">We will focus on improving security on the cluster where SciLifeLab Serve is hosted.
-                  For example, already now applications and models in projects are isolated from those in
-                  other projects; we will make this separation stronger.</p>
-              </div>
-                <div class="card-footer"><p>Planned for Q2-Q3 2026</p></div>
-            </div>
-          </div>
 
-          <div class="col-lg-4 mt-2 mt-lg-0">
-            <div class="card">
-              <div class="card-body">
-                <h4>Login using university credentials</h4>
-                <p class="card-text">We will allow users to log in to SciLifeLab Serve using their Swedish university
-                  credentials (and without the need to register separately). Those who do not have these credentials will be able to
-                log in using a login and a password as before.</p>
-              </div>
-                <div class="card-footer"><p>Planned for Q2-Q3 2026</p></div>
-            </div>
-          </div>
+      <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
+        <div class="card">
+        <div class="card-body">
+          <h4>Dedicated container registry</h4>
+          <p class="card-text">We will remove the necessity to publish Docker images on external container registries.
+            Instead, users will be able to push their images to SciLifeLab Serve's own container registry.</p>
+        </div>
+          <div class="card-footer"><p>Planned Q4 2026/Q1 2027</p></div>
+      </div>
+        </div>
 
-          <div class="col-lg-4 mt-2 mt-lg-0">
+          <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
             <div class="card">
               <div class="card-body">
-                <h4>Privileged user category</h4>
-                <p class="card-text">We will implement a new category of users that will have more permissions
-                  than regular users. For example, the privileged users will be allowed to create a higher number
-                of projects and apps as well as to get more storage per project.</p>
+                <h4>Better statistics about requests to individual apps</h4>
+                <p class="card-text">Currently, users can see the number of times a unique IP address
+                  has requested their app over the past 30 days in the project dashboard. We plan to improve on this by,
+                  for example, displaying information for a longer time period or showing a geographic distribution
+                of the IP addresses.</p>
               </div>
-                <div class="card-footer"><p>Planned for Q3-Q4 2026</p></div>
+                <div class="card-footer"><p>Planned for Q4 2026/Q1 2027</p></div>
             </div>
           </div>
 
@@ -107,24 +96,38 @@
       <h3>Long-term work</h3>
 
       <div class="row">
-        <div class="col-lg-4 mt-2 mt-lg-0">
+
+          <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
+            <div class="card">
+              <div class="card-body">
+                <h4>Login using university credentials</h4>
+                <p class="card-text">We will allow users to log in to SciLifeLab Serve using their Swedish university
+                  credentials (and without the need to register separately). Those who do not have these credentials will be able to
+                log in using a login and a password as before.</p>
+              </div>
+                <div class="card-footer"><p>Planned 2026-2027</p></div>
+            </div>
+          </div>
+
+        <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
         <div class="card">
         <div class="card-body">
           <h4>Improved model-serving functionality</h4>
-          <p class="card-text">We will improve the user experience and useability of deploying and using machine learning models through SciLifeLab Serve.</p>
+          <p class="card-text">We will improve the user experience and usability of deploying and using machine learning models
+            through SciLifeLab Serve.</p>
         </div>
-          <div class="card-footer"><p>Planned 2026</p></div>
+          <div class="card-footer"><p>Planned 2026-2027</p></div>
       </div>
         </div>
 
-      <div class="col-lg-4 mt-2 mt-lg-0">
+      <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
         <div class="card">
         <div class="card-body">
           <h4>LLM-empowered application creation</h4>
           <p class="card-text">We will integrate an interface allowing to build data science applications by interacting with an LLM
             through a chat interface. These applications can then be published on SciLifeLab Serve.</p>
         </div>
-          <div class="card-footer"><p>Planned 2026</p></div>
+          <div class="card-footer"><p>Planned 2026-2027</p></div>
       </div>
         </div>
 
@@ -134,7 +137,43 @@
 
       <div class="row">
 
-      <div class="col-lg-4 mt-2 mt-lg-0">
+      <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
+      <div class="card">
+        <div class="card-body">
+          <h4>Metadata and FAIR improvements</h4>
+          <p class="card-text">We will be collecting additional information about applications and models published on SciLifeLab Serve
+            (such as list of authors and source of funding). We will also be registering Digital Object Identifiers
+            (DOIs) to allow tracking of metadata and citation of applications and models.</p>
+        </div>
+          <div class="card-footer"><p>Released for Q2 2026</p></div>
+      </div>
+      </div>
+
+      <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
+        <div class="card">
+        <div class="card-body">
+          <h4>Improved workflow for app creation & better feedback</h4>
+          <p class="card-text">For newly created applications, a multi-step process will be launched that
+            will provide feedback if there is an issue with the provided Docker image or elsewhere.
+            This way we hope to make catching issues and troubleshooting easier for app authors.</p>
+        </div>
+          <div class="card-footer"><p>Released Q2 2026</p></div>
+      </div>
+      </div>
+
+      <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
+            <div class="card">
+              <div class="card-body">
+                <h4>Cluster internal security improvements</h4>
+                <p class="card-text">We will focus on improving security on the cluster where SciLifeLab Serve is hosted.
+                  For example, better distribution of load between different nodes of the cluster and better routing
+                  within the different resources on the cluster.</p>
+              </div>
+                <div class="card-footer"><p>Released Q2 2026</p></div>
+            </div>
+          </div>
+
+      <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
         <div class="card">
         <div class="card-body">
           <h4>Improved web accessibility of the website</h4>
@@ -145,7 +184,7 @@
       </div>
         </div>
 
-      <div class="col-lg-4 mt-2 mt-lg-0">
+      <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
         <div class="card">
         <div class="card-body">
           <h4>Support for model deployment with GPUs</h4>
@@ -158,10 +197,10 @@
         </div>
 
 
-        <div class="col-lg-4 mt-2 mt-lg-0">
+        <div class="col-lg-4 mt-2 mb-3 mt-lg-0">
         <div class="card">
         <div class="card-body">
-          <h4>Integration of MLFLow for ML experiment tracking</h4>
+          <h4>Integration of MLflow for ML experiment tracking</h4>
           <p class="card-text">We will allow users of SciLifeLab Serve to launch their own instances of the platform <a href="https://mlflow.org/"
             target="_blank" rel="noopener noreferrer"> MLflow <span class="sr-only">(opens in a new tab)</span>
             </a> that allows to keep track of models and artifacts in machine learning

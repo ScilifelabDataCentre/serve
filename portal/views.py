@@ -455,6 +455,11 @@ def cite(request):
     return render(request, template, locals())
 
 
+def fair_principles(request):
+    template = "portal/fair_principles.html"
+    return render(request, template, locals())
+
+
 def contact(request):
     template = "portal/contact.html"
     return render(request, template, locals())

@@ -250,6 +250,13 @@ cy.get('#owner_aff').should('contain', TEST_USER_DATA.affiliations[0].title)
         cy.get('h2').should('contain', 'Roadmap')
     })
 
+    it("should open the FAIR principles page on link click, verify content", () => {
+        cy.get("li a").contains("FAIR Principles").click()
+        cy.url().should("include", "about/fair_principles")
+        cy.get("title").should("have.text", "FAIR Principles | SciLifeLab Serve (beta)")
+        cy.get('h2').should('contain', 'FAIR Principles')
+    })
+
     it("should open the Citing us page on link click, verify content", () => {
         cy.get("li a").contains("Citing us").click()
         cy.url().should("include", "about/cite")
