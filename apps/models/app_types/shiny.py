@@ -16,6 +16,7 @@ class ShinyInstanceManager(AppInstanceManager):
 class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     objects = ShinyInstanceManager()
     ACCESS_TYPES = (
+        ("draft", "Draft"),
         ("project", "Project"),
         (
             "private",
@@ -30,7 +31,7 @@ class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     )
     access = models.CharField(
         max_length=20,
-        default="project",
+        default="draft",
         choices=ACCESS_TYPES,
         help_text="The chosen Permission level determines who can access the application.",
     )

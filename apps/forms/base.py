@@ -19,7 +19,7 @@ from apps.gpu import (
     gpus_in_use,
     model_class_gpu_enabled,
 )
-from apps.models import Apps, BaseAppInstance, Subdomain, VolumeInstance
+from apps.models import BaseAppInstance, Subdomain, VolumeInstance
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainTuple
 from doi_minting.services.invenio_svc import InvenioService
 from projects.models import Flavor, Project
@@ -47,30 +47,21 @@ class BaseForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.project_pk = kwargs.pop("project_pk", None)
         self.request = kwargs.pop("request", None)  # Store request for mixins
-        app_slug = kwargs.pop("app_slug", None)
         self.project = get_object_or_404(Project, pk=self.project_pk) if self.project_pk else None
         self.model_name = self._meta.model._meta.verbose_name.replace("Instance", "")
         self._metadata_fetch_failed = False
 
         super().__init__(*args, **kwargs)
 
-        # Save Draft is only offered for the "Serve" category of apps
-        if self.instance and self.instance.pk and self.instance.app_id:
-            self._app_category = self.instance.app.category.name if self.instance.app.category else None
-        elif app_slug:
-            self._app_category = Apps.objects.filter(slug=app_slug).values_list("category__name", flat=True).first()
-        else:
-            self._app_category = None
-
-        # "Save Draft" is a separate submit button (see _setup_form_helper) that lets users
-        # persist a partially-filled-out form. When it was the button pressed, required fields
-        # and cross-field completeness checks are relaxed so whatever has been filled in can be saved.
-        self._is_draft_save = bool(self.data) and "save_draft" in self.data
+        # "Draft" is a regular access-field choice: submitting with it selected persists
+        # whatever has been filled in without deploying anything, so required fields and
+        # cross-field completeness checks (which only apply to public/link access) are relaxed.
+        self._is_draft_access = self.data.get("access") == "draft"
 
         self._setup_form_fields()
         self.add_metadata()
 
-        if self._is_draft_save:
+        if self._is_draft_access:
             for field in self.fields.values():
                 field.required = False
 
@@ -106,6 +97,17 @@ class BaseForm(forms.ModelForm):
             self.fields["subdomain"].initial = self.instance.subdomain.subdomain if self.instance.subdomain else ""
             self.fields["subdomain"].widget.data["hidden"] = ""
 
+        # "Draft" is only a valid access choice for an app that doesn't exist yet or is still a
+        # draft. An app that has already been created for real can never go back to being a
+        # draft, so remove the choice entirely once that's the case.
+        if (
+            "access" in self.fields
+            and self.instance
+            and self.instance.pk
+            and self.instance.latest_user_action != "Draft"
+        ):
+            self.fields["access"].choices = [choice for choice in self.fields["access"].choices if choice[0] != "draft"]
+
         # Handle name
         self.fields["name"].initial = ""
         # Initialize subjects_keywords field to existing JSON data or empty list
@@ -119,25 +121,16 @@ class BaseForm(forms.ModelForm):
 
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel
-        footer_items = [
+        self.footer = Div(
             Button(
                 "cancel",
                 "Cancel",
                 css_class="btn-outline-dark btn-outline-cancel me-2",
                 onclick="window.history.back()",
             ),
-        ]
-
-        # Only offer "Save Draft" for Serve-category apps that don't exist yet or are still a
-        # draft. An already-deployed app has nothing left to "draft" - editing it should just Submit.
-        if self._app_category == "Serve" and (not self.instance.pk or self.instance.latest_user_action == "Draft"):
-            save_draft_button = Submit("save_draft", "Save Draft")
-            save_draft_button.field_classes = "btn btn-outline-dark btn-outline-cancel me-2"
-            footer_items.append(save_draft_button)
-
-        footer_items.append(Submit("submit", "Submit"))
-
-        self.footer = Div(*footer_items, css_class="card-footer d-flex justify-content-end")
+            Submit("submit", "Submit"),
+            css_class="card-footer d-flex justify-content-end",
+        )
         self.helper = FormHelper(self)
         self.helper.attrs = {
             "class": "needs-validation",
@@ -296,7 +289,7 @@ class BaseForm(forms.ModelForm):
         access = cleaned_data.get("access")
         source_code_url = cleaned_data.get("source_code_url")
 
-        if access == "public" and not source_code_url and not self._is_draft_save:
+        if access == "public" and not source_code_url:
             self.add_error("source_code_url", "Source is required when access is public.")
 
         return source_code_url
@@ -307,7 +300,7 @@ class BaseForm(forms.ModelForm):
         access = cleaned_data.get("access", None)
         note_on_linkonly_privacy = cleaned_data.get("note_on_linkonly_privacy", None)
 
-        if access == "link" and not note_on_linkonly_privacy and not self._is_draft_save:
+        if access == "link" and not note_on_linkonly_privacy:
             self.add_error(
                 "note_on_linkonly_privacy", "Please, provide a reason for making the app accessible only via a link."
             )
@@ -729,7 +722,7 @@ class AppBaseForm(BaseForm):
 
     def clean_flavor(self):
         flavor = self.cleaned_data.get("flavor")
-        if flavor and flavor_gpu_count(flavor) > 0 and self._app_template_gpu_enabled() and not self._is_draft_save:
+        if flavor and flavor_gpu_count(flavor) > 0 and self._app_template_gpu_enabled() and not self._is_draft_access:
             exclude_instance = self.instance if self.instance and self.instance.pk else None
             if not gpu_available_for_flavor(flavor, exclude_instance=exclude_instance):
                 raise forms.ValidationError(GPU_UNAVAILABLE_MESSAGE)

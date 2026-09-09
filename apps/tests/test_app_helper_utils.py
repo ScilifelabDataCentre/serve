@@ -149,6 +149,132 @@ class CreateAppInstanceTestCase(TestCase):
             # verify the made_public_on date is not present
             self.assertIsNone(app_instance.made_public_on)
 
+    def test_new_app_with_draft_access_is_saved_without_deploying(self):
+        """
+        Selecting the "Draft" access mode on a brand new app must persist whatever was filled
+        in - even with normally-required fields like image and source_code_url left out - and
+        save it to the Invenio draft as usual, without deploying anything.
+        """
+        data = {
+            "name": "test-draft-app-name",
+            "description": "app-form-description",
+            "flavor": str(self.flavor.pk),
+            "access": "draft",
+            # "port" deliberately left out: it's a required=True IntegerField, and the model
+            # column is NOT NULL, so relaxing "required" must not leave it as None.
+        }
+
+        _, form_class = APP_REGISTRY.get(self.app_slug)
+        form = form_class(data, project_pk=self.project.pk)
+
+        self.assertTrue(form.is_valid(), f"Draft access should validate despite missing fields: {form.errors}")
+
+        with patch("apps.tasks.run_background_tasks.delay") as mock_task:
+            with self.captureOnCommitCallbacks(execute=True):
+                result = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
+
+            app_instance = DashInstance.objects.get(pk=result.instance_id)
+
+            self.assertEqual(app_instance.access, "draft")
+            self.assertEqual(app_instance.latest_user_action, "Draft")
+            self.assertIsNone(app_instance.k8s_user_app_status)
+            # A left-out non-nullable field must fall back to the model's own default.
+            self.assertEqual(app_instance.port, 8000)
+            self.assertTrue(result.workflow_started)
+            mock_task.assert_called_once()
+
+    def test_new_customapp_draft_with_minimal_data_is_saved(self):
+        """
+        Regression test: submitting the Custom App form with just a name/description and
+        "Draft" access (everything else, including port and image, left blank) must save
+        successfully instead of hitting a NOT NULL constraint on "port".
+        """
+        Apps.objects.create(name="Custom App Test", slug="customapp")
+        data = {
+            "name": "test-draft-customapp-name",
+            "description": "app-form-description",
+            "flavor": str(self.flavor.pk),
+            "access": "draft",
+        }
+
+        _, form_class = APP_REGISTRY.get("customapp")
+        form = form_class(data, project_pk=self.project.pk)
+
+        self.assertTrue(form.is_valid(), f"Draft access should validate despite missing fields: {form.errors}")
+
+        from apps.models import CustomAppInstance
+
+        with patch("apps.tasks.run_background_tasks.delay"):
+            with self.captureOnCommitCallbacks(execute=True):
+                result = create_instance_from_form(form, self.project, "customapp", app_id=None)
+
+        app_instance = CustomAppInstance.objects.get(pk=result.instance_id)
+        self.assertEqual(app_instance.latest_user_action, "Draft")
+        self.assertEqual(app_instance.port, 8000)
+
+    def test_changing_access_away_from_draft_deploys_the_app(self):
+        """
+        A draft's first real Submit (access changed away from "draft") must deploy it -
+        this is effectively its first real creation - regardless of which other fields changed.
+        """
+        subdomain_name = "testdraftgraduateapp"
+        draft_data = {
+            "name": "test-draft-app-name",
+            "description": "original description",
+            "flavor": str(self.flavor.pk),
+            "access": "draft",
+            "port": 8000,
+            "image": "mock.io/some-image",
+            "subdomain": subdomain_name,
+        }
+
+        _, form_class = APP_REGISTRY.get(self.app_slug)
+        form = form_class(draft_data, project_pk=self.project.pk)
+        self.assertTrue(form.is_valid(), f"Draft access should validate: {form.errors}")
+
+        with patch("apps.tasks.run_background_tasks.delay"):
+            with self.captureOnCommitCallbacks(execute=True):
+                draft_result = create_instance_from_form(form, self.project, self.app_slug, app_id=None)
+
+        app_instance = DashInstance.objects.get(pk=draft_result.instance_id)
+        self.assertEqual(app_instance.latest_user_action, "Draft")
+
+        # Only the access mode changes (private is fully valid on its own, no source_code_url
+        # or note_on_linkonly_privacy needed) - everything else about the app stays the same.
+        submit_data = {**draft_data, "access": "private"}
+
+        form = form_class(submit_data, project_pk=self.project.pk, instance=app_instance)
+        self.assertTrue(form.is_valid(), f"Completed form should validate: {form.errors}")
+
+        with patch("apps.tasks.run_background_tasks.delay") as mock_task:
+            with self.captureOnCommitCallbacks(execute=True):
+                result = create_instance_from_form(form, self.project, self.app_slug, app_id=draft_result.instance_id)
+
+        app_instance.refresh_from_db()
+        self.assertEqual(app_instance.access, "private")
+        self.assertEqual(app_instance.latest_user_action, "Creating")
+        self.assertTrue(result.workflow_started)
+        mock_task.assert_called_once()
+
+    def test_draft_choice_unavailable_once_app_is_real(self):
+        """Once an app has been created for real, "Draft" must no longer be a selectable access choice."""
+        subdomain = Subdomain.objects.create(subdomain="test-already-real-app")
+        real_instance = DashInstance.objects.create(
+            access="private",
+            latest_user_action="Creating",
+            owner=self.user,
+            name="test-already-real-app",
+            app=self.app,
+            project=self.project,
+            subdomain=subdomain,
+        )
+
+        _, form_class = APP_REGISTRY.get(self.app_slug)
+        form = form_class(None, project_pk=self.project.pk, instance=real_instance)
+
+        access_choice_values = [value for value, _ in form.fields["access"].choices]
+        self.assertNotIn("draft", access_choice_values)
+
 
 # Mock the tasks that manipulate k8s resources.
 # Note that these are passed to the test functions in reverse order.

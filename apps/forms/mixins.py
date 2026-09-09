@@ -71,7 +71,7 @@ class ContainerImageMixin:
         image = self.cleaned_data.get("image", "").strip()
 
         if not image:
-            if not getattr(self, "_is_draft_save", False):
+            if not getattr(self, "_is_draft_access", False):
                 self.add_error("image", "Container image field cannot be empty.")
             return image
 

@@ -380,7 +380,6 @@ def create_instance_from_form(
     app_slug,
     app_id=None,
     force_redeploy: bool = False,
-    save_as_draft: bool = False,
 ) -> CreateInstanceResult:
     """
     Create or update an instance from a form. This function handles both the creation of new instances
@@ -393,8 +392,6 @@ def create_instance_from_form(
     - app_id: Optional ID of an existing instance to update. If None, a new instance is created.
     - force_redeploy: Forces a re-deploy even if no tracked fields changed. Useful for actions that
       mutate underlying infrastructure without altering standard form fields.
-    - save_as_draft: Persists whatever the form has filled in without deploying (or re-deploying)
-      any k8s resources. Used by the "Save Draft" button on the create/edit app forms.
 
     Returns:
     - CreateInstanceResult: instance_id plus progress_started_at/workflow_started metadata.
@@ -408,21 +405,37 @@ def create_instance_from_form(
     new_app = app_id is None
     requested_app_slug = app_slug
     run_background_tasks_only = False
+    # "Draft" is a regular access-field choice (see AppBaseForm): submitting with it selected
+    # persists whatever was filled in without deploying anything.
+    is_draft_access = form.cleaned_data.get("access") == "draft"
     # `latest_user_action` isn't a form field, so at this point form.instance still carries
     # whatever was stored in the DB - i.e. whether this instance was previously only a draft
     # and has therefore never actually been deployed.
     was_draft = not new_app and getattr(form.instance, "latest_user_action", None) == "Draft"
 
     logger.info(
-        "create_instance_from_form.start app_id=%s new_app=%s app_slug=%s project_id=%s save_as_draft=%s",
+        "create_instance_from_form.start app_id=%s new_app=%s app_slug=%s project_id=%s is_draft_access=%s",
         app_id,
         new_app,
         app_slug,
         project.pk,
-        save_as_draft,
+        is_draft_access,
     )
 
     if new_app:
+        do_deploy = not is_draft_access
+        user_action = "Draft" if is_draft_access else "Creating"
+        if is_draft_access:
+            run_background_tasks_only = True
+    elif was_draft and is_draft_access:
+        # Still a draft - just persist whatever changed without ever touching k8s or Invenio
+        # publishing, regardless of which fields changed since the last save.
+        do_deploy = False
+        user_action = "Draft"
+        run_background_tasks_only = True
+    elif was_draft and not is_draft_access:
+        # Access mode was changed away from Draft: this instance has never been deployed, so
+        # this is effectively its first real creation, regardless of which other fields changed.
         do_deploy = True
         user_action = "Creating"
     else:
@@ -444,7 +457,7 @@ def create_instance_from_form(
             "note_on_linkonly_privacy",
         ]
 
-        if not do_deploy and not save_as_draft:
+        if not do_deploy:
             # Only re-deploy existing apps if one of the following fields was changed:
             redeployment_fields = [
                 "subdomain",
@@ -480,20 +493,6 @@ def create_instance_from_form(
                     run_background_tasks_only = True
                     break
 
-    if was_draft and not save_as_draft:
-        # This instance has never been deployed. The redeployment_fields check above only
-        # deploys when specific fields changed, but a draft's first real Submit must deploy
-        # regardless of which fields were touched since it was saved as a draft.
-        do_deploy = True
-        user_action = "Creating"
-
-    if save_as_draft:
-        # Persist whatever the user filled in without touching k8s, regardless of what
-        # would otherwise have triggered a (re)deploy above.
-        do_deploy = False
-        user_action = "Draft"
-        run_background_tasks_only = True
-
     subdomain_name, is_created_by_user = get_subdomain_name(form)
     logger.info(
         "create_instance_from_form.subdomain_selected app_id=%s subdomain=%s is_created_by_user=%s",
@@ -510,6 +509,16 @@ def create_instance_from_form(
         original_instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
 
     instance = form.save(commit=False)
+
+    if is_draft_access:
+        # Relaxing required fields for a draft can leave a normally-required field (e.g. port)
+        # empty, which for a non-nullable model field would otherwise fail with a NOT NULL
+        # constraint at the DB level. Fall back to the model's own default in that case.
+        for model_field in instance._meta.fields:
+            if model_field.null or not model_field.has_default():
+                continue
+            if getattr(instance, model_field.attname, None) is None:
+                setattr(instance, model_field.attname, model_field.get_default())
 
     # Retrieve or create the subdomain. Look up on the unique field only, so an existing
     # row with a different project or is_created_by_user is reused, not inserted again.
@@ -575,7 +584,7 @@ def create_instance_from_form(
 
     # Re-check GPU capacity under lock before saving. Not relevant for drafts since
     # they don't deploy, and re-checking would needlessly block saving one.
-    if not save_as_draft:
+    if user_action != "Draft":
         from apps.gpu import ensure_gpu_capacity
 
         ensure_gpu_capacity(instance)

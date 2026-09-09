@@ -236,8 +236,6 @@ class BaseAppInstance(models.Model):
     def get_status_group(self) -> str:
         """Get the status group from the app status."""
         status = self.get_app_status()
-        if status == "Draft":
-            return "secondary"
         group = "success" if status in status_success else "warning" if status in status_warning else "danger"
         return group
 
@@ -346,8 +344,6 @@ class BaseAppInstance(models.Model):
             )
 
         match latest_user_action, k8s_user_app_status:
-            case "Draft", _:
-                return "Draft"
             case "Deleting", _:
                 return "Deleted"
             case "SystemDeleting", _:
