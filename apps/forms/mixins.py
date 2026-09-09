@@ -31,9 +31,8 @@ class ContainerImageMixin:
 
     def _setup_container_image_field(self):
         """Setup the container image field in the form."""
-        # Deep-copy: `self.image` is a class-level Field shared by every form instance that
-        # mixes this in, so assigning it directly would let any per-instance mutation of
-        # self.fields["image"] (e.g. required flipped for a draft save) leak into every
+        # Assigning self.image directly would let any per-instance mutation of
+        # self.fields["image"] leak into every
         # other form of every app type using this mixin.
         self.fields["image"] = copy.deepcopy(self.image)
         # Pre-normalize initial so unchanged edits don't show as changed.

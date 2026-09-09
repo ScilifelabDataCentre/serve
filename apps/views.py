@@ -241,7 +241,7 @@ class GetStatusView(CachedProjectPermissionRequiredMixin):
                 instances = orm_model.objects.filter(pk__in=arr, project__slug=project)
 
                 for instance in instances:
-                    # Draft apps were never deployed, so there is no status to show for them.
+                    # Draft apps are not deployed, so no status to display.
                     if instance.latest_user_action == "Draft":
                         status = ""
                         status_group = ""

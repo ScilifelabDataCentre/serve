@@ -53,9 +53,6 @@ class BaseForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
 
-        # "Draft" is a regular access-field choice: submitting with it selected persists
-        # whatever has been filled in without deploying anything, so required fields and
-        # cross-field completeness checks (which only apply to public/link access) are relaxed.
         self._is_draft_access = self.data.get("access") == "draft"
 
         self._setup_form_fields()

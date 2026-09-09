@@ -405,8 +405,6 @@ def create_instance_from_form(
     new_app = app_id is None
     requested_app_slug = app_slug
     run_background_tasks_only = False
-    # "Draft" is a regular access-field choice (see AppBaseForm): submitting with it selected
-    # persists whatever was filled in without deploying anything.
     is_draft_access = form.cleaned_data.get("access") == "draft"
     # `latest_user_action` isn't a form field, so at this point form.instance still carries
     # whatever was stored in the DB - i.e. whether this instance was previously only a draft
@@ -582,8 +580,7 @@ def create_instance_from_form(
         do_deploy = False
         run_background_tasks_only = True
 
-    # Re-check GPU capacity under lock before saving. Not relevant for drafts since
-    # they don't deploy, and re-checking would needlessly block saving one.
+    # Not relevant for drafts since they don't deploy.
     if user_action != "Draft":
         from apps.gpu import ensure_gpu_capacity
 
