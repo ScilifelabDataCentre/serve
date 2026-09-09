@@ -1,3 +1,4 @@
+import copy
 import re
 
 import requests
@@ -28,13 +29,13 @@ class ContainerImageMixin:
         ),
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._setup_container_image_field()
-
     def _setup_container_image_field(self):
         """Setup the container image field in the form."""
-        self.fields["image"] = self.image
+        # Deep-copy: `self.image` is a class-level Field shared by every form instance that
+        # mixes this in, so assigning it directly would let any per-instance mutation of
+        # self.fields["image"] (e.g. required flipped for a draft save) leak into every
+        # other form of every app type using this mixin.
+        self.fields["image"] = copy.deepcopy(self.image)
         # Pre-normalize initial so unchanged edits don't show as changed.
         if self.instance and getattr(self.instance, "image", None):
             normalized = self._normalize_image_registry(self.instance.image)
@@ -70,7 +71,8 @@ class ContainerImageMixin:
         image = self.cleaned_data.get("image", "").strip()
 
         if not image:
-            self.add_error("image", "Container image field cannot be empty.")
+            if not getattr(self, "_is_draft_save", False):
+                self.add_error("image", "Container image field cannot be empty.")
             return image
 
         image = self._normalize_image_registry(image)

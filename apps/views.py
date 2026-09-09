@@ -292,11 +292,14 @@ def delete(request, project, app_slug, app_id):
     ):
         return HttpResponseForbidden("Cannot delete public apps with published DOIs.")
 
-    # Discard any unpublished DOI draft associated with this app
+    # Discard any unpublished DOI draft associated with this app. A Serve draft's Invenio
+    # record is never published (see process_app_metadata), so it's always safe to discard
+    # regardless of access mode; for a non-draft app this only applies to non-public ones.
+    was_serve_draft = getattr(instance, "latest_user_action", None) == "Draft"
     if (
         hasattr(instance, "invenio_record_id")
         and instance.invenio_record_id
-        and getattr(instance, "access", None) != "public"
+        and (was_serve_draft or getattr(instance, "access", None) != "public")
     ):
         invenio_svc = InvenioService()
         invenio_svc.delete_draft_record(instance.invenio_record_id)
@@ -403,9 +406,11 @@ class CreateApp(View):
         if not form.is_valid():
             return render_form_with_errors()
 
+        save_as_draft = "save_draft" in request.POST
+
         # Otherwise we can create the instance
         try:
-            result = create_instance_from_form(form, project, app_slug, app_id)
+            result = create_instance_from_form(form, project, app_slug, app_id, save_as_draft=save_as_draft)
         except GpuUnavailableError as exc:
             # Another request may have claimed the last GPU after this form
             # validated, check and return as a form error if needed.
@@ -414,6 +419,11 @@ class CreateApp(View):
         except SubdomainChangeError as exc:
             form.add_error("subdomain", exc.ui_error)
             return render_form_with_errors()
+
+        if save_as_draft:
+            messages.success(request, "Draft saved. You can come back and finish it later.")
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_slug}))
+
         # Redirects everyone (including admins) after creation; admins can still
         # open the deployment pages (/progress, /details, /tasks) directly.
         if not form.instance.app.should_display_deployment_details:
@@ -459,7 +469,9 @@ class CreateApp(View):
             return None
 
         if user_can_edit or user_can_create:
-            form = form_class(request.POST or None, project_pk=project.pk, instance=instance, request=request)
+            form = form_class(
+                request.POST or None, project_pk=project.pk, instance=instance, request=request, app_slug=app_slug
+            )
 
             # Disable access field for public apps to prevent changing access mode
             if app_id and instance and hasattr(instance, "access") and instance.access == "public":

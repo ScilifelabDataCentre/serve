@@ -1572,8 +1572,18 @@ class InvenioService:
 
         # Check if the app is publicly accessible
         is_public, access_reason = self.is_app_access_public(app_instance)
-        if is_public:
+        # An app that is still a Serve draft has never actually been deployed, so its Invenio
+        # record must never be published - even if the user has already selected Public access.
+        is_serve_draft = getattr(app_instance, "latest_user_action", None) == "Draft"
+        should_publish = is_public and not is_serve_draft
+
+        if should_publish:
             logger.info("App is public. Invenio record will be published after DOI reservation.")
+        elif is_public:
+            logger.info(
+                "App is public but is still a Serve draft; Invenio record will remain a draft "
+                "after DOI reservation until the app is actually created."
+            )
         else:
             logger.info(f"App is not public. Invenio record will remain a draft after DOI reservation: {access_reason}")
 
@@ -1627,14 +1637,14 @@ class InvenioService:
                     record_id=app_instance.invenio_record_id,
                     current_draft=current_draft,
                     metadata=invenio_record.metadata,
-                    publish=is_public,
+                    publish=should_publish,
                 )
             elif not app_instance.invenio_record_id:
                 logger.info(f"Creating a new Invenio record for app '{app_data.name}'")
                 record_result = self.create_new_record(
                     app_instance,
                     invenio_record,
-                    publish=is_public,
+                    publish=should_publish,
                 )
             elif image_change:
                 logger.info(f"App image has changed: {image_reason}. Creating new version.")
