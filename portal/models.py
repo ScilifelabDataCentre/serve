@@ -142,3 +142,33 @@ class EventsObject(models.Model):
     @property
     def event_recording_url(self):
         return self.recording_url
+
+
+class MaintenanceWindow(models.Model):
+    """
+    A scheduled maintenance window for the Serve platform, e.g. a planned
+    cluster upgrade or downtime.
+
+    Content editors manage these directly through the Django admin, so
+    windows can be added, edited or removed at any time without a Serve
+    deployment/restart. There is no automatic "ongoing"/"completed" logic:
+    editors set ``status`` by hand (e.g. flip it to "In progress" on the day,
+    then to "Completed" once done), see ``portal.views.get_maintenance_windows``.
+    """
+
+    class Status(models.TextChoices):
+        SCHEDULED = "scheduled", "Scheduled"
+        IN_PROGRESS = "in_progress", "In progress"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    created_on = models.DateTimeField(auto_now_add=True)
+    date = models.DateField()
+    start_time = models.TimeField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.SCHEDULED)
+
+    class Meta:
+        ordering = ["-date", "-start_time"]
+
+    def __str__(self):
+        return f"Maintenance on {self.date} at {self.start_time}"

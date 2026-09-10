@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     Collection,
     EventsObject,
+    MaintenanceWindow,
     NewsObject,
     PublicModelObject,
     PublishedModel,
@@ -31,6 +32,12 @@ class EventsAdmin(admin.ModelAdmin):
 class NewsAdmin(admin.ModelAdmin):
     list_display = ("title", "created_on")
     search_fields = ["title"]
+
+
+@admin.register(MaintenanceWindow)
+class MaintenanceWindowAdmin(admin.ModelAdmin):
+    list_display = ("date", "start_time", "status")
+    list_filter = ("status",)
 
 
 admin.site.register(PublishedModel)

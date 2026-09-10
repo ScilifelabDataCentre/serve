@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Maintenance windows{% endblock %}
+{% load static %}
+{% load custom_tags %}
+
+{% block content %}
+
+{% include "breadcrumbs/bc_about_pages.html" with breadcrumb_currentpage_title="Maintenance windows" %}
+
+  <div class="row">
+
+    {% include "portal/sidebar_about_pages.html" %}
+
+    <div class="col-lg-10">
+    <h2>Maintenance windows</h2>
+    <hr class="bg-teal border-0 mb-3" style="height: 2px;">
+    <p>Planned maintenance on the SciLifeLab Serve platform, including cluster upgrades and other work that may cause brief interruptions. Apps and other services may be temporarily unavailable during these windows.</p>
+
+    {% if windows %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Start time</th>
+                    <th scope="col">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for window in windows %}
+                <tr id="window-{{ window.pk }}">
+                    <td>{{ window.date|date:"M. j, Y" }}</td>
+                    <td>{{ window.start_time|time:"H:i" }}</td>
+                    <td>
+                        {% if window.status == "in_progress" %}
+                        <span class="badge bg-warning text-dark">On going</span>
+                        {% elif window.status == "completed" %}
+                        <span class="badge bg-success">Completed</span>
+                        {% elif window.status == "cancelled" %}
+                        <span class="badge bg-secondary">Cancelled</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Scheduled</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">There are no maintenance windows at this point.</p>
+    {% endif %}
+
+    </div>
+
+  </div>
+
+{% endblock %}
