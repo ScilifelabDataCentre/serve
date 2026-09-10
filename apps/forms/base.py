@@ -59,7 +59,10 @@ class BaseForm(forms.ModelForm):
         self.add_metadata()
 
         if self._is_draft_access:
-            for field in self.fields.values():
+            # "name" stays required for a draft - everything else may be left blank.
+            for field_name, field in self.fields.items():
+                if field_name == "name":
+                    continue
                 field.required = False
 
         # Prevent form from opening if metadata fetch failed

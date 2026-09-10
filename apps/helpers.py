@@ -509,14 +509,15 @@ def create_instance_from_form(
     instance = form.save(commit=False)
 
     if is_draft_access:
-        # Relaxing required fields for a draft can leave a normally-required field (e.g. port)
-        # empty, which for a non-nullable model field would otherwise fail with a NOT NULL
-        # constraint at the DB level. Fall back to the model's own default in that case.
+        # Relaxing required fields for a draft can leave a normally-required field empty.
         for model_field in instance._meta.fields:
-            if model_field.null or not model_field.has_default():
+            if not model_field.has_default():
                 continue
-            if getattr(instance, model_field.attname, None) is None:
-                setattr(instance, model_field.attname, model_field.get_default())
+            default = model_field.get_default()
+            if default in (None, ""):
+                continue
+            if getattr(instance, model_field.attname, None) in (None, ""):
+                setattr(instance, model_field.attname, default)
 
     # Retrieve or create the subdomain. Look up on the unique field only, so an existing
     # row with a different project or is_created_by_user is reused, not inserted again.
