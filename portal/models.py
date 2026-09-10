@@ -148,12 +148,6 @@ class MaintenanceWindow(models.Model):
     """
     A scheduled maintenance window for the Serve platform, e.g. a planned
     cluster upgrade or downtime.
-
-    Content editors manage these directly through the Django admin, so
-    windows can be added, edited or removed at any time without a Serve
-    deployment/restart. There is no automatic "ongoing"/"completed" logic:
-    editors set ``status`` by hand (e.g. flip it to "In progress" on the day,
-    then to "Completed" once done), see ``portal.views.get_maintenance_windows``.
     """
 
     class Status(models.TextChoices):
