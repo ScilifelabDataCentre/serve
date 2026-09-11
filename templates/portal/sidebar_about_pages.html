@@ -5,7 +5,7 @@
       <nav class="nav flex-column">
           <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'portal:about' %}">About the platform</a>
             <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'news' %}active{% endif %}" href="{% url 'portal:news' %}">Platform news</a>
-            <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'maintenance-windows' %}active{% endif %}" href="{% url 'portal:maintenance-windows' %}">Maintenance windows</a>
+            <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'maintenance-windows' %}active{% endif %}" href="{% url 'portal:maintenance-windows' %}">Planned maintenance</a>
             <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'roadmap' %}active{% endif %}" href="{% url 'portal:roadmap' %}">Roadmap</a>
             <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'cite' %}active{% endif %}" href="{% url 'portal:cite' %}">Citing us</a>
             <a class="nav-link px-0 py-1 serve-teal {% if request.resolver_match.url_name == 'fair_principles' %}active{% endif %}" href="{% url 'portal:fair_principles' %}">FAIR Principles</a>

@@ -1,21 +1,25 @@
 {% extends 'base.html' %}
 
-{% block title %}Maintenance windows{% endblock %}
+{% block title %}Planned maintenance{% endblock %}
 {% load static %}
 {% load custom_tags %}
 
 {% block content %}
 
-{% include "breadcrumbs/bc_about_pages.html" with breadcrumb_currentpage_title="Maintenance windows" %}
+{% include "breadcrumbs/bc_about_pages.html" with breadcrumb_currentpage_title="Planned maintenance" %}
 
   <div class="row">
 
     {% include "portal/sidebar_about_pages.html" %}
 
     <div class="col-lg-10">
-    <h2>Maintenance windows</h2>
+    <h2>Planned maintenance</h2>
     <hr class="bg-teal border-0 mb-3" style="height: 2px;">
-    <p>Planned maintenance on the SciLifeLab Serve platform, including cluster upgrades and other work that may cause brief interruptions. Apps and other services may be temporarily unavailable during these windows.</p>
+    <p>On this page you can find the schedule of planned maintenance on the SciLifeLab Serve platform, including cluster upgrades and other work that may cause brief interruptions.
+        Apps and other services may be temporarily unavailable during these windows.
+        We typically start maintenance at the beginning of the day; while in most cases the maintenance is over within a few hours,
+        depending on what we do, it may take up to the whole day. Besides the planned maintenance, sometimes we may have
+        to perform some urgent work; in those cases we try to inform the users on top and bottom of SciLifeLab Serve pages.</p>
 
     {% if windows %}
     <div class="table-responsive">
@@ -49,7 +53,7 @@
         </table>
     </div>
     {% else %}
-    <p class="text-muted">There are no maintenance windows at this point.</p>
+    <p class="text-muted">There are no planned maintenance windows at this point.</p>
     {% endif %}
 
     </div>
