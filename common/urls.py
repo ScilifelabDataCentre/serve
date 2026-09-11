@@ -31,6 +31,11 @@ if settings.DEBUG:
             views.PopulateTestSuperUserView.as_view(),
             name="populate-test-superuser",
         ),
+        path(
+            "devtools/populate-test-privileged-user/",
+            views.PopulateTestPrivilegedUserView.as_view(),
+            name="populate-test-privileged-user",
+        ),
         path("devtools/cleanup-test-user/", views.CleanupTestUserView.as_view(), name="cleanup-test-user"),
         path("devtools/populate-test-project/", views.PopulateTestProjectView.as_view(), name="populate-test-project"),
         path("devtools/cleanup-test-project/", views.CleanupTestProjectView.as_view(), name="cleanup-test-project"),
