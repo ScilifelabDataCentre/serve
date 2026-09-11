@@ -19,6 +19,7 @@ class AbstractCustomAppInstance(SocialMixin, LogsEnabledMixin):
     """
 
     ACCESS_TYPES = (
+        ("draft", "Draft"),
         ("project", "Project"),
         (
             "private",

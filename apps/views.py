@@ -241,7 +241,13 @@ class GetStatusView(CachedProjectPermissionRequiredMixin):
                 instances = orm_model.objects.filter(pk__in=arr, project__slug=project)
 
                 for instance in instances:
-                    status = instance.get_app_status()
+                    # Draft apps are not deployed, so no status to display.
+                    if instance.latest_user_action == "Draft":
+                        status = ""
+                        status_group = ""
+                    else:
+                        status = instance.get_app_status()
+                        status_group = instance.get_status_group()
 
                     # Also set the k8s app status
                     k8s_app_status_object = instance.k8s_user_app_status
@@ -249,8 +255,6 @@ class GetStatusView(CachedProjectPermissionRequiredMixin):
                         k8s_app_status = k8s_app_status_object.status
                     else:
                         k8s_app_status = None
-
-                    status_group = instance.get_status_group()
 
                     obj = {
                         "status": status,
@@ -414,6 +418,7 @@ class CreateApp(View):
         except SubdomainChangeError as exc:
             form.add_error("subdomain", exc.ui_error)
             return render_form_with_errors()
+
         # Redirects everyone (including admins) after creation; admins can still
         # open the deployment pages (/progress, /details, /tasks) directly.
         if not form.instance.app.should_display_deployment_details:

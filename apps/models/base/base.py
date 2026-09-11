@@ -24,6 +24,7 @@ USER_ACTION_STATUS_CHOICES = [
     ("Deleting", "Deleting"),
     ("SystemDeleting", "SystemDeleting"),
     ("Redeploying", "Redeploying"),
+    ("Draft", "Draft"),
 ]
 
 
