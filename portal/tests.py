@@ -1,3 +1,4 @@
+from datetime import date, time
 from unittest.mock import patch
 
 import pytest
@@ -11,6 +12,7 @@ from django.urls import reverse
 
 from portal import views
 from portal.forms import TeachingRequestForm
+from portal.models import MaintenanceWindow
 
 
 @pytest.mark.django_db
@@ -533,3 +535,52 @@ def test_news_rss_view():
     response = client.get(reverse("portal:news-rss"))
     assert response.status_code == 200
     assert response["Content-Type"] == "application/rss+xml; charset=utf-8"
+
+
+@pytest.mark.django_db
+def test_maintenance_windows_view():
+    client = Client()
+
+    response = client.get(reverse("portal:maintenance-windows"))
+
+    assert response.status_code == 200
+    assert "<title>Planned maintenance | SciLifeLab Serve (beta)</title>" in response.content.decode()
+    assert "windows" in response.context
+
+
+@pytest.mark.django_db
+def test_maintenance_windows_empty():
+    client = Client()
+
+    response = client.get(reverse("portal:maintenance-windows"))
+
+    assert response.status_code == 200
+    assert "There are no planned maintenance windows at this point." in response.content.decode()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("status", "expected_text"),
+    [
+        (MaintenanceWindow.Status.SCHEDULED, "Scheduled"),
+        (MaintenanceWindow.Status.IN_PROGRESS, "Ongoing"),
+        (MaintenanceWindow.Status.COMPLETED, "Completed"),
+        (MaintenanceWindow.Status.CANCELLED, "Cancelled"),
+    ],
+)
+def test_maintenance_window_status_display(status, expected_text):
+    MaintenanceWindow.objects.create(
+        date=date(2026, 9, 15),
+        start_time=time(8, 30),
+        status=status,
+    )
+
+    client = Client()
+    response = client.get(reverse("portal:maintenance-windows"))
+
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "Sep. 15, 2026" in content
+    assert "08:30" in content
+    assert expected_text in content
