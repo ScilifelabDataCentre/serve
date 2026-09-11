@@ -38,7 +38,7 @@
                     <td>{{ window.start_time|time:"H:i" }}</td>
                     <td>
                         {% if window.status == "in_progress" %}
-                        <span class="badge bg-warning text-dark">On going</span>
+                        <span class="badge bg-warning text-dark">Ongoing</span>
                         {% elif window.status == "completed" %}
                         <span class="badge bg-success">Completed</span>
                         {% elif window.status == "cancelled" %}
