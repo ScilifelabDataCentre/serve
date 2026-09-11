@@ -37,7 +37,7 @@ class AbstractCustomAppInstance(SocialMixin, LogsEnabledMixin):
     )
     access = models.CharField(
         max_length=20,
-        default="draft",
+        default="project",
         choices=ACCESS_TYPES,
         help_text="The chosen Permission level determines who can access the application.",
     )

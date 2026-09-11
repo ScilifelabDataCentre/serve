@@ -114,10 +114,10 @@ class InvenioService:
             verify: Whether to verify SSL certificates
             mock_mode: If True, forces mock mode. Otherwise falls back to settings.INVENIO_MOCK_MODE.
         """
-        self.base_url = base_url or settings.INVENIO_URL
-        self.token = token or settings.INVENIO_API_TOKEN
+        self.base_url = "https://invenio.serve-dev.scilifelab.se"
+        self.token = "sKnJksMogmgUmL0vo0hANFME1f7kH5MQ5yPUcwxJsovrEAygtfCfbSBOMo7B"
         self.verify = verify
-        self.mock_mode = mock_mode or settings.INVENIO_MOCK_MODE
+        self.mock_mode = False
 
         if self.mock_mode:
             self.client = MockInvenioClient()
