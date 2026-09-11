@@ -35,7 +35,7 @@ jobs:
       matrix:
         shard:
           - "cypress/e2e/ui-tests/test-superuser-functionality.cy.js"
-          - "cypress/e2e/ui-tests/test-project-as-contributor.cy.js,cypress/e2e/ui-tests/test-storage-settings.cy.js,cypress/e2e/ui-tests/test-login-account-handling.cy.js"
+          - "cypress/e2e/ui-tests/test-project-as-contributor.cy.js,cypress/e2e/ui-tests/test-storage-settings.cy.js,cypress/e2e/ui-tests/test-login-account-handling.cy.js,cypress/e2e/ui-tests/test-privileged-user.cy.js"
           - "cypress/e2e/ui-tests/test-user-manage-app-settings.cy.js,cypress/e2e/ui-tests/test-user-manage-apps.cy.js"
           - "cypress/e2e/ui-tests/test-user-manage-app-types.cy.js,cypress/e2e/ui-tests/test-public-webpages.cy.js,cypress/e2e/ui-tests/test-collections.cy.js,cypress/e2e/ui-tests/test-signup.cy.js,cypress/e2e/ui-tests/test-brute-force-login-attempts.cy.js,cypress/e2e/ui-tests/test-views-as-reader.cy.js,cypress/e2e/ui-tests/test-app-details-pages.cy.js,cypress/e2e/ui-tests/test-invenio-funding.cy.js"
 

@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from guardian.shortcuts import assign_perm
 
+from common.privileges import is_privileged_user
 from studio.utils import get_logger
 
 from .exceptions import ProjectLimitReachedException
@@ -159,6 +160,9 @@ class ProjectManager(models.Manager):
         if not user.is_authenticated:
             return False
 
+        if is_privileged_user(user):
+            return True
+
         num_of_projects = self.filter(Q(owner=user), status__in=("created", "active")).count()
 
         try:
@@ -229,6 +233,14 @@ class Project(models.Model):
     name = models.CharField(max_length=512)
     objects = ProjectManager()
     owner = models.ForeignKey(get_user_model(), on_delete=models.DO_NOTHING, related_name="owner")
+
+    privileged_users = models.ManyToManyField(
+        get_user_model(),
+        blank=True,
+        related_name="privileged_projects",
+        help_text="Users who may use their privileged rights here, besides the owner. "
+        "Only has an effect for users who are privileged users.",
+    )
 
     apps_per_project = models.JSONField(blank=True, null=True, default=get_default_apps_per_project_limit)
 
