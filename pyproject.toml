@@ -186,7 +186,8 @@ ignore_errors = true
 module = [
 	"apps.*",
 	"cypress.*",
-	"cypress/e2e/setup-scripts/seed_collections_user"
+	"cypress/e2e/setup-scripts/seed_collections_user",
+	"seed_privileged_user"
 ]
 strict = false
 ignore_errors = true

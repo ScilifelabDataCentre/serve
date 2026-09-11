@@ -35,10 +35,10 @@
                     role="tab">
                     Storage
                 </a>
-                {% if enable_extra_settings or request.user.is_superuser %}
+                {% if enable_extra_settings or can_manage_project_resources %}
                 <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#flavors"
                     role="tab">
-                    Flavors
+                    Hardware
                 </a>
                 <a class="default list-group-item list-group-item-action p-3" data-bs-toggle="list" href="#environments"
                     role="tab">
@@ -70,12 +70,25 @@
               {% include 'projects/partials/settings/storage.html' %}
             </div>
 
-            {% if enable_extra_settings or request.user.is_superuser %}
+            {% if enable_extra_settings or can_manage_project_resources %}
             <div class="tab-pane fade" id="flavors" role="tabpanel">
                 <div class="card shadow border-0">
 
                     <div class="card-header bg-light py-3">
-                        <h4 class="card-title mb-0">Flavors</h4>
+                        <h4 class="card-title mb-0">Hardware</h4>
+                    </div>
+
+                    <div class="card-body pb-0">
+                        <p>
+                            Hardware sets the CPU, memory and storage an app is given. Members choose one of this
+                            project's hardware options when they create or edit an app.
+                            <a href="https://serve.scilifelab.se/docs/user-accounts/privileged-users/" target="_blank" rel="noopener">See the documentation on managing
+                            hardware as a privileged user</a>.
+                        </p>
+                        <div class="alert alert-info alert-outline" role="alert">
+                            This is a simplified form for managing hardware. We are working on a better
+                            interface.
+                        </div>
                     </div>
 
                     <div class="card-body">
@@ -83,7 +96,7 @@
                             {% csrf_token %}
 
                             <div class="mb-3">
-                                <label for="flavor_pk">Flavors</label>
+                                <label for="flavor_pk">Hardware</label>
                                 <select type="text" class="form-control" id="flavor_pk" name="flavor_pk" maxlength="256"
                                     required>
                                     {% for flavor in flavors %}
@@ -91,10 +104,10 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-square btn-danger justify-content-end">Delete flavor</button>
+                            <button type="submit" class="btn btn-square btn-danger justify-content-end">Delete hardware</button>
                         </form>
                         <div class="mt-2">
-                            or create new flavor:
+                            or create new hardware:
                             <form action="{% url 'projects:create_flavor' project.slug %}" method="post" class="mt-2">
                                 {% csrf_token %}
                                 <div class="mb-3">
@@ -128,13 +141,13 @@
                                 <div class="mb-3">
                                     <label for="gpu_req">GPU request</label>
                                     <input type="number" min="0" step="1" name="gpu_req" id="gpu_req" value="0" class="form-control" />
-                                    <small class="form-text text-muted">Number of GPUs to request. Use 0 for a CPU-only flavor.</small>
+                                    <small class="form-text text-muted">Number of GPUs to request. Use 0 for CPU-only hardware.</small>
                                 </div>
                                 <div class="mb-3">
                                     <label for="gpu_lim">GPU limit</label>
                                     <input type="number" min="0" step="1" name="gpu_lim" id="gpu_lim" value="0" class="form-control" />
                                 </div>
-                                <button type="submit" class="btn btn-square btn-primary">Create flavor</button>
+                                <button type="submit" class="btn btn-square btn-primary">Create hardware</button>
                             </form>
                         </div>
                     </div>
@@ -147,12 +160,17 @@
                         <h4 class="card-title mb-0">Environments</h4>
                     </div>
 
-{#                    Warn that this is a legacy way of environments management #}
-                    <div class="card-body">
-                        <div class="alert alert-warning alert-outline alert-dismissible" role="alert">
-                            <i class="far fa-fw fa-bell"></i>
-                            <strong>Legacy way of managing environments!</strong> This is a legacy way of managing environments.
-                            We recommend using admin panel to manage environments.
+                    <div class="card-body pb-0">
+                        <p>
+                            An environment is the container image an app runs. Each one applies to a single app
+                            type, and members choose from this project's environments when they create or edit an
+                            app of that type.
+                            <a href="https://serve.scilifelab.se/docs/user-accounts/privileged-users/" target="_blank" rel="noopener">See the documentation on managing
+                            environments as a privileged user</a>.
+                        </p>
+                        <div class="alert alert-info alert-outline" role="alert">
+                            This is a simplified form for managing environments. We are working on a better
+                            interface.
                         </div>
                     </div>
 
@@ -192,7 +210,7 @@
                                         placeholder="user/image:tag" class="form-control" />
                                 </div>
                                 <div class="mb-3">
-                                    <label for="environment_app">Applies to app:</label>
+                                    <label for="environment_app">Applies to app type</label>
                                     <select type="text" class="form-control" id="environment_app" name="environment_app"
                                         maxlength="256" required>
                                         {% for app in apps_with_environment_option %}
