@@ -264,6 +264,13 @@ cy.get('#owner_aff').should('contain', TEST_USER_DATA.affiliations[0].title)
         cy.get('h2').should('contain', 'Citing us')
     })
 
+    it("should open the Planned maintenance page on link click, verify content", () => {
+        cy.get("li a").contains("Planned maintenance").click()
+        cy.url().should("include", "maintenance")
+        cy.get("title").should("have.text", "Planned maintenance | SciLifeLab Serve (beta)")
+        cy.get('h2').should('contain', 'Planned maintenance')
+    })
+
     it("should open the Privacy policy page on link click, verify content", () => {
         cy.get("li a").contains("Privacy").click()
         cy.url().should("include", "privacy")

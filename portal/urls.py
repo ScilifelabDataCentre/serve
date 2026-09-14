@@ -20,6 +20,7 @@ urlpatterns = [
     path("apps/", views.public_apps, name="apps"),
     path("news/", views.get_news, name="news"),
     path("news/feed/", views.NewsFeed(), name="news-rss"),
+    path("maintenance/", views.get_maintenance_windows, name="maintenance-windows"),
     path("events/", views.get_events, name="events"),
     path("events/feed/", views.EventsFeed(), name="events-rss"),
     path("collections/", views.get_collections_index, name="collections_index"),
