@@ -92,10 +92,17 @@
                         <h5>Hardware options</h5>
                         <div class="table-responsive">
                             <table class="table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Name</th>
+                                        <th scope="col" class="text-center"><span class="visually-hidden">Details</span></th>
+                                        <th scope="col" class="text-center"><span class="visually-hidden">Delete</span></th>
+                                    </tr>
+                                </thead>
                                 <tbody>
                                     {% for flavor in flavors %}
                                     <tr>
-                                        <td scope="row">{{ flavor.name }}</td>
+                                        <td>{{ flavor.name }}</td>
 
                                         <td class="text-center">
                                             <button type="button" class="btn btn-square btn-secondary" data-bs-toggle="modal" data-bs-target="#flavorDetailsModal-{{ flavor.pk }}">
@@ -176,6 +183,10 @@
                                             </div>
                                         </td>
                                     </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td class="text-muted" colspan="3">No hardware options yet.</td>
+                                    </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
@@ -190,36 +201,33 @@
                                     <input type="text" name="flavor_name" id="flavor_name" class="form-control" value="" placeholder="N vCPU, N GB RAM" required/>
                                 </div>
                                 <div class="mb-3">
-                                    <input type="hidden" name="cpu_req" id="cpu_req" value="200m" class="form-control" />
-                                </div>
-                                <div class="mb-3">
                                     <label for="cpu_lim">CPU limit</label>
-                                    <input type="text" name="cpu_lim" id="cpu_lim" value="2000m" class="form-control" />
-                                    <small class="form-text text-muted">Should be a number followed by 'm' (stands for millicores) where 1000m equals one full CPU core.</small>
-                                </div>
-                                <div class="mb-3">
-                                    <input type="hidden" name="mem_req" id="mem_req" value="0.5Gi" class="form-control" readonly />
+                                    <div class="input-group">
+                                        <input type="number" min="200" step="100" name="cpu_lim" id="cpu_lim" value="2000" class="form-control" required />
+                                        <span class="input-group-text">m</span>
+                                    </div>
+                                    <small class="form-text text-muted">Millicores, where 1000m equals one full CPU core. Cannot be lower than the request of 200m.</small>
                                 </div>
                                 <div class="mb-3">
                                     <label for="mem_lim">Memory limit</label>
-                                    <input type="text" name="mem_lim" id="mem_lim" value="4Gi" class="form-control" />
-                                    <small class="form-text text-muted">Should be a number followed by 'Gi' (stands for Gibibytes).</small>
-                                </div>
-                                <div class="mb-3">
-                                    <input type="hidden" name="ephmem_req" id="ephmem_req" value="200Mi" class="form-control" readonly />
+                                    <div class="input-group">
+                                        <input type="number" min="0.5" step="0.5" name="mem_lim" id="mem_lim" value="4" class="form-control" required />
+                                        <span class="input-group-text">Gi</span>
+                                    </div>
+                                    <small class="form-text text-muted">Cannot be lower than the request of 0.5Gi.</small>
                                 </div>
                                 <div class="mb-3">
                                     <label for="ephmem_lim">Ephemeral storage limit</label>
-                                    <input type="text" name="ephmem_lim" id="ephmem_lim" value="5000Mi" class="form-control" />
-                                    <small class="form-text text-muted">Should be a number followed by 'Mi' (stands for Mebibyte).</small>
+                                    <div class="input-group">
+                                        <input type="number" min="200" step="100" name="ephmem_lim" id="ephmem_lim" value="5000" class="form-control" required />
+                                        <span class="input-group-text">Mi</span>
+                                    </div>
+                                    <small class="form-text text-muted">Cannot be lower than the request of 200Mi.</small>
                                 </div>
                                 <div class="mb-3">
                                     <label for="gpu_req">GPU</label>
                                     <input type="number" min="0" step="1" name="gpu_req" id="gpu_req" value="0" class="form-control" />
                                     <small class="form-text text-muted">Use 0 for CPU-only hardware or 1 if a GPU is required.</small>
-                                </div>
-                                <div class="mb-3">
-                                    <input type="hidden" min="0" step="1" name="gpu_lim" id="gpu_lim" value="0" class="form-control" readonly />
                                 </div>
                                 <button type="submit" class="btn btn-square btn-primary">Create hardware</button>
                             </form>
@@ -249,10 +257,17 @@
                         <h5>Environments</h5>
                         <div class="table-responsive">
                         <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Name</th>
+                                    <th scope="col" class="text-center"><span class="visually-hidden">Details</span></th>
+                                    <th scope="col" class="text-center"><span class="visually-hidden">Delete</span></th>
+                                </tr>
+                            </thead>
                             <tbody>
                             {% for environment in environments %}
                             <tr>
-                                <td scope="row">{{ environment.name }}</td>
+                                <td>{{ environment.name }}</td>
                                 <td class="text-center">
                                 <button type="button" class="btn btn-square btn-secondary" data-bs-toggle="modal" data-bs-target="#environmentDetailsModal-{{ environment.pk }}"> Details </button>
                                 <div class="modal fade" id="environmentDetailsModal-{{ environment.pk }}" tabindex="-1" aria-labelledby="environmentDetailsModal-{{ environment.pk }}-Label" aria-hidden="true">
@@ -297,6 +312,10 @@
                                 </div>
                                 </td>
 
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td class="text-muted" colspan="3">No environments yet.</td>
                             </tr>
                             {% endfor %}
                             </tbody>
