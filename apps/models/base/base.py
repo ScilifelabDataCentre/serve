@@ -10,6 +10,7 @@ from django.db.models import Case, CharField, F, Q, Value, When
 from apps.models.base.app_template import Apps
 from apps.models.base.k8s_user_app_status import K8sUserAppStatus
 from apps.models.base.subdomain import Subdomain
+from common.privileges import has_privileged_access
 from projects.models import Flavor, Project
 from studio.utils import get_logger
 
@@ -23,6 +24,7 @@ USER_ACTION_STATUS_CHOICES = [
     ("Deleting", "Deleting"),
     ("SystemDeleting", "SystemDeleting"),
     ("Redeploying", "Redeploying"),
+    ("Draft", "Draft"),
 ]
 
 
@@ -142,6 +144,10 @@ class AppInstanceManager(models.Manager):
 
         if not app.user_can_create:
             return False
+
+        # A limit of 0 makes the app unavailable.
+        if limit and has_privileged_access(user, project):
+            return True
 
         num_of_app_instances = (
             self.annotate_with_app_status()

@@ -142,3 +142,27 @@ class EventsObject(models.Model):
     @property
     def event_recording_url(self):
         return self.recording_url
+
+
+class MaintenanceWindow(models.Model):
+    """
+    A scheduled maintenance window for the Serve platform, e.g. a planned
+    cluster upgrade or downtime.
+    """
+
+    class Status(models.TextChoices):
+        SCHEDULED = "scheduled", "Scheduled"
+        IN_PROGRESS = "in_progress", "In progress"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    created_on = models.DateTimeField(auto_now_add=True)
+    date = models.DateField()
+    start_time = models.TimeField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.SCHEDULED)
+
+    class Meta:
+        ordering = ["-date", "-start_time"]
+
+    def __str__(self):
+        return f"Maintenance on {self.date} at {self.start_time}"

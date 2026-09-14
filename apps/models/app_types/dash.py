@@ -19,6 +19,7 @@ class DashInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     )
     objects = DashInstanceManager()
     ACCESS_TYPES = (
+        ("draft", "Draft"),
         ("project", "Project"),
         (
             "private",

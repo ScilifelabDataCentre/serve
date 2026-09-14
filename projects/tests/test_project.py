@@ -9,6 +9,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import close_old_connections
 from django.test import TestCase, TransactionTestCase, override_settings
 
+from common.models import UserProfile
+
 from ..exceptions import ProjectLimitReachedException
 from ..models import Flavor, Project, ProjectManager
 
@@ -171,6 +173,30 @@ class ProjectTestCase(TestCase):
 
         result = Project.objects.user_can_create(user)
         self.assertFalse(result)
+
+    @override_settings(PROJECTS_PER_USER_LIMIT=1)
+    def test_privileged_user_can_create_past_the_limit(self):
+        user = User.objects.get(username=test_member["email"])
+        _ = Project.objects.create(name="test-perm1", owner=user, description="")
+
+        self.assertFalse(Project.objects.user_can_create(user))
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.is_privileged = True
+        profile.save()
+
+        self.assertTrue(Project.objects.user_can_create(User.objects.get(pk=user.pk)))
+
+    @override_settings(PROJECTS_PER_USER_LIMIT=0)
+    def test_privileged_user_can_create_when_the_limit_is_zero(self):
+        user = User.objects.get(username=test_member["email"])
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.is_privileged = True
+        profile.save()
+        user = User.objects.get(pk=user.pk)
+
+        self.assertTrue(Project.objects.user_can_create(user))
+        self.assertIsNotNone(Project.objects.create_project(name="priv-proj", owner=user, description=""))
 
     def test_flavor_to_dict_without_gpu(self):
         flavor_dict = self.flavor.to_dict(gpu_enabled_app=False)

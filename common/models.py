@@ -64,6 +64,13 @@ class UserProfile(models.Model):
     is_approved = models.BooleanField(default=False)
     """This field marks if the user is affiliated with the university or not"""
 
+    is_privileged = models.BooleanField(
+        default=False,
+        verbose_name="Privileged user",
+        help_text="Lets the user exceed the project and app limits, expand project volumes, and "
+        "manage flavors and environments. The 'Privileged users' group has the same effect.",
+    )
+
     note = models.TextField(max_length=1000, blank=True)
 
     # ORCID integration
@@ -80,6 +87,9 @@ class UserProfile(models.Model):
     orcid_token_scope = models.CharField(max_length=100, blank=True, default="")
 
     objects = UserProfileManager()
+
+    class Meta:
+        permissions = [("privileged_user", "Has privileged user rights")]
 
     def __str__(self):
         return f"{self.user.email}"

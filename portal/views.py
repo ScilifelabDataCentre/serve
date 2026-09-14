@@ -30,7 +30,7 @@ from .cache import (
     get_public_pages_cache_timeout,
 )
 from .forms import TeachingRequestForm
-from .models import EventsObject, NewsObject
+from .models import EventsObject, MaintenanceWindow, NewsObject
 
 logger = get_logger(__name__)
 
@@ -455,6 +455,11 @@ def cite(request):
     return render(request, template, locals())
 
 
+def fair_principles(request):
+    template = "portal/fair_principles.html"
+    return render(request, template, locals())
+
+
 def contact(request):
     template = "portal/contact.html"
     return render(request, template, locals())
@@ -528,6 +533,11 @@ def get_news(request):
             news.body_html = markdown.markdown(news.body)
         cache.set(NEWS_CACHE_KEY, news_objects, timeout=get_public_pages_cache_timeout())
     return render(request, "news/news.html", {"news_objects": news_objects})
+
+
+def get_maintenance_windows(request):
+    windows = MaintenanceWindow.objects.order_by("-date", "-start_time")
+    return render(request, "maintenance/maintenance.html", {"windows": windows})
 
 
 def get_collections_index(request):
