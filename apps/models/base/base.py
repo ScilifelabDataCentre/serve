@@ -95,11 +95,12 @@ class AppInstanceManager(models.Manager):
                 q &= ~Q(atn_app_status="Deleted") | Q(deleted_on__gte=time_threshold)
 
         if hasattr(self.model, "access"):
-            q &= Q(owner=user) | Q(
-                access__in=(
-                    ["project", "public", "private", "link"] if user.is_superuser else ["project", "public", "link"]
-                )
-            )
+            visible_access = ["project", "public", "link"]
+            if user.is_superuser:
+                visible_access.append("private")
+            if user.is_staff or user.is_superuser:
+                visible_access.append("draft")
+            q &= Q(owner=user) | Q(access__in=visible_access)
         else:
             q &= Q(owner=user)
 

@@ -100,6 +100,16 @@ def get_select_options(project_pk, selected_option=""):
     return select_options
 
 
+def can_access_draft_instance(instance, user):
+    """Return whether a draft is visible to this user."""
+    return (
+        instance.latest_user_action != "Draft"
+        or instance.owner_id == user.pk
+        or user.is_staff
+        or user.is_superuser
+    )
+
+
 def can_access_app_instance(instance, user, project):
     """Checks if a user has access to an app instance
 
@@ -111,6 +121,9 @@ def can_access_app_instance(instance, user, project):
     Returns:
         Boolean: returns False if user lack permission to provided app instance
     """
+    if instance.latest_user_action == "Draft":
+        return can_access_draft_instance(instance, user)
+
     authorized = False
 
     if instance.access in ("public", "link"):

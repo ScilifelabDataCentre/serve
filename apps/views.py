@@ -48,6 +48,7 @@ from studio.utils import get_logger
 from .app_registry import APP_REGISTRY
 from .gpu import GpuUnavailableError
 from .helpers import (
+    can_access_draft_instance,
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
     get_minio_usage,
@@ -146,6 +147,8 @@ class GetLogs(View):
     def get(self, request, project, app_slug, app_id):
         project = self.get_project(project)
         instance = self.get_instance(project, app_slug, app_id)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
 
         context = {"instance": instance, "project": project}
         return render(request, self.template, context)
@@ -158,6 +161,8 @@ class GetLogs(View):
         instance = self.get_instance(project, app_slug, app_id, post=True)
         if isinstance(instance, JsonResponse):
             return instance
+        if not can_access_draft_instance(instance, request.user):
+            return JsonResponse({"error": "Permission denied"}, status=403)
 
         if instance.subdomain is None:
             return JsonResponse({"error": "This app has been deleted and no longer has logs."}, status=404)
@@ -241,6 +246,8 @@ class GetStatusView(CachedProjectPermissionRequiredMixin):
                 instances = orm_model.objects.filter(pk__in=arr, project__slug=project)
 
                 for instance in instances:
+                    if not can_access_draft_instance(instance, request.user):
+                        continue
                     # Draft apps are not deployed, so no status to display.
                     if instance.latest_user_action == "Draft":
                         status = ""
@@ -281,6 +288,8 @@ def delete(request, project, app_slug, app_id):
     instance = model_class.objects.filter(pk=app_id, project__slug=project).first() if app_id else None
 
     if instance is None:
+        raise PermissionDenied()
+    if not can_access_draft_instance(instance, request.user):
         raise PermissionDenied()
 
     if not instance.app.user_can_delete:
@@ -462,6 +471,8 @@ class CreateApp(View):
 
         if app_id and instance is None:
             return None
+        if app_id and not can_access_draft_instance(instance, request.user):
+            return None
 
         is_save_draft = request.method == "POST" and request.POST.get("action") == "save_draft"
         model_supports_draft = any(
@@ -509,6 +520,8 @@ class DeploymentProgressView(View):
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
         if _should_restrict_deployment_details(request, instance):
             return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_obj.slug}))
 
@@ -551,6 +564,8 @@ class AppDetailsView(View):
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
         if _should_restrict_deployment_details(request, instance):
             return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_obj.slug}))
 
@@ -616,6 +631,8 @@ class SecretsView(View):
 
     def get(self, request, project, app_slug, app_id):
         _, instance = get_project_app_instance(project, app_slug, app_id)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
 
         username, password = None, None
         if instance.get_app_status() == "Running":
@@ -928,6 +945,8 @@ class BackgroundTasksView(View):
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
         if _should_restrict_deployment_details(request, instance):
             return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_obj.slug}))
 
@@ -988,6 +1007,8 @@ class BackgroundTaskStatusAPI(CachedProjectPermissionRequiredMixin):
             _, instance = get_project_app_instance(project, app_slug, app_id)
         except (Http404, PermissionDenied):
             return JsonResponse({"error": "App instance not found"}, status=404)
+        if not can_access_draft_instance(instance, request.user):
+            return JsonResponse({"error": "App instance not found"}, status=404)
         if _should_restrict_deployment_details(request, instance):
             return JsonResponse({"error": "Deployment details are available to administrators only."}, status=403)
 
@@ -1028,6 +1049,8 @@ class RetryBackgroundTaskView(View):
             instance = model_class.objects.get(pk=app_id, project__slug=project)
         except model_class.DoesNotExist:
             return JsonResponse({"error": "App instance not found"}, status=404)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
         if _should_restrict_deployment_details(request, instance):
             raise PermissionDenied("Deployment details are available to administrators only.")
 
