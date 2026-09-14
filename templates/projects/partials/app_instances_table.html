@@ -29,7 +29,13 @@
                     <span>{{ instance.app.name }}</span>
                 </span>
             </td>
-            {% if instance.url %}
+            {% if instance.latest_user_action == "Draft" %}
+            <td class="sorting_1 text-center-small-screen">
+                <a href="{% url 'apps:appsettings' project.slug instance.app.slug instance.pk %}?from=overview">
+                    {{ instance.name }} <i class="bi bi-pencil"></i>
+                </a>
+            </td>
+            {% elif instance.url %}
             <td class="sorting_1 text-center-small-screen">
               {# 2025-02-20 I believe this fist if statement could be removed #}
                 {% if "Serv" in instance.app.name or instance.app.name == "Python Model Deployment" %}
@@ -133,13 +139,13 @@
                         <a class="dropdown-item default"
                             href="{% url 'apps:appsettings' project.slug instance.app.slug instance.pk %}?from=overview">
                             <i class="bi bi-sliders2-vertical me-1"></i>
-                            Settings
+                            {% if instance.latest_user_action == "Draft" %}Edit{% else %}Settings{% endif %}
                         </a>
                         {% else %}
 
                         <a class="dropdown-item default disabled">
                             <i class="bi bi-sliders2-vertical me-1"></i>
-                            Settings
+                            {% if instance.latest_user_action == "Draft" %}Edit{% else %}Settings{% endif %}
                         </a>
                         {% endif %}
                       {% if instance.app.user_can_see_secrets %}

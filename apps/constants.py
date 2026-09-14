@@ -24,10 +24,11 @@ HELP_MESSAGE_MAP = {
     "(MeSH, EuroSciVoc, GEMET). These will enhance discoverability of your app.",
     "subdomain": "Valid subdomain names have minimum length of 3 characters and may contain lower case letters a-z "
     "and numbers 0-9 and a hyphen '-'. The hyphen should not be at the start or end of the subdomain.",
-    "access": "Public apps will be displayed on the app catalogue and can be accessed by anyone that has the link to "
-    "them. Project apps can only be accessed by project members. Private apps are only accessible by users that "
-    "create the apps. Link apps are only accessible to those who have a direct link, they are not "
-    "displayed in the public catalogue.",
+    "access": "Public apps will be included in the public app catalogue and can be accessed by anyone that has "
+    "the link to them. Link apps are only accessible to those who have a direct link, they are not "
+    "listed in the public catalogue. "
+    "Project apps can only be accessed by project members. Private apps are only accessible by the user that "
+    "created the app. Draft option will only save the content of the form, not launch your application. ",
     "source_code_url": "This URL is listed in the app catalogue if your app is public.",
     "flavor": "Hardware allocation for your app. Only one option is available by default. If your app requires more "
     "hardware resources, get in touch with us (serve@scilifelab.se) with a request.",
