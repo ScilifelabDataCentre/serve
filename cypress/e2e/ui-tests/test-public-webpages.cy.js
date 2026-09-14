@@ -153,8 +153,8 @@ cy.get('#owner_aff').should('contain', TEST_USER_DATA.affiliations[0].title)
         // Scroll to footer to make the link visible
         cy.scrollTo('bottom')
 
-        // Click the Use in courses link in the footer
-        cy.get('.footer a').contains('Use in courses').click()
+        // Click the Use in teaching link in the footer
+        cy.get('.footer a').contains('Use in teaching').click()
 
         // Verify navigation to Use in courses page
         cy.url().should("include", "/teaching")
