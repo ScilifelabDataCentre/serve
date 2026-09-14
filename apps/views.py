@@ -475,12 +475,8 @@ class CreateApp(View):
             return None
 
         is_save_draft = request.method == "POST" and request.POST.get("action") == "save_draft"
-        model_supports_draft = any(
-            value == "draft" for value, _ in model_class._meta.get_field("access").choices
-        )
-        can_save_draft = model_supports_draft and (
-            instance is None or instance.latest_user_action == "Draft"
-        )
+        model_supports_draft = any(value == "draft" for value, _ in model_class._meta.get_field("access").choices)
+        can_save_draft = model_supports_draft and (instance is None or instance.latest_user_action == "Draft")
         if is_save_draft and not can_save_draft:
             raise PermissionDenied("Saving this app as a draft is not allowed.")
 

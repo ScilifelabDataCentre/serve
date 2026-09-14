@@ -102,12 +102,7 @@ def get_select_options(project_pk, selected_option=""):
 
 def can_access_draft_instance(instance, user):
     """Return whether a draft is visible to this user."""
-    return (
-        instance.latest_user_action != "Draft"
-        or instance.owner_id == user.pk
-        or user.is_staff
-        or user.is_superuser
-    )
+    return instance.latest_user_action != "Draft" or instance.owner_id == user.pk or user.is_staff or user.is_superuser
 
 
 def can_access_app_instance(instance, user, project):

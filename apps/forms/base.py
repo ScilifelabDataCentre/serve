@@ -169,9 +169,7 @@ class BaseForm(forms.ModelForm):
         elif self.supports_draft:
             draft_state = ' disabled aria-disabled="true" title="Published apps cannot be returned to draft."'
         else:
-            draft_state = (
-                ' disabled aria-disabled="true" title="Draft saving is not available for this app type."'
-            )
+            draft_state = ' disabled aria-disabled="true" title="Draft saving is not available for this app type."'
         actions.append(
             HTML(
                 '<button type="submit" name="action" value="save_draft" data-cy="save-draft" '

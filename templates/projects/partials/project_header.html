@@ -11,37 +11,40 @@
 {% endif %}
 {% endfor %}
 
-<div class="d-flex justify-content-between">
-  <h3>{{ project.name }}</h3>
-  <div class="d-flex">
-    <a href="{%  url 'projects:settings' project.slug %}" class="btn btn-primary ms-2" data-cy="settings">
+<div class="serve-page-heading d-flex align-items-center justify-content-between gap-3">
+  <h3 class="mb-0">{{ project.name }}</h3>
+  <div class="serve-page-actions d-flex align-items-center gap-2">
+    <a href="{%  url 'projects:settings' project.slug %}" class="btn btn-primary serve-page-action" data-cy="settings">
       <i class="bi bi-gear me-1"></i>
       Settings
     </a>
     {% if user.is_authenticated and user.is_staff %}
-      <div class="dropdown ms-2">
-        <a
-          href="#"
-          class="btn btn-primary serve-admin-dropdown-trigger"
-          role="button"
+      <div class="dropdown serve-admin-menu">
+        <button
+          type="button"
+          class="btn serve-admin-menu-trigger"
           id="projectAdminMenu"
           data-bs-toggle="dropdown"
           aria-expanded="false"
           data-cy="admin-project-menu"
         >
-          <span class="me-1" aria-hidden="true">🐳</span>
+          <span class="serve-admin-menu-icon" aria-hidden="true"><i class="bi bi-shield-lock"></i></span>
           <span>Admin View</span>
-          <i class="bi bi-caret-down-fill small ms-2" aria-hidden="true"></i>
-        </a>
-        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="projectAdminMenu">
+          <i class="bi bi-chevron-down serve-admin-menu-chevron" aria-hidden="true"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end serve-admin-menu-dropdown" aria-labelledby="projectAdminMenu">
+          <li><h2 class="dropdown-header">Admin tools</h2></li>
           <li>
             <a
               class="dropdown-item"
               href="{% url 'admin:projects_project_change' project.id %}"
               data-cy="admin-project"
               target="_blank"
+              rel="noopener"
             >
-              Project admin page
+              <i class="bi bi-gear" aria-hidden="true"></i>
+              <span>Project admin page</span>
+              <i class="bi bi-box-arrow-up-right serve-admin-menu-external" aria-hidden="true"></i>
             </a>
           </li>
           <li>
@@ -50,8 +53,11 @@
               href="{% url 'apps:admin_background_tasks' project.slug %}"
               data-cy="admin-background-tasks"
               target="_blank"
+              rel="noopener"
             >
-              Background tasks
+              <i class="bi bi-activity" aria-hidden="true"></i>
+              <span>Background tasks</span>
+              <i class="bi bi-box-arrow-up-right serve-admin-menu-external" aria-hidden="true"></i>
             </a>
           </li>
         </ul>

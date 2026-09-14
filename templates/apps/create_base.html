@@ -12,32 +12,35 @@
         <div class="w-100 card shadow border-1">
             <div class="card-body">
             {% if app_id %}
-              <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+              <div class="serve-page-heading d-flex align-items-center justify-content-between gap-3 mb-3">
                 <h1 class="h3 mb-0 card-title">Edit {{ form.instance.name }}</h1>
                 {% if user.is_authenticated and user.is_staff %}
-                  <div class="dropdown">
-                    <a
-                      href="#"
-                      class="btn btn-primary serve-admin-dropdown-trigger"
-                      role="button"
+                  <div class="dropdown serve-admin-menu">
+                    <button
+                      type="button"
+                      class="btn serve-admin-menu-trigger"
                       id="appAdminMenu"
                       data-bs-toggle="dropdown"
                       aria-expanded="false"
                       data-cy="admin-app-menu"
                     >
-                      <span class="me-1" aria-hidden="true">🐳</span>
+                      <span class="serve-admin-menu-icon" aria-hidden="true"><i class="bi bi-shield-lock"></i></span>
                       <span>Admin View</span>
-                      <i class="bi bi-caret-down-fill small ms-2" aria-hidden="true"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="appAdminMenu">
+                      <i class="bi bi-chevron-down serve-admin-menu-chevron" aria-hidden="true"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end serve-admin-menu-dropdown" aria-labelledby="appAdminMenu">
+                      <li><h2 class="dropdown-header">Admin tools</h2></li>
                       <li>
                         <a
                           class="dropdown-item"
                           href="{% url 'admin:apps_'|add:model_name|add:'_change' app_id %}"
                           data-cy="admin-app"
                           target="_blank"
+                          rel="noopener"
                         >
-                          App admin page
+                          <i class="bi bi-gear" aria-hidden="true"></i>
+                          <span>App admin page</span>
+                          <i class="bi bi-box-arrow-up-right serve-admin-menu-external" aria-hidden="true"></i>
                         </a>
                       </li>
                       <li>
@@ -46,8 +49,11 @@
                           href="{% url 'apps:background_tasks' project.slug app_slug app_id %}"
                           data-cy="app-background-tasks"
                           target="_blank"
+                          rel="noopener"
                         >
-                          Background tasks
+                          <i class="bi bi-activity" aria-hidden="true"></i>
+                          <span>Background tasks</span>
+                          <i class="bi bi-box-arrow-up-right serve-admin-menu-external" aria-hidden="true"></i>
                         </a>
                       </li>
                     </ul>
