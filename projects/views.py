@@ -393,7 +393,7 @@ def delete_flavor(request, project_slug):
             else:
                 messages.error(
                     request,
-                    "Flavor cannot be deleted because it is currently used by at least one app \
+                    "Hardware option cannot be deleted because it is currently used by at least one app \
                         (can also be a deleted app).",
                 )
 

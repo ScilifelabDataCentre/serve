@@ -85,67 +85,141 @@
                             <a href="https://serve.scilifelab.se/docs/user-accounts/privileged-users/" target="_blank" rel="noopener">See the documentation on managing
                             hardware as a privileged user</a>.
                         </p>
-                        <div class="alert alert-info alert-outline" role="alert">
-                            This is a simplified form for managing hardware. We are working on a better
-                            interface.
-                        </div>
                     </div>
 
                     <div class="card-body">
-                        <form action="{% url 'projects:delete_flavor' project.slug %}" method="post">
-                            {% csrf_token %}
-
-                            <div class="mb-3">
-                                <label for="flavor_pk">Hardware</label>
-                                <select type="text" class="form-control" id="flavor_pk" name="flavor_pk" maxlength="256"
-                                    required>
-                                    {% for flavor in flavors %}
-                                    <option value="{{ flavor.pk }}">{{ flavor.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-square btn-danger justify-content-end">Delete hardware</button>
-                        </form>
                         <div class="mt-2">
-                            or create new hardware:
+                        <h5>Hardware options</h5>
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <tbody>
+                                    {% for flavor in flavors %}
+                                    <tr>
+                                        <td scope="row">{{ flavor.name }}</td>
+
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-square btn-secondary" data-bs-toggle="modal" data-bs-target="#flavorDetailsModal-{{ flavor.pk }}">
+                                                Details
+                                            </button>
+
+                                            <div class="modal fade" id="flavorDetailsModal-{{ flavor.pk }}" tabindex="-1" aria-labelledby="flavorDetailsModal-{{ flavor.pk }}-Label" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+
+                                                        <div class="modal-header">
+                                                            <h3 class="modal-title fs-5" id="flavorDetailsModal-{{ flavor.pk }}-Label">
+                                                            Details for {{ flavor.name }}
+                                                        </h3>
+
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+
+                                                        <div class="modal-body text-start">
+                                                            <b>Name:</b> {{ flavor.name }}<br>
+                                                            <b>CPU limit:</b> {{ flavor.cpu_lim }}<br>
+                                                            <b>Memory limit:</b> {{ flavor.mem_lim }}<br>
+                                                            <b>Ephemeral storage limit:</b> {{ flavor.ephmem_lim }}<br>
+                                                            <b>GPU:</b> {{ flavor.gpu_req }}<br>
+                                                        </div>
+
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                                Close
+                                                            </button>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-square btn-danger" data-bs-toggle="modal" data-bs-target="#deleteFlavorModal-{{ flavor.pk }}">
+                                                Delete
+                                            </button>
+
+                                            <div class="modal fade" id="deleteFlavorModal-{{ flavor.pk }}" tabindex="-1" aria-labelledby="deleteFlavorModal-{{ flavor.pk }}-Label" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+
+                                                        <div class="modal-header">
+                                                            <h3 class="modal-title fs-5" id="deleteFlavorModal-{{ flavor.pk }}-Label">
+                                                            Delete hardware {{ flavor.name }}
+                                                        </h3>
+
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+
+                                                        <div class="modal-body text-start">
+                                                            Are you sure you want to delete
+                                                            <strong>{{ flavor.name }}</strong>?
+                                                        </div>
+
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                                Cancel
+                                                            </button>
+
+                                                            <form action="{% url 'projects:delete_flavor' project.slug %}" method="post" class="d-inline">
+                                                                {% csrf_token %}
+
+                                                                <input type="hidden" name="flavor_pk" value="{{ flavor.pk }}">
+
+                                                                <button type="submit" class="btn btn-danger">
+                                                                    Delete
+                                                                </button>
+                                                            </form>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        </div>
+                        <div class="mt-5">
+                        <h5>Create a new Hardware option</h5>
                             <form action="{% url 'projects:create_flavor' project.slug %}" method="post" class="mt-2">
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="flavor_name">Name</label>
-                                    <input type="text" name="flavor_name" id="flavor_name" class="form-control" value="" placeholder="N vCPU, N GB RAM"/>
+                                    <input type="text" name="flavor_name" id="flavor_name" class="form-control" value="" placeholder="N vCPU, N GB RAM" required/>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="cpu_req">CPU request</label>
-                                    <input type="text" name="cpu_req" id="cpu_req" value="200m" class="form-control" />
+                                    <input type="hidden" name="cpu_req" id="cpu_req" value="200m" class="form-control" />
                                 </div>
                                 <div class="mb-3">
                                     <label for="cpu_lim">CPU limit</label>
                                     <input type="text" name="cpu_lim" id="cpu_lim" value="2000m" class="form-control" />
+                                    <small class="form-text text-muted">Should be a number followed by 'm' (stands for millicores) where 1000m equals one full CPU core.</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="mem_req">Memory request</label>
-                                    <input type="text" name="mem_req" id="mem_req" value="0.5Gi" class="form-control" />
+                                    <input type="hidden" name="mem_req" id="mem_req" value="0.5Gi" class="form-control" readonly />
                                 </div>
                                 <div class="mb-3">
                                     <label for="mem_lim">Memory limit</label>
                                     <input type="text" name="mem_lim" id="mem_lim" value="4Gi" class="form-control" />
+                                    <small class="form-text text-muted">Should be a number followed by 'Gi' (stands for Gibibytes).</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="ephmem_req">Ephemeral storage request</label>
-                                    <input type="text" name="ephmem_req" id="ephmem_req" value="200Mi" class="form-control" />
+                                    <input type="hidden" name="ephmem_req" id="ephmem_req" value="200Mi" class="form-control" readonly />
                                 </div>
                                 <div class="mb-3">
                                     <label for="ephmem_lim">Ephemeral storage limit</label>
                                     <input type="text" name="ephmem_lim" id="ephmem_lim" value="5000Mi" class="form-control" />
+                                    <small class="form-text text-muted">Should be a number followed by 'Mi' (stands for Mebibyte).</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="gpu_req">GPU request</label>
+                                    <label for="gpu_req">GPU</label>
                                     <input type="number" min="0" step="1" name="gpu_req" id="gpu_req" value="0" class="form-control" />
-                                    <small class="form-text text-muted">Number of GPUs to request. Use 0 for CPU-only hardware.</small>
+                                    <small class="form-text text-muted">Use 0 for CPU-only hardware or 1 if a GPU is required.</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="gpu_lim">GPU limit</label>
-                                    <input type="number" min="0" step="1" name="gpu_lim" id="gpu_lim" value="0" class="form-control" />
+                                    <input type="hidden" min="0" step="1" name="gpu_lim" id="gpu_lim" value="0" class="form-control" readonly />
                                 </div>
                                 <button type="submit" class="btn btn-square btn-primary">Create hardware</button>
                             </form>
@@ -168,36 +242,76 @@
                             <a href="https://serve.scilifelab.se/docs/user-accounts/privileged-users/" target="_blank" rel="noopener">See the documentation on managing
                             environments as a privileged user</a>.
                         </p>
-                        <div class="alert alert-info alert-outline" role="alert">
-                            This is a simplified form for managing environments. We are working on a better
-                            interface.
-                        </div>
                     </div>
 
-                    <div class="card-body">
-                        <form action="{% url 'projects:delete_environment' project.slug %}" method="post">
-                            {% csrf_token %}
-
-                            <div class="mb-3">
-                                <label for="environment_pk">Environments</label>
-                                <select type="text" class="form-control" id="environment_pk" name="environment_pk"
-                                    maxlength="256" required>
-                                    {% for environment in environments %}
-                                    <option value="{{ environment.pk }}">{{ environment.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-square btn-danger">Delete environment</button>
-                        </form>
+                    <div class="card-body pb-3">
                         <div class="mt-2">
-                            or create new Environment:
+                        <h5>Environments</h5>
+                        <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <tbody>
+                            {% for environment in environments %}
+                            <tr>
+                                <td scope="row">{{ environment.name }}</td>
+                                <td class="text-center">
+                                <button type="button" class="btn btn-square btn-secondary" data-bs-toggle="modal" data-bs-target="#environmentDetailsModal-{{ environment.pk }}"> Details </button>
+                                <div class="modal fade" id="environmentDetailsModal-{{ environment.pk }}" tabindex="-1" aria-labelledby="environmentDetailsModal-{{ environment.pk }}-Label" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h3 class="modal-title fs-5" id="environmentDetailsModal-{{ environment.pk }}-Label"> Details for {{ environment.name }} </h3>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <b>Name:</b> {{ environment.name }}<br>
+                                                <b>Repository:</b> {{ environment.repository}}<br>
+                                                <b>Image:</b> {{ environment.image}}<br>
+                                                <b>Applies to app type:</b> {{ environment.app.name }}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"> Close </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                </td>
+                                <td class="text-center">
+                                <button type="button" class="btn btn-square btn-danger" data-bs-toggle="modal" data-bs-target="#deleteEnvironmentModal-{{ environment.pk }}"> Delete </button>
+                                <div class="modal fade" id="deleteEnvironmentModal-{{ environment.pk }}" tabindex="-1" aria-labelledby="deleteEnvironmentModal-{{ environment.pk }}-Label" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h3 class="modal-title fs-5" id="deleteEnvironmentModal-{{ environment.pk }}-Label"> Delete environment {{ environment.name }} </h3>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body text-start"> Are you sure you want to delete <strong>{{ environment.name }}</strong>? </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"> Cancel </button>
+                                                <form action="{% url 'projects:delete_environment' project.slug %}" method="post" class="d-inline"> {% csrf_token %}
+                                                    <input type="hidden" name="environment_pk" value="{{ environment.pk }}">
+                                                    <button type="submit" class="btn btn-danger"> Delete </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                </td>
+
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        </div>
+                        </div>
+                        <div class="mt-5">
+                            <h5>Create a new Environment</h5>
                             <form action="{% url 'projects:create_environment' project.slug %}"
                                 method="post" class="mt-2">
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="environment_name">Name</label>
                                     <input type="text" name="environment_name" id="environment_name" value=""
-                                        placeholder="Lab X" class="form-control" />
+                                        placeholder="Lab X" class="form-control" required/>
                                 </div>
                                 <div class="mb-3">
                                     <label for="environment_repository">Repository</label>
