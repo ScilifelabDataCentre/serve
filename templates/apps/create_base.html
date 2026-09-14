@@ -8,7 +8,7 @@
 {% include "breadcrumbs/bc_app_create.html" %}
 
 <div class="row d-flex justify-content-center mt-2">
-    <div class="col-12 col-xl-8">
+    <div class="col-12{% if not form.has_settings_sidebar %} col-xl-8{% endif %}">
         <div class="w-100 card shadow border-1">
             <div class="card-body">
             {% if app_id %}
@@ -200,7 +200,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
      // Function to toggle visibility based on select value
      function toggleVisibilityPublicPermission() {
-        var accessSelect = document.getElementById('id_access');
+        var accessSelect = document.querySelector('input[name="access"]:checked') || document.getElementById('id_access');
         var noteOnLinkOnlyDiv = document.getElementById('div_id_note_on_linkonly_privacy');
         // Ensure elements exist before attempting to use them
 
@@ -214,12 +214,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
     function toggleAccessHelpText() {
-        const accessSelect = document.getElementById('id_access');
+        const accessSelect = document.querySelector('input[name="access"]:checked') || document.getElementById('id_access');
         const accessHelpText = document.getElementById('id_access_helptext');
 
-        if (!accessSelect || !accessHelpText) return;
+        if (!accessSelect || !accessHelpText || accessSelect.disabled) return;
 
-        if (!accessHelpText.dataset.defaultText) {
+        if (!("defaultText" in accessHelpText.dataset)) {
             accessHelpText.dataset.defaultText = accessHelpText.textContent;
         }
 
@@ -233,6 +233,54 @@ document.addEventListener("DOMContentLoaded", function() {
             accessSelect.value === 'public'
                 ? publicText
                 : accessHelpText.dataset.defaultText;
+    }
+
+    function toggleVisibilityRequirements() {
+        const accessSelect = document.querySelector('input[name="access"]:checked') || document.getElementById('id_access');
+        const description = document.getElementById('id_description');
+        if (!accessSelect || !description) return;
+
+        const required = accessSelect.value === 'public' || accessSelect.value === 'link';
+        description.required = required;
+        description.setAttribute('aria-required', required ? 'true' : 'false');
+
+        const label = document.querySelector('label[for="id_description"]');
+        if (!label) return;
+        let marker = label.querySelector('.asteriskField');
+        if (required && !marker) {
+            marker = document.createElement('span');
+            marker.className = 'asteriskField app-required-marker';
+            marker.textContent = '*';
+            label.appendChild(marker);
+        }
+        if (marker) marker.hidden = !required;
+    }
+
+    let sidebarPositionFrame;
+    function updateSidebarPosition() {
+        if (sidebarPositionFrame) return;
+        sidebarPositionFrame = window.requestAnimationFrame(function() {
+            sidebarPositionFrame = null;
+            const sidebar = document.querySelector('.app-form-sidebar');
+            const layout = document.querySelector('.app-form-layout');
+            const mainForm = document.querySelector('.app-form-main');
+            if (!sidebar || !layout || !mainForm || window.innerWidth < 992) {
+                if (sidebar) sidebar.style.removeProperty('--app-form-sidebar-offset');
+                return;
+            }
+
+            const stickyTop = 16;
+            const scrollTop = window.scrollY;
+            const maximumScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+            const stickyStart = layout.getBoundingClientRect().top + scrollTop - stickyTop;
+            const stickyDistance = Math.max(1, maximumScroll - stickyStart);
+            const progress = Math.min(1, Math.max(0, (scrollTop - stickyStart) / stickyDistance));
+            const mainBottomAtPageEnd = mainForm.getBoundingClientRect().bottom + scrollTop - maximumScroll;
+            const sidebarBottomWithoutOffset = stickyTop + sidebar.offsetHeight;
+            const finalOffset = Math.max(0, mainBottomAtPageEnd - sidebarBottomWithoutOffset);
+
+            sidebar.style.setProperty('--app-form-sidebar-offset', `${finalOffset * progress}px`);
+        });
     }
 
     // SS-1176 Users are able to set a custom default start URL for their apps
@@ -310,25 +358,38 @@ document.addEventListener("DOMContentLoaded", function() {
 
     document.addEventListener("DOMContentLoaded", function() {
         // Get the select element
-        var accessSelect = document.getElementById('id_access');
+        const accessInputs = document.querySelectorAll('input[name="access"], select[name="access"]');
 
         toggleVisibilityPublicPermission()
         toggleAccessHelpText()
+        toggleVisibilityRequirements()
+        updateSidebarPosition()
 
         // Check if the select element exists
-        if (accessSelect) {
+        accessInputs.forEach(function(accessInput) {
             // Add event listener for changes if element exists
-            accessSelect.addEventListener('change', function() {
+            accessInput.addEventListener('change', function() {
                 toggleVisibilityPublicPermission();
                 toggleAccessHelpText();
+                toggleVisibilityRequirements();
             });
-        }
+        });
 
         const flavorSelect = document.getElementById('id_flavor');
         if (flavorSelect) {
             flavorSelect.addEventListener('change', updateDeletionNote);
         }
         updateDeletionNote();
+
+        const sidebar = document.querySelector('.app-form-sidebar');
+        const mainForm = document.querySelector('.app-form-main');
+        if (sidebar && mainForm && 'ResizeObserver' in window) {
+            const sidebarObserver = new ResizeObserver(updateSidebarPosition);
+            sidebarObserver.observe(sidebar);
+            sidebarObserver.observe(mainForm);
+        }
+        window.addEventListener('scroll', updateSidebarPosition, { passive: true });
+        window.addEventListener('resize', updateSidebarPosition);
 
         runScript();
     });
@@ -337,7 +398,9 @@ document.addEventListener("DOMContentLoaded", function() {
         updateUrlWithSubdomain();
         toggleVisibilityPublicPermission();
         toggleAccessHelpText();
+        toggleVisibilityRequirements();
         updateDeletionNote();
+        updateSidebarPosition();
     })
 
     // Invenio Tags with Bootstrap Badges (only if field exists)

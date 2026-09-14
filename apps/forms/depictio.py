@@ -1,6 +1,6 @@
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import AccordionGroup
-from crispy_forms.layout import HTML, Div, Layout
+from crispy_forms.layout import HTML, Div
 from django import forms
 from django.utils.safestring import mark_safe
 
@@ -44,7 +44,6 @@ class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
             SRVCommonDivField("invenio_tags", template="apps/invenio_tags_field.html"),
-            SRVCommonDivField("access"),
             self.get_creators_field_layout(),
             active=True,
         )
@@ -58,7 +57,7 @@ class DepictioForm(KeywordTagsValidationMixin, CreatorsMixin, BaseForm):
 
         body = Div(accordion, css_class="card-body")
         body.always_open = True
-        self.helper.layout = Layout(body, self.footer)
+        self._set_app_form_layout(body)
 
     def clean_subdomain(self):
         # Depictio does not render the subdomain field, so edit POSTs omit it entirely.

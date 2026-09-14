@@ -1,0 +1,39 @@
+<fieldset id="id_access" class="app-visibility" aria-describedby="id_access_helptext">
+    <legend class="h5">Visibility</legend>
+    <p class="app-visibility-intro">Choose who can access your app.</p>
+    {% if form.is_draft_instance %}
+        <p class="app-draft-status">This app is currently a draft. Choose a visibility level when you are ready to publish it.</p>
+    {% endif %}
+    {% for option in form.access %}
+        {% if option.data.value != 'draft' %}
+        <div class="form-check app-visibility-option">
+            {{ option.tag }}
+            <label class="form-check-label" for="{{ option.id_for_label }}">
+                <span class="fw-semibold">{% if option.data.value == 'link' %}Link-only{% else %}{{ option.choice_label }}{% endif %}</span>
+                <span class="app-visibility-description small text-muted">
+                    {% if option.data.value == 'public' %}
+                        Anyone can access the app and find its description on SciLifeLab Serve.
+                    {% elif option.data.value == 'link' %}
+                        Anyone with the link can access the app. It is not listed publicly.
+                    {% elif option.data.value == 'project' %}
+                        Only members of this project can access the app.
+                    {% elif option.data.value == 'private' %}
+                        Only you can access the app.
+                    {% endif %}
+                </span>
+            </label>
+        </div>
+        {% endif %}
+    {% endfor %}
+    <div id="id_access_helptext" class="small text-muted">{% if form.access.field.disabled %}{{ form.access.help_text }}{% endif %}</div>
+    {% for error in form.access.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+    {% endfor %}
+</fieldset>
+{% if form.can_save_draft %}
+    <p class="app-draft-hint">Not ready yet? Save a draft and continue later.</p>
+{% elif form.supports_draft %}
+    <p class="app-draft-hint">Published apps cannot be returned to draft.</p>
+{% else %}
+    <p class="app-draft-hint">Draft saving is not available for this app type.</p>
+{% endif %}

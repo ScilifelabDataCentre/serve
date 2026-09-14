@@ -26,7 +26,6 @@ class VSCodeForm(VolumeMixin, AppBaseForm):
         general = AccordionGroup(
             mark_safe("<h3>Description</h3>"),
             SRVCommonDivField("name", required=True),
-            SRVCommonDivField("access"),
             active=True,
         )
 
@@ -46,7 +45,7 @@ class VSCodeForm(VolumeMixin, AppBaseForm):
 
         body = Div(accordion, css_class="card-body")
         body.always_open = True
-        self.helper.layout = Layout(body, self._deletion_note_layout(), self.footer)
+        self._set_app_form_layout(body, self._deletion_note_layout())
 
     class Meta:
         model = VSCodeInstance

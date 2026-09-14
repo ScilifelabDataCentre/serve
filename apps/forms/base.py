@@ -4,7 +4,7 @@ import uuid
 
 import waffle
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, Button, Div, Submit
+from crispy_forms.layout import HTML, Button, Div, Layout, Submit
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -74,7 +74,9 @@ class BaseForm(forms.ModelForm):
 
         self._setup_form_helper()
         for field in self.fields.values():
-            if isinstance(field.widget, (Select, SelectMultiple)):
+            if isinstance(field.widget, forms.RadioSelect):
+                field.widget.attrs["class"] = "form-check-input"
+            elif isinstance(field.widget, (Select, SelectMultiple)):
                 field.widget.attrs["class"] = "form-select"
             else:
                 field.widget.attrs["class"] = "form-control"
@@ -139,6 +141,60 @@ class BaseForm(forms.ModelForm):
         # Ensure HTML5 `required` attributes are rendered
         self.helper.use_required_attribute = True
         self.helper.form_method = "post"
+
+    def _set_app_form_layout(self, body, *notes):
+        """Keep visibility and actions alongside the configuration on app forms."""
+        self.has_settings_sidebar = True
+        access = self.fields["access"]
+        access_choices = list(access.choices)
+        model_access_choices = self._meta.model._meta.get_field("access").choices
+        self.supports_draft = any(value == "draft" for value, _ in model_access_choices)
+        self.is_draft_instance = bool(
+            self.instance and self.instance.pk and self.instance.latest_user_action == "Draft"
+        )
+        order = {"public": 0, "link": 1, "project": 2, "private": 3}
+        access.widget = forms.RadioSelect(choices=sorted(access_choices, key=lambda choice: order.get(choice[0], 4)))
+        is_existing_app = bool(self.instance and self.instance.pk)
+        self.can_save_draft = self.supports_draft and (not is_existing_app or self.is_draft_instance)
+        actions = [
+            Button(
+                "cancel",
+                "Cancel",
+                css_class="btn-outline-dark btn-outline-cancel me-2",
+                onclick="window.history.back()",
+            )
+        ]
+        if self.can_save_draft:
+            draft_state = ""
+        elif self.supports_draft:
+            draft_state = ' disabled aria-disabled="true" title="Published apps cannot be returned to draft."'
+        else:
+            draft_state = (
+                ' disabled aria-disabled="true" title="Draft saving is not available for this app type."'
+            )
+        actions.append(
+            HTML(
+                '<button type="submit" name="action" value="save_draft" data-cy="save-draft" '
+                f'class="btn btn-serve-aqua app-save-draft" formnovalidate{draft_state}>Save draft</button>'
+            )
+        )
+        submit_label = "Update" if is_existing_app and not self.is_draft_instance else "Publish"
+        actions.append(Submit("submit", submit_label))
+        self.footer = Div(
+            *actions,
+            css_class="card-footer d-flex flex-wrap justify-content-end gap-2",
+        )
+        self.helper.layout = Layout(
+            Div(
+                Div(body, *notes, css_class="app-form-main"),
+                Div(
+                    HTML('{% include "apps/partials/settings_sidebar.html" %}'),
+                    self.footer,
+                    css_class="app-form-sidebar",
+                ),
+                css_class="app-form-layout",
+            )
+        )
 
     def add_metadata(self):
         instance = getattr(self, "instance", None)

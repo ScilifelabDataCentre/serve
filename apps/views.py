@@ -463,8 +463,22 @@ class CreateApp(View):
         if app_id and instance is None:
             return None
 
+        is_save_draft = request.method == "POST" and request.POST.get("action") == "save_draft"
+        model_supports_draft = any(
+            value == "draft" for value, _ in model_class._meta.get_field("access").choices
+        )
+        can_save_draft = model_supports_draft and (
+            instance is None or instance.latest_user_action == "Draft"
+        )
+        if is_save_draft and not can_save_draft:
+            raise PermissionDenied("Saving this app as a draft is not allowed.")
+
         if user_can_edit or user_can_create:
-            form = form_class(request.POST or None, project_pk=project.pk, instance=instance, request=request)
+            form_data = request.POST or None
+            if is_save_draft:
+                form_data = request.POST.copy()
+                form_data["access"] = "draft"
+            form = form_class(form_data, project_pk=project.pk, instance=instance, request=request)
 
             # Disable access field for public apps to prevent changing access mode
             if app_id and instance and hasattr(instance, "access") and instance.access == "public":

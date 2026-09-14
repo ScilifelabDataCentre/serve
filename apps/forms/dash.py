@@ -1,6 +1,6 @@
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
-from crispy_forms.layout import HTML, Div, Layout
+from crispy_forms.layout import HTML, Div
 from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
@@ -94,12 +94,8 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
         general_fields = [
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
+            SRVCommonDivField("note_on_linkonly_privacy", rows=3),
             SRVCommonDivField("invenio_tags", template="apps/invenio_tags_field.html"),
-            SRVCommonDivField("access"),
-            SRVCommonDivField(
-                "note_on_linkonly_privacy",
-                rows=1,
-            ),
             self.get_creators_field_layout(),
         ]
 
@@ -179,7 +175,7 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
 
         body = Div(accordion, css_class="card-body")
         body.always_open = True
-        self.helper.layout = Layout(body, self.footer)
+        self._set_app_form_layout(body)
 
     @property
     def changed_data(self):
