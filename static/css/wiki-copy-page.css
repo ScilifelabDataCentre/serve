@@ -1,0 +1,31 @@
+/* Both tiles must match exactly or the text columns misalign. */
+.copy-page-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.copy-page-brand-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+/* Fixing the underline link issue. */
+[data-copy-page-menu] .dropdown-menu .dropdown-item,
+[data-copy-page-menu] .dropdown-menu .dropdown-item:link,
+[data-copy-page-menu] .dropdown-menu .dropdown-item:visited,
+[data-copy-page-menu] .dropdown-menu .dropdown-item:hover,
+[data-copy-page-menu] .dropdown-menu .dropdown-item:focus,
+[data-copy-page-menu] .dropdown-menu .dropdown-item:focus-visible,
+[data-copy-page-menu] .dropdown-menu .dropdown-item:active {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+[data-copy-page-menu] .dropdown-menu .dropdown-item::before,
+[data-copy-page-menu] .dropdown-menu .dropdown-item::after {
+  content: none !important;
+  display: none !important;
+}
