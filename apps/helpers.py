@@ -516,6 +516,15 @@ def create_instance_from_form(
 
     instance = form.save(commit=False)
 
+    instance_owner = None
+    if is_draft_access:
+        if new_app:
+            request_user = getattr(getattr(form, "request", None), "user", None)
+            if request_user is not None and request_user.is_authenticated:
+                instance_owner = request_user
+        elif instance.owner_id:
+            instance_owner = instance.owner
+
     if is_draft_access:
         # Relaxing required fields for a draft can leave a normally-required field empty.
         for model_field in instance._meta.fields:
@@ -569,7 +578,7 @@ def create_instance_from_form(
     else:
         instance.made_public_on = None
 
-    setup_instance(instance, subdomain, app, project, user_action)
+    setup_instance(instance, subdomain, app, project, user_action, owner=instance_owner)
 
     # Depictio public <-> link and private <-> project produce identical
     # rendered manifests, so handle this case.
@@ -882,12 +891,12 @@ def get_app(app_slug):
         raise ValueError(f"App with slug {app_slug} not found")
 
 
-def setup_instance(instance, subdomain, app, project, user_action=None, is_created_by_user=False):
+def setup_instance(instance, subdomain, app, project, user_action=None, is_created_by_user=False, owner=None):
     instance.subdomain = subdomain
     instance.app = app
     instance.chart = instance.app.chart
     instance.project = project
-    instance.owner = project.owner
+    instance.owner = owner or project.owner
     instance.latest_user_action = user_action
     logger.info(
         "setup_instance.assigned instance_id=%s subdomain=%s app_slug=%s project_id=%s user_action=%s",
