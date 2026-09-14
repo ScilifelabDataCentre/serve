@@ -820,20 +820,22 @@ def handle_subdomain_change(instance: Any, subdomain: str, subdomain_name: str) 
         return
 
     if instance.subdomain.subdomain != subdomain_name:
-        # The user modified the subdomain name
-        # In this special case, we avoid async task.
-        delete_result = delete_resource(instance.serialize(), AppActionOrigin.USER.value)
+        # Draft apps are not deployed.
+        if instance.latest_user_action != "Draft":
+            # The user modified the subdomain name
+            # In this special case, we avoid async task.
+            delete_result = delete_resource(instance.serialize(), AppActionOrigin.USER.value)
 
-        if not _old_release_is_removed(delete_result):
-            logger.error(
-                "handle_subdomain_change.aborted_release_not_removed instance_id=%s "
-                "old_subdomain=%s requested_subdomain=%s error=%s",
-                instance.pk,
-                instance.subdomain.subdomain,
-                subdomain_name,
-                delete_result.get("error") if isinstance(delete_result, dict) else None,
-            )
-            raise SubdomainChangeError()
+            if not _old_release_is_removed(delete_result):
+                logger.error(
+                    "handle_subdomain_change.aborted_release_not_removed instance_id=%s "
+                    "old_subdomain=%s requested_subdomain=%s error=%s",
+                    instance.pk,
+                    instance.subdomain.subdomain,
+                    subdomain_name,
+                    delete_result.get("error") if isinstance(delete_result, dict) else None,
+                )
+                raise SubdomainChangeError()
 
         old_subdomain = instance.subdomain
         instance.subdomain = subdomain

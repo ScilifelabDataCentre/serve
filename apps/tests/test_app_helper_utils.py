@@ -654,6 +654,45 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         app_instance = DashInstance.objects.get(pk=id)
         self.assertIsNone(app_instance.reminder_date_linkonly_privacy)
 
+    def test_draft_subdomain_change_does_not_touch_the_cluster(self, mock_delete, mock_deploy):
+        """
+        A draft has never been deployed, so there is no Helm release in the cluster to
+        remove when its subdomain changes. Calling out to k8s for this would be pointless,
+        and would block saving the draft if the cluster is unreachable or helm errors for
+        any reason other than "release not found".
+        """
+        draft_subdomain = Subdomain.objects.create(subdomain="test-draft-subdomain-original", project=self.project)
+        draft_instance = DashInstance.objects.create(
+            app=self.app,
+            access="draft",
+            latest_user_action="Draft",
+            owner=self.user,
+            name="test-draft-app",
+            chart="test-chart",
+            project=self.project,
+            subdomain=draft_subdomain,
+        )
+
+        data = {
+            "name": "test-draft-app",
+            "access": "draft",
+            "subdomain": "test-draft-subdomain-new",
+        }
+
+        model_class, form_class = APP_REGISTRY.get(self.app_slug)
+        instance = model_class.objects.get(pk=draft_instance.id)
+        form = form_class(data, project_pk=self.project.pk, instance=instance)
+        self.assertTrue(form.is_valid(), f"The form should be valid but has errors: {form.errors}")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            create_instance_from_form(form, self.project, self.app_slug, app_id=draft_instance.id)
+
+        mock_delete.assert_not_called()
+
+        draft_instance.refresh_from_db()
+        self.assertEqual(draft_instance.subdomain.subdomain, "test-draft-subdomain-new")
+        self.assertEqual(draft_instance.latest_user_action, "Draft")
+
 
 @pytest.mark.django_db
 def test_get_subdomain_name():
