@@ -127,9 +127,12 @@ class DOIProvisioningTask(BaseBackgroundTask):
         return any(task.status == "failed" for task in latest_earlier_required_tasks)
 
     def execute(self, app_instance, **kwargs) -> dict[str, Any]:
-        # Only run for instances that have an image (use shared resolver for all app types)
+        # Only run for instances that have an image (use shared resolver for all app types) -
+        # except a Serve draft, which must always get its metadata saved to Invenio as a
+        # draft record regardless of what's filled in yet.
+        is_serve_draft = getattr(app_instance, "latest_user_action", None) == "Draft"
         image = resolve_app_image(app_instance)
-        if not image:
+        if not image and not is_serve_draft:
             logger.debug(
                 "DOI provisioning skipped: app instance %s has no image",
                 app_instance.id,

@@ -16,6 +16,7 @@ class ShinyInstanceManager(AppInstanceManager):
 class ShinyInstance(BaseAppInstance, SocialMixin, LogsEnabledMixin):
     objects = ShinyInstanceManager()
     ACCESS_TYPES = (
+        ("draft", "Draft"),
         ("project", "Project"),
         (
             "private",

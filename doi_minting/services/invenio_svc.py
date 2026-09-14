@@ -1406,9 +1406,10 @@ class InvenioService:
         technical_description = self._build_technical_description(app_data)
 
         # Build metadata using Pydantic models
+        # A Serve draft may still have a blank description (only "name" is required for a
         metadata = InvenioMetadata(
             title=app_data.name,
-            description=app_data.description,
+            description=app_data.description or "No description provided yet.",
             publication_date=publication_date,  # this one is a separate field on purpose
             dates=dates,
             publisher="SciLifeLab Serve",

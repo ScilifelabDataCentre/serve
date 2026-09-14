@@ -60,9 +60,13 @@
                             statusTxt = status + ": " + k8sStatus;
                         }
 
+                        // Draft apps were never deployed, so there is no status to show.
+                        const className = statusGroup
+                            ? `alert bg-${statusGroup} alert-app-table`
+                            : "alert-app-table";
+
                         // Update both the status, the class style, and data attributes
                         elements.forEach(element => {
-                            const className = `alert bg-${statusGroup} alert-app-table`;
                             element.className = className;
                             element.innerText = statusTxt;
                             element.dataset.appAction = latestUserAction;
