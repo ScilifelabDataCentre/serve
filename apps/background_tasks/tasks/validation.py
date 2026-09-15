@@ -28,7 +28,6 @@ SOURCE_CODE_URL_APP_TYPES = [
     "shinyapp",
     "shinyproxyapp",
     "streamlit",
-    "tissuumaps",
 ]
 
 
