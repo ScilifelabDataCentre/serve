@@ -434,8 +434,8 @@ def create_instance_from_form(
         if is_draft_access:
             run_background_tasks_only = True
     elif was_draft and is_draft_access:
-        # Still a draft - just persist whatever changed without ever touching k8s or Invenio
-        # publishing, regardless of which fields changed since the last save.
+        # Still a draft: persist the changes and refresh its Invenio draft record,
+        # without touching Kubernetes.
         do_deploy = False
         user_action = "Draft"
         run_background_tasks_only = True
@@ -645,6 +645,8 @@ def create_instance_from_form(
             form,
             app_slug,
             progress_started_at=progress_started_at,
+            task_names=["doi_provisioning"] if is_draft_access else None,
+            preserve_latest_user_action_on_failure=is_draft_access,
         )
         logger.info("create_instance_from_form.background_tasks_only app_id=%s instance_id=%s", app_id, instance_id)
     else:
@@ -664,6 +666,8 @@ def _run_background_tasks_and_doi_only(
     app_slug,
     skip_deploy=True,
     progress_started_at: str | None = None,
+    task_names: list[str] | None = None,
+    preserve_latest_user_action_on_failure: bool = False,
 ):
     """Run background tasks (including DOI minting) for an instance, without deployment."""
     from .tasks import run_background_tasks
@@ -684,6 +688,8 @@ def _run_background_tasks_and_doi_only(
             task_kwargs_by_task_name,
             progress_started_at,
             skip_deploy=skip_deploy,
+            task_names=task_names,
+            preserve_latest_user_action_on_failure=preserve_latest_user_action_on_failure,
         )
     )
 

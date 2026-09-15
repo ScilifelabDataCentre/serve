@@ -85,6 +85,10 @@ class ContainerImageMixin:
             )
             return image
 
+        # Validate draft images when they are published.
+        if getattr(self, "_is_draft_access", False):
+            return image
+
         if "ghcr.io" in image:
             try:
                 validate_ghcr_image(image)

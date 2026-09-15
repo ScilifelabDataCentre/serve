@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Preparing {{ instance.name }}{% endblock %}
+{% block title %}{% if is_draft_workflow %}Saving {{ instance.name }}{% else %}Preparing {{ instance.name }}{% endif %}{% endblock %}
 {% load static %}
 {% block content %}
 
@@ -10,13 +10,21 @@
       <div class="card shadow-lg border-0 deployment-progress-card">
         <div class="card-body p-4 p-lg-5">
           <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-            <span class="badge text-bg-info deployment-progress-pill" id="progress-pill">Checking</span>
+            <span class="badge text-bg-info deployment-progress-pill" id="progress-pill">
+              {% if is_draft_workflow %}Saving{% else %}Checking{% endif %}
+            </span>
             <span class="small text-muted" id="progress-inline">This page updates automatically.</span>
           </div>
 
-          <h1 class="h3 mb-2 deployment-progress-title" id="progress-title">We are preparing {{ instance.name }}</h1>
+          <h1 class="h3 mb-2 deployment-progress-title" id="progress-title">
+            {% if is_draft_workflow %}Saving draft metadata{% else %}We are preparing {{ instance.name }}{% endif %}
+          </h1>
           <p class="text-muted mb-4 deployment-progress-message" id="progress-message">
-            We are validating your app, running the background tasks, and then deploying it.
+            {% if is_draft_workflow %}
+              We are saving your draft and its metadata.
+            {% else %}
+              We are validating your app, running the background tasks, and then deploying it.
+            {% endif %}
           </p>
 
           <div class="mb-4">
@@ -24,7 +32,7 @@
               <span>Progress</span>
               <span id="progress-label">0 of 1 steps completed</span>
             </div>
-            <div class="progress deployment-progress-track" role="progressbar" aria-label="Deployment progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="progress deployment-progress-track" role="progressbar" aria-label="{% if is_draft_workflow %}Draft metadata progress{% else %}Deployment progress{% endif %}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
               <div class="progress-bar progress-bar-striped progress-bar-animated deployment-progress-bar" id="progress-bar"></div>
             </div>
           </div>
@@ -35,20 +43,36 @@
                 <span class="step-icon step-icon-running"><span class="step-spinner"></span></span>
               </div>
               <div class="flex-grow-1">
-                <div class="fw-semibold">Starting deployment checks</div>
-                <div class="small text-muted">We will list each step here as soon as it starts.</div>
+                <div class="fw-semibold">
+                  {% if is_draft_workflow %}Starting metadata save{% else %}Starting deployment checks{% endif %}
+                </div>
+                <div class="small text-muted">
+                  {% if is_draft_workflow %}
+                    We will show the metadata update here as soon as it starts.
+                  {% else %}
+                    We will list each step here as soon as it starts.
+                  {% endif %}
+                </div>
               </div>
               <div class="small text-muted">Waiting</div>
             </div>
           </div>
 
           <div class="small text-muted mb-4" id="progress-next-step">
-            We will open the app details page automatically when everything is ready.
+            {% if is_draft_workflow %}
+              We will return to the form automatically when the save finishes.
+            {% else %}
+              We will open the app details page automatically when everything is ready.
+            {% endif %}
           </div>
 
           <div class="d-flex flex-wrap gap-2">
-            <a href="{{ form_url }}" class="btn btn-outline-secondary">Back to form</a>
-            <a href="{{ detail_url }}" class="btn btn-primary" id="details-link">Deployment summary</a>
+            {% if is_draft_workflow %}
+              <a href="{{ form_url }}" class="btn btn-primary">Return to form</a>
+            {% else %}
+              <a href="{{ form_url }}" class="btn btn-outline-secondary">Back to form</a>
+              <a href="{{ detail_url }}" class="btn btn-primary" id="details-link">Deployment summary</a>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -58,8 +82,9 @@
 <script src="{% static 'js/adaptive-polling.js' %}"></script>
 <script>
 const statusApiUrl = "{{ status_api_url|escapejs }}";
-const detailUrl = "{{ detail_url }}";
-const SUCCESS_REDIRECT_DELAY_MS = 5000;
+const successUrl = "{{ success_url|escapejs }}";
+const isDraftWorkflow = {{ is_draft_workflow|yesno:"true,false" }};
+const SUCCESS_REDIRECT_DELAY_MS = isDraftWorkflow ? 1200 : 5000;
 const STEP_REVEAL_DELAY_MS = 700;
 const REQUIRED_SUCCESS_POLLS = 2;
 const ACTIVE_STATUS_POLL_MS = 3000;
@@ -218,6 +243,7 @@ function updateSummary(steps, deployment) {
   const progressPercent = Math.round((stats.completed / stats.total) * 100);
   const deploymentStatus = deployment?.status || "pending";
   const hasFailedOutcome = deploymentStatus === "failed" || deploymentStatus === "blocked" || steps.some(step => step.status === "failed");
+  const hasWarningOutcome = steps.some(step => step.status === "warning");
   const hasSuccessOutcome = deploymentStatus === "success";
 
   const progressLabel = document.getElementById("progress-label");
@@ -230,6 +256,8 @@ function updateSummary(steps, deployment) {
     progressBar.setAttribute("aria-valuenow", `${progressPercent}`);
     if (hasFailedOutcome) {
       progressBar.className = "progress-bar bg-danger";
+    } else if (hasWarningOutcome) {
+      progressBar.className = "progress-bar bg-warning";
     } else if (hasSuccessOutcome || progressPercent === 100) {
       progressBar.className = "progress-bar bg-success";
     } else {
@@ -247,6 +275,61 @@ function getVisibleHeaderContent(deployment, steps) {
   const inlineText = `${stats.completed} of ${stats.total} steps completed`;
   const allStepsVisibleAsSuccess = areAllStepsCompleteOrNonBlocking(steps);
   const deploymentStatus = deployment?.status || "pending";
+
+  if (isDraftWorkflow) {
+    if (steps.some(step => step.status === "warning")) {
+      return {
+        pill_class: "text-bg-warning",
+        pill_text: "Saved with warning",
+        title: "Draft saved",
+        message: "Your draft is saved but might be missing some metadata.",
+        inline_text: inlineText,
+        next_step_text: "Returning to the form now."
+      };
+    }
+
+    if (deploymentStatus === "success" && allStepsVisibleAsSuccess) {
+      return {
+        pill_class: "text-bg-success",
+        pill_text: "Saved",
+        title: "Draft saved",
+        message: "The draft and its metadata have been saved. Returning to the form.",
+        inline_text: inlineText,
+        next_step_text: "Returning to the form now."
+      };
+    }
+
+    if (deploymentStatus === "failed" || deploymentStatus === "blocked") {
+      return {
+        pill_class: "text-bg-warning",
+        pill_text: "Saved with warning",
+        title: "Draft saved",
+        message: "Your draft is saved but might be missing some metadata.",
+        inline_text: stats.failed === 1 ? "1 step needs attention" : `${stats.failed} steps need attention`,
+        next_step_text: "Returning to the form now."
+      };
+    }
+
+    if (deploymentStatus === "running" || steps.some(step => ["pending", "running", "retrying"].includes(step.status))) {
+      return {
+        pill_class: "text-bg-info",
+        pill_text: "Saving",
+        title: "Saving draft metadata",
+        message: "Only metadata is being saved.",
+        inline_text: inlineText,
+        next_step_text: "You will return to the form automatically when the metadata is saved."
+      };
+    }
+
+    return {
+      pill_class: "text-bg-secondary",
+      pill_text: "Waiting",
+      title: "Waiting to save draft metadata",
+      message: "We have not recorded the metadata update yet.",
+      inline_text: inlineText,
+      next_step_text: "Keep this page open while the metadata save starts."
+    };
+  }
 
   if (deploymentStatus === "success" && allStepsVisibleAsSuccess) {
     // Show "Ready / redirecting" only after the deploy is stable.
@@ -332,6 +415,15 @@ function isProgressSuccessful(data) {
   return data.deployment?.status === "success" && areAllStepsCompleteOrNonBlocking(data.steps || []);
 }
 
+function isDraftProgressComplete(data) {
+  const steps = data.steps || [];
+  return isDraftWorkflow && steps.length > 0 && steps.every(step => TERMINAL_STEP_STATUSES.has(step.status));
+}
+
+function isProgressReadyForRedirect(data) {
+  return isProgressSuccessful(data) || isDraftProgressComplete(data);
+}
+
 // Text shown while the deploy is being checked.
 const DEPLOY_STEP_STABILIZING_DETAIL = "Deployment is in progress. Confirming the app is stable before completing.";
 
@@ -366,8 +458,8 @@ function stabilizeDeployStep(data) {
   return {...data, steps: patchedSteps};
 }
 
-function maybeRedirectToDetails(data) {
-  if (!isProgressSuccessful(data)) {
+function maybeRedirectAfterCompletion(data) {
+  if (!isProgressReadyForRedirect(data)) {
     return;
   }
   // For Skip-deploy flows redirect on first success.
@@ -378,7 +470,7 @@ function maybeRedirectToDetails(data) {
     successRedirectTimer = window.setTimeout(() => {
       hasRedirected = true;
       progressPoller?.stop();
-      window.location.assign(detailUrl);
+      window.location.assign(successUrl);
     }, SUCCESS_REDIRECT_DELAY_MS);
   }
 }
@@ -460,7 +552,7 @@ function syncDisplayedProgress() {
       deployment: {...latestServerData.deployment}
     };
     renderProgressShell(displayedProgressData);
-    maybeRedirectToDetails(displayedProgressData);
+    maybeRedirectAfterCompletion(displayedProgressData);
     return;
   }
 
@@ -488,7 +580,7 @@ function syncDisplayedProgress() {
   }
 
   renderProgress(displayedProgressData);
-  maybeRedirectToDetails(displayedProgressData);
+  maybeRedirectAfterCompletion(displayedProgressData);
 
   stepRevealTimer = window.setTimeout(syncDisplayedProgress, STEP_REVEAL_DELAY_MS);
 }
@@ -505,7 +597,7 @@ function refreshProgress() {
       consecutiveErrorPolls = 0;
       const fresh = copyProgressData(data);
 
-      if (isProgressSuccessful(fresh)) {
+      if (isProgressReadyForRedirect(fresh)) {
         consecutiveSuccessPolls = returnedFromHidden
           ? REQUIRED_SUCCESS_POLLS
           : consecutiveSuccessPolls + 1;
@@ -553,7 +645,7 @@ function escapeHtml(value) {
 document.addEventListener("DOMContentLoaded", () => {
   displayedProgressData = copyProgressData(latestServerData);
   renderProgress(displayedProgressData);
-  maybeRedirectToDetails(displayedProgressData);
+  maybeRedirectAfterCompletion(displayedProgressData);
   window.serveDeploymentProgressPoller?.stop();
   progressPoller = ServeAdaptivePolling.createPoller({
     poll: refreshProgress,
