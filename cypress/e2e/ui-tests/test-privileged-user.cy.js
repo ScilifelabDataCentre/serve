@@ -55,41 +55,103 @@ describe("Test privileged user functionality", () => {
         cy.get('.list-group').find('a').should('contain', 'Environments');
     });
 
-    it("can create and delete a flavor", () => {
+    it("can create, view, and delete a flavor", () => {
         const flavor_name = "8 vCPU, 16 GB RAM";
 
         openProjectSettings(TEST_PROJECT_DATA.project_name);
-        cy.get('.list-group').find('a').should('be.visible').contains('Hardware').click();
+
+        cy.get('.list-group').find('a').contains('Hardware').should('be.visible').click();
+
+        // Create a new Hardware option
         cy.get('input[name="flavor_name"]').type(flavor_name);
-        cy.get('input[name="cpu_req"]').clear().type("100m");
         cy.get('input[name="cpu_lim"]').clear().type("8000m");
-        cy.get('input[name="mem_req"]').clear().type("2Gi");
         cy.get('input[name="mem_lim"]').clear().type("16Gi");
-        cy.get('button').should('be.visible').contains("Create hardware").click();
+        cy.get('input[name="ephmem_lim"]').clear().type("5000Mi");
+        cy.get('input[name="gpu_req"]').clear().type("0");
+        cy.get('button').contains("Create hardware").should('be.visible').click();
 
-        cy.get('.list-group').find('a').should('be.visible').contains('Hardware').click();
-        cy.get('#flavor_pk').should('contain', flavor_name);
+        cy.get('.list-group').find('a').contains('Hardware').should('be.visible').click();
 
-        cy.get('#flavor_pk').select(flavor_name);
-        cy.get('button').should('be.visible').contains("Delete hardware").click();
+        // Check that the Hardware option was added
+        cy.contains('#flavors tbody tr', flavor_name).should('be.visible').within(() => {
+                cy.contains('button', 'Details').click();
+            });
+        cy.get('#flavors .modal.show').filter(`:contains("${flavor_name}")`).should('be.visible').within(() => {
+                cy.contains(`Details for ${flavor_name}`).should('be.visible');
+                cy.contains(`Name: ${flavor_name}`).should('be.visible');
+                cy.contains('CPU limit: 8000m').should('be.visible');
+                cy.contains('Memory limit: 16Gi').should('be.visible');
+                cy.contains('Ephemeral storage limit: 5000Mi').should('be.visible');
+                cy.contains('GPU: 0').should('be.visible');
+                cy.get('.modal-dialog').should('have.css', 'transform', 'none');
+                cy.get('.modal-footer')
+                    .contains('button', 'Close')
+                    .click();
+            });
 
-        cy.get('.list-group').find('a').should('be.visible').contains('Hardware').click();
-        cy.get('#flavor_pk').should('not.contain', flavor_name);
+        // Delete the created Hardware option
+        cy.contains('#flavors tbody tr', flavor_name).should('be.visible').within(() => {
+                cy.contains('button', 'Delete').click();
+            });
+        cy.get('#flavors .modal.show').should('be.visible').within(() => {
+                cy.contains(`Are you sure you want to delete`).should('be.visible');
+                cy.contains('strong', flavor_name).should('be.visible');
+                cy.contains('button', 'Delete').click();
+            });
+
+        // Confirm it was deleted
+        cy.get('.list-group').find('a').contains('Hardware').should('be.visible').click();
+        cy.contains('#flavors tbody tr', flavor_name).should('not.exist');
     });
 
-    it("can create an environment", () => {
+    it("can create, view, and delete an environment", () => {
         const environment_name = "e2e privileged environment";
+        const environment_repository = "docker.io";
+        const environment_image = "jupyter/minimal-notebook:latest";
+        const environment_app = "Jupyter Lab";
 
         openProjectSettings(TEST_PROJECT_DATA.project_name);
-        cy.get('.list-group').find('a').should('be.visible').contains('Environments').click();
-        cy.get('input[name="environment_name"]').type(environment_name);
-        cy.get('input[name="environment_repository"]').clear().type("docker.io");
-        cy.get('input[name="environment_image"]').clear().type("jupyter/minimal-notebook:latest");
-        cy.get('#environment_app').select('Jupyter Lab');
-        cy.get('button').should('be.visible').contains("Create environment").click();
 
-        cy.get('.list-group').find('a').should('be.visible').contains('Environments').click();
-        cy.get('#environment_pk').should('contain', environment_name);
+        cy.get('.list-group').find('a').contains('Environments').should('be.visible').click();
+
+        // Create a new Environment
+        cy.get('input[name="environment_name"]').type(environment_name);
+        cy.get('input[name="environment_repository"]').clear().type(environment_repository);
+        cy.get('input[name="environment_image"]').clear().type(environment_image);
+        cy.get('#environment_app').select(environment_app);
+        cy.get('button').contains("Create environment").should('be.visible').click();
+
+
+        // Check that the environment exists and open Details
+        cy.get('.list-group').find('a').contains('Environments').should('be.visible').click();
+        cy.contains('#environments tbody tr', environment_name).should('be.visible').within(() => {
+                cy.contains('button', 'Details').click();
+            });
+
+        // Check details of the created Environment
+        cy.get('#environments .modal.show').should('be.visible').within(() => {
+                cy.contains(`Details for ${environment_name}`).should('be.visible');
+                cy.contains(`Name: ${environment_name}`).should('be.visible');
+                cy.contains(`Repository: ${environment_repository}`).should('be.visible');
+                cy.contains(`Image: ${environment_image}`).should('be.visible');
+                cy.contains(`Applies to app type: ${environment_app}`).should('be.visible');
+                cy.get('.modal-dialog').should('have.css', 'transform', 'none');
+                cy.contains('button', 'Close').click();
+            });
+
+        // Delete the created Environment
+        cy.contains('#environments tbody tr', environment_name).should('be.visible').within(() => {
+                cy.contains('button', 'Delete').click();
+            });
+        cy.get('#environments .modal.show').should('be.visible').within(() => {
+                cy.contains(`Delete environment ${environment_name}`).should('be.visible');
+                cy.contains('Are you sure you want to delete').should('be.visible');
+                cy.contains('strong', environment_name).should('be.visible');
+                cy.contains('button', 'Delete').click();
+            });
+
+        cy.get('.list-group').find('a').contains('Environments').should('be.visible').click();
+        cy.contains('#environments tbody tr', environment_name).should('not.exist');
     });
 
     it("can set a volume size directly and still request more", () => {

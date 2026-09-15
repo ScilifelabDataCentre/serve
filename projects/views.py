@@ -45,6 +45,7 @@ from .permissions import (
     invalidate_project_permission,
 )
 from .tasks import create_resources_from_template, delete_project
+from .validators import validate_limit_not_below_request
 
 logger = logging.getLogger(__name__)
 Apps = apps.get_model(app_label=django_settings.APPS_MODEL)
@@ -326,6 +327,14 @@ def delete_environment(request, project_slug):
     )
 
 
+# Requests are fixed server-side.
+FLAVOR_RESOURCES = {
+    "CPU": {"field": "cpu_lim", "unit": "m", "request": 200},
+    "Memory": {"field": "mem_lim", "unit": "Gi", "request": 0.5},
+    "Ephemeral storage": {"field": "ephmem_lim", "unit": "Mi", "request": 200},
+}
+
+
 @login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project_slug"))
 def create_flavor(request, project_slug):
@@ -334,36 +343,54 @@ def create_flavor(request, project_slug):
         return HttpResponseForbidden()
     else:
         if request.method == "POST":
-            # TODO: Check input
             logger.info(request.POST)
-            name = request.POST.get("flavor_name")
-            cpu_req = request.POST.get("cpu_req")
-            mem_req = request.POST.get("mem_req")
-            ephmem_req = request.POST.get("ephmem_req")
-            cpu_lim = request.POST.get("cpu_lim")
-            mem_lim = request.POST.get("mem_lim")
-            ephmem_lim = request.POST.get("ephmem_lim")
+            name = (request.POST.get("flavor_name") or "").strip()
+            limits = {
+                resource: (request.POST.get(spec["field"]) or "").strip() for resource, spec in FLAVOR_RESOURCES.items()
+            }
 
-            # GPU fields are whole counts; default to 0 (no GPU) when blank or invalid.
+            # Default to 0 (no GPU) when blank or invalid.
             def _parse_gpu(raw):
                 try:
                     return max(int(raw), 0)
                 except (TypeError, ValueError):
                     return 0
 
+            # Kubernetes requires request == limit for nvidia.com/gpu.
             gpu_req = _parse_gpu(request.POST.get("gpu_req"))
-            gpu_lim = _parse_gpu(request.POST.get("gpu_lim"))
+
+            problems = [
+                problem
+                for resource, spec in FLAVOR_RESOURCES.items()
+                if (
+                    problem := validate_limit_not_below_request(
+                        resource, limits[resource], spec["request"], spec["unit"]
+                    )
+                )
+            ]
+
+            if not name:
+                problems.insert(0, "Name: please name the hardware option.")
+
+            if problems:
+                messages.error(request, "Hardware option was not created. " + " ".join(problems))
+                settings_url = reverse("projects:settings", kwargs={"project_slug": project.slug})
+                return HttpResponseRedirect(f"{settings_url}?tab=flavors")
+
+            amounts = {resource: f"{limits[resource]}{spec['unit']}" for resource, spec in FLAVOR_RESOURCES.items()}
+            requests = {resource: f"{spec['request']}{spec['unit']}" for resource, spec in FLAVOR_RESOURCES.items()}
+
             flavor = Flavor(
                 name=name,
                 project=project,
-                cpu_req=cpu_req,
-                mem_req=mem_req,
-                cpu_lim=cpu_lim,
-                mem_lim=mem_lim,
-                ephmem_req=ephmem_req,
-                ephmem_lim=ephmem_lim,
+                cpu_req=requests["CPU"],
+                mem_req=requests["Memory"],
+                ephmem_req=requests["Ephemeral storage"],
+                cpu_lim=amounts["CPU"],
+                mem_lim=amounts["Memory"],
+                ephmem_lim=amounts["Ephemeral storage"],
                 gpu_req=gpu_req,
-                gpu_lim=gpu_lim,
+                gpu_lim=gpu_req,
             )
             flavor.save()
     return HttpResponseRedirect(
@@ -393,7 +420,7 @@ def delete_flavor(request, project_slug):
             else:
                 messages.error(
                     request,
-                    "Flavor cannot be deleted because it is currently used by at least one app \
+                    "Hardware option cannot be deleted because it is currently used by at least one app \
                         (can also be a deleted app).",
                 )
 
