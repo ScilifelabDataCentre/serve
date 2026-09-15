@@ -489,10 +489,19 @@ class CreateApp(View):
 
         if user_can_edit or user_can_create:
             form_data = request.POST or None
+            draft_visibility = None
             if is_save_draft:
                 form_data = request.POST.copy()
+                submitted_access = form_data.get("access")
+                valid_access_values = {
+                    value for value, _ in model_class._meta.get_field("access").choices if value != "draft"
+                }
+                if submitted_access in valid_access_values:
+                    draft_visibility = submitted_access
                 form_data["access"] = "draft"
             form = form_class(form_data, project_pk=project.pk, instance=instance, request=request)
+            if is_save_draft:
+                form.draft_visibility = draft_visibility
 
             # Disable access field for public apps to prevent changing access mode
             if app_id and instance and hasattr(instance, "access") and instance.access == "public":

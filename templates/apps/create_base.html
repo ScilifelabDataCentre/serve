@@ -260,6 +260,34 @@ document.addEventListener("DOMContentLoaded", function() {
         if (marker) marker.hidden = !required;
     }
 
+    function initVisibilityDeselection(content = document) {
+        content.querySelectorAll('.app-visibility-option').forEach(function(option) {
+            if (option.dataset.deselectionReady === 'true') return;
+            option.dataset.deselectionReady = 'true';
+
+            const input = option.querySelector('input[type="radio"][name="access"]');
+            if (!input) return;
+
+            option.addEventListener('pointerdown', function() {
+                option.dataset.wasChecked = input.checked ? 'true' : 'false';
+            });
+            input.addEventListener('click', function() {
+                if (!input.disabled && option.dataset.wasChecked === 'true') {
+                    input.checked = false;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                delete option.dataset.wasChecked;
+            });
+            input.addEventListener('keydown', function(event) {
+                if (!input.disabled && input.checked && (event.key === ' ' || event.key === 'Spacebar')) {
+                    event.preventDefault();
+                    input.checked = false;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        });
+    }
+
     let sidebarPositionFrame;
     function updateSidebarPosition() {
         if (sidebarPositionFrame) return;
@@ -367,6 +395,7 @@ document.addEventListener("DOMContentLoaded", function() {
         toggleVisibilityPublicPermission()
         toggleAccessHelpText()
         toggleVisibilityRequirements()
+        initVisibilityDeselection()
         updateSidebarPosition()
 
         // Check if the select element exists
@@ -403,6 +432,7 @@ document.addEventListener("DOMContentLoaded", function() {
         toggleVisibilityPublicPermission();
         toggleAccessHelpText();
         toggleVisibilityRequirements();
+        initVisibilityDeselection(content);
         updateDeletionNote();
         updateSidebarPosition();
     })

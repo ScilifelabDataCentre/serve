@@ -11,6 +11,7 @@ from django.core.exceptions import PermissionDenied
 from django.forms import Select, SelectMultiple
 from django.shortcuts import get_object_or_404
 
+from apps.constants import DRAFT_VISIBILITY_INFO_KEY
 from apps.forms.field.widget import FlavorSelect, SubdomainInputGroup
 from apps.gpu import (
     GPU_UNAVAILABLE_MESSAGE,
@@ -121,6 +122,18 @@ class BaseForm(forms.ModelForm):
 
         self._restore_model_help_text()
 
+        if (
+            "access" in self.fields
+            and self.instance
+            and self.instance.pk
+            and self.instance.latest_user_action == "Draft"
+        ):
+            info = self.instance.info if isinstance(self.instance.info, dict) else {}
+            draft_visibility = info.get(DRAFT_VISIBILITY_INFO_KEY)
+            valid_access_values = {value for value, _ in self.fields["access"].choices if value != "draft"}
+            if draft_visibility in valid_access_values:
+                self.initial["access"] = draft_visibility
+
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel
         self.footer = Div(
@@ -170,10 +183,11 @@ class BaseForm(forms.ModelForm):
             draft_state = ' disabled aria-disabled="true" title="Published apps cannot be returned to draft."'
         else:
             draft_state = ' disabled aria-disabled="true" title="Draft saving is not available for this app type."'
+        draft_label = "Update draft" if self.is_draft_instance else "Save draft"
         actions.append(
             HTML(
                 '<button type="submit" name="action" value="save_draft" data-cy="save-draft" '
-                f'class="btn btn-serve-aqua app-save-draft" formnovalidate{draft_state}>Save draft</button>'
+                f'class="btn btn-serve-aqua app-save-draft" formnovalidate{draft_state}>{draft_label}</button>'
             )
         )
         submit_label = "Update" if is_existing_app and not self.is_draft_instance else "Publish"

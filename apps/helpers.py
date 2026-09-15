@@ -18,6 +18,7 @@ from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
 
 from apps.constants import (
+    DRAFT_VISIBILITY_INFO_KEY,
     UNIVERSITY_NAMES,
     AppActionOrigin,
     HandleUpdateStatusResponseCode,
@@ -515,6 +516,20 @@ def create_instance_from_form(
         original_instance = APP_REGISTRY.get_orm_model(app_slug).objects.get(pk=app_id)
 
     instance = form.save(commit=False)
+
+    if is_draft_access:
+        info = dict(instance.info) if isinstance(instance.info, dict) else {}
+        draft_visibility = getattr(form, "draft_visibility", None)
+        if draft_visibility:
+            info[DRAFT_VISIBILITY_INFO_KEY] = draft_visibility
+        else:
+            info.pop(DRAFT_VISIBILITY_INFO_KEY, None)
+        instance.info = info or None
+        instance.access = "draft"
+    elif was_draft and isinstance(instance.info, dict):
+        info = dict(instance.info)
+        info.pop(DRAFT_VISIBILITY_INFO_KEY, None)
+        instance.info = info or None
 
     instance_owner = None
     if is_draft_access:
