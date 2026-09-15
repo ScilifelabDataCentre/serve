@@ -48,6 +48,7 @@ from studio.utils import get_logger
 from .app_registry import APP_REGISTRY
 from .gpu import GpuUnavailableError
 from .helpers import (
+    can_access_draft_instance,
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
     get_minio_usage,
@@ -57,6 +58,7 @@ from .progress import (
     build_progress_state,
     build_progress_status_api_url,
     build_project_app_path,
+    get_draft_workflow_from_request,
     get_progress_mode_from_request,
     get_progress_started_at_from_request,
     get_progress_tasks,
@@ -92,6 +94,7 @@ def _build_background_task_status_cache_key(
     progress_mode: str,
     progress_started_at,
     skip_deploy: bool,
+    draft_workflow: bool,
 ) -> str:
     started_at = progress_started_at.isoformat() if progress_started_at is not None else ""
     return build_cache_key(
@@ -103,6 +106,7 @@ def _build_background_task_status_cache_key(
         progress_mode,
         started_at,
         skip_deploy,
+        draft_workflow,
     )
 
 
@@ -146,6 +150,8 @@ class GetLogs(View):
     def get(self, request, project, app_slug, app_id):
         project = self.get_project(project)
         instance = self.get_instance(project, app_slug, app_id)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
 
         context = {"instance": instance, "project": project}
         return render(request, self.template, context)
@@ -158,6 +164,8 @@ class GetLogs(View):
         instance = self.get_instance(project, app_slug, app_id, post=True)
         if isinstance(instance, JsonResponse):
             return instance
+        if not can_access_draft_instance(instance, request.user):
+            return JsonResponse({"error": "Permission denied"}, status=403)
 
         if instance.subdomain is None:
             return JsonResponse({"error": "This app has been deleted and no longer has logs."}, status=404)
@@ -241,6 +249,8 @@ class GetStatusView(CachedProjectPermissionRequiredMixin):
                 instances = orm_model.objects.filter(pk__in=arr, project__slug=project)
 
                 for instance in instances:
+                    if not can_access_draft_instance(instance, request.user):
+                        continue
                     # Draft apps are not deployed, so no status to display.
                     if instance.latest_user_action == "Draft":
                         status = ""
@@ -281,6 +291,8 @@ def delete(request, project, app_slug, app_id):
     instance = model_class.objects.filter(pk=app_id, project__slug=project).first() if app_id else None
 
     if instance is None:
+        raise PermissionDenied()
+    if not can_access_draft_instance(instance, request.user):
         raise PermissionDenied()
 
     if not instance.app.user_can_delete:
@@ -419,9 +431,11 @@ class CreateApp(View):
             form.add_error("subdomain", exc.ui_error)
             return render_form_with_errors()
 
+        is_save_draft = request.POST.get("action") == "save_draft"
+
         # Redirects everyone (including admins) after creation; admins can still
         # open the deployment pages (/progress, /details, /tasks) directly.
-        if not form.instance.app.should_display_deployment_details:
+        if not is_save_draft and not form.instance.app.should_display_deployment_details:
             return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_slug}))
 
         if not result.workflow_started:
@@ -435,6 +449,8 @@ class CreateApp(View):
             progress_query["started_at"] = result.progress_started_at
         if result.skip_deploy:
             progress_query["skip_deploy"] = "true"
+        if is_save_draft:
+            progress_query["draft"] = "true"
         if progress_query:
             progress_url = f"{progress_url}?{urlencode(progress_query)}"
         return HttpResponseRedirect(progress_url)
@@ -462,9 +478,34 @@ class CreateApp(View):
 
         if app_id and instance is None:
             return None
+        if app_id and not can_access_draft_instance(instance, request.user):
+            return None
+
+        is_save_draft = request.method == "POST" and request.POST.get("action") == "save_draft"
+        model_supports_draft = any(value == "draft" for value, _ in model_class._meta.get_field("access").choices)
+        can_save_draft = (
+            getattr(form_class, "draft_action_enabled", True)
+            and model_supports_draft
+            and (instance is None or instance.latest_user_action == "Draft")
+        )
+        if is_save_draft and not can_save_draft:
+            raise PermissionDenied("Saving this app as a draft is not allowed.")
 
         if user_can_edit or user_can_create:
-            form = form_class(request.POST or None, project_pk=project.pk, instance=instance, request=request)
+            form_data = request.POST or None
+            draft_visibility = None
+            if is_save_draft:
+                form_data = request.POST.copy()
+                submitted_access = form_data.get("access")
+                valid_access_values = {
+                    value for value, _ in model_class._meta.get_field("access").choices if value != "draft"
+                }
+                if submitted_access in valid_access_values:
+                    draft_visibility = submitted_access
+                form_data["access"] = "draft"
+            form = form_class(form_data, project_pk=project.pk, instance=instance, request=request)
+            if is_save_draft:
+                form.draft_visibility = draft_visibility
 
             # Disable access field for public apps to prevent changing access mode
             if app_id and instance and hasattr(instance, "access") and instance.access == "public":
@@ -495,18 +536,27 @@ class DeploymentProgressView(View):
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
-        if _should_restrict_deployment_details(request, instance):
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
+        skip_deploy = get_skip_deploy_from_request(request)
+        draft_workflow = instance.latest_user_action == "Draft" and (
+            get_draft_workflow_from_request(request) or skip_deploy
+        )
+        if not draft_workflow and _should_restrict_deployment_details(request, instance):
             return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_obj.slug}))
 
         progress_mode = get_progress_mode_from_request(request) or "deploy"
         progress_started_at = get_progress_started_at_from_request(request)
-        skip_deploy = get_skip_deploy_from_request(request)
         progress_state = build_progress_state(
             instance,
             progress_mode=progress_mode,
             progress_started_at=progress_started_at,
             skip_deploy=skip_deploy,
+            draft_workflow=draft_workflow,
         )
+
+        detail_url = build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}")
+        form_url = build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}")
 
         context = {
             "instance": instance,
@@ -520,9 +570,12 @@ class DeploymentProgressView(View):
                 progress_mode=progress_mode,
                 progress_started_at=progress_started_at,
                 skip_deploy=skip_deploy,
+                draft_workflow=draft_workflow,
             ),
-            "detail_url": build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}"),
-            "form_url": build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}"),
+            "detail_url": detail_url,
+            "form_url": form_url,
+            "success_url": form_url if draft_workflow else detail_url,
+            "is_draft_workflow": draft_workflow,
         }
 
         return render(request, self.template, context)
@@ -537,6 +590,8 @@ class AppDetailsView(View):
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
         if _should_restrict_deployment_details(request, instance):
             return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_obj.slug}))
 
@@ -602,6 +657,8 @@ class SecretsView(View):
 
     def get(self, request, project, app_slug, app_id):
         _, instance = get_project_app_instance(project, app_slug, app_id)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
 
         username, password = None, None
         if instance.get_app_status() == "Running":
@@ -914,6 +971,8 @@ class BackgroundTasksView(View):
 
     def get(self, request, project, app_slug, app_id):
         project_obj, instance = get_project_app_instance(project, app_slug, app_id)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
         if _should_restrict_deployment_details(request, instance):
             return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": project_obj.slug}))
 
@@ -954,6 +1013,17 @@ class BackgroundTaskStatusAPI(CachedProjectPermissionRequiredMixin):
         progress_mode = get_progress_mode_from_request(request) or "deploy"
         progress_started_at = get_progress_started_at_from_request(request)
         skip_deploy = get_skip_deploy_from_request(request)
+        draft_workflow_requested = get_draft_workflow_from_request(request)
+
+        try:
+            _, instance = get_project_app_instance(project, app_slug, app_id)
+        except (Http404, PermissionDenied):
+            return JsonResponse({"error": "App instance not found"}, status=404)
+        if not can_access_draft_instance(instance, request.user):
+            return JsonResponse({"error": "App instance not found"}, status=404)
+        draft_workflow = instance.latest_user_action == "Draft" and (draft_workflow_requested or skip_deploy)
+        if not draft_workflow and _should_restrict_deployment_details(request, instance):
+            return JsonResponse({"error": "Deployment details are available to administrators only."}, status=403)
 
         cache_timeout = _background_task_status_cache_timeout()
         cache_key = _build_background_task_status_cache_key(
@@ -964,24 +1034,19 @@ class BackgroundTaskStatusAPI(CachedProjectPermissionRequiredMixin):
             progress_mode,
             progress_started_at,
             skip_deploy,
+            draft_workflow,
         )
         if cache_timeout > 0:
             cached_value = get_cached_value(cache_key)
             if not is_cache_miss(cached_value) and isinstance(cached_value, dict):
                 return JsonResponse(cached_value)
 
-        try:
-            _, instance = get_project_app_instance(project, app_slug, app_id)
-        except (Http404, PermissionDenied):
-            return JsonResponse({"error": "App instance not found"}, status=404)
-        if _should_restrict_deployment_details(request, instance):
-            return JsonResponse({"error": "Deployment details are available to administrators only."}, status=403)
-
         progress_state = build_progress_state(
             instance,
             progress_mode=progress_mode,
             progress_started_at=progress_started_at,
             skip_deploy=skip_deploy,
+            draft_workflow=draft_workflow,
         )
 
         response_data = {
@@ -1014,6 +1079,8 @@ class RetryBackgroundTaskView(View):
             instance = model_class.objects.get(pk=app_id, project__slug=project)
         except model_class.DoesNotExist:
             return JsonResponse({"error": "App instance not found"}, status=404)
+        if not can_access_draft_instance(instance, request.user):
+            raise PermissionDenied()
         if _should_restrict_deployment_details(request, instance):
             raise PermissionDenied("Deployment details are available to administrators only.")
 

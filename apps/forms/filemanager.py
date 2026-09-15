@@ -48,6 +48,7 @@ class FilemanagerForm(VolumeMixin, AppBaseForm):
         )
 
         self.fields["name"].initial = "File Manager"
+        self.initial["access"] = "project"
         self.fields["access"].initial = "project"
         self.helper.layout = Layout(body, self.footer)
 

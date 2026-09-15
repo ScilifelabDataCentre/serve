@@ -430,7 +430,7 @@ class InvenioService:
         """
         app_instance.invenio_record_id = record_id
         app_instance.app_doi = doi
-        app_instance.save()
+        app_instance.save(update_fields=["invenio_record_id", "app_doi"])
 
         logger.debug(f"Updated app instance - Record ID: {record_id}, DOI: {doi}")
 

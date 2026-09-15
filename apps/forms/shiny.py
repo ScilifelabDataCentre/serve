@@ -1,6 +1,6 @@
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, Field, PrependedText
-from crispy_forms.layout import HTML, Div, Layout
+from crispy_forms.layout import HTML, Div
 from django import forms
 from django.forms.widgets import HiddenInput
 from django.utils.safestring import mark_safe
@@ -102,12 +102,8 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, C
         general_fields = [
             SRVCommonDivField("name", required=True),
             SRVCommonDivField("description", rows=4, required=True),
+            SRVCommonDivField("note_on_linkonly_privacy", rows=3),
             SRVCommonDivField("invenio_tags", template="apps/invenio_tags_field.html"),
-            SRVCommonDivField("access"),
-            SRVCommonDivField(
-                "note_on_linkonly_privacy",
-                rows=1,
-            ),
             self.get_creators_field_layout(),
         ]
 
@@ -174,7 +170,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, C
                 "/srv/shiny-server/",
                 template="apps/partials/srv_prepend_append_input_group.html",
             ),
-            active=True,
+            active=False,
         )
 
         accordion = BS5Accordion(
@@ -188,7 +184,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, C
 
         body = Div(accordion, css_class="card-body")
         body.always_open = True
-        self.helper.layout = Layout(body, self.footer)
+        self._set_app_form_layout(body)
 
     def clean_shiny_site_dir(self):
         cleaned_data = super().clean()

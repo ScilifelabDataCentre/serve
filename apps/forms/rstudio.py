@@ -1,6 +1,6 @@
 from crispy_bootstrap5.bootstrap5 import BS5Accordion
 from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
-from crispy_forms.layout import HTML, Div, Field, Layout
+from crispy_forms.layout import HTML, Div, Field
 from django import forms
 from django.utils.safestring import mark_safe
 
@@ -13,6 +13,9 @@ __all__ = ["RStudioForm"]
 
 
 class RStudioForm(VolumeMixin, AppBaseForm):
+    draft_action_enabled = False
+    visibility_subject = "instance"
+
     volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
     environment = forms.ModelChoiceField(queryset=None, required=True, empty_label=None)
 
@@ -34,7 +37,6 @@ class RStudioForm(VolumeMixin, AppBaseForm):
         general = AccordionGroup(
             mark_safe("<h3>Description</h3>"),
             SRVCommonDivField("name", required=True),
-            SRVCommonDivField("access"),
             active=True,
         )
 
@@ -55,7 +57,7 @@ class RStudioForm(VolumeMixin, AppBaseForm):
 
         body = Div(accordion, css_class="card-body")
         body.always_open = True
-        self.helper.layout = Layout(body, self._deletion_note_layout(), self.footer)
+        self._set_app_form_layout(body, self._deletion_note_layout())
 
     class Meta:
         model = RStudioInstance

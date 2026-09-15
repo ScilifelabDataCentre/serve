@@ -16,6 +16,9 @@ class AppActionOrigin(StrEnum):
     SYSTEM = "SYSTEM"
 
 
+DRAFT_VISIBILITY_INFO_KEY = "draft_visibility"
+
+
 HELP_MESSAGE_MAP = {
     "name": "The app title is visible in the app catalogue if the app is public",
     "description": "The app description is visible in the app catalogue if the app is public.",
