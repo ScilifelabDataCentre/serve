@@ -108,7 +108,24 @@
                                             <button type="button" class="btn btn-square btn-secondary" data-bs-toggle="modal" data-bs-target="#flavorDetailsModal-{{ flavor.pk }}">
                                                 Details
                                             </button>
+                                        </td>
 
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-square btn-danger" data-bs-toggle="modal" data-bs-target="#deleteFlavorModal-{{ flavor.pk }}">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td class="text-muted" colspan="3">No hardware options yet.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {% for flavor in flavors %}
                                             <div class="modal fade" id="flavorDetailsModal-{{ flavor.pk }}" tabindex="-1" aria-labelledby="flavorDetailsModal-{{ flavor.pk }}-Label" aria-hidden="true">
                                                 <div class="modal-dialog">
                                                     <div class="modal-content">
@@ -138,12 +155,6 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                        </td>
-
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-square btn-danger" data-bs-toggle="modal" data-bs-target="#deleteFlavorModal-{{ flavor.pk }}">
-                                                Delete
-                                            </button>
 
                                             <div class="modal fade" id="deleteFlavorModal-{{ flavor.pk }}" tabindex="-1" aria-labelledby="deleteFlavorModal-{{ flavor.pk }}-Label" aria-hidden="true">
                                                 <div class="modal-dialog">
@@ -181,16 +192,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                        </td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr>
-                                        <td class="text-muted" colspan="3">No hardware options yet.</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+                        {% endfor %}
                         </div>
                         <div class="mt-5">
                         <h5>Create a new Hardware option</h5>
@@ -270,6 +272,22 @@
                                 <td>{{ environment.name }}</td>
                                 <td class="text-center">
                                 <button type="button" class="btn btn-square btn-secondary" data-bs-toggle="modal" data-bs-target="#environmentDetailsModal-{{ environment.pk }}"> Details </button>
+                                </td>
+                                <td class="text-center">
+                                <button type="button" class="btn btn-square btn-danger" data-bs-toggle="modal" data-bs-target="#deleteEnvironmentModal-{{ environment.pk }}"> Delete </button>
+                                </td>
+
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td class="text-muted" colspan="3">No environments yet.</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        </div>
+
+                        {% for environment in environments %}
                                 <div class="modal fade" id="environmentDetailsModal-{{ environment.pk }}" tabindex="-1" aria-labelledby="environmentDetailsModal-{{ environment.pk }}-Label" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
@@ -289,9 +307,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                </td>
-                                <td class="text-center">
-                                <button type="button" class="btn btn-square btn-danger" data-bs-toggle="modal" data-bs-target="#deleteEnvironmentModal-{{ environment.pk }}"> Delete </button>
+
                                 <div class="modal fade" id="deleteEnvironmentModal-{{ environment.pk }}" tabindex="-1" aria-labelledby="deleteEnvironmentModal-{{ environment.pk }}-Label" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
@@ -310,17 +326,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                </td>
-
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td class="text-muted" colspan="3">No environments yet.</td>
-                            </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                        </div>
+                        {% endfor %}
                         </div>
                         <div class="mt-5">
                             <h5>Create a new Environment</h5>

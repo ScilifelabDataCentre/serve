@@ -76,14 +76,17 @@ describe("Test privileged user functionality", () => {
         cy.contains('#flavors tbody tr', flavor_name).should('be.visible').within(() => {
                 cy.contains('button', 'Details').click();
             });
-        cy.get('#flavors .modal.show').should('be.visible').within(() => {
+        cy.get('#flavors .modal.show').filter(`:contains("${flavor_name}")`).should('be.visible').within(() => {
                 cy.contains(`Details for ${flavor_name}`).should('be.visible');
                 cy.contains(`Name: ${flavor_name}`).should('be.visible');
                 cy.contains('CPU limit: 8000m').should('be.visible');
                 cy.contains('Memory limit: 16Gi').should('be.visible');
                 cy.contains('Ephemeral storage limit: 5000Mi').should('be.visible');
                 cy.contains('GPU: 0').should('be.visible');
-                cy.contains('button', 'Close').first().click();
+                cy.get('.modal-dialog').should('have.css', 'transform', 'none');
+                cy.get('.modal-footer')
+                    .contains('button', 'Close')
+                    .click();
             });
 
         // Delete the created Hardware option
@@ -132,6 +135,7 @@ describe("Test privileged user functionality", () => {
                 cy.contains(`Repository: ${environment_repository}`).should('be.visible');
                 cy.contains(`Image: ${environment_image}`).should('be.visible');
                 cy.contains(`Applies to app type: ${environment_app}`).should('be.visible');
+                cy.get('.modal-dialog').should('have.css', 'transform', 'none');
                 cy.contains('button', 'Close').click();
             });
 
