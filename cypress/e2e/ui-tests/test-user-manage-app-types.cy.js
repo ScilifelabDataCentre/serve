@@ -141,7 +141,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // Though Shiny Proxy apps can take a long time to start
@@ -229,7 +229,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_port').clear().type(image_port)
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
 
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -301,7 +301,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
@@ -371,7 +371,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -438,7 +438,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")

@@ -223,7 +223,7 @@ describe("Test project contributor user functionality", () => {
                         cy.get('.app-form-sidebar #app-deletion-note').should('be.visible')
                         cy.get('#id_name').type("e2e-create-jl")
                         cy.selectAppVisibility('project')
-                        cy.get('#submit-id-submit').click()
+                        cy.submitAppForm()
                         cy.completeAppSubmissionFlow()
                   });
                 // step 2. check that the button to create another one does not work
@@ -354,7 +354,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#id_name').type(private_app_name)
         cy.selectAppVisibility('private')
-        cy.get('#submit-id-submit').click() // create app
+        cy.submitAppForm() // create app
         cy.completeAppSubmissionFlow()
         cy.get('tr:contains("' + private_app_name + '")').find('span').should('contain', 'Private') // check that the app got greated
 
@@ -363,7 +363,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#id_name').type(project_app_name)
         cy.selectAppVisibility('project')
-        cy.get('#submit-id-submit').click() // create app
+        cy.submitAppForm() // create app
         cy.completeAppSubmissionFlow()
         cy.get('tr:contains("' + project_app_name + '")').find('span').should('contain', 'Project') // check that the app got greated
 
@@ -459,7 +459,7 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('div.card-body:contains("File Manager")').siblings('.card-footer').find('a:contains("Create")').click()
-        cy.get('#submit-id-submit').should('be.visible').click()
+        cy.submitAppForm()
         cy.completeAppSubmissionFlow()
 
         cy.get('tr:contains("File Manager")').find('[data-cy="appstatus"]').should('have.attr', 'data-app-action', 'Creating')

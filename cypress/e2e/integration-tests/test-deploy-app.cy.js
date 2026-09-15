@@ -234,7 +234,7 @@ describe("Test deploying app", () => {
             // Open Advanced settings before accessing the field
             cy.getAppAdvancedField('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // check that the app was created
@@ -264,7 +264,7 @@ describe("Test deploying app", () => {
             cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').should('be.visible')
             cy.get('#id_note_on_linkonly_privacy').clear().type(link_privacy_type_note)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             verifyAppStatus(app_name_project, "Running", "Changing", "Running", "Link")
 
@@ -361,7 +361,7 @@ describe("Test deploying app", () => {
             // Open Advanced settings before accessing the field
             cy.getAppAdvancedField('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name_link,  "Running", "Creating", "Running", "Link")
@@ -442,7 +442,7 @@ describe("Test deploying app", () => {
             cy.getAppAdvancedField('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.getAppAdvancedField('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // NB: it will get status "Running" but it won't work because the new port is incorrect
@@ -530,7 +530,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Link", shinyAppCmdTimeoutMs)
@@ -584,7 +584,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -643,7 +643,7 @@ describe("Test deploying app", () => {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Link")
@@ -704,7 +704,7 @@ describe("Test deploying app", () => {
                 .should('be.visible')
                 .should('contain', 'Manage storage');
 
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -766,7 +766,7 @@ describe("Test deploying app", () => {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -825,7 +825,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -857,7 +857,7 @@ describe("Test deploying app", () => {
             // here we change the app name from app_name to app_name_edited
             cy.get('#id_name').type("-edited")
             cy.get('#id_description').type(", edited description.")
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -916,7 +916,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name_1)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -945,7 +945,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name_2)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -969,7 +969,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_subdomain').clear().type(subdomain_change)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // verify that the app status now equals Running
@@ -1026,7 +1026,7 @@ describe("Test deploying app", () => {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -1055,7 +1055,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_subdomain').clear().type(subdomain_change)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -1118,7 +1118,7 @@ describe("Test deploying app", () => {
             cy.get('#id_subdomain').clear().type(subdomain)
 
             // create the app
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Project")
@@ -1135,6 +1135,7 @@ describe("Test deploying app", () => {
             cy.get('#id_description').clear().type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
+            cy.selectAppVisibility('project')
 
             // fill out subdomain field
             cy.get('#id_subdomain').clear().type(subdomain)
@@ -1147,7 +1148,7 @@ describe("Test deploying app", () => {
             cy.get('#id_subdomain').blur()
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available')
             // create the app
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name_2, "Running", "Creating", "Running", "Project")
@@ -1163,7 +1164,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('#id_subdomain').clear().type(subdomain_3)
 
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // check that the app was updated with the correct subdomain
@@ -1244,7 +1245,7 @@ describe("Test deploying app", () => {
             cy.selectAppVisibility('project')
             cy.get('#id_port').type("8501")
             cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
 
             // Invalid image should be rejected by server-side validation - app must not be created
             cy.url().should('include', '/apps/create/')
@@ -1253,7 +1254,7 @@ describe("Test deploying app", () => {
             // Now submit with a valid image
             cy.logf("Now creating the app with a valid image reference - expecting Running", Cypress.currentTest)
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // using longer custom timeout for app to reach Running

@@ -212,7 +212,7 @@ describe("Test superuser access", () => {
         cy.get('tr:contains("' + private_app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
         cy.get('tr:contains("' + private_app_name + '")').should('be.visible').find('a').contains('Settings').click()
         cy.get('#id_name').clear().type(private_app_name_2) // change name
-        cy.get('#submit-id-submit').should('be.visible').click()
+        cy.submitAppForm()
         cy.completeAppSubmissionFlow()
         cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
 
@@ -276,18 +276,18 @@ describe("Test superuser access", () => {
         cy.get('[data-cy="settings"]').should('be.visible').click()
         cy.get('.list-group').find('a').should('be.visible').contains('Hardware').click()
         cy.get('input[name="flavor_name"]').type(new_flavor_name)
-        cy.get('input[name="cpu_req"]').clear().type("100m")
-        cy.get('input[name="cpu_lim"]').clear().type("4000m")
-        cy.get('input[name="mem_req"]').clear().type("2Gi")
-        cy.get('input[name="mem_lim"]').clear().type("8Gi")
+        cy.get('input[name="cpu_lim"]').clear().type("4000")
+        cy.get('input[name="mem_lim"]').clear().type("8")
+        cy.get('input[name="ephmem_lim"]').clear().type("5000")
+        cy.get('input[name="gpu_req"]').clear().type("0")
         cy.get('button').should('be.visible').contains("Create hardware").click()
 
         cy.get('.list-group').should('be.visible').find('a').contains('Hardware').click()
         cy.get('input[name="flavor_name"]').type(new_flavor_name_unused)
-        cy.get('input[name="cpu_req"]').clear().type("100m")
-        cy.get('input[name="cpu_lim"]').clear().type("4000m")
-        cy.get('input[name="mem_req"]').clear().type("2Gi")
-        cy.get('input[name="mem_lim"]').clear().type("8Gi")
+        cy.get('input[name="cpu_lim"]').clear().type("4000")
+        cy.get('input[name="mem_lim"]').clear().type("8")
+        cy.get('input[name="ephmem_lim"]').clear().type("5000")
+        cy.get('input[name="gpu_req"]').clear().type("0")
         cy.get('button').should('be.visible').contains("Create hardware").click()
 
         cy.logf("Creating new Jupyter Lab environments in the regular user's project", Cypress.currentTest)
@@ -336,7 +336,7 @@ describe("Test superuser access", () => {
             cy.get('#id_flavor').select('2 vCPU, 4 GB RAM')
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Check that the app is visible and verify the app status
             verifyAppStatus(app_name_flavor, "Creating", "Project", "Creating")
@@ -350,7 +350,7 @@ describe("Test superuser access", () => {
             cy.get('tr:contains("' + app_name_flavor + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_flavor').find(':selected').should('contain', '2 vCPU, 4 GB RAM')
             cy.get('#id_flavor').select(new_flavor_name)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Check that the app is visible and verify the app status
             verifyAppStatus(app_name_flavor, "", "Project", "Changing")
@@ -386,7 +386,7 @@ describe("Test superuser access", () => {
             });
             cy.get('#id_environment').select('Jupyter Lab Minimal (Default)')
             cy.selectAppVisibility('project')
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Check that the app is visible and verify the app status
             verifyAppStatus(app_name_env, "", "", "Creating")
@@ -400,7 +400,7 @@ describe("Test superuser access", () => {
             cy.get('tr:contains("' + app_name_env + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_environment').find(':selected').should('contain', 'Jupyter Lab Minimal (Default)')
             cy.get('#id_environment').select(new_environment_name)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Check that the app is visible and verify the app status
             verifyAppStatus(app_name_env, "", "", "Changing")
@@ -436,34 +436,50 @@ describe("Test superuser access", () => {
             cy.get('[data-cy="settings"]').should('be.visible').click()
             cy.logf("Deleting a flavor that was used", Cypress.currentTest)
             cy.get('.list-group').should('be.visible').find('a').contains('Hardware').click()
-            cy.get('#flavor_pk').select(new_flavor_name)
-            cy.get('button').should('be.visible').contains("Delete hardware").click()
-            cy.get('div.alert-danger').contains('Flavor cannot be deleted').should('exist')
+            cy.contains('#flavors tbody tr', new_flavor_name).within(() => {
+                cy.contains('button', 'Delete').click()
+            })
+            cy.get('#flavors .modal.show').filter(`:contains("${new_flavor_name}")`).within(() => {
+                cy.contains('button', 'Delete').click()
+            })
+            cy.get('div.alert-danger').contains('Hardware option cannot be deleted').should('exist')
 
             cy.logf("Deleting a flavor that was not used", Cypress.currentTest)
             cy.logf("Trying flavor deletion", Cypress.currentTest)
             cy.get('.list-group').should('be.visible').find('a').contains('Hardware').click()
-            cy.get('#flavor_pk').select(new_flavor_name_unused)
-            cy.get('button').should('be.visible').contains("Delete hardware").click()
+            cy.contains('#flavors tbody tr', new_flavor_name_unused).within(() => {
+                cy.contains('button', 'Delete').click()
+            })
+            cy.get('#flavors .modal.show').filter(`:contains("${new_flavor_name_unused}")`).within(() => {
+                cy.contains('button', 'Delete').click()
+            })
             cy.get('.list-group').should('be.visible').find('a').contains('Hardware').click()
-            cy.get('#flavor_pk').contains(new_flavor_name_unused).should("not.exist")
+            cy.contains('#flavors tbody tr', new_flavor_name_unused).should('not.exist')
 
             cy.logf("Trying to delete an environment that was used", Cypress.currentTest)
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('[data-cy="settings"]').should('be.visible').click()
-            cy.logf("Deleting a flavor that was used", Cypress.currentTest)
+            cy.logf("Deleting an environment that was used", Cypress.currentTest)
             cy.get('.list-group').should('be.visible').find('a').contains('Environments').click()
-            cy.get('#environment_pk').select(new_environment_name)
-            cy.get('button').should('be.visible').contains("Delete environment").click()
+            cy.contains('#environments tbody tr', new_environment_name).within(() => {
+                cy.contains('button', 'Delete').click()
+            })
+            cy.get('#environments .modal.show').filter(`:contains("${new_environment_name}")`).within(() => {
+                cy.contains('button', 'Delete').click()
+            })
             cy.get('div.alert-danger').contains('Environment cannot be deleted').should('exist')
 
             cy.logf("Deleting an environment that was not used", Cypress.currentTest)
             cy.get('.list-group').should('be.visible').find('a').contains('Environments').click()
-            cy.get('#environment_pk').select(new_environment_name_unused)
-            cy.get('button').should('be.visible').contains("Delete environment").click()
+            cy.contains('#environments tbody tr', new_environment_name_unused).within(() => {
+                cy.contains('button', 'Delete').click()
+            })
+            cy.get('#environments .modal.show').filter(`:contains("${new_environment_name_unused}")`).within(() => {
+                cy.contains('button', 'Delete').click()
+            })
             cy.get('.list-group').should('be.visible').find('a').contains('Environments').click()
-            cy.get('#environment_pk').contains(new_environment_name_unused).should("not.exist")
+            cy.contains('#environments tbody tr', new_environment_name_unused).should('not.exist')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest);
@@ -529,7 +545,7 @@ describe("Test superuser access", () => {
                         cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                         cy.get('#id_name').type(app_name)
                         cy.selectAppVisibility('project')
-                        cy.get('#submit-id-submit').should('be.visible').click()
+                        cy.submitAppForm()
                         cy.completeAppSubmissionFlow()
                 });
                 cy.logf("Check that the button to create another one still works", Cypress.currentTest)
@@ -538,7 +554,7 @@ describe("Test superuser access", () => {
                 cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                 cy.get('#id_name').type(app_name)
                 cy.selectAppVisibility('project')
-                cy.get('#submit-id-submit').should('be.visible').click()
+                cy.submitAppForm()
                 cy.completeAppSubmissionFlow()
                 cy.get('tr:contains("' + app_name + '")').its('length').should('eq', 4) // we now have an extra app
                 })

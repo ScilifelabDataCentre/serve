@@ -176,6 +176,13 @@ Cypress.Commands.add('selectAppVisibility', (visibility) => {
   cy.get(`#id_access input[type="radio"][value="${visibility}"]`).check();
 });
 
+Cypress.Commands.add('submitAppForm', () => {
+  cy.get('#submit-id-submit')
+    .scrollIntoView()
+    .should('be.visible')
+    .click();
+});
+
 Cypress.Commands.add('getAppAdvancedField', (selector) => {
   return cy.contains('button.accordion-button', 'Advanced settings')
     .then(($button) => {

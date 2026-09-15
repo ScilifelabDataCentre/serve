@@ -147,7 +147,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Wait for the app row to appear or log form errors if not
             cy.get('body').then(($body) => {
@@ -217,7 +217,7 @@ if (Cypress.env('create_resources') === true) {
             cy.wait(350) // let the Bootstrap modal fade-in transition fully finish before dismissing it
             cy.get('#funderModal .btn-close').should('be.visible').click()
             cy.get('#funderModal').should('not.be.visible')
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // We now verify the correct permission level and user action
@@ -253,7 +253,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_mount_path').select(mount_path+ " (project-vol (" + project_name + "))")
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
@@ -328,7 +328,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_mount_path').select(mount_path_2 + " (project-vol (" + project_name + "))")
             cy.getAppAdvancedField('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // We do not verify the app status because it depends on k8s
@@ -367,7 +367,7 @@ if (Cypress.env('create_resources') === true) {
 
             // Make sure that giving invalid input in default_url_subpath field results in an error
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(invalid_default_url_subpath) // provide invalid_default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').click() // this should trigger the error
+            cy.submitAppForm() // this should trigger the error
             cy.completeAppSubmissionFlow()
 
             // check this invalid_default_url_subpath error was matched

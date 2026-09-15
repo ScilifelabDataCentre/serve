@@ -136,7 +136,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -167,7 +167,7 @@ if (Cypress.env('create_resources') === true) {
             // Here we change the app name from app_name to app_name_edited
             cy.get('#id_name').type("-edited")
             cy.get('#id_description').type(", edited description.")
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -227,7 +227,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -256,7 +256,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear()
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Stay on the Settings page
             cy.url().should("include", "/apps/settings")
@@ -268,7 +268,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -332,7 +332,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -361,7 +361,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_subdomain').clear().type(subdomain_change)
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -430,7 +430,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_subdomain').clear().type(subdomain)
 
             // create the app
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
@@ -448,6 +448,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_description').clear().type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
+            cy.selectAppVisibility('project')
 
             // fill out subdomain field
             cy.get('#id_subdomain').clear().type(subdomain)
@@ -459,7 +460,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_subdomain').blur();
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available');
             // create the app
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
@@ -477,7 +478,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('#id_subdomain').clear().type(subdomain_3)
 
-            cy.get('#submit-id-submit').should('be.visible').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             cy.get('tr:contains("' + app_name + '")').should('be.visible')
