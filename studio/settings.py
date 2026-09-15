@@ -618,6 +618,9 @@ APPS_PER_PROJECT_LIMIT = {
 
 PROJECTS_PER_USER_LIMIT = 10
 
+# Largest volume size (GB) a privileged user may set. Admins are not subject to it.
+PRIVILEGED_USER_MAX_VOLUME_SIZE_GB = 50
+
 STUDIO_ACCESSMODE = os.environ.get("STUDIO_ACCESSMODE", "")
 ENABLE_PROJECT_EXTRA_SETTINGS = False
 

@@ -1,9 +1,23 @@
 [
-    {
-      "model": "auth.Group",
-      "pk": 1,
-      "fields": {
-        "name": "pending_dormant_users"
-      }
+  {
+    "model": "auth.Group",
+    "pk": 1,
+    "fields": {
+      "name": "pending_dormant_users"
     }
-  ]
+  },
+  {
+    "model": "auth.Group",
+    "pk": 2,
+    "fields": {
+      "name": "Privileged users",
+      "permissions": [
+        [
+          "privileged_user",
+          "common",
+          "userprofile"
+        ]
+      ]
+    }
+  }
+]

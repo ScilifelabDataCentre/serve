@@ -1,8 +1,10 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, Permission, User
+from django.contrib.contenttypes.models import ContentType
 
 from apps.app_registry import APP_REGISTRY
 from apps.helpers import create_instance_from_form
 from common.models import UserProfile
+from common.privileges import PRIVILEGED_USERS_GROUP
 from projects.models import (
     Environment,
     Flavor,
@@ -56,6 +58,23 @@ class TestDataManager:
         )
         user.is_active = True
         user.save()
+        return user
+
+    def create_privileged_user(self):
+        user = self.create_user()
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.is_privileged = True
+        profile.save()
+
+        group, _ = Group.objects.get_or_create(name=PRIVILEGED_USERS_GROUP)
+        group.permissions.add(
+            Permission.objects.get(
+                codename="privileged_user", content_type=ContentType.objects.get_for_model(UserProfile)
+            )
+        )
+        user.groups.add(group)
+
         return user
 
     def delete_user(self):

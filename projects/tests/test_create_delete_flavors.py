@@ -70,12 +70,9 @@ class FlavorTestCaseSuperUser(TestCase):
             f"/projects/{self.project.slug}/createflavor/",
             {
                 "flavor_name": "new-flavor-superuser",
-                "cpu_req": "n",
-                "mem_req": "n",
-                "ephmem_req": "n",
-                "cpu_lim": "n",
-                "mem_lim": "n",
-                "ephmem_lim": "n",
+                "cpu_lim": "4000",
+                "mem_lim": "8",
+                "ephmem_lim": "5000",
             },
             follow=True,
         )

@@ -122,7 +122,7 @@ describe("Test project contributor user functionality", () => {
         cy.get('.list-group').find('a').should('contain', 'Access')
         cy.get('.list-group').find('a').should('not.contain', 'S3 storage')
         cy.get('.list-group').find('a').should('not.contain', 'MLFlow')
-        cy.get('.list-group').find('a').should('not.contain', 'Flavors')
+        cy.get('.list-group').find('a').should('not.contain', 'Hardware')
         cy.get('.list-group').find('a').should('not.contain', 'Environments')
 
         cy.logf("Change project description", Cypress.currentTest)

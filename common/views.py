@@ -416,6 +416,37 @@ class PopulateTestSuperUserView(View):
             return JsonResponse({"error": str(e)}, status=500)
 
 
+class PopulateTestPrivilegedUserView(View):
+    @method_decorator(csrf_protect)
+    def post(self, request):
+        """Secure endpoint for test privileged user creation with validation and error handling"""
+        # production guard
+        if not settings.DEBUG:
+            logger.warning("Production access attempt to test endpoint")
+            return HttpResponseForbidden("Test functionality disabled in production")
+
+        try:
+            body = json.loads(request.body)
+            required_keys = {"user_data"}
+            if not required_keys.issubset(body):
+                missing = required_keys - body.keys()
+                raise ValueError(f"Missing required data: {missing}")
+
+            manager = TestDataManager(user_data=body["user_data"])
+
+            _ = manager.create_privileged_user()
+
+            return JsonResponse({"success": True, "privileged_user": body["user_data"]["username"]})
+
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON payload")
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+        except Exception as e:
+            logger.error(f"Test privileged user creation failed: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+
 class CleanupTestUserView(View):
     @method_decorator(csrf_protect)
     def post(self, request):
