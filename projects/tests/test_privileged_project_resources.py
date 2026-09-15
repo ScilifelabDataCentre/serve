@@ -35,14 +35,10 @@ class PrivilegedProjectResourcesTestCase(TestCase):
     def flavor_payload(self):
         return {
             "flavor_name": "4 vCPU, 8 GB RAM",
-            "cpu_req": "200m",
-            "cpu_lim": "4000m",
-            "mem_req": "0.5Gi",
-            "mem_lim": "8Gi",
-            "ephmem_req": "200Mi",
-            "ephmem_lim": "5000Mi",
+            "cpu_lim": "4000",
+            "mem_lim": "8",
+            "ephmem_lim": "5000",
             "gpu_req": 0,
-            "gpu_lim": 0,
         }
 
     def test_a_plain_owner_cannot_create_a_flavor(self):
