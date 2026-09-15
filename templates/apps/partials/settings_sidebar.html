@@ -1,6 +1,6 @@
 <fieldset id="id_access" class="app-visibility" aria-describedby="id_access_helptext">
     <legend class="h5">Visibility</legend>
-    <p class="app-visibility-intro">Choose who can access your app.</p>
+    <p class="app-visibility-intro">Choose who can access your {{ form.visibility_subject }}.</p>
     {% if form.is_draft_instance %}
         <p class="app-draft-status">This app is currently a draft. Choose a visibility level when you are ready to publish it.</p>
     {% endif %}
@@ -30,10 +30,12 @@
         <div class="invalid-feedback d-block">{{ error }}</div>
     {% endfor %}
 </fieldset>
-{% if form.can_save_draft %}
-    <p class="app-draft-hint">Not ready yet? Save a draft and continue later.</p>
-{% elif form.supports_draft %}
-    <p class="app-draft-hint">Published apps cannot be returned to draft.</p>
-{% else %}
-    <p class="app-draft-hint">Draft saving is not available for this app type.</p>
+{% if form.show_draft_action %}
+    {% if form.can_save_draft %}
+        <p class="app-draft-hint">Not ready yet? Save a draft and continue later.</p>
+    {% elif form.supports_draft %}
+        <p class="app-draft-hint">Published apps cannot be returned to draft.</p>
+    {% else %}
+        <p class="app-draft-hint">Draft saving is not available for this app type.</p>
+    {% endif %}
 {% endif %}

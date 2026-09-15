@@ -161,7 +161,7 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
                 mark_safe("<span id='id_custom_default_url_prepend'>Subdomain/</span>"),
                 template="apps/partials/srv_prepend_append_input_group.html",
             ),
-            active=True,
+            active=False,
         )
 
         accordion = BS5Accordion(

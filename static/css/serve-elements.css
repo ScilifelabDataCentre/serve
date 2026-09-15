@@ -1377,6 +1377,15 @@ cubic-bezier(.4, 0, .2, 1);
     margin: 1rem 0 0;
 }
 
+.app-deletion-note {
+    padding: 1rem 0 0;
+    margin-top: 1rem;
+    border-top: 1px solid #e2e7e4;
+    color: #626b66;
+    font-size: .8125rem;
+    line-height: 1.5;
+}
+
 .app-form-sidebar .card-footer {
     display: grid !important;
     grid-template-columns: 1fr 1fr;
@@ -1397,6 +1406,10 @@ cubic-bezier(.4, 0, .2, 1);
 
 .app-form-sidebar .card-footer input[type="submit"] {
     grid-column: 1 / -1;
+}
+
+.app-form-sidebar .app-form-without-draft-action input[type="submit"] {
+    grid-column: auto;
 }
 
 @media (max-width: 991.98px) {

@@ -13,6 +13,9 @@ __all__ = ["VSCodeForm"]
 
 
 class VSCodeForm(VolumeMixin, AppBaseForm):
+    draft_action_enabled = False
+    visibility_subject = "instance"
+
     volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
 
     def _setup_form_fields(self):

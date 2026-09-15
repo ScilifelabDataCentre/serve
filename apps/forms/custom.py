@@ -163,7 +163,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
                 template="apps/partials/srv_prepend_append_input_group.html",
                 attrs={"aria-label": "Custom URL subpath"},
             ),
-            active=True,
+            active=False,
         )
 
         accordion = BS5Accordion(

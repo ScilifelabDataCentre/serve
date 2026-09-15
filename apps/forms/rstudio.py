@@ -13,6 +13,9 @@ __all__ = ["RStudioForm"]
 
 
 class RStudioForm(VolumeMixin, AppBaseForm):
+    draft_action_enabled = False
+    visibility_subject = "instance"
+
     volume = forms.ModelMultipleChoiceField(queryset=VolumeInstance.objects.none(), required=False)
     environment = forms.ModelChoiceField(queryset=None, required=True, empty_label=None)
 

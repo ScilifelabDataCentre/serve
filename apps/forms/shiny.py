@@ -170,7 +170,7 @@ class ShinyForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, C
                 "/srv/shiny-server/",
                 template="apps/partials/srv_prepend_append_input_group.html",
             ),
-            active=True,
+            active=False,
         )
 
         accordion = BS5Accordion(
