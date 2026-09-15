@@ -212,7 +212,7 @@ describe("Test superuser access", () => {
         cy.get('tr:contains("' + private_app_name + '")').should('be.visible').find('i.ellipsis.vertical.icon').click()
         cy.get('tr:contains("' + private_app_name + '")').should('be.visible').find('a').contains('Settings').click()
         cy.get('#id_name').clear().type(private_app_name_2) // change name
-        cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+        cy.get('#submit-id-submit').should('be.visible').click()
         cy.completeAppSubmissionFlow()
         cy.get('tr:contains("' + private_app_name_2 + '")').should('exist') // regular user's private app now has a different name
 
@@ -332,11 +332,11 @@ describe("Test superuser access", () => {
             cy.get('div.card-body:contains("' + app_type_flavor + '")').should('be.visible').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_flavor)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Project')
+            cy.selectAppVisibility('project')
             cy.get('#id_flavor').select('2 vCPU, 4 GB RAM')
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
             // Check that the app is visible and verify the app status
             verifyAppStatus(app_name_flavor, "Creating", "Project", "Creating")
@@ -350,7 +350,7 @@ describe("Test superuser access", () => {
             cy.get('tr:contains("' + app_name_flavor + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_flavor').find(':selected').should('contain', '2 vCPU, 4 GB RAM')
             cy.get('#id_flavor').select(new_flavor_name)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
             // Check that the app is visible and verify the app status
             verifyAppStatus(app_name_flavor, "", "Project", "Changing")
@@ -385,7 +385,8 @@ describe("Test superuser access", () => {
             cy.get('@envSelect').contains('option', name);
             });
             cy.get('#id_environment').select('Jupyter Lab Minimal (Default)')
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.selectAppVisibility('project')
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
             // Check that the app is visible and verify the app status
             verifyAppStatus(app_name_env, "", "", "Creating")
@@ -399,7 +400,7 @@ describe("Test superuser access", () => {
             cy.get('tr:contains("' + app_name_env + '")').should('be.visible').find('a').contains('Settings').click()
             cy.get('#id_environment').find(':selected').should('contain', 'Jupyter Lab Minimal (Default)')
             cy.get('#id_environment').select(new_environment_name)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
             // Check that the app is visible and verify the app status
             verifyAppStatus(app_name_env, "", "", "Changing")
@@ -527,7 +528,8 @@ describe("Test superuser access", () => {
                 Cypress._.times(3, () => {
                         cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                         cy.get('#id_name').type(app_name)
-                        cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+                        cy.selectAppVisibility('project')
+                        cy.get('#submit-id-submit').should('be.visible').click()
                         cy.completeAppSubmissionFlow()
                 });
                 cy.logf("Check that the button to create another one still works", Cypress.currentTest)
@@ -535,7 +537,8 @@ describe("Test superuser access", () => {
                 cy.logf("Check that it is possible to create another one and therefore bypass the limit", Cypress.currentTest)
                 cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
                 cy.get('#id_name').type(app_name)
-                cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+                cy.selectAppVisibility('project')
+                cy.get('#submit-id-submit').should('be.visible').click()
                 cy.completeAppSubmissionFlow()
                 cy.get('tr:contains("' + app_name + '")').its('length').should('eq', 4) // we now have an extra app
                 })

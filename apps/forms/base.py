@@ -193,7 +193,7 @@ class BaseForm(forms.ModelForm):
             elif self.supports_draft:
                 draft_state = ' disabled aria-disabled="true" title="Published apps cannot be returned to draft."'
             else:
-                draft_state = ' disabled aria-disabled="true" title="Draft saving is not available for this app type."'
+                draft_state = ' disabled aria-disabled="true" title="Save Draft is not available for this app type."'
             draft_label = "Update draft" if self.is_draft_instance else "Save draft"
             actions.append(
                 HTML(

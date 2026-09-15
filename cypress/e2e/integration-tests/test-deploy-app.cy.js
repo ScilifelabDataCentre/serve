@@ -219,7 +219,7 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Project')
+            cy.selectAppVisibility('project')
             // Verify storage management link
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
@@ -231,11 +231,10 @@ describe("Test deploying app", () => {
 
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
-            // Advanced settings section is always open, so we can directly access the field
-            // Scroll to the field to ensure it's in view
-            cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
-            cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            // Open Advanced settings before accessing the field
+            cy.getAppAdvancedField('#id_default_url_subpath').scrollIntoView().should('be.visible')
+            cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // check that the app was created
@@ -262,10 +261,10 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_project + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
             // checking that a) permissions can be changed to 'Link'; b) that the corresponding text field is shown and mandatory
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').should('be.visible')
             cy.get('#id_note_on_linkonly_privacy').clear().type(link_privacy_type_note)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
             verifyAppStatus(app_name_project, "Running", "Changing", "Running", "Link")
 
@@ -293,7 +292,7 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_link)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
@@ -359,11 +358,10 @@ describe("Test deploying app", () => {
                     cy.get('#saveFunderBtn').should('not.be.disabled').click()
                 })
             cy.get('#fundersList').should('be.visible').and('contain', funder_org).and('contain', funder_number)
-            // Advanced settings section is always open, so we can directly access the field
-            // Scroll to the field to ensure it's in view
-            cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
-            cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            // Open Advanced settings before accessing the field
+            cy.getAppAdvancedField('#id_default_url_subpath').scrollIntoView().should('be.visible')
+            cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name_link,  "Running", "Creating", "Running", "Link")
@@ -396,7 +394,7 @@ describe("Test deploying app", () => {
             cy.get('#id_name').clear().type(app_name_link_2) // now change name
             cy.get('#id_description').should('have.value', app_description) // description should be same as set before
             cy.get('#id_description').clear().type(app_description_2) // now change description
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_language').should('have.value', 'swe')
             cy.get('#id_language').select('eng')
             // keywords
@@ -440,12 +438,11 @@ describe("Test deploying app", () => {
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_image').clear().type(image_name_2)
             cy.get('#id_mount_path').select(mount_path_2)
-            // Advanced settings section is always open, so we can directly access the field
-            // Scroll to the field to ensure it's in view
-            cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
-            cy.get('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
-            cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            // Open Advanced settings before accessing the field
+            cy.getAppAdvancedField('#id_default_url_subpath').scrollIntoView().should('be.visible')
+            cy.getAppAdvancedField('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
+            cy.getAppAdvancedField('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // NB: it will get status "Running" but it won't work because the new port is incorrect
@@ -468,7 +465,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name_link_2 + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name_link_2)
             cy.get('#id_description').should('have.value', app_description_2)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path_2)
@@ -480,10 +477,9 @@ describe("Test deploying app", () => {
             cy.get('#fundersList').children().eq(1).find('.fw-semibold')
                 .should('contain', funder_org_two)
                 .and('contain', funder_number_two)
-            // Advanced settings section is always open, so we can directly access the field
-            // Scroll to the field to ensure it's in view
-            cy.get('#id_default_url_subpath').scrollIntoView().should('be.visible')
-            cy.get('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
+            // Open Advanced settings before accessing the field
+            cy.getAppAdvancedField('#id_default_url_subpath').scrollIntoView().should('be.visible')
+            cy.getAppAdvancedField('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
@@ -529,12 +525,12 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Link", shinyAppCmdTimeoutMs)
@@ -549,7 +545,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
         } else {
@@ -583,12 +579,12 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -606,7 +602,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -641,13 +637,13 @@ describe("Test deploying app", () => {
 
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_volume').select(volume_display_text)
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Link")
@@ -664,7 +660,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
 
         } else {
@@ -698,7 +694,7 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
@@ -708,7 +704,7 @@ describe("Test deploying app", () => {
                 .should('be.visible')
                 .should('contain', 'Manage storage');
 
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -726,7 +722,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -761,7 +757,7 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
@@ -770,7 +766,7 @@ describe("Test deploying app", () => {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -788,7 +784,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -824,12 +820,12 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -847,7 +843,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -861,7 +857,7 @@ describe("Test deploying app", () => {
             // here we change the app name from app_name to app_name_edited
             cy.get('#id_name').type("-edited")
             cy.get('#id_description').type(", edited description.")
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -915,12 +911,12 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name_1)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -938,7 +934,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_image').should('have.value', image_name_1)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -949,7 +945,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_image').clear().type(image_name_2)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -973,7 +969,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_subdomain').clear().type(subdomain_change)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // verify that the app status now equals Running
@@ -992,7 +988,7 @@ describe("Test deploying app", () => {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
 
         } else {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
@@ -1025,12 +1021,12 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Link')
+            cy.selectAppVisibility('link')
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -1048,7 +1044,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Link')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'link')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -1059,7 +1055,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_subdomain').clear().type(subdomain_change)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // back on project page
@@ -1117,11 +1113,12 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_mount_path').select("/home/data (project-vol (e2e-deploy-app-test))")
+            cy.selectAppVisibility('project')
             // fill out subdomain field
             cy.get('#id_subdomain').clear().type(subdomain)
 
             // create the app
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name, "Running", "Creating", "Running", "Project")
@@ -1150,7 +1147,7 @@ describe("Test deploying app", () => {
             cy.get('#id_subdomain').blur()
             cy.get('#div_id_subdomain').should('contain.text', 'The subdomain is available')
             // create the app
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             verifyAppStatus(app_name_2, "Running", "Creating", "Running", "Project")
@@ -1166,7 +1163,7 @@ describe("Test deploying app", () => {
             cy.get('tr:contains("' + app_name + '")').find('a').contains("Settings").click()
             cy.get('#id_subdomain').clear().type(subdomain_3)
 
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // check that the app was updated with the correct subdomain
@@ -1244,10 +1241,10 @@ describe("Test deploying app", () => {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_statuses)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Project')
+            cy.selectAppVisibility('project')
             cy.get('#id_port').type("8501")
             cy.get('#id_image').type("hkqxqxkhkqwxhkxwh") // input random string
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
 
             // Invalid image should be rejected by server-side validation - app must not be created
             cy.url().should('include', '/apps/create/')
@@ -1256,7 +1253,7 @@ describe("Test deploying app", () => {
             // Now submit with a valid image
             cy.logf("Now creating the app with a valid image reference - expecting Running", Cypress.currentTest)
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.get('#submit-id-submit').should('be.visible').click()
             cy.completeAppSubmissionFlow()
 
             // using longer custom timeout for app to reach Running

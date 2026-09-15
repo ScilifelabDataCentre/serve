@@ -1404,6 +1404,17 @@ cubic-bezier(.4, 0, .2, 1);
     border-radius: .5rem;
 }
 
+.btn.app-save-draft:disabled,
+.btn.app-save-draft[aria-disabled="true"] {
+    background: #eceeed;
+    border: 1px solid #d5d9d7;
+    color: #7c847e;
+    opacity: 1;
+    box-shadow: none;
+    pointer-events: auto;
+    cursor: not-allowed;
+}
+
 .app-form-sidebar .card-footer input[type="submit"] {
     grid-column: 1 / -1;
 }

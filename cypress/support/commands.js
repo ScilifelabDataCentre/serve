@@ -172,6 +172,20 @@ Cypress.Commands.add('completeAppSubmissionFlow', () => {
   });
 });
 
+Cypress.Commands.add('selectAppVisibility', (visibility) => {
+  cy.get(`#id_access input[type="radio"][value="${visibility}"]`).check();
+});
+
+Cypress.Commands.add('getAppAdvancedField', (selector) => {
+  return cy.contains('button.accordion-button', 'Advanced settings')
+    .then(($button) => {
+      if ($button.attr('aria-expanded') !== 'true') {
+        cy.wrap($button).click();
+      }
+    })
+    .then(() => cy.get(selector));
+});
+
 
 Cypress.Commands.add('manageTestData', (options) => {
   const {
