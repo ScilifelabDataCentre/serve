@@ -1,0 +1,136 @@
+{% load i18n wiki_tags static sekizai_tags %}
+
+{% with selected_tab as selected %}
+
+<li class="nav-item">
+  <a href="{% url 'wiki:get' article_id=article.id path=urlpath.path %}" class="px-3 nav-link{% if selected == "view" %} active{% endif %}">
+    <span class="fa fa-home"></span>
+    <span class="hidden-xs">{% trans "View" %}</span>
+  </a>
+</li>
+{% if article|can_write:user and not article.current_revision.locked %}
+<li class="nav-item">
+  <a href="{% url 'wiki:edit' article_id=article.id path=urlpath.path %}" class="px-3 nav-link{% if selected == "edit" %} active{% endif %}">
+    <span class="fa fa-edit"></span>
+    <span class="hidden-xs">{% trans "Edit" %}</span>
+  </a>
+</li>
+{% else %}
+<li class="nav-item">
+  <a href="{% url 'wiki:source' article_id=article.id path=urlpath.path %}" class="px-3 nav-link{% if selected == "source" %} active{% endif %}">
+    <span class="fa fa-lock"></span>
+    <span class="hidden-xs">{% trans "View Source" %}</span>
+  </a>
+</li>
+{% endif %}
+<li class="nav-item">
+  <a href="{% url 'wiki:history' article_id=article.id path=urlpath.path %}" class="px-3 nav-link{% if selected == "history" %} active{% endif %}">
+    <span class="fa fa-clock"></span>
+    <span class="hidden-xs">{% trans "Changes" %}</span>
+  </a>
+</li>
+{% for plugin in article_tabs %}
+<li class="nav-item">
+  <a href="{% url 'wiki:plugin' slug=plugin.slug article_id=article.id path=urlpath.path %}" class="px-3 nav-link{% if selected == plugin.slug %} active{% endif %}">
+    <span class="{{ plugin.article_tab.1 }}"></span>
+    <span class="hidden-xs">{{ plugin.article_tab.0 }}</span>
+  </a>
+</li>
+{% endfor %}
+{% if not user.is_anonymous %}
+<li class="nav-item">
+  <a href="{% url 'wiki:settings' article_id=article.id path=urlpath.path %}" class="px-3 nav-link{% if selected == "settings" %} active{% endif %}">
+    <span class="fa fa-wrench"></span>
+    <span class="hidden-xs">{% trans "Settings" %}</span>
+  </a>
+</li>
+{% endif %}
+
+{# Serve-only page/LLM actions. Bootstrap handles dropdown layout and behaviour. #}
+{% if selected == "view" and urlpath %}
+<li
+  class="nav-item ms-1"
+  data-copy-page-menu
+  data-article-title="{{ article.current_revision.title }}"
+  {# The chatbot fetches this URL. django-wiki has no ".md" route, so point at   #}
+  {# _source/, which serves the article's own Markdown and is already public.    #}
+  data-source-url="{% url 'wiki:source' article_id=article.id path=urlpath.path %}"
+  {# Translators: keep the {url} placeholder, it is replaced with the page URL. #}
+  data-llm-prompt="{% trans 'Read from {url} so I can ask questions about it.' %}"
+  data-llm-extra-prompt="{% trans 'For additional information or guidance on creating apps, also refer to https://github.com/ScilifelabDataCentre/serve-app-template.' %}"
+  data-copied-label="{% trans 'Copied!' %}"
+  data-copy-failed-label="{% trans 'Copy failed' %}"
+>
+  <div class="btn-group">
+    <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2 text-nowrap" data-copy-page-copy>
+      <i class="bi bi-clipboard" aria-hidden="true"></i>
+      <span data-copy-page-primary-label aria-live="polite">{% trans "Copy page" %}</span>
+    </button>
+    <button
+      type="button"
+      class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split"
+      data-bs-toggle="dropdown"
+      aria-expanded="false"
+    >
+      <span class="visually-hidden">{% trans "More page actions" %}</span>
+    </button>
+
+    <ul class="dropdown-menu dropdown-menu-end p-2">
+      <li>
+        <button type="button" class="dropdown-item d-flex align-items-center gap-3 rounded-2 p-2" data-copy-page-copy>
+          <span class="copy-page-icon d-inline-flex align-items-center justify-content-center flex-shrink-0 border rounded-2" aria-hidden="true">
+            <i class="bi bi-clipboard fs-5"></i>
+          </span>
+          <span class="d-flex flex-column text-start">
+            <span class="fw-semibold" data-copy-page-menu-label aria-live="polite">{% trans "Copy page" %}</span>
+            <span class="small text-body-secondary">{% trans "Copy page as Markdown for LLMs" %}</span>
+          </span>
+        </button>
+      </li>
+
+      {# Local brand SVGs: static/images/images/scilifelab_favicon.png, openai.svg and claude.svg. #}
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-3 rounded-2 p-2" data-copy-page-chatbot="openllm" href="https://open-llm.scilifelab.se/" target="_blank" rel="noopener noreferrer">
+          <span class="copy-page-icon d-inline-flex align-items-center justify-content-center flex-shrink-0 border rounded-2" aria-hidden="true">
+            <img src="{% static 'images/scilifelab_favicon.png' %}" alt="" class="copy-page-brand-icon">
+          </span>
+          <span class="d-flex flex-column">
+            <span class="fw-semibold">{% trans "Open in SciLifeLab Open LLM" %} <i class="bi bi-arrow-up-right small" aria-hidden="true"></i></span>
+            <span class="small text-body-secondary">{% trans "Ask questions about this page" %}</span>
+          </span>
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-3 rounded-2 p-2" data-copy-page-chatbot="chatgpt" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">
+          <span class="copy-page-icon d-inline-flex align-items-center justify-content-center flex-shrink-0 border rounded-2" aria-hidden="true">
+            <img src="{% static 'images/wiki/openai.svg' %}" alt="" class="copy-page-brand-icon">
+          </span>
+          <span class="d-flex flex-column">
+            <span class="fw-semibold">{% trans "Open in ChatGPT" %} <i class="bi bi-arrow-up-right small" aria-hidden="true"></i></span>
+            <span class="small text-body-secondary">{% trans "Ask questions about this page" %}</span>
+          </span>
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-3 rounded-2 p-2" data-copy-page-chatbot="claude" href="https://claude.ai/new" target="_blank" rel="noopener noreferrer">
+          <span class="copy-page-icon d-inline-flex align-items-center justify-content-center flex-shrink-0 border rounded-2" aria-hidden="true">
+            <img src="{% static 'images/wiki/claude.svg' %}" alt="" class="copy-page-brand-icon">
+          </span>
+          <span class="d-flex flex-column">
+            <span class="fw-semibold">{% trans "Open in Claude" %} <i class="bi bi-arrow-up-right small" aria-hidden="true"></i></span>
+            <span class="small text-body-secondary">{% trans "Ask questions about this page" %}</span>
+          </span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  {# Safely expose the original wiki Markdown to the clipboard code. #}
+  {{ article.current_revision.content|json_script:"copy-page-markdown-source" }}
+
+  {% addtoblock "css" %}<link rel="stylesheet" href="{% static 'css/wiki-copy-page.css' %}">{% endaddtoblock %}
+  {% addtoblock "js" %}<script defer src="{% static 'js/wiki-copy-page.js' %}"></script>{% endaddtoblock %}
+</li>
+{% endif %}
+
+{% endwith %}
