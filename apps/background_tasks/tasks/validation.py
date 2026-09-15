@@ -69,7 +69,9 @@ def _validation_result_no_image(app_instance) -> dict[str, Any]:
     """Shared 'no image to validate' result for container image validators."""
     return {
         "valid": True,
+        "skipped": True,
         "message": "No image to validate",
+        "reason": "no container image provided",
         "resolved_from": {
             "has_image_attr": hasattr(app_instance, "image"),
             "has_environment": bool(getattr(app_instance, "environment", None)),

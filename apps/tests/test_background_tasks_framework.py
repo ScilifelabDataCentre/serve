@@ -62,6 +62,39 @@ def test_doi_provisioning_is_not_registered_for_non_image_apps():
         assert "doi_provisioning" not in [task.task_name for task in tasks]
 
 
+@pytest.fixture()
+def customapp_instance_without_image(db):
+    user = User.objects.create_user("no_image_user", "no_image_user@test.com", "pw")
+    project = Project.objects.create_project(name="no-image-project", owner=user, description="")
+    app = Apps.objects.create(name="Test Custom App", slug="customapp")
+    return CustomAppInstance.objects.create(owner=user, project=project, app=app, chart="test-chart")
+
+
+@pytest.mark.django_db
+def test_docker_image_validator_is_skipped_not_passed_when_no_image(customapp_instance_without_image):
+    """
+    A draft may not have a container image yet. The check has nothing to validate, so it
+    must show up as "Skipped" rather than "Success" - passing a check that never ran would
+    be just as misleading as the "Deploy app" step claiming a deploy happened.
+    """
+    from apps.background_tasks.tasks.validation import DockerImageValidator
+
+    result = DockerImageValidator().execute(customapp_instance_without_image)
+
+    assert result["valid"] is True
+    assert result["skipped"] is True
+
+
+@pytest.mark.django_db
+def test_image_public_validator_is_skipped_not_passed_when_no_image(customapp_instance_without_image):
+    from apps.background_tasks.tasks.validation import ImagePublicValidator
+
+    result = ImagePublicValidator().execute(customapp_instance_without_image)
+
+    assert result["valid"] is True
+    assert result["skipped"] is True
+
+
 @pytest.mark.django_db
 def test_doi_provisioning_task_includes_funding_metadata(app_instance):
     funding_payload = [

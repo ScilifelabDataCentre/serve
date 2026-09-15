@@ -210,6 +210,13 @@ Cypress.Commands.add('populateTestSuperUser', (userData) => {
   });
 });
 
+Cypress.Commands.add('populateTestPrivilegedUser', (userData) => {
+  cy.manageTestData({
+    endpoint: 'populate-test-privileged-user',
+    data: { user_data: userData }
+  });
+});
+
 Cypress.Commands.add('cleanupTestUser', (userData) => {
   cy.manageTestData({
     endpoint: 'cleanup-test-user',

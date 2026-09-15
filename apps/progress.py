@@ -315,7 +315,12 @@ def build_progress_steps(tasks_data, deployment):
     deploy_detail = "Waiting for the earlier checks to finish."
     deploy_visual_status = deploy_status
 
-    if deployment.get("blocked"):
+    if deployment.get("latest_user_action") == "Draft" and deploy_status == "success":
+        # Deployment is skipped for Draft apps.
+        deploy_status = "skipped"
+        deploy_visual_status = "skipped"
+        deploy_detail = deployment.get("message") or "Skipped: this app is saved as a draft."
+    elif deployment.get("blocked"):
         deploy_detail = (
             deployment.get("message") or "Deployment cannot continue until the failed required check is resolved."
         )
@@ -483,8 +488,13 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progre
         # what this submission is reporting on. Treat the synthetic tile as done
         # as soon as the checks finish.
         status = "success"
-        label = "Done"
-        message = "Metadata updated. No redeploy was needed."
+        if latest_user_action == "Draft":
+            # Deployment is skipped for Draft apps.
+            label = "Saved"
+            message = "Saved as a draft. No app was deployed."
+        else:
+            label = "Done"
+            message = "Metadata updated. No redeploy was needed."
     elif deployment_failed and not blocked and not tasks_in_progress:
         status = "failed"
         label = "Failed"

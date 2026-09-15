@@ -53,8 +53,17 @@ class BaseForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
 
+        self._is_draft_access = self.data.get("access") == "draft"
+
         self._setup_form_fields()
         self.add_metadata()
+
+        if self._is_draft_access:
+            # "name" stays required for a draft - everything else may be left blank.
+            for field_name, field in self.fields.items():
+                if field_name == "name":
+                    continue
+                field.required = False
 
         # Prevent form from opening if metadata fetch failed
         if self._metadata_fetch_failed:
@@ -87,6 +96,17 @@ class BaseForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             self.fields["subdomain"].initial = self.instance.subdomain.subdomain if self.instance.subdomain else ""
             self.fields["subdomain"].widget.data["hidden"] = ""
+
+        # "Draft" is only a valid access choice for an app that doesn't exist yet or is still a
+        # draft. An app that has already been created for real can never go back to being a
+        # draft, so remove the choice entirely once that's the case.
+        if (
+            "access" in self.fields
+            and self.instance
+            and self.instance.pk
+            and self.instance.latest_user_action != "Draft"
+        ):
+            self.fields["access"].choices = [choice for choice in self.fields["access"].choices if choice[0] != "draft"]
 
         # Handle name
         self.fields["name"].initial = ""
@@ -702,7 +722,7 @@ class AppBaseForm(BaseForm):
 
     def clean_flavor(self):
         flavor = self.cleaned_data.get("flavor")
-        if flavor and flavor_gpu_count(flavor) > 0 and self._app_template_gpu_enabled():
+        if flavor and flavor_gpu_count(flavor) > 0 and self._app_template_gpu_enabled() and not self._is_draft_access:
             exclude_instance = self.instance if self.instance and self.instance.pk else None
             if not gpu_available_for_flavor(flavor, exclude_instance=exclude_instance):
                 raise forms.ValidationError(GPU_UNAVAILABLE_MESSAGE)

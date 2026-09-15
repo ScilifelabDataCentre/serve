@@ -1,6 +1,9 @@
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
+from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.template.response import TemplateResponse
 from django.templatetags.static import static
 from django.urls import path
@@ -12,6 +15,7 @@ from .models import (
     MaintenanceMode,
     UserProfile,
 )
+from .privileges import is_privileged_user
 
 
 class UserProfileInline(admin.StackedInline):
@@ -108,7 +112,51 @@ class EmailSendingTableAdmin(admin.ModelAdmin):
         )
 
 
+PRIVILEGED_USER_HELP_TEXT = (
+    "Designates that this user may exceed the project and app limits, expand project volumes, and "
+    "manage flavors and environments. The 'Privileged users' group below has the same effect. "
+)
+
+
+class UserAdminForm(UserChangeForm):
+    """Shows UserProfile.is_privileged on the User form, beside the other permission flags."""
+
+    is_privileged = forms.BooleanField(
+        required=False,
+        label="Privileged user",
+        help_text=PRIVILEGED_USER_HELP_TEXT,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance.pk:
+            try:
+                self.fields["is_privileged"].initial = self.instance.userprofile.is_privileged
+            except ObjectDoesNotExist:
+                self.fields["is_privileged"].initial = False
+
+
+def _fieldsets_with_privileged_user():
+    """Add the privileged flag to Django's own User fieldsets."""
+    fieldsets = []
+
+    for name, options in DefaultUserAdmin.fieldsets:
+        fields = tuple(options["fields"])
+
+        if "is_superuser" in fields:
+            at = fields.index("is_superuser") + 1
+            fields = fields[:at] + ("is_privileged",) + fields[at:]
+            options = {**options, "fields": fields}
+
+        fieldsets.append((name, options))
+
+    return tuple(fieldsets)
+
+
 class UserAdmin(DefaultUserAdmin):
+    form = UserAdminForm
+    fieldsets = _fieldsets_with_privileged_user()
     inlines = (UserProfileInline, EmailVerificationTableInline)
     list_display = (
         "email",
@@ -116,14 +164,35 @@ class UserAdmin(DefaultUserAdmin):
         "last_name",
         "is_active",
         "is_staff",
+        "get_is_privileged",
         "get_affiliations_display",
         "get_orcid",
         "date_joined",
     )
     list_select_related = ("userprofile",)
-    list_filter = ("is_active", "is_staff", "userprofile__is_approved")
+    list_filter = ("is_active", "is_staff", "userprofile__is_approved", "userprofile__is_privileged")
     search_fields = ("email", "first_name", "last_name", "userprofile__affiliations")
     actions = ["migrate_legacy_profiles"]
+
+    def save_related(self, request, form, formsets, change):
+        """
+        Save the privileged flag onto the profile.
+        """
+        super().save_related(request, form, formsets, change)
+
+        if "is_privileged" not in form.cleaned_data:
+            return
+
+        is_privileged = form.cleaned_data["is_privileged"]
+        profile, _ = UserProfile.objects.get_or_create(user=form.instance)
+
+        if profile.is_privileged != is_privileged:
+            profile.is_privileged = is_privileged
+            profile.save(update_fields=["is_privileged"])
+
+    @admin.display(description="Privileged", boolean=True)
+    def get_is_privileged(self, instance):
+        return is_privileged_user(instance)
 
     @admin.display(description="Affiliations")
     def get_affiliations_display(self, instance):
