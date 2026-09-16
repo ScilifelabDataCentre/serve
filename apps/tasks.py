@@ -1270,6 +1270,8 @@ def run_background_tasks(
     task_kwargs_by_task_name: dict[str, dict[str, Any]] | None = None,
     progress_started_at: str | None = None,
     skip_deploy: bool = False,
+    task_names: list[str] | None = None,
+    preserve_latest_user_action_on_failure: bool = False,
 ):
     """
     Orchestrates background tasks before deployment.
@@ -1285,6 +1287,8 @@ def run_background_tasks(
         progress_started_at: ISO timestamp captured when the form was submitted. Used to scope
             the progress page without persisting a BackgroundTask run id.
         skip_deploy: When True, run the background-task workflow but do not enqueue Helm deployment.
+        task_names: When provided, run only the named tasks that apply to this app type.
+        preserve_latest_user_action_on_failure: Record task failures without replacing the app's current action.
 
     Returns:
         Dict with success status and task results
@@ -1299,8 +1303,20 @@ def run_background_tasks(
 
     task_kwargs_by_task_name = task_kwargs_by_task_name or {}
 
+    # Ensure draft saves only run metadata provisioning.
+    if skip_deploy and instance.latest_user_action == "Draft":
+        task_names = ["doi_provisioning"]
+        preserve_latest_user_action_on_failure = True
+
     # Get tasks grouped by execution order
     tasks_by_order = TASK_REGISTRY.get_tasks_by_order(app_slug)
+    if task_names is not None:
+        selected_task_names = set(task_names)
+        tasks_by_order = {
+            order: [task_class for task_class in task_classes if task_class.task_name in selected_task_names]
+            for order, task_classes in tasks_by_order.items()
+        }
+        tasks_by_order = {order: task_classes for order, task_classes in tasks_by_order.items() if task_classes}
 
     if not tasks_by_order:
         logger.info(f"No background tasks registered for app type {app_slug}")
@@ -1372,8 +1388,16 @@ def run_background_tasks(
             )
             task_chain.append(parallel_tasks)
 
-    # Add deployment as the final step in the chain, unless skip_deploy is True
-    task_chain.append(check_tasks_and_deploy.s(instance.id, serialized_instance, progress_started_at, skip_deploy))
+    # Finish by either starting deployment or recording that deployment was skipped.
+    task_chain.append(
+        check_tasks_and_deploy.s(
+            instance.id,
+            serialized_instance,
+            progress_started_at,
+            skip_deploy,
+            preserve_latest_user_action_on_failure,
+        )
+    )
 
     # Execute the chain
     workflow = chain(*task_chain)
@@ -1392,6 +1416,7 @@ def check_tasks_and_deploy(
     serialized_instance,
     progress_started_at: str | None = None,
     skip_deploy=False,
+    preserve_latest_user_action_on_failure=False,
 ):
     """
     Check if all critical tasks succeeded, then deploy if appropriate.
@@ -1443,10 +1468,10 @@ def check_tasks_and_deploy(
         error_msg = f"Critical background tasks failed: {', '.join(failed_names)}. Deployment blocked."
         logger.error(error_msg)
 
-        # Update app instance status
-        instance = deserialize(serialized_instance)
-        instance.latest_user_action = "Failed"
-        instance.save(update_fields=["latest_user_action"])
+        if not preserve_latest_user_action_on_failure:
+            instance = deserialize(serialized_instance)
+            instance.latest_user_action = "Failed"
+            instance.save(update_fields=["latest_user_action"])
 
         return {
             "success": False,

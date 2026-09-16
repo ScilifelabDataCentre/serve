@@ -76,3 +76,21 @@ class AppSettingsViewTestCase(TestCase):
         response = c.get(url)
 
         self.assertEqual(response.status_code, 200)
+
+    def test_published_app_cannot_be_saved_as_draft(self):
+        """A forged save_draft POST (e.g. after removing `disabled` in devtools) must be rejected."""
+        c = Client()
+        c.force_login(self.user)
+
+        self.app.user_can_edit = True
+        self.app.save()
+        self.assertNotEqual(self.app_instance.latest_user_action, "Draft")
+
+        url = f"/projects/{self.project.slug}/" + f"apps/settings/{self.app_instance.app.slug}/{self.app_instance.id}"
+
+        response = c.post(url, {"action": "save_draft", "name": "test_app_instance_public"})
+
+        self.assertEqual(response.status_code, 403)
+        self.app_instance.refresh_from_db()
+        self.assertEqual(self.app_instance.access, "public")
+        self.assertNotEqual(self.app_instance.latest_user_action, "Draft")

@@ -217,8 +217,13 @@ describe("Test project contributor user functionality", () => {
                 // step 1. create 3 jupyter lab instances (current limit)
                 Cypress._.times(3, () => {
                         cy.get('div.card-body:contains("Jupyter Lab")').siblings('.card-footer').find('a:contains("Create")').click()
+                        cy.get('#id_access input[type="radio"]:checked').should('not.exist')
+                        cy.get('[data-cy="save-draft"]').should('not.exist')
+                        cy.get('.app-visibility-intro').should('contain', 'Choose who can access your instance.')
+                        cy.get('.app-form-sidebar #app-deletion-note').should('be.visible')
                         cy.get('#id_name').type("e2e-create-jl")
-                        cy.get('#submit-id-submit').contains('Submit').click()
+                        cy.selectAppVisibility('project')
+                        cy.submitAppForm()
                         cy.completeAppSubmissionFlow()
                   });
                 // step 2. check that the button to create another one does not work
@@ -348,8 +353,8 @@ describe("Test project contributor user functionality", () => {
         cy.logf("Now creating a private app", Cypress.currentTest)
         cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#id_name').type(private_app_name)
-        cy.get('#id_access').select('Private')
-        cy.get('#submit-id-submit').contains('Submit').click() // create app
+        cy.selectAppVisibility('private')
+        cy.submitAppForm() // create app
         cy.completeAppSubmissionFlow()
         cy.get('tr:contains("' + private_app_name + '")').find('span').should('contain', 'Private') // check that the app got greated
 
@@ -357,8 +362,8 @@ describe("Test project contributor user functionality", () => {
         cy.logf("Now creating a project app", Cypress.currentTest)
         cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
         cy.get('#id_name').type(project_app_name)
-        cy.get('#id_access').select('Project')
-        cy.get('#submit-id-submit').contains('Submit').click() // create app
+        cy.selectAppVisibility('project')
+        cy.submitAppForm() // create app
         cy.completeAppSubmissionFlow()
         cy.get('tr:contains("' + project_app_name + '")').find('span').should('contain', 'Project') // check that the app got greated
 
@@ -454,7 +459,7 @@ describe("Test project contributor user functionality", () => {
         cy.visit("/projects/")
         cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
         cy.get('div.card-body:contains("File Manager")').siblings('.card-footer').find('a:contains("Create")').click()
-        cy.get('#submit-id-submit').should('be.visible').click()
+        cy.submitAppForm()
         cy.completeAppSubmissionFlow()
 
         cy.get('tr:contains("File Manager")').find('[data-cy="appstatus"]').should('have.attr', 'data-app-action', 'Creating')

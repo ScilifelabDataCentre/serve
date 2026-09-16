@@ -4,13 +4,14 @@ import uuid
 
 import waffle
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, Button, Div, Submit
+from crispy_forms.layout import HTML, Button, Div, Layout, Submit
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.forms import Select, SelectMultiple
 from django.shortcuts import get_object_or_404
 
+from apps.constants import DRAFT_VISIBILITY_INFO_KEY
 from apps.forms.field.widget import FlavorSelect, SubdomainInputGroup
 from apps.gpu import (
     GPU_UNAVAILABLE_MESSAGE,
@@ -31,6 +32,9 @@ __all__ = ["BaseForm", "AppBaseForm"]
 
 class BaseForm(forms.ModelForm):
     """The most generic form for apps running on serve. Current intended use is for VolumesK8S type apps"""
+
+    draft_action_enabled = True
+    visibility_subject = "app"
 
     subdomain = forms.CharField(
         required=False,
@@ -74,7 +78,9 @@ class BaseForm(forms.ModelForm):
 
         self._setup_form_helper()
         for field in self.fields.values():
-            if isinstance(field.widget, (Select, SelectMultiple)):
+            if isinstance(field.widget, forms.RadioSelect):
+                field.widget.attrs["class"] = "form-check-input"
+            elif isinstance(field.widget, (Select, SelectMultiple)):
                 field.widget.attrs["class"] = "form-select"
             else:
                 field.widget.attrs["class"] = "form-control"
@@ -119,6 +125,22 @@ class BaseForm(forms.ModelForm):
 
         self._restore_model_help_text()
 
+        if "access" in self.fields and not self.is_bound and not (self.instance and self.instance.pk):
+            self.initial["access"] = None
+            self.fields["access"].initial = None
+
+        if (
+            "access" in self.fields
+            and self.instance
+            and self.instance.pk
+            and self.instance.latest_user_action == "Draft"
+        ):
+            info = self.instance.info if isinstance(self.instance.info, dict) else {}
+            draft_visibility = info.get(DRAFT_VISIBILITY_INFO_KEY)
+            valid_access_values = {value for value, _ in self.fields["access"].choices if value != "draft"}
+            if draft_visibility in valid_access_values:
+                self.initial["access"] = draft_visibility
+
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel
         self.footer = Div(
@@ -139,6 +161,67 @@ class BaseForm(forms.ModelForm):
         # Ensure HTML5 `required` attributes are rendered
         self.helper.use_required_attribute = True
         self.helper.form_method = "post"
+
+    def _set_app_form_layout(self, body, *notes):
+        """Keep visibility and actions alongside the configuration on app forms."""
+        self.has_settings_sidebar = True
+        access = self.fields["access"]
+        access_choices = list(access.choices)
+        model_access_choices = self._meta.model._meta.get_field("access").choices
+        self.supports_draft = any(value == "draft" for value, _ in model_access_choices)
+        self.is_draft_instance = bool(
+            self.instance and self.instance.pk and self.instance.latest_user_action == "Draft"
+        )
+        self.show_draft_action = self.draft_action_enabled
+        order = {"public": 0, "link": 1, "project": 2, "private": 3}
+        access.widget = forms.RadioSelect(choices=sorted(access_choices, key=lambda choice: order.get(choice[0], 4)))
+        is_existing_app = bool(self.instance and self.instance.pk)
+        self.can_save_draft = (
+            self.show_draft_action and self.supports_draft and (not is_existing_app or self.is_draft_instance)
+        )
+        actions = [
+            Button(
+                "cancel",
+                "Cancel",
+                css_class="btn-outline-dark btn-outline-cancel me-2",
+                onclick="window.history.back()",
+            )
+        ]
+        if self.show_draft_action:
+            if self.can_save_draft:
+                draft_state = ""
+            elif self.supports_draft:
+                draft_state = ' disabled aria-disabled="true" title="Published apps cannot be returned to draft."'
+            else:
+                draft_state = ' disabled aria-disabled="true" title="Save Draft is not available for this app type."'
+            draft_label = "Update draft" if self.is_draft_instance else "Save draft"
+            actions.append(
+                HTML(
+                    '<button type="submit" name="action" value="save_draft" data-cy="save-draft" '
+                    f'class="btn btn-serve-aqua app-save-draft" formnovalidate{draft_state}>{draft_label}</button>'
+                )
+            )
+        submit_label = "Update" if is_existing_app and not self.is_draft_instance else "Publish"
+        actions.append(Submit("submit", submit_label))
+        footer_class = "card-footer d-flex flex-wrap justify-content-end gap-2"
+        if not self.show_draft_action:
+            footer_class += " app-form-without-draft-action"
+        self.footer = Div(
+            *actions,
+            css_class=footer_class,
+        )
+        self.helper.layout = Layout(
+            Div(
+                Div(body, css_class="app-form-main"),
+                Div(
+                    HTML('{% include "apps/partials/settings_sidebar.html" %}'),
+                    *notes,
+                    self.footer,
+                    css_class="app-form-sidebar",
+                ),
+                css_class="app-form-layout",
+            )
+        )
 
     def add_metadata(self):
         instance = getattr(self, "instance", None)
@@ -739,7 +822,7 @@ class AppBaseForm(BaseForm):
         gpu_days = settings.GPU_DEVELOP_APP_MAX_AGE_DAYS
         default_label = f"{default_days} day{'' if default_days == 1 else 's'}"
         return HTML(
-            f'<div class="card-body pt-0" id="app-deletion-note" '
+            f'<div class="app-deletion-note" id="app-deletion-note" '
             f'data-default-days="{default_days}" data-gpu-days="{gpu_days}">'
             f"<p class='mb-0'>Note: <b>after <span class='deletion-days'>{default_label}</span> "
             f"the created {self.model_name} instance will be deleted</b>, "

@@ -138,7 +138,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_project)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Project')
+            cy.selectAppVisibility('project')
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
@@ -146,9 +146,8 @@ if (Cypress.env('create_resources') === true) {
 
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
-            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
-            cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Wait for the app row to appear or log form errors if not
             cy.get('body').then(($body) => {
@@ -179,7 +178,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('tr:contains("' + app_name_project + '")').find('i.ellipsis.vertical.icon').click()
             cy.get('tr:contains("' + app_name_project + '")').find('a').contains('Settings').click()
-            cy.get('#id_access').select('Public')
+            cy.selectAppVisibility('public')
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#div_id_invenio_tags').should('be.visible')
                 .within(() => {
@@ -218,7 +217,7 @@ if (Cypress.env('create_resources') === true) {
             cy.wait(350) // let the Bootstrap modal fade-in transition fully finish before dismissing it
             cy.get('#funderModal .btn-close').should('be.visible').click()
             cy.get('#funderModal').should('not.be.visible')
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // We now verify the correct permission level and user action
@@ -248,14 +247,13 @@ if (Cypress.env('create_resources') === true) {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name_public)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.selectAppVisibility('public')
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_mount_path').select(mount_path+ " (project-vol (" + project_name + "))")
-            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
-            cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
@@ -316,10 +314,10 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_name').clear().type(app_name_public_2) // now change name
             cy.get('#id_description').should('have.value', app_description) // description should be same as set before
             cy.get('#id_description').clear().type(app_description_2) // now change description
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'public')
             // Note: DOI-protected public apps cannot change their access level
             // Verify that the access field is disabled due to DOI protection
-            cy.get('#id_access').should('be.disabled')
+            cy.get('#id_access input[type="radio"]').should('be.disabled')
             // /home/data (project-vol (e2e-user-manage-apps-test-proj))
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path + " (project-vol (" + project_name + "))")
             cy.get('#id_port').should('have.value', image_port)
@@ -328,10 +326,9 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').clear().type(image_name_2)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path + " (project-vol (" + project_name + "))")
             cy.get('#id_mount_path').select(mount_path_2 + " (project-vol (" + project_name + "))")
-            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
-            cy.get('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
-            cy.get('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.getAppAdvancedField('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
+            cy.getAppAdvancedField('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // We do not verify the app status because it depends on k8s
@@ -362,16 +359,15 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_name').should('have.value', app_name_public_2)
             cy.get('#id_description').should('have.value', app_description_2)
             // Note: Access level remains 'Public' due to DOI protection
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'public')
             cy.get('#id_port').should('have.value', image_port_2)
             cy.get('#id_image').should('have.value', image_name_2)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path_2 + " (project-vol (" + project_name + "))")
-            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click(); // Go to Advanced settings
-            cy.get('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
+            cy.getAppAdvancedField('#id_default_url_subpath').should('have.value', changed_default_url_subpath) // changed_url_subpath should be same as before
 
             // Make sure that giving invalid input in default_url_subpath field results in an error
-            cy.get('#id_default_url_subpath').clear().type(invalid_default_url_subpath) // provide invalid_default_url_subpath
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click() // this should trigger the error
+            cy.getAppAdvancedField('#id_default_url_subpath').clear().type(invalid_default_url_subpath) // provide invalid_default_url_subpath
+            cy.submitAppForm() // this should trigger the error
             cy.completeAppSubmissionFlow()
 
             // check this invalid_default_url_subpath error was matched

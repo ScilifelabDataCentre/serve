@@ -18,6 +18,7 @@ from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
 
 from apps.constants import (
+    DRAFT_VISIBILITY_INFO_KEY,
     UNIVERSITY_NAMES,
     AppActionOrigin,
     HandleUpdateStatusResponseCode,
@@ -100,6 +101,11 @@ def get_select_options(project_pk, selected_option=""):
     return select_options
 
 
+def can_access_draft_instance(instance, user):
+    """Return whether a draft is visible to this user."""
+    return instance.latest_user_action != "Draft" or instance.owner_id == user.pk or user.is_staff or user.is_superuser
+
+
 def can_access_app_instance(instance, user, project):
     """Checks if a user has access to an app instance
 
@@ -111,6 +117,9 @@ def can_access_app_instance(instance, user, project):
     Returns:
         Boolean: returns False if user lack permission to provided app instance
     """
+    if instance.latest_user_action == "Draft":
+        return can_access_draft_instance(instance, user)
+
     authorized = False
 
     if instance.access in ("public", "link"):
@@ -426,8 +435,8 @@ def create_instance_from_form(
         if is_draft_access:
             run_background_tasks_only = True
     elif was_draft and is_draft_access:
-        # Still a draft - just persist whatever changed without ever touching k8s or Invenio
-        # publishing, regardless of which fields changed since the last save.
+        # Still a draft: persist the changes and refresh its Invenio draft record,
+        # without touching Kubernetes.
         do_deploy = False
         user_action = "Draft"
         run_background_tasks_only = True
@@ -509,6 +518,29 @@ def create_instance_from_form(
     instance = form.save(commit=False)
 
     if is_draft_access:
+        info = dict(instance.info) if isinstance(instance.info, dict) else {}
+        draft_visibility = getattr(form, "draft_visibility", None)
+        if draft_visibility:
+            info[DRAFT_VISIBILITY_INFO_KEY] = draft_visibility
+        else:
+            info.pop(DRAFT_VISIBILITY_INFO_KEY, None)
+        instance.info = info or None
+        instance.access = "draft"
+    elif was_draft and isinstance(instance.info, dict):
+        info = dict(instance.info)
+        info.pop(DRAFT_VISIBILITY_INFO_KEY, None)
+        instance.info = info or None
+
+    instance_owner = None
+    if is_draft_access:
+        if new_app:
+            request_user = getattr(getattr(form, "request", None), "user", None)
+            if request_user is not None and request_user.is_authenticated:
+                instance_owner = request_user
+        elif instance.owner_id:
+            instance_owner = instance.owner
+
+    if is_draft_access:
         # Relaxing required fields for a draft can leave a normally-required field empty.
         for model_field in instance._meta.fields:
             if not model_field.has_default():
@@ -561,7 +593,7 @@ def create_instance_from_form(
     else:
         instance.made_public_on = None
 
-    setup_instance(instance, subdomain, app, project, user_action)
+    setup_instance(instance, subdomain, app, project, user_action, owner=instance_owner)
 
     # Depictio public <-> link and private <-> project produce identical
     # rendered manifests, so handle this case.
@@ -628,6 +660,8 @@ def create_instance_from_form(
             form,
             app_slug,
             progress_started_at=progress_started_at,
+            task_names=["doi_provisioning"] if is_draft_access else None,
+            preserve_latest_user_action_on_failure=is_draft_access,
         )
         logger.info("create_instance_from_form.background_tasks_only app_id=%s instance_id=%s", app_id, instance_id)
     else:
@@ -647,6 +681,8 @@ def _run_background_tasks_and_doi_only(
     app_slug,
     skip_deploy=True,
     progress_started_at: str | None = None,
+    task_names: list[str] | None = None,
+    preserve_latest_user_action_on_failure: bool = False,
 ):
     """Run background tasks (including DOI minting) for an instance, without deployment."""
     from .tasks import run_background_tasks
@@ -667,6 +703,8 @@ def _run_background_tasks_and_doi_only(
             task_kwargs_by_task_name,
             progress_started_at,
             skip_deploy=skip_deploy,
+            task_names=task_names,
+            preserve_latest_user_action_on_failure=preserve_latest_user_action_on_failure,
         )
     )
 
@@ -874,12 +912,12 @@ def get_app(app_slug):
         raise ValueError(f"App with slug {app_slug} not found")
 
 
-def setup_instance(instance, subdomain, app, project, user_action=None, is_created_by_user=False):
+def setup_instance(instance, subdomain, app, project, user_action=None, is_created_by_user=False, owner=None):
     instance.subdomain = subdomain
     instance.app = app
     instance.chart = instance.app.chart
     instance.project = project
-    instance.owner = project.owner
+    instance.owner = owner or project.owner
     instance.latest_user_action = user_action
     logger.info(
         "setup_instance.assigned instance_id=%s subdomain=%s app_slug=%s project_id=%s user_action=%s",

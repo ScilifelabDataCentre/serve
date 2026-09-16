@@ -84,12 +84,18 @@ def get_skip_deploy_from_request(request):
     return request.GET.get("skip_deploy", "").lower() == "true"
 
 
-def get_progress_tasks(instance, started_at=None):
+def get_draft_workflow_from_request(request):
+    return request.GET.get("draft", "").lower() == "true"
+
+
+def get_progress_tasks(instance, started_at=None, task_names=None):
     from apps.background_tasks.registry import TASK_REGISTRY
     from apps.models import BackgroundTask
 
     task_records = list(BackgroundTask.objects.filter(app_instance=instance).order_by("execution_order", "created_at"))
     visible_task_names = {task.task_name for task in TASK_REGISTRY.get_tasks_for_app(instance.app.slug)}
+    if task_names is not None:
+        visible_task_names &= set(task_names)
     visible_task_records = [task for task in task_records if task.task_name in visible_task_names]
     if started_at is not None:
         visible_task_records = [task for task in visible_task_records if task.created_at >= started_at]
@@ -183,11 +189,14 @@ def _build_placeholder_task_data(task_class):
     }
 
 
-def build_progress_tasks_data(instance, started_at=None):
+def build_progress_tasks_data(instance, started_at=None, task_names=None):
     from apps.background_tasks.registry import TASK_REGISTRY
 
     task_classes = TASK_REGISTRY.get_tasks_for_app(instance.app.slug)
-    actual_tasks = serialize_tasks(get_progress_tasks(instance, started_at=started_at))
+    if task_names is not None:
+        selected_task_names = set(task_names)
+        task_classes = [task_class for task_class in task_classes if task_class.task_name in selected_task_names]
+    actual_tasks = serialize_tasks(get_progress_tasks(instance, started_at=started_at, task_names=task_names))
     actual_by_name = {task_data["task_name"]: task_data for task_data in actual_tasks}
 
     return [
@@ -219,6 +228,8 @@ def _get_task_visible_status(task_data):
 
 
 def _get_task_subtitle(task_data):
+    if task_data.get("display_subtitle"):
+        return task_data["display_subtitle"]
     if task_data.get("task_name") in {"validate_image_public", "validate_docker_image"}:
         return "Required image check" if task_data.get("is_critical") else "Optional image check"
     return "Required check" if task_data.get("is_critical") else "Optional check"
@@ -242,6 +253,32 @@ def _get_task_detail(task_data, visible_status):
     if visible_status == "running":
         return "Currently running."
     return "Waiting for this step to start."
+
+
+def _prepare_draft_workflow_tasks(tasks_data):
+    """Present DOI provisioning as a non-blocking draft metadata save."""
+    prepared_tasks = []
+    for task_data in tasks_data:
+        prepared_task = {
+            **task_data,
+            "display_name": "Save draft metadata",
+            "display_subtitle": "Draft metadata",
+        }
+        if _get_task_visible_status(task_data) == "failed":
+            prepared_task.update(
+                {
+                    "status": "warning",
+                    "display_status": "warning",
+                    "status_label": "Saved with warning",
+                    "status_class": "warning",
+                    "is_critical": False,
+                    "can_retry": False,
+                    "validation_warning": "Your draft is saved but might be missing some metadata.",
+                    "error_detail": None,
+                }
+            )
+        prepared_tasks.append(prepared_task)
+    return prepared_tasks
 
 
 def _get_step_status_label(status):
@@ -270,7 +307,7 @@ def _get_active_task_index(tasks_data):
     return None
 
 
-def build_progress_steps(tasks_data, deployment):
+def build_progress_steps(tasks_data, deployment, include_deployment_step=True):
     terminal_statuses = {"success", "warning", "failed", "skipped"}
     steps = []
     active_task_index = _get_active_task_index(tasks_data)
@@ -310,6 +347,9 @@ def build_progress_steps(tasks_data, deployment):
                 "errorDetail": task_data.get("error_detail"),
             }
         )
+
+    if not include_deployment_step:
+        return steps
 
     deploy_status = _normalize_deploy_step_status(deployment.get("status", "pending"))
     deploy_detail = "Waiting for the earlier checks to finish."
@@ -524,17 +564,27 @@ def _build_deployment_state(instance, tasks_data, deployment_inputs=None, progre
     }
 
 
-def build_progress_state(instance, progress_mode=None, progress_started_at=None, skip_deploy=False):
+def build_progress_state(
+    instance,
+    progress_mode=None,
+    progress_started_at=None,
+    skip_deploy=False,
+    draft_workflow=False,
+):
     deployment_inputs = None
+    task_names = ("doi_provisioning",) if draft_workflow else None
     if progress_mode == "details":
         # Details always show the latest visible task history for the app.
-        tasks_data = serialize_tasks(get_progress_tasks(instance))
+        tasks_data = serialize_tasks(get_progress_tasks(instance, task_names=task_names))
     else:
         # The progress page is scoped to the current submit via started_at so we do
         # not mix in task rows from older deployments. We still project the full
         # expected task list immediately, even before all task rows are created.
-        tasks_data = build_progress_tasks_data(instance, started_at=progress_started_at)
+        tasks_data = build_progress_tasks_data(instance, started_at=progress_started_at, task_names=task_names)
         deployment_inputs = _get_deployment_inputs(instance)
+
+    if draft_workflow:
+        tasks_data = _prepare_draft_workflow_tasks(tasks_data)
 
     deployment = _build_deployment_state(
         instance,
@@ -546,14 +596,20 @@ def build_progress_state(instance, progress_mode=None, progress_started_at=None,
 
     return {
         "tasks": tasks_data,
-        "steps": build_progress_steps(tasks_data, deployment),
+        "steps": build_progress_steps(tasks_data, deployment, include_deployment_step=not draft_workflow),
         "summary": summarize_tasks(tasks_data),
         "deployment": deployment,
     }
 
 
 def build_progress_status_api_url(
-    project_slug, app_slug, app_id, progress_mode=None, progress_started_at=None, skip_deploy=False
+    project_slug,
+    app_slug,
+    app_id,
+    progress_mode=None,
+    progress_started_at=None,
+    skip_deploy=False,
+    draft_workflow=False,
 ):
     url = reverse(
         "apps:background_tasks_status",
@@ -566,6 +622,8 @@ def build_progress_status_api_url(
         query_params["started_at"] = progress_started_at.isoformat()
     if skip_deploy:
         query_params["skip_deploy"] = "true"
+    if draft_workflow:
+        query_params["draft"] = "true"
     if query_params:
         return f"{url}?{urlencode(query_params)}"
     return url

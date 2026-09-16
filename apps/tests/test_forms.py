@@ -10,6 +10,7 @@ from django.test import TestCase
 from apps.forms import CustomAppForm
 from apps.forms.dash import DashForm
 from apps.forms.depictio import DepictioForm
+from apps.forms.filemanager import FilemanagerForm
 from apps.forms.gradio import GradioForm
 from apps.forms.shiny import ShinyForm
 from apps.forms.streamlit import StreamlitForm
@@ -51,6 +52,24 @@ class BaseAppFormTest(TestCase):
             k8s_user_app_status=K8sUserAppStatus.objects.create(),
         )
         self.flavor = Flavor.objects.create(name="flavor", project=self.project)
+
+
+class FilemanagerFormTest(BaseAppFormTest):
+    def test_hidden_access_defaults_to_project(self):
+        form = FilemanagerForm(project_pk=self.project.pk)
+
+        self.assertEqual(form["access"].value(), "project")
+
+        bound_form = FilemanagerForm(
+            {
+                "name": form["name"].value(),
+                "access": form["access"].value(),
+                "flavor": form["flavor"].value(),
+                "volume": form["volume"].value(),
+            },
+            project_pk=self.project.pk,
+        )
+        self.assertTrue(bound_form.is_valid(), bound_form.errors)
 
 
 class CustomAppFormTest(BaseAppFormTest):

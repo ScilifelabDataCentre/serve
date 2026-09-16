@@ -129,9 +129,11 @@ if (Cypress.env('create_resources') === true) {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+            cy.get('#id_access input[type="radio"]:checked').should('not.exist')
+            cy.contains('button.accordion-button', 'Advanced settings').should('have.attr', 'aria-expanded', 'false')
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.selectAppVisibility('public')
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
@@ -139,7 +141,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // Though Shiny Proxy apps can take a long time to start
@@ -155,7 +157,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'public')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -221,14 +223,13 @@ if (Cypress.env('create_resources') === true) {
 
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.selectAppVisibility('public')
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
-            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click() // Go to Advanced settings
-            cy.get('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
+            cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
 
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -255,11 +256,10 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'public')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
-            //cy.get('button.accordion-button.collapsed[data-bs-target="#advanced-settings"]').click() // Go to Advanced settings
-            cy.get('#id_default_url_subpath').should('have.value', default_url_subpath)
+            cy.getAppAdvancedField('#id_default_url_subpath').should('have.value', default_url_subpath)
 
             // Verify that the public dash app cannot be deleted (due to DOI protection)
             cy.logf("Verifying that the public dash app cannot be deleted by regular users", Cypress.currentTest)
@@ -296,12 +296,12 @@ if (Cypress.env('create_resources') === true) {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.selectAppVisibility('public')
             cy.get('#id_volume').select(volume_display_text)
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
 
             // Check that the app was created and verify the app status
@@ -323,7 +323,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'public')
             cy.get('#id_volume').find(':selected').should('contain', 'project-vol')
 
             // Verify that the public tissuumaps app cannot be deleted (due to DOI protection)
@@ -363,7 +363,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.selectAppVisibility('public')
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
@@ -371,7 +371,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -389,7 +389,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'public')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
@@ -430,7 +430,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
             cy.get('#id_description').type(app_description)
-            cy.get('#id_access').select('Public')
+            cy.selectAppVisibility('public')
             cy.get('#id_source_code_url').type(source_code_url)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_port').clear().type(image_port)
@@ -438,7 +438,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#submit-id-submit').should('be.visible').contains('Submit').click()
+            cy.submitAppForm()
             cy.completeAppSubmissionFlow()
             // Back on project page
             cy.url().should("not.include", "/apps/settings")
@@ -456,7 +456,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('tr:contains("' + app_name + '")').find('a').contains('Settings').click()
             cy.get('#id_name').should('have.value', app_name)
             cy.get('#id_description').should('have.value', app_description)
-            cy.get('#id_access').find(':selected').should('contain', 'Public')
+            cy.get('#id_access input[type="radio"]:checked').should('have.value', 'public')
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_port').should('have.value', image_port)
 
