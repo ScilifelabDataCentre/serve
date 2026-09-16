@@ -8,17 +8,7 @@ urlpatterns = [
     # Public published models
     path("models/", views.index, name="index"),
     path("models/<int:id>", views.details_public, name="details_public"),
-    path(
-        "models/<int:published_id>/<int:id>/add_tag",
-        views.add_tag,
-        name="add_tag",
-    ),
-    path(
-        "models/<int:published_id>/<int:id>/remove_tag",
-        views.remove_tag,
-        name="remove_tag",
-    ),
-    # Projects models
+    # Project models
     path("<user>/<project>/models", views.list, name="list"),
     path(
         "<user>/<project>/models/create",
@@ -35,16 +25,6 @@ urlpatterns = [
         "<user>/<project>/models/<int:id>/publish",
         views.publish_model,
         name="publish_model",
-    ),
-    path(
-        "<user>/<project>/models/<int:id>/add_tag",
-        views.add_tag_private,
-        name="add_tag_private",
-    ),
-    path(
-        "<user>/<project>/models/<int:id>/remove_tag",
-        views.remove_tag_private,
-        name="remove_tag_private",
     ),
     path(
         "<user>/<project>/models/<int:id>/unpublish",
