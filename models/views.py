@@ -279,72 +279,11 @@ def index(request, user=None, project=None, id=0):
     if project:
         project = Project.objects.filter(slug=project).first()
         published_models = Model.objects.filter(project=project).distinct("name")
-
-        return render(request, "models/index.html", locals())
     else:
-        # TODO move tags to separate djapp
-
-        # create session object to store info about model and their tag counts
-        if "model_tags" not in request.session:
-            request.session["model_tags"] = {}
-        # tag_count from the get request helps set num_tags
-        # which helps set the number of tags to show in the template
-        if "tag_count" in request.GET:
-            # add model id to model_tags object
-            if "model_id_add" in request.GET:
-                num_tags = int(request.GET["tag_count"])
-                id = int(request.GET["model_id_add"])
-                request.session["model_tags"][str(id)] = num_tags
-            # remove model id from model_tags object
-            if "model_id_remove" in request.GET:
-                num_tags = int(request.GET["tag_count"])
-                id = int(request.GET["model_id_remove"])
-                if str(id) in request.session["model_tags"]:
-                    request.session["model_tags"].pop(str(id))
-
-        # reset model_tags if Model Tab on Sidebar pressed
-        if id == 0:
-            if "tf_add" not in request.GET and "tf_remove" not in request.GET:
-                request.session["model_tags"] = {}
-
         media_url = settings.MEDIA_URL
         published_models = PublishedModel.objects.all()
 
-        # create session object to store ids for
-        # tag seacrh if it does not exist
-        if "tag_filters" not in request.session:
-            request.session["tag_filters"] = []
-        if "tf_add" in request.GET:
-            tag = request.GET["tf_add"]
-            if tag not in request.session["tag_filters"]:
-                request.session["tag_filters"].append(tag)
-        elif "tf_remove" in request.GET:
-            tag = request.GET["tf_remove"]
-            if tag in request.session["tag_filters"]:
-                request.session["tag_filters"].remove(tag)
-        elif "tag_count" not in request.GET:
-            tag = ""
-            request.session["tag_filters"] = []
-        logger.info("tag_filters: %s", request.session["tag_filters"])
-
-        # changed list of published model only if tag filters are present
-        if request.session["tag_filters"]:
-            tagged_published_models = []
-            for model in published_models:
-                model_objs = model.model_obj.order_by("-model__version")
-                # 20230922: This fixes uncaught exception:
-                if len(model_objs) > 0:
-                    latest_model_obj = model_objs[0]
-                    mymodel = latest_model_obj.model
-                    for t in mymodel.tags.all():
-                        if t in request.session["tag_filters"]:
-                            tagged_published_models.append(model)
-                            break
-            published_models = tagged_published_models
-
-        request.session.modified = True
-
-        return render(request, "models/index.html", locals())
+    return render(request, "models/index.html", locals())
 
 
 @login_required
@@ -440,71 +379,6 @@ def change_access(request, user, project, id):
 
 
 @login_required
-def add_tag(request, published_id, id):
-    model = Model.objects.filter(pk=id).first()
-    _ = model.get_access_display()
-    if request.method == "POST":
-        new_tag = request.POST.get("tag", "")
-        logger.info("New Tag: %s", new_tag)
-        model.tags.add(new_tag)
-        model.save()
-    return HttpResponseRedirect(reverse("models:details_public", kwargs={"id": published_id}))
-
-
-@login_required
-def remove_tag(request, published_id, id):
-    model = Model.objects.filter(pk=id).first()
-    _ = model.get_access_display()
-    if request.method == "POST":
-        logger.info(request.POST)
-        new_tag = request.POST.get("tag", "")
-        logger.info("Remove Tag: %s", new_tag)
-        model.tags.remove(new_tag)
-        model.save()
-
-    return HttpResponseRedirect(reverse("models:details_public", kwargs={"id": published_id}))
-
-
-@login_required
-@permission_required_or_403("can_view_project", (Project, "slug", "project"))
-def add_tag_private(request, user, project, id):
-    model = Model.objects.filter(pk=id).first()
-    _ = model.get_access_display()
-    if request.method == "POST":
-        new_tag = request.POST.get("tag", "")
-        logger.info("New Tag: %s", new_tag)
-        model.tags.add(new_tag)
-        model.save()
-
-    return HttpResponseRedirect(
-        reverse(
-            "models:details_private",
-            kwargs={"user": user, "project": project, "id": id},
-        )
-    )
-
-
-@login_required
-@permission_required_or_403("can_view_project", (Project, "slug", "project"))
-def remove_tag_private(request, user, project, id):
-    model = Model.objects.filter(pk=id).first()
-    _ = model.get_access_display()
-    if request.method == "POST":
-        logger.info(request.POST)
-        new_tag = request.POST.get("tag", "")
-        logger.info("Remove Tag: %s", new_tag)
-        model.tags.remove(new_tag)
-        model.save()
-
-    return HttpResponseRedirect(
-        reverse(
-            "models:details_private",
-            kwargs={"user": user, "project": project, "id": id},
-        )
-    )
-
-
-@login_required
 @permission_required_or_403("can_view_project", (Project, "slug", "project"))
 def upload_model_headline(request, user, project, id):
     if request.method == "POST":
@@ -543,14 +417,14 @@ def add_docker_image(request, user, project, id):
             username = form.cleaned_data["username"]
             repository = form.cleaned_data["repository"]
             image = form.cleaned_data["image"]
-            tag = form.cleaned_data["tag"]
+            image_tag = form.cleaned_data["tag"]
 
             environment = Environment(
                 name=registry + "/" + username,
                 slug=None,
                 project=model.project,
                 repository=repository,
-                image=image + ":" + tag,
+                image=image + ":" + image_tag,
                 registry=None,
                 appenv=None,
                 app=None,
@@ -578,7 +452,6 @@ def add_docker_image(request, user, project, id):
 
 @login_required
 def details(request, user, project, id):
-    all_tags = Model.tags.tag_model.objects.all()
     project = Project.objects.filter(slug=project).first()
     model = Model.objects.filter(id=id).first()
     model_access_choices = ["PU", "PR", "LI"]
@@ -702,15 +575,7 @@ def details_private(request, user, project, id):
     # TODO: Check that user has access to this model
     # (though already checked that user has access to project)
     model = Model.objects.get(pk=id)
-    all_tags = Model.tags.tag_model.objects.all()
     private = True
-    logger.info("MY TAGS: %s %s", model.tags, user)
-    # published_model = PublishedModel(pk=id)
-    # model_objs = published_model.model_obj.order_by('-model__version')
-    # latest_model_obj = model_objs[0]
-    # model = latest_model_obj.model
-    # print(model_objs)
-    # print(latest_model_obj)
     bucket = model.bucket
     uid = model.uid
 
@@ -719,8 +584,6 @@ def details_private(request, user, project, id):
 
 def details_public(request, id):
     private = False
-    all_tags = Model.tags.tag_model.objects.all()
-    logger.info("Details tag ID:%s", id)
     try:
         projects = Project.objects.filter(Q(owner=request.user) | Q(authorized=request.user), status="active")
     except Exception:
