@@ -1,12 +1,13 @@
 <div id="div_{{ field.id_for_label }}" class="{% if wrapper_class %}{{ wrapper_class }}{% endif %}">
-    <div>
-        <label class="form-label fw-bold" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ help_message }}">
-        </span>
-        <a class="btn btn-outline-secondary btn-sm" href="{% url 'projects:settings' project_slug %}?tab=storage" role="button">
-          <span class="bi bi-hdd-rack-fill text-muted">
-            Manage storage
-          </span>
+    <div class="app-storage-field-header">
+        <div class="app-storage-field-label">
+            <label class="form-label fw-bold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ help_message }}">
+            </span>
+        </div>
+        <a class="btn app-manage-storage" href="{% url 'projects:settings' project_slug %}?tab=storage">
+            <span class="bi bi-hdd-rack-fill" aria-hidden="true"></span>
+            <span>Manage storage</span>
         </a>
     </div>
 
