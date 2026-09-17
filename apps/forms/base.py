@@ -10,6 +10,8 @@ from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.forms import Select, SelectMultiple
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
+from django.utils.html import format_html
 
 from apps.constants import DRAFT_VISIBILITY_INFO_KEY
 from apps.forms.field.widget import FlavorSelect, SubdomainInputGroup
@@ -144,12 +146,7 @@ class BaseForm(forms.ModelForm):
     def _setup_form_helper(self):
         # Create a footer for submit form or cancel
         self.footer = Div(
-            Button(
-                "cancel",
-                "Cancel",
-                css_class="btn-outline-dark btn-outline-cancel me-2",
-                onclick="window.history.back()",
-            ),
+            self._cancel_action(),
             Submit("submit", "Submit"),
             css_class="card-footer d-flex justify-content-end",
         )
@@ -161,6 +158,24 @@ class BaseForm(forms.ModelForm):
         # Ensure HTML5 `required` attributes are rendered
         self.helper.use_required_attribute = True
         self.helper.form_method = "post"
+
+    def _cancel_action(self):
+        """Link Cancel to the project page."""
+        if self.project:
+            project_url = reverse("projects:details", kwargs={"project_slug": self.project.slug})
+            return HTML(
+                format_html(
+                    '<a href="{}" class="btn btn-outline-dark btn-outline-cancel me-2">Cancel</a>',
+                    project_url,
+                )
+            )
+
+        return Button(
+            "cancel",
+            "Cancel",
+            css_class="btn-outline-dark btn-outline-cancel me-2",
+            onclick="window.history.back()",
+        )
 
     def _set_app_form_layout(self, body, *notes):
         """Keep visibility and actions alongside the configuration on app forms."""
@@ -179,14 +194,7 @@ class BaseForm(forms.ModelForm):
         self.can_save_draft = (
             self.show_draft_action and self.supports_draft and (not is_existing_app or self.is_draft_instance)
         )
-        actions = [
-            Button(
-                "cancel",
-                "Cancel",
-                css_class="btn-outline-dark btn-outline-cancel me-2",
-                onclick="window.history.back()",
-            )
-        ]
+        actions = [self._cancel_action()]
         if self.show_draft_action:
             if self.can_save_draft:
                 draft_state = ""
