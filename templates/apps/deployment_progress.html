@@ -60,7 +60,7 @@
 
           <div class="small text-muted mb-4" id="progress-next-step">
             {% if is_draft_workflow %}
-              We will return to the form automatically when the save finishes.
+              We will return to the project page automatically when the save finishes.
             {% else %}
               We will open the app details page automatically when everything is ready.
             {% endif %}
@@ -68,7 +68,7 @@
 
           <div class="d-flex flex-wrap gap-2">
             {% if is_draft_workflow %}
-              <a href="{{ form_url }}" class="btn btn-primary">Return to form</a>
+              <a href="{{ project_url }}" class="btn btn-primary">Return to project</a>
             {% else %}
               <a href="{{ form_url }}" class="btn btn-outline-secondary">Back to form</a>
               <a href="{{ detail_url }}" class="btn btn-primary" id="details-link">Deployment summary</a>
@@ -284,7 +284,7 @@ function getVisibleHeaderContent(deployment, steps) {
         title: "Draft saved",
         message: "Your draft is saved but might be missing some metadata.",
         inline_text: inlineText,
-        next_step_text: "Returning to the form now."
+        next_step_text: "Returning to the project now."
       };
     }
 
@@ -293,9 +293,9 @@ function getVisibleHeaderContent(deployment, steps) {
         pill_class: "text-bg-success",
         pill_text: "Saved",
         title: "Draft saved",
-        message: "The draft and its metadata have been saved. Returning to the form.",
+        message: "The draft and its metadata have been saved. Returning to the project.",
         inline_text: inlineText,
-        next_step_text: "Returning to the form now."
+        next_step_text: "Returning to the project now."
       };
     }
 
@@ -306,7 +306,7 @@ function getVisibleHeaderContent(deployment, steps) {
         title: "Draft saved",
         message: "Your draft is saved but might be missing some metadata.",
         inline_text: stats.failed === 1 ? "1 step needs attention" : `${stats.failed} steps need attention`,
-        next_step_text: "Returning to the form now."
+        next_step_text: "Returning to the project now."
       };
     }
 
@@ -317,7 +317,7 @@ function getVisibleHeaderContent(deployment, steps) {
         title: "Saving draft metadata",
         message: "Only metadata is being saved.",
         inline_text: inlineText,
-        next_step_text: "You will return to the form automatically when the metadata is saved."
+        next_step_text: "You will return to the project automatically when the metadata is saved."
       };
     }
 

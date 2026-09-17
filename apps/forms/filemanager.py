@@ -1,4 +1,4 @@
-from crispy_forms.layout import HTML, Button, Div, Field, Layout, Submit
+from crispy_forms.layout import HTML, Div, Field, Layout, Submit
 from django import forms
 
 from apps.forms.base import AppBaseForm
@@ -19,12 +19,7 @@ class FilemanagerForm(VolumeMixin, AppBaseForm):
         super()._setup_form_helper()
 
         self.footer = Div(
-            Button(
-                "cancel",
-                "Cancel",
-                css_class="btn-outline-dark btn-outline-cancel me-2",
-                onclick="window.history.back()",
-            ),
+            self._cancel_action(),
             Submit("submit", "Activate", css_class="btn-profile text-dark"),
             css_class="card-footer d-flex justify-content-end",
         )

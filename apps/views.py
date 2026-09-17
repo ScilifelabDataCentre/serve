@@ -395,6 +395,7 @@ class CreateApp(View):
         # TODO Same as in get method
         project_slug = project
         project = Project.objects.get(slug=project_slug)
+        is_save_draft = request.POST.get("action") == "save_draft"
 
         form = self.get_form(request, project, app_slug, app_id)
         if form is None:
@@ -417,6 +418,10 @@ class CreateApp(View):
             )
 
         if not form.is_valid():
+            if is_save_draft and getattr(form, "draft_visibility", None):
+                # Restore the submitted visibility after draft validation.
+                form.data = form.data.copy()
+                form.data["access"] = form.draft_visibility
             return render_form_with_errors()
 
         # Otherwise we can create the instance
@@ -430,8 +435,6 @@ class CreateApp(View):
         except SubdomainChangeError as exc:
             form.add_error("subdomain", exc.ui_error)
             return render_form_with_errors()
-
-        is_save_draft = request.POST.get("action") == "save_draft"
 
         # Redirects everyone (including admins) after creation; admins can still
         # open the deployment pages (/progress, /details, /tasks) directly.
@@ -557,6 +560,7 @@ class DeploymentProgressView(View):
 
         detail_url = build_project_app_path(str(project_obj.slug), f"details/{app_slug}/{instance.pk}")
         form_url = build_project_app_path(str(project_obj.slug), f"settings/{app_slug}/{instance.pk}")
+        project_url = reverse("projects:details", kwargs={"project_slug": project_obj.slug})
 
         context = {
             "instance": instance,
@@ -574,7 +578,8 @@ class DeploymentProgressView(View):
             ),
             "detail_url": detail_url,
             "form_url": form_url,
-            "success_url": form_url if draft_workflow else detail_url,
+            "project_url": project_url,
+            "success_url": project_url if draft_workflow else detail_url,
             "is_draft_workflow": draft_workflow,
         }
 
