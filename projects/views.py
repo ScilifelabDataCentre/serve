@@ -794,7 +794,12 @@ class DetailsView(View):
                 if queryset_per_category:
                     # SS-1071 Added check for app_ids and instances_per_category
                     # to avoid duplicates (e.g in case of shinyapps)
-                    app_ids += [obj.id for obj in queryset_per_category if obj.id not in app_ids]
+                    # Draft apps are never deployed, so there is no status to poll for them.
+                    app_ids += [
+                        obj.id
+                        for obj in queryset_per_category
+                        if obj.id not in app_ids and obj.latest_user_action != "Draft"
+                    ]
                     instances_per_category_list.extend(
                         [instance for instance in queryset_per_category if instance not in instances_per_category_list]
                     )
