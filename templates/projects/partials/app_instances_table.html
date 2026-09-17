@@ -65,9 +65,15 @@
                 </span>
             </td>
             <td class="text-center" data-cy="appstatus-cell ">
+                {% if instance.latest_user_action == "Draft" %}
+                <span class="alert bg-secondary alert-app-table" id="status-{{ instance.app.slug }}-{{ instance.pk }}" title="Status for app" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
+                    Draft
+                </span>
+                {% else %}
                 <span class="alert bg-secondary alert-app-table" id="status-{{ instance.app.slug }}-{{ instance.pk }}" title="Status for app" data-cy="appstatus" data-app-action="{{instance.latest_user_action}}" data-k8s-app-status="{{instance.k8s_user_app_status.status}}" >
                     Refreshing...
                 </span>
+                {% endif %}
                 {% if instance.scheduled_deletion_at %}
                 <div class="app-deletion-countdown small text-muted mt-1" data-delete-at="{{ instance.scheduled_deletion_at|date:'c' }}" data-cy="app-deletion-countdown"
                     data-bs-toggle="tooltip" data-bs-placement="bottom"
@@ -78,17 +84,19 @@
             </td>
             <td class="text-center">
               {% if instance.app.name != "MLFlow" %}
-                {% if instance.access %}
-                    {% if instance.access == 'public' %}
+                {% with display_access=instance.info.draft_visibility|default:instance.access %}
+                {% if display_access and display_access != 'draft' %}
+                    {% if display_access == 'public' %}
                     <span class="alert bg-success alert-app-table" id="permission-{{ instance.pk }}" data-cy="app-permission">
-                        {{ instance.access|title }}
+                        {{ display_access|title }}
                     </span>
                     {% else %}
                     <span class="alert bg-secondary alert-app-table" id="permission-{{ instance.pk }}" data-cy="app-permission">
-                        {{ instance.access|title }}
+                        {{ display_access|title }}
                     </span>
                     {% endif %}
                 {% endif %}
+                {% endwith %}
               {% endif %}
             </td>
             <td class="d-none d-xxl-table-cell text-center" data-cy="hits-cell">
