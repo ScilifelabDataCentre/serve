@@ -352,7 +352,7 @@ describe("Test deploying app", () => {
                 .should('be.visible')
                 .within(() => {
                     cy.get('#awardNumberInput').should('be.visible').type(funder_number)
-                    cy.get('#funderNameInput').should('be.visible').type(funder_org)
+                    cy.get('#funderNameInput').should('be.visible').click().type(funder_org)
                     cy.get('#funderResults .list-group-item', { timeout: 10000 }).should('be.visible').contains(funder_org)
                     cy.get('#funderResults .list-group-item').first().click()
                     cy.get('#saveFunderBtn').should('not.be.disabled').click()
@@ -426,7 +426,7 @@ describe("Test deploying app", () => {
                 .should('be.visible')
                 .within(() => {
                     cy.get('#awardNumberInput').should('be.visible').type(funder_number_two)
-                    cy.get('#funderNameInput').should('be.visible').type(funder_org_two)
+                    cy.get('#funderNameInput').should('be.visible').click().type(funder_org_two)
                     cy.get('#funderResults .list-group-item', { timeout: 10000 }).should('be.visible').contains(funder_org_two)
                     cy.get('#funderResults .list-group-item').first().click()
                     cy.get('#saveFunderBtn').should('not.be.disabled').click()
