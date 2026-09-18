@@ -97,6 +97,7 @@
                class="form-control"
                aria-label="Mount path"
                name="paths_{{ volume.id }}"
+               form="storage-settings-form"
                value="{{ mount_path.mount_path }}"
                placeholder="/path/inside/container"
                {% if mount_path.is_default %}
@@ -142,6 +143,7 @@
                class="form-control"
                aria-label="Mount path"
                name="paths_{{ volume.id }}"
+               form="storage-settings-form"
                placeholder="/path/inside/container">
         <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
       </div>
@@ -179,7 +181,7 @@
       wrapper.className = 'input-group';
       wrapper.innerHTML = `
         <span class="input-group-text"></span>
-        <input type="text" aria-label="Mount path" class="form-control" name="${name}" placeholder="/new/path">
+        <input type="text" aria-label="Mount path" class="form-control" name="${name}" form="storage-settings-form" placeholder="/new/path">
         <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
       `;
       list.appendChild(wrapper);
@@ -204,7 +206,7 @@
         wrapper.className = 'input-group';
         wrapper.innerHTML = `
           <span class="input-group-text"></span>
-          <input type="text" aria-label="Mount path" class="form-control" name="${name}" placeholder="/path/inside/container">
+          <input type="text" aria-label="Mount path" class="form-control" name="${name}" form="storage-settings-form" placeholder="/path/inside/container">
           <button type="button" class="btn btn-outline-danger removePathBtn" title="Remove this path">&times;</button>
         `;
         list.appendChild(wrapper);
