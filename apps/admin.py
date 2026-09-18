@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.db.models.query import QuerySet
 from django.http import HttpResponse
 from django.utils import timezone
@@ -75,6 +76,13 @@ class K8sUserAppStatusAdmin(admin.ModelAdmin):
 
 
 class BaseAppAdmin(admin.ModelAdmin):
+    project_scoped_fields = {
+        "subdomain": "project_id",
+        "flavor": "project_id",
+        "volume": "project_id",
+        "mount_path": "volume__project_id",
+        "environment": "project_id",
+    }
     search_fields = (
         "name",
         "owner__username",
@@ -100,6 +108,41 @@ class BaseAppAdmin(admin.ModelAdmin):
         "export_values_yaml",
         "set_linkonly_reminder_dates",
     ]
+
+    def _related_object_id(self, request, obj, field_name):
+        """Get a related object ID from the form or saved object."""
+        selected_id = request.POST.get(field_name) or request.GET.get(field_name)
+        if not selected_id:
+            return getattr(obj, f"{field_name}_id", None) if obj else None
+
+        related_model = self.model._meta.get_field(field_name).remote_field.model
+        try:
+            return related_model._meta.pk.to_python(selected_id)
+        except (TypeError, ValueError, ValidationError):
+            return None
+
+    def get_form(self, request, obj=None, **kwargs):
+        """Limit related field choices to the selected project."""
+        form = super().get_form(request, obj, **kwargs)
+        project_id = self._related_object_id(request, obj, "project")
+        if not project_id:
+            return form
+
+        app_id = self._related_object_id(request, obj, "app")
+        app_slug = Apps.objects.filter(pk=app_id).values_list("slug", flat=True).first() if app_id else None
+
+        for field_name, project_lookup in self.project_scoped_fields.items():
+            form_field = form.base_fields.get(field_name)
+            if form_field is None or not hasattr(form_field, "queryset"):
+                continue
+
+            filters = {project_lookup: project_id}
+            if field_name == "environment" and app_slug:
+                filters["app__slug"] = app_slug
+
+            form_field.queryset = form_field.queryset.filter(**filters)
+
+        return form
 
     @admin.display(description="Status")
     def display_status(self, obj):
