@@ -96,7 +96,7 @@ class ContentStatsApiTests(APITestCase):
             self.assertTrue(actual["stats_success"])
             self.assertIsNone(actual["stats_message"])
 
-            self.assertEqual(actual["n_projects"], 1)
+            self.assertEqual(actual["n_active_projects"], 1)
             self.assertEqual(actual["n_users"], 1)
             self.assertEqual(actual["n_apps"], 1)
             self.assertEqual(actual["n_apps_public"], 1)
@@ -150,7 +150,7 @@ class ContentStatsApiTests(APITestCase):
         self.assertTrue(actual["stats_success"])
         self.assertIsNone(actual["stats_message"])
 
-        self.assertEqual(actual["n_projects"], 0)
+        self.assertEqual(actual["n_active_projects"], 0)
         self.assertEqual(actual["n_users"], 0)
         self.assertEqual(actual["n_apps"], 0)
         self.assertEqual(actual["n_apps_public"], 0)
