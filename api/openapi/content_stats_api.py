@@ -25,7 +25,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
     - stats_success
     - stats_message
     - stats_notes
-    - n_projects
+    - n_active_projects
     - n_users
     - n_apps
     - n_apps_public
@@ -46,7 +46,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         # Set to default values
         n_default: int = -1
 
-        n_projects = n_default
+        n_active_projects = n_default
         n_users = n_default
         n_apps = n_default
         n_apps_public = n_default
@@ -76,17 +76,19 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
             "noimage": 0,
         }
 
-        # Projects
+        # Active projects. NB: Old projects are automatically deleted.
         try:
-            n_projects = Project.objects.filter(status="active").distinct("pk").count()
+            n_active_projects = Project.objects.filter(status="active").distinct("pk").count()
         except Exception as e:
             success = False
-            success_msg = _append_status_msg(success_msg, "Error setting number of projects (n_projects).")
+            success_msg = _append_status_msg(
+                success_msg, "Error setting number of active projects (n_active_projects)."
+            )
             logger.warning(f"Unable to get the number of active projects: {e}", exc_info=True)
 
         # Users
         try:
-            users = User.objects.filter(is_active=True).filter(is_superuser=False)
+            users = User.objects.filter(is_approved=True).filter(is_superuser=False)
 
             n_users = users.count()
 
@@ -104,7 +106,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
 
         # User affiliation from UserProfile
         try:
-            user_profiles = UserProfile.objects.filter(user__is_active=True).filter(user__is_superuser=False)
+            user_profiles = UserProfile.objects.filter(user__is_approved=True).filter(user__is_superuser=False)
             univ_list = []
             for profile in user_profiles:
                 affs = profile.get_affiliations()
@@ -176,7 +178,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         ] = "The number of users (n_users) in 2023 is the number of all active users registered in 2023 or earlier."
 
         # Add content-specific elements
-        stats["n_projects"] = n_projects
+        stats["n_active_projects"] = n_active_projects
         stats["n_users"] = n_users
         stats["n_apps"] = n_apps
         stats["n_apps_public"] = n_apps_public
