@@ -88,7 +88,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
 
         # Users
         try:
-            users = User.objects.filter(is_approved=True).filter(is_superuser=False)
+            users = User.objects.filter(userprofile__is_approved=True).filter(is_superuser=False)
 
             n_users = users.count()
 
@@ -106,7 +106,7 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
 
         # User affiliation from UserProfile
         try:
-            user_profiles = UserProfile.objects.filter(user__is_approved=True).filter(user__is_superuser=False)
+            user_profiles = UserProfile.objects.filter(is_approved=True).filter(user__is_superuser=False)
             univ_list = []
             for profile in user_profiles:
                 affs = profile.get_affiliations()
