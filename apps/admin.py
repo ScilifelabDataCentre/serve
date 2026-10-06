@@ -301,10 +301,10 @@ class BaseAppAdmin(admin.ModelAdmin):
 
 @admin.register(BaseAppInstance)
 class BaseAppInstanceAdmin(BaseAppAdmin):
-    list_display = BaseAppAdmin.list_display + ("display_subclass",)
+    list_display = BaseAppAdmin.list_display + ("display_app_type",)
 
-    @admin.display(description="Subclass")
-    def display_subclass(self, obj):
+    @admin.display(description="App type")
+    def display_app_type(self, obj):
         return obj.app.name
 
 
