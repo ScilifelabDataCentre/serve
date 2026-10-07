@@ -109,6 +109,12 @@ class BaseAppAdmin(admin.ModelAdmin):
         "set_linkonly_reminder_dates",
     ]
 
+    def get_queryset(self, request):
+        """Fetch related objects used by list_display in the same query to avoid N+1 queries."""
+        return (
+            super().get_queryset(request).select_related("owner", "project", "app", "subdomain", "k8s_user_app_status")
+        )
+
     def _related_object_id(self, request, obj, field_name):
         """Get a related object ID from the form or saved object."""
         selected_id = request.POST.get(field_name) or request.GET.get(field_name)
@@ -295,15 +301,11 @@ class BaseAppAdmin(admin.ModelAdmin):
 
 @admin.register(BaseAppInstance)
 class BaseAppInstanceAdmin(BaseAppAdmin):
-    list_display = BaseAppAdmin.list_display + ("display_subclass",)
+    list_display = BaseAppAdmin.list_display + ("display_app_type",)
 
-    @admin.display(description="Subclass")
-    def display_subclass(self, obj):
-        subclasses = BaseAppInstance.__subclasses__()
-        for subclass in subclasses:
-            app_type = getattr(obj, subclass.__name__.lower(), None)
-            if app_type:
-                return app_type.__class__.__name__
+    @admin.display(description="App type")
+    def display_app_type(self, obj):
+        return obj.app.name
 
 
 @admin.register(RStudioInstance)
