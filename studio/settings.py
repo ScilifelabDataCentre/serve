@@ -502,7 +502,7 @@ IP = os.environ.get("IP", "127.0.0.1")
 DOMAIN = f"studio.{IP}.nip.io"
 AUTH_DOMAIN = IP
 AUTH_PROTOCOL = "http"
-STUDIO_URL = f"http://studio.{IP}.nip.io:8080"
+STUDIO_URL = os.environ.get("STUDIO_URL", f"http://studio.{IP}.nip.io:8080").rstrip("/")
 # To enable sticky sessions for k8s ingress
 SESSION_COOKIE_DOMAIN = f".{IP}.nip.io"
 

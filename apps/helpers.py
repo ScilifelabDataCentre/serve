@@ -353,8 +353,9 @@ def get_URI(instance):
     values = instance.k8s_values
     # Subdomain is empty if app is already deleted
     subdomain = values["subdomain"] if "subdomain" in values else ""
-    URI = f"https://{subdomain}.{values['global']['domain']}"
-    URI = URI.strip("/")
+    protocol = values["global"].get("protocol", "https").lower()
+    URI = f"{protocol}://{subdomain}.{values['global']['domain']}"
+    URI = URI.rstrip("/")
     if hasattr(instance, "default_url_subpath") and instance.default_url_subpath != "":
         URI = URI + "/" + instance.default_url_subpath
         logger.info("Modified URI by adding custom default url for the custom app: %s", URI)

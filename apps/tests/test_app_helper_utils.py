@@ -2,6 +2,7 @@
 
 import json
 from datetime import date, timedelta
+from types import SimpleNamespace
 from unittest.mock import ANY, patch
 
 import pytest
@@ -17,6 +18,7 @@ from apps.forms import DashForm
 from apps.helpers import (
     create_instance_from_form,
     generate_schema_org_compliant_app_metadata,
+    get_URI,
     get_subdomain_name,
 )
 from common.management.manage_test_data import TestDataManager
@@ -32,6 +34,18 @@ from ..types_.subdomain import SubdomainChangeError, SubdomainTuple
 DELETE_RESOURCE_OK = {"success": True, "release_missing": False, "error": None}
 
 User = get_user_model()
+
+
+@pytest.mark.parametrize("protocol", ["http", "https"])
+def test_get_uri_uses_configured_global_protocol(protocol):
+    instance = SimpleNamespace(
+        k8s_values={
+            "subdomain": "jupyter-test",
+            "global": {"domain": "studio.127.0.0.1.nip.io", "protocol": protocol},
+        }
+    )
+
+    assert get_URI(instance) == f"{protocol}://jupyter-test.studio.127.0.0.1.nip.io"
 
 
 class HelmReleaseNotFoundTestCase(TestCase):

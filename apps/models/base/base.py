@@ -312,6 +312,7 @@ class BaseAppInstance(models.Model):
             domain=settings.DOMAIN,
             auth_domain=settings.AUTH_DOMAIN,
             protocol=settings.AUTH_PROTOCOL,
+            studio_url=settings.STUDIO_URL,
         )
 
         k8s_values["gateway"] = dict(
