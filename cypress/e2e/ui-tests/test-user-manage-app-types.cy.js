@@ -479,6 +479,33 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
+        it("can deploy a file manager app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Names of objects to create
+            const project_name = TEST_PROJECT_DATA.project_name
+            const app_type = "File Manager"
+            const app_name = "File Manager"
+
+            // Create File Manager app
+            cy.logf("Creating a file manager app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+
+            cy.get('h1').should('contain', 'Create Filemanager')
+            cy.get('#id_volume option').contains('project-vol').should('exist')
+            cy.get('#submit-id-submit').should('be.visible').click()
+
+
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "Project", "Creating")
+
+        })
+
         after(() => {
 
             if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
