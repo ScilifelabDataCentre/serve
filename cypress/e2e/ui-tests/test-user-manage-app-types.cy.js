@@ -113,7 +113,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("End beforeEach() hook", Cypress.currentTest)
         })
 
-        it.skip("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test of a public Shiny proxy app
             // TODO: We need to add a test here for validating Site-dir option. See SS-1206 for details
             // Names of objects to create
@@ -201,7 +201,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it.skip("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test to create and delete a Dash app
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
@@ -280,7 +280,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it.skip("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-tissuumaps-example"
@@ -345,7 +345,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it.skip("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test to create and delete a Gradio app
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
@@ -412,7 +412,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it.skip("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test to create and delete a Streamlit app
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
@@ -479,7 +479,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it.skip("can deploy a file manager app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it("can deploy a file manager app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
             const app_type = "File Manager"
