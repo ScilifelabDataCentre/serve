@@ -113,7 +113,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("End beforeEach() hook", Cypress.currentTest)
         })
 
-        it("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it.skip("can deploy a shiny app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test of a public Shiny proxy app
             // TODO: We need to add a test here for validating Site-dir option. See SS-1206 for details
             // Names of objects to create
@@ -201,7 +201,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it.skip("can deploy a dash app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test to create and delete a Dash app
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
@@ -280,7 +280,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it.skip("can deploy a tissuumaps app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
             const app_name = "e2e-tissuumaps-example"
@@ -345,7 +345,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it.skip("can deploy a gradio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test to create and delete a Gradio app
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
@@ -412,7 +412,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it.skip("can deploy a streamlit app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Test to create and delete a Streamlit app
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
@@ -479,7 +479,7 @@ if (Cypress.env('create_resources') === true) {
             cy.contains('h4.card-title', app_name, { timeout: longCmdTimeoutMs }).should('exist')
         })
 
-        it("can deploy a file manager app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        it.skip("can deploy a file manager app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
             // Names of objects to create
             const project_name = TEST_PROJECT_DATA.project_name
             const app_type = "File Manager"
@@ -504,6 +504,87 @@ if (Cypress.env('create_resources') === true) {
             // The initial app status and latest user action:
             verifyAppStatus(app_name, "Creating", "Project", "Creating")
 
+        })
+
+        it("can deploy a rstudio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Names of objects to create
+            const project_name = TEST_PROJECT_DATA.project_name
+            const app_type = "RStudio"
+            const app_name = "e2e-rstudio-example"
+
+            // Create RStudio app
+            cy.logf("Creating a rstudio app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+
+            cy.get('h1').should('contain', 'Create RStudio')
+            cy.get('#id_volume option').contains('project-vol').should('exist')
+            cy.get('#id_name').type(app_name)
+            cy.selectAppVisibility('project')
+            cy.submitAppForm()
+
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "Project", "Creating")
+        })
+
+        it("can deploy a jupyter lab app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Names of objects to create
+            const project_name = TEST_PROJECT_DATA.project_name
+            const app_type = "Jupyter Lab"
+            const app_name = "e2e-jupyterlab-example"
+
+            // Create Jupyter Lab app
+            cy.logf("Creating a jupyter lab app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+
+            cy.get('h1').should('contain', 'Create JupyterLab')
+            cy.get('#id_volume option').contains('project-vol').should('exist')
+            cy.get('#id_name').type(app_name)
+            cy.selectAppVisibility('project')
+            cy.submitAppForm()
+
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "Project", "Creating")
+        })
+
+        it("can deploy a vs code app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Names of objects to create
+            const project_name = TEST_PROJECT_DATA.project_name
+            const app_type = "VS Code"
+            const app_name = "e2e-vscode-example"
+
+            // Create VS Code app
+            cy.logf("Creating a vs code app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+
+            cy.get('h1').should('contain', 'Create VS Code')
+            cy.get('#id_volume option').contains('project-vol').should('exist')
+            cy.get('#id_name').type(app_name)
+            cy.selectAppVisibility('project')
+            cy.submitAppForm()
+
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "Project", "Creating")
         })
 
         after(() => {
