@@ -1,4 +1,4 @@
-from typing import Any, Dict, Set
+import re
 
 import requests
 from django.conf import settings
@@ -8,26 +8,26 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 
-def process_loki_response(response_json: dict[str, Any]) -> set[str]:
-    """
-    Extract unique IP addresses from the Loki JSON response.
+def build_unique_ip_count_query(app_subdomain: str, days: int) -> str:
+    r"""
+    Build the LogQL query counting unique client IPs of requests to an app subdomain from the gateway access logs.
+
+    Example for app_subdomain="my-subdomain" and days=7 (on one line):
+        count(sum by (remote_addr) (count_over_time({namespace="gateway", container="nginx"}
+            |~ `"https?://my\-subdomain\.`
+            | regexp `^(?:\S+ (?:stdout|stderr) [FP] )?(?P<remote_addr>\S+) ` [7d])))
 
     Args:
-        response_json (dict): The JSON response from a Loki query.
+        app_subdomain (str): The subdomain of the app to query for.
+        days (int): Number of days to look back for data.
     """
-    unique_ips = set()
-    try:
-        results = response_json.get("data", {}).get("result", [])
-        for result in results:
-            values = result.get("values", [])
-            for value in values:
-                if len(value) > 1:
-                    ip_address = value[1].strip()
-                    if ip_address:
-                        unique_ips.add(ip_address)
-    except Exception as e:
-        logger.error(f"Error extracting IPs from Loki response: {e}")
-    return unique_ips
+    referer_regex = '"https?://' + re.escape(app_subdomain) + r"\."
+    log_query = (
+        '{namespace="gateway", container="nginx"}'
+        + f" |~ `{referer_regex}`"
+        + r" | regexp `^(?:\S+ (?:stdout|stderr) [FP] )?(?P<remote_addr>\S+) `"
+    )
+    return f"count(sum by (remote_addr) (count_over_time({log_query} [{days}d])))"
 
 
 def query_unique_ip_count(app_subdomain: str = "", days: int = 30) -> int:
@@ -42,24 +42,12 @@ def query_unique_ip_count(app_subdomain: str = "", days: int = 30) -> int:
         logger.error("app_subdomain must be provided")
         raise ValueError("app_subdomain must be provided")
 
-    endpoint = f"{settings.LOKI_READER_ENDPOINT}/loki/api/v1/query_range"
-
-    query = (
-        r'{container="rke2-ingress-nginx-controller"} |= "'
-        + app_subdomain
-        + '" '
-        + r'| regexp "(?P<client_ip>\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b)" '
-        + r'| line_format "{{.client_ip}}"'
-    )
-
-    params = {
-        "query": query,
-        "limit": "1000",  # Line number limit
-        "since": f"{days}d",
-    }
+    endpoint = f"{settings.LOKI_READER_ENDPOINT}/loki/api/v1/query"
+    params = {"query": build_unique_ip_count_query(app_subdomain, days)}
 
     response = requests.get(endpoint, params=params)
     response.raise_for_status()
-    data = response.json()
-    unique_ips = process_loki_response(data)
-    return len(unique_ips)
+    results = response.json().get("data", {}).get("result", [])
+    if not results:
+        return 0
+    return int(results[0]["value"][1])
