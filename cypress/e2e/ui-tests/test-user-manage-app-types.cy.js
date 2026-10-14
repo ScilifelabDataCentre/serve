@@ -587,6 +587,61 @@ if (Cypress.env('create_resources') === true) {
             verifyAppStatus(app_name, "Creating", "Project", "Creating")
         })
 
+        it("can deploy a mlflow app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Names of objects to create
+            const project_name = TEST_PROJECT_DATA.project_name
+            const app_name = "e2e-mlflow-example"
+            const app_type = "MLFlow"
+
+            // Create MLFlow app
+            cy.logf("Creating a mlflow app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+            cy.url().should('contain', '/apps/create/mlflow')
+            cy.get('h1').should('contain', 'Create MLFlow App')
+            cy.get('#id_name').type(app_name)
+            cy.submitAppForm()
+
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "", "Creating")
+        })
+
+        it("can deploy a depictio app", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+            // Test to create and delete a Depictio app
+            // Names of objects to create
+            const project_name = TEST_PROJECT_DATA.project_name
+            const app_name = "e2e-depictio-example"
+            const app_description = "e2e-depictio-description"
+            const app_type = "Depictio"
+
+            // Create Depictio App
+            cy.logf("Creating a depictio app", Cypress.currentTest)
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+            cy.get('h1').should('contain', 'Create Depictio App')
+            cy.get('#creatorsSortableList').should('exist')
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.selectAppVisibility('public')
+            cy.submitAppForm()
+            cy.completeAppSubmissionFlow()
+
+            // Back on project page
+            cy.url().should("not.include", "/apps/settings")
+            cy.get('h3').should('have.text', project_name);
+
+            // Check that the app was created and verify the app status
+            // The initial app status and latest user action:
+            verifyAppStatus(app_name, "Creating", "Public", "Creating")
+        })
+
         after(() => {
 
             if (Cypress.env('manage_test_data_via_django_endpoint_views') === true) {
