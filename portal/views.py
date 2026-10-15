@@ -534,7 +534,7 @@ def get_news(request):
 
 
 def get_maintenance_windows(request):
-    windows = MaintenanceWindow.objects.order_by("-date", "-start_time")
+    windows = MaintenanceWindow.objects.order_by("date", "start_time")
     return render(request, "maintenance/maintenance.html", {"windows": windows})
 
 
