@@ -666,45 +666,43 @@ class SecretsView(View):
             raise PermissionDenied()
 
         username, password = None, None
-        if instance.get_app_status() == "Running":
-            subdomain = instance.subdomain
-            # If release name contains chart name it will be used as a full name.
-            # see here: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_names.tpl#L21-L37
-            if "mlflow" in subdomain.subdomain.lower():
-                secret_name = f"{subdomain.subdomain}-tracking"
-            else:
-                secret_name = f"{subdomain.subdomain}-mlflow-tracking"
-            username = subprocess.run(
-                (
-                    "kubectl get secret "
-                    f"--namespace {settings.NAMESPACE} {secret_name} "
-                    '-o jsonpath="{.data.admin-user}"'
-                ).split(),
-                check=True,
-                text=True,
-                capture_output=True,
-                timeout=10,
-            ).stdout
-            username = base64.b64decode(username).decode()
-            password = subprocess.run(
-                (
-                    "kubectl get secret "
-                    f"--namespace {settings.NAMESPACE} {secret_name} "
-                    '-o jsonpath="{.data.admin-password}"'
-                ).split(),
-                check=True,
-                text=True,
-                capture_output=True,
-                timeout=10,
-            ).stdout
-            password = base64.b64decode(password).decode()
+        subdomain = instance.subdomain
+        # If release name contains chart name it will be used as a full name.
+        # see here: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_names.tpl#L21-L37
+        if "mlflow" in subdomain.subdomain.lower():
+            secret_name = f"{subdomain.subdomain}-tracking"
+        else:
+            secret_name = f"{subdomain.subdomain}-mlflow-tracking"
+        username = subprocess.run(
+            (
+                "kubectl get secret "
+                f"--namespace {settings.NAMESPACE} {secret_name} "
+                '-o jsonpath="{.data.admin-user}"'
+            ).split(),
+            check=True,
+            text=True,
+            capture_output=True,
+            timeout=10,
+        ).stdout
+        username = base64.b64decode(username).decode()
+        password = subprocess.run(
+            (
+                "kubectl get secret "
+                f"--namespace {settings.NAMESPACE} {secret_name} "
+                '-o jsonpath="{.data.admin-password}"'
+            ).split(),
+            check=True,
+            text=True,
+            capture_output=True,
+            timeout=10,
+        ).stdout
+        password = base64.b64decode(password).decode()
 
         minio_used_gib = minio_total_gib = minio_remaining_gib = None
-        if instance.get_app_status() == "Running":
-            result = get_minio_usage(f"{subdomain.subdomain}-minio")
-            if result is not None:
-                minio_used_gib, minio_total_gib = result
-                minio_remaining_gib = minio_total_gib - minio_used_gib
+        result = get_minio_usage(f"{subdomain.subdomain}-minio")
+        if result is not None:
+            minio_used_gib, minio_total_gib = result
+            minio_remaining_gib = minio_total_gib - minio_used_gib
 
         context = {
             "mlflow_username": username,
