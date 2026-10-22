@@ -154,16 +154,27 @@ class VerifyView(TemplateView):
                 if user.userprofile.is_approved:
                     user.is_active = True
                     user.save()
-                    messages.success(request, "Email verified successfully!")
+                    messages.success(
+                        request, "Email verified successfully! You can now log in and use ScilLifeLab Serve."
+                    )
                 else:
                     # If user is not approved, we send an email to the admin to approve the account.
                     send_email_task(
-                        "User has verified their email address",
-                        f"Please go to the admin page to activate account for {user.email}",
+                        "User has verified their email address.",
+                        (
+                            f"The reason for creating an account: {user.userprofile.why_account_needed} \n"
+                            f"Please go to the admin page to activate account for {user.email}"
+                        ),
                         [settings.ADMIN_EMAIL],
                     )
                     messages.success(
-                        request, "Your email address has been verified. Please wait for admin to approve your account."
+                        request,
+                        (
+                            "Email verified successfully. "
+                            "Your registration information needs to be reviewed and approved "
+                            "before you can log in and use SciLifeLab Serve. "
+                            "You will receive a confirmation email when your account is approved."
+                        ),
                     )
 
                 email_verification_table.delete()
