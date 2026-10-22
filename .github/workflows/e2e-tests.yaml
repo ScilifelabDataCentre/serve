@@ -40,9 +40,6 @@ jobs:
           - "cypress/e2e/ui-tests/test-user-manage-app-types.cy.js,cypress/e2e/ui-tests/test-public-webpages.cy.js,cypress/e2e/ui-tests/test-collections.cy.js,cypress/e2e/ui-tests/test-signup.cy.js,cypress/e2e/ui-tests/test-brute-force-login-attempts.cy.js,cypress/e2e/ui-tests/test-views-as-reader.cy.js,cypress/e2e/ui-tests/test-app-details-pages.cy.js,cypress/e2e/ui-tests/test-invenio-funding.cy.js"
 
     steps:
-      - name: Workflow Telemetry
-        uses: runforesight/workflow-telemetry-action@v1.8.0
-
       - name: Branch or tag that triggered the workflow run
         run: |
           echo "Running on branch ${GITHUB_REF##*/}"
