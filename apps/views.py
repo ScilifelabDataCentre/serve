@@ -673,29 +673,63 @@ class SecretsView(View):
             secret_name = f"{subdomain.subdomain}-tracking"
         else:
             secret_name = f"{subdomain.subdomain}-mlflow-tracking"
-        username = subprocess.run(
-            (
-                "kubectl get secret "
-                f"--namespace {settings.NAMESPACE} {secret_name} "
-                '-o jsonpath="{.data.admin-user}"'
-            ).split(),
-            check=True,
-            text=True,
-            capture_output=True,
-            timeout=10,
-        ).stdout
+        try:
+            username = subprocess.run(
+                (
+                    "kubectl get secret "
+                    f"--namespace {settings.NAMESPACE} {secret_name} "
+                    '-o jsonpath="{.data.admin-user}"'
+                ).split(),
+                check=True,
+                text=True,
+                capture_output=True,
+                timeout=10,
+            ).stdout
+        except subprocess.CalledProcessError as exc:
+            message = exc.stderr
+            if "NotFound" in message:
+                messages.error(request, "Secret or Namespace does not exist. Please contact us at serve@scilifelab.se.")
+            elif "Forbidden" in message:
+                messages.error(request, "Insufficient Kubernetes permission. Please contact us at serve@scilifelab.se.")
+            else:
+                messages.error(
+                    request,
+                    "An error occurred while retrieving MLFlow credentials. Please contact us at serve@scilifelab.se.",
+                )
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": str(project)}))
+        except subprocess.TimeoutExpired:
+            logger.exception("Retrieving MLFlow credentials timed out.")
+            messages.error(request, "Retrieving MLFlow credentials timed out. Please try again later.")
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": str(project)}))
         username = base64.b64decode(username).decode()
-        password = subprocess.run(
-            (
-                "kubectl get secret "
-                f"--namespace {settings.NAMESPACE} {secret_name} "
-                '-o jsonpath="{.data.admin-password}"'
-            ).split(),
-            check=True,
-            text=True,
-            capture_output=True,
-            timeout=10,
-        ).stdout
+        try:
+            password = subprocess.run(
+                (
+                    "kubectl get secret "
+                    f"--namespace {settings.NAMESPACE} {secret_name} "
+                    '-o jsonpath="{.data.admin-password}"'
+                ).split(),
+                check=True,
+                text=True,
+                capture_output=True,
+                timeout=10,
+            ).stdout
+        except subprocess.CalledProcessError as exc:
+            message = exc.stderr
+            if "NotFound" in message:
+                messages.error(request, "Secret or Namespace does not exist. Please contact us at serve@scilifelab.se.")
+            elif "Forbidden" in message:
+                messages.error(request, "Insufficient Kubernetes permission. Please contact us at serve@scilifelab.se.")
+            else:
+                messages.error(
+                    request,
+                    "An error occurred while retrieving MLFlow credentials. Please contact us at serve@scilifelab.se.",
+                )
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": str(project)}))
+        except subprocess.TimeoutExpired:
+            logger.exception("Retrieving MLFlow credentials timed out.")
+            messages.error(request, "Retrieving MLFlow credentials timed out. Please try again later.")
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": str(project)}))
         password = base64.b64decode(password).decode()
 
         minio_used_gib = minio_total_gib = minio_remaining_gib = None
