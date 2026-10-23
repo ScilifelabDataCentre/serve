@@ -172,6 +172,26 @@ To check, go to  PyCharm | Settings | Languages & Frameworks | Django and check 
 
 Now that you are done, you can run Django server using PyCharm and access the studio at [http://studio.127.0.0.1.nip.io/](http://studio.127.0.0.1.nip.io/)
 
+### Harbor image registry
+
+Harbor is optional and off by default. To use it as a cache for public Docker Hub
+and GHCR images, add these settings to `.env`:
+
+```dotenv
+HARBOR_REGISTRY_HOST=harbor.serve-dev.scilifelab.se
+HARBOR_PROXY_CACHE_ENABLED=true
+HARBOR_DOCKERHUB_PROJECT=docker.io
+HARBOR_GHCR_PROJECT=ghcr.io
+```
+
+Use the hostname without `https://` or a path. The Harbor projects must allow
+anonymous pulls, so no credentials are needed. Recreate the Compose services
+after changing `.env`. For cluster deployments, use `studio.harbor` in the Serve
+Helm chart instead.
+
+Users can keep entering their usual image addresses. Serve tries Harbor first
+and falls back to Docker Hub or GHCR if it cannot use the cache.
+
 ## Testing
 
 The automated tests in this project consist of unit tests, end2end UI tests and integration tests.

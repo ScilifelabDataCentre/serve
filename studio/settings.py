@@ -480,6 +480,11 @@ GITHUB_API = "https://api.github.com"
 GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
 GITHUB_API_USERNAME = os.getenv("GITHUB_API_USERNAME")
 
+HARBOR_REGISTRY_HOST = os.getenv("HARBOR_REGISTRY_HOST", "")
+HARBOR_PROXY_CACHE_ENABLED = os.getenv("HARBOR_PROXY_CACHE_ENABLED", "false").lower() in ("true", "1", "yes")
+HARBOR_DOCKERHUB_PROJECT = os.getenv("HARBOR_DOCKERHUB_PROJECT", "docker.io")
+HARBOR_GHCR_PROJECT = os.getenv("HARBOR_GHCR_PROJECT", "ghcr.io")
+
 # Source code URL validation (background task)
 SOURCE_CODE_URL_VALIDATION_TIMEOUT_SECONDS = int(os.getenv("SOURCE_CODE_URL_VALIDATION_TIMEOUT_SECONDS", "10"))
 
