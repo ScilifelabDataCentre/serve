@@ -306,13 +306,28 @@ class ReconcileAppStatusesTestCase(TestCase):
         mock_readiness.assert_not_called()
 
     def test_stale_apps_are_skipped(self):
-        """A deploy that has not settled within the window is never going to."""
+        """A deploy that has not settled within the window, on a status that needs a user fix."""
+        self.status.status = "ImagePullBackOff"
+        self.status.save(update_fields=["status"])
         BaseAppInstance.objects.filter(pk=self.instance.pk).update(updated_on=timezone.now() - timedelta(hours=2))
 
         with patch("apps.tasks.get_release_readiness") as mock_readiness:
             reconcile_app_statuses()
 
         mock_readiness.assert_not_called()
+
+    def test_old_app_stuck_after_node_restart_is_rechecked(self):
+        """Pods restarted long after the deploy; the listener missed the Running event."""
+        self.status.status = "Pending"
+        self.status.save(update_fields=["status"])
+        BaseAppInstance.objects.filter(pk=self.instance.pk).update(updated_on=timezone.now() - timedelta(days=30))
+
+        readiness = {"all_ready": True, "workloads": {"deployment/a": {"ready": 1, "desired": 1}}}
+        with patch("apps.tasks.get_release_readiness", return_value=(readiness, None)):
+            reconcile_app_statuses()
+
+        self.status.refresh_from_db()
+        assert self.status.status == "Running"
 
     def test_db_connection_is_released_before_each_helm_call(self):
         """helm status is slow and the pool is small, so do not hold a connection."""
