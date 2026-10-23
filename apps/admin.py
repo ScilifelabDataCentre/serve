@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 
 from apps.constants import AppActionOrigin
+from apps.harbor import reset_image_resolution
 from projects.models import PersistentVolumeMountPath
 from studio.utils import get_logger
 
@@ -188,6 +189,7 @@ class BaseAppAdmin(admin.ModelAdmin):
         scheduled_count = 0
 
         for instance in queryset:
+            reset_image_resolution(instance)
             instance.set_k8s_values()
             instance.url = get_URI(instance)
             instance.latest_user_action = "Changing"
