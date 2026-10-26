@@ -6,6 +6,7 @@ from typing import NamedTuple, Protocol
 from urllib.parse import urlparse
 
 import requests
+import waffle
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from requests.auth import HTTPBasicAuth
@@ -779,6 +780,31 @@ def validate_image_reference(image: str, *, require_project: bool = False) -> tu
 
 def validate_harbor_image_reference(image: str) -> tuple[str, str, str]:
     return validate_image_reference(image, require_project=True)
+
+
+def validate_public_image(image: str, *, registry_name="registry", require_project=False):
+    """Validate anonymous OCI access and the optional architecture requirement."""
+    registry, repository, reference = validate_image_reference(image, require_project=require_project)
+
+    checker = OCIRegistryPublicChecker(registry=registry, timeout=10, verify_manifest=True)
+    access = checker.check_public_accessibility(repository=repository, reference=reference)
+    if access.outcome == PublicImageAccessOutcome.REGISTRY_UNAVAILABLE:
+        raise ValidationError(f"Could not reach {registry_name}. Please try again later.")
+    if access.outcome != PublicImageAccessOutcome.PUBLIC:
+        raise ValidationError(
+            f"This {registry_name} image could not be pulled anonymously. Check its name and project visibility."
+        )
+
+    if waffle.switch_is_active("docker_image_architecture_validator"):
+        try:
+            architectures = get_image_architectures(
+                auth=get_authenticator_for_registry(registry), repo=repository, reference=reference, registry=registry
+            )
+        except ContainerImageValidationError as exc:
+            raise ValidationError(str(exc)) from exc
+        if not any(arch.os == "linux" and arch.arch == "amd64" for arch in architectures):
+            raise ValidationError(f"This {registry_name} image must support linux/amd64.")
+    return image
 
 
 def get_manifest_list(

@@ -4,24 +4,12 @@ import re
 import requests
 from crispy_forms.layout import HTML, Div, Field, MultiField
 from django import forms
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 
 from apps.forms.field.common import SRVCommonDivField
-from apps.harbor import ImageResolution, is_harbor_registry, resolve_image
-from apps.helpers import (
-    validate_docker_image,
-    validate_ghcr_image,
-    validate_harbor_image,
-    validate_public_image,
-)
+from apps.helpers import choose_image
 from apps.models import VolumeInstance
-from apps.validators.container_images import (
-    RegistryHost,
-    parse_image_reference,
-    registry_host_to_str,
-)
 from projects.models import PersistentVolumeMountPath
 
 
@@ -100,47 +88,10 @@ class ContainerImageMixin:
         if getattr(self, "_is_draft_access", False):
             return image
 
-        resolution = resolve_image(image)
-        deployment_image = resolution.image
-        registry, _, _ = parse_image_reference(deployment_image)
-        if is_harbor_registry(registry_host_to_str(registry)):
-            try:
-                if resolution.access is None:
-                    validate_harbor_image(deployment_image)
-                else:
-                    validate_harbor_image(deployment_image, access=resolution.access)
-            except ValidationError as e:
-                if deployment_image == image:
-                    self.add_error("image", f"Error validating Harbor image: {str(e)}")
-                    return image
-                registry, _, _ = parse_image_reference(image)
-            else:
-                self.image_resolution = resolution
-                return image
-
-        if settings.HARBOR_PROXY_CACHE_ENABLED and registry in (RegistryHost.DOCKER_HUB, RegistryHost.GHCR):
-            try:
-                validate_public_image(image)
-            except ValidationError as error:
-                self.add_error("image", str(error))
-            else:
-                self.image_resolution = ImageResolution(image)
-            return image
-
-        if registry == RegistryHost.GHCR:
-            try:
-                validate_ghcr_image(image)
-            except ValidationError as e:
-                self.add_error("image", f"Error validating GHCR image: {str(e)}")
-                return image
-
-        if registry == RegistryHost.DOCKER_HUB:
-            try:
-                validate_docker_image(image)
-            except ValidationError as e:
-                self.add_error("image", f"Error validating Docker image: {str(e)}")
-                return image
-
+        try:
+            self.deployment_image = choose_image(image)
+        except ValidationError as e:
+            self.add_error("image", e)
         return image
 
 

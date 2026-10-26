@@ -24,18 +24,18 @@ from apps.constants import (
     HandleUpdateStatusResponseCode,
 )
 from apps.harbor import (
-    ImageResolution,
+    get_deployment_image,
+    is_harbor_image,
     remember_deployment_image,
     reset_image_resolution,
+    validate_harbor_image,
 )
 from apps.validators.container_images import (
-    ContainerImageValidationError,
-    OCIRegistryPublicChecker,
-    PublicImageAccessOutcome,
+    RegistryHost,
     get_authenticator_for_registry,
     get_image_architectures,
-    validate_harbor_image_reference,
-    validate_image_reference,
+    parse_image_reference,
+    validate_public_image,
 )
 from common.models import UserProfile
 from projects.models import Project
@@ -975,9 +975,9 @@ def save_instance_and_related_data(instance: Any, form: Any) -> int:
     """
     logger.info("save_instance_and_related_data.start instance_id=%s", instance.pk)
     reset_image_resolution(instance)
-    resolution = getattr(form, "image_resolution", None)
-    if isinstance(resolution, ImageResolution):
-        remember_deployment_image(instance, form.cleaned_data["image"], resolution.image)
+    deployment_image = getattr(form, "deployment_image", None)
+    if deployment_image:
+        remember_deployment_image(instance, form.cleaned_data["image"], deployment_image)
     instance.save()
     form.save_m2m()
     instance.set_k8s_values()
@@ -1099,36 +1099,27 @@ def validate_ghcr_image(image: str):
     return image
 
 
-def validate_public_image(image: str, *, access=None, registry_name="registry"):
-    """Validate anonymous OCI access and the optional architecture requirement."""
-    registry, repository, reference = validate_image_reference(image)
+SOURCE_REGISTRY_NAMES = {RegistryHost.DOCKER_HUB: "Docker Hub", RegistryHost.GHCR: "GHCR"}
 
-    if access is None:
-        checker = OCIRegistryPublicChecker(registry=registry, timeout=10, verify_manifest=True)
-        access = checker.check_public_accessibility(repository=repository, reference=reference)
-    if access.outcome == PublicImageAccessOutcome.REGISTRY_UNAVAILABLE:
-        raise ValidationError(f"Could not reach {registry_name}. Please try again later.")
-    if access.outcome != PublicImageAccessOutcome.PUBLIC:
-        raise ValidationError(
-            f"This {registry_name} image could not be pulled anonymously. Check its name and project visibility."
-        )
 
-    if waffle.switch_is_active("docker_image_architecture_validator"):
+def choose_image(image: str) -> str:
+    """Validate the image and pick the registry to deploy it from. Raises ValidationError."""
+    if is_harbor_image(image):
+        validate_harbor_image(image)
+        return image
+
+    proxy_image = get_deployment_image(image)
+    if proxy_image != image:
         try:
-            architectures = get_image_architectures(
-                auth=get_authenticator_for_registry(registry), repo=repository, reference=reference, registry=registry
-            )
-        except ContainerImageValidationError as exc:
-            raise ValidationError(str(exc)) from exc
-        if not any(arch.os == "linux" and arch.arch == "amd64" for arch in architectures):
-            raise ValidationError(f"This {registry_name} image must support linux/amd64.")
+            validate_harbor_image(proxy_image)
+            return proxy_image
+        except (ValidationError, requests.RequestException, ValueError) as error:
+            logger.warning("Could not use the Harbor proxy for %s: %s", image, error)
+
+    registry, _, _ = parse_image_reference(image)
+    if registry in SOURCE_REGISTRY_NAMES:
+        validate_public_image(image, registry_name=SOURCE_REGISTRY_NAMES[registry])
     return image
-
-
-def validate_harbor_image(image: str, *, access=None):
-    """Validate a public image in the configured Harbor registry."""
-    validate_harbor_image_reference(image)
-    return validate_public_image(image, access=access, registry_name="Harbor")
 
 
 def validate_docker_image(image: str):

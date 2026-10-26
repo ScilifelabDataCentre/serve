@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from urllib.parse import urlencode
 
 import requests
@@ -10,12 +9,13 @@ from apps.validators.container_images import (
     ContainerImageValidationError,
     OCIRegistryPublicChecker,
     PublicImageAccessOutcome,
-    PublicImageAccessResult,
     RegistryHost,
     _get_manifest_lookup_error_code,
     _is_transient_registry_status,
     parse_image_reference,
+    registry_host_to_str,
     validate_harbor_image_reference,
+    validate_public_image,
 )
 from studio.utils import get_logger
 
@@ -91,40 +91,37 @@ def get_deployment_image(image: str) -> str:
     return f"{host}/{project}/{repository}{separator}{reference}"
 
 
-@dataclass(frozen=True)
-class ImageResolution:
-    image: str
-    access: PublicImageAccessResult | None = None
+def is_harbor_image(image: str) -> bool:
+    registry, _, _ = parse_image_reference(image)
+    return is_harbor_registry(registry_host_to_str(registry))
 
 
-def resolve_image(image: str) -> ImageResolution:
+def resolve_deployment_image(image: str) -> str:
     """Prefer the Harbor proxy, falling back to the source registry if it cannot be used."""
     proxy_image = get_deployment_image(image)
     if proxy_image == image:
-        return ImageResolution(image)
+        return image
 
     try:
         registry, repository, reference = validate_harbor_image_reference(proxy_image)
         checker = OCIRegistryPublicChecker(registry=registry, timeout=5, verify_manifest=True)
         access = checker.check_public_accessibility(repository=repository, reference=reference, max_5xx_retries=0)
         if access.outcome == PublicImageAccessOutcome.PUBLIC:
-            return ImageResolution(proxy_image, access)
+            return proxy_image
     except (ValidationError, requests.RequestException, ValueError) as error:
         logger.warning("Could not use the Harbor proxy for %s: %s", image, error)
-        return ImageResolution(image)
+        return image
 
     logger.warning("Harbor proxy image is unavailable; using the source image %s", image)
-    return ImageResolution(image)
-
-
-def resolve_deployment_image(image: str) -> str:
-    return resolve_image(image).image
+    return image
 
 
 def remember_deployment_image(instance, source: str, image: str) -> None:
     info = dict(instance.info or {}) if isinstance(getattr(instance, "info", None), dict) else {}
     info["image_resolution"] = {"source": source, "proxy": get_deployment_image(source), "image": image}
     instance.info = info
+    if is_harbor_image(image):
+        logger.info("Using Harbor image %s for %s", image, source)
 
 
 def reset_image_resolution(instance) -> None:
@@ -152,3 +149,8 @@ def get_instance_deployment_image(instance, source: str) -> str:
     if isinstance(instance, Model) and instance.pk:
         instance.save(update_fields=["info"])
     return image
+
+
+def validate_harbor_image(image: str):
+    """Validate a public image in the configured Harbor registry."""
+    return validate_public_image(image, registry_name="Harbor", require_project=True)
