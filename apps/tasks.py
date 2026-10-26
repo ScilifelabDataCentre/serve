@@ -942,7 +942,7 @@ def reconcile_app_statuses():
         updated_on__gte=timezone.now() - RECONCILE_MAX_AGE,
     )
     stuck_deployed_apps = Q(k8s_user_app_status__status__in=["Pending", "ContainerCreating", "PodInitializing"]) & ~Q(
-        latest_user_action__in=["Draft", "Deleting", "SystemDeleting", "Failed"]
+        latest_user_action__in=["Draft", "Deleting", "SystemDeleting"]
     )
 
     instances = list(
