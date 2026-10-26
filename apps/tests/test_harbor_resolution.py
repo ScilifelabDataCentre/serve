@@ -8,7 +8,6 @@ from django.test import RequestFactory, override_settings
 from apps.admin import BaseAppAdmin
 from apps.harbor import (
     HarborAuthenticator,
-    ImageResolution,
     get_instance_deployment_image,
     remember_deployment_image,
     reset_image_resolution,
@@ -109,15 +108,13 @@ def test_successful_form_does_not_repeat_proxy_access_check():
     checker = Mock()
     checker.check_public_accessibility.return_value = PUBLIC
     with (
-        patch("apps.harbor.OCIRegistryPublicChecker", return_value=checker),
-        patch("apps.helpers.OCIRegistryPublicChecker") as duplicate,
-        patch("apps.helpers.waffle.switch_is_active", return_value=False),
+        patch("apps.validators.container_images.OCIRegistryPublicChecker", return_value=checker),
+        patch("apps.validators.container_images.waffle.switch_is_active", return_value=False),
     ):
         form = ImageForm({"image": SOURCE})
         assert form.is_valid(), form.errors
     checker.check_public_accessibility.assert_called_once()
-    duplicate.assert_not_called()
-    assert form.image_resolution.image == PROXY
+    assert form.deployment_image == PROXY
 
 
 @pytest.mark.parametrize(
@@ -134,13 +131,14 @@ def test_fallback_supports_nested_paths_and_digests(source):
     upstream_checker = Mock()
     upstream_checker.check_public_accessibility.return_value = PUBLIC
     with (
-        patch("apps.harbor.OCIRegistryPublicChecker", return_value=proxy_checker),
-        patch("apps.helpers.OCIRegistryPublicChecker", return_value=upstream_checker),
-        patch("apps.helpers.waffle.switch_is_active", return_value=False),
+        patch(
+            "apps.validators.container_images.OCIRegistryPublicChecker", side_effect=[proxy_checker, upstream_checker]
+        ),
+        patch("apps.validators.container_images.waffle.switch_is_active", return_value=False),
     ):
         form = ImageForm({"image": source})
         assert form.is_valid(), form.errors
-    assert form.image_resolution.image == source
+    assert form.deployment_image == source
     upstream_checker.check_public_accessibility.assert_called_once()
 
 
@@ -231,7 +229,7 @@ def test_selection_survives_database_reload(database_instance):
 
 
 def test_form_selection_is_saved_without_another_probe(database_instance):
-    form = SimpleNamespace(image_resolution=ImageResolution(SOURCE), cleaned_data={"image": SOURCE}, save_m2m=Mock())
+    form = SimpleNamespace(deployment_image=SOURCE, cleaned_data={"image": SOURCE}, save_m2m=Mock())
     with patch("apps.harbor.OCIRegistryPublicChecker") as checker:
         save_instance_and_related_data(database_instance, form)
     checker.assert_not_called()
