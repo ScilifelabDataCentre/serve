@@ -24,7 +24,7 @@ class AppEnvironmentSecretApprovalForm(forms.ModelForm):
         label="Approved Secret keys",
         required=False,
         widget=forms.Textarea(attrs={"rows": 3}),
-        help_text="Optional: list one Secret key per line to let app editors select individual keys. No values are stored here.",
+        help_text="Optional. List one Secret key per line for individual selection. Values are not stored.",
     )
 
     class Meta:

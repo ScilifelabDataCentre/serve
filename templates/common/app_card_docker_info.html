@@ -12,7 +12,6 @@
             <h6>Step 2. Launch the app</h6>
             <p>Navigate to Terminal (or Windows Terminal) window and run the following command. This will download the Docker image of this app and subsequently launch it.</p>
             <p><code>docker run --rm -p <span class="app-port"></span>:<span class="app-port"></span> <span class="app-image"></span></code></p>
-            <p>If the app needs environment variables, create a private <code>app.env</code> file with one <code>NAME=value</code> per line and add <code>--env-file app.env</code> after <code>docker run</code>. Obtain the values separately; Serve does not publish them.</p>
             <p>Navigate to <i>http://localhost:<span class="app-port"></span>/</i> to open the app.</p>
             <h6>Step 3. Stop the app</h6>
             <p>In order to stop the running app you can press Control+C. Keep in mind that your session will not be saved when you stop the app. Every time you start the app it will be starting from the same default state. See <a target="_blank" href="https://docs.docker.com/reference/cli/docker/image/rm/">this documentation page</a> for how to remove a downloaded image from your computer.</p>
