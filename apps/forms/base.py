@@ -773,7 +773,7 @@ class AppBaseForm(BaseForm):
         help_text="By default Serve displays its own error page for 4xx and 5xx status codes. "
         "Select the codes you want your app to bypass to display its own error page.",
     )
-    # Only enabled for apps running the user's own image (ContainerImageMixin).
+    # Only enabled for apps running the user's own image (ContainerImageMixin) and TissUUmaps.
     error_passthrough_enabled = False
 
     def __init__(self, *args, **kwargs):

@@ -13,6 +13,9 @@ __all__ = ["TissuumapsForm"]
 
 
 class TissuumapsForm(VolumeMixin, KeywordTagsValidationMixin, CreatorsMixin, AppBaseForm):
+    # TissUUmaps may answer 4xx itself, e.g. 404 for missing tiles (see AppBaseForm)
+    error_passthrough_enabled = True
+
     def _setup_form_fields(self):
         # Handle Volume field
         super()._setup_form_fields()
@@ -65,9 +68,16 @@ class TissuumapsForm(VolumeMixin, KeywordTagsValidationMixin, CreatorsMixin, App
             active=True,
         )
 
+        advanced = AccordionGroup(
+            mark_safe("<h3>Advanced settings</h3>"),
+            self._error_passthrough_layout(),
+            active=False,
+        )
+
         accordion = BS5Accordion(
             configuration,
             general,
+            advanced,
             always_open=True,
             css_class="form-accordion",
         )
