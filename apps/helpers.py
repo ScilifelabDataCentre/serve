@@ -13,7 +13,7 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.db.models.query import QuerySet
-from django.forms.models import model_to_dict
+from django.forms.models import construct_instance, model_to_dict
 from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
 
@@ -392,6 +392,27 @@ def _is_depictio_access_chart_noop(old_access, new_access):
     return _DEPICTIO_ACCESS_GROUPS.get(old_access) == _DEPICTIO_ACCESS_GROUPS.get(new_access)
 
 
+def _bind_reusable_filemanager_instance(form, project) -> Optional[BaseAppInstance]:
+    """Bind the form to a deleted file manager of the project, if any, and return it."""
+    reusable = form._meta.model.objects.get_reusable_instance(project)
+    if reusable is None:
+        return None
+
+    logger.info(
+        "create_instance_from_form.reusing_filemanager instance_id=%s project_id=%s deleted_on=%s",
+        reusable.pk,
+        project.pk,
+        reusable.deleted_on,
+    )
+
+    construct_instance(form, reusable, fields=form._meta.fields, exclude=form._meta.exclude)
+    # Restart the 24h lifetime.
+    reusable.created_on = timezone.now()
+    reusable.deleted_on = None
+    form.instance = reusable
+    return reusable
+
+
 @transaction.atomic
 def create_instance_from_form(
     form,
@@ -511,6 +532,14 @@ def create_instance_from_form(
                     break
 
     subdomain_name, is_created_by_user = get_subdomain_name(form)
+
+    # Reuse a deleted file manager and its subdomain instead of creating a new one.
+    if new_app and app_slug == "filemanager":
+        reused_instance = _bind_reusable_filemanager_instance(form, project)
+        if reused_instance is not None and reused_instance.subdomain is not None:
+            subdomain_name = reused_instance.subdomain.subdomain
+            is_created_by_user = reused_instance.subdomain.is_created_by_user
+
     logger.info(
         "create_instance_from_form.subdomain_selected app_id=%s subdomain=%s is_created_by_user=%s",
         app_id,

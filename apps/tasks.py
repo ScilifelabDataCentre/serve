@@ -739,7 +739,11 @@ def delete_resource(serialized_instance, initiated_by_str: str, release_subdomai
         # Note: This can occur if for example the deployment has already been deleted.
         logger.info(f"Failed to delete resource type {instance.app.slug}, {values['subdomain']}, error={error}")
 
-    helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
+    helm_info = {
+        "success": success,
+        "info": {"stdout": output, "stderr": error},
+        "deleted_at": timezone.now().isoformat(),
+    }
 
     instance.info = {**(instance.info or {}), "helm": helm_info}
 
