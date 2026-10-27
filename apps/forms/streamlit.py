@@ -5,6 +5,7 @@ from django import forms
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
+from apps.forms.environment_variables import EnvironmentVariablesMixin
 from apps.forms.field.common import SRVCommonDivField
 from apps.forms.field.widget import FlavorSelect
 from apps.forms.mixins import (
@@ -19,7 +20,9 @@ from projects.models import Flavor
 __all__ = ["StreamlitForm"]
 
 
-class StreamlitForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, CreatorsMixin, AppBaseForm):
+class StreamlitForm(
+    EnvironmentVariablesMixin, StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, CreatorsMixin, AppBaseForm
+):
     flavor = forms.ModelChoiceField(
         queryset=Flavor.objects.none(), required=False, empty_label=None, widget=FlavorSelect
     )
@@ -144,9 +147,16 @@ class StreamlitForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
             active=True,
         )
 
+        advanced = AccordionGroup(
+            mark_safe("<h3>Advanced settings</h3>"),
+            *self.get_environment_variables_layout(),
+            active=False,
+        )
+
         accordion = BS5Accordion(
             configuration,
             general,
+            *([advanced] if self.can_edit_environment else []),
             always_open=True,
             css_class="form-accordion",
         )
@@ -177,6 +187,8 @@ class StreamlitForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
     class Meta:
         model = StreamlitInstance
         fields = [
+            "environment_variables",
+            "environment_secret_imports",
             "name",
             "description",
             "volume",

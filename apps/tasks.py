@@ -18,6 +18,10 @@ from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
 from apps.background_tasks.utils import select_latest_task_records
 from apps.constants import AppActionOrigin
+from apps.environment_variables import (
+    ENVIRONMENT_APP_SLUGS,
+    validate_project_environment,
+)
 from apps.gpu import instance_holds_gpu
 from apps.helpers import (
     generate_helm_install_command,
@@ -496,6 +500,13 @@ def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
         )
         return
 
+    if instance.app.slug in ENVIRONMENT_APP_SLUGS:
+        validate_project_environment(
+            instance.environment_variables,
+            instance.project_id,
+            is_shiny=instance.app.slug in {"shinyapp", "shinyproxyapp"},
+            secret_imports=instance.environment_secret_imports,
+        )
     values = get_merged_k8s_values(instance, ensure_up_to_date=True)
     release = values["subdomain"]
     chart: str = instance.chart

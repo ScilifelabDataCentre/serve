@@ -7,6 +7,12 @@ from django.core import serializers
 from django.db import models
 from django.db.models import Case, CharField, F, Q, Value, When
 
+from apps.environment_variables import (
+    ENVIRONMENT_APP_SLUGS,
+    environment_to_kubernetes,
+    validate_environment_secret_imports,
+    validate_environment_variables,
+)
 from apps.models.base.app_template import Apps
 from apps.models.base.k8s_user_app_status import K8sUserAppStatus
 from apps.models.base.subdomain import Subdomain
@@ -178,6 +184,15 @@ class BaseAppInstance(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
     deleted_on = models.DateTimeField(null=True, blank=True)
     info = models.JSONField(blank=True, null=True)
+    environment_variables = models.JSONField(
+        default=dict,
+        blank=True,
+        validators=[validate_environment_variables],
+        help_text="Private non-sensitive runtime configuration. Import approved Secrets separately for credentials.",
+    )
+    environment_secret_imports = models.JSONField(
+        default=list, blank=True, validators=[validate_environment_secret_imports]
+    )
     # model_dependencies = models.ManyToManyField("models.Model", blank=True)
     name = models.CharField("Title", max_length=512, default="app_name")
     owner = models.ForeignKey(
@@ -323,6 +338,9 @@ class BaseAppInstance(models.Model):
             sectionName=settings.GATEWAY_SECTION_NAME,
             port=settings.GATEWAY_PORT,
         )
+
+        if self.app.slug in ENVIRONMENT_APP_SLUGS:
+            k8s_values.update(environment_to_kubernetes(self.environment_variables, self.environment_secret_imports))
 
         return k8s_values
 

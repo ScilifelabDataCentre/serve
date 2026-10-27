@@ -1,0 +1,20 @@
+<div data-environment-editor>
+  <div class="d-flex flex-wrap gap-2 mb-2">
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-environment-add-config hidden>
+      <span class="fas fa-plus text-muted" aria-hidden="true"></span> Add variable
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-environment-add-secret hidden>
+      <span class="fas fa-plus text-muted" aria-hidden="true"></span> Add secret reference
+    </button>
+  </div>
+
+  <div data-environment-config-rows>
+    {% for variable_name, variable_value in widget.config_rows %}
+      {% include "apps/widgets/environment_variable_row.html" with widget=widget variable_name=variable_name variable_value=variable_value first=forloop.first only %}
+    {% endfor %}
+  </div>
+
+  <template data-environment-config-template>
+    {% include "apps/widgets/environment_variable_row.html" with widget=widget variable_name="" variable_value="" only %}
+  </template>
+</div>

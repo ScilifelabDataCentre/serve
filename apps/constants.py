@@ -17,6 +17,13 @@ class AppActionOrigin(StrEnum):
 
 
 DRAFT_VISIBILITY_INFO_KEY = "draft_visibility"
+APP_METADATA_EXCLUDED_FIELDS = (
+    "_state",
+    "environment_variables",
+    "environment_secret_imports",
+    "k8s_values",
+    "k8s_values_override",
+)
 
 
 HELP_MESSAGE_MAP = {
@@ -45,6 +52,7 @@ HELP_MESSAGE_MAP = {
     "track of apps available through SciLifeLab Serve.",
     "environment": "Select the environment that you want to use for your app. The environment is a Docker image that "
     "contains the software and dependencies needed to run your app.",
+    "environment_variables": "Environment settings set here are available to the application.",
     "mount_path": "Specify the path inside your Docker container that you want to persist; for example, the directory "
     "where you plan to store or load data. If you followed our guide to build the Docker container, "
     "please include the username you specified in the Dockerfile as part of the path.",

@@ -18,6 +18,7 @@ from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 
 from apps.background_tasks.utils import resolve_app_access, resolve_app_image
+from apps.constants import APP_METADATA_EXCLUDED_FIELDS
 from doi_minting.clients.invenio_client import (
     InvenioClient,
     InvenioClientError,
@@ -1359,7 +1360,7 @@ class InvenioService:
             Validated InvenioRDM metadata as Pydantic model
         """
         # Get basic app data
-        app_data_dict = model_to_dict(app_instance, exclude=["_state"])
+        app_data_dict = model_to_dict(app_instance, exclude=APP_METADATA_EXCLUDED_FIELDS)
         app_data = AppData(**app_data_dict)
 
         # Get user data
@@ -1566,7 +1567,7 @@ class InvenioService:
 
         # Get the application instance
         app_instance = model_class.objects.get(pk=app_id)
-        app_data_dict = model_to_dict(app_instance, exclude=["_state"])
+        app_data_dict = model_to_dict(app_instance, exclude=APP_METADATA_EXCLUDED_FIELDS)
         app_data = AppData(**app_data_dict)
 
         logger.info(f"Processing app '{app_data.name}' with image '{app_data.image}'")

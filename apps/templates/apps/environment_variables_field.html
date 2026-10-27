@@ -1,0 +1,10 @@
+<div id="div_{{ field.id_for_label }}" class="mt-3 {% if wrapper_class %}{{ wrapper_class }}{% endif %}">
+  <div>
+    <label class="form-label fw-bold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ help_message }}" role="button" tabindex="0" aria-label="About environment variables"></span>
+  </div>
+  {% for error in field.errors %}
+    <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>
+  {% endfor %}
+  {{ field }}
+</div>
