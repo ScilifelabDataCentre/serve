@@ -278,6 +278,12 @@ class BaseAppInstance(models.Model):
     url = models.URLField(blank=True, null=True)
     updated_on = models.DateTimeField(auto_now=True)
     upload_size = models.PositiveIntegerField(default=100, help_text="Max upload size in MB")
+    error_passthrough_codes = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="HTTP status codes the app answers itself instead of the Serve error page, e.g. [404]. "
+        "Set in the app form of apps that run the user's own image.",
+    )
 
     class Meta:
         permissions = [("can_access_app", "Can access app service")]
@@ -323,6 +329,10 @@ class BaseAppInstance(models.Model):
             sectionName=settings.GATEWAY_SECTION_NAME,
             port=settings.GATEWAY_PORT,
         )
+        if self.error_passthrough_codes:
+            k8s_values["gateway"]["errorPagesSnippetsFilter"] = dict(
+                passThroughCodes=sorted(int(code) for code in self.error_passthrough_codes)
+            )
 
         return k8s_values
 

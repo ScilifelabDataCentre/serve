@@ -498,6 +498,7 @@ def create_instance_from_form(
                 "shiny_site_dir",
                 "mount_path",
                 "default_url_subpath",
+                "error_passthrough_codes",
             ]
             logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
 
@@ -505,7 +506,7 @@ def create_instance_from_form(
             # is actually contained in the form
             for field in form.changed_data:
                 if field.lower() in redeployment_fields and (
-                    field.lower() in form.Meta.fields or field.lower() == "subdomain"
+                    field.lower() in form.Meta.fields or field.lower() in ("subdomain", "error_passthrough_codes")
                 ):
                     logger.debug("create_instance_from_form.redeploy_field_changed app_id=%s field=%s", app_id, field)
                     do_deploy = True

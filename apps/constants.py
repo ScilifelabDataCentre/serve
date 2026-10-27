@@ -18,6 +18,13 @@ class AppActionOrigin(StrEnum):
 
 DRAFT_VISIBILITY_INFO_KEY = "draft_visibility"
 
+# Status codes an app creator may let the app answer itself instead of the Serve error page.
+# Only 4xx: 5xx is always replaced.
+ERROR_PASSTHROUGH_CODE_CHOICES = [
+    (403, "403 (Forbidden)"),
+    (404, "404 (Not Found)"),
+]
+
 
 HELP_MESSAGE_MAP = {
     "name": "The app title is visible in the app catalogue if the app is public",

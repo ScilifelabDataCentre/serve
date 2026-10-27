@@ -1,0 +1,33 @@
+{% comment %}
+A checkbox group laid out like the other app form fields (see div_label_with_help_toggle.html).
+The heading is a span rather than a label, as there is no single input to point a label at;
+role="group" with aria-labelledby names the group for screen readers instead.
+{% endcomment %}
+<div id="div_{{ field.auto_id }}" class="{% if wrapper_class %}{{ wrapper_class }}{% endif %}" role="group" aria-labelledby="{{ field.auto_id }}_label"{% if field.field.bottom_help_text %} aria-describedby="{{ field.auto_id }}_helptext"{% endif %}>
+  <div>
+    <span id="{{ field.auto_id }}_label" class="form-label fw-bold d-inline-block">{{ field.label }}</span>
+    {% if tooltip %}
+    <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ field.help_text }}">
+    </span>
+    {% endif %}
+  </div>
+  <div>
+    {% for option in field %}
+      <div class="form-check">
+        {{ option.tag }}
+        <label class="form-check-label" for="{{ option.id_for_label }}">{{ option.choice_label }}</label>
+      </div>
+    {% endfor %}
+    {% if field.field.bottom_help_text %}
+      <small id="{{ field.auto_id }}_helptext" class="form-text text-muted">{{ field.field.bottom_help_text }}</small>
+    {% endif %}
+
+    {% if field.errors %}
+      {% for error in field.errors %}
+        <div class="client-validation-feedback client-validation-invalid">
+          {{ error }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>

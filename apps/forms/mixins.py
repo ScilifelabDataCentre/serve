@@ -17,6 +17,9 @@ from projects.models import PersistentVolumeMountPath
 class ContainerImageMixin:
     """Mixin to add a reusable container image field and validation method."""
 
+    # Apps running the user's own image may handle their own 4xx responses (see AppBaseForm)
+    error_passthrough_enabled = True
+
     image = forms.CharField(
         max_length=255,
         required=True,

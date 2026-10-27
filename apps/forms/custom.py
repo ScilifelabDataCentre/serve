@@ -163,6 +163,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
                 template="apps/partials/srv_prepend_append_input_group.html",
                 attrs={"aria-label": "Custom URL subpath"},
             ),
+            self._error_passthrough_layout(),
             active=False,
         )
 

@@ -144,9 +144,18 @@ class StreamlitForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
             active=True,
         )
 
+        groups = [configuration, general]
+        if "error_passthrough_codes" in self.fields:
+            groups.append(
+                AccordionGroup(
+                    mark_safe("<h3>Advanced settings</h3>"),
+                    self._error_passthrough_layout(),
+                    active=False,
+                )
+            )
+
         accordion = BS5Accordion(
-            configuration,
-            general,
+            *groups,
             always_open=True,
             css_class="form-accordion",
         )

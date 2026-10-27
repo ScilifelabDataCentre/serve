@@ -215,7 +215,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.8",
+      "chart": "/app/fixtures/custom-app:1.1.10",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "Apps built with Gradio, Streamlit, Flask, etc.",
       "gpu_enabled": true,
@@ -253,7 +253,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/dash-app:1.0.9",
+      "chart": "/app/fixtures/dash-app:1.0.11",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "gpu_enabled": true,
@@ -290,7 +290,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.4.13",
+      "chart": "/app/fixtures/shinyproxy:1.4.16",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "shinyapp-logo.svg",
@@ -377,7 +377,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/tissuumaps:1.0.9",
+      "chart": "/app/fixtures/tissuumaps:1.0.11",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "App to visualise and explore data using TissUUmaps.",
       "logo": "tissuumaps-logo.svg",
@@ -395,7 +395,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.8",
+      "chart": "/app/fixtures/custom-app:1.1.10",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "gpu_enabled": true,
@@ -414,7 +414,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.8",
+      "chart": "/app/fixtures/custom-app:1.1.10",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "gpu_enabled": true,

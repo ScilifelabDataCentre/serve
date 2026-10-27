@@ -13,7 +13,8 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.html import format_html
 
-from apps.constants import DRAFT_VISIBILITY_INFO_KEY
+from apps.constants import DRAFT_VISIBILITY_INFO_KEY, ERROR_PASSTHROUGH_CODE_CHOICES
+from apps.forms.field.custom import CustomField
 from apps.forms.field.widget import FlavorSelect, SubdomainInputGroup
 from apps.gpu import (
     GPU_UNAVAILABLE_MESSAGE,
@@ -762,6 +763,19 @@ class AppBaseForm(BaseForm):
         queryset=Flavor.objects.none(), required=True, empty_label=None, widget=FlavorSelect
     )
 
+    # Removed for apps that do not enable it, so their stored value is kept as it is.
+    error_passthrough_codes = forms.TypedMultipleChoiceField(
+        choices=ERROR_PASSTHROUGH_CODE_CHOICES,
+        coerce=int,
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "form-check-input"}),
+        label="Use your app's own error responses for",
+        help_text="By default Serve displays its own error page for 4xx and 5xx status codes. "
+        "Select the codes you want your app to bypass to display its own error page.",
+    )
+    # Only enabled for apps running the user's own image (ContainerImageMixin).
+    error_passthrough_enabled = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -783,6 +797,25 @@ class AppBaseForm(BaseForm):
         self.fields["access"].label = "Permission"
 
         self.fields["subdomain"].help_text = "Choose subdomain, create a new one or leave blank to get a random one."
+
+        if self.error_passthrough_enabled:
+            self.fields["error_passthrough_codes"].initial = self.instance.error_passthrough_codes
+        else:
+            del self.fields["error_passthrough_codes"]
+
+    def _error_passthrough_layout(self):
+        """The error passthrough field for the Advanced settings; empty when the app does not enable it."""
+        if "error_passthrough_codes" not in self.fields:
+            return Div()
+        field = CustomField("error_passthrough_codes", wrapper_class="mb-3")
+        field.set_template("apps/partials/srv_checkbox_group.html")
+        return Div(field, css_class="app-error-passthrough mt-3")
+
+    def save(self, commit=True):
+        # Not part of each app form's Meta.fields, so set it on the instance here.
+        if "error_passthrough_codes" in self.fields:
+            self.instance.error_passthrough_codes = self.cleaned_data.get("error_passthrough_codes", [])
+        return super().save(commit=commit)
 
     def _app_template_gpu_enabled(self) -> bool:
         """Whether the app template behind this form allows GPU allocation."""
