@@ -16,11 +16,13 @@ class SubdomainInputGroup(forms.Widget):
     def get_context(self, name, value, attrs=None):
         from apps.helpers import get_select_options
 
+        attrs = {**self.attrs, **(attrs or {})}
         return {
             "initial_subdomain": value,
             "project_pk": self.data["project_pk"],
             "hidden": self.data["hidden"],
             "subdomain_list": get_select_options(self.data["project_pk"]),
+            "invalid": attrs.get("aria-invalid") == "true",
         }
 
     def render(self, name, value, attrs=None, renderer=None):

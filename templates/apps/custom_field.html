@@ -11,11 +11,15 @@
         {% endif %}
         {{ field }}
         <div class="client-validation-feedback" style="display:none;"></div>
+        {% if field.errors %}
+            <div id="{{ field.auto_id }}_error">
+                {% for error in field.errors %}
+                    <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
         {% if field.help_text %}
             <small id="{{ field.id_for_label }}_helptext" class="form-text text-muted d-block">{{ field.help_text }}</small>
         {% endif %}
-        {% for error in field.errors %}
-            <div class="client-validation-feedback client-validation-invalid">{{ error }}</div>
-        {% endfor %}
     </div>
 </div>

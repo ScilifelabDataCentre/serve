@@ -1,4 +1,4 @@
-<select class="form-select" aria-label="List subdomains" name="subdomain" id="id_subdomain" onchange="selectValidation(event)">
+<select class="form-select{% if invalid %} is-invalid{% endif %}" aria-label="List subdomains" name="subdomain" id="id_subdomain" aria-describedby="id_subdomain_helptext{% if invalid %} id_subdomain_error{% endif %}" {% if invalid %}aria-invalid="true" {% endif %}onchange="selectValidation(event)">
     <option value="" {% if initial_subdomain == "" %}selected{% endif %}>-----------------</option>
     {% for option in options_list %}
     {% if option == initial_subdomain %}

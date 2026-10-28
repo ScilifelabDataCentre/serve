@@ -1195,6 +1195,10 @@ cubic-bezier(.4, 0, .2, 1);
     box-shadow: 0 0 0 .2rem rgb(129 185 103 / 18%);
 }
 
+.app-form-main .input-group:has(.is-invalid) .input-group-text {
+    border-color: var(--bs-danger);
+}
+
 .app-form-main .form-text {
     margin-top: .5rem;
     font-size: .8125rem;
@@ -1398,6 +1402,10 @@ cubic-bezier(.4, 0, .2, 1);
 .app-visibility-option .form-check-input:checked ~ label {
     background: #f1f7ed;
     border-color: #81b967;
+}
+
+.app-visibility-option .form-check-input.is-invalid ~ label {
+    border-color: var(--bs-danger);
 }
 
 .app-visibility-option .form-check-input:focus-visible ~ label {
