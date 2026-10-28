@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connection, transaction
+from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -932,17 +933,24 @@ def verify_app_running(instance_pk: int):
 def reconcile_app_statuses():
     """
     Task to reconcile app statuses.
+
+    Covers recent deploys, and deployed apps of any age stuck on a recoverable status
+    (e.g. after a node restart, when the event listener missed the Running event).
     """
     if not getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
         logger.debug("reconcile_app_statuses.disabled")
         return
 
+    recent_deploys = Q(
+        latest_user_action__in=["Creating", "Changing", "Redeploying"],
+        updated_on__gte=timezone.now() - RECONCILE_MAX_AGE,
+    )
+    stuck_deployed_apps = Q(k8s_user_app_status__status__in=["Pending", "ContainerCreating", "PodInitializing"]) & ~Q(
+        latest_user_action__in=["Draft", "Deleting", "SystemDeleting"]
+    )
+
     instances = list(
-        BaseAppInstance.objects.filter(
-            latest_user_action__in=["Creating", "Changing", "Redeploying"],
-            subdomain__isnull=False,
-            updated_on__gte=timezone.now() - RECONCILE_MAX_AGE,
-        )
+        BaseAppInstance.objects.filter(recent_deploys | stuck_deployed_apps, subdomain__isnull=False)
         .exclude(k8s_user_app_status__status="Running")
         .exclude(app__slug__in=POD_LESS_APP_SLUGS)
         .select_related("subdomain", "k8s_user_app_status")
