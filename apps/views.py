@@ -666,45 +666,55 @@ class SecretsView(View):
             raise PermissionDenied()
 
         username, password = None, None
-        if instance.get_app_status() == "Running":
-            subdomain = instance.subdomain
-            # If release name contains chart name it will be used as a full name.
-            # see here: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_names.tpl#L21-L37
-            if "mlflow" in subdomain.subdomain.lower():
-                secret_name = f"{subdomain.subdomain}-tracking"
+        subdomain = instance.subdomain
+        # If release name contains chart name it will be used as a full name.
+        # see here: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_names.tpl#L21-L37
+        if "mlflow" in subdomain.subdomain.lower():
+            secret_name = f"{subdomain.subdomain}-tracking"
+        else:
+            secret_name = f"{subdomain.subdomain}-mlflow-tracking"
+        try:
+            result = subprocess.run(
+                ("kubectl get secret " f"--namespace {settings.NAMESPACE} {secret_name} " "-o json").split(),
+                check=True,
+                text=True,
+                capture_output=True,
+                timeout=10,
+            )
+
+            secret = json.loads(result.stdout)
+            data = secret["data"]
+            username = base64.b64decode(data["admin-user"]).decode()
+            password = base64.b64decode(data["admin-password"]).decode()
+
+        except subprocess.CalledProcessError as exc:
+            message = exc.stderr
+            if "NotFound" in message:
+                messages.error(
+                    request,
+                    (
+                        "Secret or Namespace does not exist. Please try again later. "
+                        "If the problem persists, please contact us at serve@scilifelab.se."
+                    ),
+                )
+            elif "Forbidden" in message:
+                messages.error(request, "Insufficient Kubernetes permission. Please contact us at serve@scilifelab.se.")
             else:
-                secret_name = f"{subdomain.subdomain}-mlflow-tracking"
-            username = subprocess.run(
-                (
-                    "kubectl get secret "
-                    f"--namespace {settings.NAMESPACE} {secret_name} "
-                    '-o jsonpath="{.data.admin-user}"'
-                ).split(),
-                check=True,
-                text=True,
-                capture_output=True,
-                timeout=10,
-            ).stdout
-            username = base64.b64decode(username).decode()
-            password = subprocess.run(
-                (
-                    "kubectl get secret "
-                    f"--namespace {settings.NAMESPACE} {secret_name} "
-                    '-o jsonpath="{.data.admin-password}"'
-                ).split(),
-                check=True,
-                text=True,
-                capture_output=True,
-                timeout=10,
-            ).stdout
-            password = base64.b64decode(password).decode()
+                messages.error(
+                    request,
+                    "An error occurred while retrieving MLFlow credentials. Please contact us at serve@scilifelab.se.",
+                )
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": str(project)}))
+        except subprocess.TimeoutExpired:
+            logger.exception("Retrieving MLFlow credentials timed out.")
+            messages.error(request, "Retrieving MLFlow credentials timed out. Please try again later.")
+            return HttpResponseRedirect(reverse("projects:details", kwargs={"project_slug": str(project)}))
 
         minio_used_gib = minio_total_gib = minio_remaining_gib = None
-        if instance.get_app_status() == "Running":
-            result = get_minio_usage(f"{subdomain.subdomain}-minio")
-            if result is not None:
-                minio_used_gib, minio_total_gib = result
-                minio_remaining_gib = minio_total_gib - minio_used_gib
+        result = get_minio_usage(f"{subdomain.subdomain}-minio")
+        if result is not None:
+            minio_used_gib, minio_total_gib = result
+            minio_remaining_gib = minio_total_gib - minio_used_gib
 
         context = {
             "mlflow_username": username,
