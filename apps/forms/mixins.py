@@ -4,12 +4,11 @@ import re
 import requests
 from crispy_forms.layout import HTML, Div, Field, MultiField
 from django import forms
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 
 from apps.forms.field.common import SRVCommonDivField
-from apps.helpers import validate_docker_image, validate_ghcr_image
+from apps.helpers import choose_image
 from apps.models import VolumeInstance
 from projects.models import PersistentVolumeMountPath
 
@@ -89,20 +88,10 @@ class ContainerImageMixin:
         if getattr(self, "_is_draft_access", False):
             return image
 
-        if "ghcr.io" in image:
-            try:
-                validate_ghcr_image(image)
-            except ValidationError as e:
-                self.add_error("image", f"Error validating GHCR image: {str(e)}")
-                return image
-
-        if "docker.io" in image:
-            try:
-                validate_docker_image(image)
-            except ValidationError as e:
-                self.add_error("image", f"Error validating Docker image: {str(e)}")
-                return image
-
+        try:
+            self.deployment_image = choose_image(image)
+        except ValidationError as e:
+            self.add_error("image", e)
         return image
 
 

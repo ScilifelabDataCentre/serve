@@ -652,7 +652,7 @@ def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
     if force_redeploy:
         helm_info["restart"] = {"stdout": restart_output, "stderr": restart_error}
 
-    instance.info = dict(helm=helm_info)
+    instance.info = {**(instance.info or {}), "helm": helm_info}
     # instance.app_status.status = "Created" if success else "Failed"
 
     # Only update the info field to avoid overriding other modified fields elsewhere
@@ -746,7 +746,7 @@ def delete_resource(serialized_instance, initiated_by_str: str, release_subdomai
         "deleted_at": timezone.now().isoformat(),
     }
 
-    instance.info = dict(helm=helm_info)
+    instance.info = {**(instance.info or {}), "helm": helm_info}
 
     # Note: when we save the app instance object here, we should not overwrite properties
     # with old values, therefore we carefully restrict the updated fields.

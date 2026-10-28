@@ -6,7 +6,9 @@ from typing import NamedTuple, Protocol
 from urllib.parse import urlparse
 
 import requests
+import waffle
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from requests.auth import HTTPBasicAuth
 
 from studio.utils import get_logger
@@ -14,6 +16,9 @@ from studio.utils import get_logger
 logger = get_logger(__name__)
 
 # Constants
+REPOSITORY_COMPONENT_PATTERN = re.compile(r"[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*")
+IMAGE_TAG_PATTERN = re.compile(r"[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}")
+IMAGE_DIGEST_PATTERN = re.compile(r"sha256:[a-f0-9]{64}")
 
 
 class ContainerImageValidationError(ValueError):
@@ -235,11 +240,12 @@ class OCIRegistryPublicChecker:
     DEFAULT_5XX_RETRY_MAX = 3
     DEFAULT_5XX_RETRY_BASE_DELAY_SEC = 5.0
 
-    def __init__(self, registry: str, timeout: float = 10.0):
+    def __init__(self, registry: str, timeout: float = 10.0, *, verify_manifest: bool = False):
         if not registry.startswith("http"):
             registry = f"https://{registry}"
         self.registry = registry.rstrip("/")
         self.timeout = timeout
+        self.verify_manifest = verify_manifest
         self.session = requests.Session()
         self._token_cache: dict[tuple[str, str, str], CachedToken] = {}
 
@@ -343,12 +349,41 @@ class OCIRegistryPublicChecker:
             logger.warning("Registry token response was not JSON (status %s)", resp.status_code)
             return None, resp.status_code
 
+        if not isinstance(data, dict):
+            return None, resp.status_code
         token = data.get("token") or data.get("access_token")
-        if not token:
+        if not isinstance(token, str) or not token.strip():
             return None, resp.status_code
 
-        self._store_token(realm, service, scope, token, data.get("expires_in"))
+        try:
+            self._store_token(realm, service, scope, token, data.get("expires_in"))
+        except (TypeError, ValueError, OverflowError):
+            self._store_token(realm, service, scope, token, None)
         return token, None
+
+    @staticmethod
+    def _is_image_manifest(response: requests.Response) -> bool:
+        try:
+            manifest = response.json()
+        except ValueError:
+            return False
+        if not isinstance(manifest, dict) or manifest.get("schemaVersion") != 2:
+            return False
+        media_type = manifest.get("mediaType") or response.headers.get("Content-Type", "").split(";")[0]
+        if media_type not in ACCEPT_MANIFEST.split(", "):
+            return False
+        if media_type in (
+            "application/vnd.oci.image.index.v1+json",
+            "application/vnd.docker.distribution.manifest.list.v2+json",
+        ):
+            return isinstance(manifest.get("manifests"), list)
+        config = manifest.get("config")
+        return (
+            isinstance(config, dict)
+            and isinstance(config.get("digest"), str)
+            and bool(config["digest"])
+            and isinstance(manifest.get("layers"), list)
+        )
 
     def _request_manifest(
         self, repository: str, reference: str, token: str | None, use_head: bool
@@ -360,11 +395,14 @@ class OCIRegistryPublicChecker:
         url = f"{self.registry}/v2/{repository}/manifests/{reference}"
         method = self.session.head if use_head else self.session.get
         # Follow redirects to avoid false negatives behind registry/proxy redirects.
-        return method(url, headers=headers, timeout=self.timeout, allow_redirects=True)
+        response = method(url, headers=headers, timeout=self.timeout, allow_redirects=True)
+        if self.verify_manifest and response.status_code == 200 and not self._is_image_manifest(response):
+            raise requests.RequestException("Registry returned an invalid image manifest.")
+        return response
 
     def _check_public_accessibility_once(self, repository: str, reference: str) -> PublicImageAccessResult:
         """Single attempt; see check_public_accessibility for 5xx retry wrapper."""
-        for use_head in (True, False):
+        for use_head in (False,) if self.verify_manifest else (True, False):
             try:
                 response = self._request_manifest(repository, reference, token=None, use_head=use_head)
             except requests.RequestException as exc:
@@ -584,7 +622,11 @@ def get_container_image_context(app_instance) -> ContainerImageContext:
     Reused by DockerImageValidator and ImagePublicValidator so resolution, parsing,
     and auth logic live in one place.
     """
+    from apps.harbor import get_instance_deployment_image
+
     image = resolve_image_reference(app_instance)
+    if image:
+        image = get_instance_deployment_image(app_instance, image)
     if not image:
         return ContainerImageContext(
             image=None,
@@ -647,6 +689,11 @@ def get_authenticator_for_registry(registry: RegistryHost | str) -> BaseRegistry
     Use this in validators so registry auth (Docker Hub vs GHCR credentials) is chosen in one place.
     Returns None for unsupported registries.
     """
+    from apps.harbor import HarborAuthenticator, is_harbor_registry
+
+    if is_harbor_registry(registry_host_to_str(registry)):
+        return HarborAuthenticator(registry_host_to_str(registry))
+
     if isinstance(registry, RegistryHost):
         reg = registry
     else:
@@ -712,6 +759,54 @@ def parse_image_reference(image: str) -> tuple[RegistryHost | str, str, str]:
     return registry, repository, reference
 
 
+def validate_image_reference(image: str, *, require_project: bool = False) -> tuple[str, str, str]:
+    """Validate the image address before making a registry request."""
+    registry, repository, reference = parse_image_reference(image)
+    components = repository.split("/")
+    reference_pattern = IMAGE_DIGEST_PATTERN if "@" in image else IMAGE_TAG_PATTERN
+
+    valid_repository = len(components) >= (2 if require_project else 1) and all(
+        REPOSITORY_COMPONENT_PATTERN.fullmatch(component) for component in components
+    )
+    if "://" in image or not valid_repository or not reference_pattern.fullmatch(reference):
+        if require_project:
+            raise ValidationError(
+                "Use a Harbor image address in the form hostname/project/image:tag or image@sha256:digest."
+            )
+        raise ValidationError("Use an image address in the form registry/repository:tag or image@sha256:digest.")
+
+    return registry_host_to_str(registry), repository, reference
+
+
+def validate_harbor_image_reference(image: str) -> tuple[str, str, str]:
+    return validate_image_reference(image, require_project=True)
+
+
+def validate_public_image(image: str, *, registry_name="registry", require_project=False):
+    """Validate anonymous OCI access and the optional architecture requirement."""
+    registry, repository, reference = validate_image_reference(image, require_project=require_project)
+
+    checker = OCIRegistryPublicChecker(registry=registry, timeout=10, verify_manifest=True)
+    access = checker.check_public_accessibility(repository=repository, reference=reference)
+    if access.outcome == PublicImageAccessOutcome.REGISTRY_UNAVAILABLE:
+        raise ValidationError(f"Could not reach {registry_name}. Please try again later.")
+    if access.outcome != PublicImageAccessOutcome.PUBLIC:
+        raise ValidationError(
+            f"This {registry_name} image could not be pulled anonymously. Check its name and project visibility."
+        )
+
+    if waffle.switch_is_active("docker_image_architecture_validator"):
+        try:
+            architectures = get_image_architectures(
+                auth=get_authenticator_for_registry(registry), repo=repository, reference=reference, registry=registry
+            )
+        except ContainerImageValidationError as exc:
+            raise ValidationError(str(exc)) from exc
+        if not any(arch.os == "linux" and arch.arch == "amd64" for arch in architectures):
+            raise ValidationError(f"This {registry_name} image must support linux/amd64.")
+    return image
+
+
 def get_manifest_list(
     *, registry_auth: BaseRegistryAuth, repository: str, reference: str, registry: str = "registry-1.docker.io"
 ):
@@ -727,7 +822,14 @@ def get_manifest_list(
     url = f"https://{registry}/v2/{repository}/manifests/{reference}"
     logger.info(f"Fetching manifest from: {url}")
 
-    resp = requests.get(url, headers=headers)
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+    except requests.RequestException as exc:
+        raise ContainerImageValidationError(
+            f"Could not reach registry '{registry}'. Please try again later.",
+            retryable=True,
+            code="image_metadata_unavailable",
+        ) from exc
     if resp.status_code != 200:
         logger.error(f"Error fetching manifest: {resp.status_code} {resp.text}")
         image_reference = _format_image_reference(repository, reference, registry)
@@ -759,7 +861,14 @@ def get_config_blob(*, auth: BaseRegistryAuth, repo: str, digest: str, registry:
     headers["Authorization"] = f"Bearer {token}"
 
     logger.info(f"Fetching config blob: {url}")
-    resp = requests.get(url, headers=headers)
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+    except requests.RequestException as exc:
+        raise ContainerImageValidationError(
+            f"Could not reach registry '{registry}'. Please try again later.",
+            retryable=True,
+            code="image_metadata_unavailable",
+        ) from exc
     if resp.status_code != 200:
         logger.error(f"Error fetching config blob: {resp.status_code} {resp.text}")
         if _is_transient_registry_status(resp.status_code):

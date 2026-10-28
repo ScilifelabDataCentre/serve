@@ -23,9 +23,19 @@ from apps.constants import (
     AppActionOrigin,
     HandleUpdateStatusResponseCode,
 )
+from apps.harbor import (
+    get_deployment_image,
+    is_harbor_image,
+    remember_deployment_image,
+    reset_image_resolution,
+    validate_harbor_image,
+)
 from apps.validators.container_images import (
+    RegistryHost,
     get_authenticator_for_registry,
     get_image_architectures,
+    parse_image_reference,
+    validate_public_image,
 )
 from common.models import UserProfile
 from projects.models import Project
@@ -993,6 +1003,10 @@ def save_instance_and_related_data(instance: Any, form: Any) -> int:
     - int: The Id of the new or updated app instance.
     """
     logger.info("save_instance_and_related_data.start instance_id=%s", instance.pk)
+    reset_image_resolution(instance)
+    deployment_image = getattr(form, "deployment_image", None)
+    if deployment_image:
+        remember_deployment_image(instance, form.cleaned_data["image"], deployment_image)
     instance.save()
     form.save_m2m()
     instance.set_k8s_values()
@@ -1111,6 +1125,29 @@ def validate_ghcr_image(image: str):
                 "Please use docker build --platform linux/amd64 to build your image"
             )
 
+    return image
+
+
+SOURCE_REGISTRY_NAMES = {RegistryHost.DOCKER_HUB: "Docker Hub", RegistryHost.GHCR: "GHCR"}
+
+
+def choose_image(image: str) -> str:
+    """Validate the image and pick the registry to deploy it from. Raises ValidationError."""
+    if is_harbor_image(image):
+        validate_harbor_image(image)
+        return image
+
+    proxy_image = get_deployment_image(image)
+    if proxy_image != image:
+        try:
+            validate_harbor_image(proxy_image)
+            return proxy_image
+        except (ValidationError, requests.RequestException, ValueError) as error:
+            logger.warning("Could not use the Harbor proxy for %s: %s", image, error)
+
+    registry, _, _ = parse_image_reference(image)
+    if registry in SOURCE_REGISTRY_NAMES:
+        validate_public_image(image, registry_name=SOURCE_REGISTRY_NAMES[registry])
     return image
 
 
