@@ -2,6 +2,7 @@
 {% block title %}{{ form_header }} {{ app.name }}{% endblock %}
 {% load custom_tags %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block content %}
 {% load get_setting %}
@@ -76,6 +77,7 @@
     </div>
 </div>
 
+<script src="{% static 'js/app_select_dropdowns.js' %}"></script>
 <script>
 // Fetch docker image suggestions and populate the datalist
 document.addEventListener("DOMContentLoaded", function() {

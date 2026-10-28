@@ -112,6 +112,7 @@ class StorageMixin:
     )
 
     def _set_up_mount_path_field(self):
+        self.fields["mount_path"].widget.attrs["data-app-dropdown"] = "true"
         mount_paths_queryset = (
             PersistentVolumeMountPath.objects.filter(volume__project__pk=self.project.pk).exclude(
                 volume__latest_user_action__in=["Deleting", "SystemDeleting"]

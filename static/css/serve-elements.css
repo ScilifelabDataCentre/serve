@@ -1264,6 +1264,7 @@ cubic-bezier(.4, 0, .2, 1);
 .app-subdomain-control > .btn,
 .app-subdomain-control > .form-control,
 .app-subdomain-control > .form-select,
+.app-subdomain-control .app-select-trigger,
 .app-subdomain-control .input-group-text {
     min-height: 2.75rem;
     padding: .625rem .875rem;
@@ -1286,6 +1287,16 @@ cubic-bezier(.4, 0, .2, 1);
     display: flex;
     min-width: 0;
     max-width: 50%;
+}
+
+.app-subdomain-control > .app-select-dropdown {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: -1px;
+}
+
+.app-subdomain-control .app-select-trigger {
+    border-radius: 0;
 }
 
 .app-subdomain-control .input-group-text {
@@ -1550,20 +1561,24 @@ cubic-bezier(.4, 0, .2, 1);
 }
 
 .environment-secret-name-menu,
-.environment-secret-key-menu {
+.environment-secret-key-menu,
+.app-select-menu {
     max-height: 14rem;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: #adb9b3 transparent;
+    background-color: #fff;
 }
 
 .environment-secret-name-menu::-webkit-scrollbar,
-.environment-secret-key-menu::-webkit-scrollbar {
+.environment-secret-key-menu::-webkit-scrollbar,
+.app-select-menu::-webkit-scrollbar {
     width: .375rem;
 }
 
 .environment-secret-name-menu::-webkit-scrollbar-thumb,
-.environment-secret-key-menu::-webkit-scrollbar-thumb {
+.environment-secret-key-menu::-webkit-scrollbar-thumb,
+.app-select-menu::-webkit-scrollbar-thumb {
     background-color: #adb9b3;
     border-radius: 1rem;
 }

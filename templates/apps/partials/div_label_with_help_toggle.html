@@ -1,5 +1,9 @@
 <div>
+    {% if field.field.widget.is_hidden %}
+    <span class="form-label fw-bold" id="{{ field.id_for_label }}_label">{{ field.label }}</span>
+    {% else %}
     <label class="form-label fw-bold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {% endif %}
     {% if tooltip %}
     <span class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="{{ help_message }}">
     </span>
