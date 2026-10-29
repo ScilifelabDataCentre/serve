@@ -1281,6 +1281,187 @@ describe("Test deploying app", () => {
       }
     })
 
+    it("can redirect when a deployment finished", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-custom-example", "e2e-deploy-app-test")
+        
+        // Test of background tasks
+        // Names of objects to create
+        const project_name = TEST_PROJECT_DATA.project_name
+        const app_name = "e2e-custom-example"
+        const app_description = "e2e-custom-description"
+        const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:240312-1531"
+        const image_port = "8501"
+        const app_type = "Custom App"
+        const app_source_code_public = "https://source.org/"
+        const createResources = Cypress.env('create_resources')
+
+        if (createResources === true) {
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+            // Create an app with public permissions
+            cy.logf("Creating a project app", Cypress.currentTest)
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.selectAppVisibility('public')
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
+           
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_source_code_url').type(app_source_code_public)
+            cy.submitAppForm()
+
+            // Verify that the background task progress is displayed correctly.
+            cy.logf("Checking background tasks progress", Cypress.currentTest)
+            cy.url().should('contain', 'apps/progress/')
+            cy.get('#progress-pill').should('contain', 'Checking')
+            cy.get('#progress-bar').should('exist')
+            cy.get('#step-list').contains('Deploy app').should('exist')
+            cy.get('#details-link').should('contain', 'Deployment summary')
+
+            // Verify that progress information is changed on the UI
+            cy.logf("Checking how the displayed informaition changes as the task progress", Cypress.currentTest)
+            cy.get('#progress-pill', { timeout: 180000 }).should('contain', 'Ready')
+            cy.get('#progress-bar').should('have.class', 'bg-success')
+            
+            // Verify that it redirects to the detail page after the deployment is completed
+            cy.logf("Checking it redirects to the app detail page", Cypress.currentTest)
+            cy.location('pathname', { timeout: 60000 })
+                .should('include', '/apps/details/')
+            cy.get('h1').should('contain', app_name)
+            cy.get('#deployment-message').should('contain', 'The app is running')
+        } else {
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
+        }
+    })
+
+    it("does not redirect when a deployment failed", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // delete previous test apps in case the test failed
+        cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
+        deleteAppIfExists("e2e-custom-example", "e2e-deploy-app-test")
+        // Test of background tasks
+        // Names of objects to create
+        const project_name = TEST_PROJECT_DATA.project_name
+        const app_name = "e2e-custom-example"
+        const app_description = "e2e-custom-description"
+        const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
+        const image_port = "8501"
+        const app_type = "Custom App"
+        const app_source_code_public = "https://fake.source.com/"
+        const createResources = Cypress.env('create_resources')
+
+        if (createResources === true) {
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+            // Create an app with project permissions
+            cy.logf("Creating a project app", Cypress.currentTest)
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.selectAppVisibility('public')
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_source_code_url').type(app_source_code_public)
+            cy.submitAppForm()
+
+            // Verify that the background task progress is displayed correctly.
+            cy.logf("Checking background tasks progress", Cypress.currentTest)
+            cy.url().should('contain', 'apps/progress/')
+            cy.get('#progress-pill').should('contain', 'Checking')
+            cy.get('#progress-bar').should('exist')
+            cy.get('#step-list').contains('Deploy app').should('exist')
+            cy.get('#details-link').should('contain', 'Deployment summary')
+            cy.get('#progress-pill', { timeout: 120000 }).should('contain', 'Attention needed')
+            
+            // Verify that it doesn't redirect to the detail page after the deployment is failed
+            cy.logf("Checking it doesn't redirect to the app detail page", Cypress.currentTest)
+            cy.location('pathname').then((initialPath) => {
+                cy.wait(3000)
+                cy.location('pathname').should('eq', initialPath)
+            })
+
+            // Verify that progress information is changed on the UI
+            cy.logf("Checking the displayed information changes as the task progress", Cypress.currentTest)
+            cy.get('h1').should('contain', 'We could not finish preparing your app')
+            cy.get('#progress-inline')
+                .should('contain', '2 steps need attention')
+            cy.get('#progress-message')
+                .should('contain', 'Deployment cannot continue until the failed required check is resolved')
+            cy.get('#progress-bar').should('have.class', 'bg-danger')
+            cy.get('#step-list').contains('.step-row', 'Check Source Code URL')
+                .should('contain', 'Failed')
+                .next()
+                .should('contain', 'Skipped')
+            cy.get('#step-list').contains('.step-row', 'Deploy app')
+                .should('contain', 'Failed')
+        } else {
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
+        }
+    })
+
+    it("can redirect when draft data is saved", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // Test of background tasks
+        // Names of objects to create
+        const project_name = TEST_PROJECT_DATA.project_name
+        const app_name = "e2e-custom-example"
+        const app_description = "e2e-custom-description"
+        const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:latest"
+        const image_port = "8501"
+        const app_type = "Custom App"
+        const app_source_code_public = "https://source.org/"
+        const createResources = Cypress.env('create_resources')
+
+        if (createResources === true) {
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+            // Create an app with public permissions
+            cy.logf("Creating a project app", Cypress.currentTest)
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.selectAppVisibility('public')
+            cy.get('a[href*="settings/?tab=storage"]')
+                .should('be.visible')
+                .should('contain', 'Manage storage');
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_source_code_url').type(app_source_code_public)
+            cy.get('button').contains('Save draft')
+                .should('be.visible').click()
+
+            // Verify that the background task progress is displayed correctly.
+            cy.logf("Checking background tasks progress", Cypress.currentTest)
+            cy.url().should('contain', 'apps/progress/')
+            cy.get('#progress-pill').should('contain', 'Saving')
+            cy.get('#progress-bar').should('exist')
+            cy.get('#step-list').contains('Save draft metadata').should('exist')
+            cy.get('a').contains('Return to project').should('exist')
+
+            // Verify that progress information is changed on the UI
+            cy.logf("Checking how the displayed informaition changes as the task progress", Cypress.currentTest)
+            cy.get('#progress-pill', { timeout: 120000 }).should('contain', 'Saved')
+            cy.get('#progress-bar').should('have.class', 'bg-success')
+
+            // Verify that it redirects to the project page after draft data is saved
+            cy.logf("Checking it redirects to the project page", Cypress.currentTest)
+            cy.location('pathname', { timeout: 60000 })
+                .should('include', '/projects/' + project_name)
+            cy.get('h3').should('contain', project_name)
+        } else {
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
+        }
+    })
+    
 
     after(() => {
 
