@@ -1,4 +1,4 @@
-"""Validation and Kubernetes conversion for private application environment settings."""
+"""Validation and Kubernetes conversion for application environment settings."""
 
 import json
 import re
@@ -8,6 +8,26 @@ from django.core.exceptions import ValidationError
 ENVIRONMENT_APP_SLUGS = frozenset({"customapp", "dashapp", "gradio", "streamlit", "shinyapp", "shinyproxyapp"})
 ENVIRONMENT_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,252}\Z")
 SECRET_NAME = re.compile(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*\Z")
+
+
+def public_environment_requirements(instance):
+    """Return publishable variable names and whether all-key imports have unknown names."""
+    configuration = getattr(instance, "environment_variables", None) or {}
+    imports = getattr(instance, "environment_secret_imports", None) or []
+    if not isinstance(configuration, dict):
+        configuration = {}
+    names = {name for name in configuration if isinstance(name, str) and ENVIRONMENT_NAME.fullmatch(name)}
+    has_unlisted = False
+    for selection in imports:
+        if not isinstance(selection, dict):
+            continue
+        if selection.get("all") is True:
+            has_unlisted = True
+        else:
+            keys = selection.get("keys")
+            if isinstance(keys, list):
+                names.update(key for key in keys if isinstance(key, str) and ENVIRONMENT_NAME.fullmatch(key))
+    return sorted(names), has_unlisted
 
 
 def validate_kubernetes_secret_name(name):

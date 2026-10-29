@@ -96,7 +96,7 @@ class EnvironmentSecretSelectionsField(forms.MultipleChoiceField):
 
 
 class EnvironmentVariablesMixin:
-    """Expose private environment settings only to project-authorized privileged app editors."""
+    """Expose environment settings only to project-authorized privileged app editors."""
 
     def _setup_form_fields(self):
         super()._setup_form_fields()

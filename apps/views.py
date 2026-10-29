@@ -28,6 +28,7 @@ from guardian.decorators import permission_required_or_403
 from rest_framework.exceptions import NotFound
 
 from apps.constants import INVENIO_RECORD_REMOVAL_REASON_LABELS, AppActionOrigin
+from apps.environment_variables import ENVIRONMENT_NAME
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainChangeError
 from common.auth_cache import (
     build_cache_key,
@@ -838,6 +839,18 @@ def app_details(request, invenio_record_id):
     app_otherdata["app_url"] = technical_parts.get("URL of latest version deployment")
     app_otherdata["docker_image"] = technical_parts.get("Docker image")
     app_otherdata["docker_port"] = technical_parts.get("Docker image port")
+    try:
+        environment_names = json.loads(technical_parts.get("Environment variable names", "[]"))
+    except (TypeError, ValueError):
+        environment_names = []
+    app_otherdata["environment_names"] = (
+        [name for name in environment_names if isinstance(name, str) and ENVIRONMENT_NAME.fullmatch(name)]
+        if isinstance(environment_names, list)
+        else []
+    )
+    app_otherdata["has_unlisted_environment_variables"] = (
+        technical_parts.get("Additional variables from Secret imports") == "true"
+    )
     mounted_volume = technical_parts.get("Mounted volume")
     app_otherdata["mounted_volume"] = mounted_volume.lower() == "true" if mounted_volume else None
     app_otherdata["volume_mount_path"] = technical_parts.get("Volume mount path")

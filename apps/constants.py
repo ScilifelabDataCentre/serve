@@ -52,7 +52,10 @@ HELP_MESSAGE_MAP = {
     "track of apps available through SciLifeLab Serve.",
     "environment": "Select the environment that you want to use for your app. The environment is a Docker image that "
     "contains the software and dependencies needed to run your app.",
-    "environment_variables": "Environment settings set here are available to the application.",
+    "environment_variables": "Environment settings set here are available to the application. "
+    "To add a secret reference, get in touch with the team (serve@scilifelab.se). "
+    "Please keep in mind that we discourage use of environmental variables unless it is absolutely necessary "
+    "for your application",
     "mount_path": "Specify the path inside your Docker container that you want to persist; for example, the directory "
     "where you plan to store or load data. If you followed our guide to build the Docker container, "
     "please include the username you specified in the Dockerfile as part of the path.",

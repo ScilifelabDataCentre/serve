@@ -372,7 +372,7 @@ class CreatorsMixin:
             HTML(
                 """
                 <label class="form-label fw-bold">Creators
-                    <span class="bi bi-question-circle text-muted ms-2"
+                    <span class="bi bi-question-circle text-muted"
                           data-bs-toggle="tooltip"
                           data-bs-original-title="List one or more creators of the application."></span>
                 </label>
