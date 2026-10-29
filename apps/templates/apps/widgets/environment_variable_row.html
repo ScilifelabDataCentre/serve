@@ -1,0 +1,45 @@
+<div class="mb-2 environment-variable-row" data-environment-row-item>
+  <div class="justify-content-between align-items-center gap-2" data-environment-summary hidden>
+    <div class="row gx-2 overflow-hidden flex-grow-1">
+      <div class="col-3 overflow-hidden">
+        <div class="environment-variable-caption">Name</div>
+        <div class="fw-semibold text-truncate" data-environment-summary-name></div>
+      </div>
+      <div class="col-9 overflow-hidden">
+        <div class="environment-variable-caption">Value</div>
+        <div class="text-truncate" data-environment-summary-detail></div>
+      </div>
+    </div>
+    <div class="d-flex gap-1 flex-shrink-0">
+      <button type="button" class="btn btn-outline-secondary btn-sm environment-variable-action" data-environment-edit aria-label="Edit variable" title="Edit variable">
+        <i class="fas fa-edit" aria-hidden="true"></i>
+      </button>
+      <button type="button" class="btn btn-outline-danger btn-sm environment-variable-action" data-environment-remove aria-label="Remove variable" title="Remove variable">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+  <div class="row g-2 align-items-start" data-environment-fields>
+    <div class="col-md-3">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">Name</span>
+        <input class="form-control" name="{{ widget.name }}_config_name" value="{{ variable_name }}" placeholder="SERVICE_URL" aria-label="Variable name" autocomplete="off" maxlength="253" {% if first %}id="{{ widget.attrs.id }}"{% endif %}>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">Value</span>
+        <textarea class="form-control environment-variable-value" name="{{ widget.name }}_config_value" rows="1" placeholder="https://example.org" aria-label="Variable value" autocomplete="off">{{ variable_value }}</textarea>
+      </div>
+    </div>
+    <div class="col-md-2 d-flex gap-1 align-items-start justify-content-end">
+      <button type="button" class="btn btn-outline-danger btn-sm environment-variable-action" data-environment-remove-edit aria-label="Remove variable" title="Remove variable" hidden>
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+      <button type="button" class="btn btn-outline-success btn-sm environment-variable-action" data-environment-done aria-label="Confirm variable" title="Confirm variable" hidden>
+        <i class="fas fa-check" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+  <div class="environment-variable-error" data-environment-name-error role="alert" hidden></div>
+</div>

@@ -18,11 +18,13 @@ from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
 
 from apps.constants import (
+    APP_METADATA_EXCLUDED_FIELDS,
     DRAFT_VISIBILITY_INFO_KEY,
     UNIVERSITY_NAMES,
     AppActionOrigin,
     HandleUpdateStatusResponseCode,
 )
+from apps.environment_variables import validate_environment_overrides
 from apps.validators.container_images import (
     get_authenticator_for_registry,
     get_image_architectures,
@@ -498,6 +500,8 @@ def create_instance_from_form(
                 "shiny_site_dir",
                 "mount_path",
                 "default_url_subpath",
+                "environment_variables",
+                "environment_secret_imports",
             ]
             logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
 
@@ -1215,7 +1219,7 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
         raise ValueError(f"Project with id {app_instance.project_id} does not exist")
 
     # Convert models to dictionaries with safe defaults
-    app_data = model_to_dict(app_instance, exclude=["_state"])
+    app_data = model_to_dict(app_instance, exclude=APP_METADATA_EXCLUDED_FIELDS)
     user_data = model_to_dict(user_instance, exclude=["_state", "password"])
     project_data = model_to_dict(project_instance, exclude=["_state"])
 
@@ -1325,15 +1329,17 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
             },
             "parentOrganization": {
                 "@type": "Organization",
-                "name": user_data.get("affiliations", [{}])[0].get("title", "")
-                if user_data.get("affiliations")
-                else "",
+                "name": (
+                    user_data.get("affiliations", [{}])[0].get("title", "") if user_data.get("affiliations") else ""
+                ),
                 "additionalProperty": {
                     "@type": "PropertyValue",
                     "name": "department",
-                    "value": user_data.get("affiliations", [{}])[0].get("department", "")
-                    if user_data.get("affiliations")
-                    else "",
+                    "value": (
+                        user_data.get("affiliations", [{}])[0].get("department", "")
+                        if user_data.get("affiliations")
+                        else ""
+                    ),
                 },
             },
         },
@@ -1467,6 +1473,10 @@ def get_merged_k8s_values(instance: BaseAppInstance, ensure_up_to_date: bool = T
     if ensure_up_to_date:
         instance.set_k8s_values()
 
+    validate_environment_overrides(
+        instance.environment_variables, instance.k8s_values_override, instance.environment_secret_imports
+    )
+
     # Get base k8s_values
     values = instance.k8s_values or {}
 
@@ -1548,6 +1558,10 @@ def generate_helm_install_command(
     # Append version if deploying via ghcr
     if parsed_version:
         command += f" --version {parsed_version} --repository-cache /app/charts/.cache/helm/repository"
+
+    # Wait for ShinyProxy before its old-pod cleanup hook runs.
+    if "shinyproxy" in chart:
+        command += " --wait --timeout 180s"
 
     return command
 

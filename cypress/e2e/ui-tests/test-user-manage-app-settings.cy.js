@@ -424,7 +424,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_description').clear().type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_mount_path').select("/home/data (project-vol (e2e-user-manage-app-settings-test-proj))")
+            cy.get('#id_mount_path').selectAppDropdown("/home/data (project-vol (e2e-user-manage-app-settings-test-proj))")
             cy.selectAppVisibility('project')
             // fill out subdomain field
             cy.get('#id_subdomain').clear().type(subdomain)

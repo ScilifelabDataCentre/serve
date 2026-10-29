@@ -279,3 +279,11 @@ Cypress.Commands.add('populateTestApp', (userData, projectData, appData) => {
     }
   });
 });
+
+// Selects an option in a <select data-app-dropdown> through its custom dropdown (see static/js/app_select_dropdowns.js)
+Cypress.Commands.add('selectAppDropdown', { prevSubject: 'element' }, (subject, optionText) => {
+  const id = subject.attr('id')
+  cy.get(`#${id}_button`).should('be.visible').click()
+  cy.get(`#${id}_menu`).should('be.visible').contains('.dropdown-item', optionText).click()
+  return cy.wrap(subject)
+});

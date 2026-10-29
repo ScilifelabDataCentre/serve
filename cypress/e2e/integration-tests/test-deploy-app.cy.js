@@ -227,7 +227,7 @@ describe("Test deploying app", () => {
 
 
             // Set mount path (replaces old volume and path fields) - it's a select dropdown
-            cy.get('#id_mount_path').select('/home/data (project-vol (e2e-deploy-app-test))')
+            cy.get('#id_mount_path').selectAppDropdown('/home/data (project-vol (e2e-deploy-app-test))')
 
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
@@ -296,7 +296,7 @@ describe("Test deploying app", () => {
             cy.get('#id_note_on_linkonly_privacy').type(link_privacy_type_note)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_mount_path').select(mount_path)
+            cy.get('#id_mount_path').selectAppDropdown(mount_path)
             cy.get('#div_id_invenio_tags').should('be.visible')
                 .within(() => {
                     cy.get('input[placeholder*="Start typing"]').should('be.visible').type(keyword)
@@ -437,7 +437,7 @@ describe("Test deploying app", () => {
             cy.get('#id_port').clear().type(image_port_2)
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_image').clear().type(image_name_2)
-            cy.get('#id_mount_path').select(mount_path_2)
+            cy.get('#id_mount_path').selectAppDropdown(mount_path_2)
             // Open Advanced settings before accessing the field
             cy.getAppAdvancedField('#id_default_url_subpath').scrollIntoView().should('be.visible')
             cy.getAppAdvancedField('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
@@ -1112,7 +1112,7 @@ describe("Test deploying app", () => {
             cy.get('#id_description').clear().type(app_description)
             cy.get('#id_port').clear().type("8501")
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_mount_path').select("/home/data (project-vol (e2e-deploy-app-test))")
+            cy.get('#id_mount_path').selectAppDropdown("/home/data (project-vol (e2e-deploy-app-test))")
             cy.selectAppVisibility('project')
             // fill out subdomain field
             cy.get('#id_subdomain').clear().type(subdomain)

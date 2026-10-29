@@ -2,6 +2,7 @@
 {% block title %}{{ form_header }} {{ app.name }}{% endblock %}
 {% load custom_tags %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block content %}
 {% load get_setting %}
@@ -76,6 +77,7 @@
     </div>
 </div>
 
+<script src="{% static 'js/app_select_dropdowns.js' %}"></script>
 <script>
 // Fetch docker image suggestions and populate the datalist
 document.addEventListener("DOMContentLoaded", function() {
@@ -129,14 +131,45 @@ document.addEventListener("DOMContentLoaded", function() {
     //});
 });
 
+    function clearFormFieldError(field, errorId) {
+        field.classList.remove('is-invalid');
+        field.removeAttribute('aria-invalid');
+        const descriptions = (field.getAttribute('aria-describedby') || '')
+            .split(/\s+/).filter(id => id && id !== errorId);
+        if (descriptions.length) field.setAttribute('aria-describedby', descriptions.join(' '));
+        else field.removeAttribute('aria-describedby');
+        document.getElementById(errorId)?.remove();
+    }
+
+    function clearEditedFieldError(event) {
+        const field = event.target;
+        if (!field.matches('input, select, textarea') || !field.closest('form.needs-validation')) return;
+        if (field.name === 'access' && field.type === 'radio') {
+            if (!field.checked) return;
+            const group = field.closest('.app-visibility');
+            if (!group) return;
+            group.querySelectorAll('input[name="access"]').forEach(input => clearFormFieldError(input, 'id_access_error'));
+            clearFormFieldError(group, 'id_access_error');
+            return;
+        }
+        if (field.id === 'id_subdomain' || field.closest('[data-environment-editor], [data-environment-secret-editor]')) return;
+        const errorId = `${field.id}_error`;
+        if (field.classList.contains('is-invalid') && document.getElementById(errorId)) {
+            clearFormFieldError(field, errorId);
+        }
+    }
+
+    document.addEventListener('input', clearEditedFieldError);
+    document.addEventListener('change', clearEditedFieldError);
+
     function clearSubdomainValidation() {
         // Must clear django form validation message
         $("#id_subdomain").each(function() {
             $(this).removeClass("is-valid");
-            $(this).removeClass("is-invalid");
+            clearFormFieldError(this, 'id_subdomain_error');
         });
 
-        $(".client-validation-feedback").each(function() {
+        $("#div_id_subdomain .client-validation-feedback").each(function() {
             $(this).text("");
             $(this).hide();
             $(this).removeClass("client-validation-valid");
@@ -185,6 +218,7 @@ document.addEventListener("DOMContentLoaded", function() {
             $("#submit-id-submit").prop("disabled", false);
             $("#id_subdomain").addClass("is-valid");
             $("#id_subdomain").removeClass("is-invalid");
+            $("#id_subdomain").removeAttr("aria-invalid");
             //console.log($('#id_subdomain').siblings('.client-validation-feedback'))
             $('#id_subdomain').siblings('.client-validation-feedback').addClass("client-validation-valid");
             $('#id_subdomain').siblings(".client-validation-feedback").removeClass("client-validation-invalid");
@@ -194,6 +228,7 @@ document.addEventListener("DOMContentLoaded", function() {
             $("#submit-id-submit").prop("disabled", true);
             $("#id_subdomain").addClass("is-invalid");
             $("#id_subdomain").removeClass("is-valid");
+            $("#id_subdomain").attr("aria-invalid", "true");
             //console.log($('#id_subdomain').siblings('.client-validation-feedback'))
             $('#id_subdomain').siblings(".client-validation-feedback").addClass("client-validation-invalid");
             $('#id_subdomain').siblings(".client-validation-feedback").removeClass("client-validation-valid");
@@ -364,12 +399,15 @@ document.addEventListener("DOMContentLoaded", function() {
         updateUrlWithSubdomain();
     }
     function selectValidation(event) {
+        clearSubdomainValidation();
         doneTyping(event.target.value);
     }
     function runScript() {
         // Add event handler on the subdomain input field
         let typingTimer;                // Timer identifier
         let doneTypingInterval = 500;   // Time in ms (500 ms = 0.5 seconds)
+
+        $("#id_subdomain").on('input', clearSubdomainValidation);
 
         // On keyup, start the countdown
         $("#id_subdomain").on('keyup', function () {

@@ -18,6 +18,11 @@ from django.core.exceptions import PermissionDenied
 from django.forms.models import model_to_dict
 
 from apps.background_tasks.utils import resolve_app_access, resolve_app_image
+from apps.constants import APP_METADATA_EXCLUDED_FIELDS
+from apps.environment_variables import (
+    public_environment_configuration,
+    public_environment_requirements,
+)
 from doi_minting.clients.invenio_client import (
     InvenioClient,
     InvenioClientError,
@@ -1325,22 +1330,29 @@ class InvenioService:
             )
         ]
 
-    def _build_technical_description(self, app_data: AppData) -> AdditionalDescription:
+    def _build_technical_description(self, app_data: AppData, app_instance: Any) -> AdditionalDescription:
         """Build default technical description metadata."""
 
         port = app_data.port or "None"
         path = app_data.path if app_data.volume is not None else "None"
         source_code_url = app_data.source_code_url or "None"
         has_volume = app_data.volume is not None
+        environment_names, has_unlisted = public_environment_requirements(app_instance)
+        configuration = public_environment_configuration(app_instance)
+        environment_values = {name: configuration.get(name, f"<{name}>") for name in environment_names}
+        environment_details = f"Environment variables: {json.dumps(environment_values)}; " if environment_values else ""
+        unlisted_details = "Additional variables from Secret imports: true; " if has_unlisted else ""
 
         return AdditionalDescription(
             description=(
                 f"URL of latest version deployment: {app_data.url}; "
                 f"Docker image: {app_data.image}; "
                 f"Docker image port: {port}; "
+                f"{unlisted_details}"
                 f"Mounted volume: {has_volume}; "
                 f"Volume mount path: {path}; "
                 f"App source code URL: {source_code_url}; "
+                f"{environment_details}"
             ),
             type=AdditionalDescriptionType(id="technical-info"),
         )
@@ -1359,7 +1371,7 @@ class InvenioService:
             Validated InvenioRDM metadata as Pydantic model
         """
         # Get basic app data
-        app_data_dict = model_to_dict(app_instance, exclude=["_state"])
+        app_data_dict = model_to_dict(app_instance, exclude=APP_METADATA_EXCLUDED_FIELDS)
         app_data = AppData(**app_data_dict)
 
         # Get user data
@@ -1403,7 +1415,7 @@ class InvenioService:
         identifiers = self._build_identifiers(str(app_data.id))
         related_identifiers = self._build_related_identifiers(app_data)
         contributors = self._build_contributors()
-        technical_description = self._build_technical_description(app_data)
+        technical_description = self._build_technical_description(app_data, app_instance)
 
         # Build metadata using Pydantic models
         # A Serve draft may still have a blank description (only "name" is required for a
@@ -1566,7 +1578,7 @@ class InvenioService:
 
         # Get the application instance
         app_instance = model_class.objects.get(pk=app_id)
-        app_data_dict = model_to_dict(app_instance, exclude=["_state"])
+        app_data_dict = model_to_dict(app_instance, exclude=APP_METADATA_EXCLUDED_FIELDS)
         app_data = AppData(**app_data_dict)
 
         logger.info(f"Processing app '{app_data.name}' with image '{app_data.image}'")

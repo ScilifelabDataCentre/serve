@@ -1,4 +1,4 @@
-<fieldset id="id_access" class="app-visibility" aria-describedby="id_access_helptext">
+<fieldset id="id_access" class="app-visibility" aria-describedby="id_access_helptext{% if form.access.errors %} id_access_error{% endif %}"{% if form.access.errors %} aria-invalid="true"{% endif %}>
     <legend class="h5">Visibility</legend>
     <p class="app-visibility-intro">Choose who can access your {{ form.visibility_subject }}.</p>
     {% if form.is_draft_instance %}
@@ -25,10 +25,14 @@
         </div>
         {% endif %}
     {% endfor %}
+    {% if form.access.errors %}
+        <div id="id_access_error">
+            {% for error in form.access.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
     <div id="id_access_helptext" class="small text-muted">{% if form.access.field.disabled %}{{ form.access.help_text }}{% endif %}</div>
-    {% for error in form.access.errors %}
-        <div class="invalid-feedback d-block">{{ error }}</div>
-    {% endfor %}
 </fieldset>
 {% if form.show_draft_action %}
     {% if form.can_save_draft %}

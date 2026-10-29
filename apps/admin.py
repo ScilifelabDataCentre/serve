@@ -76,6 +76,8 @@ class K8sUserAppStatusAdmin(admin.ModelAdmin):
 
 
 class BaseAppAdmin(admin.ModelAdmin):
+    exclude = ("environment_variables", "environment_secret_imports")
+
     project_scoped_fields = {
         "subdomain": "project_id",
         "flavor": "project_id",
@@ -231,7 +233,9 @@ class BaseAppAdmin(admin.ModelAdmin):
             self.message_user(request, f"{success_count} apps successfully deleted.", messages.SUCCESS)
         if failure_count:
             self.message_user(
-                request, f"Failed to delete {failure_count} apps. Check logs for details.", messages.ERROR
+                request,
+                f"Failed to delete {failure_count} apps. Check logs for details.",
+                messages.ERROR,
             )
 
     @admin.action(description="Set new dates for reminders of Link permission apps")
@@ -260,7 +264,9 @@ class BaseAppAdmin(admin.ModelAdmin):
             )
         else:
             self.message_user(
-                request, "There was not a single app with Link permission among the selected apps.", messages.ERROR
+                request,
+                "There was not a single app with Link permission among the selected apps.",
+                messages.ERROR,
             )
 
     @admin.action(description="Export values as YAML")
@@ -294,7 +300,11 @@ class BaseAppAdmin(admin.ModelAdmin):
 
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
-        self.message_user(request, f"Exported {queryset.count()} app instance(s) values as YAML.", messages.SUCCESS)
+        self.message_user(
+            request,
+            f"Exported {queryset.count()} app instance(s) values as YAML.",
+            messages.SUCCESS,
+        )
 
         return response
 

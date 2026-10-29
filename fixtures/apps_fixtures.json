@@ -215,7 +215,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.8",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.11",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "Apps built with Gradio, Streamlit, Flask, etc.",
       "gpu_enabled": true,
@@ -253,7 +253,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/dash-app:1.0.9",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/dash-app:1.0.12",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "gpu_enabled": true,
@@ -272,7 +272,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyapp:1.0.10",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyapp:1.0.13",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "shinyapp-logo.svg",
@@ -290,7 +290,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.4.13",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/shinyproxy:1.4.17",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "logo": "shinyapp-logo.svg",
@@ -395,7 +395,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.8",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.11",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "gpu_enabled": true,
@@ -414,7 +414,7 @@
   {
     "fields": {
       "category": "serve",
-      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.8",
+      "chart": "ghcr.io/scilifelabdatacentre/serve-charts/custom-app:1.1.11",
       "created_on": "2023-08-25T21:34:37.815Z",
       "description": "",
       "gpu_enabled": true,

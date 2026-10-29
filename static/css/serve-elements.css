@@ -10,6 +10,11 @@
     text-decoration: none;
 }
 
+.code-copy-button:hover {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
 .btn-primary {
     --bs-btn-bg: var(--serve-dark-grey);
     --bs-btn-border-color: var(--serve-dark-grey);
@@ -1195,6 +1200,10 @@ cubic-bezier(.4, 0, .2, 1);
     box-shadow: 0 0 0 .2rem rgb(129 185 103 / 18%);
 }
 
+.app-form-main .input-group:has(.is-invalid) .input-group-text {
+    border-color: var(--bs-danger);
+}
+
 .app-form-main .form-text {
     margin-top: .5rem;
     font-size: .8125rem;
@@ -1260,6 +1269,7 @@ cubic-bezier(.4, 0, .2, 1);
 .app-subdomain-control > .btn,
 .app-subdomain-control > .form-control,
 .app-subdomain-control > .form-select,
+.app-subdomain-control .app-select-trigger,
 .app-subdomain-control .input-group-text {
     min-height: 2.75rem;
     padding: .625rem .875rem;
@@ -1282,6 +1292,16 @@ cubic-bezier(.4, 0, .2, 1);
     display: flex;
     min-width: 0;
     max-width: 50%;
+}
+
+.app-subdomain-control > .app-select-dropdown {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: -1px;
+}
+
+.app-subdomain-control .app-select-trigger {
+    border-radius: 0;
 }
 
 .app-subdomain-control .input-group-text {
@@ -1400,6 +1420,10 @@ cubic-bezier(.4, 0, .2, 1);
     border-color: #81b967;
 }
 
+.app-visibility-option .form-check-input.is-invalid ~ label {
+    border-color: var(--bs-danger);
+}
+
 .app-visibility-option .form-check-input:focus-visible ~ label {
     outline: 2px solid #477b36;
     outline-offset: 2px;
@@ -1477,6 +1501,116 @@ cubic-bezier(.4, 0, .2, 1);
 
 .app-form-sidebar .app-form-without-draft-action input[type="submit"] {
     grid-column: auto;
+}
+
+.environment-variable-row,
+.environment-secret-row {
+    font-size: .8125rem;
+}
+
+.environment-variable-caption {
+    color: #626b66;
+    font-size: .75rem;
+}
+
+.environment-variable-error {
+    color: #b02a37;
+    font-size: .75rem;
+    margin-top: .25rem;
+}
+
+.environment-variable-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.625rem;
+    height: 1.625rem;
+    padding: 0;
+    font-size: .75rem;
+}
+
+.app-form-main .environment-variable-row .form-control,
+.app-form-main .environment-variable-row .input-group-text,
+.app-form-main .environment-secret-row .form-select,
+.app-form-main .environment-secret-row .input-group-text {
+    font-size: .8125rem;
+}
+
+.environment-variable-row .input-group-sm > .form-control {
+    height: 2rem;
+    min-height: 2rem;
+}
+
+.environment-secret-row .form-select {
+    height: 2rem;
+    min-height: 2rem;
+}
+
+.environment-secret-row [data-environment-secret-name-button],
+.environment-secret-row [data-environment-secret-value] {
+    background-color: #fff;
+}
+
+.environment-secret-name,
+.environment-secret-value {
+    width: 100%;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.environment-secret-row .input-group > .dropdown {
+    margin-left: -1px;
+}
+
+.environment-secret-name-menu,
+.environment-secret-key-menu,
+.app-select-menu {
+    max-height: 14rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #adb9b3 transparent;
+    background-color: #fff;
+}
+
+.environment-secret-name-menu::-webkit-scrollbar,
+.environment-secret-key-menu::-webkit-scrollbar,
+.app-select-menu::-webkit-scrollbar {
+    width: .375rem;
+}
+
+.environment-secret-name-menu::-webkit-scrollbar-thumb,
+.environment-secret-key-menu::-webkit-scrollbar-thumb,
+.app-select-menu::-webkit-scrollbar-thumb {
+    background-color: #adb9b3;
+    border-radius: 1rem;
+}
+
+.environment-secret-display-value {
+    overflow-wrap: anywhere;
+}
+
+.environment-secret-actions {
+    min-height: 2rem;
+}
+
+[data-environment-add-secret]:disabled {
+    color: #606c65;
+    background-color: #edf1ef;
+    border-color: #bbc5bf;
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+.environment-secret-empty {
+    color: #35433b;
+}
+
+.environment-variable-value {
+    resize: none;
+    max-height: 12rem;
 }
 
 @media (max-width: 991.98px) {
