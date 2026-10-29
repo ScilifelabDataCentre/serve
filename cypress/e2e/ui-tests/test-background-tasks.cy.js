@@ -112,7 +112,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-           
+
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_source_code_url').type(app_source_code_public)
@@ -130,7 +130,7 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Checking the displayed information changes as the task progress", Cypress.currentTest)
             cy.get('#progress-pill', { timeout: 180000 }).should('contain', 'Ready')
             cy.get('#progress-bar').should('have.class', 'bg-success')
-            
+
             // Verify that it redirects to the detail page after the deployment is completed
             cy.logf("Checking it redirects to the app detail page", Cypress.currentTest)
             cy.location('pathname', { timeout: 60000 })
@@ -175,7 +175,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#step-list').contains('Deploy app').should('exist')
             cy.get('#details-link').should('contain', 'Deployment summary')
             cy.get('#progress-pill', { timeout: 120000 }).should('contain', 'Attention needed')
-            
+
             // Verify that it doesn't redirect to the detail page after the deployment is failed
             cy.logf("Checking it doesn't redirect to the app detail page", Cypress.currentTest)
             cy.location('pathname').then((initialPath) => {

@@ -1285,7 +1285,7 @@ describe("Test deploying app", () => {
         // delete previous test apps in case the test failed
         cy.logf("Now deleting previous test apps in case the test failed", Cypress.currentTest)
         deleteAppIfExists("e2e-custom-example", "e2e-deploy-app-test")
-        
+
         // Test of background tasks
         // Names of objects to create
         const project_name = TEST_PROJECT_DATA.project_name
@@ -1310,7 +1310,7 @@ describe("Test deploying app", () => {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-           
+
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
             cy.get('#id_source_code_url').type(app_source_code_public)
@@ -1328,7 +1328,7 @@ describe("Test deploying app", () => {
             cy.logf("Checking how the displayed informaition changes as the task progress", Cypress.currentTest)
             cy.get('#progress-pill', { timeout: 180000 }).should('contain', 'Ready')
             cy.get('#progress-bar').should('have.class', 'bg-success')
-            
+
             // Verify that it redirects to the detail page after the deployment is completed
             cy.logf("Checking it redirects to the app detail page", Cypress.currentTest)
             cy.location('pathname', { timeout: 60000 })
@@ -1381,7 +1381,7 @@ describe("Test deploying app", () => {
             cy.get('#step-list').contains('Deploy app').should('exist')
             cy.get('#details-link').should('contain', 'Deployment summary')
             cy.get('#progress-pill', { timeout: 120000 }).should('contain', 'Attention needed')
-            
+
             // Verify that it doesn't redirect to the detail page after the deployment is failed
             cy.logf("Checking it doesn't redirect to the app detail page", Cypress.currentTest)
             cy.location('pathname').then((initialPath) => {
@@ -1461,7 +1461,7 @@ describe("Test deploying app", () => {
             cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
         }
     })
-    
+
 
     after(() => {
 
