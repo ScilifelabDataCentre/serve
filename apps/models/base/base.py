@@ -188,7 +188,7 @@ class BaseAppInstance(models.Model):
         default=dict,
         blank=True,
         validators=[validate_environment_variables],
-        help_text="Private non-sensitive runtime configuration. Import approved Secrets separately for credentials.",
+        help_text="Values appear in public Run Locally instructions. Import approved Secrets for credentials.",
     )
     environment_secret_imports = models.JSONField(
         default=list, blank=True, validators=[validate_environment_secret_imports]

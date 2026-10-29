@@ -18,7 +18,10 @@ from django.utils.text import slugify
 from django.views.generic import View
 
 from apps.app_registry import APP_REGISTRY
-from apps.environment_variables import public_environment_requirements
+from apps.environment_variables import (
+    public_environment_configuration,
+    public_environment_requirements,
+)
 from apps.models import Apps, BaseAppInstance, SocialMixin
 from common.tasks import send_email_task
 from studio.utils import get_logger
@@ -280,6 +283,7 @@ def add_additional_context_to_public_apps(published_apps):
                 "image": k8s_values.get("appconfig", {}).get("image", "Not available"),
                 "port": k8s_values.get("appconfig", {}).get("port", "Not available"),
                 "environment_names": environment_names,
+                "environment_configuration": json.dumps(public_environment_configuration(app)),
                 "has_unlisted_environment_variables": has_unlisted_environment_variables,
                 "userid": k8s_values.get("appconfig", {}).get("userid", "Not available"),
                 "pvc": k8s_values.get("apps", {}).get("volumeK8s") or None,

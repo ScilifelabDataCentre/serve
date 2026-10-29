@@ -19,7 +19,10 @@ from django.forms.models import model_to_dict
 
 from apps.background_tasks.utils import resolve_app_access, resolve_app_image
 from apps.constants import APP_METADATA_EXCLUDED_FIELDS
-from apps.environment_variables import public_environment_requirements
+from apps.environment_variables import (
+    public_environment_configuration,
+    public_environment_requirements,
+)
 from doi_minting.clients.invenio_client import (
     InvenioClient,
     InvenioClientError,
@@ -1335,21 +1338,21 @@ class InvenioService:
         source_code_url = app_data.source_code_url or "None"
         has_volume = app_data.volume is not None
         environment_names, has_unlisted = public_environment_requirements(app_instance)
-        environment_details = ""
-        if environment_names or has_unlisted:
-            environment_details = f"Environment variable names: {json.dumps(environment_names)}; "
-            if has_unlisted:
-                environment_details += "Additional variables from Secret imports: true; "
+        configuration = public_environment_configuration(app_instance)
+        environment_values = {name: configuration.get(name, f"<{name}>") for name in environment_names}
+        environment_details = f"Environment variables: {json.dumps(environment_values)}; " if environment_values else ""
+        unlisted_details = "Additional variables from Secret imports: true; " if has_unlisted else ""
 
         return AdditionalDescription(
             description=(
                 f"URL of latest version deployment: {app_data.url}; "
                 f"Docker image: {app_data.image}; "
                 f"Docker image port: {port}; "
-                f"{environment_details}"
+                f"{unlisted_details}"
                 f"Mounted volume: {has_volume}; "
                 f"Volume mount path: {path}; "
                 f"App source code URL: {source_code_url}; "
+                f"{environment_details}"
             ),
             type=AdditionalDescriptionType(id="technical-info"),
         )

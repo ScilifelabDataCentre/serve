@@ -31,6 +31,21 @@ def public_environment_requirements(instance: Any) -> tuple[list[str], bool]:
     return sorted(names), has_unlisted
 
 
+def public_environment_configuration(instance: Any) -> dict[str, str]:
+    """Return configured values for public local-run instructions, excluding Secret imports."""
+    configuration = getattr(instance, "environment_variables", None) or {}
+    if not isinstance(configuration, dict):
+        return {}
+    return {
+        name: source["value"]
+        for name, source in configuration.items()
+        if isinstance(name, str)
+        and ENVIRONMENT_NAME.fullmatch(name)
+        and isinstance(source, dict)
+        and isinstance(source.get("value"), str)
+    }
+
+
 def validate_kubernetes_secret_name(name):
     if (
         not isinstance(name, str)

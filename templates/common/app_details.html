@@ -41,6 +41,7 @@
         data-app-image="{{ app_otherdata.docker_image }}"
         data-app-port="{{ app_otherdata.docker_port }}"
         data-app-env-names="{{ app_otherdata.environment_names|join:',' }}"
+        data-app-env-config="{{ app_otherdata.environment_configuration }}"
         data-app-env-unlisted="{{ app_otherdata.has_unlisted_environment_variables|yesno:'true,false' }}">
         <i class="bi bi-download"></i> Run Locally
         </a>

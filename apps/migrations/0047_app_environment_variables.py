@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             field=models.JSONField(
                 blank=True,
                 default=dict,
-                help_text="Private non-sensitive runtime configuration. Import approved Secrets separately for credentials.",
+                help_text="Values appear in public Run Locally instructions. Import approved Secrets for credentials.",
                 validators=[apps.environment_variables.validate_environment_variables],
             ),
         ),

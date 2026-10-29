@@ -12,7 +12,7 @@
             <h6>Step 2. Launch the app</h6>
             <p>Navigate to Terminal (or Windows Terminal) window and run the following command. This will download the Docker image of this app and subsequently launch it.</p>
             <div id="app-environment-setup" hidden>
-              <p id="app-environment-intro">Create a private <code>app.env</code> file with these variables. Replace each placeholder with a value obtained separately:</p>
+              <p id="app-environment-intro">Create a private <code>app.env</code> file using these lines. Replace values in angle brackets with values obtained separately:</p>
               <div class="border rounded bg-light mb-3" id="app-environment-example">
                 <div class="d-flex align-items-center justify-content-between px-3 pt-2">
                   <span class="text-secondary">app.env</span>
@@ -57,6 +57,7 @@ dockerInfoModal.addEventListener('show.bs.modal', event => {
   const appImage = button.getAttribute('data-app-image')
   const appPort = button.getAttribute('data-app-port')
   const environmentNames = (button.getAttribute('data-app-env-names') || '').split(',').filter(Boolean)
+  const environmentConfiguration = JSON.parse(button.getAttribute('data-app-env-config') || '{}')
   const hasUnlisted = button.getAttribute('data-app-env-unlisted') === 'true'
   const needsEnvironmentFile = environmentNames.length > 0 || hasUnlisted
 
@@ -65,7 +66,10 @@ dockerInfoModal.addEventListener('show.bs.modal', event => {
   dockerInfoModal.querySelector('#app-environment-intro').hidden = environmentNames.length === 0
   dockerInfoModal.querySelector('#app-environment-example').hidden = environmentNames.length === 0
   dockerInfoModal.querySelector('#app-environment-example code').textContent =
-    environmentNames.map(name => `${name}=replace-me`).join('\n')
+    environmentNames.map(name => {
+      const value = environmentConfiguration[name]
+      return `${name}=${typeof value === 'string' ? value : `<${name}>`}`
+    }).join('\n')
   dockerInfoModal.querySelector('#app-environment-unlisted').hidden = !hasUnlisted
   dockerInfoModal.querySelector('#app-docker-command').textContent =
     `docker run --rm -p ${appPort}:${appPort}${needsEnvironmentFile ? ' --env-file app.env' : ''} ${appImage}`

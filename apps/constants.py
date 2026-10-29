@@ -53,6 +53,7 @@ HELP_MESSAGE_MAP = {
     "environment": "Select the environment that you want to use for your app. The environment is a Docker image that "
     "contains the software and dependencies needed to run your app.",
     "environment_variables": "Environment settings set here are available to the application. "
+    "Configuration values also appear in public DOI records and Run Locally instructions. "
     "To add a secret reference, get in touch with the team (serve@scilifelab.se). "
     "Please keep in mind that we discourage use of environmental variables unless it is absolutely necessary "
     "for your application",
