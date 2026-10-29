@@ -216,7 +216,7 @@ describe("Test storage settings functionality", () => {
         cy.get('#id_mount_path option:contains("/home/data")').should('exist');
 
         // Select a valid mount path
-        cy.get('#id_mount_path').select('/home/data (project-vol (' + TEST_PROJECT_DATA.project_name + '))');
+        cy.get('#id_mount_path').selectAppDropdown('/home/data (project-vol (' + TEST_PROJECT_DATA.project_name + '))');
         cy.get('#submit-id-submit').should('not.be.disabled');
     });
 

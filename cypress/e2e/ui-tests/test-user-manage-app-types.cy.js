@@ -169,8 +169,8 @@ if (Cypress.env('create_resources') === true) {
             cy.logf("Checking that instructions for running the app locally are displayed on public apps page", Cypress.currentTest)
             cy.get('a[data-bs-target="#dockerInfoModal"]').first().click()
             cy.get('div#dockerInfoModal').should('be.visible')
-            cy.get('code').first().should('contain', image_name)
-            cy.get('code').first().should('contain', image_port)
+            cy.get('#app-docker-command').should('contain', image_name)
+            cy.get('#app-docker-command').should('contain', image_port)
             cy.get('div.docker-info-modal-footer').find('button').contains('Close').click()
 
             cy.logf("Checking that source code URL is displayed on the public apps page", Cypress.currentTest)
