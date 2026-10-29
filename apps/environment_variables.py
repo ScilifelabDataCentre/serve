@@ -2,6 +2,7 @@
 
 import json
 import re
+from typing import Any
 
 from django.core.exceptions import ValidationError
 
@@ -10,7 +11,7 @@ ENVIRONMENT_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,252}\Z")
 SECRET_NAME = re.compile(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)*\Z")
 
 
-def public_environment_requirements(instance):
+def public_environment_requirements(instance: Any) -> tuple[list[str], bool]:
     """Return publishable variable names and whether all-key imports have unknown names."""
     configuration = getattr(instance, "environment_variables", None) or {}
     imports = getattr(instance, "environment_secret_imports", None) or []

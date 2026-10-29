@@ -13,10 +13,22 @@
             <p>Navigate to Terminal (or Windows Terminal) window and run the following command. This will download the Docker image of this app and subsequently launch it.</p>
             <div id="app-environment-setup" hidden>
               <p id="app-environment-intro">Create a private <code>app.env</code> file with these variables. Replace each placeholder with a value obtained separately:</p>
-              <pre id="app-environment-example"><code></code></pre>
+              <div class="border rounded bg-light mb-3" id="app-environment-example">
+                <div class="d-flex align-items-center justify-content-between px-3 pt-2">
+                  <span class="text-secondary">app.env</span>
+                  <button type="button" class="btn btn-sm btn-link code-copy-button text-secondary text-decoration-none p-0" data-copy-target="#app-environment-example code" data-copy-name="app.env example" aria-label="Copy app.env example" aria-live="polite"><i class="bi bi-clipboard" aria-hidden="true"></i> <span>Copy</span></button>
+                </div>
+                <pre class="mb-0 px-3 pb-3 pt-1 overflow-auto"><code class="text-body"></code></pre>
+              </div>
               <p id="app-environment-unlisted" hidden>Additional environment variables are required but their names are not listed here. Ask the app owner or Serve for the details.</p>
             </div>
-            <p><code id="app-docker-command"></code></p>
+            <div class="border rounded bg-light mb-3">
+              <div class="d-flex align-items-center justify-content-between px-3 pt-2">
+                <span class="text-secondary">Docker command</span>
+                <button type="button" class="btn btn-sm btn-link code-copy-button text-secondary text-decoration-none p-0" data-copy-target="#app-docker-command" data-copy-name="Docker command" aria-label="Copy Docker command" aria-live="polite"><i class="bi bi-clipboard" aria-hidden="true"></i> <span>Copy</span></button>
+              </div>
+              <pre class="mb-0 px-3 pb-3 pt-1 text-wrap text-break"><code class="text-body" id="app-docker-command"></code></pre>
+            </div>
             <p>Navigate to <i>http://localhost:<span class="app-port"></span>/</i> to open the app.</p>
             <h6>Step 3. Stop the app</h6>
             <p>In order to stop the running app you can press Control+C. Keep in mind that your session will not be saved when you stop the app. Every time you start the app it will be starting from the same default state. See <a target="_blank" href="https://docs.docker.com/reference/cli/docker/image/rm/">this documentation page</a> for how to remove a downloaded image from your computer.</p>
@@ -31,6 +43,14 @@
 
 <script>
 const dockerInfoModal = document.getElementById('dockerInfoModal')
+const copyStatusTimers = new WeakMap()
+
+function resetCopyButton(button) {
+  button.querySelector('i').className = 'bi bi-clipboard'
+  button.querySelector('span').textContent = 'Copy'
+  button.setAttribute('aria-label', `Copy ${button.dataset.copyName}`)
+}
+
 dockerInfoModal.addEventListener('show.bs.modal', event => {
   const button = event.relatedTarget
   const appName = button.getAttribute('data-app-name')
@@ -49,6 +69,51 @@ dockerInfoModal.addEventListener('show.bs.modal', event => {
   dockerInfoModal.querySelector('#app-environment-unlisted').hidden = !hasUnlisted
   dockerInfoModal.querySelector('#app-docker-command').textContent =
     `docker run --rm -p ${appPort}:${appPort}${needsEnvironmentFile ? ' --env-file app.env' : ''} ${appImage}`
+  dockerInfoModal.querySelectorAll('[data-copy-target]').forEach(button => {
+    clearTimeout(copyStatusTimers.get(button))
+    resetCopyButton(button)
+  })
   dockerInfoModal.querySelectorAll('.app-port').forEach(span => { span.textContent = appPort })
 });
+
+dockerInfoModal.querySelectorAll('[data-copy-target]').forEach(button => {
+  button.addEventListener('click', async () => {
+    const text = dockerInfoModal.querySelector(button.dataset.copyTarget).textContent
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        const input = document.createElement('textarea')
+        input.value = text
+        input.style.position = 'fixed'
+        input.style.opacity = '0'
+        dockerInfoModal.appendChild(input)
+        let copied
+        let copyEventHandled = false
+        input.addEventListener('copy', event => {
+          event.clipboardData.setData('text/plain', text)
+          event.preventDefault()
+          copyEventHandled = true
+        }, { once: true })
+        try {
+          input.focus()
+          input.select()
+          input.setSelectionRange(0, text.length)
+          copied = document.execCommand('copy')
+        } finally {
+          input.remove()
+        }
+        if (!copied || !copyEventHandled) throw new Error('Copy failed')
+      }
+      button.querySelector('i').className = 'bi bi-check-lg'
+      button.querySelector('span').textContent = 'Copied'
+      button.setAttribute('aria-label', `${button.dataset.copyName} copied`)
+    } catch (error) {
+      button.querySelector('span').textContent = 'Copy failed'
+      button.setAttribute('aria-label', `Could not copy ${button.dataset.copyName}`)
+    }
+    clearTimeout(copyStatusTimers.get(button))
+    copyStatusTimers.set(button, setTimeout(() => resetCopyButton(button), 2500))
+  })
+})
 </script>

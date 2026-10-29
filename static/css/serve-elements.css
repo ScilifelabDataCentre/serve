@@ -10,6 +10,11 @@
     text-decoration: none;
 }
 
+.code-copy-button:hover {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
 .btn-primary {
     --bs-btn-bg: var(--serve-dark-grey);
     --bs-btn-border-color: var(--serve-dark-grey);
