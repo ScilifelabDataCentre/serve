@@ -79,6 +79,7 @@ class SignUpView(CreateView):
         context = super().get_context_data(**kwargs)
         if "profile_form" not in context:
             context["profile_form"] = ProfileForm(self.request.POST or None)
+        context["email_allow_regex"] = EMAIL_ALLOW_REGEX.pattern
 
         # Pass departments list for the datalist
         with open(settings.STATICFILES_DIRS[0] + "/common/departments.json") as f:

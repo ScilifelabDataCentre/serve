@@ -34,13 +34,12 @@ with open(settings.STATICFILES_DIRS[0] + "/common/universities.json") as f:
     UNIVERSITIES = [(k, v) for k, v in UNIVERSITIES.items()]
 
 
-# Regex for validating email domain
-# Same regexp could be found in templates/registration/signup.html
 EMAIL_ALLOW_REGEX = re.compile(
     (
-        r"^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*?"  # Subdomain part
-        + f"({('|').join([u[0] for u in UNIVERSITIES if u[0] != 'other'])}"
-        + r")\.se"  # End of the domain
+        r"^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*"
+        + r"(?:"
+        + "|".join(re.escape(key) for key, _ in UNIVERSITIES if key != "other")
+        + r")\.se$"
     ),
     re.IGNORECASE,
 )
@@ -291,7 +290,7 @@ class SignUpForm:
         email = user_data.get("email", "")
         why_account_needed = profile_data.get("why_account_needed")
 
-        is_university_email = EMAIL_ALLOW_REGEX.match(email.split("@")[1]) is not None
+        is_university_email = EMAIL_ALLOW_REGEX.fullmatch(email.split("@")[1]) is not None
 
         is_request_account_empty = not bool(why_account_needed)
 

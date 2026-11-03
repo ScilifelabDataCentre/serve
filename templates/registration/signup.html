@@ -10,6 +10,7 @@
 
 
 {% block content %}
+{{ email_allow_regex|json_script:"approved-email-domain-pattern" }}
 <div class="container">
     {% if not maintenance_mode|is_login_signup_disabled %}
     <div class="card border-0 shadow-lg my-5">
