@@ -97,6 +97,10 @@ describe("Test sign up", () => {
         // reset and check that all works
         cy.get('input[name=email]').clear().type("test-email@uu.se");
         cy.get('[id="id_request_account_info"]').should('have.class', 'hidden')
+        cy.get('input[name=email]').clear().type("test-email@scilifelab.se");
+        cy.get('[id="id_request_account_info"]').should('have.class', 'hidden')
+        cy.get('input[name=email]').clear().type("test-email@scilifelab.se.example.com");
+        cy.get('[id="id_request_account_info"]').should('not.have.class', 'hidden')
 
         cy.logf("Mismatching passwords rejected by the backend", Cypress.currentTest)
         cy.visit("/signup/")
