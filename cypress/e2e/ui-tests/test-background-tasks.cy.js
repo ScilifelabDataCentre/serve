@@ -85,7 +85,7 @@ if (Cypress.env('create_resources') === true) {
                 if (outcome === 'ignore') return
                 const expectation = step[outcome]
                 if (!expectation) {
-                    throw new Error('Unknown outcome "${outcome}" for step "${key}"')
+                    throw new Error(`Unknown outcome "${outcome}" for step "${key}"`)
                 }
                 expectStep(step.name, expectation)
             })
