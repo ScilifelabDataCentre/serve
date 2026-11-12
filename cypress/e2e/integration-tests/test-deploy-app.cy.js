@@ -18,6 +18,9 @@ describe("Test deploying app", () => {
     // such as URL probing in the event-listener. Using timeout just over 3 minutes
     const shinyAppCmdTimeoutMs = 183000
 
+    // Timeout for background tasks
+    const taskTimeoutMs = 60000
+
     // Function to verify the displayed app status
     // Function to verify the displayed app permission level
     // Function to verify the expected_latest_user_action from data-app-action
@@ -1281,6 +1284,81 @@ describe("Test deploying app", () => {
       }
     })
 
+    // This test verifies that progress page displays the correct status wjem background tasks
+    it("displays the correct status indicators when background tasks succeed with public visibility", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
+        // Test of background tasks
+        // Names of objects to create
+        const project_name = TEST_PROJECT_DATA.project_name
+        const app_name = "e2e-custom-example"
+        const app_description = "e2e-custom-description"
+        const image_name = "ghcr.io/scilifelabdatacentre/example-streamlit:240312-1531"
+        const image_port = "8501"
+        const app_type = "Custom App"
+        const app_source_code_public = "https://source.org/"
+
+        if (createResources === true) {
+            cy.visit("/projects/")
+            cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
+
+            // Create an app with public permissions
+            cy.logf("Creating a project app", Cypress.currentTest)
+            cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
+            cy.get('#id_name').type(app_name)
+            cy.get('#id_description').type(app_description)
+            cy.selectAppVisibility('public')
+            cy.get('#id_port').clear().type(image_port)
+            cy.get('#id_image').clear().type(image_name)
+            cy.get('#id_source_code_url').type(app_source_code_public)
+            cy.submitAppForm()
+
+            // Verify that the background task progress is displayed correctly.
+            cy.logf("Checking background tasks progress", Cypress.currentTest)
+            // Verify checking image access task
+            cy.get('#step-list').contains('.step-row', 'Check Image Access')
+                .find('.step-detail-copy')
+                .should('contain', 'Currently running')
+            cy.get('#step-list').contains('.step-row', 'Check Image Access')
+                .find('.step-detail-copy', { timeout: 60000 })
+                .should('contain', 'Completed successfully')
+            // Verify checking image compatibility task
+            cy.get('#step-list').contains('.step-row', 'Check Image Compatibility')
+                .find('.step-detail-copy')
+                .should('contain', 'Currently running')
+            cy.get('#step-list').contains('.step-row', 'Check Image Compatibility')
+                .find('.step-detail-copy', { timeout: 60000 })
+                .should('contain', 'Completed successfully')
+            // Verify checking source code url task
+            cy.get('#step-list').contains('.step-row', 'Check Source Code URL')
+                .find('.step-detail-copy')
+                .should('contain', 'Currently running')
+            cy.get('#step-list').contains('.step-row', 'Check Source Code URL')
+                .find('.step-detail-copy', { timeout: 60000 })
+                .should('contain', 'Completed successfully')
+            // Verify reserving DOI task
+            cy.get('#step-list').contains('.step-row', 'Reserve a Digital Object Identifier (DOI)')
+                .find('.step-detail-copy')
+                .should('contain', 'Currently running')
+            cy.get('#step-list').contains('.step-row', 'Reserve a Digital Object Identifier (DOI)')
+                .find('.step-detail-copy', { timeout: 60000 })
+                .should('contain', 'Completed successfully')
+            // Verify running Deploy app
+            cy.get('#step-list').contains('.step-row', 'Deploy app')
+                .find('.step-detail-copy')
+                .should('contain', 'Waiting for app status')
+            cy.get('#step-list').contains('.step-row', 'Deploy app')
+                .find('.step-detail-copy', { timeout: 60000 })
+                .should('contain', 'The app is running')
+
+            // Verify that it redirects to the detail page after the deployment is completed
+            cy.logf("Checking it redirects to the app detail page", Cypress.currentTest)
+            cy.location('pathname', { timeout: 60000 })
+                .should('include', '/apps/details/')
+            cy.get('h1').should('contain', app_name)
+            cy.get('#deployment-message').should('contain', 'The app is running')
+        } else {
+            cy.logf('Skipped because create_resources is not true', Cypress.currentTest)
+        }
+    })
 
     after(() => {
 
