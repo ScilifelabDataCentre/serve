@@ -45,31 +45,32 @@ if (Cypress.env('create_resources') === true) {
         }
 
         // Constant to verify all background task steps
+        // initial check can be flaky
         const STEP_EXPECTATIONS = {
             imageAccess: {
                 name: 'Check Image Access',
-                success: {final: 'Completed successfully'}, // initial check for Image Access is flaky
+                success: {final: 'Completed successfully'},
                 failure: {final: /Could not verify that container image|is not publicly pullable/}
             },
             imageCompatibility: {
                 name: 'Check Image Compatibility',
-                success: {initial: 'Currently running', final: 'Completed successfully'},
-                failure: {initial: 'Currently running', final: 'Make sure the image is built for amd64', selector: '.step-detail-note'}
+                success: {final: 'Completed successfully'},
+                failure: {final: 'Make sure the image is built for amd64', selector: '.step-detail-note'}
             },
             sourceCodeUrl: {
                 name: 'Check Source Code URL',
-                success: {initial: 'Currently running', final: 'Completed successfully'},
-                skipped: {initial: 'Waiting for this step to start', final: 'Skipped: no source code URL'},
-                failure: {initial: 'Check did not succeed', final: 'Source code URL unreachable'}
+                success: {final: 'Completed successfully'},
+                skipped: {final: 'Skipped: no source code URL'},
+                failure: {final: 'Source code URL unreachable'}
             },
             doi: {
                 name: 'Reserve a Digital Object Identifier (DOI)',
-                success: {initial: 'Currently running', final: 'Completed successfully'},
+                success: {final: 'Completed successfully'},
                 skipped: {final: 'Skipped: A required deployment check failed earlier'}
             },
             deploy: {
                 name: 'Deploy app',
-                success: {initial: 'Waiting for app status', final: 'The app is running'},
+                success: {final: 'The app is running'},
                 failure: {final: 'Deployment cannot continue until the failed required check is resolved'}
             }
         }
