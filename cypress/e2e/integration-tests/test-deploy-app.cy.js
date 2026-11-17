@@ -1284,7 +1284,7 @@ describe("Test deploying app", () => {
       }
     })
 
-    // This test verifies that progress page displays the correct status wjem background tasks
+    // This test verifies that progress page displays the correct status of background tasks
     it("displays the correct status indicators when background tasks succeed with public visibility", { defaultCommandTimeout: defaultCmdTimeoutMs }, () => {
         // Test of background tasks
         // Names of objects to create

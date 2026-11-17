@@ -50,7 +50,8 @@ if (Cypress.env('create_resources') === true) {
             imageAccess: {
                 name: 'Check Image Access',
                 success: {final: 'Completed successfully'},
-                failure: {final: /Could not verify that container image|is not publicly pullable/}
+                failure_unavailable: {final: 'Could not verify that container image'},
+                failure_anonymous_pull: {final: 'is not publicly pullable'}
             },
             imageCompatibility: {
                 name: 'Check Image Compatibility',
@@ -210,7 +211,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
-            // Create an app with public permissions
+            // Create an app with project permissions
             cy.logf("Creating a project app", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
@@ -241,7 +242,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
-            // Create an app with public permissions
+            // Create an app with link permissions
             cy.logf("Creating a project app", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
@@ -272,7 +273,7 @@ if (Cypress.env('create_resources') === true) {
             cy.visit("/projects/")
             cy.contains('.card-title', project_name).parents('.card-body').siblings('.card-footer').find('a:contains("Open")').first().click()
 
-            // Create an app with public permissions
+            // Create an app with private permissions
             cy.logf("Creating a project app", Cypress.currentTest)
             cy.get('div.card-body:contains("' + app_type + '")').siblings('.card-footer').find('a:contains("Create")').click()
             cy.get('#id_name').type(app_name)
