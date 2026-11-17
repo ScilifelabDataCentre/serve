@@ -11,6 +11,10 @@ from .models import MaintenanceWindow
 
 logger = get_logger(__name__)
 
+ACTIVE_STATUSES = [
+    MaintenanceWindow.Status.SCHEDULED,
+    MaintenanceWindow.Status.IN_PROGRESS,
+]
 
 AUTO_MESSAGE_TEMPLATE = (
     "On {date} we will perform a planned upgrade of the cluster. "
@@ -28,16 +32,15 @@ def sync_maintenance_messages():
     """
     Shows an automatic maintenance message the day before a scheduled maintenance
     window, and removes it and marks the window as completed once the window has passed.
-    Only removes messages that exactly match the automatically generated text, so manually
-    added or modified messages are preserved.
+    Only removes messages that exactly match the automatically generated text and other properties,
+    so manually added or modified messages are preserved.
     """
     today = timezone.localdate()
     tomorrow = today + timedelta(days=1)
 
-    # clean up MaintenanceWindow finished
-    finished = MaintenanceWindow.objects.filter(
-        date__lt=today,
-    ).exclude(status__in=[MaintenanceWindow.Status.COMPLETED, MaintenanceWindow.Status.CANCELLED])
+    # Clean up MaintenanceWindow finished
+    # Fetch MaintenanceWindows regardless of their status to check for leftover auto-generated messages
+    finished = MaintenanceWindow.objects.filter(date__lt=today)
 
     for window in finished:
         try:
@@ -57,20 +60,22 @@ def sync_maintenance_messages():
 
 def _complete_window(window):
     """
-    Removes the message with exactly matching text and marks the window as completed.
+    Removes the message with exactly matching properties and marks the window as completed.
+    Also marks MaintenanceWindows which have been left unchanged.
     """
     text = build_auto_message(window)
     with transaction.atomic():
-        deleted, _ = MaintenanceMode.objects.filter(message_in_header=text).delete()
+        deleted, _ = MaintenanceMode.objects.filter(
+            login_and_signup_disabled=False,
+            message_in_header=text,
+            message_in_footer="",
+            message_in_project_dashboard="",
+        ).delete()
         if deleted:
-            window.status = MaintenanceWindow.Status.COMPLETED
-            window.save(update_fields=["status"])
-        else:
-            logger.info(
-                "No matching automatic message for maintenance window %s; "
-                "it may have been changed manually, so it was left as is",
-                window.pk,
-            )
+            logger.info("Deleted MaintenanceMode for window %s", window.pk)
+        if window.status in ACTIVE_STATUSES:
+            _mark_completed(window)
+            logger.info("Marked MaintenanceWindow %s as completed.", window.pk)
 
 
 def _announce_window(window):
@@ -89,3 +94,8 @@ def _announce_window(window):
             return
         text = build_auto_message(window)
         MaintenanceMode.objects.create(message_in_header=text)
+
+
+def _mark_completed(window):
+    window.status = MaintenanceWindow.Status.COMPLETED
+    window.save(update_fields=["status"])
