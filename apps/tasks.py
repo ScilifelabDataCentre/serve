@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connection, transaction
+from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -18,6 +19,10 @@ from api.services.loki import query_unique_ip_count
 from apps.app_registry import APP_REGISTRY
 from apps.background_tasks.utils import select_latest_task_records
 from apps.constants import AppActionOrigin
+from apps.environment_variables import (
+    ENVIRONMENT_APP_SLUGS,
+    validate_project_environment,
+)
 from apps.gpu import instance_holds_gpu
 from apps.helpers import (
     generate_helm_install_command,
@@ -496,6 +501,13 @@ def deploy_resource(self, serialized_instance, force_redeploy: bool = False):
         )
         return
 
+    if instance.app.slug in ENVIRONMENT_APP_SLUGS:
+        validate_project_environment(
+            instance.environment_variables,
+            instance.project_id,
+            is_shiny=instance.app.slug in {"shinyapp", "shinyproxyapp"},
+            secret_imports=instance.environment_secret_imports,
+        )
     values = get_merged_k8s_values(instance, ensure_up_to_date=True)
     release = values["subdomain"]
     chart: str = instance.chart
@@ -739,7 +751,11 @@ def delete_resource(serialized_instance, initiated_by_str: str, release_subdomai
         # Note: This can occur if for example the deployment has already been deleted.
         logger.info(f"Failed to delete resource type {instance.app.slug}, {values['subdomain']}, error={error}")
 
-    helm_info = {"success": success, "info": {"stdout": output, "stderr": error}}
+    helm_info = {
+        "success": success,
+        "info": {"stdout": output, "stderr": error},
+        "deleted_at": timezone.now().isoformat(),
+    }
 
     instance.info = dict(helm=helm_info)
 
@@ -928,17 +944,24 @@ def verify_app_running(instance_pk: int):
 def reconcile_app_statuses():
     """
     Task to reconcile app statuses.
+
+    Covers recent deploys, and deployed apps of any age stuck on a recoverable status
+    (e.g. after a node restart, when the event listener missed the Running event).
     """
     if not getattr(settings, "POD_STATUS_AGGREGATION_ENABLED", True):
         logger.debug("reconcile_app_statuses.disabled")
         return
 
+    recent_deploys = Q(
+        latest_user_action__in=["Creating", "Changing", "Redeploying"],
+        updated_on__gte=timezone.now() - RECONCILE_MAX_AGE,
+    )
+    stuck_deployed_apps = Q(k8s_user_app_status__status__in=["Pending", "ContainerCreating", "PodInitializing"]) & ~Q(
+        latest_user_action__in=["Draft", "Deleting", "SystemDeleting"]
+    )
+
     instances = list(
-        BaseAppInstance.objects.filter(
-            latest_user_action__in=["Creating", "Changing", "Redeploying"],
-            subdomain__isnull=False,
-            updated_on__gte=timezone.now() - RECONCILE_MAX_AGE,
-        )
+        BaseAppInstance.objects.filter(recent_deploys | stuck_deployed_apps, subdomain__isnull=False)
         .exclude(k8s_user_app_status__status="Running")
         .exclude(app__slug__in=POD_LESS_APP_SLUGS)
         .select_related("subdomain", "k8s_user_app_status")

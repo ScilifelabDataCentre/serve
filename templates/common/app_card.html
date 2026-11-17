@@ -102,7 +102,16 @@
                         <div>
                         {% if app.slug in 'shinyapp,shinyproxyapp,dashapp,customapp,gradio,streamlit' %}
                             {% if app.pvc == None %}
-                            <a title="Instructions for running the app locally" rel="Instructions for running the app locally" href="#" class="btn btn-outline-serve btn-sm" data-bs-toggle="modal" data-bs-target="#dockerInfoModal" data-app-name="{{ app.name }}" data-app-image="{{ app.image }}" data-app-port="{{ app.port }}"><i class="bi bi-download"></i> Run Locally</a>
+                            <a title="Instructions for running the app locally"
+                               rel="Instructions for running the app locally" href="#"
+                               class="btn btn-outline-serve btn-sm" data-bs-toggle="modal"
+                               data-bs-target="#dockerInfoModal" data-app-name="{{ app.name }}"
+                               data-app-image="{{ app.image }}" data-app-port="{{ app.port }}"
+                               data-app-env-names="{{ app.environment_names|join:',' }}"
+                               data-app-env-config="{{ app.environment_configuration }}"
+                               data-app-env-unlisted="{{ app.has_unlisted_environment_variables|yesno:'true,false' }}">
+                                <i class="bi bi-download"></i> Run Locally
+                            </a>
                             {% endif %}
                             {% endif %}
                             {% if app.source_code_url %}

@@ -87,6 +87,13 @@ class BaseForm(forms.ModelForm):
             else:
                 field.widget.attrs["class"] = "form-control"
 
+    def add_error(self, field, error):
+        super().add_error(field, error)
+        if field:
+            widget = self.fields[field].widget
+            if not widget.is_hidden:
+                widget.attrs["class"] = " ".join(dict.fromkeys([*widget.attrs.get("class", "").split(), "is-invalid"]))
+
     # restore helptext for model in case it is rest in form
     def _restore_model_help_text(self):
         for name, field in self.fields.items():

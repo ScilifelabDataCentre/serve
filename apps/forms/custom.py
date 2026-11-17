@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
+from apps.forms.environment_variables import EnvironmentVariablesMixin
 from apps.forms.field.common import SRVCommonDivField
 from apps.forms.field.widget import FlavorSelect
 from apps.forms.mixins import (
@@ -20,7 +21,9 @@ from projects.models import Flavor
 __all__ = ["CustomAppForm"]
 
 
-class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, CreatorsMixin, AppBaseForm):
+class CustomAppForm(
+    EnvironmentVariablesMixin, StorageMixin, ContainerImageMixin, KeywordTagsValidationMixin, CreatorsMixin, AppBaseForm
+):
     flavor = forms.ModelChoiceField(
         queryset=Flavor.objects.none(), required=False, empty_label=None, widget=FlavorSelect
     )
@@ -163,6 +166,7 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
                 template="apps/partials/srv_prepend_append_input_group.html",
                 attrs={"aria-label": "Custom URL subpath"},
             ),
+            *self.get_environment_variables_layout(),
             active=False,
         )
 
@@ -200,6 +204,8 @@ class CustomAppForm(StorageMixin, ContainerImageMixin, KeywordTagsValidationMixi
     class Meta:
         model = CustomAppInstance
         fields = [
+            "environment_variables",
+            "environment_secret_imports",
             "name",
             "description",
             "volume",

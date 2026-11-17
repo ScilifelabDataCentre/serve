@@ -28,6 +28,10 @@ from guardian.decorators import permission_required_or_403
 from rest_framework.exceptions import NotFound
 
 from apps.constants import INVENIO_RECORD_REMOVAL_REASON_LABELS, AppActionOrigin
+from apps.environment_variables import (
+    ENVIRONMENT_NAME,
+    public_environment_configuration,
+)
 from apps.types_.subdomain import SubdomainCandidateName, SubdomainChangeError
 from common.auth_cache import (
     build_cache_key,
@@ -827,6 +831,9 @@ def app_details(request, invenio_record_id):
     )
 
     technical_parts = {}
+    technical_description, has_environment_values, environment_values_json = technical_description.partition(
+        "; Environment variables: "
+    )
     if technical_description:
         technical_parts = {
             key.strip(): value.strip()
@@ -838,6 +845,50 @@ def app_details(request, invenio_record_id):
     app_otherdata["app_url"] = technical_parts.get("URL of latest version deployment")
     app_otherdata["docker_image"] = technical_parts.get("Docker image")
     app_otherdata["docker_port"] = technical_parts.get("Docker image port")
+    if has_environment_values:
+        try:
+            environment_values = json.loads(environment_values_json.rstrip("; "))
+        except (TypeError, ValueError):
+            environment_values = {}
+        environment_values = (
+            {
+                name: value
+                for name, value in environment_values.items()
+                if isinstance(name, str) and ENVIRONMENT_NAME.fullmatch(name) and isinstance(value, str)
+            }
+            if isinstance(environment_values, dict)
+            else {}
+        )
+        environment_names = list(environment_values)
+    else:
+        try:
+            environment_names = json.loads(technical_parts.get("Environment variable names", "[]"))
+        except (TypeError, ValueError):
+            environment_names = []
+    app_otherdata["environment_names"] = (
+        [name for name in environment_names if isinstance(name, str) and ENVIRONMENT_NAME.fullmatch(name)]
+        if isinstance(environment_names, list)
+        else []
+    )
+    if has_environment_values:
+        app_otherdata["environment_configuration"] = json.dumps(environment_values)
+    else:
+        app_pk = app_otherdata["app_pk"]
+        base_app = (
+            BaseAppInstance.objects.select_related("app").filter(pk=app_pk).first()
+            if app_pk and app_pk.isdigit()
+            else None
+        )
+        model_class = APP_REGISTRY.get_orm_model(base_app.app.slug) if base_app else None
+        current_app = model_class.objects.filter(pk=app_pk).first() if model_class else None
+        app_otherdata["environment_configuration"] = json.dumps(
+            public_environment_configuration(current_app)
+            if current_app and current_app.invenio_record_id == invenio_record_id
+            else {}
+        )
+    app_otherdata["has_unlisted_environment_variables"] = (
+        technical_parts.get("Additional variables from Secret imports") == "true"
+    )
     mounted_volume = technical_parts.get("Mounted volume")
     app_otherdata["mounted_volume"] = mounted_volume.lower() == "true" if mounted_volume else None
     app_otherdata["volume_mount_path"] = technical_parts.get("Volume mount path")

@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from apps.forms.base import AppBaseForm
+from apps.forms.environment_variables import EnvironmentVariablesMixin
 from apps.forms.field.common import SRVCommonDivField
 from apps.forms.field.widget import FlavorSelect
 from apps.forms.mixins import (
@@ -20,7 +21,7 @@ from projects.models import Flavor
 __all__ = ["DashForm"]
 
 
-class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, AppBaseForm):
+class DashForm(EnvironmentVariablesMixin, ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, AppBaseForm):
     flavor = forms.ModelChoiceField(
         queryset=Flavor.objects.none(), required=False, empty_label=None, widget=FlavorSelect
     )
@@ -161,6 +162,7 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
                 mark_safe("<span id='id_custom_default_url_prepend'>Subdomain/</span>"),
                 template="apps/partials/srv_prepend_append_input_group.html",
             ),
+            *self.get_environment_variables_layout(),
             active=False,
         )
 
@@ -208,6 +210,8 @@ class DashForm(ContainerImageMixin, CreatorsMixin, KeywordTagsValidationMixin, A
     class Meta:
         model = DashInstance
         fields = [
+            "environment_variables",
+            "environment_secret_imports",
             "name",
             "description",
             "flavor",

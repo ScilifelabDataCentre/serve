@@ -7,6 +7,22 @@ from apps.models import AppInstanceManager, BaseAppInstance
 class FilemanagerInstanceManager(AppInstanceManager):
     model_type = "filemanagerinstance"
 
+    def get_reusable_instance(self, project):
+        """Return the latest deleted, non-persistent file manager of the project (row-locked), or None."""
+        return (
+            self.select_for_update()
+            .filter(
+                project=project,
+                persistent=False,
+                latest_user_action__in=["Deleting", "SystemDeleting"],
+                deleted_on__isnull=False,
+                # Set by delete_resource, so a pending delete cannot remove the reused instance.
+                info__helm__has_key="deleted_at",
+            )
+            .order_by("-deleted_on", "-pk")
+            .first()
+        )
+
 
 class FilemanagerInstance(BaseAppInstance):
     objects = FilemanagerInstanceManager()

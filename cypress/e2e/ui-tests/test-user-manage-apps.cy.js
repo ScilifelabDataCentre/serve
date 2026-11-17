@@ -142,7 +142,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('a[href*="settings/?tab=storage"]')
                 .should('be.visible')
                 .should('contain', 'Manage storage');
-            cy.get('#id_mount_path').select(mount_path+ " (project-vol (" + project_name + "))")
+            cy.get('#id_mount_path').selectAppDropdown(mount_path+ " (project-vol (" + project_name + "))")
 
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
@@ -251,7 +251,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_source_code_url').type(app_source_code_public)
             cy.get('#id_port').clear().type(image_port)
             cy.get('#id_image').clear().type(image_name)
-            cy.get('#id_mount_path').select(mount_path+ " (project-vol (" + project_name + "))")
+            cy.get('#id_mount_path').selectAppDropdown(mount_path+ " (project-vol (" + project_name + "))")
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(default_url_subpath) // provide default_url_subpath
             cy.submitAppForm()
             cy.completeAppSubmissionFlow()
@@ -325,7 +325,7 @@ if (Cypress.env('create_resources') === true) {
             cy.get('#id_image').should('have.value', image_name)
             cy.get('#id_image').clear().type(image_name_2)
             cy.get('#id_mount_path').find(':selected').should('contain', mount_path + " (project-vol (" + project_name + "))")
-            cy.get('#id_mount_path').select(mount_path_2 + " (project-vol (" + project_name + "))")
+            cy.get('#id_mount_path').selectAppDropdown(mount_path_2 + " (project-vol (" + project_name + "))")
             cy.getAppAdvancedField('#id_default_url_subpath').should('have.value', default_url_subpath) // default_url_subpath should be same as before
             cy.getAppAdvancedField('#id_default_url_subpath').clear().type(changed_default_url_subpath) // provide changed_default_url_subpath
             cy.submitAppForm()

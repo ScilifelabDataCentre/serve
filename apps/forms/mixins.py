@@ -112,6 +112,7 @@ class StorageMixin:
     )
 
     def _set_up_mount_path_field(self):
+        self.fields["mount_path"].widget.attrs["data-app-dropdown"] = "true"
         mount_paths_queryset = (
             PersistentVolumeMountPath.objects.filter(volume__project__pk=self.project.pk).exclude(
                 volume__latest_user_action__in=["Deleting", "SystemDeleting"]
@@ -371,7 +372,7 @@ class CreatorsMixin:
             HTML(
                 """
                 <label class="form-label fw-bold">Creators
-                    <span class="bi bi-question-circle text-muted ms-2"
+                    <span class="bi bi-question-circle text-muted"
                           data-bs-toggle="tooltip"
                           data-bs-original-title="List one or more creators of the application."></span>
                 </label>

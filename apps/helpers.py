@@ -13,16 +13,18 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.db.models.query import QuerySet
-from django.forms.models import model_to_dict
+from django.forms.models import construct_instance, model_to_dict
 from django.utils import timezone
 from prometheus_client.parser import text_string_to_metric_families
 
 from apps.constants import (
+    APP_METADATA_EXCLUDED_FIELDS,
     DRAFT_VISIBILITY_INFO_KEY,
     UNIVERSITY_NAMES,
     AppActionOrigin,
     HandleUpdateStatusResponseCode,
 )
+from apps.environment_variables import validate_environment_overrides
 from apps.validators.container_images import (
     get_authenticator_for_registry,
     get_image_architectures,
@@ -382,6 +384,27 @@ def _is_depictio_access_chart_noop(old_access, new_access):
     return _DEPICTIO_ACCESS_GROUPS.get(old_access) == _DEPICTIO_ACCESS_GROUPS.get(new_access)
 
 
+def _bind_reusable_filemanager_instance(form, project) -> Optional[BaseAppInstance]:
+    """Bind the form to a deleted file manager of the project, if any, and return it."""
+    reusable = form._meta.model.objects.get_reusable_instance(project)
+    if reusable is None:
+        return None
+
+    logger.info(
+        "create_instance_from_form.reusing_filemanager instance_id=%s project_id=%s deleted_on=%s",
+        reusable.pk,
+        project.pk,
+        reusable.deleted_on,
+    )
+
+    construct_instance(form, reusable, fields=form._meta.fields, exclude=form._meta.exclude)
+    # Restart the 24h lifetime.
+    reusable.created_on = timezone.now()
+    reusable.deleted_on = None
+    form.instance = reusable
+    return reusable
+
+
 @transaction.atomic
 def create_instance_from_form(
     form,
@@ -477,6 +500,8 @@ def create_instance_from_form(
                 "shiny_site_dir",
                 "mount_path",
                 "default_url_subpath",
+                "environment_variables",
+                "environment_secret_imports",
             ]
             logger.debug(f"An existing app has changed. The changed form fields: {form.changed_data}")
 
@@ -501,6 +526,14 @@ def create_instance_from_form(
                     break
 
     subdomain_name, is_created_by_user = get_subdomain_name(form)
+
+    # Reuse a deleted file manager and its subdomain instead of creating a new one.
+    if new_app and app_slug == "filemanager":
+        reused_instance = _bind_reusable_filemanager_instance(form, project)
+        if reused_instance is not None and reused_instance.subdomain is not None:
+            subdomain_name = reused_instance.subdomain.subdomain
+            is_created_by_user = reused_instance.subdomain.is_created_by_user
+
     logger.info(
         "create_instance_from_form.subdomain_selected app_id=%s subdomain=%s is_created_by_user=%s",
         app_id,
@@ -1186,7 +1219,7 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
         raise ValueError(f"Project with id {app_instance.project_id} does not exist")
 
     # Convert models to dictionaries with safe defaults
-    app_data = model_to_dict(app_instance, exclude=["_state"])
+    app_data = model_to_dict(app_instance, exclude=APP_METADATA_EXCLUDED_FIELDS)
     user_data = model_to_dict(user_instance, exclude=["_state", "password"])
     project_data = model_to_dict(project_instance, exclude=["_state"])
 
@@ -1296,15 +1329,17 @@ def generate_schema_org_compliant_app_metadata(app_instance: BaseAppInstance) ->
             },
             "parentOrganization": {
                 "@type": "Organization",
-                "name": user_data.get("affiliations", [{}])[0].get("title", "")
-                if user_data.get("affiliations")
-                else "",
+                "name": (
+                    user_data.get("affiliations", [{}])[0].get("title", "") if user_data.get("affiliations") else ""
+                ),
                 "additionalProperty": {
                     "@type": "PropertyValue",
                     "name": "department",
-                    "value": user_data.get("affiliations", [{}])[0].get("department", "")
-                    if user_data.get("affiliations")
-                    else "",
+                    "value": (
+                        user_data.get("affiliations", [{}])[0].get("department", "")
+                        if user_data.get("affiliations")
+                        else ""
+                    ),
                 },
             },
         },
@@ -1438,6 +1473,10 @@ def get_merged_k8s_values(instance: BaseAppInstance, ensure_up_to_date: bool = T
     if ensure_up_to_date:
         instance.set_k8s_values()
 
+    validate_environment_overrides(
+        instance.environment_variables, instance.k8s_values_override, instance.environment_secret_imports
+    )
+
     # Get base k8s_values
     values = instance.k8s_values or {}
 
@@ -1519,6 +1558,10 @@ def generate_helm_install_command(
     # Append version if deploying via ghcr
     if parsed_version:
         command += f" --version {parsed_version} --repository-cache /app/charts/.cache/helm/repository"
+
+    # Wait for ShinyProxy before its old-pod cleanup hook runs.
+    if "shinyproxy" in chart:
+        command += " --wait --timeout 180s"
 
     return command
 
