@@ -500,7 +500,7 @@ DOI_PREFIX = os.getenv("DOI_PREFIX", "10.83812/SCILIFELAB")
 IP = os.environ.get("IP", "127.0.0.1")
 
 DOMAIN = f"studio.{IP}.nip.io"
-AUTH_DOMAIN = IP
+AUTH_DOMAIN = os.environ.get("AUTH_DOMAIN", IP)
 AUTH_PROTOCOL = "http"
 STUDIO_URL = f"http://studio.{IP}.nip.io:8080"
 # To enable sticky sessions for k8s ingress
@@ -740,3 +740,10 @@ ORCID_REDIRECT_URI = os.environ.get("ORCID_REDIRECT_URI", f"https://{DOMAIN}/orc
 # For testing use sandbox:  https://sandbox.orcid.org
 # For production use:       https://orcid.org
 ORCID_BASE_URL = "https://orcid.org"
+
+# For image registry checking
+ALLOWED_IMAGE_REGISTRIES = [
+    r.strip().lower()
+    for r in os.environ.get("ALLOWED_IMAGE_REGISTRIES", "docker.io,ghcr.io,quay.io").split(",")
+    if r.strip()
+]
