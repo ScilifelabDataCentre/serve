@@ -53,6 +53,27 @@ class ContainerImageMixin:
             css_class="mb-3",
         )
 
+    def _can_use_any_registry(self):
+        """Only superuser and staff can use any registry."""
+        request = getattr(self, "request", None)
+        user = getattr(request, "user", None)
+        return bool(user and user.is_authenticated and (user.is_superuser or user.is_staff))
+
+    def _validate_registry_allowed(self, image: str) -> bool:
+        """Verifies image registry. Superuser and staff are allowed to use any registry"""
+        if self._can_use_any_registry():
+            return True
+        registry = self._get_registry(image)
+        # Allowed registry can be added with env
+        allowed = settings.ALLOWED_IMAGE_REGISTRIES
+        if registry not in allowed:
+            self.add_error(
+                "image",
+                f"Images from '{registry}' are not allowed. " f"Allowed registries: {', '.join(allowed)}",
+            )
+            return False
+        return True
+
     @staticmethod
     def _normalize_image_registry(image: str) -> str:
         """Prepend ``docker.io/`` when the image has no explicit registry."""
@@ -64,6 +85,11 @@ class ContainerImageMixin:
         if has_registry:
             return image
         return f"docker.io/{image}"
+
+    @staticmethod
+    def _get_registry(image: str) -> str:
+        """Extracts registry str from image str"""
+        return image.split("/")[0].lower()
 
     def clean_image(self):
         """Validate the container image input."""
@@ -89,14 +115,20 @@ class ContainerImageMixin:
         if getattr(self, "_is_draft_access", False):
             return image
 
-        if "ghcr.io" in image:
+        # Validate the registry of image
+        if not self._validate_registry_allowed(image):
+            return image
+
+        registry = self._get_registry(image)
+
+        if registry == "ghcr.io":
             try:
                 validate_ghcr_image(image)
             except ValidationError as e:
                 self.add_error("image", f"Error validating GHCR image: {str(e)}")
                 return image
 
-        if "docker.io" in image:
+        if registry == "docker.io":
             try:
                 validate_docker_image(image)
             except ValidationError as e:
