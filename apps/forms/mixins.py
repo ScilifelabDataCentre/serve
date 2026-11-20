@@ -369,8 +369,7 @@ class CreatorsMixin:
 
         return Div(
             "creators",
-            HTML(
-                """
+            HTML("""
                 <label class="form-label fw-bold">Creators
                     <span class="bi bi-question-circle text-muted"
                           data-bs-toggle="tooltip"
@@ -391,8 +390,7 @@ class CreatorsMixin:
                 </div>
 
                 <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-                """
-            ),
+                """),
             css_class="mb-3",
         )
 

@@ -720,9 +720,7 @@ def test_get_subdomain_name():
 
     subdomain_name, is_created_by_user = get_subdomain_name(form)
 
-    assert (
-        subdomain_name == expected_subdomain_name
-    ), f"The determined subdomain name {subdomain_name} should equal \
+    assert subdomain_name == expected_subdomain_name, f"The determined subdomain name {subdomain_name} should equal \
         the expected name {expected_subdomain_name}"
 
     # The function overrides the input is_created_by_user setting it to True

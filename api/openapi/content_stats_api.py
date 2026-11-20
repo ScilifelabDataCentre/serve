@@ -173,9 +173,9 @@ class ContentStatsAPI(viewsets.ReadOnlyModelViewSet):
         stats["stats_date_utz"] = datetime.now(timezone.utc)
         stats["stats_success"] = success
         stats["stats_message"] = success_msg
-        stats[
-            "stats_notes"
-        ] = "The number of users (n_users) in 2023 is the number of all active users registered in 2023 or earlier."
+        stats["stats_notes"] = (
+            "The number of users (n_users) in 2023 is the number of all active users registered in 2023 or earlier."
+        )
 
         # Add content-specific elements
         stats["n_active_projects"] = n_active_projects

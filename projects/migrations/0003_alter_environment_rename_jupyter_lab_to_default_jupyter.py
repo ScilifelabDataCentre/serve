@@ -9,12 +9,8 @@ class Migration(migrations.Migration):
         ("projects", "0002_alter_environment_app_alter_environment_image_and_more"),
     ]
 
-    operations = [
-        migrations.RunSQL(
-            """
+    operations = [migrations.RunSQL("""
             UPDATE projects_environment
             SET name = 'Default Jupyter Lab'
             WHERE name = 'Jupyter Lab'
-            """
-        )
-    ]
+            """)]

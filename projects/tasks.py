@@ -198,10 +198,8 @@ def clean_up_projects_in_database():
     """
 
     projects_clean_up_threshold_days = 425
-    logger.info(
-        f"Running task clean_up_projects_in_database to remove all projects that have been \
-                 deleted more than {projects_clean_up_threshold_days} days ago."
-    )
+    logger.info(f"Running task clean_up_projects_in_database to remove all projects that have been \
+                 deleted more than {projects_clean_up_threshold_days} days ago.")
 
     projects_to_be_cleaned_up = Project.objects.filter(
         deleted_on__lt=timezone.now() - timezone.timedelta(days=projects_clean_up_threshold_days), status="deleted"

@@ -116,9 +116,10 @@ def test_doi_provisioning_task_includes_funding_metadata(app_instance):
         max_retries=0,
     )
 
-    with patch("apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"), patch(
-        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi"
-    ) as mock_mint:
+    with (
+        patch("apps.background_tasks.tasks.doi_provisioning.resolve_app_image", return_value="some-image"),
+        patch("doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi") as mock_mint,
+    ):
         result = execute_single_background_task(
             task_db_id=task_record.id,
             task_kwargs_by_task_name={"doi_provisioning": {"language": "eng", "funding": funding_payload}},
@@ -149,12 +150,15 @@ def test_doi_provisioning_task_includes_related_publications_datasets_metadata(a
         max_retries=0,
     )
 
-    with patch(
-        "apps.background_tasks.tasks.doi_provisioning.resolve_app_image",
-        return_value="some-image",
-    ), patch(
-        "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi",
-    ) as mock_mint:
+    with (
+        patch(
+            "apps.background_tasks.tasks.doi_provisioning.resolve_app_image",
+            return_value="some-image",
+        ),
+        patch(
+            "doi_minting.services.invenio_svc.save_metadata_to_invenio_then_mint_doi",
+        ) as mock_mint,
+    ):
         result = execute_single_background_task(
             task_db_id=task_record.id,
             task_kwargs_by_task_name={
@@ -349,10 +353,13 @@ def test_check_tasks_and_deploy_blocks_when_failed_critical(immediate_on_commit,
         error_message="boom",
     )
 
-    with patch(
-        "apps.background_tasks.feature_flags.background_tasks_nonblocking_deploy",
-        return_value=False,
-    ), patch.object(deploy_resource, "delay") as mock_deploy:
+    with (
+        patch(
+            "apps.background_tasks.feature_flags.background_tasks_nonblocking_deploy",
+            return_value=False,
+        ),
+        patch.object(deploy_resource, "delay") as mock_deploy,
+    ):
         result = check_tasks_and_deploy(
             previous_results=None,
             app_instance_id=app_instance.id,
@@ -380,10 +387,13 @@ def test_check_tasks_and_deploy_does_not_block_when_switch_enabled(immediate_on_
         error_message="boom",
     )
 
-    with patch(
-        "apps.background_tasks.feature_flags.background_tasks_nonblocking_deploy",
-        return_value=True,
-    ), patch.object(deploy_resource, "delay") as mock_deploy:
+    with (
+        patch(
+            "apps.background_tasks.feature_flags.background_tasks_nonblocking_deploy",
+            return_value=True,
+        ),
+        patch.object(deploy_resource, "delay") as mock_deploy,
+    ):
         result = check_tasks_and_deploy(
             previous_results=None,
             app_instance_id=app_instance.id,

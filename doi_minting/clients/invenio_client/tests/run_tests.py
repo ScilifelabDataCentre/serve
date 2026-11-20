@@ -2,6 +2,7 @@
 """
 Script to run all tests.
 """
+
 import sys
 
 import pytest

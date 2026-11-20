@@ -51,11 +51,11 @@ def input_form(
     mail = draw(email)
     pwd = draw(st.text(min_size=8).map(make_password))
     department = draw(department)
-    name_ = unicodedata.normalize("NFKD", draw(name).replace("\x00", "\uFFFD"))
-    surname_ = unicodedata.normalize("NFKD", draw(surname).replace("\x00", "\uFFFD"))
+    name_ = unicodedata.normalize("NFKD", draw(name).replace("\x00", "\ufffd"))
+    surname_ = unicodedata.normalize("NFKD", draw(surname).replace("\x00", "\ufffd"))
     why_account_needed = draw(why_account_needed)
     if why_account_needed is not None:
-        why_account_needed = unicodedata.normalize("NFKD", why_account_needed.replace("\x00", "\uFFFD"))
+        why_account_needed = unicodedata.normalize("NFKD", why_account_needed.replace("\x00", "\ufffd"))
 
     # Build affiliations-data JSON (replaces organization-data + department)
     affiliations_json = json.dumps(

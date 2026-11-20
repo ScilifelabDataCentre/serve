@@ -791,9 +791,11 @@ class OrcidSearchView(View):
                                         affiliation = {
                                             "name": org_name,
                                             "identifier": identifier_id,
-                                            "scheme": identifier_type.upper()
-                                            if identifier_type.lower() == "ror"
-                                            else identifier_type,
+                                            "scheme": (
+                                                identifier_type.upper()
+                                                if identifier_type.lower() == "ror"
+                                                else identifier_type
+                                            ),
                                         }
                                     else:
                                         affiliation = org_name

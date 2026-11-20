@@ -1,6 +1,7 @@
 """
 Tests for the main InvenioClient class.
 """
+
 import importlib
 import json
 from typing import Any, cast

@@ -1,6 +1,7 @@
 """
 Tests for invenio_client.session.py module.
 """
+
 from unittest.mock import Mock, patch
 
 import pytest

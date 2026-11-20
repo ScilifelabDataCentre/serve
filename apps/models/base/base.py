@@ -248,10 +248,8 @@ class BaseAppInstance(models.Model):
 
         status = BaseAppInstance.convert_to_app_status(self.latest_user_action, k8s_user_app_status)
         if status.lower() == "unknown":
-            logger.warn(
-                f"Invalid input to convert_to_app_status for app {self}. No match for \
-                    {self.latest_user_action}, {k8s_user_app_status}"
-            )
+            logger.warn(f"Invalid input to convert_to_app_status for app {self}. No match for \
+                    {self.latest_user_action}, {k8s_user_app_status}")
         return status
 
     def get_status_group(self) -> str:

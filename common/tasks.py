@@ -126,10 +126,8 @@ def alert_pause_dormant_users() -> None:
 
         else:
             # The user has not been sent a warning email. Sending it now
-            logger.info(
-                f"User {user.id} has not logged in since the limit {threshold_alert_days} days ago \
-                    ({threshold_alert}). Sending a warning email."
-            )
+            logger.info(f"User {user.id} has not logged in since the limit {threshold_alert_days} days ago \
+                    ({threshold_alert}). Sending a warning email.")
 
             html_message = render_to_string(
                 "registration/warning_pausing_account.html",

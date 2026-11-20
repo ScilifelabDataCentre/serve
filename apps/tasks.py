@@ -202,10 +202,8 @@ def clean_up_apps_in_database():
     """
 
     apps_clean_up_threshold_days = 425
-    logger.info(
-        f"Running task clean_up_apps_in_database to remove all apps that have been deleted more than \
-                {apps_clean_up_threshold_days} days ago."
-    )
+    logger.info(f"Running task clean_up_apps_in_database to remove all apps that have been deleted more than \
+                {apps_clean_up_threshold_days} days ago.")
 
     for orm_model in APP_REGISTRY.iter_orm_models():
         apps_to_be_cleaned_up = orm_model.objects.filter(

@@ -970,10 +970,8 @@ def update_app_status(request: HttpRequest) -> HttpResponse:
             logger.error(f"API method called with invalid input: {err}, type: {type(err)}")
             return Response(f"Invalid input. {err}", 400)
 
-        logger.debug(
-            f"API method update_app_status input: release={release}, new_status={new_status}, \
-            event_ts={event_ts}, event_msg={event_msg}"
-        )
+        logger.debug(f"API method update_app_status input: release={release}, new_status={new_status}, \
+            event_ts={event_ts}, event_msg={event_msg}")
 
         try:
             result = handle_update_status_request(release, new_status, event_ts, event_msg)

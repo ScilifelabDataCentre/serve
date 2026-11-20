@@ -20,9 +20,9 @@ class AdditionalMetadata(TypedDict, total=False):
     subjects: list[Subject] | None  # List of tags/keywords for the record
     creators: list[Creator] | None  # List of Creator objects for the record
     funding: list[Funding] | None  # List of funding entries for the record
-    related_publications_datasets: list[
-        RelatedPublicationDataset
-    ] | None  # List of related publications/datasets for the record
+    related_publications_datasets: (
+        list[RelatedPublicationDataset] | None
+    )  # List of related publications/datasets for the record
 
 
 # ============================================================================

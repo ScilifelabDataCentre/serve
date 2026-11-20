@@ -3,6 +3,7 @@ InvenioRDM Client Exceptions
 
 This module contains all exception classes for the InvenioRDM client.
 """
+
 from typing import Any, Dict, Optional
 
 

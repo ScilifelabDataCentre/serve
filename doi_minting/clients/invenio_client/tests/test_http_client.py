@@ -1,6 +1,7 @@
 """
 Tests for invenio_client.http_client.py module.
 """
+
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

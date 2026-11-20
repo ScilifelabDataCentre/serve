@@ -237,10 +237,8 @@ def handle_update_status_request(
             else:
                 k8s_user_app_status = instance.k8s_user_app_status
 
-            logger.debug(
-                f"K8sUserAppStatus object was created or updated with status {k8s_user_app_status.status}, \
-                    ts={k8s_user_app_status.time}, {k8s_user_app_status.info}"
-            )
+            logger.debug(f"K8sUserAppStatus object was created or updated with status {k8s_user_app_status.status}, \
+                    ts={k8s_user_app_status.time}, {k8s_user_app_status.info}")
 
             # Now determine whether to update the state and status
 

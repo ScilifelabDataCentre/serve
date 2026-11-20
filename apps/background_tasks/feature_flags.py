@@ -5,7 +5,6 @@ These toggles are intentionally centralized here so the semantics (and switch
 names) are consistent across the codebase.
 """
 
-
 import waffle  # type: ignore
 
 # When ON: deployments proceed even if critical background tasks failed.

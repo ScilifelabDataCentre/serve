@@ -1,6 +1,7 @@
 """
 Pytest configuration and fixtures for Invenio client tests.
 """
+
 import json
 from unittest.mock import Mock, patch
 

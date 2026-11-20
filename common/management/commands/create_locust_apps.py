@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
 # TODO: revisit:
-from apps.helpers import create_app_instance  # type:ignore[attr-defined]
+from apps.helpers import create_app_instance  # type: ignore[attr-defined]
 from apps.models import Apps
 from projects.models import Flavor, Project
 

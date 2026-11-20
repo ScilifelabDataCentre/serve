@@ -25,13 +25,11 @@ class FilemanagerForm(VolumeMixin, AppBaseForm):
         )
         body = Div(
             Div(
-                HTML(
-                    """<p>You are about to activate file manager on SciLifeLab Serve.
+                HTML("""<p>You are about to activate file manager on SciLifeLab Serve.
                     You can use it to upload or download files to a volume associated with this project.
                     This service will be active for 24 hours and automatically terminated afterwards.
                     The uploaded files will stay on the volume even after this service has been terminated.</p>
-                    """
-                ),
+                    """),
                 HTML("<p>Click 'Activate' to activate file manager</p>"),
                 css_class="p-3 my-3",
             ),

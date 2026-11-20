@@ -1,6 +1,6 @@
-""" A singleton implementation of a class exposing version information about the currently deployed application.
-    The singleton pattern is appropriate here because the SystemVersion class is a constant singleton.
-    This singleton class would be appropriate to add to a cache and kept in memory.
+"""A singleton implementation of a class exposing version information about the currently deployed application.
+The singleton pattern is appropriate here because the SystemVersion class is a constant singleton.
+This singleton class would be appropriate to add to a cache and kept in memory.
 """
 
 import pathlib

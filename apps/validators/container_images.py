@@ -85,8 +85,7 @@ class BaseRegistryAuth(Protocol):
     In general, making a child of `DockerHubAuthenticator` should work.
     """
 
-    def get_bearer_token(self, repo: str) -> str | None:
-        ...
+    def get_bearer_token(self, repo: str) -> str | None: ...
 
 
 class RegistryHost(StrEnum):
