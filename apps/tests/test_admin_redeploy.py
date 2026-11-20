@@ -111,7 +111,7 @@ class CreateLinkOnlyAppInAdminTestCase(TestCase):
                 "app": self.app.pk,
                 "chart": self.app.chart,
                 "description": "Link-only app created by an administrator",
-                "image": "example.org/dash:latest",
+                "image": "docker.io/dash:latest",
                 "latest_user_action": "Creating",
                 "name": "Admin-created link app",
                 "note_on_linkonly_privacy": "Shared with reviewers",
@@ -134,6 +134,10 @@ class CreateLinkOnlyAppInAdminTestCase(TestCase):
 
 class CreateLinkOnlyAppInProductUITestCase(TestCase):
     def setUp(self):
+        # Image registry checks hit the network; not what this test verifies.
+        patcher = patch("apps.forms.mixins.validate_docker_image")
+        self.mock_validate_docker_iamge = patcher.start()
+        self.addCleanup(patcher.stop)
         self.user = User.objects.create_user("link-user", "link-user@example.com", "password")
         self.project = Project.objects.create_project(name="link-ui", owner=self.user, description="")
         self.flavor = Flavor.objects.create(name="Small", project=self.project)
@@ -149,7 +153,7 @@ class CreateLinkOnlyAppInProductUITestCase(TestCase):
                     "access": "link",
                     "description": "Link-only app created through the product UI",
                     "flavor": self.flavor.pk,
-                    "image": "example.org/dash:latest",
+                    "image": "docker.io/dash:latest",
                     "invenio_tags": "",
                     "name": "UI-created link app",
                     "note_on_linkonly_privacy": "Shared with reviewers",
