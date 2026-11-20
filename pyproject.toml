@@ -49,7 +49,6 @@ s3fs = "==2026.9.0"
 minio = "==7.1.17"
 celery = "==5.3.4"
 uvicorn = "^0.32.0"
-flask-cors = "==6.0.5"
 Pillow = "13.0.0"
 schema = "^0.7.7"
 pydantic = "^2.12.5"
@@ -64,13 +63,13 @@ django-structlog = "^7.1.0"
 colorlog = "^6.8.2"
 
 
-black = { version = "==23.3.0", optional = true }
+black = { version = "==26.10.1", optional = true }
 isort = { version = "==5.12.0", optional = true }
 flake8 = { version = "==6.0.0", optional = true }
 mypy = { version = "==1.10.0", optional = true }
 #django-stubs = { version = "==5.0.0", optional = true }
 hypothesis = { version = "==6.86.1", optional = true }
-moto = { version = "==4.*", extras = ["ec2", "s3", "all"], optional = true }
+responses = { version = "==0.26.2", optional = true }
 pytest = { version = "~8.0.1", optional = true }
 pytest-django = { version = "==4.8.0",  optional = true }
 pytest-cov = { version = "==4.1.0", optional = true }
@@ -98,10 +97,8 @@ oauthlib = ">=4.0.1"
 protobuf = ">=6.31.1"
 pyasn1 = ">=0.6.5"
 pymdown-extensions = ">=11.0.1,<12"
-setuptools = ">=84.2.1"
 tornado = ">=6.6.1"
 urllib3 = ">=2.8.0"
-werkzeug = ">=3.1.9"
 
 [tool.poetry.group.profiling]
 optional = true
@@ -112,7 +109,7 @@ django-debug-toolbar = "^4.4.6"
 
 [tool.poetry.extras]
 linters = ["black", "isort", "flake8", "mypy"]
-tests = ["pytest-django", "pytest-cov", "pytest-xdist", "hypothesis", "pytest", "moto"]
+tests = ["pytest-django", "pytest-cov", "pytest-xdist", "hypothesis", "pytest", "responses"]
 
 
 [build-system]
@@ -241,7 +238,6 @@ module = [
 	"tagulous.*",
 	"django_tagulous.*",
 	"minio.*",
-	"moto.*",
 	"celery.*",
 	"dash.*",
 	"dash_core_components.*",
