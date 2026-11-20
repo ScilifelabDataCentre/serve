@@ -278,5 +278,33 @@
     },
     "model": "django_celery_beat.periodictask",
     "pk": 14
+  },
+  {
+    "fields": {
+      "args": "[]",
+      "clocked": null,
+      "crontab": 3,
+      "date_changed": "2026-11-13T00:00:00.000Z",
+      "description": "Creates automatic maintenance messages the day before a planned maintenance and marks finished windows as completed",
+      "enabled": true,
+      "exchange": null,
+      "expire_seconds": null,
+      "expires": null,
+      "headers": "{}",
+      "interval": null,
+      "kwargs": "{}",
+      "last_run_at": null,
+      "name": "sync_maintenance_messages",
+      "one_off": false,
+      "priority": null,
+      "queue": null,
+      "routing_key": null,
+      "solar": null,
+      "start_time": null,
+      "task": "portal.tasks.sync_maintenance_messages",
+      "total_run_count": 0
+    },
+    "model": "django_celery_beat.periodictask",
+    "pk": 15
   }
 ]
