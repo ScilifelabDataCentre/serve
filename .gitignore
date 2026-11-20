@@ -149,6 +149,11 @@ cypress/videos
 cypress/logs
 cypress/parallel-weights.json
 cypress/fixtures/profile.json
+cypress/__all.json
+cypress/__all.txt
+# cypress-parallel run artifacts
+runner-results/
+multi-reporter-config.json
 
 # Dependency directories
 node_modules

@@ -2,6 +2,12 @@ media
 charts/values
 sent_emails
 venv
+.venv
+.env
+.env.*
+cluster.conf
+id_rsa
+id_ed25519
 Dockerfile
 Dockerfile.cypress
 Dockerfile.nginx

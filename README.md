@@ -75,6 +75,9 @@ $ DOCKER_BUILDKIT=1 docker build -t studio:develop . --ssh=default
 ```
 This assumes you have the correct ssh key in your ssh-agent. If you like to give a specific key replace default with the path to your key.
 
+Helm and kubectl use checksum-verified official binaries. Update their Dockerfile pins, then rebuild and rescan.
+Keep kubectl and E2E MicroK8s on Kubernetes 1.35. `CLUSTER_VERSION=1.35.7` selects validation schemas independently of the validator package version.
+
 6. Finally, fire up Serve with compose:
 
 ```
@@ -131,8 +134,8 @@ $ sudo kubectl port-forward svc/serve-studio 22:22
     6. Username: root
     7. Auth type: Password
     8. Password: root
-    9. Interpreter path: /usr/local/bin/python
-    10. Python interpreter path: /usr/local/bin/python
+    9. Interpreter path: /opt/venv/bin/python
+    10. Python interpreter path: /opt/venv/bin/python
     11. **Important** Don't accept synchronization option from PyCharm. There is no need for it because we already synchronize the code with the pod using volume mounts provided by Rancher Desktop.
 4. Set up the environment variables
     1. Go to Run | Edit Configurations
