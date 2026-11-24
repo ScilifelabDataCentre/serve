@@ -4,7 +4,14 @@ import re
 import pytest
 from django.urls import reverse
 
-from common.forms import EMAIL_ALLOW_REGEX, ProfileForm, SignUpForm, UserForm
+from common.forms import (
+    EMAIL_ALLOW_REGEX,
+    UNIVERSITIES,
+    ProfileForm,
+    SignUpForm,
+    UserForm,
+    approved_email_domains,
+)
 
 
 @pytest.mark.django_db
@@ -18,6 +25,7 @@ from common.forms import EMAIL_ALLOW_REGEX, ProfileForm, SignUpForm, UserForm
         ("stud.uu.se", False),
         ("scilifelab.se.example.com", False),
         ("uu.se.example.com", False),
+        ("newinstitute.se", False),
         ("example.com", False),
     ],
 )
@@ -55,3 +63,10 @@ def test_signup_page_uses_the_server_approval_pattern(client):
     )
     assert match is not None
     assert json.loads(match.group(1)) == EMAIL_ALLOW_REGEX.pattern
+
+
+@pytest.mark.parametrize("new_organization", [{"name": "New Institute"}, "New Institute"])
+def test_new_affiliation_does_not_approve_email_without_opt_in(new_organization):
+    organizations = [*UNIVERSITIES, ("newinstitute", new_organization)]
+
+    assert "newinstitute.se" not in approved_email_domains(organizations)

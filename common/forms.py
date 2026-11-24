@@ -34,12 +34,20 @@ with open(settings.STATICFILES_DIRS[0] + "/common/universities.json") as f:
     UNIVERSITIES = [(k, v) for k, v in UNIVERSITIES.items()]
 
 
+def approved_email_domains(organizations):
+    return [
+        f"{key}.se"
+        for key, organization in organizations
+        if isinstance(organization, dict) and organization.get("approve_after_email_verification") is True
+    ]
+
+
 EMAIL_ALLOW_REGEX = re.compile(
     (
         r"^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*"
         + r"(?:"
-        + "|".join(re.escape(key) for key, _ in UNIVERSITIES if key != "other")
-        + r")\.se$"
+        + "|".join(re.escape(domain) for domain in approved_email_domains(UNIVERSITIES))
+        + r")$"
     ),
     re.IGNORECASE,
 )
