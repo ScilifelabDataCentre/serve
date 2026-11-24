@@ -20,7 +20,6 @@ from hypothesis.extra.django import TestCase, TransactionTestCase
 from common.forms import (
     DEPARTMENTS,
     EMAIL_ALLOW_REGEX,
-    UNIVERSITIES,
     ProfileEditForm,
     ProfileForm,
     SignUpForm,
@@ -30,11 +29,6 @@ from common.forms import (
 )
 from common.models import EmailVerificationTable, UserProfile
 from common.views import VerificationTokenResetView
-
-
-def get_affilitaion(email):
-    return email.split("@")[1].split(".")[-2].lower()
-
 
 organization_data = {"title": "Uppsala University", "ror_id": "https://ror.org/test123"}
 
@@ -213,7 +207,7 @@ class TestAccountVerification(TestCase):
 @pytest.mark.django_db
 @given(
     form=input_form(
-        email=st.emails().filter(lambda x: get_affilitaion(x) not in [unis[0] for unis in UNIVERSITIES]),
+        email=st.emails().filter(lambda x: EMAIL_ALLOW_REGEX.fullmatch(x.rsplit("@", 1)[-1]) is None),
         why_account_needed=st.text(min_size=10, max_size=100),
     )
 )
@@ -228,7 +222,7 @@ def test_pass_validation_other_email_request_account(form):
 @pytest.mark.django_db
 @given(
     form=input_form(
-        email=st.emails().filter(lambda x: get_affilitaion(x) not in [unis[0] for unis in UNIVERSITIES]),
+        email=st.emails().filter(lambda x: EMAIL_ALLOW_REGEX.fullmatch(x.rsplit("@", 1)[-1]) is None),
         why_account_needed=st.sampled_from(["", None]),
     )
 )

@@ -1,22 +1,27 @@
 {
   "universities": {
     "bth": {
+      "approve_after_email_verification": true,
       "name": "Blekinge Institute of Technology",
       "ror_id": "https://ror.org/0093a8w51"
     },
     "chalmers": {
+      "approve_after_email_verification": true,
       "name": "Chalmers University of Technology",
       "ror_id": "https://ror.org/040wg7k59"
     },
     "du": {
+      "approve_after_email_verification": true,
       "name": "Dalarna University",
       "ror_id": "https://ror.org/000hdh770"
     },
     "fhs": {
+      "approve_after_email_verification": true,
       "name": "Swedish Defence University",
       "ror_id": "https://ror.org/04mj8af82"
     },
     "gih": {
+      "approve_after_email_verification": true,
       "name": "Swedish School of Sport and Health Sciences",
       "ror_id": "https://ror.org/046hach49"
     },
@@ -26,42 +31,52 @@
         "Goteborgs University",
         "Goteborg University"
       ],
+      "approve_after_email_verification": true,
       "name": "G\u00f6teborgs University",
       "ror_id": "https://ror.org/01tm6cn81"
     },
     "hb": {
+      "approve_after_email_verification": true,
       "name": "University of Bor\u00e5s",
       "ror_id": "https://ror.org/01fdxwh83"
     },
     "hh": {
+      "approve_after_email_verification": true,
       "name": "Halmstad University",
       "ror_id": "https://ror.org/03h0qfp10"
     },
     "hhs": {
+      "approve_after_email_verification": true,
       "name": "Stockholm School of Economics",
       "ror_id": "https://ror.org/01s5jzh92"
     },
     "hig": {
+      "approve_after_email_verification": true,
       "name": "University of G\u00e4vle",
       "ror_id": "https://ror.org/043fje207"
     },
     "his": {
+      "approve_after_email_verification": true,
       "name": "University of Sk\u00f6vde",
       "ror_id": "https://ror.org/051mrsz47"
     },
     "hkr": {
+      "approve_after_email_verification": true,
       "name": "Kristianstad University",
       "ror_id": "https://ror.org/00tkrft03"
     },
     "hv": {
+      "approve_after_email_verification": true,
       "name": "University West",
       "ror_id": "https://ror.org/0257kt353"
     },
     "ju": {
+      "approve_after_email_verification": true,
       "name": "J\u00f6nk\u00f6ping University",
       "ror_id": "https://ror.org/03t54am93"
     },
     "kau": {
+      "approve_after_email_verification": true,
       "name": "Karlstad University",
       "ror_id": "https://ror.org/05s754026"
     },
@@ -69,50 +84,62 @@
       "aliases": [
         "(KI) Karolinska institutet"
       ],
+      "approve_after_email_verification": true,
       "name": "Karolinska Institutet",
       "ror_id": "https://ror.org/056d84691"
     },
     "kth": {
+      "approve_after_email_verification": true,
       "name": "KTH Royal Institute of Technology",
       "ror_id": "https://ror.org/026vcq606"
     },
     "liu": {
+      "approve_after_email_verification": true,
       "name": "Link\u00f6pings University",
       "ror_id": "https://ror.org/05ynxx418"
     },
     "lnu": {
+      "approve_after_email_verification": true,
       "name": "Linnaeus University",
       "ror_id": "https://ror.org/00j9qag85"
     },
     "lth": {
+      "approve_after_email_verification": true,
       "name": "LTH Lund University",
       "ror_id": "https://ror.org/012a77v79"
     },
     "ltu": {
+      "approve_after_email_verification": true,
       "name": "Lule\u00e5 University of Technology",
       "ror_id": "https://ror.org/016st3p78"
     },
     "lu": {
+      "approve_after_email_verification": true,
       "name": "Lund University",
       "ror_id": "https://ror.org/012a77v79"
     },
     "mau": {
+      "approve_after_email_verification": true,
       "name": "Malm\u00f6 University",
       "ror_id": "https://ror.org/05wp7an13"
     },
     "mdu": {
+      "approve_after_email_verification": true,
       "name": "M\u00e4lardalen University",
       "ror_id": "https://ror.org/033vfbz75"
     },
     "miun": {
+      "approve_after_email_verification": true,
       "name": "Mid Sweden University",
       "ror_id": "https://ror.org/019k1pd13"
     },
     "nrm": {
+      "approve_after_email_verification": true,
       "name": "The Swedish Museum of Natural History",
       "ror_id": "https://ror.org/05k323c76"
     },
     "oru": {
+      "approve_after_email_verification": true,
       "name": "\u00d6rebro University",
       "ror_id": "https://ror.org/05kytsw45"
     },
@@ -124,14 +151,17 @@
       "aliases": [
         "Science for Life Laboratory"
       ],
+      "approve_after_email_verification": true,
       "name": "SciLifeLab",
       "ror_id": "https://ror.org/04ev03g22"
     },
     "sh": {
+      "approve_after_email_verification": true,
       "name": "S\u00f6dert\u00f6rn University",
       "ror_id": "https://ror.org/00d973h41"
     },
     "slu": {
+      "approve_after_email_verification": true,
       "name": "Swedish University of Agricultural Sciences",
       "ror_id": "https://ror.org/02yy8x990"
     },
@@ -139,14 +169,17 @@
       "aliases": [
         "Stockholm University"
       ],
+      "approve_after_email_verification": true,
       "name": "Stockholms University",
       "ror_id": "https://ror.org/05f0yaq80"
     },
     "umu": {
+      "approve_after_email_verification": true,
       "name": "Ume\u00e5 University",
       "ror_id": "https://ror.org/05kb8h459"
     },
     "uu": {
+      "approve_after_email_verification": true,
       "name": "Uppsala University",
       "ror_id": "https://ror.org/048a87296"
     }
