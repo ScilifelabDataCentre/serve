@@ -740,3 +740,10 @@ ORCID_REDIRECT_URI = os.environ.get("ORCID_REDIRECT_URI", f"https://{DOMAIN}/orc
 # For testing use sandbox:  https://sandbox.orcid.org
 # For production use:       https://orcid.org
 ORCID_BASE_URL = "https://orcid.org"
+
+# For image registry checking
+ALLOWED_IMAGE_REGISTRIES = [
+    r.strip().lower()
+    for r in os.environ.get("ALLOWED_IMAGE_REGISTRIES", "docker.io,ghcr.io,quay.io").split(",")
+    if r.strip()
+]

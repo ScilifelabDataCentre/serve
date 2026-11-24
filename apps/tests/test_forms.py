@@ -37,6 +37,13 @@ User = get_user_model()
 test_user = {"username": "foo1", "email": "foo@test.com", "password": "bar"}
 
 
+@pytest.fixture(autouse=True)
+def mock_image_validation():
+    """Image registry checks hit the network; they are not what these helper tests verify."""
+    with patch("apps.forms.mixins.validate_docker_image") as mock_validate:
+        yield mock_validate
+
+
 class BaseAppFormTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(test_user["username"], test_user["email"], test_user["password"])
@@ -90,7 +97,7 @@ class CustomAppFormTest(BaseAppFormTest):
             "source_code_url": "http://example.com",
             "note_on_linkonly_privacy": None,
             "port": 8000,
-            "image": "mock.io/scilifelabdatacentre/image:tag",
+            "image": "docker.io/scilifelabdatacentre/image:tag",
             "default_url_subpath": "valid-default_url_subpath/",
             # These tags are found in the vocabulary service pickled data.
             "invenio_tags": "Antibodies|Chemistry|Cats",

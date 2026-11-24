@@ -125,6 +125,10 @@ class GpuAvailabilityTestCase(TestCase):
 
 class GpuFlavorFormTestCase(TestCase):
     def setUp(self):
+        # Image registry checks hit the network; not what this test verifies.
+        patcher = patch("apps.forms.mixins.validate_docker_image")
+        self.mock_validate_docker_image = patcher.start()
+        self.addCleanup(patcher.stop)
         self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
         self.project = Project.objects.create_project(name="test-gpu-form", owner=self.user, description="")
         self.app = Apps.objects.create(name="Custom App", slug="customapp", gpu_enabled=True)
@@ -156,7 +160,7 @@ class GpuFlavorFormTestCase(TestCase):
             "source_code_url": "http://example.com",
             "note_on_linkonly_privacy": None,
             "port": 8000,
-            "image": "mock.io/scilifelabdatacentre/image:tag",
+            "image": "docker.io/scilifelabdatacentre/image:tag",
             "default_url_subpath": "valid-default_url_subpath/",
             "invenio_tags": "Antibodies|Chemistry|Cats",
         }

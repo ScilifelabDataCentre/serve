@@ -34,6 +34,13 @@ DELETE_RESOURCE_OK = {"success": True, "release_missing": False, "error": None}
 User = get_user_model()
 
 
+@pytest.fixture(autouse=True)
+def mock_image_validation():
+    """Image registry checks hit the network; they are not what these helper tests verify."""
+    with patch("apps.forms.mixins.validate_docker_image") as mock_validate:
+        yield mock_validate
+
+
 class HelmReleaseNotFoundTestCase(TestCase):
     """Tests for classifying helm uninstall errors."""
 
@@ -87,7 +94,7 @@ class CreateAppInstanceTestCase(TestCase):
             "flavor": str(self.flavor.pk),
             "access": "public",
             "port": 8000,
-            "image": "mock.io/some-image",
+            "image": "docker.io/some-image",
             "source_code_url": "https://someurlthatdoesnotexist.com",
             "invenio_tags": "Antibodies|Cells",
         }
@@ -224,7 +231,7 @@ class CreateAppInstanceTestCase(TestCase):
             "flavor": str(self.flavor.pk),
             "access": "draft",
             "port": 8000,
-            "image": "mock.io/some-image",
+            "image": "docker.io/some-image",
             "subdomain": subdomain_name,
         }
 
@@ -304,7 +311,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
         self.name = "test-app-name-original"
         self.description = "app-form-description"
         self.port = 8000
-        self.image = "mock.io/test-image-orig"
+        self.image = "docker.io/test-image-orig"
         self.subdomain_name = "test-subdomain-update-app"
         self.source_code_url = "https://someurlthatdoesnotexist.com"
 
@@ -385,7 +392,7 @@ class UpdateExistingAppInstanceTestCase(TestCase):
             "description": self.description,
             "access": "public",
             "port": self.port,
-            "image": "mock.io/test-image-new",
+            "image": "docker.io/test-image-new",
             "source_code_url": self.source_code_url,
             "subdomain": self.subdomain_name,
             "invenio_tags": "Antibodies|Cells",
@@ -707,7 +714,7 @@ def test_get_subdomain_name():
         "description": "app-form-description",
         "access": "public",
         "port": 9999,
-        "image": "mock.io/some-image",
+        "image": "docker.io/some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
         "subdomain": subdomain,
         "invenio_tags": "Antibodies|Cells",
@@ -739,7 +746,7 @@ def test_get_subdomain_name_no_subdomain_in_form():
         "description": "app-form-description",
         "access": "public",
         "port": 9999,
-        "image": "mock.io/some-image",
+        "image": "docker.io/some-image",
         "source_code_url": "https://someurlthatdoesnotexist.com",
         "invenio_tags": "Antibodies|Cells",
     }
@@ -789,7 +796,7 @@ def test_forms_submit_funding_related_publications_and_enqueue_doi_background_ta
         "flavor": str(flavor.pk),
         "access": "public",
         "port": 8000,
-        "image": "mock.io/some-image-customapp",
+        "image": "docker.io/some-image-customapp",
         "source_code_url": "https://example.org/source",
         "language": "eng",
         "invenio_tags": "Antibodies|Cells",
@@ -842,7 +849,7 @@ def test_dash_form_submit_enqueues_doi_background_task(django_capture_on_commit_
         "flavor": str(flavor.pk),
         "access": "public",
         "port": 8000,
-        "image": "mock.io/some-image-dashapp",
+        "image": "docker.io/some-image-dashapp",
         "source_code_url": "https://example.org/source",
         "language": "eng",
         "invenio_tags": "Antibodies|Cells",
@@ -1284,7 +1291,7 @@ def test_apply_additional_metadata_maps_related_publications_datasets_entries():
     target_metadata = {
         "related_identifiers": [
             {
-                "identifier": "https://mock.io/some-image",
+                "identifier": "https://docker.io/some-image",
                 "scheme": "url",
                 "relation_type": {
                     "id": "isvariantformof",
@@ -1318,7 +1325,7 @@ def test_apply_additional_metadata_maps_related_publications_datasets_entries():
 
     assert related_identifiers == [
         {
-            "identifier": "https://mock.io/some-image",
+            "identifier": "https://docker.io/some-image",
             "scheme": "url",
             "relation_type": {
                 "id": "isvariantformof",

@@ -21,6 +21,10 @@ DELETE_RESOURCE_OK = {"success": True, "release_missing": False, "error": None}
 @patch("apps.tasks.delete_resource")
 class ClaimSubdomainWithMismatchedRowTestCase(TestCase):
     def setUp(self) -> None:
+        # Image registry checks hit the network; not what this test verifies.
+        patcher = patch("apps.forms.mixins.validate_docker_image")
+        self.mock_validate_docker_image = patcher.start()
+        self.addCleanup(patcher.stop)
         self.user = User.objects.create_user("foo1", "foo@test.com", "bar")
         self.project = Project.objects.create_project(name="test-subdomain-claim", owner=self.user, description="")
         self.app_slug = "dashapp"
@@ -49,7 +53,7 @@ class ClaimSubdomainWithMismatchedRowTestCase(TestCase):
             "description": "description",
             "access": "public",
             "port": 8000,
-            "image": "mock.io/test-image",
+            "image": "docker.io/test-image",
             "source_code_url": "https://someurlthatdoesnotexist.com",
             "subdomain": subdomain_name,
             "invenio_tags": "Antibodies|Cells",
