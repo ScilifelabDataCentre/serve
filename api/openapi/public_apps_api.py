@@ -60,6 +60,7 @@ def _get_public_apps(limit: int | None) -> list[dict[str, Any]]:
                     "latest_user_action",
                     "k8s_user_app_status",
                     "k8s_user_app_status__status",
+                    "app_doi",
                 )
             )
 
