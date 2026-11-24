@@ -30,8 +30,7 @@ with open(settings.STATICFILES_DIRS[0] + "/common/departments.json") as f:
     DEPARTMENTS = json.load(f).get("departments", [])
 
 with open(settings.STATICFILES_DIRS[0] + "/common/universities.json") as f:
-    UNIVERSITIES = json.load(f).get("universities", dict())
-    UNIVERSITIES = [(k, v) for k, v in UNIVERSITIES.items()]
+    UNIVERSITIES = list(json.load(f).get("universities", {}).items())
 
 
 def approved_email_domains(organizations):
@@ -43,12 +42,9 @@ def approved_email_domains(organizations):
 
 
 EMAIL_ALLOW_REGEX = re.compile(
-    (
-        r"^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*"
-        + r"(?:"
-        + "|".join(re.escape(domain) for domain in approved_email_domains(UNIVERSITIES))
-        + r")$"
-    ),
+    r"^(?:(?!\b(?:student|stud)\b\.)[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)*(?:"
+    + "|".join(re.escape(domain) for domain in approved_email_domains(UNIVERSITIES))
+    + r")$",
     re.IGNORECASE,
 )
 
