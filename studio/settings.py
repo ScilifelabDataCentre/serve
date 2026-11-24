@@ -500,7 +500,7 @@ DOI_PREFIX = os.getenv("DOI_PREFIX", "10.83812/SCILIFELAB")
 IP = os.environ.get("IP", "127.0.0.1")
 
 DOMAIN = f"studio.{IP}.nip.io"
-AUTH_DOMAIN = os.environ.get("AUTH_DOMAIN", IP)
+AUTH_DOMAIN = IP
 AUTH_PROTOCOL = "http"
 STUDIO_URL = f"http://studio.{IP}.nip.io:8080"
 # To enable sticky sessions for k8s ingress
